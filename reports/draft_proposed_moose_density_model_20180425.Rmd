@@ -1,0 +1,79 @@
+---
+title: "Proposed Moose Density Model"
+author: "Tyler Muhly"
+date: "April 25, 2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Summary
+
+Here I am developing and documenting an approach to model moose (and ungulate) density as a function of vegetation and terrain across caribou range. 
+
+## Analysis Framework 
+
+- generalized linear model
+    - idea here is to be able to 'predict' a moose density from landscape factors related to land use
+    - needs to fit into the simulator, i.e., how it modifies and tracks the landscape
+- two options:
+    1. moose density as direct funtion of vegetation and terrain 
+        - here we take moose density at a relatively corase resolution (e.g., a management unit) and             model it as a fucntion of vegetation adn terrain characteristics sumamrized in the unit
+    2. moose density as fucntion of moose habitat selection (indirectly vegetation and terrain; see           also Serrouya et al. 2011)
+        - here we essentially produce two models, a resoruce seelciton fucntion that uses lcoation data           and models locations (versus available locations) as a fcutnion of vegetation and terrain.             then teh density model is fit as s fucntion of teh sum of RSF scores in a managment unit
+        
+        
+    - the former is simpler to implement adn easier to undersatnd
+    - the latter is useful for staistically idntifying what those high quality habtait pacthes are; rather than defined by expert
+
+## Data
+
+### Ungulates
+- density = stratified random block surveys
+    - these are going to be winter data; may be limtied to <1200m elevation
+    - need to limit data extrapolation to these factors
+- location = telemetry data
+
+### Vegetation and Terrain
+
+- Bec zone; this is important for simualting future climate effects
+- shrub classes/cover
+- wetland calsses/cover
+  - lakes/small lakes
+  - shallow, open ponds - marshes
+- site series?
+- site productivity?
+- sturcutral staeg
+- location fo cutblocks/early seral is improtant
+  - slope
+  - aspect
+  - these interact with cutblocks?
+- elevation
+- forest 
+  - canopy closure
+  - basal area
+  - age
+  - patch size; particularly if open; interaction term?
+- riparian areas
+
+- burned
+
+- need to also accoutn for shelter/thermal cover; itneraction of food and cover?
+
+preferred browse plants typically include willows, red osier dogwood, saskatoon, aspen (Populus tremuloides), high bush cranberry (Viburnum edule), bog birch (Betula glandulosa), lodgepole pine (Pinus contorta), paper birch (Betula papyrifera) and mountain ash (Sorbus sitchensis)  
+
+willows, falsebox (Pachistima myrsinites), balsam (Abies spp.), serviceberry (Amelanchier alnifolia), paper birch, and mountain ash (Sorbus spp.) as preferred winter browse species 
+
+Red-osier dogwood (Cornus stolonifera), red cedar regeneration, Vaccinium spp., and alder are also noted as important winter food sources 
+
+ if directly to moose density need to define 'ideal' patches of habitat
+
+
+### Roads/Infrastructure
+- likely need roads or other measures as proxy for human inlfunece, e.g., hutnign pressure, disturabnc, etc. 
+
+
+## Literature Cited
+Serrouya, R., McLellan, B. N., Boutin, S., Seip, D. R., & Nielsen, S. E. (2011). Developing a population target for an overabundant ungulate for ecosystem restoration. Journal of Applied Ecology, 48(4), 935-942.
