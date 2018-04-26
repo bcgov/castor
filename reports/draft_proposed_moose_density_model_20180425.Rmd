@@ -10,70 +10,107 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Summary
+Here I am developing and documenting an approach to model moose density as a function of vegetation and terrain across caribou range. We completed workshops with caribou and wildlife biologists in British Columbia to identify key drivers of caribou decline and an approach to model those drivers. General consensus was that for mountain woodland cariobu in particular, the numerical response of predators (especially wolves) to increased ungulate (especially moose) density adjacent to cariobu range was teh dominant driver, as it likely resulted in greater predation on caribou. Given the sensitivity of caribou populations to predation, increased predator desnites coudl have significant impacts on caribou populations, even where caribou are secondary prey for predators. Increased shrub and early seral vegetation habitat that typically provides higher quality and quantity food for ungulates adjacent to cariobu range is considered a key driver of increased ungulate density. This shift in habtait is likely facilitated or acceserated by natural resoruce development (particualrlyl forestry) and  cliamte change.
 
-Here I am developing and documenting an approach to model moose (and ungulate) density as a function of vegetation and terrain across caribou range. 
+Here methdos are described for modellign the realtionship between moose food and moose desnity. Thsi si key to undersatdning what habtiat factors are drivign moose density adn distribtuion. In apricualrly this must be expressed in the context of natural resoruce development, as a primary objective here is to establish a linkage between land use simualtion models adn moose density adn distribtuion. 
 
 ## Analysis Framework 
-
-- generalized linear model
-    - idea here is to be able to 'predict' a moose density from landscape factors related to land use
-    - needs to fit into the simulator, i.e., how it modifies and tracks the landscape
-- two options:
-    1. moose density as direct funtion of vegetation and terrain 
-        - here we take moose density at a relatively corase resolution (e.g., a management unit) and             model it as a fucntion of vegetation adn terrain characteristics sumamrized in the unit
-    2. moose density as fucntion of moose habitat selection (indirectly vegetation and terrain; see           also Serrouya et al. 2011)
-        - here we essentially produce two models, a resoruce seelciton fucntion that uses lcoation data           and models locations (versus available locations) as a fcutnion of vegetation and terrain.             then teh density model is fit as s fucntion of teh sum of RSF scores in a managment unit
+- idea here is to be able to 'predict' a moose density from landscape factors related to vegetation and   land use
+    - needs to fit with the simulator, i.e., 'dynamic' covariates must be related to how teh sim             modifies and tracks the landscape
+    - covaraites are related to moose food and cover
+     - 'site' scale measures are related to food, with interaction terms for broader scale measures of         cover and security, i.e., a funtional response model with interaction terms as covariates
+    - consider a generalized additive mixed model (GAMM) since some of these relationships are likely        to be non-linear (e.g., moose may select young and old age forest stands, but not 'middle' age)
+    
+- two modeling options:
+    1. moose density as direct function of vegetation and terrain 
+        - here we take moose density at a relatively coarse resolution (e.g., a management unit) and             model it as a fucntion of vegetation and terrain characteristics summarized in the unit                (i.e., areas and averages)
+    2. moose density as a function of moose habitat selection (indirectly vegetation and terrain; see           also Serrouya et al. 2011)
+        - here we essentially produce two models, a resource selection function that uses moose                 location data, and models those locations (versus available locations) as a function of               vegetation and terrain. Then the density model is fit as a function of the sum of RSF                 scores in a management unit (or perhaps the area of RSF 'bins'; patch sizes and                       connectivity)
         
-        
-    - the former is simpler to implement adn easier to undersatnd
-    - the latter is useful for staistically idntifying what those high quality habtait pacthes are; rather than defined by expert
+    - the former is simpler to implement and easier to understand conceptually, but requires a priori       identification of 'good' habtiat patches or taken 'average' values of covariates over large           area, which is likely to reduce our ability to identify important habitat features by           
+      over-generalizing
+    - the latter is better for directly identifying what the high quality habitat patches are; rather       than a priori, but depends on availablity of moose location data; also theoretically it may be        more appealing, as it links the habitat selection process to animal density, i.e., if the two         are positively correlated it suggests a fitness consequence of higher-value habitat                   (i.e., population growth is a function of fitness 'aquired' from habitat; Matthiopoulos et al.        2015)  
 
 ## Data
 
 ### Ungulates
-- density = stratified random block surveys
+- depdendnt variables int the model(s)
+- density = mostly stratified random block (SRB) surveys
     - these are going to be winter data; may be limtied to <1200m elevation
     - need to limit data extrapolation to these factors
-- location = telemetry data
+- location = winter telemetry data and/or moose observations from SRB surveys 
+  - use typical telemetry data filters, i.e., remove 
 
 ### Vegetation and Terrain
+- independent covraites in the model (possible source in parantheses):
+    - for the former approach (above), these need to be summarized by managment unit, as areas or           averages; for latter approach, these an be measured specifically at locations (i.e., if need to       define 'ideal' patches of habitat)
+        - BEC variant (BEC); site series?
+        - veg class/type
+          - alpine, wetland, upland (VRI bclcs_level_3)
+          - treed: conifer, broadleaf, mixed; shrub:, tall, low; herb, bryoid,  snow/ice, rock/rubble,             exposed (VRI bclcs_level_4)
+        - shrub crown closure (VRI; can this be simulated?)
+        - shrub height (VRI can this be simulated?)
+        - shrub spp.???
+        - soil moisture (VRI)
+        - soil nutrient regime (VRI)
+        - distance to wetland (i.e., small lake, ponds or marches; or wetland class)
+        - distance to riparian (i.e., streams, creeks, rivers; not ephemeral)
+        - site index (VRI; estimated)
+        - disturbance type (burned, cut, insect, unknown/other; VRI? + fire perimeters + cutblocks)
+        - disturbance 'recovery'? (some data on silviculture?)
+        - slope (DEM)
+        - aspect (DEM)
+        - elevation (DEM)
+        - forest
+          - crown closure (VRI; can this be simulated?)
+          - basal area (VRI; can this be simulated?)
+          - age/projected age (VRI)
+          - leading species percent (VRI)
+          - stand density (VRI; can this be simulated?)
+        - functional response covariates (essentially interactions between cover/safety and food)
+          - distance to treed conifer patch greater than 80(?) years old (from VRI; interacts with                 shrub crown closure, veg class level 4, distance to wetland, distance to riparian,                     disturbance type)
+          - distance to road (interacts with shrub crown closure, veg class level 4, distance to                   wetland, distance to riparian, disturbance type)
+          - patch (polygon) size (VRI; interacts with disturbance type)
 
-- Bec zone; this is important for simualting future climate effects
-- shrub classes/cover
-- wetland calsses/cover
-  - lakes/small lakes
-  - shallow, open ponds - marshes
-- site series?
-- site productivity?
-- sturcutral staeg
-- location fo cutblocks/early seral is improtant
-  - slope
-  - aspect
-  - these interact with cutblocks?
-- elevation
-- forest 
-  - canopy closure
-  - basal area
-  - age
-  - patch size; particularly if open; interaction term?
-- riparian areas
 
-- burned
+preferred browse plants: willows, red osier dogwood, saskatoon, aspen (Populus tremuloides), high bush cranberry (Viburnum edule), bog birch (Betula glandulosa), lodgepole pine (Pinus contorta), paper birch (Betula papyrifera) and mountain ash (Sorbus sitchensis); willows, falsebox (Pachistima myrsinites), balsam (Abies spp.), serviceberry (Amelanchier alnifolia), paper birch, and mountain ash (Sorbus spp.)  preferred winter browse species; Red-osier dogwood (Cornus stolonifera), red cedar regeneration, Vaccinium spp., and alder  also  important winter food.
 
-- need to also accoutn for shelter/thermal cover; itneraction of food and cover?
-
-preferred browse plants typically include willows, red osier dogwood, saskatoon, aspen (Populus tremuloides), high bush cranberry (Viburnum edule), bog birch (Betula glandulosa), lodgepole pine (Pinus contorta), paper birch (Betula papyrifera) and mountain ash (Sorbus sitchensis)  
-
-willows, falsebox (Pachistima myrsinites), balsam (Abies spp.), serviceberry (Amelanchier alnifolia), paper birch, and mountain ash (Sorbus spp.) as preferred winter browse species 
-
-Red-osier dogwood (Cornus stolonifera), red cedar regeneration, Vaccinium spp., and alder are also noted as important winter food sources 
-
- if directly to moose density need to define 'ideal' patches of habitat
-
+- want these to be as finely spatially grained as possible adn a diversity of sources and types of data is a good thing (Zeller et al. 2017)
 
 ### Roads/Infrastructure
-- likely need roads or other measures as proxy for human inlfunece, e.g., hutnign pressure, disturabnc, etc. 
+- roads are a  proxy for human influence, e.g., hunting pressure, disturbance, etc.
+- integrated roads layer
+- use as a functional response covariate
+
+## Fitting the Model
+For option 1:
+- fit Poisson or negative binomial GAM 
+  - may want to consider a spatial random effect; something to account for regional variation; maybe      dominant BEC zone?
+
+For option 2:
+- first fit logitisc regresion GAMM to moose location data; probably doing a 'third order' RSF here      (i.e., selection of habitat patches within a home range)
+  - sample habitat covariates at 'used' locations (telemetry, survey obs) and comapre those to habtiat     at randomly drawn locations within a home range (if telemetry data) or survey area (if from SRB        data)
+  - mixed model because can include random effects for individual moose (Gillies et al. 2006) and         perhaps also domintant BEC zone 
+- then fit Poisson or negative binomial GAM 
+
+Other things to consider:
+- follow Zuur's data exploration protocols
+- need to align location and density data with 'dynamic' covariates (i.e., disturbance, age) as much    as possible
+  - could we use 'archived' VRI, backcast VRI?
+
+
+## Validation
+- cross-validation likely the most viable approach, but could use SRB data to validate a                telemetry-based model
+  - consider geographically adn/or temporally partitioned k-fold
+
+
 
 
 ## Literature Cited
+Gillies, C. S., Hebblewhite, M., Nielsen, S. E., Krawchuk, M. A., Aldridge, C. L., Frair, J. L., ... & Jerde, C. L. (2006). Application of random effects to the study of resource selection by animals. Journal of Animal Ecology, 75(4), 887-898.
+
+Matthiopoulos, J., Fieberg, J., Aarts, G., Beyer, H. L., Morales, J. M., & Haydon, D. T. (2015). Establishing the link between habitat selection and animal population dynamics. Ecological Monographs, 85(3), 413-436.
+
 Serrouya, R., McLellan, B. N., Boutin, S., Seip, D. R., & Nielsen, S. E. (2011). Developing a population target for an overabundant ungulate for ecosystem restoration. Journal of Applied Ecology, 48(4), 935-942.
+
+Zeller, K. A., McGarigal, K., Cushman, S. A., Beier, P., Vickers, T. W., & Boyce, W. M. (2017). Sensitivity of resource selection and connectivity models to landscape definition. Landscape Ecology, 32(4), 835-855.
