@@ -1,6 +1,6 @@
 ## Caribou and Land Use Simulator
 ### Usage
-The code here is currently in development and likely will not fucntion. Contact tyler.muhly@gov.bc.ca for questions.  
+The code here is currently in development and likely will not function. Contact tyler.muhly@gov.bc.ca for questions.  
 
 ### Requirements
 N/A

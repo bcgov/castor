@@ -29,7 +29,7 @@ Here methdos are described for modellign the realtionship between moose food and
         
     - the former is simpler to implement and easier to understand conceptually, but requires a priori       identification of 'good' habtiat patches or taken 'average' values of covariates over large           area, which is likely to reduce our ability to identify important habitat features by           
       over-generalizing
-    - the latter is better for directly identifying what the high quality habitat patches are; rather       than a priori, but depends on availablity of moose location data; also theoretically it may be        more appealing, as it links the habitat selection process to animal density, i.e., if the two         are positively correlated it suggests a fitness consequence of higher-value habitat                   (i.e., population growth is a function of fitness 'aquired' from habitat; Matthiopoulos et al.        2015)  
+    - the latter is better for directly identifying what the high quality habitat patches are; rather       than a priori, but depends on availablity of moose location data; also theoretically it may be        more appealing, as it links the habitat selection process to animal density, i.e., if the two         are positively correlated it suggests a fitness consequence of higher-value habitat                   (i.e., population growth is a function of fitness 'aquired' from habitat, which is related to         habitat use; Matthiopoulos et al. 2015)  
 
 ## Data
 
