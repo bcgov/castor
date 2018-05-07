@@ -19,7 +19,7 @@ defineModule(sim, list(
   reqdPkgs = list("raster","gdistance", "sp", "latticeExtra"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter(".roadingInterval", "numeric", 10, NA, NA, "This describes the simulation time at which roads should be build"),
+    defineParameter("roadingInterval", "numeric", 10, NA, NA, "This describes the simulation time at which roads should be build"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -69,7 +69,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- sim$roadCLUS.getCostSurface(sim)
       sim <- sim$roadCLUS.getMST(sim)
       sim <- sim$roadCLUS.buildRoads(sim)
-      sim <- scheduleEvent(sim, P(sim)$.roadingInterval, "roadCLUS", "buildRoads")
+      sim <- scheduleEvent(sim, P(sim)$roadingInterval, "roadCLUS", "buildRoads")
     },
     save = {
 
