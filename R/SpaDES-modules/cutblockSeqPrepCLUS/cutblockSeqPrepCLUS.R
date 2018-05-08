@@ -20,8 +20,10 @@ defineModule(sim, list(
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
     defineParameter("dbGeom", "character", 'geom', NA, NA, "The name of the postgres file geom column"),
+    defineParameter("nameBoundary", "character", 'name', NA, NA, desc = "Name of the boundary file"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
+    defineParameter("cutblockSeqInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -33,7 +35,7 @@ defineModule(sim, list(
     #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    #createsOutput("objectName", "objectClass", "output object description", ...),
+    createsOutput("landings", "SpatialPoint", "This describes a series of point locations representing the cutblocks or their landings", ...)
     #createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
 ))
@@ -44,21 +46,23 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
     init = {
       sim <- sim$cutblockSeqPrepCLUSdbConnect(sim)
       sim <- scheduleEvent(sim, P(sim)$endTime, "cutblockSeqPrepCLUS", "endConnect")
-      
       sim <- sim$cutblockSeqPrepCLUSgetBoundaries(sim)
-      # do stuff for this event
-      #sim <- Init(sim)
-
+      sim <- scheduleEvent(sim, P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep")
+      sim$landings<-c(1,2)
       # schedule future event(s)
       #sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "cutblockSeqPrepCLUS", "plot")
       #sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "cutblockSeqPrepCLUS", "save")
     },
-    plot = {
-    },
-    save = {
+    cutblockSeqPrep = {
+      plot(sim$landings)
+      #sim <- scheduleEvent(sim, P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep")
     },
     endConnect = {
       sim <- sim$cutblockSeqPrepCLUSdbDisconnect(sim)
+    },    
+    plot = {
+    },
+    save = {
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -82,21 +86,17 @@ Plot <- function(sim) {
 cutblockSeqPrepCLUSdbConnect <- function(sim) {
   sim$conn<-dbConnect("PostgreSQL",dbname= P(sim)$dbName, host=P(sim)$dbHost, port=P(sim)$dbPort ,user=P(sim)$dbUser, password=P(sim)$dbPassword)
   return(invisible(sim))
-
 }
+
 cutblockSeqPrepCLUSdbDisconnect <- function(sim) {
   dbDisconnect(sim$conn)
   return(invisible(sim))
-  
 }
+
 cutblockSeqPrepCLUSgetBoundaries <- function(sim) {
-  name=c("gisdata","gcbp_carib_polygon")
-  
-  boundaries<-pgGetGeom(sim$conn, name=name,  geom = P(sim)$dbGeom)
+  boundaries<-pgGetGeom(sim$conn, name=P(sim)$nameBoundary,  geom = P(sim)$dbGeom)
   sim$boundaries<-subset(boundaries , herd_name == P(sim)$herds[[1]] | herd_name == P(sim)$herds[[2]] |  herd_name == P(sim)$herds[[3]] )
-  
   plot(sim$boundaries)
-  
   return(invisible(sim))
 }
 .inputObjects <- function(sim) {
@@ -107,4 +107,3 @@ cutblockSeqPrepCLUSgetBoundaries <- function(sim) {
 
   return(invisible(sim))
 }
-### add additional events as needed by copy/pasting from above
