@@ -22,7 +22,7 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                 titlePanel("Sample Shiny App"),
                 sidebarLayout(
                   sidebarPanel(
-                    
+                    img(src = "clus-logo.png"),
                     # Select type of trend to plot
                     selectInput(inputId = "type", label = strong("Select data"),
                                 choices = unique(trend_data$type),
@@ -45,9 +45,10 @@ conditionalPanel(condition = "input.smoother == true",
 
 # Output: Description, lineplot, and reference
 mainPanel(
+  
   plotOutput(outputId = "lineplot", height = "300px"),
   textOutput(outputId = "desc"),
-  tags$a(href = "https://www2.gov.bc.ca/", "Source: Gov BC", target = "_blank")
+  tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank")
 )
 )
 )
@@ -67,6 +68,11 @@ server <- function(input, output) {
         )
   })
   
+  datasetInput <- reactive({
+    switch(input$type,
+           "test1" = test1,
+           "test" = test)
+  }) 
   
   # Create scatterplot object the plotOutput function is expecting
   output$lineplot <- renderPlot({
@@ -81,11 +87,10 @@ server <- function(input, output) {
     }
   })
   
-  # Pull in description of trend
-  output$desc <- renderText({
-    trend_text <- filter(trend_description, type == input$type) %>% pull(text)
-    paste(trend_text, "The index is set to 1.0 on January 1, 2004 and is calculated only for US search traffic.")
+  output$table<-renderTable({
+    datasetInput()
   })
+  
 }
 
 # Create Shiny object
