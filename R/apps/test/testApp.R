@@ -4,6 +4,10 @@ library(shinythemes)
 library(dplyr)
 library(readr)
 library(ggplot2)
+#install.packages('bcmaps.rdata', repos='https://bcgov.github.io/drat/')
+library(bcmaps)
+library(leaflet)
+
 # Load data
 #trend_data <- read_csv("data/trend_data.csv")
 date<-format(seq(as.Date("01/01/2007", "%m/%d/%Y"), as.Date("01/30/2007", "%m/%d/%Y"), by = "1 day"))
@@ -12,45 +16,46 @@ trend_data <- data.frame(rbind(cbind(as.numeric(rnorm(30,0,1)), date , "test"),c
 names(trend_data)<-c("close","date", "type")
 trend_data$close<-as.numeric(trend_data$close)
 trend_data$date<-as.Date(trend_data$date)
-str(trend_data)
-
-
+#check the data frame
+#str(trend_data)
 trend_description <- "This is a test"
+
 
 # Define UI
 ui <- fluidPage(theme = shinytheme("lumen"),
-                titlePanel("Sample Shiny App"),
+                titlePanel("Historical human disturbance and caribou"),
                 sidebarLayout(
-                  sidebarPanel(
-                    img(src = "clus-logo.png"),
-                    # Select type of trend to plot
-                    selectInput(inputId = "type", label = strong("Select data"),
+                    sidebarPanel(
+                      # add the caribou recovery logo
+                      img(src = "clus-logo.png", height = 100, width = 150),
+                      # Select type of trend to plot
+                      selectInput(inputId = "type", label = strong("Select data"),
                                 choices = unique(trend_data$type),
                                 selected = "test"),
-# Select date range to be plotted
-dateRangeInput("date", strong("Date range"), start = "2007-01-01", end = "2007-01-05",
-               min = "2007-01-01", max = "2007-01-30"),
+                      # Select date range to be plotted
+                      dateRangeInput("date", strong("Date range"), start = "2007-01-01", end = "2007-01-05",
+                                                                    min = "2007-01-01", max = "2007-01-30"),
 
-# Select whether to overlay smooth trend line
-checkboxInput(inputId = "smoother", label = strong("Overlay smooth trend line"), value = FALSE),
+                      # Select whether to overlay smooth trend line
+                      checkboxInput(inputId = "smoother", label = strong("Overlay smooth trend line"), value = FALSE),
 
-# Display only if the smoother is checked
-conditionalPanel(condition = "input.smoother == true",
-                 sliderInput(inputId = "f", label = "Smoother span:",
-                             min = 0.01, max = 1, value = 0.67, step = 0.01,
-                             animate = animationOptions(interval = 100)),
-                 HTML("Higher values give more smoothness.")
-)
+                      # Display only if the smoother is checked
+                      conditionalPanel(condition = "input.smoother == true",
+                            sliderInput(inputId = "f", label = "Smoother span:",
+                                 min = 0.01, max = 1, value = 0.67, step = 0.01,
+                                    animate = animationOptions(interval = 100)),
+                              HTML("Higher values give more smoothness.")
+                                       )
 ),
 
 # Output: Description, lineplot, and reference
 mainPanel(
-  
-  plotOutput(outputId = "lineplot", height = "300px"),
-  textOutput(outputId = "desc"),
-  tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank")
-)
-)
+      leafletOutput("mymap"),
+      plotOutput(outputId = "lineplot", height = "300px"),
+      textOutput(outputId = "desc"),
+      tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank")
+        )
+        )
 )
 
 # Define server function
@@ -87,8 +92,14 @@ server <- function(input, output) {
     }
   })
   
-  output$table<-renderTable({
-    datasetInput()
+  output$mymap <- renderLeaflet({
+    m <- leaflet() %>%
+      addTiles() %>%
+      setView(lng=-127.6476, lat=53.7267 , zoom=5) #%>%
+      #addRasterImage(raster(), colors = pal, opacity = 0.8) %>%
+      #addLegend(pal = pal, values = values(r),
+       #         title = "Surface temp")
+    m
   })
   
 }
