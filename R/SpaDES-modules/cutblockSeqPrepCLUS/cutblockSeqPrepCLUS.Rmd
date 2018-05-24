@@ -1,19 +1,18 @@
 ---
-title: "roadCLUS"
-author: "Kyle Lochhead"
-date: "13 April 2018"
+title: "cutblockSeqPrepCLUS"
+author: ""
+date: "04 May 2018"
 output: pdf_document
 ---
 
 # Overview
 
-The roading module simulates the development of future roads within a landscape object (rasterStack with defined RasterLayers). Based on a user defined set of points or 'landings' the roading module connects these points to the nearest road section. A elast cost path is used to connect landing to the road network. For cases with more than one landing a minimum spanning tree is used.
+The cutblockSeqPrep uses a defined area to grab the spatial locations of cutblocks that have been harvested over the past 50 years in BC.
+
 
 ## R Markdown
 
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
 
-For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 
 # Usage
 
@@ -21,7 +20,7 @@ For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 library(igraph)
 library(SpaDES.core)
 
-moduleDir <- file.path("H:/Documents/SpaDESintro/modules")
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
@@ -32,7 +31,7 @@ parameters <- list(
   #module1 = list(param1 = value1, param2 = value2),
   #module2 = list(param1 = value1, param2 = value2)
 )
-modules <- list("roadCLUS")
+modules <- list("cutblockSeqPrepCLUS")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -64,7 +63,7 @@ Write what is saved.
 ## Input data
 
 How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("roadCLUS", "path/to/modules/dir")` may be sufficient.
+If `sourceURL` is specified, `downloadData("cutblockSeqPrepCLUS", "path/to/modules/dir")` may be sufficient.
 
 ## Output data
 
