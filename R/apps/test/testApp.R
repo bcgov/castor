@@ -7,6 +7,7 @@ library(ggplot2)
 #install.packages('bcmaps.rdata', repos='https://bcgov.github.io/drat/')
 library(bcmaps)
 library(leaflet)
+library(rpostgis)
 
 # Load data
 #trend_data <- read_csv("data/trend_data.csv")
@@ -19,6 +20,21 @@ trend_data$date<-as.Date(trend_data$date)
 #check the data frame
 #str(trend_data)
 trend_description <- "This is a test"
+###postgres parameters
+dbname = 'ima'
+host='localhost'
+port='5432'
+user='postgres'
+password='postgres'
+#C("schema", "tbl_name")
+name=c("gisdata","gcbp_carib_polygon")
+geom = "geom"
+
+#-------------------------------------------------------------------------------------------------
+##Get a connection to the postgreSQL server
+#conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
+##Import a shapefile from the postgres server 
+#my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
 
 
 # Define UI
@@ -50,7 +66,7 @@ ui <- fluidPage(theme = shinytheme("lumen"),
 
 # Output: Description, lineplot, and reference
 mainPanel(
-      leafletOutput("mymap"),
+      leafletOutput("map"),
       plotOutput(outputId = "lineplot", height = "300px"),
       textOutput(outputId = "desc"),
       tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank")
@@ -69,7 +85,7 @@ server <- function(input, output) {
     trend_data %>%
       filter(
         type == input$type,
-        as.Date(date) > as.POSIXct(input$date[1]) & as.Date(date) < as.POSIXct(input$date[2])
+        date > input$date[1] & date < input$date[2]
         )
   })
   
@@ -91,17 +107,8 @@ server <- function(input, output) {
       lines(smooth_curve, col = "#E6553A", lwd = 3)
     }
   })
-  
-  output$mymap <- renderLeaflet({
-    m <- leaflet() %>%
-      addTiles() %>%
-      setView(lng=-127.6476, lat=53.7267 , zoom=5) #%>%
-      #addRasterImage(raster(), colors = pal, opacity = 0.8) %>%
-      #addLegend(pal = pal, values = values(r),
-       #         title = "Surface temp")
-    m
-  })
-  
+  map = leaflet() %>% addTiles() %>% setView(-93.65, 42.0285, zoom = 17)
+  output$map <- renderLeaflet(map)
 }
 
 # Create Shiny object
