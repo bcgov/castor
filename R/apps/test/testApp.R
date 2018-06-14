@@ -21,23 +21,7 @@ trend_data$date<-as.Date(trend_data$date)
 #check the data frame
 #str(trend_data)
 trend_description <- "This is a test"
-###postgres parameters
-dbname = 'ima'
-host='localhost'
-port='5432'
-user='postgres'
-password='postgres'
-#C("schema", "tbl_name")
-name=c("gisdata","gcbp_carib_polygon")
-geom = "geom"
-
 #-------------------------------------------------------------------------------------------------
-##Get a connection to the postgreSQL server
-conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
-##Import a shapefile from the postgres server 
-my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
-#close connection
-dbDisconnect(conn)
 
 
 # Define UI
@@ -46,7 +30,7 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                 sidebarLayout(
                     sidebarPanel(
                       # add the caribou recovery logo
-                      img(src = "clus-logo.png", height = 100, width = 150),
+                      img(src = "clus-logo.png", height = 100, width = 100),
                       # Select type of trend to plot
                       selectInput(inputId = "type", label = strong("Select data"),
                                 choices = unique(trend_data$type),
@@ -112,8 +96,7 @@ server <- function(input, output) {
   })
   
   #Create the map object
-  popup<-paste0("test")
-  ###postgres parameters
+  ###get data from postgres parameters
   dbname = 'ima'
   host='localhost'
   port='5432'
@@ -122,20 +105,47 @@ server <- function(input, output) {
   #C("schema", "tbl_name")
   name=c("gisdata","gcbp_carib_polygon")
   geom = "geom"
-  
+  my_spdf.2$risk_stat
   #-------------------------------------------------------------------------------------------------
   ##Get a connection to the postgreSQL server
   conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
   ##Import a shapefile from the postgres server 
-  my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
+  #my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
+  my_spdf.2 <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  my_spdf.2  <- my_spdf.2[which(my_spdf.2@data$herd_name != "NA"), ]
   #close connection
   dbDisconnect(conn)
-  my_spdf.2 <- spTransform(my_spdf, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
   
-  output$map = renderLeaflet({ leaflet() %>% setView(-127.6476, 53.7267, 4) %>%
-    addTiles() %>% 
-    addPolygons(data=my_spdf.2, weight = 2, fillColor = "yellow", popup = popup)
+  #set the popup label
+  popup<-paste0(my_spdf.2$herd_name)
+  #set the pallet
+  pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  my_spdf.2$risk_stat)
+  output$map = renderLeaflet({ leaflet() %>% 
+      setView(-121.7476, 53.7267, 4) %>%
+      addTiles() %>% 
+      addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
+      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      addPolygons(data=my_spdf.2, popup = popup, fillColor = ~pal(risk_stat), 
+                  weight = 1,
+                  opacity = 1,
+                  color = "white",
+                  dashArray = "1",
+                  fillOpacity = 0.7,
+                  highlight = highlightOptions(
+                    weight = 4,
+                    color = "white",
+                    dashArray = "",
+                    fillOpacity = 0.4,
+                    bringToFront = TRUE),
+               popupOptions =  popupOptions(autoPan = TRUE)) %>%
+      addLayersControl(baseGroups = c("WorldImagery","OpenStreetMap"), options = layersControlOptions(collapsed = FALSE)) %>%
+      addMeasure(position = "topleft")%>%
+      addScaleBar(position = "bottomright")%>%
+      addEasyButton(easyButton(icon="fa-globe", title="Zoom to Level 1", onClick=JS("function(btn, map){ map.setZoom(4); }"))) %>%
+      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"),
+                title = "Risk Status", opacity = 1)
   })
+  
 }
 
 # Create Shiny object
