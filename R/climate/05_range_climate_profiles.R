@@ -38,7 +38,7 @@ require (ggplot2)
 require (reshape2)
 
 #============================================
-# Load, clean adn prep the data for plotting 
+# Load, clean and prep the data for plotting 
 #===========================================
 data <- read.table ("model\\model_data_20180502.csv", header = T, stringsAsFactors = T, sep = ",")
 data.clean <- data [complete.cases (data), ]
@@ -528,6 +528,9 @@ data.nffd <- dplyr::select (data.clean.used, herdname, nffd.sp.1990, nffd.sp.201
                             nffd.sp.2085)
 data.bec <- dplyr::select (data.clean.used, herdname, bec.curr.simple, bec.2050.simple, bec.2080.simple)
 
+# write.table (data.clean.used,
+#              file = "C:\\Work\\caribou\\climate_analysis\\shiny_app\\data\\data_clean_used.csv",
+#              sep = ",")
 # need to put the data into long fromat for plotting
 ##############
 # HERD LEVEL #
