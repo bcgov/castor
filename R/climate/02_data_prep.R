@@ -40,18 +40,20 @@ require (dplyr)
 require (rgdal) # for loading and writing spatial data
 require (maptools)
 require (spatstat)
+require (sf)
+require (adehabitatHR)
 
 #=================================
 # Load data
 #=================================
 caribou.range <- readOGR ("caribou\\caribou_herd\\GCPB_CARIBOU_POPULATION_SP\\GCBP_CARIB_polygon.shp", 
                           stringsAsFactors = T)
+prov.bnd <- readOGR ("province\\gpr_000b11a_e.shp", stringsAsFactors = T)
 bec.current <- readOGR ("bec\\BEC_current\\BEC_BIOGEOCLIMATIC_POLY\\BEC_POLY_polygon.shp", 
                           stringsAsFactors = T)
 bec2020.rst <- raster ("bec\\BEC_zone_2020s\\BEC_zone_2020s.tif")
 bec2050.rst <- raster ("bec\\BEC_zone_2050s\\BEC_zone_2050s.tif")
 bec2080.rst <- raster ("bec\\BEC_zone_2080s\\BEC_zone_2080s.tif")
-prov.bnd <- readOGR ("province\\gpr_000b11a_e.shp", stringsAsFactors = T)
 # roads <- readOGR ("roads\\DRA_DGTL_ROAD_ATLAS_DPAR_SP\\RA_DPAR_line.shp")
 roads.1k.rst <- raster ("roads\\dra_dens_1k_tif\\dra_dns_1km.tif")
 roads.27k.rst <- raster ("roads\\dra_dens_27km_tif\\dra_dns_27k.tif")
@@ -369,7 +371,7 @@ rm (canesm2.2085.nffdsp.rst, ccsm4.2085.nffdsp.rst, hadgem.2085.nffdsp.rst, nffd
 rm (canesm2.2085.nffdat.rst, ccsm4.2085.nffdat.rst, hadgem.2085.nffdat.rst, nffdat.2085)
 
 #=======================================================================
-# Define 'study area' boundaries, by Ecotype to allow for random effect
+# Define 'study area' boundaries, by Ecotype 
 #=======================================================================
 # remove Haida Gwaii
 caribou.range <- caribou.range [caribou.range@data$OBJECTID != 138, ] # NOTE: the polygon ID was obtained using ArcGIS; not sure how to get that using R 
@@ -479,9 +481,9 @@ sample.pts.ras.prj@data <- dplyr::full_join (sample.pts.ras.prj@data, sample.pts
 # sample.pts <- readOGR ("samplepoints\\sample_points_final_20180330.shp", 
 #                        stringsAsFactors = T)
 
-#======================================
+#==================================================
 # Sample historic and current climate at locations
-#======================================
+#=================================================
 sample.pts.clim.curr <- raster::extract (clim.current.brick, sample.pts.ras.prj, 
                                          method = 'simple',
                                          factors = F, df = T) 
@@ -759,3 +761,435 @@ names (data) [73] <- "cut.perc"
 data$pttype <- as.integer (data$pttype)
 write.table (data, "C:\\Work\\caribou\\climate_analysis\\data\\model\\model_data_20180502.csv", 
              sep = ",")
+
+#===================================
+# Caribou Home Range Scale Analysis
+#==================================
+
+#=================================
+# Load the Telemetry Data
+#=================================
+# needed to convert from multipoitn to pint geomtery in arcgis 
+prov.locs <- sf::st_read (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry.gdb",
+                          layer = "spi_telemetry_obs_all_caribou_20180502") # errors reading with OGR for soem reason; used SF to read 
+prov.locs.single <- st_cast (prov.locs, "POINT") # function in SF to switch form multipoint to Point feature; was having difficulties working with multipoint data 
+prov.locs.single <- as (prov.locs.single, "Spatial") # and then coerce to to SpatialPoints here; https://cran.r-project.org/web/packages/sf/vignettes/sf2.html
+
+boreal.locs <- readOGR ("C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape\\boreal_caribou_telemetry_2013_2018.shp")
+telem.crs <- proj4string (caribou.range.boreal)
+boreal.locs.prj <- spTransform (boreal.locs, CRS = telem.crs) 
+
+writeOGR (obj = prov.locs.single, 
+          dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape_raw", 
+          layer = "spi_telemetry_point_raw", driver = "ESRI Shapefile")
+
+#=================================
+#  Prepare the Telemetry Data
+#=================================
+# freq.year <- table (prov.locs.single@data$OBSERVATION_YEAR) # frequency of locations by year
+# divided data by season
+# identified based on lit. review; a decent amount of variability there, but settled on:
+# calving/summer/fall	(summer) = 15-May to 31-Oct 
+# early winter =	01-Nov	to 15-Jan
+# late winter	= 16-Jan to 14-May
+# note that I tried a seperate calving season, but estimating calving season home ranges was 
+# difficult in the boreal because of apparent variability in calving dates and associated movements
+# resulting in highly variable home range sizes depending if and when the animal moved to calve
+# also, on further reflection I don't know if an animal was male or female, and habitat use
+# of each is obviously different, so I went with a more broader seasonal definition  
+prov.locs.summer <- subset (prov.locs.single, 
+                             prov.locs.single$OBSERVATION_MONTH == 5 & 
+                             prov.locs.single$OBSERVATION_DAY >= 15 |
+                             prov.locs.single$OBSERVATION_MONTH >= 6 &
+                             prov.locs.single$OBSERVATION_MONTH < 11)
+
+prov.locs.early.winter <- subset (prov.locs.single, 
+                                  prov.locs.single$OBSERVATION_MONTH > 10 |
+                                  prov.locs.single$OBSERVATION_MONTH == 1 &
+                                  prov.locs.single$OBSERVATION_DAY < 16)
+
+prov.locs.late.winter <- subset (prov.locs.single, 
+                                 prov.locs.single$OBSERVATION_MONTH == 1 & 
+                                 prov.locs.single$OBSERVATION_DAY > 15 |
+                                 prov.locs.single$OBSERVATION_MONTH == 5 &
+                                 prov.locs.single$OBSERVATION_DAY < 15 |
+                                 prov.locs.single$OBSERVATION_MONTH > 1 &
+                                 prov.locs.single$OBSERVATION_MONTH < 5)
+
+
+
+
+# boreal locations
+# NEED TO WORK ON THESE; IDEA IS TO USE JULIAN DAY
+# https://landweb.modaps.eosdis.nasa.gov/browse/calendar.html
+boreal.locs.prj@data$yr.julian <- c ("as.character(boreal.locs.prj@data$Yr)",
+                                     "as.character(boreal.locs.prj@data$Julian)") 
+
+boreal.locs.prj@data <- mutate (boreal.locs.prj@data, yr.julian = paste(boreal.locs.prj@data$Yr, 
+                                                                        boreal.locs.prj@data$Julian,
+                                                                        sep = "")) 
+boreal.locs.prj@data$yr.julian <- as.numeric (boreal.locs.prj@data$yr.julian)  
+
+
+
+
+# boreal locations
+# NEED TO WORK HERE
+boreal.locs.calving <- boreal.locs.calving [boreal.locs.calving$Collar %in% 
+                                            names (table (boreal.locs.calving$Collar)) [table (boreal.locs.calving$Collar) >= 50] , ]
+
+plot (boreal.locs)
+
+
+
+# Provincial Data
+# clip data by study areas/ecotypes
+# BOREAL
+prov.locs.summer.boreal <- prov.locs.summer [caribou.range.boreal.diss, ] # clip locations to boreal
+prov.locs.summer.boreal@data$pttype <- 1
+prov.locs.summer.boreal@data$ptID <- 1:38121
+prov.locs.summer.boreal@data$ecotype <- "Boreal"
+prov.locs.summer.boreal@data$season <- "Summer"
+
+prov.locs.early.winter.boreal <- prov.locs.early.winter [caribou.range.boreal.diss, ] 
+prov.locs.early.winter.boreal@data$pttype <- 1
+prov.locs.early.winter.boreal@data$ptID <- 38122:53318
+prov.locs.early.winter.boreal@data$ecotype <- "Boreal"
+prov.locs.early.winter.boreal@data$season <- "Early Winter"
+
+prov.locs.late.winter.boreal <- prov.locs.late.winter [caribou.range.boreal.diss, ] 
+prov.locs.late.winter.boreal@data$pttype <- 1
+prov.locs.late.winter.boreal@data$ptID <- 53319:82233
+prov.locs.late.winter.boreal@data$ecotype <- "Boreal"
+prov.locs.late.winter.boreal@data$season <- "Late Winter"
+
+# MOUNTAIN
+prov.locs.summer.mount <- prov.locs.summer [caribou.range.mtn.diss, ] # clip locations to mountain
+prov.locs.summer.mount@data$pttype <- 1
+prov.locs.summer.mount@data$ptID <- 82234:135309
+prov.locs.summer.mount@data$ecotype <- "Mountain"
+prov.locs.summer.mount@data$season <- "Summer"
+
+prov.locs.early.winter.mount <- prov.locs.early.winter [caribou.range.mtn.diss, ] # clip locations to mountain
+prov.locs.early.winter.mount@data$pttype <- 1
+prov.locs.early.winter.mount@data$ptID <- 135310:156912
+prov.locs.early.winter.mount@data$ecotype <- "Mountain"
+prov.locs.early.winter.mount@data$season <- "Early Winter"
+
+prov.locs.late.winter.mount <- prov.locs.late.winter [caribou.range.mtn.diss, ] # clip locations to mountain
+prov.locs.late.winter.mount@data$pttype <- 1
+prov.locs.late.winter.mount@data$ptID <- 156913:199393
+prov.locs.late.winter.mount@data$ecotype <- "Mountain"
+prov.locs.late.winter.mount@data$season <- "Late Winter"
+
+# NORTHERN
+prov.locs.summer.north <- prov.locs.summer [caribou.range.north.diss, ] # clip locations to northern
+prov.locs.summer.north@data$pttype <- 1
+prov.locs.summer.north@data$ptID <- 199394:321122
+prov.locs.summer.north@data$ecotype <- "Northern"
+prov.locs.summer.north@data$season <- "Summer"
+
+prov.locs.early.winter.north <- prov.locs.early.winter [caribou.range.north.diss, ] 
+prov.locs.early.winter.north@data$pttype <- 1
+prov.locs.early.winter.north@data$ptID <- 321123:380720
+prov.locs.early.winter.north@data$ecotype <- "Northern"
+prov.locs.early.winter.north@data$season <- "Early Winter"
+
+prov.locs.late.winter.north <- prov.locs.late.winter [caribou.range.north.diss, ] 
+prov.locs.late.winter.north@data$pttype <- 1
+prov.locs.late.winter.north@data$ptID <- 380721:497401
+prov.locs.late.winter.north@data$ecotype <- "Northern"
+prov.locs.late.winter.north@data$season <- "Late Winter"
+
+# remove animals with <50 locations  
+# Seaman, D. E., Millspaugh, J. J., Kernohan, B. J., Brundige, G. C., Raedeke, K. J., & Gitzen, R. A. (1999). Effects of sample size on kernel home range estimates. The journal of wildlife management, 739-747.
+# Kernohan, B. J., R. A. Gitzen, and J. J. Millspaugh. 2001. Analysis of animal space use and movements. Pages 125–166 in J. J. Millspaugh and J. M. Marzluff, editors. Radio tracking and animal populations. Academic Press, San Diego, CA, USA
+prov.locs.summer.boreal <- prov.locs.summer.boreal [prov.locs.summer.boreal$ANIMAL_ID %in% 
+                                                     names (table (prov.locs.summer.boreal$ANIMAL_ID)) [table (prov.locs.summer.boreal$ANIMAL_ID) >= 50] , ]
+prov.locs.summer.mount <- prov.locs.summer.mount [prov.locs.summer.mount$ANIMAL_ID %in% 
+                                                      names (table (prov.locs.summer.mount$ANIMAL_ID)) [table (prov.locs.summer.mount$ANIMAL_ID) >= 50] , ]
+prov.locs.summer.north <- prov.locs.summer.north [prov.locs.summer.north$ANIMAL_ID %in% 
+                                                    names (table (prov.locs.summer.north$ANIMAL_ID)) [table (prov.locs.summer.north$ANIMAL_ID) >= 50] , ]
+prov.locs.early.winter.boreal <- prov.locs.early.winter.boreal [prov.locs.early.winter.boreal$ANIMAL_ID %in% 
+                                                    names (table (prov.locs.early.winter.boreal$ANIMAL_ID)) [table (prov.locs.early.winter.boreal$ANIMAL_ID) >= 50] , ]
+prov.locs.early.winter.mount <- prov.locs.early.winter.mount [prov.locs.early.winter.mount$ANIMAL_ID %in% 
+                                                           names (table (prov.locs.early.winter.mount$ANIMAL_ID)) [table (prov.locs.early.winter.mount$ANIMAL_ID) >= 50] , ]
+prov.locs.early.winter.north <- prov.locs.early.winter.north [prov.locs.early.winter.north$ANIMAL_ID %in% 
+                                                          names (table (prov.locs.early.winter.north$ANIMAL_ID)) [table (prov.locs.early.winter.north$ANIMAL_ID) >= 50] , ]
+prov.locs.late.winter.boreal <- prov.locs.late.winter.boreal [prov.locs.late.winter.boreal$ANIMAL_ID %in% 
+                                                  names (table (prov.locs.late.winter.boreal$ANIMAL_ID)) [table (prov.locs.late.winter.boreal$ANIMAL_ID) >= 50] , ]
+prov.locs.late.winter.mount <- prov.locs.late.winter.mount [prov.locs.late.winter.mount$ANIMAL_ID %in% 
+                                                                names (table (prov.locs.late.winter.mount$ANIMAL_ID)) [table (prov.locs.late.winter.mount$ANIMAL_ID) >= 50] , ]
+prov.locs.late.winter.north <- prov.locs.late.winter.north [prov.locs.late.winter.north$ANIMAL_ID %in% 
+                                                                names (table (prov.locs.late.winter.north$ANIMAL_ID)) [table (prov.locs.late.winter.north$ANIMAL_ID) >= 50] , ]
+# bind the points together
+prov.locs.all.used <- rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (prov.locs.summer.boreal, 
+                      prov.locs.early.winter.boreal), prov.locs.late.winter.boreal), prov.locs.summer.mount),
+                      prov.locs.early.winter.mount), prov.locs.late.winter.mount),
+                      prov.locs.summer.north), prov.locs.early.winter.north),
+                      prov.locs.late.winter.north) # also, see: sf::st_union?
+prov.locs.all.used@data$ecotype <- as.factor (prov.locs.all.used@data$ecotype)
+prov.locs.all.used@data$season <- as.factor (prov.locs.all.used@data$season)
+
+# Assign new indivudal ID's based on ANIMAL_ID and range
+# looking at HR's in QGIS, clearly there are duplicate animals; 
+# need to re-assign identifiers based on ranges, year and season
+# prov.locs.all.used.herd <- sf::st_join (prov.locs.all.used, # alternative option using sf?
+#                                         caribou.range, 
+#                                         join = st_intersects)
+prov.locs.all.used.herd <- sp::over (prov.locs.all.used, caribou.range[3]) # cloumn 3 is herd name
+prov.locs.all.used.herd$joinID <- 1:469998 # create a joinID to join data on; I did some visual inspection in GIS to see where points fell relative to caribou range and confirmed that the point order is equivalent to ID
+prov.locs.all.used@data$joinID <- 1:469998 
+prov.locs.all.used@data <- dplyr::full_join (prov.locs.all.used@data, prov.locs.all.used.herd, 
+                                         by = c ("joinID" = "joinID")) 
+prov.locs.all.used@data <- mutate (prov.locs.all.used@data, 
+                                   uniqueID = paste (prov.locs.all.used@data$ANIMAL_ID,
+                                                     prov.locs.all.used@data$HERD_NAME,
+                                                     prov.locs.all.used@data$ecotype,
+                                                     prov.locs.all.used@data$season,
+                                                     prov.locs.all.used@data$OBSERVATION_YEAR,
+                                                     sep = "_")) 
+writeOGR (prov.locs.all.used, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape\\spi_locs_all_used.shp", 
+          layer = "spi_locs_all_used", driver = "ESRI Shapefile")
+# remove animals with <50 locations again 
+prov.locs.all.used <- prov.locs.all.used [prov.locs.all.used$uniqueID %in% 
+                        names (table (prov.locs.all.used$uniqueID)) [table (prov.locs.all.used$uniqueID) >= 50] , ]
+
+# rm (prov.locs.calving.boreal, prov.locs.summ.fall.boreal, prov.locs.early.winter.boreal,
+#    prov.locs.late.winter.boreal, prov.locs.calving.mount, prov.locs.summ.fall.mount,
+#    prov.locs.early.winter.mount, prov.locs.late.winter.mount, prov.locs.calving.north,
+#    prov.locs.summ.fall.north, prov.locs.late.winter.north)
+
+#===============================================================
+# "Kernel home range Utiliation Distribution Using adehabitatHR
+#==============================================================
+# https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf
+#  bivariate normal kernel
+# variable h size and interpret visually
+# a subjective visual choice for the smoothing parameter, based on successive trials (Calenge et al. 2011)
+# Hemson, G., Johnson, P., South, A., Kenward, R., Ripley, R., & MACDONALD, D. (2005). Are kernels the mustard? Data from global positioning system (GPS) collars suggests problems for kernel home‐range analyses with least‐squares cross‐validation. Journal of Animal Ecology, 74(3), 455-463.
+# too big to procees all data together, so break into smaller chunks again 
+prov.locs.summer.boreal <- subset (prov.locs.all.used, 
+                                   prov.locs.all.used@data$ecotype == "Boreal" & 
+                                   prov.locs.all.used@data$season == "Summer")
+prov.locs.summer.mount <- subset (prov.locs.all.used, 
+                                  prov.locs.all.used@data$ecotype == "Mountain" & 
+                                  prov.locs.all.used@data$season == "Summer")
+prov.locs.summer.north <- subset (prov.locs.all.used, 
+                                  prov.locs.all.used@data$ecotype == "Northern" & 
+                                  prov.locs.all.used@data$season == "Summer")
+prov.locs.early.winter.boreal <- subset (prov.locs.all.used, 
+                                  prov.locs.all.used@data$ecotype == "Boreal" & 
+                                  prov.locs.all.used@data$season == "Early Winter")
+prov.locs.early.winter.mount <- subset (prov.locs.all.used, 
+                                        prov.locs.all.used@data$ecotype == "Mountain" & 
+                                        prov.locs.all.used@data$season == "Early Winter")
+prov.locs.early.winter.north <- subset (prov.locs.all.used, 
+                                        prov.locs.all.used@data$ecotype == "Northern" & 
+                                        prov.locs.all.used@data$season == "Early Winter")
+prov.locs.late.winter.boreal <- subset (prov.locs.all.used, 
+                                        prov.locs.all.used@data$ecotype == "Boreal" & 
+                                        prov.locs.all.used@data$season == "Late Winter")
+prov.locs.late.winter.mount <- subset (prov.locs.all.used, 
+                                       prov.locs.all.used@data$ecotype == "Mountain" & 
+                                       prov.locs.all.used@data$season == "Late Winter")
+prov.locs.late.winter.north <- subset (prov.locs.all.used, 
+                                       prov.locs.all.used@data$ecotype == "Northern" & 
+                                       prov.locs.all.used@data$season == "Late Winter")
+
+# create factors without 0 records
+prov.locs.summer.boreal@data$uniqueID <- factor (prov.locs.summer.boreal@data$uniqueID) # drop animals with no locations
+prov.locs.summer.mount@data$uniqueID <- factor (prov.locs.summer.mount@data$uniqueID) # drop animals with no locations
+prov.locs.summer.north@data$uniqueID <- factor (prov.locs.summer.north@data$uniqueID) # drop animals with no locations
+prov.locs.early.winter.boreal@data$uniqueID <- factor (prov.locs.early.winter.boreal@data$uniqueID) # drop animals with no locations
+prov.locs.early.winter.mount@data$uniqueID <- factor (prov.locs.early.winter.mount@data$uniqueID) # drop animals with no locations
+prov.locs.early.winter.north@data$uniqueID <- factor (prov.locs.early.winter.north@data$uniqueID) # drop animals with no locations
+prov.locs.late.winter.boreal@data$uniqueID <- factor (prov.locs.late.winter.boreal@data$uniqueID) # drop animals with no locations
+prov.locs.late.winter.mount@data$uniqueID <- factor (prov.locs.late.winter.mount@data$uniqueID) # drop animals with no locations
+prov.locs.late.winter.north@data$uniqueID <- factor (prov.locs.late.winter.north@data$uniqueID) # drop animals with no locations
+# freq.animals.test <- data.frame(table (prov.locs.summer.boreal@data$uniqueID))
+
+# ======================================
+# Calculate UDs by season and ecotype
+###########
+# BOREAL #
+#########
+# SUMMER
+khr.summer.boreal.h1000 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
+                                     h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                     grid = 1000, # grid 1km x 1km
+                                     extent = 2)  # extent is 2x the 'normal' size
+homerange.summer.boreal.h1000 <- getverticeshr (khr.summer.boreal.h1000, percent = 95)
+writeOGR (homerange.summer.boreal.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h1000.shp", 
+          layer = "hr_boreal_summer_h1000", driver = "ESRI Shapefile")
+khr.summer.boreal.h5000 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
+                                     h = 5000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 5000, 50000)
+                                     grid = 1000, # grid 1km x 1km
+                                     extent = 10)  # extent is 100x the grid size
+homerange.summer.boreal.h5000 <- getverticeshr (khr.summer.boreal.h5000, percent = 95)
+writeOGR (homerange.summer.boreal.h5000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h5000.shp", 
+          layer = "hr_boreal_summer_h5000", driver = "ESRI Shapefile")
+khr.summer.boreal.h500 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
+                                     h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                     grid = 1000, # grid 1km x 1km
+                                     extent = 2)  # extent is 100x the grid size
+homerange.summer.boreal.h500 <- getverticeshr (khr.summer.boreal.h500, percent = 95)
+writeOGR (homerange.summer.boreal.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h500.shp", 
+          layer = "hr_boreal_summer_h500", driver = "ESRI Shapefile")
+khr.summer.boreal.h750 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
+                                    h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 2)  # extent is 100x the grid size
+homerange.summer.boreal.h750 <- getverticeshr (khr.summer.boreal.h750, percent = 95)
+writeOGR (homerange.summer.boreal.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h750.shp", 
+          layer = "hr_boreal_summer_h750", driver = "ESRI Shapefile")
+
+rm (khr.summer.boreal.h1000, khr.summer.boreal.h5000, khr.summer.boreal.h500, khr.summer.boreal.h750)
+
+# EARLY WINTER
+khr.early.winter.boreal.h1000 <- kernelUD (prov.locs.early.winter.boreal [, 45], # new unique animal ID
+                                            h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                            grid = 1000, # grid 1km x 1km
+                                            extent = 2)  # extent is 2x the 'normal' size
+homerange.early.winter.boreal.h1000 <- getverticeshr (khr.early.winter.boreal.h1000, percent = 95)
+writeOGR (homerange.early.winter.boreal.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h1000.shp", 
+          layer = "hr_boreal_early.winter_h1000", driver = "ESRI Shapefile")
+khr.early.winter.boreal.h500 <- kernelUD (prov.locs.early.winter.boreal [, 45], # new unique animal ID
+                                    h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 2)  # extent is 100x the grid size
+homerange.early.winter.boreal.h500 <- getverticeshr (khr.early.winter.boreal.h500, percent = 95)
+writeOGR (homerange.early.winter.boreal.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h500.shp", 
+          layer = "hr_boreal_early.winter_h500", driver = "ESRI Shapefile")
+khr.early.winter.boreal.h750 <- kernelUD (prov.locs.early.winter.boreal [, 45], # new unique animal ID
+                                    h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 2)  # extent is 100x the grid size
+homerange.early.winter.boreal.h750 <- getverticeshr (khr.early.winter.boreal.h750, percent = 95)
+writeOGR (homerange.early.winter.boreal.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h750.shp", 
+          layer = "hr_boreal_early.winter_h750", driver = "ESRI Shapefile")
+
+rm (khr.early.winter.boreal.h1000, khr.early.winter.boreal.h500, khr.early.winter.boreal.h750)
+
+# LATE WINTER
+khr.late.winter.boreal.h1000 <- kernelUD (prov.locs.late.winter.boreal [, 45], # new unique animal ID
+                                           h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                           grid = 1000, # grid 1km x 1km
+                                           extent = 2)  # extent is 2x the 'normal' size
+homerange.late.winter.boreal.h1000 <- getverticeshr (khr.late.winter.boreal.h1000, percent = 95)
+writeOGR (homerange.late.winter.boreal.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h1000.shp", 
+          layer = "hr_boreal_late.winter_h1000", driver = "ESRI Shapefile")
+khr.late.winter.boreal.h500 <- kernelUD (prov.locs.late.winter.boreal [, 45], # new unique animal ID
+                                          h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                          grid = 1000, # grid 1km x 1km
+                                          extent = 2)  # extent is 100x the grid size
+homerange.late.winter.boreal.h500 <- getverticeshr (khr.late.winter.boreal.h500, percent = 95)
+writeOGR (homerange.late.winter.boreal.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h500.shp", 
+          layer = "hr_boreal_late.winter_h500", driver = "ESRI Shapefile")
+khr.late.winter.boreal.h750 <- kernelUD (prov.locs.late.winter.boreal [, 45], # new unique animal ID
+                                          h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                          grid = 1000, # grid 1km x 1km
+                                          extent = 2)  # extent is 100x the grid size
+homerange.late.winter.boreal.h750 <- getverticeshr (khr.late.winter.boreal.h750, percent = 95)
+writeOGR (homerange.late.winter.boreal.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h750.shp", 
+          layer = "hr_boreal_late.winter_h750", driver = "ESRI Shapefile")
+
+rm (khr.late.winter.boreal.h1000, khr.late.winter.boreal.h500, khr.late.winter.boreal.h750)
+# 5000 very large areas; boundaries extend ~10km beyond points; too big
+# 500 too small; lots of islands and holes in data that may be diffuclt to work with; 
+# 1000 reasonable, but on the larger side
+# went with h = 750 as 'best' representation
+
+#############
+# MOUNTAIN #
+###########
+# SUMMER
+khr.summer.mount.h1000 <- kernelUD (prov.locs.summer.mount [, 45], # new unique animal ID
+                                     h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                     grid = 1000, # grid 1km x 1km
+                                     extent = 2)  # extent is 2x the 'normal' size
+homerange.summer.mount.h1000 <- getverticeshr (khr.summer.mount.h1000, percent = 95)
+writeOGR (homerange.summer.mount.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h1000.shp", 
+          layer = "hr_mount_summer_h1000", driver = "ESRI Shapefile")
+khr.summer.mount.h500 <- kernelUD (prov.locs.summer.mount [, 45], # new unique animal ID
+                                    h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 2)  # extent is 100x the grid size
+homerange.summer.mount.h500 <- getverticeshr (khr.summer.mount.h500, percent = 95)
+writeOGR (homerange.summer.mount.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h500.shp", 
+          layer = "hr_mount_summer_h500", driver = "ESRI Shapefile")
+khr.summer.mount.h750 <- kernelUD (prov.locs.summer.mount [, 45], # new unique animal ID
+                                    h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 2)  # extent is 100x the grid size
+homerange.summer.mount.h750 <- getverticeshr (khr.summer.mount.h750, percent = 95)
+writeOGR (homerange.summer.mount.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h750.shp", 
+          layer = "hr_mount_summer_h750", driver = "ESRI Shapefile")
+
+
+
+
+
+
+#############
+# NORTHERN #
+###########
+# SUMMER
+khr.summer.north.h1000 <- kernelUD (prov.locs.summer.north [, 45], # new unique animal ID
+                                    h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 2)  # extent is 2x the 'normal' size
+homerange.summer.north.h1000 <- getverticeshr (khr.summer.north.h1000, percent = 95)
+writeOGR (homerange.summer.north.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h1000.shp", 
+          layer = "hr_north_summer_h1000", driver = "ESRI Shapefile")
+khr.summer.north.h500 <- kernelUD (prov.locs.summer.north [, 45], # new unique animal ID
+                                   h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                   grid = 1000, # grid 1km x 1km
+                                   extent = 2)  # extent is 100x the grid size
+homerange.summer.north.h500 <- getverticeshr (khr.summer.north.h500, percent = 95)
+writeOGR (homerange.summer.north.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500.shp", 
+          layer = "hr_north_summer_h500", driver = "ESRI Shapefile")
+khr.summer.north.h750 <- kernelUD (prov.locs.summer.north [, 45], # new unique animal ID
+                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                   grid = 1000, # grid 1km x 1km
+                                   extent = 2)  # extent is 100x the grid size
+homerange.summer.north.h750 <- getverticeshr (khr.summer.north.h750, percent = 95)
+writeOGR (homerange.summer.north.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h750.shp", 
+          layer = "hr_north_summer_h750", driver = "ESRI Shapefile")
+
+
+
+data(puechabonsp)
+
+del <- data.frame (prov.locs.calving.boreal@coords)
+del2 <- unique (del [c ("coords.x1", "coords.x2")])
+
+
+unique (prov.locs.calving.boreal@data$ANIMAL_ID)
+
+
+plot (prov.locs.all.used)
+plot (caribou.range.north.diss, add = T)
+
+plot (prov.locs.late.winter.north)
+plot (caribou.range.north.diss, add = T)
+
+
+#===============================================================
+# Random sample of 'available' points in home ranges
+#==============================================================
+
+
+sample.pts.boreal <- spsample (caribou.boreal.sa, cellsize = c (2000, 2000), type = "regular")
+
+
+
+
+
+
+
+
+
+
+
+

@@ -298,11 +298,11 @@ rm (canesm2.2025.tavewt.rst, ccsm4.2025.tavewt.rst, hadgem.2025.tavewt.rst,
 #================================================
 # Load and rasterize current BEC data
 #===============================================
-bec.current <- readOGR ("bec\\BEC_current\\BEC_BIOGEOCLIMATIC_POLY\\BEC_POLY_polygon.shp", 
-                      stringsAsFactors = T) # proj4string (bec.current)
-bec.current.prj <- spTransform (bec.current, CRS = ras.crs) 
-table.bec.curr.factors <- data.frame (levels (bec.current.prj@data$ZONE))
-table.bec.curr.factors$factor.num <- c (1:16)
+# bec.current <- readOGR ("bec\\BEC_current\\BEC_BIOGEOCLIMATIC_POLY\\BEC_POLY_polygon.shp", 
+#                          stringsAsFactors = T) # proj4string (bec.current)
+# bec.current.prj <- spTransform (bec.current, CRS = ras.crs) 
+# table.bec.curr.factors <- data.frame (levels (bec.current.prj@data$ZONE))
+# table.bec.curr.factors$factor.num <- c (1:16)
 # empty.raster <- raster (nrows = 1404, ncols = 3001, xmn = -139.0632,  
 #                        xmx = -114.055, ymn = 48.30073, ymx = 60.00068, 
 #                        res = 0.0083333, crs = ras.crs)
@@ -737,6 +737,7 @@ ras.st.roads.north <- (roads.27k.rst - mean (data.north$road.dns.27k)) /
 #=============================================================
 # Raster stacks for calculating model predictions
 #============================================================
+
 ###########
 # BOREAL #
 ##########
