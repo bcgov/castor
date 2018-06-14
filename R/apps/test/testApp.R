@@ -8,6 +8,7 @@ library(ggplot2)
 library(bcmaps)
 library(leaflet)
 library(rpostgis)
+library(sf)
 
 # Load data
 #trend_data <- read_csv("data/trend_data.csv")
@@ -32,9 +33,11 @@ geom = "geom"
 
 #-------------------------------------------------------------------------------------------------
 ##Get a connection to the postgreSQL server
-#conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
+conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
 ##Import a shapefile from the postgres server 
-#my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
+my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
+#close connection
+dbDisconnect(conn)
 
 
 # Define UI
@@ -107,8 +110,32 @@ server <- function(input, output) {
       lines(smooth_curve, col = "#E6553A", lwd = 3)
     }
   })
-  map = leaflet() %>% addTiles() %>% setView(-93.65, 42.0285, zoom = 17)
-  output$map <- renderLeaflet(map)
+  
+  #Create the map object
+  popup<-paste0("test")
+  ###postgres parameters
+  dbname = 'ima'
+  host='localhost'
+  port='5432'
+  user='postgres'
+  password='postgres'
+  #C("schema", "tbl_name")
+  name=c("gisdata","gcbp_carib_polygon")
+  geom = "geom"
+  
+  #-------------------------------------------------------------------------------------------------
+  ##Get a connection to the postgreSQL server
+  conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
+  ##Import a shapefile from the postgres server 
+  my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
+  #close connection
+  dbDisconnect(conn)
+  my_spdf.2 <- spTransform(my_spdf, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  
+  output$map = renderLeaflet({ leaflet() %>% setView(-127.6476, 53.7267, 4) %>%
+    addTiles() %>% 
+    addPolygons(data=my_spdf.2, weight = 2, fillColor = "yellow", popup = popup)
+  })
 }
 
 # Create Shiny object

@@ -1,0 +1,82 @@
+<!---
+# Copyright 2018 Province of British Columbia
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
+
+#=============================================================================
+--->
+
+---
+title: "CLUS - roads"
+output:
+ html_document: default
+---
+
+<div style="margin-bottom:100px;">
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Introduction
+
+Roads are an important consequence from land use operations that impact future economic opportunities and wildlife habitat. Using an annual harvest of 200 000 ha with 3 % of the harvest area in roads, a road right of way of 20 m, roughly 3 000 km of roads get built per year. This equates to travelling between Vancouver and Golden 4.2 times. How are these roads planned and designed? 
+
+Short term planning has been the historical approach to road development. Largely because it is an enormous task to manually project road networks (e.g., depending on the computer, it may take up to ½ day for an individual timber supply area). Especially if this process is done manually. Further, we rarely have a long term view on the life cycle of each road segment. This includes how much volume will be hauled over the roads which make it hard to determine the best decision regarding deactivation and reactivation. Lastly there are limited tools available to assess strategic questions such as how yarding distance and road design parameters affect the total length and cost of the network, area of land lost to roads and the amount to caribou habitat sensitive to future road networks.
+
+Our interest is in the automated process of projecting roads, the speed in preforming this process and the realism of their assumptions. While optimal road construction strategies including activation and deactivation have been developed (Murray 1998; Anderson et al. 2006), optimizing very large landbases is problematic in terms of speed in execution, generating the estimates needed to parameterize the formulation and the level of integration with other modelling approaches like simulation. Research has shown there are trade-offs between optimized routing and the time to solve the problem (Dean 1997; Picard et al. 2006)
+
+Simulation models offer an alternative approach to optimization that links nicely to strategic models looking to assess land uses across very large landscapes involving multiple regions and timber supply areas. These models employ heuristic algorithms for road design which may not be optimal but rather close to it. Thus, many assumptions are needed to parameterize road simulations and these need careful consideration. The following anlaysis looks at the various road simulation assumptions used across three modelling platforms in use by Forest Analysis and Inventory Branch (FAIB). These include a 'naive' method, and a MST (Minimum Spanning Tree) with Least-Cost Paths as used in StTSM-SELES (Spatial (Tim) Timber Supply Model in Spatially Explicit Landscape Event Simulator).  
+
+
+##Problem Defintion
+
+###Road Spacing and Multiple Target Access
+
+All of the current road simulators used in FAIB have a similar problem in the forest management context– design a future road network that connects harvesting locations to an existing road network under the objective of minimizing cost. This problem can be defined under two approachs: i) a road spacing problem (RSP) where every point is potentially a target, the problem is then to find a network as densely as possible, with a stopping rule that infers the maximum total cost that can be achieved. or ii) a multiple target access problem (MTAP) which considers _m_ point-shaped targets (i.e., landings of cutblocks) that have to be connected to an existing road network (the source). The first approach provides a long term view of road development that would help inform road saturation and activation or deactivation decisions. The second approach has been taken by FAIB to assess the economic and ecological impacts of land uses. 
+
+The objective of minimizing cost may include various impedance attributes like habitat, length of roads, time, or risk to fire. Some explaes of a cost surface include: [(]Tobler's hiking function](https://en.wikipedia.org/wiki/Tobler%27s_hiking_function), expert opinion from operational researchers or an empircally derived function relating various topogrphical and biophyiscal variables. No matter what the cost attributemay be, an estimate is required for each pixel and thus, the cost of a road segment is the sum of the costs associated to the pixels that form the segment. The total costs for a road segment form the edges of a graph with the vertices or nodes representing source, posible locations to build the road and target locations. For a raster datastructre, nodes are located on a square grid and spatially neighbouring nodes are connected by edges (or arcs). 
+
+###Least-Cost Path
+
+Decomposing the MTAP we find a similar smaller problem, connecting a single target point to a source point which is also called a least cost path or shortest path. To solve this problem [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) is often implemented (see [ArcGIS Network Analyst](http://help.arcgis.com/en/arcgisdesktop/10.0/pdf/network-analyst-tutorial.pdf) or [QGIS Network anlaysis library](https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/network_analysis.html). In this algorithm, every node is visited and thus solving the graph provides information on the least cost path for every target-source combination. This works by first initializing the graph by setting all the points to ‘unvisited’ and storing this as a set (called unvisited set). The values of the points are set to infinity except for the origin or source point which is set to zero. A series of iteration then determine the path. In the first iteration the current node is the source point. From the current node consider all the neighbours and calculate the cost from the current node to each of the neighbour nodes. This cost includes the cost from the current node (in the first iteration this will be 0). Store these nodes in priory queue so that the smallest distance is first. Thus, the first node will be the least cost. In the next iteration. find all the nieghbours For this first node and calculate the cost to go from the source point to these neighbouring nodes (this is taken from the edge). Store the least cost at this node and remove from unvisted set. The next interation then begins by finding all the neighbouring nodes until the target has been reached. A complete graphical example can be found [here](http://optlab-server.sce.carleton.ca/POAnimations2007/DijkstrasAlgo.html). Note Djikstra's algorihutm  has limtations with negative costs and solving time and thus, various modifications of this algorithum have been proposed (eg., [A*](https://en.wikipedia.org/wiki/A*_search_algorithm), [Johnson's Algorithm](https://en.wikipedia.org/wiki/Johnson%27s_algorithm))
+
+###Minimum Spanning Tree
+A minimum spanning tree (MST) connects all nodes in a graph with out any loops or cycles.In the forestry context, the nodes of the MST are cutblock locations and existing road networks and the edges are routes solved using a Least-Cost Path algorthium (eg., [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)). To solve the MST, [Kruskal's algorithm](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm) is often used , however, this algrotihum is 'greedy' (finds a locally optimal choice using a problem solving heuristic with the intent of finding a global optimum) and thus various alternatives exist  (see [Prim's algorithm](https://en.wikipedia.org/wiki/Prim%27s_algorithm)). [Kruskal's algorithm](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm) begins by sorting graph edges with respect to their weights (these are the total cost of the least cost path). Then, add edges to the MST by starting with the edges with the smallest weight and going until the edge of the largest weight. Lastly, only add edges that do not form a loop or cycle. A complete graphical example can be found [here](http://optlab-server.sce.carleton.ca/POAnimations2007/MinSpanTree.html). 
+
+##Objectives
+Various approaches to simulating road development in BC were compared for purposes of identifying their differences and evaluating trade-offs. To provide this comparison, the approaches were first contrasted based on their conceptual and structural assumptions. Using these assumptions, versions of the  approaches were then developed in the R programming language within the [SpaDES](https://cran.r-project.org/web/packages/SpaDES/index.html) package to support a consistent comparison between accuracy and speed of execution. The following describes the approaches and provides a comparison of the simulated outcomes.
+
+##Description of Approaches
+
+All of the methods are dependent on two considerations: i) the road building cost and ii) the view of road branching. First, road building cost is given as a surface constructed from many spatial layers including hydrology, slope, altitude, topography etc. However, the cost can also deal with transportation cost, destruction risk or negative impacts to the environment or wildlife habitat. Second, a degraded version of the MTAP is considered by forcing the only possible branching points of the road network to be targets. However, solutions to these problems increase the time and complexity of the algorithm which severely limits the number of possible scenarios that can be run. For the remainder of this analysis, the degraded version of the MTAP is considered becuase all of the proposed approaches make this assumption.
+
+### The 'Naive' Approach 
+simply snaps a cutblock location to the nearest existing road segment. It is also called an independent path with reduction method. 
+
+
+### MST-Least Cost Paths Approach 
+solves the network before the cutblock locations are selected.
+
+#Comparison
+
+For an interactive assessment of current disturbance in caribou herd boundaries 
+
+
+
+#References
+Anderson, A. E. and J. Nelson. 2004. Projecting vector based road networks with a shortest path algorithm. Can. J. For. Res., 34(7):1444–1457.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x04-030#.WyFgGu4vxEY)
+
+Dean, D. J. Finding optimal routes for networks of harvest site access roads using GIS-based techniques. Can. J. For. Res., 27:11–22, 1997.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x96-144#.WyFgPu4vxEY)
+
+Murray, A. T. 1998.Route planning for harvest site access. Can. J. For. Res., 28(7):1084–1087.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x98-122#.WyFgWu4vxEY)
+
+Picard, N., Gazull, L. and Freycon, V. 2006. Finding optimal routes for harvesting tree access. International Journal of Forest Engineering. 17(2): 35-50.[Cross-ref](https://journals.lib.unb.ca/index.php/ijfe/article/view/5695/6700)
+
