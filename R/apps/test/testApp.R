@@ -26,11 +26,12 @@ trend_description <- "This is a test"
 
 # Define UI
 ui <- fluidPage(theme = shinytheme("lumen"),
-                titlePanel("Historical human disturbance and caribou"),
+                titlePanel("Historical human disturbance in caribou herds"),
                 sidebarLayout(
                     sidebarPanel(
                       # add the caribou recovery logo
                       img(src = "clus-logo.png", height = 100, width = 100),
+                      verbatimTextOutput("clickInfo"),
                       # Select type of trend to plot
                       selectInput(inputId = "type", label = strong("Select data"),
                                 choices = unique(trend_data$type),
@@ -105,7 +106,7 @@ server <- function(input, output) {
   #C("schema", "tbl_name")
   name=c("gisdata","gcbp_carib_polygon")
   geom = "geom"
-  my_spdf.2$risk_stat
+
   #-------------------------------------------------------------------------------------------------
   ##Get a connection to the postgreSQL server
   conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
@@ -115,36 +116,56 @@ server <- function(input, output) {
   my_spdf.2  <- my_spdf.2[which(my_spdf.2@data$herd_name != "NA"), ]
   #close connection
   dbDisconnect(conn)
-  
-  #set the popup label
-  popup<-paste0(my_spdf.2$herd_name)
+ 
   #set the pallet
   pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  my_spdf.2$risk_stat)
-  output$map = renderLeaflet({ leaflet() %>% 
+  
+  output$map = renderLeaflet({ 
+      leaflet(my_spdf.2) %>% 
       setView(-121.7476, 53.7267, 4) %>%
       addTiles() %>% 
       addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
-      addPolygons(data=my_spdf.2, popup = popup, fillColor = ~pal(risk_stat), 
-                  weight = 1,
-                  opacity = 1,
-                  color = "white",
-                  dashArray = "1",
-                  fillOpacity = 0.7,
-                  highlight = highlightOptions(
-                    weight = 4,
-                    color = "white",
-                    dashArray = "",
-                    fillOpacity = 0.4,
-                    bringToFront = TRUE),
-               popupOptions =  popupOptions(autoPan = TRUE)) %>%
+      addPolygons(data=my_spdf.2,  fillColor = ~pal(risk_stat), 
+                  weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
+                  layerId = ~gid,
+                  group= ~herd_name,
+                  smoothFactor = 0.5,
+                  highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
       addLayersControl(baseGroups = c("WorldImagery","OpenStreetMap"), options = layersControlOptions(collapsed = FALSE)) %>%
-      addMeasure(position = "topleft")%>%
-      addScaleBar(position = "bottomright")%>%
+      addMeasure(position = "topleft") %>%
+      addScaleBar(position = "bottomright") %>%
       addEasyButton(easyButton(icon="fa-globe", title="Zoom to Level 1", onClick=JS("function(btn, map){ map.setZoom(4); }"))) %>%
-      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"),
-                title = "Risk Status", opacity = 1)
+      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1)
   })
+  
+  observe({
+    click <- input$map_shape_click
+    if(is.null(click))
+      return()
+    mapInd2 <- my_spdf.2[which(my_spdf.2@data$herd_name == my_spdf.2[which(my_spdf.2@data$gid == click$id), ]$herd_name), ]
+    leafletProxy("map") %>%
+      clearShapes() %>%
+      addPolygons(data=my_spdf.2,  fillColor = ~pal(risk_stat), 
+                  weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
+                  layerId = ~gid,
+                  group= ~herd_name,
+                  smoothFactor = 0.5,
+                  highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
+      addPolygons(data = mapInd2,
+                  fillColor = "grey", layerId = ~gid, group= ~herd_name,
+                  weight = 4,opacity = 0.7, color = "yellow", dashArray = "1", fillOpacity = 0.2,
+                  smoothFactor = 0.9) %>%
+      setView(lng = click$lng,lat = click$lat, zoom = 7.4)
+    
+   
+  })
+  
+  observeEvent(input$map_shape_click, {
+    
+    click<-input$map_shape_click
+    output$clickInfo <- renderPrint(my_spdf.2[which(my_spdf.2@data$gid == click$id), ]$herd_name)
+  }) 
   
 }
 
