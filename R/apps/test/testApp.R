@@ -9,36 +9,76 @@ library(bcmaps)
 library(leaflet)
 library(rpostgis)
 library(sf)
-
+library(sp)
+library(leaflet.extras)
 # Load data
 #trend_data <- read_csv("data/trend_data.csv")
 date<-format(seq(as.Date("01/01/2007", "%m/%d/%Y"), as.Date("01/30/2007", "%m/%d/%Y"), by = "1 day"))
 
-trend_data <- data.frame(rbind(cbind(as.numeric(rnorm(30,0,1)), date , "test"),cbind(as.numeric(rnorm(30,0,1)), date , "test1")))
+trend_data <- data.frame(rbind(cbind(as.numeric(rnorm(30,0,1)), date , "cutblock"),cbind(as.numeric(rnorm(30,0,1)), date , "road")))
 names(trend_data)<-c("close","date", "type")
 trend_data$close<-as.numeric(trend_data$close)
 trend_data$date<-as.Date(trend_data$date)
 #check the data frame
 #str(trend_data)
 trend_description <- "This is a test"
-#-------------------------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------------------------
+#Dataabse prep
+#-------------------------------------------------------------------------------------------------
+##postgres parameters
+dbname = 'ima'
+host='localhost'
+port='5432'
+user='postgres'
+password='postgres'
+name=c("public","cns_cut_bl_polygon")
+##Get a connection to the postgreSQL server (local instance)
+conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
+
+##Data objects
+###Get disturbance summary
+sql.str = paste(
+  " SELECT SUM(t.areaha) AS SumArea, t.herd_name ,t.harvestyr
+    FROM (
+        SELECT b.areaha, b.harvestyr, y.herd_name,ST_INTERSECTION (b.wkb_geometry, y.geom)
+              FROM public.cns_cut_bl_polygon b, public.sample_caribou_bound y
+              WHERE ST_INTERSECTS(b.wkb_geometry, y.geom))t
+    GROUP BY harvestyr, herd_name
+    ORDER BY  herd_name, harvestyr")
+cb_sum<-dbGetQuery(conn, sql.str)
+
+###Get shapefile
+name=c("gisdata","gcbp_carib_polygon")
+geom = "geom"
+my_spdf.2 <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+####Remove NA's
+my_spdf.2  <- my_spdf.2[which(my_spdf.2@data$herd_name != "NA"), ]
+###close connection
+dbDisconnect(conn)
+
+#Resulting objects: 
+#my_spdf.2 (a shapfile of herd locations) 
+#cb_sum (a resultset sum area disturbed by harvest year and herd_name)
+#-------------------------------------------------------------------------------------------------
 
 # Define UI
 ui <- fluidPage(theme = shinytheme("lumen"),
-                titlePanel("Historical human disturbance in caribou herds"),
+                titlePanel("Caribou and Land Use Simulator: historical anthropogenic disturbance"),
                 sidebarLayout(
                     sidebarPanel(
                       # add the caribou recovery logo
                       img(src = "clus-logo.png", height = 100, width = 100),
+                      helpText("Click map to select a herd"),
                       verbatimTextOutput("clickInfo"),
                       # Select type of trend to plot
-                      selectInput(inputId = "type", label = strong("Select data"),
-                                choices = unique(trend_data$type),
-                                selected = "test"),
-                      # Select date range to be plotted
-                      dateRangeInput("date", strong("Date range"), start = "2007-01-01", end = "2007-01-05",
-                                                                    min = "2007-01-01", max = "2007-01-30"),
+                      selectInput(inputId = "type", label = strong("Select disturbance"),
+                                choices = c("cutblock", "road", "all"),
+                                selected = "cutblock"),
+                      
+                      # Select year range to be used
+                      sliderInput("sliderDate", label = strong("Disturbance year"), min = 1950, 
+                                  max = 2018, value = c(1950,2018)),
 
                       # Select whether to overlay smooth trend line
                       checkboxInput(inputId = "smoother", label = strong("Overlay smooth trend line"), value = FALSE),
@@ -67,13 +107,22 @@ server <- function(input, output) {
   
   # Subset data
   selected_trends <- reactive({
-    req(input$date)
-    validate(need(!is.na(input$date[1]) & !is.na(input$date[2]), "Error: Please provide both a start and an end date."))
-    validate(need(input$date[1] < input$date[2], "Error: Start date should be earlier than end date."))
-    trend_data %>%
+    req(input$sliderDate)
+    req(input$map_shape_click)
+    conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
+    sql.str = paste0(
+      "SELECT SUM(t.areaha) AS SumArea, t.herd_name ,t.harvestyr
+    FROM (
+      SELECT b.areaha, b.harvestyr, y.herd_name
+      FROM public.cns_cut_bl_polygon b, (SELECT * FROM public.gcbp_carib_polygon WHERE herd_name = '",as.character(input$map_shape_click$group), "') y
+      WHERE ST_INTERSECTS(b.wkb_geometry, y.geom))t
+      GROUP BY harvestyr, herd_name
+      ORDER BY  herd_name, harvestyr")
+    cb_sum<-dbGetQuery(conn, sql.str)
+    dbDisconnect(conn)
+      cb_sum %>%
       filter(
-        type == input$type,
-        date > input$date[1] & date < input$date[2]
+        harvestyr >= input$sliderDate[1] & harvestyr < input$sliderDate[2]
         )
   })
   
@@ -87,84 +136,71 @@ server <- function(input, output) {
   output$lineplot <- renderPlot({
     color = "#434343"
     par(mar = c(4, 4, 1, 1))
-    plot(x = selected_trends()$date, y = selected_trends()$close, type = "l",
-         xlab = "Date", ylab = "Y~N(0,1)", col = color, fg = color, col.lab = color, col.axis = color)
+    plot(x = selected_trends()$harvestyr, y = selected_trends()$sumarea, type = "l",
+         xlab = "Harvest Year", ylab = "Cutblock Area (ha)", col = color, fg = color, col.lab = color, col.axis = color)
     # Display only if smoother is checked
     if(input$smoother){
-      smooth_curve <- lowess(x = as.numeric(selected_trends()$date), y = selected_trends()$close, f = input$f)
+      smooth_curve <- lowess(x = as.numeric(selected_trends()$harvestyr), y = selected_trends()$sumarea, f = input$f)
       lines(smooth_curve, col = "#E6553A", lwd = 3)
     }
   })
   
-  #Create the map object
-  ###get data from postgres parameters
-  dbname = 'ima'
-  host='localhost'
-  port='5432'
-  user='postgres'
-  password='postgres'
-  #C("schema", "tbl_name")
-  name=c("gisdata","gcbp_carib_polygon")
-  geom = "geom"
-
-  #-------------------------------------------------------------------------------------------------
-  ##Get a connection to the postgreSQL server
-  conn<-dbConnect("PostgreSQL",dbname=dbname, host=host ,port=port ,user=user ,password=password)
-  ##Import a shapefile from the postgres server 
-  #my_spdf<-pgGetGeom(conn, name=name,  geom = geom)
-  my_spdf.2 <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-  my_spdf.2  <- my_spdf.2[which(my_spdf.2@data$herd_name != "NA"), ]
-  #close connection
-  dbDisconnect(conn)
- 
+  
   #set the pallet
   pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  my_spdf.2$risk_stat)
   
   output$map = renderLeaflet({ 
-      leaflet(my_spdf.2) %>% 
+      leaflet(my_spdf.2,options = leafletOptions(doubleClickZoom= TRUE)) %>% 
       setView(-121.7476, 53.7267, 4) %>%
       addTiles() %>% 
-      addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
       addPolygons(data=my_spdf.2,  fillColor = ~pal(risk_stat), 
                   weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
                   layerId = ~gid,
                   group= ~herd_name,
                   smoothFactor = 0.5,
+                   label = ~herd_name,
+                   labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
-      addLayersControl(baseGroups = c("WorldImagery","OpenStreetMap"), options = layersControlOptions(collapsed = FALSE)) %>%
-      addMeasure(position = "topleft") %>%
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery"), options = layersControlOptions(collapsed = FALSE)) %>%
       addScaleBar(position = "bottomright") %>%
       addEasyButton(easyButton(icon="fa-globe", title="Zoom to Level 1", onClick=JS("function(btn, map){ map.setZoom(4); }"))) %>%
-      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1)
+      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) %>%
+      addDrawToolbar(
+            targetGroup='Selected',
+            circleOptions = F,
+            rectangleOptions = F,
+            polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
+                                                                        ,color = 'white'
+                                                                        ,weight = 3)))  
   })
   
   observe({
     click <- input$map_shape_click
     if(is.null(click))
       return()
-    mapInd2 <- my_spdf.2[which(my_spdf.2@data$herd_name == my_spdf.2[which(my_spdf.2@data$gid == click$id), ]$herd_name), ]
+    print(click$group)
+    mapSelect <-  my_spdf.2[which(my_spdf.2@data$herd_name == click$group), ] 
+    
     leafletProxy("map") %>%
       clearShapes() %>%
       addPolygons(data=my_spdf.2,  fillColor = ~pal(risk_stat), 
-                  weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
-                  layerId = ~gid,
-                  group= ~herd_name,
+                    weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
+                   layerId = ~gid,
+                   group= ~herd_name,
+                   label = ~herd_name,
+                   labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
                   smoothFactor = 0.5,
-                  highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
-      addPolygons(data = mapInd2,
-                  fillColor = "grey", layerId = ~gid, group= ~herd_name,
-                  weight = 4,opacity = 0.7, color = "yellow", dashArray = "1", fillOpacity = 0.2,
-                  smoothFactor = 0.9) %>%
-      setView(lng = click$lng,lat = click$lat, zoom = 7.4)
-    
-   
-  })
+                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.1, bringToFront = TRUE)) %>%
+      clearGroup(group = input$map_shape_click$group) %>%
+      setView(lng = click$lng,lat = click$lat, zoom = 7.4) %>%
+      addPolygons(data=mapSelect , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'))
+    })
   
   observeEvent(input$map_shape_click, {
-    
     click<-input$map_shape_click
-    output$clickInfo <- renderPrint(my_spdf.2[which(my_spdf.2@data$gid == click$id), ]$herd_name)
+    output$clickInfo <- renderText(click$group)
   }) 
   
 }
