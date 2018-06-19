@@ -40,30 +40,19 @@ trend_description <- "This is a test"
 #-------------------------------------------------------------------------------------------------
 #Dataabse prep
 #-------------------------------------------------------------------------------------------------
-##postgres parameters
-dbname = 'ima'
-host='142.36.203.20'
+dbname = 'postgres'
+host="DC052586"
 port='5432'
 user='postgres'
 password='postgres'
 name=c("public","cns_cut_bl_polygon")
 ##Get a connection to the postgreSQL server (local instance)
-conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
+conn<-dbConnect(dbDriver("PostgreSQL"), host=host, dbname = dbname, port=port ,user=user ,password=password)
 
 ##Data objects
 ###Get disturbance summary
-sql.str = paste(
-  " SELECT SUM(t.areaha) AS SumArea, t.herd_name ,t.harvestyr
-    FROM (
-        SELECT b.areaha, b.harvestyr, y.herd_name,ST_INTERSECTION (b.wkb_geometry, y.geom)
-              FROM public.cns_cut_bl_polygon b, public.sample_caribou_bound y
-              WHERE ST_INTERSECTS(b.wkb_geometry, y.geom))t
-    GROUP BY harvestyr, herd_name
-    ORDER BY  herd_name, harvestyr")
-cb_sum<-dbGetQuery(conn, sql.str)
-
 ###Get shapefile
-name=c("gisdata","gcbp_carib_polygon")
+name=c("public","gcbp_carib_polygon")
 geom = "geom"
 my_spdf.2 <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 ####Remove NA's
@@ -73,7 +62,6 @@ dbDisconnect(conn)
 
 #Resulting objects: 
 #my_spdf.2 (a shapfile of herd locations) 
-#cb_sum (a resultset sum area disturbed by harvest year and herd_name)
 #-------------------------------------------------------------------------------------------------
 
 # Define UI
@@ -218,11 +206,14 @@ server <- function(input, output) {
     output$clickInfo <- renderText(click$group)
   }) 
   
-  # New Feature
-  observeEvent(input$leafmap_draw_new_feature, {
-    print("New Feature")
-    print(input$leafmap_draw_new_feature)
-  })
+  observeEvent(input$addSpatialFile, {
+    output$container <- renderUI({
+      renderText("test")
+    })
+    
+    })
+  
+  
   
 }
 
