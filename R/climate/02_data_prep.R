@@ -51,15 +51,26 @@ caribou.range <- readOGR ("caribou\\caribou_herd\\GCPB_CARIBOU_POPULATION_SP\\GC
 prov.bnd <- readOGR ("province\\gpr_000b11a_e.shp", stringsAsFactors = T)
 bec.current <- readOGR ("bec\\BEC_current\\BEC_BIOGEOCLIMATIC_POLY\\BEC_POLY_polygon.shp", 
                           stringsAsFactors = T)
-bec2020.rst <- raster ("bec\\BEC_zone_2020s\\BEC_zone_2020s.tif")
-bec2050.rst <- raster ("bec\\BEC_zone_2050s\\BEC_zone_2050s.tif")
-bec2080.rst <- raster ("bec\\BEC_zone_2080s\\BEC_zone_2080s.tif")
+roads.ce <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\roads\\BC_CE_IntegratedRoads_2017_v1_20170214.gdb",
+                     layer = "integrated_roads") 
+vri <- readOGR (dsn = "C:\Work\caribou\climate_analysis\data\vri\vri\VEG_COMP_LYR_R1_POLY.gdb",
+                layer = "")
+
+
 # roads <- readOGR ("roads\\DRA_DGTL_ROAD_ATLAS_DPAR_SP\\RA_DPAR_line.shp")
+# https://github.com/bcgov/bc-raster-roads
 roads.1k.rst <- raster ("roads\\dra_dens_1k_tif\\dra_dns_1km.tif")
 roads.27k.rst <- raster ("roads\\dra_dens_27km_tif\\dra_dns_27k.tif")
 cutblocks <- readOGR ("cutblocks\\VEG_CONSOLIDATED_CUT_BLOCKS_SP\\CNS_CUT_BL_polygon.shp")
 wells <- readOGR ("wells\\OG_WELL_FACILITY_PERMIT_SP\\OG_WEL_F_P_polygon.shp")
 
+dem <- raster ("C:\\Work\\caribou\\climate_analysis\\data\\dem\\104m16_w.dem")
+
+
+
+bec2020.rst <- raster ("bec\\BEC_zone_2020s\\BEC_zone_2020s.tif")
+bec2050.rst <- raster ("bec\\BEC_zone_2050s\\BEC_zone_2050s.tif")
+bec2080.rst <- raster ("bec\\BEC_zone_2080s\\BEC_zone_2080s.tif")
 clim.1961.1990.tavewt.rst <- raster ("climate\\Normal_1961_1990_seasonal\\tave_wt") # Tmax, Tmin, Tave were multiplied by 10; need to be divided by ten
 clim.1961.1990.tmaxwt.rst <- raster ("climate\\Normal_1961_1990_seasonal\\tmax_wt")
 clim.1961.1990.tminwt.rst <- raster ("climate\\Normal_1961_1990_seasonal\\tmin_wt")
@@ -816,9 +827,6 @@ prov.locs.late.winter <- subset (prov.locs.single,
                                  prov.locs.single$OBSERVATION_MONTH > 1 &
                                  prov.locs.single$OBSERVATION_MONTH < 5)
 
-
-
-
 # boreal locations
 # NEED TO WORK ON THESE; IDEA IS TO USE JULIAN DAY
 # https://landweb.modaps.eosdis.nasa.gov/browse/calendar.html
@@ -937,7 +945,7 @@ prov.locs.all.used@data$season <- as.factor (prov.locs.all.used@data$season)
 # prov.locs.all.used.herd <- sf::st_join (prov.locs.all.used, # alternative option using sf?
 #                                         caribou.range, 
 #                                         join = st_intersects)
-prov.locs.all.used.herd <- sp::over (prov.locs.all.used, caribou.range[3]) # cloumn 3 is herd name
+prov.locs.all.used.herd <- sp::over (prov.locs.all.used, caribou.range[3]) # column 3 is herd name
 prov.locs.all.used.herd$joinID <- 1:469998 # create a joinID to join data on; I did some visual inspection in GIS to see where points fell relative to caribou range and confirmed that the point order is equivalent to ID
 prov.locs.all.used@data$joinID <- 1:469998 
 prov.locs.all.used@data <- dplyr::full_join (prov.locs.all.used@data, prov.locs.all.used.herd, 
@@ -949,11 +957,11 @@ prov.locs.all.used@data <- mutate (prov.locs.all.used@data,
                                                      prov.locs.all.used@data$season,
                                                      prov.locs.all.used@data$OBSERVATION_YEAR,
                                                      sep = "_")) 
-writeOGR (prov.locs.all.used, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape\\spi_locs_all_used.shp", 
-          layer = "spi_locs_all_used", driver = "ESRI Shapefile")
-# remove animals with <50 locations again 
 prov.locs.all.used <- prov.locs.all.used [prov.locs.all.used$uniqueID %in% 
-                        names (table (prov.locs.all.used$uniqueID)) [table (prov.locs.all.used$uniqueID) >= 50] , ]
+                                            names (table (prov.locs.all.used$uniqueID)) [table (prov.locs.all.used$uniqueID) >= 50] , ]
+writeOGR (prov.locs.all.used, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_final\\locs_all_used.shp", 
+          layer = "locs_all_used", driver = "ESRI Shapefile")
+# remove animals with <50 locations again 
 
 # rm (prov.locs.calving.boreal, prov.locs.summ.fall.boreal, prov.locs.early.winter.boreal,
 #    prov.locs.late.winter.boreal, prov.locs.calving.mount, prov.locs.summ.fall.mount,
@@ -1011,6 +1019,7 @@ prov.locs.late.winter.north@data$uniqueID <- factor (prov.locs.late.winter.north
 
 # ======================================
 # Calculate UDs by season and ecotype
+#======================================
 ###########
 # BOREAL #
 #########
@@ -1025,21 +1034,21 @@ writeOGR (homerange.summer.boreal.h1000, dsn = "C:\\Work\\caribou\\climate_analy
 khr.summer.boreal.h5000 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
                                      h = 5000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 5000, 50000)
                                      grid = 1000, # grid 1km x 1km
-                                     extent = 10)  # extent is 100x the grid size
+                                     extent = 10)  
 homerange.summer.boreal.h5000 <- getverticeshr (khr.summer.boreal.h5000, percent = 95)
 writeOGR (homerange.summer.boreal.h5000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h5000.shp", 
           layer = "hr_boreal_summer_h5000", driver = "ESRI Shapefile")
 khr.summer.boreal.h500 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
                                      h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                      grid = 1000, # grid 1km x 1km
-                                     extent = 2)  # extent is 100x the grid size
+                                     extent = 2)  
 homerange.summer.boreal.h500 <- getverticeshr (khr.summer.boreal.h500, percent = 95)
 writeOGR (homerange.summer.boreal.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h500.shp", 
           layer = "hr_boreal_summer_h500", driver = "ESRI Shapefile")
 khr.summer.boreal.h750 <- kernelUD (prov.locs.summer.boreal [, 45], # new unique animal ID
                                     h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                     grid = 1000, # grid 1km x 1km
-                                    extent = 2)  # extent is 100x the grid size
+                                    extent = 2)  
 homerange.summer.boreal.h750 <- getverticeshr (khr.summer.boreal.h750, percent = 95)
 writeOGR (homerange.summer.boreal.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h750.shp", 
           layer = "hr_boreal_summer_h750", driver = "ESRI Shapefile")
@@ -1057,14 +1066,14 @@ writeOGR (homerange.early.winter.boreal.h1000, dsn = "C:\\Work\\caribou\\climate
 khr.early.winter.boreal.h500 <- kernelUD (prov.locs.early.winter.boreal [, 45], # new unique animal ID
                                     h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                     grid = 1000, # grid 1km x 1km
-                                    extent = 2)  # extent is 100x the grid size
+                                    extent = 2)  
 homerange.early.winter.boreal.h500 <- getverticeshr (khr.early.winter.boreal.h500, percent = 95)
 writeOGR (homerange.early.winter.boreal.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h500.shp", 
           layer = "hr_boreal_early.winter_h500", driver = "ESRI Shapefile")
 khr.early.winter.boreal.h750 <- kernelUD (prov.locs.early.winter.boreal [, 45], # new unique animal ID
                                     h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                     grid = 1000, # grid 1km x 1km
-                                    extent = 2)  # extent is 100x the grid size
+                                    extent = 2)  
 homerange.early.winter.boreal.h750 <- getverticeshr (khr.early.winter.boreal.h750, percent = 95)
 writeOGR (homerange.early.winter.boreal.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h750.shp", 
           layer = "hr_boreal_early.winter_h750", driver = "ESRI Shapefile")
@@ -1082,23 +1091,24 @@ writeOGR (homerange.late.winter.boreal.h1000, dsn = "C:\\Work\\caribou\\climate_
 khr.late.winter.boreal.h500 <- kernelUD (prov.locs.late.winter.boreal [, 45], # new unique animal ID
                                           h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                           grid = 1000, # grid 1km x 1km
-                                          extent = 2)  # extent is 100x the grid size
+                                          extent = 2)  
 homerange.late.winter.boreal.h500 <- getverticeshr (khr.late.winter.boreal.h500, percent = 95)
 writeOGR (homerange.late.winter.boreal.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h500.shp", 
           layer = "hr_boreal_late.winter_h500", driver = "ESRI Shapefile")
 khr.late.winter.boreal.h750 <- kernelUD (prov.locs.late.winter.boreal [, 45], # new unique animal ID
                                           h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                           grid = 1000, # grid 1km x 1km
-                                          extent = 2)  # extent is 100x the grid size
+                                          extent = 2)  
 homerange.late.winter.boreal.h750 <- getverticeshr (khr.late.winter.boreal.h750, percent = 95)
 writeOGR (homerange.late.winter.boreal.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h750.shp", 
           layer = "hr_boreal_late.winter_h750", driver = "ESRI Shapefile")
 
 rm (khr.late.winter.boreal.h1000, khr.late.winter.boreal.h500, khr.late.winter.boreal.h750)
 # 5000 very large areas; boundaries extend ~10km beyond points; too big
-# 500 too small; lots of islands and holes in data that may be diffuclt to work with; 
 # 1000 reasonable, but on the larger side
-# went with h = 750 as 'best' representation
+# 750 also slightly large
+# 500 had more islands and holes in data, but 'tighter' to points 
+# went with h = 500 as 'best' representation
 
 #############
 # MOUNTAIN #
@@ -1107,80 +1117,978 @@ rm (khr.late.winter.boreal.h1000, khr.late.winter.boreal.h500, khr.late.winter.b
 khr.summer.mount.h1000 <- kernelUD (prov.locs.summer.mount [, 45], # new unique animal ID
                                      h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
                                      grid = 1000, # grid 1km x 1km
-                                     extent = 2)  # extent is 2x the 'normal' size
+                                     extent = 5)  # extent is 2x the 'normal' size
 homerange.summer.mount.h1000 <- getverticeshr (khr.summer.mount.h1000, percent = 95)
 writeOGR (homerange.summer.mount.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h1000.shp", 
           layer = "hr_mount_summer_h1000", driver = "ESRI Shapefile")
 khr.summer.mount.h500 <- kernelUD (prov.locs.summer.mount [, 45], # new unique animal ID
                                     h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                     grid = 1000, # grid 1km x 1km
-                                    extent = 2)  # extent is 100x the grid size
+                                    extent = 5)  
 homerange.summer.mount.h500 <- getverticeshr (khr.summer.mount.h500, percent = 95)
 writeOGR (homerange.summer.mount.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h500.shp", 
           layer = "hr_mount_summer_h500", driver = "ESRI Shapefile")
 khr.summer.mount.h750 <- kernelUD (prov.locs.summer.mount [, 45], # new unique animal ID
                                     h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
                                     grid = 1000, # grid 1km x 1km
-                                    extent = 2)  # extent is 100x the grid size
+                                    extent = 5)  
 homerange.summer.mount.h750 <- getverticeshr (khr.summer.mount.h750, percent = 95)
 writeOGR (homerange.summer.mount.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h750.shp", 
           layer = "hr_mount_summer_h750", driver = "ESRI Shapefile")
 
+rm (khr.summer.mount.h1000, khr.summer.mount.h500, khr.summer.mount.h750)
 
+# EARLY WINTER
+khr.early.winter.mount.h1000 <- kernelUD (prov.locs.early.winter.mount [, 45], # new unique animal ID
+                                    h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                    grid = 1000, # grid 1km x 1km
+                                    extent = 5)  # extent is 2x the 'normal' size
+homerange.early.winter.mount.h1000 <- getverticeshr (khr.early.winter.mount.h1000, percent = 95)
+writeOGR (homerange.early.winter.mount.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_early.winter_h1000.shp", 
+          layer = "hr_mount_early.winter_h1000", driver = "ESRI Shapefile")
+khr.early.winter.mount.h500 <- kernelUD (prov.locs.early.winter.mount [, 45], # new unique animal ID
+                                   h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                   grid = 1000, # grid 1km x 1km
+                                   extent = 5)  
+homerange.early.winter.mount.h500 <- getverticeshr (khr.early.winter.mount.h500, percent = 95)
+writeOGR (homerange.early.winter.mount.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_early.winter_h500.shp", 
+          layer = "hr_mount_early.winter_h500", driver = "ESRI Shapefile")
+khr.early.winter.mount.h750 <- kernelUD (prov.locs.early.winter.mount [, 45], # new unique animal ID
+                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                   grid = 1000, # grid 1km x 1km
+                                   extent = 5)  
+homerange.early.winter.mount.h750 <- getverticeshr (khr.early.winter.mount.h750, percent = 95)
+writeOGR (homerange.early.winter.mount.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_early.winter_h750.shp", 
+          layer = "hr_mount_early.winter_h750", driver = "ESRI Shapefile")
 
+rm (khr.early.winter.mount.h1000, khr.early.winter.mount.h500, khr.early.winter.mount.h750)
 
+# LATE WINTER
+khr.late.winter.mount.h1000 <- kernelUD (prov.locs.late.winter.mount [, 45], # new unique animal ID
+                                          h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                          grid = 1000, # grid 1km x 1km
+                                          extent = 5)  # extent is 2x the 'normal' size
+homerange.late.winter.mount.h1000 <- getverticeshr (khr.late.winter.mount.h1000, percent = 95)
+writeOGR (homerange.late.winter.mount.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_late.winter_h1000.shp", 
+          layer = "hr_mount_late.winter_h1000", driver = "ESRI Shapefile")
+khr.late.winter.mount.h500 <- kernelUD (prov.locs.late.winter.mount [, 45], # new unique animal ID
+                                         h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                         grid = 1000, # grid 1km x 1km
+                                         extent = 5)  
+homerange.late.winter.mount.h500 <- getverticeshr (khr.late.winter.mount.h500, percent = 95)
+writeOGR (homerange.late.winter.mount.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_late.winter_h500.shp", 
+          layer = "hr_mount_late.winter_h500", driver = "ESRI Shapefile")
+khr.late.winter.mount.h750 <- kernelUD (prov.locs.late.winter.mount [, 45], # new unique animal ID
+                                         h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                         grid = 1000, # grid 1km x 1km
+                                         extent = 5)  
+homerange.late.winter.mount.h750 <- getverticeshr (khr.late.winter.mount.h750, percent = 95)
+writeOGR (homerange.late.winter.mount.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_late.winter_h750.shp", 
+          layer = "hr_mount_late.winter_h750", driver = "ESRI Shapefile")
 
+rm (khr.late.winter.mount.h1000, khr.late.winter.mount.h500, khr.late.winter.mount.h750)
+
+# 1000 reasonable, but on the larger side
+# 750 also slightly large
+# 500 had more islands and holes in data, but 'tighter' to points 
+# went with h = 500 as 'best' representation
 
 #############
 # NORTHERN #
 ###########
 # SUMMER
-khr.summer.north.h1000 <- kernelUD (prov.locs.summer.north [, 45], # new unique animal ID
-                                    h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
-                                    grid = 1000, # grid 1km x 1km
-                                    extent = 2)  # extent is 2x the 'normal' size
-homerange.summer.north.h1000 <- getverticeshr (khr.summer.north.h1000, percent = 95)
-writeOGR (homerange.summer.north.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h1000.shp", 
-          layer = "hr_north_summer_h1000", driver = "ESRI Shapefile")
-khr.summer.north.h500 <- kernelUD (prov.locs.summer.north [, 45], # new unique animal ID
-                                   h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
-                                   grid = 1000, # grid 1km x 1km
-                                   extent = 2)  # extent is 100x the grid size
-homerange.summer.north.h500 <- getverticeshr (khr.summer.north.h500, percent = 95)
-writeOGR (homerange.summer.north.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500.shp", 
-          layer = "hr_north_summer_h500", driver = "ESRI Shapefile")
-khr.summer.north.h750 <- kernelUD (prov.locs.summer.north [, 45], # new unique animal ID
-                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
-                                   grid = 1000, # grid 1km x 1km
-                                   extent = 2)  # extent is 100x the grid size
-homerange.summer.north.h750 <- getverticeshr (khr.summer.north.h750, percent = 95)
-writeOGR (homerange.summer.north.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h750.shp", 
-          layer = "hr_north_summer_h750", driver = "ESRI Shapefile")
+# split the data to make it easier to handle
+# summer.north.ids <- list (unique (prov.locs.summer.north@data$uniqueID))
+prov.locs.summer.north.top <-  prov.locs.summer.north [prov.locs.summer.north@data$uniqueID == "C02a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C03_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C04a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C05a_Graham_Northern_Summer_2001" |  
+                                                         prov.locs.summer.north@data$uniqueID == "C07_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C09a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C10a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C01a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C06a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C11_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C12a_Graham_Northern_Summer_2001" |
+                                                         prov.locs.summer.north@data$uniqueID == "C04b_Graham_Northern_Summer_2002" |             
+                                                         prov.locs.summer.north@data$uniqueID == "C06b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C10b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C02b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C09b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C05b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C12b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C01b_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C14_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C15_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C16_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C17_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C13_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C18_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C20_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C22_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "C21_Graham_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.559_Telkwa_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.559_Telkwa_Northern_Summer_2003" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.669_Telkwa_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.669_Telkwa_Northern_Summer_2003" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.59_Telkwa_Northern_Summer_2002" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.59_Telkwa_Northern_Summer_2003" |
+                                                         prov.locs.summer.north@data$uniqueID == "C1_Atlin_Northern_Summer_2000" |
+                                                         prov.locs.summer.north@data$uniqueID == "C2_Atlin_Northern_Summer_2000" |
+                                                         prov.locs.summer.north@data$uniqueID == "C3_Atlin_Northern_Summer_2000" |
+                                                         prov.locs.summer.north@data$uniqueID == "C4_Atlin_Northern_Summer_2000" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL06_Swan Lake_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL02_Swan Lake_Northern_Summer_2005" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL06_Swan Lake_Northern_Summer_2005" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL06_Swan Lake_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL28_Swan Lake_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL15_Swan Lake_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "SL15_Swan Lake_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car055_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car056_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car056_Narraway_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car077_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car056_Narraway_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID ==  "car077_Quintette_Northern_Summer_2009" |
+                                                         prov.locs.summer.north@data$uniqueID == "car032_Kennedy Siding_Northern_Summer_2004" |
+                                                         prov.locs.summer.north@data$uniqueID == "car078_Narraway_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car043_Kennedy Siding_Northern_Summer_2005" |
+                                                         prov.locs.summer.north@data$uniqueID == "car044_Kennedy Siding_Northern_Summer_2005" |
+                                                         prov.locs.summer.north@data$uniqueID == "car025_Kennedy Siding_Northern_Summer_2004" |
+                                                         prov.locs.summer.north@data$uniqueID == "car044_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car047_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car047_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car048_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car049_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car048_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car050_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car049_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car050_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car051_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car053_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car051_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car053_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car010_Moberly_Northern_Summer_2004" |
+                                                         prov.locs.summer.north@data$uniqueID == "car061_Kennedy Siding_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car020_Moberly_Northern_Summer_2004" |
+                                                         prov.locs.summer.north@data$uniqueID == "car052_Moberly_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car052_Moberly_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car052_Kennedy Siding_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car066_Moberly_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car067_Moberly_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car067_Moberly_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car066_Moberly_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car079_Moberly_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car079_Scott_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car102_Moberly_Northern_Summer_2009" |
+                                                         prov.locs.summer.north@data$uniqueID == "car080_Moberly_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car012_Quintette_Northern_Summer_2004" |
+                                                         prov.locs.summer.north@data$uniqueID == "car014_Quintette_Northern_Summer_2003" |
+                                                         prov.locs.summer.north@data$uniqueID == "car040_Quintette_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car040_Quintette_Northern_Summer_2005" |
+                                                         prov.locs.summer.north@data$uniqueID == "car042_Quintette_Northern_Summer_2005" |
+                                                         prov.locs.summer.north@data$uniqueID == "car042_Quintette_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car045_Quintette_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car057_Narraway_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car057_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car046_Quintette_Northern_Summer_2006" |
+                                                         prov.locs.summer.north@data$uniqueID == "car057_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car057_Narraway_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car058_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car059_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car058_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car059_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car068_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car069_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car068_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car069_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car070_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car070_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car071_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car071_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car074_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car074_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car075_Quintette_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "car075_Quintette_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "car109_Quintette_Northern_Summer_2009" |
+                                                         prov.locs.summer.north@data$uniqueID == "car112_Quintette_Northern_Summer_2009" |
+                                                         prov.locs.summer.north@data$uniqueID == "car105_Quintette_Northern_Summer_2009" |
+                                                         prov.locs.summer.north@data$uniqueID == "C069W_Wolverine_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C029W_Wolverine_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C041W_Wolverine_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C043W_Wolverine_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C042W_Wolverine_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C059C_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C060C_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C058C_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C067C_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C056C_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C047A_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C066C_Chase_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C093A_Finlay_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C094A_Finlay_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "C094A_Pink Mountain_Northern_Summer_1999" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.990b_Tweedsmuir_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.960b_Tweedsmuir_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.890_Tweedsmuir_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.870_Tweedsmuir_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.870_Tweedsmuir_Northern_Summer_2008" |
+                                                         prov.locs.summer.north@data$uniqueID == "149.581b_Tweedsmuir_Northern_Summer_2007"| 
+                                                         prov.locs.summer.north@data$uniqueID == "149.551b_Tweedsmuir_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.840b_Tweedsmuir_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "149.530_Tweedsmuir_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.850_Tweedsmuir_Northern_Summer_2007" |
+                                                         prov.locs.summer.north@data$uniqueID == "148.850_Tweedsmuir_Northern_Summer_2008", ]
+
+prov.locs.summer.north.bottom <-  prov.locs.summer.north [prov.locs.summer.north@data$uniqueID == "149.431b_Tweedsmuir_Northern_Summer_2006" |
+                                                            prov.locs.summer.north@data$uniqueID == "148.830b_Tweedsmuir_Northern_Summer_2007" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.450b_Tweedsmuir_Northern_Summer_2006" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.581a_Tweedsmuir_Northern_Summer_2002" | # was having trouble fitting the kernel HR with these animals; I think becuase covered a very large area, so removed from analysis
+                                                            prov.locs.summer.north@data$uniqueID == "149.490a_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.450a_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.531_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.110b_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.190b_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.120b_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.090b_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.098_Tweedsmuir_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.200a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.160a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.190a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.110a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.150a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.120a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.090a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.080a_Tweedsmuir_Northern_Summer_2000" |
+                                                            prov.locs.summer.north@data$uniqueID == "C307T_Finlay_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "C307T_Finlay_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "C306T_Frog_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "C306T_Frog_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "C303T_Spatsizi_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "C303T_Spatsizi_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "C303T_Spatsizi_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "C296T_Chase_Northern_Summer_2012" |
+                                                            # prov.locs.summer.north@data$uniqueID == "C297T_Spatsizi_Northern_Summer_2013" | # locations all within 50m of each other; so, removed from analysis
+                                                            prov.locs.summer.north@data$uniqueID == "C294T_Frog_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "C293T_Frog_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "C293T_Frog_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.421_Level Kawdy_Northern_Summer_2003" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.421_Little Rancheria_Northern_Summer_2003" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.498_Edziza_Northern_Summer_2003" |
+                                                            prov.locs.summer.north@data$uniqueID == "149.441_Edziza_Northern_Summer_2003" |
+                                                            prov.locs.summer.north@data$uniqueID == "car132_Narraway_Northern_Summer_2010" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1002_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1002_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1003_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1003_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1004_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1006_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1007_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1001_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1001_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1005_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1005_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1008_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1012_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1012_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1009_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1009_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1017_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1017_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1014_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1014_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1011_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1016_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1016_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1015_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1015_Tweedsmuir_Northern_Summer_2015" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1028_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1027_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1029_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "TWC1030_Tweedsmuir_Northern_Summer_2016" |
+                                                            prov.locs.summer.north@data$uniqueID == "42_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "3_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "4_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "56_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "56_Rainbows_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "54_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "54_Rainbows_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "53_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "52_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "52_Rainbows_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "51_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "40_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "40_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "39_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "39_Rainbows_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "39_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "39_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "38_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "38_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "38_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "37_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "36_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "35_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "34_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "34_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "33_Charlotte Alplands_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "33_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "49_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "49_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "49_Rainbows_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "49_Rainbows_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "49_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "48_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "49_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "48_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "46_Rainbows_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "46_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "46_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "44_Itcha-Ilgachuz_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "46_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "44_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "43_Rainbows_Northern_Summer_2012" |
+                                                            prov.locs.summer.north@data$uniqueID == "42_Itcha-Ilgachuz_Northern_Summer_2014" |
+                                                            prov.locs.summer.north@data$uniqueID == "42_Itcha-Ilgachuz_Northern_Summer_2013" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC23_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC16_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC21_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC08_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC16_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC08_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC07_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC07_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC04_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC06_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC04_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC09_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC10_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC09_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC14_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC12_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC12_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC11_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC13_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC11_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC20_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC20_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC19_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC19_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC03_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC03_Graham_Northern_Summer_2009" |
+                                                            prov.locs.summer.north@data$uniqueID == "GC02_Graham_Northern_Summer_2008" |
+                                                            prov.locs.summer.north@data$uniqueID == "C025A_Pink Mountain_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "C017A_Pink Mountain_Northern_Summer_2002" |
+                                                            prov.locs.summer.north@data$uniqueID == "C012A_Pink Mountain_Northern_Summer_2002", ]     
+
+# create factors without 0 records
+prov.locs.summer.north.top@data$uniqueID <- factor (prov.locs.summer.north.top@data$uniqueID) # drop animals with no locations
+prov.locs.summer.north.bottom@data$uniqueID <- factor (prov.locs.summer.north.bottom@data$uniqueID) # drop animals with no locations
+
+# khr.summer.north.h1000.top <- kernelUD (prov.locs.summer.north.top [, 45], # new unique animal ID
+#                                        h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+#                                        grid = 1000, # grid 1km x 1km
+#                                        extent = 5)  # extent is 2x the 'normal' size
+#homerange.summer.north.h1000.top <- getverticeshr (khr.summer.north.h1000.top, percent = 95)
+#writeOGR (homerange.summer.north.h1000.top, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h1000_top.shp", 
+#          layer = "hr_north_summer_h1000_top", driver = "ESRI Shapefile")
+#rm (khr.summer.north.h1000.top)
+khr.summer.north.h500.top <- kernelUD (prov.locs.summer.north.top [, 45], # new unique animal ID
+                                       h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                       grid = 1000, # grid 1km x 1km
+                                       extent = 5)  
+homerange.summer.north.h500.top <- getverticeshr (khr.summer.north.h500.top, percent = 95)
+writeOGR (homerange.summer.north.h500.top, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500_top.shp", 
+          layer = "hr_north_summer_h500_top", driver = "ESRI Shapefile")
+rm (khr.summer.north.h500.top)
+#khr.summer.north.h750.top <- kernelUD (prov.locs.summer.north.top [, 45], # new unique animal ID
+#                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+#                                   grid = 1000, # grid 1km x 1km
+#                                   extent = 5)  
+#homerange.summer.north.h750.top <- getverticeshr (khr.summer.north.h750.top, percent = 95)
+#writeOGR (homerange.summer.north.h750.top, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h750_top.shp", 
+#          layer = "hr_north_summer_h750_top", driver = "ESRI Shapefile")
+#rm (khr.summer.north.h750.top)
+
+#khr.summer.north.h1000.bottom <- kernelUD (prov.locs.summer.north.bottom [, 45], # new unique animal ID
+#                                           h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+#                                           grid = 1000, # grid 1km x 1km
+#                                           extent = 5)  # extent is 2x the 'normal' size
+#homerange.summer.north.h1000.bottom <- getverticeshr (khr.summer.north.h1000.bottom, percent = 95)
+#writeOGR (homerange.summer.north.h1000.bottom, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h1000_top.shp", 
+#          layer = "hr_north_summer_h1000_top", driver = "ESRI Shapefile")
+#rm (khr.summer.north.h1000.bottom)
+khr.summer.north.h500.bottom <- kernelUD (prov.locs.summer.north.bottom [, 45], # new unique animal ID
+                                          h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                          grid = 1000, # grid 1km x 1km
+                                          extent = 5)  
+homerange.summer.north.h500.bottom <- getverticeshr (khr.summer.north.h500.bottom, percent = 95)
+writeOGR (homerange.summer.north.h500.bottom, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500_bottom.shp", 
+          layer = "hr_north_summer_h500_bottom", driver = "ESRI Shapefile")
+rm (khr.summer.north.h500.bottom)
+#khr.summer.north.h750 <- kernelUD (prov.locs.summer.north.bottom [, 45], # new unique animal ID
+#                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+#                                   grid = 1000, # grid 1km x 1km
+#                                   extent = 5)  
+#homerange.summer.north.h750.bottom <- getverticeshr (khr.summer.north.h750.bottom, percent = 95)
+#writeOGR (homerange.summer.north.h750.bottom, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h750_top.shp", 
+#          layer = "hr_north_summer_h750_top", driver = "ESRI Shapefile")
+#rm (khr.summer.north.h750.bottom)
+
+# EARLY WINTER
+khr.early.winter.north.h1000 <- kernelUD (prov.locs.early.winter.north [, 45], # new unique animal ID
+                                          h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+                                          grid = 1000, # grid 1km x 1km
+                                          extent = 5)  # extent is 2x the 'normal' size
+homerange.early.winter.north.h1000 <- getverticeshr (khr.early.winter.north.h1000, percent = 95)
+writeOGR (homerange.early.winter.north.h1000, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_early.winter_h1000.shp", 
+          layer = "hr_north_early.winter_h1000", driver = "ESRI Shapefile")
+rm (khr.early.winter.north.h1000)
+khr.early.winter.north.h500 <- kernelUD (prov.locs.early.winter.north [, 45], # new unique animal ID
+                                         h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                         grid = 1000, # grid 1km x 1km
+                                         extent = 5)  
+homerange.early.winter.north.h500 <- getverticeshr (khr.early.winter.north.h500, percent = 95)
+writeOGR (homerange.early.winter.north.h500, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_early.winter_h500.shp", 
+          layer = "hr_north_early.winter_h500", driver = "ESRI Shapefile")
+rm (khr.early.winter.north.h500)
+khr.early.winter.north.h750 <- kernelUD (prov.locs.early.winter.north [, 45], # new unique animal ID
+                                         h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                         grid = 1000, # grid 1km x 1km
+                                         extent = 5)  
+homerange.early.winter.north.h750 <- getverticeshr (khr.early.winter.north.h750, percent = 95)
+writeOGR (homerange.early.winter.north.h750, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_early.winter_h750.shp", 
+          layer = "hr_north_early.winter_h750", driver = "ESRI Shapefile")
+rm (khr.early.winter.north.h750)
+
+# LATE WINTER
+# split the data to make it easier to handle
+late.winter.north.ids <- list (unique (prov.locs.late.winter.north@data$uniqueID))
+prov.locs.late.winter.north.top <-  prov.locs.late.winter.north [prov.locs.late.winter.north@data$uniqueID == "C02a_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C03_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C03_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C05a_Graham_Northern_Late Winter_2001" |  
+                                                         prov.locs.late.winter.north@data$uniqueID == "C04a_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C07_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C05a_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C09a_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C07_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C01a_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C01a_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C11_Graham_Northern_Late Winter_2001" |             
+                                                         prov.locs.late.winter.north@data$uniqueID == "C12a_Graham_Northern_Late Winter_2001" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C11_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C12a_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C04b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C06b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C10b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C06b_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C08b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C02b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C09b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C02b_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C12b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C09b_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C05b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C12b_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C01b_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C01b_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C14_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C14_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C15_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C15_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C16_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C16_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C17_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C18_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C13_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C17_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C18_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C20_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C20_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C19_Graham_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C22_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C21_Graham_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "148.559_Telkwa_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "148.559_Telkwa_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "148.669_Telkwa_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "148.669_Telkwa_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "148.59_Telkwa_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "148.59_Telkwa_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C1_Atlin_Northern_Late Winter_2000" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C2_Atlin_Northern_Late Winter_2000" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C3_Atlin_Northern_Late Winter_2000" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C4_Atlin_Northern_Late Winter_2000" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "C5_Atlin_Northern_Late Winter_2000" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL06_Swan Lake_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL06_Swan Lake_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL06_Swan Lake_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL28_Swan Lake_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL15_Swan Lake_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL28_Swan Lake_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL15_Little Rancheria_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "SL15_Swan Lake_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car055_Quintette_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car054_Narraway_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car056_Narraway_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car056_Quintette_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car056_Narraway_Northern_Late Winter_2009" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car077_Quintette_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car078_Narraway_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car077_Quintette_Northern_Late Winter_2009" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car078_Quintette_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car077_Narraway_Northern_Late Winter_2009" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car032_Burnt Pine_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car032_Burnt Pine_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car025_Kennedy Siding_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car024_Kennedy Siding_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car011_Kennedy Siding_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car024_Kennedy Siding_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car043_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car025_Kennedy Siding_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car044_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car047_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car044_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car047_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car048_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car048_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car048_Kennedy Siding_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car049_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car049_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car050_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car050_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car050_Kennedy Siding_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car051_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car051_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car053_Kennedy Siding_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car053_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car053_Kennedy Siding_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car010_Moberly_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car061_Kennedy Siding_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car061_Kennedy Siding_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car010_Moberly_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car020_Moberly_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car009_Moberly_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car020_Moberly_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car010_Moberly_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car052_Moberly_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car052_Moberly_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car066_Moberly_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car066_Moberly_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car067_Moberly_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car067_Moberly_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car080_Moberly_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car079_Moberly_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car079_Scott_Northern_Late Winter_2009" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car080_Moberly_Northern_Late Winter_2009" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car102_Moberly_Northern_Late Winter_2009" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car015_Quintette_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car012_Quintette_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car012_Quintette_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car031_Quintette_Northern_Late Winter_2004" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car014_Quintette_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car012_Quintette_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car013_Quintette_Northern_Late Winter_2003" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car040_Quintette_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car040_Quintette_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car045_Quintette_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car042_Quintette_Northern_Late Winter_2005" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car042_Quintette_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car046_Quintette_Northern_Late Winter_2006" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car045_Quintette_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car057_Quintette_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car057_Quintette_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car058_Quintette_Northern_Late Winter_2007" | 
+                                                         prov.locs.late.winter.north@data$uniqueID == "car058_Quintette_Northern_Late Winter_2008" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car059_Quintette_Northern_Late Winter_2007" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "car059_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car068_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car068_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car068_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car069_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car069_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car070_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car070_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car070_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car071_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car071_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car072_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car074_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car074_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car074_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car075_Quintette_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car075_Quintette_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car105_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car075_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car109_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "car112_Quintette_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C043W_Wolverine_Northern_Late Winter_2000" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C042W_Wolverine_Northern_Late Winter_2000" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C068W_Wolverine_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C069W_Wolverine_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C056C_Chase_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C059C_Chase_Northern_Late Winter_2000" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C059C_Chase_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C060C_Chase_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C057A_Finlay_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C067C_Chase_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C112A_Finlay_Northern_Late Winter_2000" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C093A_Finlay_Northern_Late Winter_2000" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "C066C_Chase_Northern_Late Winter_1999" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.990b_Tweedsmuir_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.990b_Tweedsmuir_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.960b_Tweedsmuir_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.960b_Tweedsmuir_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.940b_Tweedsmuir_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.890_Tweedsmuir_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.890_Tweedsmuir_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.870_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.870_Tweedsmuir_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.581b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.840b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.490b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.551b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.850_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.530_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.810b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.850_Tweedsmuir_Northern_Late Winter_2008" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.850_Tweedsmuir_Northern_Late Winter_2009" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "148.830b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.450b_Tweedsmuir_Northern_Late Winter_2006" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.551a_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.450b_Tweedsmuir_Northern_Late Winter_2007" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.581a_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.450a_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.531_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.110b_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.190b_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.120b_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.190b_Tweedsmuir_Northern_Late Winter_2003" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.090b_Tweedsmuir_Northern_Late Winter_2002" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.090b_Tweedsmuir_Northern_Late Winter_2003" |
+                                                           prov.locs.late.winter.north@data$uniqueID == "149.080b_Tweedsmuir_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "149.098_Tweedsmuir_Northern_Late Winter_2002" |
+                                                         prov.locs.late.winter.north@data$uniqueID == "149.098_Tweedsmuir_Northern_Late Winter_2003", ]
+
+prov.locs.late.winter.north.bottom <-  prov.locs.late.winter.north [prov.locs.late.winter.north@data$uniqueID == "149.200a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.190a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.160a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.110a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.120a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.150a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.080a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.090a_Tweedsmuir_Northern_Late Winter_2000" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C305T_Frog_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C303T_Spatsizi_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C303T_Spatsizi_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C296T_Chase_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C298T_Spatsizi_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C297T_Spatsizi_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C294T_Frog_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C293T_Frog_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.421_Level Kawdy_Northern_Late Winter_2003" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.411_Level Kawdy_Northern_Late Winter_2003" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.498_Edziza_Northern_Late Winter_2003" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "149.441_Edziza_Northern_Late Winter_2003" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "car133_Narraway_Northern_Late Winter_2011" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "car135_Narraway_Northern_Late Winter_2011" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "car134_Narraway_Northern_Late Winter_2011" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "car133_Narraway_Northern_Late Winter_2010" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "car132_Narraway_Northern_Late Winter_2011" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "car132_Narraway_Northern_Late Winter_2010" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1002_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1002_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1003_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1002_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1003_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1003_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1004_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1006_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1007_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1006_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1007_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1001_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1001_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1001_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1005_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1005_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1005_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1008_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1008_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1012_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1012_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1012_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1009_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1009_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1009_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1017_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1017_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1017_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1011_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1014_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1014_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1014_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1016_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1016_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1016_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1024_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1015_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1015_Tweedsmuir_Northern_Late Winter_2015" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1015_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1026_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1027_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1027_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1028_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1029_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1028_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1029_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1033_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1035_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1030_Tweedsmuir_Northern_Late Winter_2016" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1030_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1036_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1034_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1032_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1037_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "TWC1038_Tweedsmuir_Northern_Late Winter_2017" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "42_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "42_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "4_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "3_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "4_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "56_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "55_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "54_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "53_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "52_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "52_Charlotte Alplands_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "51_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "41_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "40_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "40_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "39_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "38_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "39_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "38_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "37_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "36_Charlotte Alplands_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "35_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "36_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "34_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "33_Charlotte Alplands_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "34_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "33_Charlotte Alplands_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "49_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "49_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "33_Rainbows_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "49_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "48_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "48_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "46_Itcha-Ilgachuz_Northern_Late Winter_2013" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "46_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "45_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "44_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "43_Charlotte Alplands_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "42_Itcha-Ilgachuz_Northern_Late Winter_2014" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "44_Itcha-Ilgachuz_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "43_Rainbows_Northern_Late Winter_2012" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC23_Graham_Northern_Late Winter_2010" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC23_Graham_Northern_Late Winter_2009" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC21_Graham_Northern_Late Winter_2009" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC16_Graham_Northern_Late Winter_2009" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC16_Graham_Northern_Late Winter_2010" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC16_Graham_Northern_Late Winter_2008" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC08_Graham_Northern_Late Winter_2010" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC08_Graham_Northern_Late Winter_2008" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC07_Graham_Northern_Late Winter_2010" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC08_Graham_Northern_Late Winter_2009" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC07_Graham_Northern_Late Winter_2009" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC07_Graham_Northern_Late Winter_2008" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC04_Graham_Northern_Late Winter_2009" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "GC06_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC04_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC10_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC09_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC09_Graham_Northern_Late Winter_2010" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC09_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC14_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC12_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC12_Graham_Northern_Late Winter_2010" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC11_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC11_Graham_Northern_Late Winter_2010" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC12_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC13_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC11_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC20_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC20_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC19_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC19_Graham_Northern_Late Winter_2010" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC03_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC03_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC19_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC02_Graham_Northern_Late Winter_2008" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "GC02_Graham_Northern_Late Winter_2009" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C043A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C037A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C036A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C042A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C021B_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C018B_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C035A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C033A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C029A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C028A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C031A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C012B_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C025A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C023A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C008B_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C020A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C022A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C017A_Pink Mountain_Northern_Late Winter_2003" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C017A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C015A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C016A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C012A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C011A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C014A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C006A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C010A_Pink Mountain_Northern_Late Winter_2002" |
+                                                              prov.locs.late.winter.north@data$uniqueID == "C003A_Pink Mountain_Northern_Late Winter_2002" |
+                                                            prov.locs.late.winter.north@data$uniqueID == "C002A_Pink Mountain_Northern_Late Winter_2002", ]     
 
 
+# create factors without 0 records
+prov.locs.late.winter.north.top@data$uniqueID <- factor (prov.locs.late.winter.north.top@data$uniqueID) # drop animals with no locations
+prov.locs.late.winter.north.bottom@data$uniqueID <- factor (prov.locs.late.winter.north.bottom@data$uniqueID) # drop animals with no locations
 
-data(puechabonsp)
+# khr.late.winter.north.h1000.top <- kernelUD (prov.locs.late.winter.north.top [, 45], # new unique animal ID
+#                                        h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+#                                        grid = 1000, # grid 1km x 1km
+#                                        extent = 5)  # extent is 2x the 'normal' size
+#homerange.late.winter.north.h1000.top <- getverticeshr (khr.late.winter.north.h1000.top, percent = 95)
+#writeOGR (homerange.late.winter.north.h1000.top, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h1000_top.shp", 
+#          layer = "hr_north_late.winter_h1000_top", driver = "ESRI Shapefile")
+#rm (khr.late.winter.north.h1000.top)
+khr.late.winter.north.h500.top <- kernelUD (prov.locs.late.winter.north.top [, 45], # new unique animal ID
+                                       h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                       grid = 1000, # grid 1km x 1km
+                                       extent = 5)  
+homerange.late.winter.north.h500.top <- getverticeshr (khr.late.winter.north.h500.top, percent = 95)
+writeOGR (homerange.late.winter.north.h500.top, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h500_top.shp", 
+          layer = "hr_north_late.winter_h500_top", driver = "ESRI Shapefile")
+rm (khr.late.winter.north.h500.top)
+#khr.late.winter.north.h750.top <- kernelUD (prov.locs.late.winter.north.top [, 45], # new unique animal ID
+#                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+#                                   grid = 1000, # grid 1km x 1km
+#                                   extent = 5)  
+#homerange.late.winter.north.h750.top <- getverticeshr (khr.late.winter.north.h750.top, percent = 95)
+#writeOGR (homerange.late.winter.north.h750.top, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h750_top.shp", 
+#          layer = "hr_north_late.winter_h750_top", driver = "ESRI Shapefile")
+#rm (khr.late.winter.north.h750.top)
 
-del <- data.frame (prov.locs.calving.boreal@coords)
-del2 <- unique (del [c ("coords.x1", "coords.x2")])
-
-
-unique (prov.locs.calving.boreal@data$ANIMAL_ID)
-
-
-plot (prov.locs.all.used)
-plot (caribou.range.north.diss, add = T)
-
-plot (prov.locs.late.winter.north)
-plot (caribou.range.north.diss, add = T)
-
+#khr.late.winter.north.h1000.bottom <- kernelUD (prov.locs.late.winter.north.bottom [, 45], # new unique animal ID
+#                                           h = 1000, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 1000, 10000)
+#                                           grid = 1000, # grid 1km x 1km
+#                                           extent = 5)  # extent is 2x the 'normal' size
+#homerange.late.winter.north.h1000.bottom <- getverticeshr (khr.late.winter.north.h1000.bottom, percent = 95)
+#writeOGR (homerange.late.winter.north.h1000.bottom, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h1000_top.shp", 
+#          layer = "hr_north_late.winter_h1000_top", driver = "ESRI Shapefile")
+#rm (khr.late.winter.north.h1000.bottom)
+khr.late.winter.north.h500.bottom <- kernelUD (prov.locs.late.winter.north.bottom [, 45], # new unique animal ID
+                                          h = 500, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+                                          grid = 1000, # grid 1km x 1km
+                                          extent = 5)  
+homerange.late.winter.north.h500.bottom <- getverticeshr (khr.late.winter.north.h500.bottom, percent = 95)
+writeOGR (homerange.late.winter.north.h500.bottom, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h500_bottom.shp", 
+          layer = "hr_north_late.winter_h500_bottom", driver = "ESRI Shapefile")
+rm (khr.late.winter.north.h500.bottom)
+#khr.late.winter.north.h750 <- kernelUD (prov.locs.late.winter.north.bottom [, 45], # new unique animal ID
+#                                   h = 750, # smoothing parameter (h) computed by Least Square Cross Validation did not converge, so tried different h values (100, 10000, 100000)
+#                                   grid = 1000, # grid 1km x 1km
+#                                   extent = 5)  
+#homerange.late.winter.north.h750.bottom <- getverticeshr (khr.late.winter.north.h750.bottom, percent = 95)
+#writeOGR (homerange.late.winter.north.h750.bottom, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h750_top.shp", 
+#          layer = "hr_north_late.winter_h750_top", driver = "ESRI Shapefile")
+#rm (khr.late.winter.north.h750.bottom)
 
 #===============================================================
 # Random sample of 'available' points in home ranges
 #==============================================================
+# https://gis.stackexchange.com/questions/108046/how-to-create-randomly-points-within-polygons-for-each-row-of-a-dataframe-matchi
+homerange.summer.boreal.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h500.shp",
+                                         layer = "hr_boreal_summer_h500")
+homerange.early.winter.boreal.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h500.shp",
+                                                layer = "hr_boreal_early.winter_h500")
+homerange.late.winter.boreal.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h500.shp",
+                                              layer = "hr_boreal_late.winter_h500")
+homerange.summer.mount.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h500.shp",
+                                        layer = "hr_mount_summer_h500")
+homerange.early.winter.mount.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_early.winter_h500.shp",
+                                              layer = "hr_mount_early.winter_h500")
+homerange.late.winter.mount.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_late.winter_h500.shp",
+                                            layer = "hr_mount_late.winter_h500")
+homerange.summer.north.h500.top <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500_top.shp",
+                                            layer = "hr_north_summer_h500_top")
+homerange.summer.north.h500.bottom <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500_bottom.shp",
+                                               layer = "hr_north_summer_h500_bottom")
+homerange.early.winter.north.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_early.winter_h500.shp",
+                                              layer = "hr_north_early.winter_h500")
+homerange.late.winter.north.h500.top <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h500_top.shp",
+                                                 layer = "hr_north_late.winter_h500_top")
+homerange.late.winter.north.h500.bottom <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h500_bottom.shp",
+                                                    layer = "hr_north_late.winter_h500_bottom")
+homerange.all <- rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (homerange.summer.boreal.h500, homerange.early.winter.boreal.h500),
+                        homerange.late.winter.boreal.h500), homerange.summer.mount.h500), 
+                        homerange.early.winter.mount.h500), homerange.late.winter.mount.h500), 
+                        homerange.summer.north.h500.top), homerange.summer.north.h500.bottom), 
+                        homerange.early.winter.north.h500), homerange.late.winter.north.h500.top),
+                        homerange.late.winter.north.h500.bottom)
+
+# create spatialpointsdataframe to bind to in loop
+sample.pts.boreal.C1_Maxhamish_Boreal_Summer_2006 <- spsample (homerange.summer.boreal.h500 [homerange.summer.boreal.h500@data$id == "C1_Maxhamish_Boreal_Summer_2006",], 
+                                                               n = 1000, type = "random")
+sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006 <- data.frame (matrix (ncol = 2, nrow = nrow (sample.pts.boreal.C1_Maxhamish_Boreal_Summer_2006@coords)))
+colnames (sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006) <- c ("pttype", "uniqueID")
+sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006$pttype <- 0
+sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006$uniqueID <- paste (i)
+id.points.out.all <- SpatialPointsDataFrame (sample.pts.boreal.C1_Maxhamish_Boreal_Summer_2006, data = sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006)
+
+for (i in levels (homerange.all@data$id)) { # loop to sample 1000 random points for each polygon
+  id.poly <- homerange.all [homerange.all@data$id == i,]
+  id.points <- spsample (id.poly, 
+                         n = 1000, type = "random", iter = 50)
+  data.pts <- data.frame (matrix (ncol = 2, nrow = nrow (id.points@coords)))
+  colnames (data.pts) <- c ("pttype", "uniqueID")
+  data.pts$pttype <- 0
+  data.pts$uniqueID <- i
+  id.points.out <- SpatialPointsDataFrame (id.points, data = data.pts)
+  id.points.out.all <- rbind (id.points.out.all, id.points.out)
+}
+
+id.points.out.all@data$ecotype <- gsub (".*(Northern|Mountain|Boreal).*$", # define ecotype, season, etc. 
+                                        "\\1", 
+                                        id.points.out.all@data$uniqueID, ignore.case = F)
+id.points.out.all@data$season <- gsub (".*(Early Winter|Late Winter|Summer).*$", # define ecotype, season, etc. 
+                                        "\\1", 
+                                        id.points.out.all@data$uniqueID, ignore.case = F)
+id.points.out.all@data$ANIMAL_ID <- sub ('_.*$', '', id.points.out.all@data$uniqueID)
+id.points.out.all@data$OBSERVATION_YEAR <-  sub ('^.*_', '', id.points.out.all@data$uniqueID)
+id.points.out.all@data$HERD_NAME <- gsub (".*(Snake-Sahtaneh|Maxhamish|Chinchaga|Hart Ranges|Wells Gray|Frisby-Boulder|Columbia North|Groundhog|Monashee|Purcells South|Graham|Telkwa|Atlin|Swan Lake|Quintette|Narraway|Kennedy Siding|Moberly|Scott|Wolverine|Chase|Finlay|Pink Mountain|Tweedsmuir|Frog|Spatsizi|Level Kawdy|Little Rancheria|Edziza|Itcha-Ilgachuz|Rainbows|Charlotte Alplands|Burnt Pine  
+).*$", # define ecotype, season, etc. 
+                                          "\\1", 
+                                          id.points.out.all@data$uniqueID, ignore.case = F)
+writeOGR (id.points.out.all, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\samplepoints\\homerange_scale\\homerange_avail_points.shp", 
+          layer = "homerange_avail_points", driver = "ESRI Shapefile")
+
+#===============================
+# Sample habitat at locations
+#===============================
+
+id.points.out.all
+prov.locs.all.used
 
 
-sample.pts.boreal <- spsample (caribou.boreal.sa, cellsize = c (2000, 2000), type = "regular")
 
 
 
@@ -1192,4 +2100,46 @@ sample.pts.boreal <- spsample (caribou.boreal.sa, cellsize = c (2000, 2000), typ
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+#================================================
+# Bind the available and used locations together
+#===============================================
+prov.locs.all.used@data$ecotype <- as.character (prov.locs.all.used@data$ecotype)
+prov.locs.all.used@data$OBSERVATION_YEAR <- as.character (prov.locs.all.used@data$OBSERVATION_YEAR)
+prov.locs.all.used@data$uniqueID <- as.character (prov.locs.all.used@data$uniqueID)
+prov.locs.all.used@data$season <- as.character (prov.locs.all.used@data$season)
+prov.locs.all.used@data$HERD_NAME <- as.character (prov.locs.all.used@data$HERD_NAME)
+prov.locs.all.used@data$ANIMAL_ID <- as.character (prov.locs.all.used@data$ANIMAL_ID)
+
+id.points.out.all <- spTransform (id.points.out.all, CRS = proj4string (prov.locs.all.used)) # reproject
+id.points.out.all@data [setdiff (names (prov.locs.all.used@data), names(id.points.out.all@data))] <- NA # create the same column names
+prov.locs.all.used@data [setdiff (names (id.points.out.all@data), names(prov.locs.all.used@data))] <- NA # create the same column names
+id.points.out.all@data$ptID <- c (453377:1978377)
+all.locations <- rbind (prov.locs.all.used, id.points.out.all)
+
+
+select ()
+
+
+
+
+
+all.locations@data$ecotype 
+all.locations@data$season 
+all.locations@data$season 
+all.locations@data$year 
+
+
+as.factor
 
