@@ -42,7 +42,7 @@ trend_description <- "This is a test"
 #-------------------------------------------------------------------------------------------------
 ##postgres parameters
 dbname = 'ima'
-host='localhost'
+host='142.36.203.20'
 port='5432'
 user='postgres'
 password='postgres'
@@ -179,7 +179,7 @@ server <- function(input, output) {
                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery"), options = layersControlOptions(collapsed = FALSE)) %>%
       addScaleBar(position = "bottomright") %>%
-      addEasyButton(easyButton(icon="fa-globe", title="Zoom to Level 1", onClick=JS("function(btn, map){ map.setZoom(4); }"))) %>%
+      addResetMapButton() %>%
       addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) %>%
       addDrawToolbar(
             targetGroup='Selected',
@@ -187,7 +187,8 @@ server <- function(input, output) {
             rectangleOptions = F,
             polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
                                                                         ,color = 'white'
-                                                                        ,weight = 3)))  
+                                                                        ,weight = 3))) %>%
+      addControl(html = actionButton("addSpatialFile", "", icon = icon("plus")), position = "topleft")
   })
   
   observe({
@@ -216,6 +217,12 @@ server <- function(input, output) {
     click<-input$map_shape_click
     output$clickInfo <- renderText(click$group)
   }) 
+  
+  # New Feature
+  observeEvent(input$leafmap_draw_new_feature, {
+    print("New Feature")
+    print(input$leafmap_draw_new_feature)
+  })
   
 }
 
