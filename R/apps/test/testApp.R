@@ -25,6 +25,8 @@ library(rpostgis)
 library(sf)
 library(sp)
 library(leaflet.extras)
+library(mapedit)
+library(mapview)
 # Load data
 #trend_data <- read_csv("data/trend_data.csv")
 date<-format(seq(as.Date("01/01/2007", "%m/%d/%Y"), as.Date("01/30/2007", "%m/%d/%Y"), by = "1 day"))
@@ -40,30 +42,19 @@ trend_description <- "This is a test"
 #-------------------------------------------------------------------------------------------------
 #Dataabse prep
 #-------------------------------------------------------------------------------------------------
-##postgres parameters
-dbname = 'ima'
-host='142.36.203.20'
+dbname = 'postgres'
+host='DC052586'
 port='5432'
 user='postgres'
 password='postgres'
 name=c("public","cns_cut_bl_polygon")
 ##Get a connection to the postgreSQL server (local instance)
-conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
+conn<-dbConnect(dbDriver("PostgreSQL"), host=host, dbname = dbname, port=port ,user=user ,password=password)
 
 ##Data objects
 ###Get disturbance summary
-sql.str = paste(
-  " SELECT SUM(t.areaha) AS SumArea, t.herd_name ,t.harvestyr
-    FROM (
-        SELECT b.areaha, b.harvestyr, y.herd_name,ST_INTERSECTION (b.wkb_geometry, y.geom)
-              FROM public.cns_cut_bl_polygon b, public.sample_caribou_bound y
-              WHERE ST_INTERSECTS(b.wkb_geometry, y.geom))t
-    GROUP BY harvestyr, herd_name
-    ORDER BY  herd_name, harvestyr")
-cb_sum<-dbGetQuery(conn, sql.str)
-
 ###Get shapefile
-name=c("gisdata","gcbp_carib_polygon")
+name=c("public","gcbp_carib_polygon")
 geom = "geom"
 my_spdf.2 <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 ####Remove NA's
@@ -73,7 +64,6 @@ dbDisconnect(conn)
 
 #Resulting objects: 
 #my_spdf.2 (a shapfile of herd locations) 
-#cb_sum (a resultset sum area disturbed by harvest year and herd_name)
 #-------------------------------------------------------------------------------------------------
 
 # Define UI
@@ -100,7 +90,7 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                       # Display only if the smoother is checked
                       conditionalPanel(condition = "input.smoother == true",
                             sliderInput(inputId = "f", label = "Smoother span:",
-                                 min = 0.01, max = 1, value = 0.67, step = 0.01,
+                                 min = 0.01, max = 1, value = 0.33, step = 0.01,
                                     animate = animationOptions(interval = 100)),
                               HTML("Higher values give more smoothness.")
                                        )
@@ -109,6 +99,8 @@ ui <- fluidPage(theme = shinytheme("lumen"),
 # Output: Description, lineplot, and reference
 mainPanel(
       leafletOutput("map"),
+      editModUI("editor"),
+      downloadButton("saveChanges", "Save map modifications"),
       plotOutput(outputId = "lineplot", height = "300px"),
       textOutput(outputId = "desc"),
       tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank")
@@ -150,7 +142,7 @@ server <- function(input, output) {
   output$lineplot <- renderPlot({
     color = "#434343"
     par(mar = c(4, 4, 1, 1))
-    plot(x = selected_trends()$harvestyr, y = selected_trends()$sumarea, type = "l",
+    plot(x = selected_trends()$harvestyr, y = selected_trends()$sumarea, type = "l", xlim = c(1950,2018),
          xlab = "Harvest Year", ylab = "Cutblock Area (ha)", col = color, fg = color, col.lab = color, col.axis = color)
     # Display only if smoother is checked
     if(input$smoother){
@@ -177,18 +169,20 @@ server <- function(input, output) {
                    label = ~herd_name,
                    labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
-      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery"), options = layersControlOptions(collapsed = FALSE)) %>%
       addScaleBar(position = "bottomright") %>%
       addResetMapButton() %>%
       addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) %>%
       addDrawToolbar(
-            targetGroup='Selected',
-            circleOptions = F,
-            rectangleOptions = F,
+            editOptions = editToolbarOptions(),
+            targetGroup='Caribou Zone',
+            circleOptions = FALSE,
+            circleMarkerOptions = FALSE,
+            rectangleOptions = FALSE,
+            markerOptions = FALSE,
             polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
-                                                                        ,color = 'white'
-                                                                        ,weight = 3))) %>%
-      addControl(html = actionButton("addSpatialFile", "", icon = icon("plus")), position = "topleft")
+                                                                        ,color = 'red'
+                                                                        ,weight = 3)))%>%
+    addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery"), overlayGroups = c('Caribou Zone'), options = layersControlOptions(collapsed = FALSE)) 
   })
   
   observe({
@@ -218,11 +212,21 @@ server <- function(input, output) {
     output$clickInfo <- renderText(click$group)
   }) 
   
-  # New Feature
-  observeEvent(input$leafmap_draw_new_feature, {
-    print("New Feature")
-    print(input$leafmap_draw_new_feature)
+  observeEvent(input$map_draw_stop, {
+    req(input$map_draw_stop)
+    print(input$map_draw_new_feature)
+    feature_type <- input$map_draw_new_feature$properties$feature_type
+    #get the coordinates of the polygon
+    polygon_coordinates <- input$map_draw_new_feature$geometry$coordinates[[1]]
+    #transform them to an sp Polygon
+    drawn_polygon <- Polygon(do.call(rbind,lapply(polygon_coordinates,function(x){c(x[[1]][1],x[[2]][1])})))
+    sp <- SpatialPolygons(list(Polygons(list(drawn_polygon),"drawn_polygon")))
+    plot (sp)
+
   })
+  
+
+  
   
 }
 
