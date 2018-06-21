@@ -635,15 +635,185 @@ for (i in list.dem.90s) { # loop though list to grab data for each tile; there a
   file.remove (paste0 ("82g01_e.dem.zip"))
 
 # Merge rasters together
-filenames <- list.files (pattern = "*.dem", full.names = TRUE)
-dem.104m.e <- raster ("104m01_e.dem") # load the first two to create the merged raster
-dem.104m.w <- raster ("104m01_w.dem")
-dem.final <- raster::merge (dem.104m.e, dem.104m.w)
 
-for (i in filenames) {
+# 82m
+dem.082m01.e <- raster ("082m01_e.dem") # load the first two to create the merged raster
+dem.082m01.w <- raster ("082m01_w.dem")
+dem.final <- raster::merge (dem.082m01.e, dem.082m01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.82m <- list.files (pattern = "^.*082m.*.dem$", full.names = TRUE)
+for (i in filenames.82m) {
   dem <- raster (i)
   dem.final <- raster::merge (dem.final, dem)
 }  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "082m\\082m.tif", format = "GTiff")
+
+# 82e
+dem.082e01.e <- raster ("082e01_e.dem") # load the first two to create the merged raster
+dem.082e01.w <- raster ("082e01_w.dem")
+dem.final <- raster::merge (dem.082e01.e, dem.082e01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.82e <- list.files (pattern = "^.*082e.*.dem$", full.names = TRUE)
+for (i in filenames.82e) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "082e\\082e.tif", format = "GTiff")
+
+# 82f
+dem.082f01.e <- raster ("082f01_e.dem") # load the first two to create the merged raster
+dem.082f01.w <- raster ("082f01_w.dem")
+dem.final <- raster::merge (dem.082f01.e, dem.082f01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.82f <- list.files (pattern = "^.*082f.*.dem$", full.names = TRUE)
+for (i in filenames.82f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "082f\\082f.tif", format = "GTiff")
+
+# 82g
+dem.082g01.e <- raster ("082g01_e.dem") # load the first two to create the merged raster
+dem.082g01.w <- raster ("082g01_w.dem")
+dem.final <- raster::merge (dem.082g01.e, dem.082g01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.82g <- list.files (pattern = "^.*082g.*.dem$", full.names = TRUE)
+for (i in filenames.82g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "082g\\082g.tif", format = "GTiff")
+
+# 82k
+dem.082k01.e <- raster ("082k01_e.dem") # load the first two to create the merged raster
+dem.082k01.w <- raster ("082k01_w.dem")
+dem.final <- raster::merge (dem.082k01.e, dem.082k01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.82k <- list.files (pattern = "^.*082k.*.dem$", full.names = TRUE)
+for (i in filenames.82k) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "082k\\082k.tif", format = "GTiff")
+
+# 82l
+dem.082l01.e <- raster ("082l01_e.dem") # load the first two to create the merged raster
+dem.082l01.w <- raster ("082l01_w.dem")
+dem.final <- raster::merge (dem.082l01.e, dem.082l01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.82l <- list.files (pattern = "^.*082l.*.dem$", full.names = TRUE)
+for (i in filenames.82l) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "082l\\082l.tif", format = "GTiff")
+
+# 83d
+dem.083d01.e <- raster ("083d01_e.dem") # load the first two to create the merged raster
+dem.083d01.w <- raster ("083d01_w.dem")
+dem.final <- raster::merge (dem.083d01.e, dem.083d01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.83d <- list.files (pattern = "^.*083d.*.dem$", full.names = TRUE)
+for (i in filenames.83d) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+raster::writeRaster (dem.final, filename = "083d\\083d.tif", format = "GTiff")
+
+# 92n
+dem.092n01.e <- raster ("092n01_e.dem") # load the first two to create the merged raster
+dem.092n01.w <- raster ("092n01_w.dem")
+dem.final <- raster::merge (dem.092n01.e, dem.092n01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.92n <- list.files (pattern = "^.*092n.*.dem$", full.names = TRUE)
+for (i in filenames.92n) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092n")
+raster::writeRaster (dem.final, filename = "092n\\092n.tif", format = "GTiff")
+
+# 92o
+dem.092o01.e <- raster ("092o01_e.dem") # load the first two to create the merged raster
+dem.092o01.w <- raster ("092o01_w.dem")
+dem.final <- raster::merge (dem.092o01.e, dem.092o01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.92o <- list.files (pattern = "^.*092o.*.dem$", full.names = TRUE)
+for (i in filenames.92o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092o")
+raster::writeRaster (dem.final, filename = "092o\\092o.tif", format = "GTiff")
+
+# 92p
+dem.092p01.e <- raster ("092p01_e.dem") # load the first two to create the merged raster
+dem.092p01.w <- raster ("092p01_w.dem")
+dem.final <- raster::merge (dem.092p01.e, dem.092p01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.92p <- list.files (pattern = "^.*092p.*.dem$", full.names = TRUE)
+for (i in filenames.92p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092p")
+raster::writeRaster (dem.final, filename = "092p\\092p.tif", format = "GTiff")
+
+# 93a
+dem.093a01.e <- raster ("093a01_e.dem") # load the first two to create the merged raster
+dem.093a01.w <- raster ("093a01_w.dem")
+dem.final <- raster::merge (dem.093a01.e, dem.093a01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.93a <- list.files (pattern = "^.*093a.*.dem$", full.names = TRUE)
+for (i in filenames.93a) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093a")
+raster::writeRaster (dem.final, filename = "093a\\093a.tif", format = "GTiff")
+
+# 93b
+dem.093b01.e <- raster ("093b01_e.dem") # load the first two to create the merged raster
+dem.093b01.w <- raster ("093b01_w.dem")
+dem.final <- raster::merge (dem.093b01.e, dem.093b01.w)
+filenames.93b <- list.files (pattern = "^.*093b.*.dem$", full.names = TRUE)
+for (i in filenames.93b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093b")
+raster::writeRaster (dem.final, filename = "093b\\093b.tif", format = "GTiff")
+
+
+
+
+
+
+
 
 tempdir ()
 
