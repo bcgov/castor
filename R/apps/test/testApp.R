@@ -18,24 +18,16 @@ library(shinythemes)
 library(dplyr)
 library(readr)
 library(ggplot2)
-#install.packages('bcmaps.rdata', repos='https://bcgov.github.io/drat/')
-library(bcmaps)
 library(leaflet)
 library(rpostgis)
 library(sf)
 library(sp)
 library(leaflet.extras)
-library(mapedit)
-library(mapview)
-# Load data
-#trend_data <- read_csv("data/trend_data.csv")
-date<-format(seq(as.Date("01/01/2007", "%m/%d/%Y"), as.Date("01/30/2007", "%m/%d/%Y"), by = "1 day"))
+library(rgdal)
+library(zoo)
+library(tidyr)
 
-trend_data <- data.frame(rbind(cbind(as.numeric(rnorm(30,0,1)), date , "cutblock"),cbind(as.numeric(rnorm(30,0,1)), date , "road")))
-names(trend_data)<-c("close","date", "type")
-trend_data$close<-as.numeric(trend_data$close)
-trend_data$date<-as.Date(trend_data$date)
-#check the data frame
+# Load data
 #str(trend_data)
 trend_description <- "This is a test"
 
@@ -56,112 +48,111 @@ conn<-dbConnect(dbDriver("PostgreSQL"), host=host, dbname = dbname, port=port ,u
 ###Get shapefile
 name=c("public","gcbp_carib_polygon")
 geom = "geom"
-my_spdf.2 <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+herd_bound <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 ####Remove NA's
-my_spdf.2  <- my_spdf.2[which(my_spdf.2@data$herd_name != "NA"), ]
+herd_bound <- herd_bound[which(herd_bound@data$herd_name != "NA"), ]
+#Get climate rasters
+boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
+mountain <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
+northern <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
 ###close connection
 dbDisconnect(conn)
-
-#Resulting objects: 
-#my_spdf.2 (a shapfile of herd locations) 
 #-------------------------------------------------------------------------------------------------
 
 # Define UI
 ui <- fluidPage(theme = shinytheme("lumen"),
-                titlePanel("Caribou and Land Use Simulator: historical anthropogenic disturbance"),
+                titlePanel("Caribou and Land Use Simulator: scenario builder"),
                 sidebarLayout(
                     sidebarPanel(
                       # add the caribou recovery logo
                       img(src = "clus-logo.png", height = 100, width = 100),
                       helpText("Click map to select a herd"),
-                      verbatimTextOutput("clickInfo"),
-                      # Select type of trend to plot
-                      selectInput(inputId = "type", label = strong("Select disturbance"),
-                                choices = c("cutblock", "road", "all"),
-                                selected = "cutblock"),
+                      h3(textOutput("clickCaribou")),
                       
                       # Select year range to be used
-                      sliderInput("sliderDate", label = strong("Disturbance year"), min = 1950, 
-                                  max = 2018, value = c(1950,2018)),
+                      sliderInput("sliderDate", label = strong("Year"), min = 2000, 
+                                  max = 2085, value = 2010, step = 1, animate = animationOptions(interval = 1)
+                                  ),
+                      downloadButton("downloadData", "Save"),
+                      helpText("Save the drawn caribou zone")
 
-                      # Select whether to overlay smooth trend line
-                      checkboxInput(inputId = "smoother", label = strong("Overlay smooth trend line"), value = FALSE),
-
-                      # Display only if the smoother is checked
-                      conditionalPanel(condition = "input.smoother == true",
-                            sliderInput(inputId = "f", label = "Smoother span:",
-                                 min = 0.01, max = 1, value = 0.33, step = 0.01,
-                                    animate = animationOptions(interval = 100)),
-                              HTML("Higher values give more smoothness.")
-                                       )
 ),
 
 # Output: Description, lineplot, and reference
 mainPanel(
       leafletOutput("map"),
-      editModUI("editor"),
-      downloadButton("saveChanges", "Save map modifications"),
-      plotOutput(outputId = "lineplot", height = "300px"),
       textOutput(outputId = "desc"),
-      tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank")
+      tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank"),
+      tabsetPanel(
+        tabPanel("Population"),
+        tabPanel("Habitat"),
+        tabPanel("Climate", plotOutput(outputId = "climateHabitat", height = "300px")),
+        tabPanel("Disturbance", plotOutput(outputId = "distplot", height = "300px"))
+        
         )
-        )
+      )
+  )
 )
 
 # Define server function
 server <- function(input, output) {
   
+  caribouHerd<-reactive(as.character(input$map_shape_click$group))
+  output$climateHabitat<-renderPlot({
+    spplot(raster(boreal,1))
+  })
+  
   # Subset data
-  selected_trends <- reactive({
-    req(input$sliderDate)
+  dist_data <- reactive({
     req(input$map_shape_click)
     conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
     sql.str = paste0(
-      "SELECT SUM(t.areaha) AS SumArea, t.herd_name ,t.harvestyr
+      "SELECT SUM(t.areaha) AS sumarea, t.herd_name ,t.harvestyr
     FROM (
       SELECT b.areaha, b.harvestyr, y.herd_name
-      FROM public.cns_cut_bl_polygon b, (SELECT * FROM public.gcbp_carib_polygon WHERE herd_name = '",as.character(input$map_shape_click$group), "') y
-      WHERE ST_INTERSECTS(b.wkb_geometry, y.geom))t
+      FROM public.cns_cut_bl_polygon b, (SELECT * FROM public.gcbp_carib_polygon WHERE herd_name = '",caribouHerd(), "') y
+      WHERE ST_INTERSECTS(b.wkb_geometry, y.geom))t 
       GROUP BY harvestyr, herd_name
       ORDER BY  herd_name, harvestyr")
     cb_sum<-dbGetQuery(conn, sql.str)
     dbDisconnect(conn)
-      cb_sum %>%
-      filter(
-        harvestyr >= input$sliderDate[1] & harvestyr < input$sliderDate[2]
-        )
-  })
-  
-  datasetInput <- reactive({
-    switch(input$type,
-           "test1" = test1,
-           "test" = test)
-  }) 
-  
-  # Create scatterplot object the plotOutput function is expecting
-  output$lineplot <- renderPlot({
-    color = "#434343"
-    par(mar = c(4, 4, 1, 1))
-    plot(x = selected_trends()$harvestyr, y = selected_trends()$sumarea, type = "l", xlim = c(1950,2018),
-         xlab = "Harvest Year", ylab = "Cutblock Area (ha)", col = color, fg = color, col.lab = color, col.axis = color)
-    # Display only if smoother is checked
-    if(input$smoother){
-      smooth_curve <- lowess(x = as.numeric(selected_trends()$harvestyr), y = selected_trends()$sumarea, f = input$f)
-      lines(smooth_curve, col = "#E6553A", lwd = 3)
+    cb_sum<-rbind(cb_sum,c(0,NA,1910)) #Add 40 years prior to the first cutblock date in cns_polys (~1950)
+    if(!is.null(cb_sum$harvestyr)){
+      cb2<-tidyr::complete(cb_sum, harvestyr = full_seq(harvestyr,1), fill = list(sumarea = 0))
+      cb2$Dist40<-zoo::rollapplyr(cb2$sumarea, 40, FUN = sum, fill=0)
+    }else{
+      cb2 <- data.frame(harvestyr = 2000:2018, Dist40 = 0)
     }
+    cb2 %>% filter(harvestyr>1960)
   })
   
+
+  # Create scatterplot object the plotOutput function is expecting
+  output$distplot <- renderPlot({
+    ggplot(dist_data(), aes(x =harvestyr, y=Dist40))+
+      geom_line()+
+      xlab ("Year") +
+      ylab ("Cutblock Area < 40 years (ha)") + 
+      scale_x_continuous(breaks = seq(1960, 2018, by = 5))+
+      expand_limits(y=0) +
+      theme_bw () +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold"))
+
+  })
+  
+ 
   
   #set the pallet
-  pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  my_spdf.2$risk_stat)
+  pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  herd_bound$risk_stat)
   
   output$map = renderLeaflet({ 
-      leaflet(my_spdf.2,options = leafletOptions(doubleClickZoom= TRUE)) %>% 
+      leaflet(herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
       setView(-121.7476, 53.7267, 4) %>%
       addTiles() %>% 
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
       addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
-      addPolygons(data=my_spdf.2,  fillColor = ~pal(risk_stat), 
+      addPolygons(data=herd_bound,  fillColor = ~pal(risk_stat), 
                   weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
                   layerId = ~gid,
                   group= ~herd_name,
@@ -179,22 +170,22 @@ server <- function(input, output) {
             circleMarkerOptions = FALSE,
             rectangleOptions = FALSE,
             markerOptions = FALSE,
-            polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
+            polygonOptions = drawPolygonOptions(showArea=TRUE, shapeOptions=drawShapeOptions(fillOpacity = 0
                                                                         ,color = 'red'
-                                                                        ,weight = 3)))%>%
-    addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery"), overlayGroups = c('Caribou Zone'), options = layersControlOptions(collapsed = FALSE)) 
+                                                                       ,weight = 3, clickable = TRUE)))%>%
+    addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery"), overlayGroups = c('UWR','WHA', 'Caribou Zone', 'Caribou Selection'), options = layersControlOptions(collapsed = TRUE)) 
   })
   
+
   observe({
     click <- input$map_shape_click
     if(is.null(click))
       return()
-    print(click$group)
-    mapSelect <-  my_spdf.2[which(my_spdf.2@data$herd_name == click$group), ] 
+    mapSelect <- herd_bound[which(herd_bound@data$herd_name == click$group), ] 
     
     leafletProxy("map") %>%
       clearShapes() %>%
-      addPolygons(data=my_spdf.2,  fillColor = ~pal(risk_stat), 
+      addPolygons(data=herd_bound,  fillColor = ~pal(risk_stat), 
                     weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
                    layerId = ~gid,
                    group= ~herd_name,
@@ -208,26 +199,89 @@ server <- function(input, output) {
     })
   
   observeEvent(input$map_shape_click, {
-    click<-input$map_shape_click
-    output$clickInfo <- renderText(click$group)
+    output$clickCaribou <- renderText(caribouHerd())
   }) 
   
-  observeEvent(input$map_draw_stop, {
-    req(input$map_draw_stop)
-    print(input$map_draw_new_feature)
-    feature_type <- input$map_draw_new_feature$properties$feature_type
-    #get the coordinates of the polygon
-    polygon_coordinates <- input$map_draw_new_feature$geometry$coordinates[[1]]
-    #transform them to an sp Polygon
-    drawn_polygon <- Polygon(do.call(rbind,lapply(polygon_coordinates,function(x){c(x[[1]][1],x[[2]][1])})))
-    sp <- SpatialPolygons(list(Polygons(list(drawn_polygon),"drawn_polygon")))
-    plot (sp)
 
+# observeEvent(input$map_draw_stop, {
+#     req(input$map_draw_stop)
+#     print(input$map_draw_new_feature)
+#     feature_type <- input$map_draw_new_feature$properties$feature_type
+#     #get the coordinates of the polygon
+#     polygon_coordinates <- input$map_draw_new_feature$geometry$coordinates[[1]]
+#     #transform them to an sp Polygon
+#     drawn_polygon <- Polygon(do.call(rbind,lapply(polygon_coordinates,function(x){c(x[[1]][1],x[[2]][1])})))
+#     sp <- SpatialPolygons(list(Polygons(list(drawn_polygon),"drawn_polygon")))
+#     plot (sp)
+#   })
+  latlongs<-reactiveValues()   #temporary to hold coords
+  latlongs$df2 <- data.frame(Longitude = numeric(0), Latitude = numeric(0))
+  
+  value<-reactiveValues()
+  value$drawnPoly<-SpatialPolygonsDataFrame(SpatialPolygons(list()), data=data.frame (notes=character(0), stringsAsFactors = F))
+  
+  observeEvent(input$map_draw_new_feature, {
+    
+    #get the lat long coordinates
+    coor<-unlist(input$map_draw_new_feature$geometry$coordinates)
+    Longitude<-coor[seq(1,length(coor), 2)] 
+    Latitude<-coor[seq(2,length(coor), 2)]
+    isolate(latlongs$df2<-rbind(latlongs$df2, cbind(Longitude, Latitude)))
+    
+    #create a polygon based on the lat, long
+    poly<-Polygon(cbind(latlongs$df2$Longitude, latlongs$df2$Latitude))
+    
+    # polys<-Polygons(list(poly), ID=input$map_draw_new_feature$properties$`_leaflet_id`)
+    # spPolys<-SpatialPolygons(list(polys))
+    # print(input$map_draw_new_feature$properties$`_leaflet_id`)
+    # #plot(spPolys)
+    # value$drawnPoly<-rbind(value$drawnPoly,SpatialPolygonsDataFrame(spPolys, data=data.frame(notes=NA, row.names=row.names(spPolys))))
+    # print(value$drawnPoly)
+    # #plot(value$drawnPoly)
   })
   
+  # observeEvent(input$map_draw_edited_features, {
+  #   f <- input$map_draw_edited_features
+  #   coordy<-lapply(f$features, function(x){unlist(x$geometry$coordinates)})
+  #   Longitudes<-lapply(coordy, function(coor) {coor[seq(1,length(coor), 2)] })
+  #   Latitudes<-lapply(coordy, function(coor) { coor[seq(2,length(coor), 2)] })
+  #   
+  #   polys<-list()
+  #   for (i in 1:length(Longitudes)){polys[[i]]<- Polygons(
+  #     list(Polygon(cbind(Longitudes[[i]], Latitudes[[i]]))), ID=f$features[[i]]$properties$layerId
+  #   )}
+  #   spPolys<-SpatialPolygons(polys)
+  #   SPDF<-SpatialPolygonsDataFrame(spPolys, 
+  #                                  data=data.frame(notes=value$drawnPoly$notes[row.names(value$drawnPoly) %in% row.names(spPolys)], row.names=row.names(spPolys)))
+  #   value$drawnPoly<-value$drawnPoly[!row.names(value$drawnPoly) %in% row.names(SPDF),]
+  #   value$drawnPoly<-rbind(value$drawnPoly, SPDF)
+  #   
+  # })
+  # 
+  # observeEvent(input$map_draw_deleted_features, { 
+  #   f <- input$map_draw_deleted_features
+  #   ids<-lapply(f$features, function(x){unlist(x$properties$layerId)})
+  #   value$drawnPoly<-value$drawnPoly[!row.names(value$drawnPoly) %in% ids ,]
+  # })  
+  
+  output$downloadData <- downloadHandler(
+    filename = 'shpExport.',
+    content = function(file) {
+      if (length(Sys.glob("shpExport.*"))>0){
+        file.remove(Sys.glob("shpExport.*"))
+      }
+      
+      proj4string(value$drawnPoly)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+      rgdal::writeOGR(value$drawnPoly, dsn="shpExport.shp", layer="shpExport", driver="ESRI Shapefile")
+      zip(zipfile='shpExport.zip', files=Sys.glob("shpExport.*"))
+      file.copy("shpExport.zip", file)
+      if (length(Sys.glob("shpExport.*"))>0){
+        file.remove(Sys.glob("shpExport.*"))
+      }
+    }
+  
+    )
 
-  
-  
 }
 
 # Create Shiny object
