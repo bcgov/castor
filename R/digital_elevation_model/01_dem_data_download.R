@@ -37,6 +37,7 @@ outPath <- "C:\\Work\\caribou\\clus_data\\dem"
 
 # create a list of the map tiles you want data for
 # can use this website to identify map tiles: https://www2.gov.bc.ca/assets/gov/data/geographic/topography/250kgrid.pdf
+# these lists are in caribou range
 list.dem.100s <- list ("104m", "104n", "104o","104p", "104i", "104j", "104k", "104g", "104h", "104a", "103p",
                        "103i")
 list.dem.90s <- list ("94m", "94n", "94o", "94p", "94i", "94j", "94k", "94l", "94e", "94f", "94g", 
@@ -44,6 +45,17 @@ list.dem.90s <- list ("94m", "94n", "94o", "94p", "94i", "94j", "94k", "94l", "9
                        "93k", "93l", "103i", "93e", "93f", "93g", "93h", "83e", "83c", "83d", "93a", 
                        "93b", "93c", "93d", "92n", "92o", "92p", "82m", "82n", "82o", "82j", "82k",
                        "82l", "82e", "82f", "82g")
+# these lists cover the rest of BC
+list.dem.90s.2 <- list ("95d", "95c", "95b", "95a", "92m", "92l", "92k", "92j",
+                        "92i", "92h", "92g", "92f", "92e", "92c", "92b", "92a",
+                        "85d", "84m", "84l", "84e", "84d", "83m", "83l", "83e",
+                        "83d", "83c", "82h", "82d", "82c", "82b", "82a")
+
+list.dem.100s.2 <- list ("115b", "115a", "114p", "114o", "114i", "105d", "105c",
+                         "105b", "105a", "104l", "104f", "104b", "104a", "103o",
+                         "103k", "103j", "103h", "103g", "103f", "103c", "103b",
+                         "103a", "102p", "102o", "102i")
+
 for (i in list.dem.100s) { # loop though list to grab data for each tile; there are 32 'sub-tiles' within ech
   try ({# some tiles dont; exist; this skips them
   download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "16_w.dem.zip"),
@@ -439,6 +451,400 @@ for (i in list.dem.90s) { # loop though list to grab data for each tile; there a
   })
 }
 
+for (i in list.dem.100s.2) { # loop though list to grab data for each tile; there are 32 'sub-tiles' within ech
+  try ({# some tiles dont; exist; this skips them
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "16_w.dem.zip"),
+              dest = paste0 (i, "16_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "16_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "16_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "16_e.dem.zip"),
+              dest = paste0 (i, "16_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "16_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "16_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "15_w.dem.zip"),
+              dest = paste0 (i, "15_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "15_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "15_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "15_e.dem.zip"),
+              dest = paste0 (i, "15_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "15_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "15_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "14_w.dem.zip"),
+              dest = paste0 (i, "14_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "14_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "14_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "14_e.dem.zip"),
+              dest = paste0 (i, "14_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "14_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "14_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "13_w.dem.zip"),
+              dest = paste0 (i, "13_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "13_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "13_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "13_e.dem.zip"),
+              dest = paste0 (i, "13_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "13_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "13_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "12_w.dem.zip"),
+              dest = paste0 (i, "12_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "12_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "12_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "12_e.dem.zip"),
+              dest = paste0 (i, "12_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "12_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "12_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "11_w.dem.zip"),
+              dest = paste0 (i, "11_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "11_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "11_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "11_e.dem.zip"),
+              dest = paste0 (i, "11_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "11_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "11_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "10_w.dem.zip"),
+              dest = paste0 (i, "10_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "10_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "10_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "10_e.dem.zip"),
+              dest = paste0 (i, "10_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "10_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "10_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "09_w.dem.zip"),
+              dest = paste0 (i, "09_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "09_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "09_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "09_e.dem.zip"),
+              dest = paste0 (i, "09_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "09_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "09_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "08_w.dem.zip"),
+              dest = paste0 (i, "08_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "08_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "08_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "08_e.dem.zip"),
+              dest = paste0 (i, "08_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "08_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "08_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "07_w.dem.zip"),
+              dest = paste0 (i, "07_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "07_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "07_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "07_e.dem.zip"),
+              dest = paste0 (i, "07_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "07_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "07_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "06_w.dem.zip"),
+              dest = paste0 (i, "06_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "06_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "06_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "06_e.dem.zip"),
+              dest = paste0 (i, "06_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "06_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "06_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "05_w.dem.zip"),
+              dest = paste0 (i, "05_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "05_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "05_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "05_e.dem.zip"),
+              dest = paste0 (i, "05_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "05_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "05_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "04_w.dem.zip"),
+              dest = paste0 (i, "04_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "04_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "04_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "04_e.dem.zip"),
+              dest = paste0 (i, "04_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "04_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "04_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "03_w.dem.zip"),
+              dest = paste0 (i, "03_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "03_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "03_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "03_e.dem.zip"),
+              dest = paste0 (i, "03_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "03_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "03_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "02_w.dem.zip"),
+              dest = paste0 (i, "02_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "02_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "02_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "02_e.dem.zip"),
+              dest = paste0 (i, "02_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "02_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "02_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "01_w.dem.zip"),
+              dest = paste0 (i, "01_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "01_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "01_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/", i, "01_e.dem.zip"),
+              dest = paste0 (i, "01_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "01_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "01_e.dem.zip"))
+  })
+}
+
+
+for (i in list.dem.90s.2) { # loop though list to grab data for each tile; there are 32 'sub-tiles' within ech
+  try ({# some tiles don't exist; this skips them
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "16_w.dem.zip"),
+              dest = paste0 (i, "16_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "16_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "16_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "16_e.dem.zip"),
+              dest = paste0 (i, "16_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "16_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "16_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "15_w.dem.zip"),
+              dest = paste0 (i, "15_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "15_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "15_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "15_e.dem.zip"),
+              dest = paste0 (i, "15_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "15_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "15_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "14_w.dem.zip"),
+              dest = paste0 (i, "14_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "14_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "14_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "14_e.dem.zip"),
+              dest = paste0 (i, "14_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "14_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "14_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "13_w.dem.zip"),
+              dest = paste0 (i, "13_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "13_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "13_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "13_e.dem.zip"),
+              dest = paste0 (i, "13_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "13_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "13_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "12_w.dem.zip"),
+              dest = paste0 (i, "12_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "12_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "12_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "12_e.dem.zip"),
+              dest = paste0 (i, "12_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "12_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "12_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "11_w.dem.zip"),
+              dest = paste0 (i, "11_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "11_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "11_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "11_e.dem.zip"),
+              dest = paste0 (i, "11_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "11_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "11_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "10_w.dem.zip"),
+              dest = paste0 (i, "10_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "10_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "10_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "10_e.dem.zip"),
+              dest = paste0 (i, "10_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "10_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "10_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "09_w.dem.zip"),
+              dest = paste0 (i, "09_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "09_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "09_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "09_e.dem.zip"),
+              dest = paste0 (i, "09_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "09_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "09_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "08_w.dem.zip"),
+              dest = paste0 (i, "08_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "08_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "08_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "08_e.dem.zip"),
+              dest = paste0 (i, "08_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "08_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "08_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "07_w.dem.zip"),
+              dest = paste0 (i, "07_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "07_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "07_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "07_e.dem.zip"),
+              dest = paste0 (i, "07_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "07_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "07_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "06_w.dem.zip"),
+              dest = paste0 (i, "06_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "06_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "06_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "06_e.dem.zip"),
+              dest = paste0 (i, "06_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "06_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "06_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "05_w.dem.zip"),
+              dest = paste0 (i, "05_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "05_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "05_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "05_e.dem.zip"),
+              dest = paste0 (i, "05_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "05_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "05_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "04_w.dem.zip"),
+              dest = paste0 (i, "04_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "04_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "04_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "04_e.dem.zip"),
+              dest = paste0 (i, "04_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "04_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "04_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "03_w.dem.zip"),
+              dest = paste0 (i, "03_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "03_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "03_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "03_e.dem.zip"),
+              dest = paste0 (i, "03_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "03_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "03_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "02_w.dem.zip"),
+              dest = paste0 (i, "02_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "02_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "02_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "02_e.dem.zip"),
+              dest = paste0 (i, "02_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "02_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "02_e.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "01_w.dem.zip"),
+              dest = paste0 (i, "01_w.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "01_w.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "01_w.dem.zip"))
+    download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/", i, "/0", i, "01_e.dem.zip"),
+              dest = paste0 (i, "01_e.dem.zip"),
+              mode = "wb")
+    unzip (paste0 (i, "01_e.dem.zip"), 
+           exdir = outPath)
+    file.remove (paste0 (i, "01_e.dem.zip"))
+  })
+}
 
 # crashed at tile 82g for some reason; manually doing that tile
   download (paste0 ("https://pub.data.gov.bc.ca/datasets/175624/82g/082g16_w.dem.zip"),
@@ -808,23 +1214,1194 @@ dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellp
 dir.create ("093b")
 raster::writeRaster (dem.final, filename = "093b\\093b.tif", format = "GTiff")
 
+# 93c
+dem.093c01.e <- raster ("093c01_e.dem") # load the first two to create the merged raster
+dem.093c01.w <- raster ("093c01_w.dem")
+dem.final <- raster::merge (dem.093c01.e, dem.093c01.w)
+filenames.93c <- list.files (pattern = "^.*093c.*.dem$", full.names = TRUE)
+for (i in filenames.93c) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093c")
+raster::writeRaster (dem.final, filename = "093c\\093c.tif", format = "GTiff")
 
+# 93d
+dem.093d01.e <- raster ("093d01_e.dem") # load the first two to create the merged raster
+dem.093d01.w <- raster ("093d01_w.dem")
+dem.final <- raster::merge (dem.093d01.e, dem.093d01.w)
+filenames.93d <- list.files (pattern = "^.*093d.*.dem$", full.names = TRUE)
+for (i in filenames.93d) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093d")
+raster::writeRaster (dem.final, filename = "093d\\093d.tif", format = "GTiff")
 
+# 93e
+dem.093e01.e <- raster ("093e01_e.dem") # load the first two to create the merged raster
+dem.093e01.w <- raster ("093e01_w.dem")
+dem.final <- raster::merge (dem.093e01.e, dem.093e01.w)
+filenames.93e <- list.files (pattern = "^.*093e.*.dem$", full.names = TRUE)
+for (i in filenames.93e) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093e")
+raster::writeRaster (dem.final, filename = "093e\\093e.tif", format = "GTiff")
 
+# 93f
+dem.093f01.e <- raster ("093f01_e.dem") # load the first two to create the merged raster
+dem.093f01.w <- raster ("093f01_w.dem")
+dem.final <- raster::merge (dem.093f01.e, dem.093f01.w)
+filenames.93f <- list.files (pattern = "^.*093f.*.dem$", full.names = TRUE)
+for (i in filenames.93f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093f")
+raster::writeRaster (dem.final, filename = "093f\\093f.tif", format = "GTiff")
 
+# 93g
+dem.093g01.e <- raster ("093g01_e.dem") # load the first two to create the merged raster
+dem.093g01.w <- raster ("093g01_w.dem")
+dem.final <- raster::merge (dem.093g01.e, dem.093g01.w)
+filenames.93g <- list.files (pattern = "^.*093g.*.dem$", full.names = TRUE)
+for (i in filenames.93g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093g")
+raster::writeRaster (dem.final, filename = "093g\\093g.tif", format = "GTiff")
 
+# 93h
+dem.093h01.e <- raster ("093h01_e.dem") # load the first two to create the merged raster
+dem.093h01.w <- raster ("093h01_w.dem")
+dem.final <- raster::merge (dem.093h01.e, dem.093h01.w)
+filenames.93h <- list.files (pattern = "^.*093h.*.dem$", full.names = TRUE)
+for (i in filenames.93h) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093h")
+raster::writeRaster (dem.final, filename = "093h\\093h.tif", format = "GTiff")
 
+# 93i
+dem.093i01.e <- raster ("093i01_e.dem") # load the first two to create the merged raster
+dem.093i01.w <- raster ("093i01_w.dem")
+dem.final <- raster::merge (dem.093i01.e, dem.093i01.w)
+filenames.93i <- list.files (pattern = "^.*093i.*.dem$", full.names = TRUE)
+for (i in filenames.93i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093i")
+raster::writeRaster (dem.final, filename = "093i\\093i.tif", format = "GTiff")
 
-tempdir ()
+# 93j
+dem.093j01.e <- raster ("093j01_e.dem") # load the first two to create the merged raster
+dem.093j01.w <- raster ("093j01_w.dem")
+dem.final <- raster::merge (dem.093j01.e, dem.093j01.w)
+filenames.93j <- list.files (pattern = "^.*093j.*.dem$", full.names = TRUE)
+for (i in filenames.93j) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093j")
+raster::writeRaster (dem.final, filename = "093j\\093j.tif", format = "GTiff")
 
+# 93k
+dem.093k01.e <- raster ("093k01_e.dem") # load the first two to create the merged raster
+dem.093k01.w <- raster ("093k01_w.dem")
+dem.final <- raster::merge (dem.093k01.e, dem.093k01.w)
+filenames.93k <- list.files (pattern = "^.*093k.*.dem$", full.names = TRUE)
+for (i in filenames.93k) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093k")
+raster::writeRaster (dem.final, filename = "093k\\093k.tif", format = "GTiff")
 
-plot (dem.final)
+# 93l
+dem.093l01.e <- raster ("093l01_e.dem") # load the first two to create the merged raster
+dem.093l01.w <- raster ("093l01_w.dem")
+dem.final <- raster::merge (dem.093l01.e, dem.093l01.w)
+filenames.93l <- list.files (pattern = "^.*093l.*.dem$", full.names = TRUE)
+for (i in filenames.93l) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093l")
+raster::writeRaster (dem.final, filename = "093l\\093l.tif", format = "GTiff")
 
-
-
-
-
-
-  
+# 93m
+dem.093m01.e <- raster ("093m01_e.dem") # load the first two to create the merged raster
+dem.093m01.w <- raster ("093m01_w.dem")
+dem.final <- raster::merge (dem.093m01.e, dem.093m01.w)
+filenames.93m <- list.files (pattern = "^.*093m.*.dem$", full.names = TRUE)
+for (i in filenames.93m) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093m")
+raster::writeRaster (dem.final, filename = "093m\\093m.tif", format = "GTiff")
                          
-  
+# 93n
+dem.093n01.e <- raster ("093n01_e.dem") # load the first two to create the merged raster
+dem.093n01.w <- raster ("093n01_w.dem")
+dem.final <- raster::merge (dem.093n01.e, dem.093n01.w)
+filenames.93n <- list.files (pattern = "^.*093n.*.dem$", full.names = TRUE)
+for (i in filenames.93n) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093n")
+raster::writeRaster (dem.final, filename = "093n\\093n.tif", format = "GTiff")  
+
+# 93o
+dem.093o01.e <- raster ("093o01_e.dem") # load the first two to create the merged raster
+dem.093o01.w <- raster ("093o01_w.dem")
+dem.final <- raster::merge (dem.093o01.e, dem.093o01.w)
+filenames.93o <- list.files (pattern = "^.*093o.*.dem$", full.names = TRUE)
+for (i in filenames.93o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093o")
+raster::writeRaster (dem.final, filename = "093o\\093o.tif", format = "GTiff")
+
+# 93p
+dem.093p01.e <- raster ("093p01_e.dem") # load the first two to create the merged raster
+dem.093p01.w <- raster ("093p01_w.dem")
+dem.final <- raster::merge (dem.093p01.e, dem.093p01.w)
+filenames.93p <- list.files (pattern = "^.*093p.*.dem$", full.names = TRUE)
+for (i in filenames.93p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("093p")
+raster::writeRaster (dem.final, filename = "093p\\093p.tif", format = "GTiff")
+
+
+# 94a
+dem.094a01.e <- raster ("094a01_e.dem") # load the first two to create the merged raster
+dem.094a01.w <- raster ("094a01_w.dem")
+dem.final <- raster::merge (dem.094a01.e, dem.094a01.w)
+# tried looping trhough all data, but was filling up the temp folder and C: drive
+filenames.94a <- list.files (pattern = "^.*094a.*.dem$", full.names = TRUE)
+for (i in filenames.94a) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094a")
+raster::writeRaster (dem.final, filename = "094a\\094a.tif", format = "GTiff")
+
+# 94b
+dem.094b01.e <- raster ("094b01_e.dem") # load the first two to create the merged raster
+dem.094b01.w <- raster ("094b01_w.dem")
+dem.final <- raster::merge (dem.094b01.e, dem.094b01.w)
+filenames.94b <- list.files (pattern = "^.*094b.*.dem$", full.names = TRUE)
+for (i in filenames.94b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094b")
+raster::writeRaster (dem.final, filename = "094b\\094b.tif", format = "GTiff")
+
+# 94c
+dem.094c01.e <- raster ("094c01_e.dem") # load the first two to create the merged raster
+dem.094c01.w <- raster ("094c01_w.dem")
+dem.final <- raster::merge (dem.094c01.e, dem.094c01.w)
+filenames.94c <- list.files (pattern = "^.*094c.*.dem$", full.names = TRUE)
+for (i in filenames.94c) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094c")
+raster::writeRaster (dem.final, filename = "094c\\094c.tif", format = "GTiff")
+
+# 94d
+dem.094d01.e <- raster ("094d01_e.dem") # load the first two to create the merged raster
+dem.094d01.w <- raster ("094d01_w.dem")
+dem.final <- raster::merge (dem.094d01.e, dem.094d01.w)
+filenames.94d <- list.files (pattern = "^.*094d.*.dem$", full.names = TRUE)
+for (i in filenames.94d) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094d")
+raster::writeRaster (dem.final, filename = "094d\\094d.tif", format = "GTiff")
+
+# 94e
+dem.094e01.e <- raster ("094e01_e.dem") # load the first two to create the merged raster
+dem.094e01.w <- raster ("094e01_w.dem")
+dem.final <- raster::merge (dem.094e01.e, dem.094e01.w)
+filenames.94e <- list.files (pattern = "^.*094e.*.dem$", full.names = TRUE)
+for (i in filenames.94e) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094e")
+raster::writeRaster (dem.final, filename = "094e\\094e.tif", format = "GTiff")
+
+# 94f
+dem.094f01.e <- raster ("094f01_e.dem") # load the first two to create the merged raster
+dem.094f01.w <- raster ("094f01_w.dem")
+dem.final <- raster::merge (dem.094f01.e, dem.094f01.w)
+filenames.94f <- list.files (pattern = "^.*094f.*.dem$", full.names = TRUE)
+for (i in filenames.94f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094f")
+raster::writeRaster (dem.final, filename = "094f\\094f.tif", format = "GTiff")
+
+# 94g
+dem.094g01.e <- raster ("094g01_e.dem") # load the first two to create the merged raster
+dem.094g01.w <- raster ("094g01_w.dem")
+dem.final <- raster::merge (dem.094g01.e, dem.094g01.w)
+filenames.94g <- list.files (pattern = "^.*094g.*.dem$", full.names = TRUE)
+for (i in filenames.94g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094g")
+raster::writeRaster (dem.final, filename = "094g\\094g.tif", format = "GTiff")
+
+# 94h
+dem.094h01.e <- raster ("094h01_e.dem") # load the first two to create the merged raster
+dem.094h01.w <- raster ("094h01_w.dem")
+dem.final <- raster::merge (dem.094h01.e, dem.094h01.w)
+filenames.94h <- list.files (pattern = "^.*094h.*.dem$", full.names = TRUE)
+for (i in filenames.94h) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094h")
+raster::writeRaster (dem.final, filename = "094h\\094h.tif", format = "GTiff")
+
+# 94i
+dem.094i01.e <- raster ("094i01_e.dem") # load the first two to create the merged raster
+dem.094i01.w <- raster ("094i01_w.dem")
+dem.final <- raster::merge (dem.094i01.e, dem.094i01.w)
+filenames.94i <- list.files (pattern = "^.*094i.*.dem$", full.names = TRUE)
+for (i in filenames.94i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094i")
+raster::writeRaster (dem.final, filename = "094i\\094i.tif", format = "GTiff")
+
+# 94j
+dem.094j01.e <- raster ("094j01_e.dem") # load the first two to create the merged raster
+dem.094j01.w <- raster ("094j01_w.dem")
+dem.final <- raster::merge (dem.094j01.e, dem.094j01.w)
+filenames.94j <- list.files (pattern = "^.*094j.*.dem$", full.names = TRUE)
+for (i in filenames.94j) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094j")
+raster::writeRaster (dem.final, filename = "094j\\094j.tif", format = "GTiff")
+
+# 94k
+dem.094k01.e <- raster ("094k01_e.dem") # load the first two to create the merged raster
+dem.094k01.w <- raster ("094k01_w.dem")
+dem.final <- raster::merge (dem.094k01.e, dem.094k01.w)
+filenames.94k <- list.files (pattern = "^.*094k.*.dem$", full.names = TRUE)
+for (i in filenames.94k) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094k")
+raster::writeRaster (dem.final, filename = "094k\\094k.tif", format = "GTiff")
+
+# 94l
+dem.094l01.e <- raster ("094l01_e.dem") # load the first two to create the merged raster
+dem.094l01.w <- raster ("094l01_w.dem")
+dem.final <- raster::merge (dem.094l01.e, dem.094l01.w)
+filenames.94l <- list.files (pattern = "^.*094l.*.dem$", full.names = TRUE)
+for (i in filenames.94l) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094l")
+raster::writeRaster (dem.final, filename = "094l\\094l.tif", format = "GTiff")
+
+# 94m
+dem.094m01.e <- raster ("094m01_e.dem") # load the first two to create the merged raster
+dem.094m01.w <- raster ("094m01_w.dem")
+dem.final <- raster::merge (dem.094m01.e, dem.094m01.w)
+filenames.94m <- list.files (pattern = "^.*094m.*.dem$", full.names = TRUE)
+for (i in filenames.94m) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094m")
+raster::writeRaster (dem.final, filename = "094m\\094m.tif", format = "GTiff")
+
+# 94n
+dem.094n01.e <- raster ("094n01_e.dem") # load the first two to create the merged raster
+dem.094n01.w <- raster ("094n01_w.dem")
+dem.final <- raster::merge (dem.094n01.e, dem.094n01.w)
+filenames.94n <- list.files (pattern = "^.*094n.*.dem$", full.names = TRUE)
+for (i in filenames.94n) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094n")
+raster::writeRaster (dem.final, filename = "094n\\094n.tif", format = "GTiff")  
+
+# 94o
+dem.094o01.e <- raster ("094o01_e.dem") # load the first two to create the merged raster
+dem.094o01.w <- raster ("094o01_w.dem")
+dem.final <- raster::merge (dem.094o01.e, dem.094o01.w)
+filenames.94o <- list.files (pattern = "^.*094o.*.dem$", full.names = TRUE)
+for (i in filenames.94o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094o")
+raster::writeRaster (dem.final, filename = "094o\\094o.tif", format = "GTiff")
+
+# 94p
+dem.094p01.e <- raster ("094p01_e.dem") # load the first two to create the merged raster
+dem.094p01.w <- raster ("094p01_w.dem")
+dem.final <- raster::merge (dem.094p01.e, dem.094p01.w)
+filenames.94p <- list.files (pattern = "^.*094p.*.dem$", full.names = TRUE)
+for (i in filenames.94p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("094p")
+raster::writeRaster (dem.final, filename = "094p\\094p.tif", format = "GTiff")
+
+# 103i
+dem.103i01.e <- raster ("103i01_e.dem") # load the first two to create the merged raster
+dem.103i01.w <- raster ("103i01_w.dem")
+dem.final <- raster::merge (dem.103i01.e, dem.103i01.w)
+filenames.103i <- list.files (pattern = "^.*103i.*.dem$", full.names = TRUE)
+for (i in filenames.103i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103i")
+raster::writeRaster (dem.final, filename = "103i\\103i.tif", format = "GTiff")
+
+# 103p
+dem.103p01.e <- raster ("103p01_e.dem") # load the first two to create the merged raster
+dem.103p01.w <- raster ("103p01_w.dem")
+dem.final <- raster::merge (dem.103p01.e, dem.103p01.w)
+filenames.103p <- list.files (pattern = "^.*103p.*.dem$", full.names = TRUE)
+for (i in filenames.103p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103p")
+raster::writeRaster (dem.final, filename = "103p\\103p.tif", format = "GTiff")
+
+# 104a
+dem.104a01.e <- raster ("104a01_e.dem") # load the first two to create the merged raster
+dem.104a01.w <- raster ("104a01_w.dem")
+dem.final <- raster::merge (dem.104a01.e, dem.104a01.w)
+filenames.104a <- list.files (pattern = "^.*104a.*.dem$", full.names = TRUE)
+for (i in filenames.104a) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104a")
+raster::writeRaster (dem.final, filename = "104a\\104a.tif", format = "GTiff")
+
+# 104g
+dem.104g01.e <- raster ("104g01_e.dem") # load the first two to create the merged raster
+dem.104g01.w <- raster ("104g01_w.dem")
+dem.final <- raster::merge (dem.104g01.e, dem.104g01.w)
+filenames.104g <- list.files (pattern = "^.*104g.*.dem$", full.names = TRUE)
+for (i in filenames.104g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104g")
+raster::writeRaster (dem.final, filename = "104g\\104g.tif", format = "GTiff")
+
+# 104h
+dem.104h01.e <- raster ("104h01_e.dem") # load the first two to create the merged raster
+dem.104h01.w <- raster ("104h01_w.dem")
+dem.final <- raster::merge (dem.104h01.e, dem.104h01.w)
+filenames.104h <- list.files (pattern = "^.*104h.*.dem$", full.names = TRUE)
+for (i in filenames.104h) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104h")
+raster::writeRaster (dem.final, filename = "104h\\104h.tif", format = "GTiff")
+
+# 104i
+dem.104i01.e <- raster ("104i01_e.dem") # load the first two to create the merged raster
+dem.104i01.w <- raster ("104i01_w.dem")
+dem.final <- raster::merge (dem.104i01.e, dem.104i01.w)
+filenames.104i <- list.files (pattern = "^.*104i.*.dem$", full.names = TRUE)
+for (i in filenames.104i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104i")
+raster::writeRaster (dem.final, filename = "104i\\104i.tif", format = "GTiff")
+
+# 104j
+dem.104j01.e <- raster ("104j01_e.dem") # load the first two to create the merged raster
+dem.104j01.w <- raster ("104j01_w.dem")
+dem.final <- raster::merge (dem.104j01.e, dem.104j01.w)
+filenames.104j <- list.files (pattern = "^.*104j.*.dem$", full.names = TRUE)
+for (i in filenames.104j) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104j")
+raster::writeRaster (dem.final, filename = "104j\\104j.tif", format = "GTiff")
+
+# 104k
+dem.104k01.e <- raster ("104k05_e.dem") # load the first two to create the merged raster
+dem.104k01.w <- raster ("104k05_w.dem")
+dem.final <- raster::merge (dem.104k01.e, dem.104k01.w)
+filenames.104k <- list.files (pattern = "^.*104k.*.dem$", full.names = TRUE)
+for (i in filenames.104k) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104k")
+raster::writeRaster (dem.final, filename = "104k\\104k.tif", format = "GTiff")
+
+# 104m
+dem.104m01.e <- raster ("104m01_e.dem") # load the first two to create the merged raster
+dem.104m01.w <- raster ("104m01_w.dem")
+dem.final <- raster::merge (dem.104m01.e, dem.104m01.w)
+filenames.104m <- list.files (pattern = "^.*104m.*.dem$", full.names = TRUE)
+for (i in filenames.104m) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104m")
+raster::writeRaster (dem.final, filename = "104m\\104m.tif", format = "GTiff")
+
+# 104n
+dem.104n01.e <- raster ("104n01_e.dem") # load the first two to create the merged raster
+dem.104n01.w <- raster ("104n01_w.dem")
+dem.final <- raster::merge (dem.104n01.e, dem.104n01.w)
+filenames.104n <- list.files (pattern = "^.*104n.*.dem$", full.names = TRUE)
+for (i in filenames.104n) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104n")
+raster::writeRaster (dem.final, filename = "104n\\104n.tif", format = "GTiff")  
+
+# 104o
+dem.104o01.e <- raster ("104o01_e.dem") # load the first two to create the merged raster
+dem.104o01.w <- raster ("104o01_w.dem")
+dem.final <- raster::merge (dem.104o01.e, dem.104o01.w)
+filenames.104o <- list.files (pattern = "^.*104o.*.dem$", full.names = TRUE)
+for (i in filenames.104o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104o")
+raster::writeRaster (dem.final, filename = "104o\\104o.tif", format = "GTiff")
+
+# 104p
+dem.104p01.e <- raster ("104p01_e.dem") # load the first two to create the merged raster
+dem.104p01.w <- raster ("104p01_w.dem")
+dem.final <- raster::merge (dem.104p01.e, dem.104p01.w)
+filenames.104p <- list.files (pattern = "^.*104p.*.dem$", full.names = TRUE)
+for (i in filenames.104p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104p")
+raster::writeRaster (dem.final, filename = "104p\\104p.tif", format = "GTiff")
+
+# 102i
+dem.102i01.e <- raster ("102i14_e.dem") # load the first two to create the merged raster
+dem.102i01.w <- raster ("102i14_w.dem")
+dem.final <- raster::merge (dem.102i01.e, dem.102i01.w)
+filenames.102i <- list.files (pattern = "^.*102i.*.dem$", full.names = TRUE)
+for (i in filenames.102i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("102i")
+raster::writeRaster (dem.final, filename = "102i\\102i.tif", format = "GTiff")
+
+# 102p
+dem.102p01.e <- raster ("102p15_e.dem") # load the first two to create the merged raster
+dem.102p01.w <- raster ("102p15_w.dem")
+dem.final <- raster::merge (dem.102p01.e, dem.102p01.w)
+filenames.102p <- list.files (pattern = "^.*102p.*.dem$", full.names = TRUE)
+for (i in filenames.102p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("102p")
+raster::writeRaster (dem.final, filename = "102p\\102p.tif", format = "GTiff")
+
+# 103a
+dem.103a01.e <- raster ("103a14_e.dem") # load the first two to create the merged raster
+dem.103a01.w <- raster ("103a14_w.dem")
+dem.final <- raster::merge (dem.103a01.e, dem.103a01.w)
+filenames.103a <- list.files (pattern = "^.*103a.*.dem$", full.names = TRUE)
+for (i in filenames.103a) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103a")
+raster::writeRaster (dem.final, filename = "103a\\103a.tif", format = "GTiff")
+
+# 103c
+dem.103c01.e <- raster ("103c15_e.dem") # load the first two to create the merged raster
+dem.103c01.w <- raster ("103c15_w.dem")
+dem.final <- raster::merge (dem.103c01.e, dem.103c01.w)
+filenames.103c <- list.files (pattern = "^.*103c.*.dem$", full.names = TRUE)
+for (i in filenames.103c) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103c")
+raster::writeRaster (dem.final, filename = "103c\\103c.tif", format = "GTiff")
+
+# 103f
+dem.103f01.e <- raster ("103f15_e.dem") # load the first two to create the merged raster
+dem.103f01.w <- raster ("103f15_w.dem")
+dem.final <- raster::merge (dem.103f01.e, dem.103f01.w)
+filenames.103f <- list.files (pattern = "^.*103f.*.dem$", full.names = TRUE)
+for (i in filenames.103f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103f")
+raster::writeRaster (dem.final, filename = "103f\\103f.tif", format = "GTiff")
+
+# 103g
+dem.103g01.e <- raster ("103g15_e.dem") # load the first two to create the merged raster
+dem.103g01.w <- raster ("103g15_w.dem")
+dem.final <- raster::merge (dem.103g01.e, dem.103g01.w)
+filenames.103g <- list.files (pattern = "^.*103g.*.dem$", full.names = TRUE)
+for (i in filenames.103g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103g")
+raster::writeRaster (dem.final, filename = "103g\\103g.tif", format = "GTiff")
+
+# 103h
+dem.103h01.e <- raster ("103h15_e.dem") # load the first two to create the merged raster
+dem.103h01.w <- raster ("103h15_w.dem")
+dem.final <- raster::merge (dem.103h01.e, dem.103h01.w)
+filenames.103h <- list.files (pattern = "^.*103h.*.dem$", full.names = TRUE)
+for (i in filenames.103h) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103h")
+raster::writeRaster (dem.final, filename = "103h\\103h.tif", format = "GTiff")
+
+# 103i
+dem.103i01.e <- raster ("103i15_e.dem") # load the first two to create the merged raster
+dem.103i01.w <- raster ("103i15_w.dem")
+dem.final <- raster::merge (dem.103i01.e, dem.103i01.w)
+filenames.103i <- list.files (pattern = "^.*103i.*.dem$", full.names = TRUE)
+for (i in filenames.103i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103i")
+raster::writeRaster (dem.final, filename = "103i\\103i.tif", format = "GTiff")
+
+# 103p
+dem.103p01.e <- raster ("103p15_e.dem") # load the first two to create the merged raster
+dem.103p01.w <- raster ("103p15_w.dem")
+dem.final <- raster::merge (dem.103p01.e, dem.103p01.w)
+filenames.103p <- list.files (pattern = "^.*103p.*.dem$", full.names = TRUE)
+for (i in filenames.103p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("103p")
+raster::writeRaster (dem.final, filename = "103p\\103p.tif", format = "GTiff")
+
+# 104a
+dem.104a01.e <- raster ("104a15_e.dem") # load the first two to create the merged raster
+dem.104a01.w <- raster ("104a15_w.dem")
+dem.final <- raster::merge (dem.104a01.e, dem.104a01.w)
+filenames.104a <- list.files (pattern = "^.*104a.*.dem$", full.names = TRUE)
+for (i in filenames.104a) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104a")
+raster::writeRaster (dem.final, filename = "104a\\104a.tif", format = "GTiff")
+
+# 104b
+dem.104b01.e <- raster ("104b15_e.dem") # load the first two to create the merged raster
+dem.104b01.w <- raster ("104b15_w.dem")
+dem.final <- raster::merge (dem.104b01.e, dem.104b01.w)
+filenames.104b <- list.files (pattern = "^.*104b.*.dem$", full.names = TRUE)
+for (i in filenames.104b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104b")
+raster::writeRaster (dem.final, filename = "104b\\104b.tif", format = "GTiff")
+
+# 104f
+dem.104f01.e <- raster ("104f15_e.dem") # load the first two to create the merged raster
+dem.104f01.w <- raster ("104f15_w.dem")
+dem.final <- raster::merge (dem.104f01.e, dem.104f01.w)
+filenames.104f <- list.files (pattern = "^.*104f.*.dem$", full.names = TRUE)
+for (i in filenames.104f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104f")
+raster::writeRaster (dem.final, filename = "104f\\104f.tif", format = "GTiff")
+
+# 104g
+dem.104g01.e <- raster ("104g15_e.dem") # load the first two to create the merged raster
+dem.104g01.w <- raster ("104g15_w.dem")
+dem.final <- raster::merge (dem.104g01.e, dem.104g01.w)
+filenames.104g <- list.files (pattern = "^.*104g.*.dem$", full.names = TRUE)
+for (i in filenames.104g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104g")
+raster::writeRaster (dem.final, filename = "104g\\104g.tif", format = "GTiff")
+
+# 104h
+dem.104h01.e <- raster ("104h15_e.dem") # load the first two to create the merged raster
+dem.104h01.w <- raster ("104h15_w.dem")
+dem.final <- raster::merge (dem.104h01.e, dem.104h01.w)
+filenames.104h <- list.files (pattern = "^.*104h.*.dem$", full.names = TRUE)
+for (i in filenames.104h) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104h")
+raster::writeRaster (dem.final, filename = "104h\\104h.tif", format = "GTiff")
+
+# 104i
+dem.104i01.e <- raster ("104i15_e.dem") # load the first two to create the merged raster
+dem.104i01.w <- raster ("104i15_w.dem")
+dem.final <- raster::merge (dem.104i01.e, dem.104i01.w)
+filenames.104i <- list.files (pattern = "^.*104i.*.dem$", full.names = TRUE)
+for (i in filenames.104i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104i")
+raster::writeRaster (dem.final, filename = "104i\\104i.tif", format = "GTiff")
+
+## 104j
+dem.104j01.e <- raster ("104j15_e.dem") # load the first two to create the merged raster
+dem.104j01.w <- raster ("104j15_w.dem")
+dem.final <- raster::merge (dem.104j01.e, dem.104j01.w)
+filenames.104j <- list.files (pattern = "^.*104j.*.dem$", full.names = TRUE)
+for (i in filenames.104j) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104j")
+raster::writeRaster (dem.final, filename = "104j\\104j.tif", format = "GTiff")
+
+# 104k
+dem.104k01.e <- raster ("104k15_e.dem") # load the first two to create the merged raster
+dem.104k01.w <- raster ("104k15_w.dem")
+dem.final <- raster::merge (dem.104k01.e, dem.104k01.w)
+filenames.104k <- list.files (pattern = "^.*104k.*.dem$", full.names = TRUE)
+for (i in filenames.104k) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104k")
+raster::writeRaster (dem.final, filename = "104k\\104k.tif", format = "GTiff")
+
+# 104l
+dem.104l01.e <- raster ("104l16_e.dem") # load the first two to create the merged raster
+dem.104l01.w <- raster ("104l16_w.dem")
+dem.final <- raster::merge (dem.104l01.e, dem.104l01.w)
+filenames.104l <- list.files (pattern = "^.*104l.*.dem$", full.names = TRUE)
+for (i in filenames.104l) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104l")
+raster::writeRaster (dem.final, filename = "104l\\104l.tif", format = "GTiff")
+
+# 104m
+dem.104m01.e <- raster ("104m16_e.dem") # load the first two to create the merged raster
+dem.104m01.w <- raster ("104m16_w.dem")
+dem.final <- raster::merge (dem.104m01.e, dem.104m01.w)
+filenames.104m <- list.files (pattern = "^.*104m.*.dem$", full.names = TRUE)
+for (i in filenames.104m) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104m")
+raster::writeRaster (dem.final, filename = "104m\\104m.tif", format = "GTiff")
+
+# 104n
+dem.104n01.e <- raster ("104n16_e.dem") # load the first two to create the merged raster
+dem.104n01.w <- raster ("104n16_w.dem")
+dem.final <- raster::merge (dem.104n01.e, dem.104n01.w)
+filenames.104n <- list.files (pattern = "^.*104n.*.dem$", full.names = TRUE)
+for (i in filenames.104n) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104n")
+raster::writeRaster (dem.final, filename = "104n\\104n.tif", format = "GTiff")
+
+# 104o
+dem.104o01.e <- raster ("104o16_e.dem") # load the first two to create the merged raster
+dem.104o01.w <- raster ("104o16_w.dem")
+dem.final <- raster::merge (dem.104o01.e, dem.104o01.w)
+filenames.104o <- list.files (pattern = "^.*104o.*.dem$", full.names = TRUE)
+for (i in filenames.104o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("104o")
+raster::writeRaster (dem.final, filename = "104o\\104o.tif", format = "GTiff")
+
+# 114p
+dem.114p01.e <- raster ("114p16_e.dem") # load the first two to create the merged raster
+dem.114p01.w <- raster ("114p16_w.dem")
+dem.final <- raster::merge (dem.114p01.e, dem.114p01.w)
+filenames.114p <- list.files (pattern = "^.*114p.*.dem$", full.names = TRUE)
+for (i in filenames.114p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("114p")
+raster::writeRaster (dem.final, filename = "114p\\114p.tif", format = "GTiff", overwrite = T)
+
+# 114p
+dem.114p01.e <- raster ("114p16_e.dem") # load the first two to create the merged raster
+dem.114p01.w <- raster ("114p16_w.dem")
+dem.final <- raster::merge (dem.114p01.e, dem.114p01.w)
+filenames.114p <- list.files (pattern = "^.*114p.*.dem$", full.names = TRUE)
+for (i in filenames.114p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("114p")
+raster::writeRaster (dem.final, filename = "114p\\114p.tif", format = "GTiff", overwrite = T)
+
+# 114o
+dem.114o01.e <- raster ("114o16_e.dem") # load the first two to create the merged raster
+dem.114o01.w <- raster ("114o16_w.dem")
+dem.final <- raster::merge (dem.114o01.e, dem.114o01.w)
+filenames.114o <- list.files (pattern = "^.*114o.*.dem$", full.names = TRUE)
+for (i in filenames.114o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("114o")
+raster::writeRaster (dem.final, filename = "114o\\114o.tif", format = "GTiff", overwrite = T)
+
+# 082b
+dem.082b01.e <- raster ("082b16_e.dem") # load the first two to create the merged raster
+dem.082b01.w <- raster ("082b16_w.dem")
+dem.final <- raster::merge (dem.082b01.e, dem.082b01.w)
+filenames.082b <- list.files (pattern = "^.*082b.*.dem$", full.names = TRUE)
+for (i in filenames.082b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("082b")
+raster::writeRaster (dem.final, filename = "082b\\082b.tif", format = "GTiff", overwrite = T)
+
+# 082b
+dem.082b01.e <- raster ("082b16_e.dem") # load the first two to create the merged raster
+dem.082b01.w <- raster ("082b16_w.dem")
+dem.final <- raster::merge (dem.082b01.e, dem.082b01.w)
+filenames.082b <- list.files (pattern = "^.*082b.*.dem$", full.names = TRUE)
+for (i in filenames.082b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("082b")
+raster::writeRaster (dem.final, filename = "082b\\082b.tif", format = "GTiff", overwrite = T)
+
+# 082c
+dem.082c01.e <- raster ("082c16_e.dem") # load the first two to create the merged raster
+dem.082c01.w <- raster ("082c16_w.dem")
+dem.final <- raster::merge (dem.082c01.e, dem.082c01.w)
+filenames.082c <- list.files (pattern = "^.*082c.*.dem$", full.names = TRUE)
+for (i in filenames.082c) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("082c")
+raster::writeRaster (dem.final, filename = "082c\\082c.tif", format = "GTiff", overwrite = T)
+
+# 082d
+dem.082d01.e <- raster ("082d16_e.dem") # load the first two to create the merged raster
+dem.082d01.w <- raster ("082d16_w.dem")
+dem.final <- raster::merge (dem.082d01.e, dem.082d01.w)
+filenames.082d <- list.files (pattern = "^.*082d.*.dem$", full.names = TRUE)
+for (i in filenames.082d) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("082d")
+raster::writeRaster (dem.final, filename = "082d\\082d.tif", format = "GTiff", overwrite = T)
+
+# 083d
+dem.083d01.e <- raster ("083d16_e.dem") # load the first two to create the merged raster
+dem.083d01.w <- raster ("083d16_w.dem")
+dem.final <- raster::merge (dem.083d01.e, dem.083d01.w)
+filenames.083d <- list.files (pattern = "^.*083d.*.dem$", full.names = TRUE)
+for (i in filenames.083d) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("083d")
+raster::writeRaster (dem.final, filename = "083d\\083d.tif", format = "GTiff", overwrite = T)
+
+# 092a
+dem.092a01.e <- raster ("092a16_e.dem") # load the first two to create the merged raster
+dem.092a01.w <- raster ("092a16_w.dem")
+dem.final <- raster::merge (dem.092a01.e, dem.092a01.w)
+filenames.092a <- list.files (pattern = "^.*092a.*.dem$", full.names = TRUE)
+for (i in filenames.092a) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092a")
+raster::writeRaster (dem.final, filename = "092a\\092a.tif", format = "GTiff", overwrite = T)
+
+# 092b
+dem.092b01.e <- raster ("092b16_e.dem") # load the first two to create the merged raster
+dem.092b01.w <- raster ("092b16_w.dem")
+dem.final <- raster::merge (dem.092b01.e, dem.092b01.w)
+filenames.092b <- list.files (pattern = "^.*092b.*.dem$", full.names = TRUE)
+for (i in filenames.092b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092b")
+raster::writeRaster (dem.final, filename = "092b\\092b.tif", format = "GTiff", overwrite = T)
+
+# 092c
+dem.092c01.e <- raster ("092c16_e.dem") # load the first two to create the merged raster
+dem.092c01.w <- raster ("092c16_w.dem")
+dem.final <- raster::merge (dem.092c01.e, dem.092c01.w)
+filenames.092c <- list.files (pattern = "^.*092c.*.dem$", full.names = TRUE)
+for (i in filenames.092c) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092c")
+raster::writeRaster (dem.final, filename = "092c\\092c.tif", format = "GTiff", overwrite = T)
+
+# 092e
+dem.092e01.e <- raster ("092e16_e.dem") # load the first two to create the merged raster
+dem.092e01.w <- raster ("092e16_w.dem")
+dem.final <- raster::merge (dem.092e01.e, dem.092e01.w)
+filenames.092e <- list.files (pattern = "^.*092e.*.dem$", full.names = TRUE)
+for (i in filenames.092e) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092e")
+raster::writeRaster (dem.final, filename = "092e\\092e.tif", format = "GTiff", overwrite = T)
+
+# 092f
+dem.092f01.e <- raster ("092f16_e.dem") # load the first two to create the merged raster
+dem.092f01.w <- raster ("092f16_w.dem")
+dem.final <- raster::merge (dem.092f01.e, dem.092f01.w)
+filenames.092f <- list.files (pattern = "^.*092f.*.dem$", full.names = TRUE)
+for (i in filenames.092f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092f")
+raster::writeRaster (dem.final, filename = "092f\\092f.tif", format = "GTiff", overwrite = T)
+
+# 092g
+dem.092g01.e <- raster ("092g16_e.dem") # load the first two to create the merged raster
+dem.092g01.w <- raster ("092g16_w.dem")
+dem.final <- raster::merge (dem.092g01.e, dem.092g01.w)
+filenames.092g <- list.files (pattern = "^.*092g.*.dem$", full.names = TRUE)
+for (i in filenames.092g) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092g")
+raster::writeRaster (dem.final, filename = "092g\\092g.tif", format = "GTiff", overwrite = T)
+
+# 092h
+dem.092h01.e <- raster ("092h16_e.dem") # load the first two to create the merged raster
+dem.092h01.w <- raster ("092h16_w.dem")
+dem.final <- raster::merge (dem.092h01.e, dem.092h01.w)
+filenames.092h <- list.files (pattern = "^.*092h.*.dem$", full.names = TRUE)
+for (i in filenames.092h) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092h")
+raster::writeRaster (dem.final, filename = "092h\\092h.tif", format = "GTiff", overwrite = T)
+
+# 092i
+dem.092i01.e <- raster ("092i16_e.dem") # load the first two to create the merged raster
+dem.092i01.w <- raster ("092i16_w.dem")
+dem.final <- raster::merge (dem.092i01.e, dem.092i01.w)
+filenames.092i <- list.files (pattern = "^.*092i.*.dem$", full.names = TRUE)
+for (i in filenames.092i) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092i")
+raster::writeRaster (dem.final, filename = "092i\\092i.tif", format = "GTiff", overwrite = T)
+
+# 092j
+dem.092j01.e <- raster ("092j16_e.dem") # load the first two to create the merged raster
+dem.092j01.w <- raster ("092j16_w.dem")
+dem.final <- raster::merge (dem.092j01.e, dem.092j01.w)
+filenames.092j <- list.files (pattern = "^.*092j.*.dem$", full.names = TRUE)
+for (i in filenames.092j) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092j")
+raster::writeRaster (dem.final, filename = "092j\\092j.tif", format = "GTiff", overwrite = T)
+
+# 092k
+dem.092k01.e <- raster ("092k16_e.dem") # load the first two to create the merged raster
+dem.092k01.w <- raster ("092k16_w.dem")
+dem.final <- raster::merge (dem.092k01.e, dem.092k01.w)
+filenames.092k <- list.files (pattern = "^.*092k.*.dem$", full.names = TRUE)
+for (i in filenames.092k) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092k")
+raster::writeRaster (dem.final, filename = "092k\\092k.tif", format = "GTiff", overwrite = T)
+
+# 092l
+dem.092l01.e <- raster ("092l16_e.dem") # load the first two to create the merged raster
+dem.092l01.w <- raster ("092l16_w.dem")
+dem.final <- raster::merge (dem.092l01.e, dem.092l01.w)
+filenames.092l <- list.files (pattern = "^.*092l.*.dem$", full.names = TRUE)
+for (i in filenames.092l) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092l")
+raster::writeRaster (dem.final, filename = "092l\\092l.tif", format = "GTiff", overwrite = T)
+
+# 092m
+dem.092m01.e <- raster ("092m16_e.dem") # load the first two to create the merged raster
+dem.092m01.w <- raster ("092m16_w.dem")
+dem.final <- raster::merge (dem.092m01.e, dem.092m01.w)
+filenames.092m <- list.files (pattern = "^.*092m.*.dem$", full.names = TRUE)
+for (i in filenames.092m) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092m")
+raster::writeRaster (dem.final, filename = "092m\\092m.tif", format = "GTiff", overwrite = T)
+
+# 114o
+dem.114o01.e <- raster ("114o16_e.dem") # load the first two to create the merged raster
+dem.114o01.w <- raster ("114o16_w.dem")
+dem.final <- raster::merge (dem.114o01.e, dem.114o01.w)
+filenames.114o <- list.files (pattern = "^.*114o.*.dem$", full.names = TRUE)
+for (i in filenames.114o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("114o")
+raster::writeRaster (dem.final, filename = "114o\\114o.tif", format = "GTiff", overwrite = T)
+
+# 114p
+dem.114p01.e <- raster ("114p16_e.dem") # load the first two to create the merged raster
+dem.114p01.w <- raster ("114p16_w.dem")
+dem.final <- raster::merge (dem.114p01.e, dem.114p01.w)
+filenames.114p <- list.files (pattern = "^.*114p.*.dem$", full.names = TRUE)
+for (i in filenames.114p) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("114p")
+raster::writeRaster (dem.final, filename = "114p\\114p.tif", format = "GTiff", overwrite = T)
