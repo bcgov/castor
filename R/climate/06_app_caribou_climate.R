@@ -315,6 +315,9 @@ data.plot.herd.temp$year <- as.factor (data.plot.herd.temp$year)
 data.plot.herd.nffd$year <- as.factor (data.plot.herd.nffd$year)
 data.plot.herd.pas$year <- as.factor (data.plot.herd.pas$year)
 
+data.plot.herd.bec$year <- relevel (data.plot.herd.bec$year, "Current")
+
+
 # User Interface 
 ui <- fluidPage (
 
