@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 #-------------------------------------------------------------------------------------------------
-
+#-------------------------------------------------------------------------------------------------
 # Load packages
+#-------------------------------------------------------------------------------------------------
 library(dplyr)
 library(readr)
 library(ggplot2)
@@ -27,19 +28,15 @@ library(tidyr)
 library(raster)
 library(shiny)
 library(shinythemes)
-library(shinyalert)
-# Load data
-#str(trend_data)
-trend_description <- "This is a test"
 
 #-------------------------------------------------------------------------------------------------
 #Dataabse prep
 #-------------------------------------------------------------------------------------------------
 dbname = 'postgres'
-host='localhost'
+host='DC052586'
 port='5432'
-user='Tyler'
-password='Tyler'
+user='app_user'
+password='clus'
 ##Get a connection to the postgreSQL server (local instance)
 conn<-dbConnect(dbDriver("PostgreSQL"), host=host, dbname = dbname, port=port ,user=user ,password=password)
 ##Data objects
@@ -49,34 +46,35 @@ geom = "geom"
 herd_bound <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 ####Remove NA's
 herd_bound <- herd_bound[which(herd_bound@data$herd_name != "NA"), ]
-# #Test
-# start_time <- Sys.time()
-# dsn <- "PG:dbname='postgres' host='DC052586' port='5432' user='postgres' password = 'postgres'"
-# herd_bound <- spTransform(readOGR(dsn=dsn, "gcbp_carib_polygon"), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-# end_time <- Sys.time()
 #Get climate rasters from TYLER's ANALYSIS
-boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
+#boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
 #mountain <- raster::stack(pgGetRast(conn, "clim_pred_mountain_1990"),pgGetRast(conn, "clim_pred_mountain_2010"),pgGetRast(conn, "clim_pred_mountain_2025"), pgGetRast(conn, "clim_pred_mountain_2055"),pgGetRast(conn, "clim_pred_mountain_2085"))
 #northern <- raster::stack(pgGetRast(conn, "clim_pred_northern_1990"),pgGetRast(conn, "clim_pred_northern_2010"),pgGetRast(conn, "clim_pred_northern_2025"), pgGetRast(conn, "clim_pred_northern_2055"),pgGetRast(conn, "clim_pred_northern_2085"))
 dbDisconnect(conn)
 #-------------------------------------------------------------------------------------------------
 
 # Define UI
-ui <- fluidPage(theme = shinytheme("lumen"), useShinyalert(), 
-                titlePanel("Caribou and Land Use Simulator: scenario builder"),
+ui <- fluidPage(theme = shinytheme("lumen"),  
+                titlePanel("CLUS: Scenario Tool"),
                 sidebarLayout(
                     sidebarPanel(
                       # add the caribou recovery logo
                       img(src = "clus-logo.png", height = 100, width = 100),
                       helpText("Click map to select a herd"),
-                      h3(textOutput("clickCaribou")),
+                      #Ecotype name
+                      h2(textOutput("clickEcoType")),
+                      helpText("Ecotype"),
+                      #Herd name
+                      h2(textOutput("clickCaribou")),
+                      helpText("Herd"),
                       
                       # Select year range to be used
                       sliderInput("sliderDate", label = strong("Year"), min = 2010, 
-                                  max = 2085, value = 1, step = 1, animate = animationOptions(interval = 1)
+                                  max = 2085, value = 1, step = 1,sep="", animate = animationOptions(interval = 1)
                                   ),
-                      downloadButton("downloadData", "Save"),
-                      helpText("Save the Caribou Zone")
+                      helpText("Adjust the year to change graphs"),
+                      downloadButton("downloadData.zip", "Save"),
+                      helpText("Save drawn polygons")
 ),
 
 # Output: Description, lineplot, and reference
@@ -98,6 +96,8 @@ mainPanel(
 server <- function(input, output) {
   
   caribouHerd<-reactive({as.character(input$map_shape_click$group)})
+  caribouEcoType<-reactive({herd_bound@data[which(herd_bound@data$herd_name == input$map_shape_click$group), ][[12]]})
+  
 
   herdSelect<-reactive({
     herd_bound[which(herd_bound@data$herd_name == input$map_shape_click$group), ]
@@ -197,6 +197,9 @@ server <- function(input, output) {
   observeEvent(input$map_shape_click, {
     output$clickCaribou <- renderText(caribouHerd())
   }) 
+  observeEvent(input$map_shape_click, {
+    output$clickEcoType <- renderText(caribouEcoType())
+  }) 
   
 
 #value$drawnPoly<-SpatialPolygonsDataFrame(SpatialPolygons(list()), data=data.frame (notes=character(0), stringsAsFactors = F))
@@ -230,7 +233,7 @@ server <- function(input, output) {
     removeModal()
   })
   
-  output$downloadData <- downloadHandler(
+  output$downloadData.zip <- downloadHandler(
     file = 'shpExport.',
     content = function(file) {
       if (length(Sys.glob("shpExport.*"))>0){
