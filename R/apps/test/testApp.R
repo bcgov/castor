@@ -62,7 +62,7 @@ dbDisconnect(conn)
 #-------------------------------------------------------------------------------------------------
 
 # Define UI
-ui <- fluidPage(theme = shinytheme("lumen"), useShinyalert(),
+ui <- fluidPage(theme = shinytheme("lumen"), useShinyalert(), 
                 titlePanel("Caribou and Land Use Simulator: scenario builder"),
                 sidebarLayout(
                     sidebarPanel(
@@ -103,10 +103,7 @@ server <- function(input, output) {
     herd_bound[which(herd_bound@data$herd_name == input$map_shape_click$group), ]
   }) 
 
-  output$climatePlot1<-renderPlot({
-            })
-
-  # Subset data
+# Subset data
   dist_data <- reactive({
     req(input$map_shape_click)
     conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
@@ -130,8 +127,7 @@ server <- function(input, output) {
     cb2 %>% filter(harvestyr>1960)
   })
   
-
-  # Create scatterplot object the plotOutput function is expecting
+# Create scatterplot object the plotOutput function is expecting
   output$distPlot <- renderPlot({
     ggplot(dist_data(), aes(x =harvestyr, y=Dist40))+
       geom_line()+
@@ -143,10 +139,10 @@ server <- function(input, output) {
       theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
   })
   
-  
-  #set the pallet
+#set the pallet
   pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  herd_bound$risk_stat)
   
+#render the leaflet map  
   output$map = renderLeaflet({ 
       leaflet(herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
       setView(-121.7476, 53.7267, 4) %>%
@@ -187,7 +183,7 @@ server <- function(input, output) {
                                }"))
   })
   
-
+#Zoom to herd being cliked
   observe({
     if(is.null(input$map_shape_click))
       return()
@@ -205,83 +201,95 @@ server <- function(input, output) {
 
 #value$drawnPoly<-SpatialPolygonsDataFrame(SpatialPolygons(list()), data=data.frame (notes=character(0), stringsAsFactors = F))
    
-observeEvent(input$map_draw_all_features, {
-    print("All Features")
-    #get the lat long coordinates
-    f<-input$map_draw_all_features
-    coordz<-lapply(f$features, function(x){unlist(x$geometry$coordinates)})
+# observeEvent(input$map_draw_all_features, {
 
-    Longitudes<-lapply(coordz, function(coordz) {coordz[seq(1,length(coordz), 2)] })
-    Latitudes<-lapply(coordz, function(coordz) { coordz[seq(2,length(coordz), 2)] })
-      
-    polys<-list()
-     for (i in 1:length(Longitudes)){polys[[i]]<- Polygons(
-         list(Polygon(cbind(Longitudes[[i]], Latitudes[[i]]))), ID=f$features[[i]]$properties$`_leaflet_id`
-       )}
-    spPolys<-SpatialPolygons(polys)
-    plot(spPolys)
-    
-    #   SPDF<-SpatialPolygonsDataFrame(spPolys, 
-    #                                  data=data.frame(notes=value$drawnPoly$notes[row.names(value$drawnPoly) %in% row.names(spPolys)], row.names=row.names(spPolys)))
-    #   value$drawnPoly<-value$drawnPoly[!row.names(value$drawnPoly) %in% row.names(SPDF),]
-    #   value$drawnPoly<-rbind(value$drawnPoly, SPDF)
-   
- })
-#  Start of Drawing
-  observeEvent(input$map_draw_start, {
-    print("Start of drawing")
+#     #   SPDF<-SpatialPolygonsDataFrame(spPolys, 
+#     #                                  data=data.frame(notes=value$drawnPoly$notes[row.names(value$drawnPoly) %in% row.names(spPolys)], row.names=row.names(spPolys)))
+#     #   value$drawnPoly<-value$drawnPoly[!row.names(value$drawnPoly) %in% row.names(SPDF),]
+#     #   value$drawnPoly<-rbind(value$drawnPoly, SPDF)
+#    
+#})
+  
 
-    
-  })
+  labelModal = modalDialog(
+    title = "Enter polygon label",
+    textInput(inputId = "myLabel", label = "Enter a string: "),
+    footer = actionButton("ok_modal",label = "Ok"))
   
-  # Stop of Drawing
-  observeEvent(input$map_draw_stop, {
-    #prompt the used to label the polygon
-    print("Stop drawing")
-    
-  })
-  
-  # New Feature
+# New Feature
   observeEvent(input$map_draw_new_feature, {
-    print("New Feature")
-    shinyalert("Enter caribou zone label", type = "input")
-    #print(input$map_draw_new_feature)
+    #print("New Feature")
+    showModal(labelModal)
   })
-  
-  # Edited Features
-  observeEvent(input$map_draw_edited_features, {
-    print("Edited Features")
-    #print(input$map_draw_edited_features)
+#Create a reactive value to hold the attribute table
+  valueModal<-reactiveValues(atTable=NULL)
+#Once ok in the modal is pressed by the user - store this into a matrix  
+  observeEvent(input$ok_modal, {
+    req(input$map_draw_new_feature$properties$`_leaflet_id`)
+    valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_new_feature$properties$`_leaflet_id`, input$myLabel))
+    removeModal()
   })
-  
-  # Deleted features
-  observeEvent(input$map_draw_deleted_features, {
-    print("Deleted Features")
-    #print(input$map_draw_deleted_features)
-  })
-
-  
-
- 
   
   output$downloadData <- downloadHandler(
-    filename = 'shpExport.',
+    file = 'shpExport.',
     content = function(file) {
       if (length(Sys.glob("shpExport.*"))>0){
         file.remove(Sys.glob("shpExport.*"))
       }
+      #get the lat long coordinates
+      req(valueModal)
+      if(!is.null(input$map_draw_all_features)){
+        f<-input$map_draw_all_features
+        coordz<-lapply(f$features, function(x){unlist(x$geometry$coordinates)})
+        
+        Longitudes<-lapply(coordz, function(coordz) {coordz[seq(1,length(coordz), 2)] })
+        Latitudes<-lapply(coordz, function(coordz) { coordz[seq(2,length(coordz), 2)] })
+        
+        polys<-list()
+        for (i in 1:length(Longitudes)){polys[[i]]<- Polygons(
+          list(Polygon(cbind(Longitudes[[i]], Latitudes[[i]]))), ID=f$features[[i]]$properties$`_leaflet_id`
+        )}
+        spPolys<-SpatialPolygons(polys)
+        proj4string(spPolys)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+        
+        #Extract the ID's from spPolys
+        pid <- sapply(slot(spPolys, "polygons"), function(x) slot(x, "ID")) 
+        #create a data.frame
+        p.df <- data.frame(ID=pid, row.names = pid) 
+        #Get the list of labels and ID from the user
+        df <- as.data.frame(valueModal$atTable) 
+        colnames(df)<-c("ID", "Label")
+        #merge to the original ID of the polygons
+        p.df$label<- df$Label[match(p.df$ID, df$ID)]
+        SPDF<-SpatialPolygonsDataFrame(spPolys, data=p.df)
+        plot(SPDF)
+        rgdal::writeOGR(SPDF, dsn="shpExport.shp", layer="shpExport", driver="ESRI Shapefile")
+      }
       
-      #proj4string(value$drawnPoly)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-      #rgdal::writeOGR(value$drawnPoly, dsn="shpExport.shp", layer="shpExport", driver="ESRI Shapefile")
       zip(zipfile='shpExport.zip', files=Sys.glob("shpExport.*"))
       file.copy("shpExport.zip", file)
-      if (length(Sys.glob("shpExport.*"))>0){
-        file.remove(Sys.glob("shpExport.*"))
-      }
-    }
-  
-    )
-
+    })
+#--------------------------------
+##Useful observeEvent for drawing  
+  # Edited Features
+  observeEvent(input$map_draw_edited_features, {
+    #print("Edited Features")
+    #print(input$map_draw_edited_features)
+  })
+  # Deleted features
+  observeEvent(input$map_draw_deleted_features, {
+    #print("Deleted Features")
+    #print(input$map_draw_deleted_features)
+  })
+  # Start of Drawing
+  observeEvent(input$map_draw_start, {
+    #print("Start of drawing")
+  })
+  # Stop of Drawing
+  observeEvent(input$map_draw_stop, {
+    #prompt the used to label the polygon
+    #print("Stop drawing")
+  })
 }
 
 # Create Shiny object
