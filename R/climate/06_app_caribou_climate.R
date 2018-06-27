@@ -57,6 +57,7 @@ library (dplyr)
 # caribou.range.mtn.diss <- aggregate (caribou.range.mtn, by = 'diss') 
 # caribou.range.north.diss <- aggregate (caribou.range.north, by = 'diss') 
 
+
 data.plot.herd.bec <- read.table ("C:\\Work\\caribou\\climate_analysis\\shiny_app\\data\\clim_plot_data_bec.csv", 
                                     header = T, stringsAsFactors = T, sep = ",")
 data.plot.herd.temp <- read.table ("C:\\Work\\caribou\\climate_analysis\\shiny_app\\data\\clim_plot_data_winter_temp.csv", 
@@ -69,6 +70,7 @@ data.plot.herd.bec$year <- relevel (data.plot.herd.bec$year, "Current")
 data.plot.herd.temp$year <- as.factor (data.plot.herd.temp$year)
 data.plot.herd.nffd$year <- as.factor (data.plot.herd.nffd$year)
 data.plot.herd.pas$year <- as.factor (data.plot.herd.pas$year)
+
 
 # User Interface 
 ui <- fluidPage (
