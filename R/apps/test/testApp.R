@@ -32,7 +32,7 @@ library(shinythemes)
 #-------------------------------------------------------------------------------------------------
 #Dataabse prep
 #-------------------------------------------------------------------------------------------------
-dbname = 'postgres'
+dbname = 'clus'
 host='DC052586'
 port='5432'
 user='app_user'
@@ -47,7 +47,7 @@ herd_bound <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=l
 ####Remove NA's
 herd_bound <- herd_bound[which(herd_bound@data$herd_name != "NA"), ]
 #Get climate rasters from TYLER's ANALYSIS
-#boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
+boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
 #mountain <- raster::stack(pgGetRast(conn, "clim_pred_mountain_1990"),pgGetRast(conn, "clim_pred_mountain_2010"),pgGetRast(conn, "clim_pred_mountain_2025"), pgGetRast(conn, "clim_pred_mountain_2055"),pgGetRast(conn, "clim_pred_mountain_2085"))
 #northern <- raster::stack(pgGetRast(conn, "clim_pred_northern_1990"),pgGetRast(conn, "clim_pred_northern_2010"),pgGetRast(conn, "clim_pred_northern_2025"), pgGetRast(conn, "clim_pred_northern_2055"),pgGetRast(conn, "clim_pred_northern_2085"))
 dbDisconnect(conn)
@@ -183,7 +183,7 @@ server <- function(input, output) {
                                }"))
   })
   
-#Zoom to herd being cliked
+#Zoom to caribou herd being cliked
   observe({
     if(is.null(input$map_shape_click))
       return()
@@ -194,26 +194,13 @@ server <- function(input, output) {
       addRasterImage(raster(boreal,1), project =TRUE, opacity = 0.7,  group = 'Caribou Selection')
     })
   
+#Observe the click on caribou herd  
   observeEvent(input$map_shape_click, {
     output$clickCaribou <- renderText(caribouHerd())
-  }) 
-  observeEvent(input$map_shape_click, {
     output$clickEcoType <- renderText(caribouEcoType())
-  }) 
-  
-
-#value$drawnPoly<-SpatialPolygonsDataFrame(SpatialPolygons(list()), data=data.frame (notes=character(0), stringsAsFactors = F))
-   
-# observeEvent(input$map_draw_all_features, {
-
-#     #   SPDF<-SpatialPolygonsDataFrame(spPolys, 
-#     #                                  data=data.frame(notes=value$drawnPoly$notes[row.names(value$drawnPoly) %in% row.names(spPolys)], row.names=row.names(spPolys)))
-#     #   value$drawnPoly<-value$drawnPoly[!row.names(value$drawnPoly) %in% row.names(SPDF),]
-#     #   value$drawnPoly<-rbind(value$drawnPoly, SPDF)
-#    
-#})
-  
-
+  })
+ 
+# Modal for labeling the drawn polygons
   labelModal = modalDialog(
     title = "Enter polygon label",
     textInput(inputId = "myLabel", label = "Enter a string: "),
