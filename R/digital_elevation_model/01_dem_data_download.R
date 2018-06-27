@@ -2575,6 +2575,8 @@ slope <- raster::terrain (dem.all, opt = 'slope', unit = "degrees",
 raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.degrees <- raster::terrain (dem.all, opt = 'aspect', unit = "degrees", 
                                    neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
+
+
 raster::writeRaster (aspect.degrees, filename = "all_bc\\aspect_deg_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.radians <- raster::terrain (dem.all, opt = 'aspect', unit = "radians", 
                                    neighbors = 8)
@@ -2583,8 +2585,6 @@ aspect.northing <- cos (aspect.radians)
 raster::writeRaster (aspect.northing, filename = "all_bc\\aspect_north_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.easting <- sin (aspect.radians)
 raster::writeRaster (aspect.easting, filename = "all_bc\\aspect_east_all_bc.tif", format = "GTiff", overwrite = T)
-
-
 
 # is aspect = 0 flat or north?
 aspect.north <- reclassify (aspect.degrees, c (315,360,1,  0,45,1  46,314,0), 
@@ -2595,6 +2595,34 @@ aspect.south <- reclassify (aspect.degrees, c (226,360,0,  0,135,0  136,225,1),
                            include.lowest = T, right = NA)
 aspect.west <- reclassify (aspect.degrees, c (316,360,0,  0,225,0  226,315,1), 
                             include.lowest = T, right = NA)
+
+#=================================
+# Conform raster to hectares BC
+#=================================
+ProvRast <- raster (nrows = 15744, ncols = 17216, 
+                    xmn = 159587.5, xmx = 1881187.5, 
+                    ymn = 173787.5, ymx = 1748187.5, 
+                    crs = proj4string (dem.all), 
+                    resolution = c(100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
+dem.ha.bc <- raster::resample (dem.all, ProvRast, method = "ngb") # nearest neighbour resampling
+raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GTiff", overwrite = T)
+
+#=================================
+# Putting into Kyle's Postgres DB
+#=================================
+require (RPostgreSQL)
+drv <- dbDriver ("PostgreSQL")
+con <- dbConnect(drv, 
+                 host = "DC052586", # Kyle's computer name
+                 user = "Tyler",
+                 dbname = "postgres",
+                 password = "tyler",
+                 port = "5432")
+dbListTables (con)
+
+
+
+
 
 
 #=================================
@@ -2610,16 +2638,3 @@ con <- dbConnect (drv,
                   port = "5432")
 
 # https://rdrr.io/cran/rpostgis/man/pgWriteRast.html
-
-#=================================
-# Putting into Kyle's Postgres DB
-#=================================
-require (RPostgreSQL)
-drv <- dbDriver ("PostgreSQL")
-con <- dbConnect(drv, 
-                 host = "DC052586", # Kyle's computer name
-                 user = "postgres",
-                 dbname = "postgres",
-                 password = "postgres",
-                 port = "5432")
-dbListTables (con)
