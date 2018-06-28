@@ -1153,7 +1153,7 @@ for (i in filenames.92n) {
 # project to WGS84
 dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("092n")
-raster::writeRaster (dem.final, filename = "092n\\092n.tif", format = "GTiff")
+raster::writeRaster (dem.final, filename = "092n\\092n.tif", format = "GTiff", overwrite = T)
 
 # 92o
 dem.092o01.e <- raster ("092o01_e.dem") # load the first two to create the merged raster
@@ -1168,7 +1168,8 @@ for (i in filenames.92o) {
 # project to WGS84
 dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("092o")
-raster::writeRaster (dem.final, filename = "092o\\092o.tif", format = "GTiff")
+raster::writeRaster (dem.final, filename = "092o\\092o.tif", format = "GTiff",
+                     overwrite = T)
 
 # 92p
 dem.092p01.e <- raster ("092p01_e.dem") # load the first two to create the merged raster
@@ -1183,7 +1184,8 @@ for (i in filenames.92p) {
 # project to WGS84
 dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("092p")
-raster::writeRaster (dem.final, filename = "092p\\092p.tif", format = "GTiff")
+raster::writeRaster (dem.final, filename = "092p\\092p.tif", format = "GTiff",
+                     overwrite = T)
 
 # 93a
 dem.093a01.e <- raster ("093a01_e.dem") # load the first two to create the merged raster
@@ -2405,3 +2407,234 @@ for (i in filenames.114p) {
 dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("114p")
 raster::writeRaster (dem.final, filename = "114p\\114p.tif", format = "GTiff", overwrite = T)
+
+
+
+#=================================
+# merging letter tiles into number
+#=================================
+# 082
+list.082 <- list ("082b", "082c", "082d", "082e", "082f", "082g", "082k", "082l", "082m")
+dem.082b <- raster ("082b\\082b.tif") # load the first two to create the merged raster
+dem.082c <- raster ("082c\\082c.tif")
+dem.final <- raster::merge (dem.082b, dem.082c)
+for (i in list.082) {
+  dem <- raster (paste0 (i, "\\", i, ".tif"))
+  dem.final <- raster::merge (dem.final, dem, tolerance = 1) # tolerance for raster with different origins
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("082")
+raster::writeRaster (dem.final, filename = "082\\082.tif", format = "GTiff", overwrite = T)
+
+# 092
+list.092 <- list ("092b", "092c", "092a", "092e", "092f", "092g", "092h", "092i", 
+                  "092j", "092k", "092l", "092m", "092n", "092o", "092p")
+dem.092b <- raster ("092b\\092b.tif") # load the first two to create the merged raster
+dem.092c <- raster ("092c\\092c.tif")
+dem.final <- raster::merge (dem.092b, dem.092c)
+for (i in list.092) {
+  dem <- raster (paste0 (i, "\\", i, ".tif"))
+  dem.final <- raster::merge (dem.final, dem, tolerance = 1) # tolerance for raster with different origins
+}  
+# project to WGS84
+dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+dir.create ("092")
+raster::writeRaster (dem.final, filename = "092\\092.tif", format = "GTiff", overwrite = T)
+
+# 093
+list.093 <- list ("093a", "093b", "093c", "093d", "093e", "093f", "093g", "093h", "093i", 
+                  "093j", "093k", "093l", "093m", "093n", "093o", "093p")
+dem.093b <- raster ("093b\\093b.tif") # load the first two to create the merged raster
+dem.093c <- raster ("093c\\093c.tif")
+dem.final <- raster::merge (dem.093b, dem.093c, tolerance = 1)
+for (i in list.093) {
+  dem <- raster (paste0 (i, "\\", i, ".tif"))
+  dem.final <- raster::merge (dem.final, dem, tolerance = 1) # tolerance for raster with different origins
+}  
+dir.create ("093")
+raster::writeRaster (dem.final, filename = "093\\093.tif", format = "GTiff", overwrite = T)
+
+# 094
+list.094 <- list ("094a", "094b", "094c", "094d", "094e", "094f", "094g", "094h", "094i", 
+                  "094j", "094k", "094l", "094m", "094n", "094o", "094p")
+dem.094b <- raster ("094b\\094b.tif") # load the first two to create the merged raster
+dem.094c <- raster ("094c\\094c.tif")
+dem.final <- raster::merge (dem.094b, dem.094c, tolerance = 1)
+for (i in list.094) {
+  dem <- raster (paste0 (i, "\\", i, ".tif"))
+  dem.final <- raster::merge (dem.final, dem, tolerance = 1) # tolerance for raster with different origins
+}  
+dir.create ("094")
+raster::writeRaster (dem.final, filename = "094\\094.tif", format = "GTiff", overwrite = T)
+
+# 102
+dem.102i <- raster ("102i\\102i.tif") # load the first two to create the merged raster
+dem.102p <- raster ("102p\\102p.tif")
+dem.final <- raster::merge (dem.102i, dem.102p, tolerance = 1)
+dir.create ("102")
+raster::writeRaster (dem.final, filename = "102\\102.tif", format = "GTiff", overwrite = T)
+
+# 103
+list.103 <- list ("103a", "103c", "103f", "103g", "103h", "103i", 
+                   "103p")
+dem.103a <- raster ("103a\\103a.tif") # load the first two to create the merged raster
+dem.103c <- raster ("103c\\103c.tif")
+dem.final <- raster::merge (dem.103a, dem.103c, tolerance = 1)
+for (i in list.103) {
+  dem <- raster (paste0 (i, "\\", i, ".tif"))
+  dem.final <- raster::merge (dem.final, dem, tolerance = 1) # tolerance for raster with different origins
+}  
+dir.create ("103")
+raster::writeRaster (dem.final, filename = "103\\103.tif", format = "GTiff", overwrite = T)
+
+# 104
+list.104 <- list ("104a", "104b", "104f", "104g", "104h", "104i", 
+                  "104j", "104k", "104l", "104m", "104n", "104o", "104p")
+dem.104b <- raster ("104b\\104b.tif") # load the first two to create the merged raster
+dem.104a <- raster ("104a\\104a.tif")
+dem.final <- raster::merge (dem.104b, dem.104a, tolerance = 1)
+for (i in list.104) {
+  dem <- raster (paste0 (i, "\\", i, ".tif"))
+  dem.final <- raster::merge (dem.final, dem, tolerance = 1) # tolerance for raster with different origins
+}  
+dir.create ("104")
+raster::writeRaster (dem.final, filename = "104\\104.tif", format = "GTiff", overwrite = T)
+
+# 114
+dem.114o <- raster ("114o\\114o.tif") # load the first two to create the merged raster
+dem.114p <- raster ("114p\\114p.tif")
+dem.final <- raster::merge (dem.114o, dem.114p, tolerance = 1)
+dir.create ("114")
+raster::writeRaster (dem.final, filename = "114\\114.tif", format = "GTiff", overwrite = T)
+
+# 083
+dem.083m <- raster ("083m\\083m.tif") # load the first two to create the merged raster
+dem.083d <- raster ("083d\\083d.tif")
+dem.final <- raster::merge (dem.083m, dem.083d, tolerance = 1)
+dir.create ("083")
+raster::writeRaster (dem.final, filename = "083\\083.tif", format = "GTiff", overwrite = T)
+
+# 092 final
+dem.092n <- raster ("092n\\092n.tif")
+dem.092o <- raster ("092o\\092o.tif")
+dem.092p <- raster ("092p\\092p.tif")
+dem.092 <- raster ("092\\092.tif")
+dem.final <- raster::merge (dem.092n, dem.092o, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.092p, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.092, tolerance = 1)
+raster::writeRaster (dem.final, filename = "092\\092.tif", format = "GTiff", 
+                     overwrite = T)
+
+# 092 final
+dem.092p <- raster ("092p\\092p.tif") # load the first two to create the merged raster
+dem.092 <- raster ("092\\092.tif")
+dem.final <- raster::merge (dem.092p, dem.092, tolerance = 1)
+# project to WGS84
+dir.create ("092v2")
+raster::writeRaster (dem.final, filename = "092v2\\092.tif", format = "GTiff", overwrite = T)
+
+#=================================
+# merging all tiles
+#=================================
+# ALL BC
+dem.082 <- raster ("082\\082.tif")
+dem.083 <- raster ("083\\083.tif")
+dem.092 <- raster ("092\\092.tif")
+dem.093 <- raster ("093\\093.tif")
+dem.094 <- raster ("094\\094.tif")
+dem.final <- raster::merge (dem.082, dem.083, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.092, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.093, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.094, tolerance = 1)
+
+dem.102 <- raster ("102\\102.tif")
+dem.103 <- raster ("103\\103.tif")
+dem.104 <- raster ("104\\104.tif")
+dem.114 <- raster ("114\\114.tif")
+dem.final <- raster::merge (dem.102, dem.103, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.104, tolerance = 1)
+dem.final <- raster::merge (dem.final, dem.114, tolerance = 1)
+dir.create ("all_bc")
+raster::writeRaster (dem.final, filename = "all_bc\\dem_102_114_bc.tif", format = "GTiff", overwrite = T)
+
+dem.102.114 <- raster ("all_bc\\dem_102_114_bc.tif")
+dem.82.94 <- raster ("all_bc\\dem_82_94_bc.tif")
+dem.final <- raster::merge (dem.82.94, dem.102.114, tolerance = 1)
+raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc.tif", format = "GTiff", overwrite = T)
+dem.final <- raster::projectRaster (from = dem.all, 
+                                    crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc_proj.tif", format = "GTiff", overwrite = T)
+
+#=================================
+# Calculate aspect and slope
+#=================================
+dem.all <- raster ("all_bc\\dem_all_bc_proj.tif") # load the projected version
+slope <- raster::terrain (dem.all, opt = 'slope', unit = "degrees", 
+                              neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
+raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.degrees <- raster::terrain (dem.all, opt = 'aspect', unit = "degrees", 
+                                   neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
+
+
+raster::writeRaster (aspect.degrees, filename = "all_bc\\aspect_deg_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.radians <- raster::terrain (dem.all, opt = 'aspect', unit = "radians", 
+                                   neighbors = 8)
+raster::writeRaster (aspect.radians, filename = "all_bc\\aspect_rad_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.northing <- cos (aspect.radians)
+raster::writeRaster (aspect.northing, filename = "all_bc\\aspect_north_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.easting <- sin (aspect.radians)
+raster::writeRaster (aspect.easting, filename = "all_bc\\aspect_east_all_bc.tif", format = "GTiff", overwrite = T)
+
+# is aspect = 0 flat or north?
+aspect.north <- reclassify (aspect.degrees, c (315,360,1,  0,45,1  46,314,0), 
+                            include.lowest = T, right = NA)
+aspect.east <- reclassify (aspect.degrees, c (146,360,0,  0,45,0  46,145,1), 
+                            include.lowest = T, right = NA)
+aspect.south <- reclassify (aspect.degrees, c (226,360,0,  0,135,0  136,225,1), 
+                           include.lowest = T, right = NA)
+aspect.west <- reclassify (aspect.degrees, c (316,360,0,  0,225,0  226,315,1), 
+                            include.lowest = T, right = NA)
+
+#=================================
+# Conform raster to hectares BC
+#=================================
+ProvRast <- raster (nrows = 15744, ncols = 17216, 
+                    xmn = 159587.5, xmx = 1881187.5, 
+                    ymn = 173787.5, ymx = 1748187.5, 
+                    crs = proj4string (dem.all), 
+                    resolution = c(100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
+dem.ha.bc <- raster::resample (dem.all, ProvRast, method = "ngb") # nearest neighbour resampling
+raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GTiff", overwrite = T)
+
+#=================================
+# Putting into Kyle's Postgres DB
+#=================================
+require (RPostgreSQL)
+drv <- dbDriver ("PostgreSQL")
+con <- dbConnect(drv, 
+                 host = "DC052586", # Kyle's computer name
+                 user = "Tyler",
+                 dbname = "postgres",
+                 password = "tyler",
+                 port = "5432")
+dbListTables (con)
+
+
+
+
+
+
+#=================================
+# Putting into my Postgres DB
+#=================================
+require (RPostgreSQL)
+drv <- dbDriver ("PostgreSQL")
+con <- dbConnect (drv, 
+                  host = "",
+                  user = "postgres",
+                  dbname = "postgres",
+                  password = "postgres",
+                  port = "5432")
+
+# https://rdrr.io/cran/rpostgis/man/pgWriteRast.html

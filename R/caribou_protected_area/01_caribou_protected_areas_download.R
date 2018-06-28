@@ -26,6 +26,7 @@
 # packages
 require (downloader)
 require (rgdal) 
+require (ROracle)
 
 # data directory
 # setwd ('\\spatialfiles2.bcgov\\archive\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\')
