@@ -26,7 +26,9 @@
 # packages
 require (downloader)
 require (rgdal) 
-require (ROracle)
+require (RPostgreSQL)
+require (rpostgis)
+require (postGIStools)
 
 # data directory
 # setwd ('\\spatialfiles2.bcgov\\archive\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\')
@@ -57,6 +59,22 @@ wha.prop <- readOGR (dsn = "caribou_protected_areas.gdb",
                       layer = "wha_proposed_20180619")
 parks <- readOGR (dsn = "caribou_protected_areas.gdb",
                   layer = "bc_parks_protected_areas_20180619")
+
+#=================================
+# Putting into Kyle's Postgres DB
+#=================================
+drv <- dbDriver ("PostgreSQL")
+con <- dbConnect(drv, 
+                 host = "DC052586", # Kyle's computer name
+                 user = "Tyler",
+                 dbname = "postgres",
+                 password = "tyler",
+                 port = "5432")
+postGIStools::postgis_insert (conn = con, df = uwr, 
+                              tbl = "uwr_20180627", 
+                              geom_name = "Polygons")
+# dbSendQuery (con, "ALTER TABLE uwr_all_20180627 SET SCHEMA xxx;") # use this to define schema, otherwise default is public
+
 
 # Filter caribou-specific protected areas
 #========
