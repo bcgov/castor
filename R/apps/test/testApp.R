@@ -28,6 +28,7 @@ library(tidyr)
 library(raster)
 library(shiny)
 library(shinythemes)
+library(shinyWidgets)
 
 #-------------------------------------------------------------------------------------------------
 #Dataabse prep
@@ -46,6 +47,11 @@ geom = "geom"
 herd_bound <- spTransform(pgGetGeom(conn, name=name,  geom = geom), CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 ####Remove NA's
 herd_bound <- herd_bound[which(herd_bound@data$herd_name != "NA"), ]
+#Get climate data
+bec<-dbGetQuery(conn,"SELECT * FROM public.clim_plot_data_bec")
+ffd<-dbGetQuery(conn,"SELECT * FROM public.clim_plot_data_spring_frost_free_days")
+wpas<-dbGetQuery(conn,"SELECT * FROM public.clim_plot_data_winter_precip_as_snow")
+wtemp<-dbGetQuery(conn,"SELECT * FROM public.clim_plot_data_winter_temp")
 #Get climate rasters from TYLER's ANALYSIS
 boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
 #mountain <- raster::stack(pgGetRast(conn, "clim_pred_mountain_1990"),pgGetRast(conn, "clim_pred_mountain_2010"),pgGetRast(conn, "clim_pred_mountain_2025"), pgGetRast(conn, "clim_pred_mountain_2055"),pgGetRast(conn, "clim_pred_mountain_2085"))
@@ -69,10 +75,13 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                       helpText("Herd"),
                       
                       # Select year range to be used
-                      sliderInput("sliderDate", label = strong("Year"), min = 2010, 
-                                  max = 2085, value = 1, step = 1,sep="", animate = animationOptions(interval = 1)
-                                  ),
-                      helpText("Adjust the year to change graphs"),
+                      sliderTextInput (inputId = "sliderDate",
+                                       label = "",
+                                       choices = c ("current", 2025, 2055, 2085),
+                                       selected = "current",
+                                       grid = TRUE
+                      ),
+                      helpText("Select year of interest using the slider"),
                       downloadButton("downloadData.zip", "Save"),
                       helpText("Save drawn polygons")
 ),
@@ -84,26 +93,48 @@ mainPanel(
       tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank"),
       tabsetPanel(
         tabPanel("Population", tableOutput(outputId = "populationTable")),
-        tabPanel("Habitat", plotOutput(outputId = "habitat", height = "300px")),
-        tabPanel("Climate", plotOutput(outputId = "climatePlot1", height = "300px")),
-        tabPanel("Disturbance", plotOutput(outputId = "distPlot", height = "300px"))
+        tabPanel("Habitat", navlistPanel(
+                    "Protection",
+                        tabPanel("Ungulate Winter Range"),
+                        tabPanel("Wildlife Habitat Area"))
+                 ),
+                tabPanel("Disturbance", navlistPanel(
+                    "Human", 
+                        tabPanel("Cutblock", plotOutput(outputId = "distPlot", height = "300px")),
+                        tabPanel("Road"),
+                        tabPanel("Other Linear"),
+                        tabPanel("Total"),
+                    "Natural",
+                        tabPanel("Fire"),
+                        tabPanel("Insects")
+                    )
+                  ),
+                tabPanel("Climate", navlistPanel(
+                    "BEC", 
+                        tabPanel("Proportion", plotOutput(outputId = "becEcoTypePlot", height = "300px"), plotOutput(outputId = "becHerdPlot", height = "300px")), 
+                    "Variables", 
+                        tabPanel("Frost Free Days", plotOutput(outputId = "ffdEcoTypePlot", height = "300px"), plotOutput(outputId = "ffdHerdPlot", height = "300px")), 
+                        tabPanel("Precipitation as Snow", plotOutput(outputId = "pasEcoTypePlot", height = "300px"), plotOutput(outputId = "pasHerdPlot", height = "300px")), 
+                        tabPanel("Average Winter Temperature", plotOutput(outputId = "awtEcoTypePlot", height = "300px"), plotOutput(outputId = "awtHerdPlot", height = "300px")
+                  )))
         )
       )
   )
 )
 
+#-----------------------
 # Define server function
 server <- function(input, output) {
-  
+#----------------  
+# Reactive Values 
+  valueModal<-reactiveValues(atTable=NULL)
   caribouHerd<-reactive({as.character(input$map_shape_click$group)})
-  caribouEcoType<-reactive({herd_bound@data[which(herd_bound@data$herd_name == input$map_shape_click$group), ][[12]]})
-  
+  caribouEcoType<-reactive({ herd_bound@data[which(herd_bound@data$herd_name == input$map_shape_click$group), ][[12]]})
 
   herdSelect<-reactive({
     herd_bound[which(herd_bound@data$herd_name == input$map_shape_click$group), ]
   }) 
 
-# Subset data
   dist_data <- reactive({
     req(input$map_shape_click)
     conn<-dbConnect(dbDriver("PostgreSQL"),dbname=dbname, host=host ,port=port ,user=user ,password=password)
@@ -126,23 +157,22 @@ server <- function(input, output) {
     }
     cb2 %>% filter(harvestyr>1960)
   })
-  
-# Create scatterplot object the plotOutput function is expecting
+#--------  
+# Outputs 
+## Create scatterplot object the plotOutput function is expecting
   output$distPlot <- renderPlot({
     ggplot(dist_data(), aes(x =harvestyr, y=Dist40))+
       geom_line()+
       xlab ("Year") +
       ylab ("Cutblock Area < 40 years (ha)") + 
-      scale_x_continuous(breaks = seq(1960, 2018, by = 5))+
+      scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
       expand_limits(y=0) +
-      theme_bw () +
       theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
   })
   
-#set the pallet
+## set the pallet
   pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  herd_bound$risk_stat)
-  
-#render the leaflet map  
+## render the leaflet map  
   output$map = renderLeaflet({ 
       leaflet(herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
       setView(-121.7476, 53.7267, 4) %>%
@@ -183,43 +213,7 @@ server <- function(input, output) {
                                }"))
   })
   
-#Zoom to caribou herd being cliked
-  observe({
-    if(is.null(input$map_shape_click))
-      return()
-    leafletProxy("map") %>%
-      clearGroup(group = input$map_shape_click$group) %>%
-      setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
-      addPolygons(data=herdSelect() , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px')) %>%
-      addRasterImage(raster(boreal,1), project =TRUE, opacity = 0.7,  group = 'Caribou Selection')
-    })
-  
-#Observe the click on caribou herd  
-  observeEvent(input$map_shape_click, {
-    output$clickCaribou <- renderText(caribouHerd())
-    output$clickEcoType <- renderText(caribouEcoType())
-  })
- 
-# Modal for labeling the drawn polygons
-  labelModal = modalDialog(
-    title = "Enter polygon label",
-    textInput(inputId = "myLabel", label = "Enter a string: "),
-    footer = actionButton("ok_modal",label = "Ok"))
-  
-# New Feature
-  observeEvent(input$map_draw_new_feature, {
-    #print("New Feature")
-    showModal(labelModal)
-  })
-#Create a reactive value to hold the attribute table
-  valueModal<-reactiveValues(atTable=NULL)
-#Once ok in the modal is pressed by the user - store this into a matrix  
-  observeEvent(input$ok_modal, {
-    req(input$map_draw_new_feature$properties$`_leaflet_id`)
-    valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_new_feature$properties$`_leaflet_id`, input$myLabel))
-    removeModal()
-  })
-  
+# Create a shapefile to download
   output$downloadData.zip <- downloadHandler(
     file = 'shpExport.',
     content = function(file) {
@@ -255,10 +249,130 @@ server <- function(input, output) {
         plot(SPDF)
         rgdal::writeOGR(SPDF, dsn="shpExport.shp", layer="shpExport", driver="ESRI Shapefile")
       }
-      
       zip(zipfile='shpExport.zip', files=Sys.glob("shpExport.*"))
       file.copy("shpExport.zip", file)
     })
+  
+  output$becEcoTypePlot <- renderPlot ({
+      ggplot (dplyr::filter (bec, ecotype == caribouEcoType()[1]), 
+              aes (x = year)) +  
+        geom_bar (aes (fill = bec), position = 'fill') +
+        xlab ("Year") +
+        ylab ("Proportion of range area") +
+        scale_fill_discrete (name = "Bec Zone") +
+        theme (axis.text = element_text (size = 12),
+               axis.title =  element_text (size = 14, face = "bold")) 
+  })  
+
+  output$ffdEcoTypePlot <- renderPlot ({
+    ggplot (dplyr::filter (ffd, ecotype == caribouEcoType()[1]), 
+            aes (year, spffd)) +  
+      geom_boxplot () +
+      xlab ("Year") +
+      ylab ("Number of Spring Frost Free Days") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  }) 
+  
+  output$pasEcoTypePlot <- renderPlot ({
+    ggplot (dplyr::filter (wpas, ecotype == caribouEcoType()[1]), 
+            aes (x=year, y=pas)) +  
+      geom_boxplot () +
+      xlab ("Year") +
+      ylab ("Precipitation as Snow") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  }) 
+  
+  output$awtEcoTypePlot <- renderPlot ({
+    ggplot (dplyr::filter (wtemp, ecotype == caribouEcoType()[1]), 
+            aes (x=year, y=awt)) +  
+      geom_boxplot () +
+      xlab ("Year") +
+      ylab ("Average Winter Temperature") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  }) 
+  
+  output$becHerdPlot <- renderPlot ({
+    ggplot (dplyr::filter (bec, herdname == caribouHerd()), 
+            aes (x = year)) +  
+      geom_bar (aes (fill = bec), position = 'fill') +
+      xlab ("Year") +
+      ylab ("Proportion of range area") +
+      scale_fill_discrete (name = "Bec Zone") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  })  
+  
+  output$ffdHerdPlot <- renderPlot ({
+    ggplot (dplyr::filter (ffd, herdname == caribouHerd()), 
+            aes (year, spffd)) +  
+      geom_boxplot () +
+      xlab ("Year") +
+      ylab ("Number of Spring Frost Free Days") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  }) 
+  
+  output$pasHerdPlot <- renderPlot ({
+    ggplot (dplyr::filter (wpas, herdname== caribouHerd()), 
+            aes (year, pas)) +  
+      geom_boxplot () +
+      xlab ("Year") +
+      ylab ("Precipitation as Snow") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  }) 
+  
+  output$awtHerdPlot <- renderPlot ({
+    ggplot (dplyr::filter (wtemp, herdname == caribouHerd()), 
+            aes (x=year, y=awt)) +  
+      geom_boxplot () +
+      xlab ("Year") +
+      ylab ("Average Winter Temperature") +
+      theme (axis.text = element_text (size = 12),
+             axis.title =  element_text (size = 14, face = "bold")) 
+  })  
+  
+  
+#-------
+# observe  
+## Zoom to caribou herd being cliked
+  observe({
+    if(is.null(input$map_shape_click))
+      return()
+    leafletProxy("map") %>%
+      clearGroup(group = input$map_shape_click$group) %>%
+      setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
+      addPolygons(data=herdSelect() , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px')) %>%
+      addRasterImage(raster(boreal,1), project =TRUE, opacity = 0.7,  group = 'Caribou Selection')
+    })
+  
+# Observe the click on caribou herd  
+  observeEvent(input$map_shape_click, {
+    output$clickCaribou <- renderText(caribouHerd())
+    output$clickEcoType <- renderText(caribouEcoType()[1])
+  })
+ 
+# Modal for labeling the drawn polygons
+  labelModal = modalDialog(
+    title = "Enter polygon label",
+    textInput(inputId = "myLabel", label = "Enter a string: "),
+    footer = actionButton("ok_modal",label = "Ok"))
+# New Feature plus show modal
+  observeEvent(input$map_draw_new_feature, {
+    #print("New Feature")
+    showModal(labelModal)
+  })
+
+#Once ok in the modal is pressed by the user - store this into a matrix  
+  observeEvent(input$ok_modal, {
+    req(input$map_draw_new_feature$properties$`_leaflet_id`)
+    valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_new_feature$properties$`_leaflet_id`, input$myLabel))
+    removeModal()
+  })
+  
 #--------------------------------
 ##Useful observeEvent for drawing  
   # Edited Features
