@@ -2577,6 +2577,8 @@ aspect.degrees <- raster::terrain (dem.all, opt = 'aspect', unit = "degrees",
                                    neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
 
 
+
+
 raster::writeRaster (aspect.degrees, filename = "all_bc\\aspect_deg_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.radians <- raster::terrain (dem.all, opt = 'aspect', unit = "radians", 
                                    neighbors = 8)
@@ -2597,7 +2599,7 @@ aspect.west <- reclassify (aspect.degrees, c (316,360,0,  0,225,0  226,315,1),
                             include.lowest = T, right = NA)
 
 #=================================
-# Conform raster to hectares BC
+# Conform rasters to hectares BC
 #=================================
 ProvRast <- raster (nrows = 15744, ncols = 17216, 
                     xmn = 159587.5, xmx = 1881187.5, 
@@ -2611,6 +2613,7 @@ raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GT
 # Putting into Kyle's Postgres DB
 #=================================
 require (RPostgreSQL)
+require (rpostgis)
 drv <- dbDriver ("PostgreSQL")
 con <- dbConnect(drv, 
                  host = "DC052586", # Kyle's computer name
@@ -2620,8 +2623,14 @@ con <- dbConnect(drv,
                  port = "5432")
 dbListTables (con)
 
+rpostgispgWriteRast (conn = con, 
+             name = "dem_all_bc",
+             raster = dem.all)
 
 
+
+
+# http://rpubs.com/dgolicher/6373
 
 
 
