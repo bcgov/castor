@@ -26,7 +26,10 @@
 # packages
 require (downloader)
 require (rgdal) 
-require (ROracle)
+require (RPostgreSQL)
+require (rpostgis)
+# require (postGIStools)
+require (lubridate)
 
 # data directory
 # setwd ('\\spatialfiles2.bcgov\\archive\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\')
@@ -58,6 +61,18 @@ wha.prop <- readOGR (dsn = "caribou_protected_areas.gdb",
 parks <- readOGR (dsn = "caribou_protected_areas.gdb",
                   layer = "bc_parks_protected_areas_20180619")
 
+#=======================================
+# Define the date field and extract year
+#=======================================
+uwr@data$DATE_OF_NOTICE <- as.Date (uwr@data$DATE_OF_NOTICE)
+uwr@data$APPROVAL_DATE <- as.Date (uwr@data$APPROVAL_DATE)
+uwr@data$APPROVAL_YEAR <- year (uwr@data$APPROVAL_DATE)
+
+wha@data$DATE_OF_NOTICE <- as.Date (wha@data$NOTICE_DATE)
+wha@data$APPROVAL_DATE <- as.Date (wha@data$APPROVAL_DATE)
+wha@data$APPROVAL_YEAR <- year (wha@data$APPROVAL_DATE)
+
+#========================================
 # Filter caribou-specific protected areas
 #========
 # UWRs
@@ -125,3 +140,49 @@ wha.prop.caribou.cond.harvest <- wha.prop.caribou [wha.prop.caribou$TIMBER_HARVE
 #========
 # Use 'as-is'; not clear to me at this point if these have more or less value for caribou
 # could 'symbolize' by PROTECTED_LANDS_DESIGNATION: PROVINCIAL PARK, ECOLOGICAL RESERVE PROTECTED AREA, RECREATION AREA
+
+#=================================
+# Putting into Kyle's Postgres DB
+#=================================
+drv <- dbDriver ("PostgreSQL")
+con <- dbConnect(drv, 
+                 host = "DC052586", # Kyle's computer name
+                 user = "Tyler",
+                 dbname = "clus",
+                 password = "tyler",
+                 port = "5432")
+rpostgis::pgInsert (conn = con,
+                    name = "uwr_caribou_no_harvest_20180627",
+                    data.obj = uwr.caribou.no.harvest,
+                    new.id = "gid")
+rpostgis::pgInsert (conn = con,
+                    name = "uwr_caribou_conditional_harvest_20180627",
+                    data.obj = uwr.caribou.cond.harvest,
+                    new.id = "gid")
+rpostgis::pgInsert (conn = con,
+                    name = "2uwr_proposed_caribou_no_harvest_20180627",
+                    data.obj = uwr.prop.caribou.no.harvest,
+                    new.id = "gid")
+rpostgis::pgInsert (conn = con,
+                    name = "uwr_proposed_caribou_no_constraints_20180627",
+                    data.obj = uwr.prop.caribou.no.constraint,
+                    new.id = "gid")
+rpostgis::pgInsert (conn = con,
+                    name = "wha_caribou_no_harvest_20180627",
+                    data.obj = wha.caribou.no.harvest,
+                    new.id = "gid")
+rpostgis::pgInsert (conn = con,
+                    name = "wha_caribou_conditional_harvest_20180627",
+                    data.obj = wha.caribou.cond.harvest,
+                    new.id = "gid")
+rpostgis::pgInsert (conn = con,
+                    name = "wha_proposed_caribou_no_harvest_20180627",
+                    data.obj = wha.prop.caribou.no.harvest,
+                    new.id = "gid")
+# rpostgis::pgInsert (conn = con,
+#                    name = "20180627_wha_proposed_caribou_conditional_harvest",
+#                    data.obj = wha.prop.caribou.cond.harvest,
+#                    new.id = "gid")
+# dbListTables(con)
+
+
