@@ -1,22 +1,10 @@
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 '''
-    Author:  Sasha Lees
-    For ArcGIS v.10.1
-    Purpose:  Add a field for Road Use Classification, based on best guess for road use
-                (1 = high, 2 = mod, 3 = low)
-                Type is integer, as this field will be used to convert to raster.  Description is text.
+    Script for counting survey observations for SPI data.
 
-                The classification was initially derived for Grizzly Bear Assmnt, but could be used for other purposes/values.
-
-    NOTE:  This is applicable to available attribute values for the 2015 v2 dataset.  If a revised provincial dataset is built,
-            check for additional attributes that may not have been accounted for!
-
-    Date:   22-Jan-2015
-    Note: Updated June 15/17 to point to layer in my Okanagan TSR5 netdown geodb. Edited road classes after discussion with Paul Blomberg. Cheryl Delwisch.
-
-    Update: May 4, 2018 - Mike Fowler - Spatial Data Analyst - Caribou Recovery Project (CRP)
-            Added additional classification for use in the CRP
-            Processing of roads by TSA in Caribou Herd Boundaries and incorporating additional roads from FTA and merging
+    Mike Fowler
+    GIS Analyst
+    July 2018
 '''
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #--Imports

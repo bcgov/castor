@@ -1,3 +1,13 @@
+#-------------------------------------------------------------------------------=
+'''
+Script to Load Spatial Data (FGDB or SHP) into Postgres Instance using OGR
+
+Mike Fowler
+GIS Analyst
+July 2018
+
+'''
+#-------------------------------------------------------------------------------=
 import sys
 # continue importing modules
 import os
