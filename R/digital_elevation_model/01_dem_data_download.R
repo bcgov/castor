@@ -39,7 +39,7 @@ outPath <- "C:\\Work\\caribou\\clus_data\\dem"
 # can use this website to identify map tiles: https://www2.gov.bc.ca/assets/gov/data/geographic/topography/250kgrid.pdf
 # these lists are in caribou range
 list.dem.100s <- list ("104m", "104n", "104o","104p", "104i", "104j", "104k", "104g", "104h", "104a", "103p",
-                       "103i")
+                       "103i", "104f")
 list.dem.90s <- list ("94m", "94n", "94o", "94p", "94i", "94j", "94k", "94l", "94e", "94f", "94g", 
                        "94h", "94a", "94b", "94c", "94d", "93m", "93n", "93o", "93p", "93i", "93j", 
                        "93k", "93l", "103i", "93e", "93f", "93g", "93h", "83e", "83c", "83d", "93a", 
@@ -1652,6 +1652,30 @@ dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellp
 dir.create ("103i")
 raster::writeRaster (dem.final, filename = "103i\\103i.tif", format = "GTiff")
 
+# 103j
+dem.103j01.e <- raster ("103j01_e.dem") # load the first two to create the merged raster
+dem.103j01.w <- raster ("103j01_w.dem")
+dem.final <- raster::merge (dem.103j01.e, dem.103j01.w)
+filenames.103j <- list.files (pattern = "^.*103j.*.dem$", full.names = TRUE)
+for (i in filenames.103j) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+dir.create ("103j")
+raster::writeRaster (dem.final, filename = "103j\\103j.tif", format = "GTiff")
+
+# 103o
+dem.103o01.e <- raster ("103o01_e.dem") # load the first two to create the merged raster
+dem.103o01.w <- raster ("103o01_w.dem")
+dem.final <- raster::merge (dem.103o01.e, dem.103o01.w)
+filenames.103o <- list.files (pattern = "^.*103o.*.dem$", full.names = TRUE)
+for (i in filenames.103o) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+dir.create ("103o")
+raster::writeRaster (dem.final, filename = "103o\\103o.tif", format = "GTiff")
+
 # 103p
 dem.103p01.e <- raster ("103p01_e.dem") # load the first two to create the merged raster
 dem.103p01.w <- raster ("103p01_w.dem")
@@ -1679,6 +1703,30 @@ for (i in filenames.104a) {
 dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("104a")
 raster::writeRaster (dem.final, filename = "104a\\104a.tif", format = "GTiff")
+
+# 104b
+dem.104b01.e <- raster ("104b01_e.dem") # load the first two to create the merged raster
+dem.104b01.w <- raster ("104b01_w.dem")
+dem.final <- raster::merge (dem.104b01.e, dem.104b01.w)
+filenames.104b <- list.files (pattern = "^.*104b.*.dem$", full.names = TRUE)
+for (i in filenames.104b) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+dir.create ("104b")
+raster::writeRaster (dem.final, filename = "104b\\104b.tif", format = "GTiff")
+
+# 104f
+dem.104f01.e <- raster ("104f01_e.dem") # load the first two to create the merged raster
+dem.104f01.w <- raster ("104f01_w.dem")
+dem.final <- raster::merge (dem.104f01.e, dem.104f01.w)
+filenames.104f <- list.files (pattern = "^.*104f.*.dem$", full.names = TRUE)
+for (i in filenames.104f) {
+  dem <- raster (i)
+  dem.final <- raster::merge (dem.final, dem)
+}  
+dir.create ("104f")
+raster::writeRaster (dem.final, filename = "104f\\104f.tif", format = "GTiff")
 
 # 104g
 dem.104g01.e <- raster ("104g01_e.dem") # load the first two to create the merged raster
@@ -1737,16 +1785,16 @@ dir.create ("104j")
 raster::writeRaster (dem.final, filename = "104j\\104j.tif", format = "GTiff")
 
 # 104k
-dem.104k01.e <- raster ("104k05_e.dem") # load the first two to create the merged raster
-dem.104k01.w <- raster ("104k05_w.dem")
-dem.final <- raster::merge (dem.104k01.e, dem.104k01.w)
+dem.104k05.e <- raster ("104k05_e.dem") # load the first two to create the merged raster
+dem.104k05.w <- raster ("104k05_w.dem")
+dem.final <- raster::merge (dem.104k05.e, dem.104k05.w)
 filenames.104k <- list.files (pattern = "^.*104k.*.dem$", full.names = TRUE)
 for (i in filenames.104k) {
   dem <- raster (i)
   dem.final <- raster::merge (dem.final, dem)
 }  
 # project to WGS84
-dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+# dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("104k")
 raster::writeRaster (dem.final, filename = "104k\\104k.tif", format = "GTiff")
 
@@ -2031,8 +2079,8 @@ dir.create ("104j")
 raster::writeRaster (dem.final, filename = "104j\\104j.tif", format = "GTiff")
 
 # 104k
-dem.104k01.e <- raster ("104k15_e.dem") # load the first two to create the merged raster
-dem.104k01.w <- raster ("104k15_w.dem")
+dem.104k05.e <- raster ("104k05_e.dem") # load the first two to create the merged raster
+dem.104k05.w <- raster ("104k05_w.dem")
 dem.final <- raster::merge (dem.104k01.e, dem.104k01.w)
 filenames.104k <- list.files (pattern = "^.*104k.*.dem$", full.names = TRUE)
 for (i in filenames.104k) {
@@ -2040,7 +2088,7 @@ for (i in filenames.104k) {
   dem.final <- raster::merge (dem.final, dem)
 }  
 # project to WGS84
-dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+# dem.final <- raster::projectRaster (from = dem.final, crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 dir.create ("104k")
 raster::writeRaster (dem.final, filename = "104k\\104k.tif", format = "GTiff")
 
@@ -2489,6 +2537,13 @@ dir.create ("103")
 raster::writeRaster (dem.final, filename = "103\\103.tif", format = "GTiff", overwrite = T)
 
 # 104
+dem.104 <- raster ("104\\104.tif")
+dem.104 <- raster::projectRaster (from = dem.104, 
+                                    crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+dem.final <- raster::merge (dem.104, dem.final, tolerance = 1)
+raster::writeRaster (dem.final, filename = "104\\104.tif", format = "GTiff", overwrite = T)
+
+
 list.104 <- list ("104a", "104b", "104f", "104g", "104h", "104i", 
                   "104j", "104k", "104l", "104m", "104n", "104o", "104p")
 dem.104b <- raster ("104b\\104b.tif") # load the first two to create the merged raster
@@ -2569,16 +2624,12 @@ raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc_proj.tif", format
 #=================================
 # Calculate aspect and slope
 #=================================
-dem.all <- raster ("all_bc\\dem_all_bc_proj.tif") # load the projected version
+dem.all <- raster ("all_bc\\dem_all_bc_proj3.tif") # load the projected version
 slope <- raster::terrain (dem.all, opt = 'slope', unit = "degrees", 
                               neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
 raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.degrees <- raster::terrain (dem.all, opt = 'aspect', unit = "degrees", 
                                    neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
-
-
-
-
 raster::writeRaster (aspect.degrees, filename = "all_bc\\aspect_deg_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.radians <- raster::terrain (dem.all, opt = 'aspect', unit = "radians", 
                                    neighbors = 8)
@@ -2589,14 +2640,19 @@ aspect.easting <- sin (aspect.radians)
 raster::writeRaster (aspect.easting, filename = "all_bc\\aspect_east_all_bc.tif", format = "GTiff", overwrite = T)
 
 # is aspect = 0 flat or north?
-aspect.north <- reclassify (aspect.degrees, c (315,360,1,  0,45,1  46,314,0), 
+# aspect.degrees <- raster ("all_bc\\aspect_deg_all_bc.tif") 
+aspect.north <- reclassify (aspect.degrees, c (315,360,1,  0,45,1,  46,314,0), 
                             include.lowest = T, right = NA)
-aspect.east <- reclassify (aspect.degrees, c (146,360,0,  0,45,0  46,145,1), 
+raster::writeRaster (aspect.north, filename = "all_bc\\aspect_north_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.east <- reclassify (aspect.degrees, c (146,360,0,  0,45,0,  46,145,1), 
                             include.lowest = T, right = NA)
-aspect.south <- reclassify (aspect.degrees, c (226,360,0,  0,135,0  136,225,1), 
+raster::writeRaster (aspect.east, filename = "all_bc\\aspect_east_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.south <- reclassify (aspect.degrees, c (226,360,0,  0,135,0,  136,225,1), 
                            include.lowest = T, right = NA)
-aspect.west <- reclassify (aspect.degrees, c (316,360,0,  0,225,0  226,315,1), 
+raster::writeRaster (aspect.south, filename = "all_bc\\aspect_south_all_bc.tif", format = "GTiff", overwrite = T)
+aspect.west <- reclassify (aspect.degrees, c (316,360,0,  0,225,0,  226,315,1), 
                             include.lowest = T, right = NA)
+raster::writeRaster (aspect.west, filename = "all_bc\\aspect_west_all_bc.tif", format = "GTiff", overwrite = T)
 
 #=================================
 # Conform rasters to hectares BC
