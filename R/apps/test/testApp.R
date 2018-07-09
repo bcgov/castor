@@ -87,7 +87,10 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                       helpText("Ecotype"),
                       #Herd name
                       h2(textOutput("clickCaribou")),
-                      helpText("Herd")
+                      helpText("Herd"),
+                      radioButtons("queryType", label = h3("Query Options"),
+                                   choices = list("Herd Boundary" = 1, "Drawn" = 2), 
+                                   selected = 1)
 ),
 
 # Output: Description, lineplot, and reference
@@ -131,6 +134,38 @@ server <- function(input, output) {
 # Reactive Values 
   valueModal<-reactiveValues(atTable=NULL)
   herdSelect<-reactive({ herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]})
+  
+  drawnPolys<-reactive({
+    req(valueModal)
+    if(!is.null(input$map_draw_all_features)){
+      f<-input$map_draw_all_features
+      #get the lat long coordinates
+      coordz<-lapply(f$features, function(x){unlist(x$geometry$coordinates)})
+      Longitudes<-lapply(coordz, function(coordz) {coordz[seq(1,length(coordz), 2)] })
+      Latitudes<-lapply(coordz, function(coordz)  {coordz[seq(2,length(coordz), 2)] })
+      
+      polys<-list()
+      for (i in 1:length(Longitudes)){polys[[i]]<- Polygons(
+        list(Polygon(cbind(Longitudes[[i]], Latitudes[[i]]))), ID=f$features[[i]]$properties$`_leaflet_id`
+      )}
+      spPolys<-SpatialPolygons(polys)
+      proj4string(spPolys)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+      
+      #Extract the ID's from spPolys
+      pid <- sapply(slot(spPolys, "polygons"), function(x) slot(x, "ID")) 
+      #create a data.frame
+      p.df <- data.frame(ID=pid, row.names = pid) 
+      #Get the list of labels and ID from the user
+      df <- as.data.frame(valueModal$atTable) 
+      colnames(df)<-c("ID", "Label")
+      #merge to the original ID of the polygons
+      p.df$label<- df$Label[match(p.df$ID, df$ID)]
+      SPDF<-SpatialPolygonsDataFrame(spPolys, data=p.df)
+    }else{
+      SDPF<-NULL
+    }
+    SPDF
+  }) 
   
   caribouHerd<-reactive({
     if(input$map_shape_click$group != "Wildlife Habitat Area"){
@@ -236,34 +271,8 @@ server <- function(input, output) {
       if (length(Sys.glob("shpExport.*"))>0){
         file.remove(Sys.glob("shpExport.*"))
       }
-      #get the lat long coordinates
-    req(valueModal)
     if(!is.null(input$map_draw_all_features)){
-        f<-input$map_draw_all_features
-        coordz<-lapply(f$features, function(x){unlist(x$geometry$coordinates)})
-        
-        Longitudes<-lapply(coordz, function(coordz) {coordz[seq(1,length(coordz), 2)] })
-        Latitudes<-lapply(coordz, function(coordz)  {coordz[seq(2,length(coordz), 2)] })
-        
-        polys<-list()
-        for (i in 1:length(Longitudes)){polys[[i]]<- Polygons(
-          list(Polygon(cbind(Longitudes[[i]], Latitudes[[i]]))), ID=f$features[[i]]$properties$`_leaflet_id`
-        )}
-        spPolys<-SpatialPolygons(polys)
-        proj4string(spPolys)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-        
-        #Extract the ID's from spPolys
-        pid <- sapply(slot(spPolys, "polygons"), function(x) slot(x, "ID")) 
-        #create a data.frame
-        p.df <- data.frame(ID=pid, row.names = pid) 
-        #Get the list of labels and ID from the user
-        df <- as.data.frame(valueModal$atTable) 
-        colnames(df)<-c("ID", "Label")
-        #merge to the original ID of the polygons
-        p.df$label<- df$Label[match(p.df$ID, df$ID)]
-        SPDF<-SpatialPolygonsDataFrame(spPolys, data=p.df)
-        plot(SPDF)
-        rgdal::writeOGR(SPDF, dsn="shpExport.shp", layer="shpExport", driver="ESRI Shapefile")
+        rgdal::writeOGR(drawnPolys(), dsn="shpExport.shp", layer="shpExport", driver="ESRI Shapefile")
     }
     zip(zipfile='shpExport.zip', files=Sys.glob("shpExport.*"))
     file.copy("shpExport.zip", file)
@@ -353,6 +362,7 @@ server <- function(input, output) {
   })
   
   output$rdTable<-renderTable({
+    if(input$queryType == 2){
     getTableQuery(paste0("SELECT 
                         r.road_surface, 
                         sum(ST_Length(r.wkb_geometry))/1000 as length_in_km 
@@ -363,7 +373,19 @@ server <- function(input, output) {
                         ST_Contains(m.geom,r.wkb_geometry) 
                         GROUP BY m.herd_name, r.road_surface
                         ORDER BY m.herd_name, r.road_surface"))
-   
+    }else{
+      getTableQuery(paste0("SELECT 
+                        r.road_surface, 
+                        sum(ST_Length(r.wkb_geometry))/1000 as length_in_km 
+                        FROM 
+                        integrated_roads AS r,  
+                        (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+                        WHERE
+                        ST_Contains(m.geom,r.wkb_geometry) 
+                        GROUP BY m.herd_name, r.road_surface
+                        ORDER BY m.herd_name, r.road_surface"))
+      
+    }
   })
 #-------
 # OBSERVE
@@ -376,15 +398,21 @@ server <- function(input, output) {
 
 ## Zoom to caribou herd being cliked
   observe({
-      if(is.null(input$map_shape_click)|| input$map_shape_click$group == 'Wildlife Habitat Area')
+      if(is.null(input$map_shape_click))
         return()
-        plot(sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)))
+
         leafletProxy("map") %>%
         clearShapes() %>%
         clearControls() %>%
         setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
         addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)) , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
                     options = pathOptions(clickable = FALSE)) %>%
+        addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "blue" 
+                      , fillColor="brown", group = "Wildlife Habitat Area",
+                      options = pathOptions(clickable = FALSE))%>%
+        addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue"
+                      , fillColor="darkgreen", group = "Ungulate Winter Range",
+                      options = pathOptions(clickable = FALSE)) %>%
         addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                                 background-position: -31px -2px;"),position="bottomleft") %>%
         addScaleBar(position = "bottomright") %>%
@@ -399,14 +427,7 @@ server <- function(input, output) {
             polygonOptions = drawPolygonOptions(showArea=TRUE, shapeOptions=drawShapeOptions(fillOpacity = 0
                                                                                              ,color = 'red'
                                                                                              ,weight = 3, clickable = TRUE))) %>%
-            addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "black" 
-                        , fillColor="brown", group = "Wildlife Habitat Area",
-                        options = pathOptions(clickable = FALSE),
-                        highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE))%>%
-            addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "black"
-                        , fillColor="darkgreen", group = "Ungulate Winter Range",
-                        options = pathOptions(clickable = FALSE),
-                        highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE))%>%
+           
             addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
                         options = layersControlOptions(collapsed = TRUE)) %>%
@@ -450,7 +471,7 @@ server <- function(input, output) {
     valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_new_feature$properties$`_leaflet_id`, input$myLabel))
     removeModal()
   })
-  
+
 #--------------------------------
 ##Useful observeEvent for drawing  
   # Edited Features
