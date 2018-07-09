@@ -30,38 +30,29 @@ library(zoo)
 library(tidyr)
 library(raster)
 #-------------------------------------------------------------------------------------------------
-#Functions for retrieving 3 types of data from the postgres server (vector, raster and tables)
+#Functions for retrieving data from the postgres server (vector, raster and tables)
 #-------------------------------------------------------------------------------------------------
-getDBSpatVector<-function(sql){
+getSpatialQuery<-function(sql){
   conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
-getDBSpatRaster<-function(name){
+getTableQuery<-function(sql){
   conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
-  pgGetRast(conn, name)
+  dbGetQuery(conn, sql)
 }
-getDBQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  dbGetQuery(conn, query = sql)
-}
-
-
-##Get a connection to the postgreSQL server (local instance)
-conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
 ##Data objects
 #----------------
 #Spatial---------
+##Get a connection to the postgreSQL server (local instance)
+#onn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
 #Get cariobu herd boundaries
-herd_bound <- as_Spatial(st_transform(st_zm(st_read(conn, query ="SELECT * FROM gcbp_carib_polygon")), 4326))
-####Remove NA's
-herd_bound <- herd_bound[which(herd_bound@data$herd_name != "NA"), ]
-#name=c("public","uwr_caribou_no_harvest_20180627")
-uwr<- st_transform(st_read(conn, query ="SELECT approval_year, geom FROM uwr_caribou_no_harvest_20180627"), 4326)
-#name<-c("public", "wha_caribou_no_harvest_20180627")
-wha<- as_Spatial(st_transform(st_zm(st_read(conn, query ="SELECT * FROM wha_caribou_no_harvest_20180627")), 4326))
+herd_bound <- st_zm(getSpatialQuery("SELECT * FROM gcbp_carib_polygon WHERE herd_name <> 'NA'"))
+sp_herd_bound<-sf::as_Spatial(st_transform(herd_bound, 4326))
+uwr<- getSpatialQuery("SELECT approval_year, geom FROM uwr_caribou_no_harvest_20180627")
+wha<- getSpatialQuery("SELECT approval_year, geom FROM wha_caribou_no_harvest_20180627")
+empt<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
 #Get climate rasters from TYLER's ANALYSIS --- not sure if it makes sense to query this based on herd boundary buffer of 25 km or render all of it?
 #boreal <- raster::stack(pgGetRast(conn, "clim_pred_boreal_1990"),pgGetRast(conn, "clim_pred_boreal_2010"),pgGetRast(conn, "clim_pred_boreal_2025"), pgGetRast(conn, "clim_pred_boreal_2055"),pgGetRast(conn, "clim_pred_boreal_2085"))
 #mountain <- raster::stack(pgGetRast(conn, "clim_pred_mountain_1990"),pgGetRast(conn, "clim_pred_mountain_2010"),pgGetRast(conn, "clim_pred_mountain_2025"), pgGetRast(conn, "clim_pred_mountain_2055"),pgGetRast(conn, "clim_pred_mountain_2085"))
@@ -70,19 +61,17 @@ wha<- as_Spatial(st_transform(st_zm(st_read(conn, query ="SELECT * FROM wha_cari
 #----------------
 #Non-Spatial 
 #Get climate data
-bec<-dbGetQuery(conn,"SELECT * FROM public.clime_bec")
+bec<-getTableQuery("SELECT * FROM public.clime_bec")
 bec$year <- relevel(as.factor(bec$year), "Current")
-clime<-dbGetQuery(conn,"SELECT * FROM public.clim_plot_data")
+clime<-getTableQuery("SELECT * FROM public.clim_plot_data")
 #----------------
 #get cached cutblock summary
-cb_sumALL<-dbGetQuery(conn,"SELECT * FROM public.cb_sum")
+cb_sumALL<-getTableQuery("SELECT * FROM public.cb_sum")
 #----------------
 #get cached road summary
 #----------------
 #get cached fire summary
-fire_sum<-dbGetQuery(conn,"SELECT * FROM public.fire_sum")
-dbDisconnect(conn)
-
+fire_sum<-getTableQuery("SELECT * FROM public.fire_sum")
 
 #-------------------------------------------------------------------------------------------------
 # Define UI
@@ -98,32 +87,28 @@ ui <- fluidPage(theme = shinytheme("lumen"),
                       helpText("Ecotype"),
                       #Herd name
                       h2(textOutput("clickCaribou")),
-                      helpText("Herd"),
-                      downloadButton("downloadData.zip", "Save"),
-                      helpText("Save drawn polygons")
+                      helpText("Herd")
 ),
 
 # Output: Description, lineplot, and reference
 mainPanel(
       leafletOutput("map"),
-      textOutput(outputId = "desc"),
-      tags$a(href = "https://github.com/bcgov/clus", "Source: clus repo", target = "_blank"),
+      downloadButton("downloadData.zip", "Save"),
+      helpText("Save drawn polygons"),
       tabsetPanel(
         tabPanel("Population", tableOutput(outputId = "populationTable")),
         tabPanel("Habitat", navlistPanel(
                     "Protection",
-                        tabPanel("Ungulate Winter Range"),
-                        tabPanel("Wildlife Habitat Area"))
+                        tabPanel("Ungulate Winter Range", tableOutput("uwrTable")),
+                        tabPanel("Wildlife Habitat Area", tableOutput("whaTable")))
                  ),
                 tabPanel("Disturbance", navlistPanel(
-                    "Herd Boundary", 
+                    "Summary", 
                         tabPanel("Fire", plotOutput(outputId = "firePlot", height = "300px")),
                         tabPanel("Cutblock", plotOutput(outputId = "cutPlot", height = "300px")),
-                        tabPanel("Road"),
+                        tabPanel("Road", tableOutput("rdTable")),
                         tabPanel("Other Linear"),
-                        tabPanel("Total"),
-                    "Drawn",
-                        tabPanel("Total")
+                        tabPanel("Total Early Seral")
                     )
                   ),
                 tabPanel("Climate Change", navlistPanel(
@@ -145,9 +130,18 @@ server <- function(input, output) {
 #----------------  
 # Reactive Values 
   valueModal<-reactiveValues(atTable=NULL)
-  caribouHerd<-reactive({as.character(input$map_shape_click$group)})
-  caribouEcoType<-reactive({ herd_bound@data[which(herd_bound@data$herd_name == input$map_shape_click$group), ][[12]]})
-  herdSelect<-reactive({ herd_bound[which(herd_bound@data$herd_name == input$map_shape_click$group), ]}) 
+  herdSelect<-reactive({ herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]})
+  
+  caribouHerd<-reactive({
+    if(input$map_shape_click$group != "Wildlife Habitat Area"){
+      as.character(input$map_shape_click$group)
+    }
+    })
+  caribouEcoType<-reactive({ 
+    if(input$map_shape_click$group != "Wildlife Habitat Area"){
+      as.character(herdSelect()[[12]])
+    }
+    })
   
   becData<-reactive({dplyr::filter (bec, herdname == caribouHerd() | herdname == caribouEcoType()[1])})
   
@@ -179,29 +173,36 @@ server <- function(input, output) {
   fire_data <- reactive({fire_sum[which(fire_sum$herd_name == caribouHerd() & fire_sum$fire_year > 1960 ),]})
   
   #Spatial--
-  whaSelect<-reactive({
-    wha<-st_transform(st_as_sf(wha_nh), 3005)[st_buffer(st_transform(st_as_sf(herdSelect()), 3005), dist=25000),,op=st_intersects]
-    if(length(wha$geom)>0){
-      sf::as_Spatial(st_transform(wha$geom,4326))
-    } else {
-      NULL
-    }
-  })
-
+   whaHerdSelect<-reactive({
+     ws<-wha[st_buffer(herdSelect(), dist=25000),,op=st_intersects]
+     if(length(ws$geom) > 0){
+       ws
+     }else{
+       empt
+     }
+   })
+   uwrHerdSelect<-reactive({
+     uwr<-uwr[st_buffer(herdSelect(), dist=25000),,op=st_intersects]
+     if(length(uwr$geom) > 0){
+       uwr
+     }else{
+       empt
+     }
+   })
   #--------  
 # Outputs 
 ## Create scatterplot object the plotOutput function is expecting
 ## set the pallet for mapping
-  pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  herd_bound$risk_stat)
+  pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  sp_herd_bound$risk_stat)
 ## render the leaflet map  
   output$map = renderLeaflet({ 
-      leaflet(herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
+      leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
       setView(-121.7476, 53.7267, 4) %>%
       addTiles() %>% 
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
       addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
       addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
-      addPolygons(data=herd_bound,  fillColor = ~pal(risk_stat), 
+      addPolygons(data=sp_herd_bound, fillColor = ~pal(risk_stat), 
                   weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
                   layerId = ~gid,
                   group= ~herd_name,
@@ -225,7 +226,7 @@ server <- function(input, output) {
                                                                         ,color = 'red'
                                                                         ,weight = 3, clickable = TRUE))) %>%
     addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), options = layersControlOptions(collapsed = TRUE)) %>%
-    hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
+    hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
   })
   
 # Create a shapefile to download
@@ -308,7 +309,7 @@ server <- function(input, output) {
   }) 
   
   output$cutPlot <- renderPlot({
-    ggplot(dist_data(), aes(x =harvestyr, y=Dist40))+
+    ggplot(dist_data(), aes(x =harvestyr, y=Dist40/10000))+
       geom_line()+
       xlab ("Year") +
       ylab ("Cutblock Area < 40 years (ha)") + 
@@ -326,25 +327,64 @@ server <- function(input, output) {
       expand_limits(y=0) +
       theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
   })
+  
+  output$uwrTable<-renderTable({
+      uwrtab<-st_intersection(st_set_agr(herdSelect(), "constant"), st_set_agr(uwrHerdSelect(), "constant"))
+      uwrtab$area_ha<-st_area(uwrtab)/10000
+    if(length(uwrtab$geom)> 0){
+      uwrtabo<-as.data.frame(st_set_geometry(uwrtab, NULL))[c("approval_year", "area_ha")]
+      as.factor(uwrtabo$approval_year)
+      uwrtabo %>%
+        group_by(approval_year) %>%
+        summarize(area_in_ha = sum(area_ha))
+    }
+  })
+  
+  output$whaTable<-renderTable({
+      whatab<-st_intersection(st_set_agr(herdSelect(), "constant"), st_set_agr(whaHerdSelect(), "constant"))
+      whatab$area_ha<-st_area(whatab)/10000
+      if(length(whatab$geom)> 0){
+        whatabo<-as.data.frame(st_set_geometry(whatab, NULL))[c("approval_year", "area_ha")]
+        as.factor(whatabo$approval_year)
+        whatabo %>%
+          group_by(approval_year) %>%
+          summarize(area_in_ha = sum(area_ha))
+    }
+  })
+  
+  output$rdTable<-renderTable({
+    getTableQuery(paste0("SELECT 
+                        r.road_surface, 
+                        sum(ST_Length(r.wkb_geometry))/1000 as length_in_km 
+                        FROM 
+                        integrated_roads AS r,  
+                        (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+                        WHERE
+                        ST_Contains(m.geom,r.wkb_geometry) 
+                        GROUP BY m.herd_name, r.road_surface
+                        ORDER BY m.herd_name, r.road_surface"))
+   
+  })
 #-------
-# observe  
+# OBSERVE
+# Observe the click on caribou herd  
+## Update the herd and ecotype label
+  observeEvent(input$map_shape_click, {
+    output$clickCaribou <- renderText(caribouHerd())
+    output$clickEcoType <- renderText(caribouEcoType()[1])
+  })
+
 ## Zoom to caribou herd being cliked
   observe({
-      if(is.null(input$map_shape_click))
+      if(is.null(input$map_shape_click)|| input$map_shape_click$group == 'Wildlife Habitat Area')
         return()
-
-      if(input$map_shape_click$group != "Wildlife Habitat Area"){
-        #Make sure there are WHA's within 25 km of the herd, if not return an empty spatial data frame
-        if(!is.null(whaSelect()[1])){
-          whaS<-whaSelect()
-        }else{
-          whaS<-SpatialPolygons(list())
-        }
+        plot(sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)))
         leafletProxy("map") %>%
         clearShapes() %>%
         clearControls() %>%
         setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
-        addPolygons(data=herdSelect() , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px')) %>%
+        addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)) , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
+                    options = pathOptions(clickable = FALSE)) %>%
         addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                                 background-position: -31px -2px;"),position="bottomleft") %>%
         addScaleBar(position = "bottomright") %>%
@@ -359,12 +399,20 @@ server <- function(input, output) {
             polygonOptions = drawPolygonOptions(showArea=TRUE, shapeOptions=drawShapeOptions(fillOpacity = 0
                                                                                              ,color = 'red'
                                                                                              ,weight = 3, clickable = TRUE))) %>%
-          addPolygons(data=whaS, group = "Wildlife Habitat Area")%>%
-          #addPolygons(data=as_Spatial(uwr), group = "Ungulate Winter Range")%>%
-          addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), options = layersControlOptions(collapsed = TRUE)) %>%
-          hideGroup(c('Ungulate Winter Range', 'Caribou Selection')) 
-      }
+            addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "black" 
+                        , fillColor="brown", group = "Wildlife Habitat Area",
+                        options = pathOptions(clickable = FALSE),
+                        highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE))%>%
+            addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "black"
+                        , fillColor="darkgreen", group = "Ungulate Winter Range",
+                        options = pathOptions(clickable = FALSE),
+                        highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE))%>%
+            addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                        overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
+                        options = layersControlOptions(collapsed = TRUE)) %>%
+            hideGroup(c('Drawn', 'Caribou Selection')) 
     })
+
   
 ## rest map
   observeEvent(input$reset, {
@@ -372,7 +420,9 @@ server <- function(input, output) {
     clearShapes() %>%
     clearControls() %>%
     setView(-121.7476, 53.7267, 4) %>%
-    addPolygons(data=herd_bound,  fillColor = ~pal(risk_stat), 
+    addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
+                                background-position: -31px -2px;"),position="bottomleft") %>%
+    addPolygons(data=sp_herd_bound,  fillColor = ~pal(risk_stat), 
                 weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
                 layerId = ~gid,
                 group= ~herd_name,
@@ -383,23 +433,14 @@ server <- function(input, output) {
     addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) 
   })
   
-# Observe the click on caribou herd  
-  observeEvent(input$map_shape_click, {
-    if(input$map_shape_click$group != "Wildlife Habitat Area"){
-      output$clickCaribou <- renderText(caribouHerd())
-      output$clickEcoType <- renderText(caribouEcoType()[1])
-    }
-  })
- 
 # Modal for labeling the drawn polygons
   labelModal = modalDialog(
     title = "Enter polygon label",
-    textInput(inputId = "myLabel", label = "Enter a string: "),
+    textInput(inputId = "myLabel", label = "Enter a label for the drawn polygon: "),
     footer = actionButton("ok_modal",label = "Ok"))
   
 # New Feature plus show modal
   observeEvent(input$map_draw_new_feature, {
-    #print("New Feature")
     showModal(labelModal)
   })
 
