@@ -408,10 +408,10 @@ server <- function(input, output) {
         addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)) , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
                     options = pathOptions(clickable = FALSE)) %>%
         addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "blue" 
-                      , fillColor="brown", group = "Wildlife Habitat Area",
+                      , fillColor="brown", group = "Ungulate Winter Range",
                       options = pathOptions(clickable = FALSE))%>%
         addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue"
-                      , fillColor="darkgreen", group = "Ungulate Winter Range",
+                      , fillColor="darkgreen", group = "Wildlife Habitat Area",
                       options = pathOptions(clickable = FALSE)) %>%
         addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                                 background-position: -31px -2px;"),position="bottomleft") %>%
