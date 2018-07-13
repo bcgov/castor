@@ -2635,9 +2635,15 @@ aspect.radians <- raster::terrain (dem.all, opt = 'aspect', unit = "radians",
                                    neighbors = 8)
 raster::writeRaster (aspect.radians, filename = "all_bc\\aspect_rad_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.northing <- cos (aspect.radians)
-raster::writeRaster (aspect.northing, filename = "all_bc\\aspect_north_all_bc.tif", format = "GTiff", overwrite = T)
+raster::writeRaster (aspect.northing, filename = "all_bc\\aspect_northing_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.easting <- sin (aspect.radians)
-raster::writeRaster (aspect.easting, filename = "all_bc\\aspect_east_all_bc.tif", format = "GTiff", overwrite = T)
+raster::writeRaster (aspect.easting, filename = "all_bc\\aspect_easting_all_bc.tif", format = "GTiff", overwrite = T)
+
+
+aspect.radians <- raster ("all_bc\\aspect_rad_all_bc.tif") # load the projected version
+
+
+
 
 # is aspect = 0 flat or north?
 # aspect.degrees <- raster ("all_bc\\aspect_deg_all_bc.tif") 
@@ -2683,6 +2689,25 @@ rpostgispgWriteRast (conn = con,
              name = "dem_all_bc",
              raster = dem.all)
 
+
+
+library(sf)
+library(RPostgreSQL)
+
+#Create a DB connection
+conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+
+
+
+#Use sf to write the sf object into the clus postgres database and name it herdtest - if it exists, overwrite
+system.time({try(st_write(herd, conn, "herdtest", layer_options = "OVERWRITE=true"))})
+#0.45s
+
+#disconnect from the DB
+dbDisconnect(conn)
+
+#optionally convert the sf object to a SpatialPolygonsDataFrame
+spdf<-as_Spatial(herd)
 
 
 
