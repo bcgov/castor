@@ -43,16 +43,12 @@ setwd ('C:\\Work\\caribou\\climate_analysis\\data\\')
 # MANUAL DATA DOWNLOADS #
 #########################
 
-# Current BEC zone map (Version 10, August 31, 2016); downloaded 19 March 2018
-# <https://catalogue.data.gov.bc.ca/dataset/biogeoclimatic-ecosystem-classification-bec-map>
-# G:\!Workgrp\Analysts\tmuhly\Caribou\climate_analysis\data\bec\BEC_current
-
-# BEC zone climate projections; 2020s, 2050s and 2080s; downloaded 19 March 2018
+# BEC zone climate projections; current, 2020s, 2050s and 2080s; downloaded 19 March 2018
 # <http://www.climatewna.com/ClimateBC_Map.aspx>
 # G:\!Workgrp\Analysts\tmuhly\Caribou\climate_analysis\data\bec\BEC_zone_2020s
 # G:\!Workgrp\Analysts\tmuhly\Caribou\climate_analysis\data\bec\BEC_zone_2050s
 # G:\!Workgrp\Analysts\tmuhly\Caribou\climate_analysis\data\bec\BEC_zone_2080s
-  
+
 # caribou range boudnaries; downloaded 19 March 2018
 # <https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc>
 # G:\!Workgrp\Analysts\tmuhly\Caribou\climate_analysis\data\caribou\caribou_herd
