@@ -134,7 +134,6 @@ server <- function(input, output) {
 # Reactive Values 
   valueModal<-reactiveValues(atTable=NULL)
   herdSelect<-reactive({ herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]})
-  
   drawnPolys<-reactive({
     req(valueModal)
     if(!is.null(input$map_draw_all_features)){
@@ -160,7 +159,7 @@ server <- function(input, output) {
       colnames(df)<-c("ID", "Label")
       #merge to the original ID of the polygons
       p.df$label<- df$Label[match(p.df$ID, df$ID)]
-      SPDF<-SpatialPolygonsDataFrame(spPolys, data=p.df)
+      SPDF<-spTransform(SpatialPolygonsDataFrame(spPolys, data=p.df), CRS("+init=epsg:3005"))
     }else{
       SDPF<-NULL
     }
@@ -363,17 +362,21 @@ server <- function(input, output) {
   
   output$rdTable<-renderTable({
     if(input$queryType == 2){
-    getTableQuery(paste0("SELECT 
-                        r.road_surface, 
-                        sum(ST_Length(r.wkb_geometry))/1000 as length_in_km 
-                        FROM 
-                        integrated_roads AS r,  
-                        (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
-                        WHERE
-                        ST_Contains(m.geom,r.wkb_geometry) 
-                        GROUP BY m.herd_name, r.road_surface
-                        ORDER BY m.herd_name, r.road_surface"))
+      #Convert the polygon object to sql polygon
+    getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_in_km 
+                                FROM integrated_roads AS r,  
+                                (SELECT ST_GeomFromText('POLYGON((", 
+                         extent(drawnPolys())[1]," ", extent(drawnPolys())[3] , ",", 
+                         extent(drawnPolys())[1]," ", extent(drawnPolys())[4],",",
+                         extent(drawnPolys())[2]," ", extent(drawnPolys())[4],",", 
+                         extent(drawnPolys())[2]," ", extent(drawnPolys())[3],",", 
+                         extent(drawnPolys())[1]," ", extent(drawnPolys())[3], "))', 3005)) as m 
+                                WHERE
+                                ST_Contains(m.st_geomfromtext,r.wkb_geometry) 
+                                GROUP BY  r.road_surface
+                                ORDER BY  r.road_surface"))
     }else{
+     
       getTableQuery(paste0("SELECT 
                         r.road_surface, 
                         sum(ST_Length(r.wkb_geometry))/1000 as length_in_km 
@@ -470,6 +473,7 @@ server <- function(input, output) {
     req(input$map_draw_new_feature$properties$`_leaflet_id`)
     valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_new_feature$properties$`_leaflet_id`, input$myLabel))
     removeModal()
+ 
   })
 
 #--------------------------------
