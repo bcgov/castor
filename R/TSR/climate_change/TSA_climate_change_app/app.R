@@ -34,7 +34,7 @@ getSpatialQuery <- function (sql) {
   st_read (conn, query = sql)
 }
 
-getRasterQuery <- function (pgRaster, tsaBoundary) {
+getDataQuery <- function (pgRaster, TSASelect) {
   conn <- dbConnect (dbDriver("PostgreSQL"), 
                      host = "",
                      user = "postgres",
@@ -42,15 +42,24 @@ getRasterQuery <- function (pgRaster, tsaBoundary) {
                      password = "postgres",
                      port = "5432")
   on.exit (dbDisconnect (conn))
-  pgGetRast (conn, name = pgRaster, boundary = tsaBoundary)
+  raster::as.data.frame (
+    pgGetRast (
+      conn, name = "bec_2020s", 
+      boundary = spTransform (
+        as (TSASelect, "Spatial"), 
+        CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")))
 }
+# del <- raster::as.data.frame (pgGetRast (conn, name = "bec_2020s", boundary = spTransform (as (tsaData, "Spatial"), CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")))
+
+
+# need classes of raster
+
 
 #======================
 # Spatial data objects
 #=====================
 tsa.diss <- getSpatialQuery ("SELECT * FROM fadm_tsa_dissolve_polygons")
 map.tsa.diss <- sf::as_Spatial (st_transform (tsa.diss, 4326))
-
 
 # Define UI for application that draws a histogram
 ui <- fluidPage (theme = shinytheme ("superhero"), 
@@ -84,8 +93,13 @@ ui <- fluidPage (theme = shinytheme ("superhero"),
       # Show a plot of the generated distribution
       mainPanel(
         leafletOutput ("map"),
-        plotOutput ("becTSAPlot"), 
-        plotOutput ("climateVarTSAPlot")
+        tabsetPanel(
+          tabPanel("Biogeoclimatic Ecosystem Classification Plot",  
+                    plotOutput (outputId = "becTSAPlot", height = "300px")),
+          tabPanel("Climate Variable Plot", 
+                  plotOutput (outputId = "climateVarTSAPlot", height = "300px"))
+          
+        ) # closes tabsetpanels
       ) # closes mainpanel
    ) # closes sidebarlayout
 ) # closes fluidpage
@@ -93,30 +107,80 @@ ui <- fluidPage (theme = shinytheme ("superhero"),
 # Define server logic required to draw a histogram
 server <- function (input, output) {
    
+   # select the TSA
+   TSASelect <- reactive ({
+                  tsa.diss[tsa.diss$TSA_NUMB_1 == input$map_shape_click$group, ]
+   })
   
-   TSASelect <- reactive ({tsa.diss[tsa.diss$TSA_NUMB_1 == input$map_shape_click$group, ]})
-  
-  
-   ## render the leaflet map  
+   # reactive values
+   TSA <- reactive ({
+            as.character(input$map_shape_click$group)
+   })
+ 
+   # render the leaflet map  
    output$map = renderLeaflet ({ 
      leaflet (map.tsa.diss, options = leafletOptions (doubleClickZoom = TRUE)) %>% 
        setView (-121.7476, 53.7267, 4) %>%
        addTiles() %>% 
        addProviderTiles ("OpenStreetMap", group = "OpenStreetMap") %>%
        addProviderTiles ("Esri.WorldImagery", group ="WorldImagery" ) %>%
-       addProviderTiles ("Esri.DeLorme", group ="DeLorme" ) %>%
+       addProviderTiles ("Esri.DeLorme", group = "DeLorme" ) %>%
        addPolygons (data = map.tsa.diss,  
                     stroke = T, weight = 1, opacity = 1, color = "blue", 
                     dashArray = "2 1", fillOpacity = 0.5,
                     smoothFactor = 0.5,
+                    layerId = ~TSA_NUMB_1,
+                    group = ~TSA_NUMB_1,
                     label = ~TSA_NUMB_1,
-                    labelOptions = labelOptions (noHide = FALSE, textOnly = TRUE, opacity = 1, color= "black", textsize='15px'),
-                    highlight = highlightOptions (weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
+                    labelOptions = labelOptions (noHide = FALSE, textOnly = TRUE, opacity = 1, 
+                                                 color= "black", textsize='15px'),
+                    highlight = highlightOptions (weight = 4, color = "white", dashArray = "", 
+                                                  fillOpacity = 0.3, bringToFront = TRUE)) %>%
        addScaleBar (position = "bottomright") %>%
        addControl (actionButton ("reset", "Refresh", icon = icon("refresh"), 
                                   style = "background-position: -31px -2px;"),
                    position="bottomleft") %>%
        addDrawToolbar (
+         editOptions = editToolbarOptions (),
+         targetGroup='Drawn',
+         circleOptions = FALSE,
+         circleMarkerOptions = FALSE,
+         rectangleOptions = FALSE,
+         markerOptions = FALSE,
+         singleFeature = F,
+         polygonOptions = drawPolygonOptions (showArea = TRUE, 
+                                              shapeOptions = drawShapeOptions (fillOpacity = 0,
+                                                                               color = 'red',
+                                                                               weight = 3, 
+                                                                               clickable = TRUE))) %>%
+       addLayersControl (baseGroups = c ("OpenStreetMap", "WorldImagery", "DeLorme"), 
+                         options = layersControlOptions (collapsed = TRUE))
+    })
+   
+   # Observe the selection of the TSA 
+   observeEvent(input$map_shape_click, {
+     output$clickTSA <- renderText (TSA ())
+   })
+   
+   ## Zoom to TSA being clicked
+   observe({
+     if (is.null (input$map_shape_click))
+       return ()
+     
+     leafletProxy ("map") %>%
+       clearShapes () %>%
+       clearControls () %>%
+       setView (lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 6) %>%
+       addPolygons (data = as_Spatial (st_transform (TSASelect(), 4326)), 
+                    fillOpacity = 0.1, color = "red", weight = 4,
+                    labelOptions = labelOptions (noHide = FALSE, textOnly = TRUE, opacity = 0.5, 
+                                                 textsize = '13px'),
+                   options = pathOptions (clickable = FALSE)) %>%
+       addControl (actionButton ("reset", "Refresh", icon = icon("refresh"), 
+                                 style = "background-position: -31px -2px;"),
+                                 position = "bottomleft") %>%
+       addScaleBar (position = "bottomright") %>%
+       addDrawToolbar(
          editOptions = editToolbarOptions(),
          targetGroup='Drawn',
          circleOptions = FALSE,
@@ -124,16 +188,53 @@ server <- function (input, output) {
          rectangleOptions = FALSE,
          markerOptions = FALSE,
          singleFeature = F,
-         polygonOptions = drawPolygonOptions(showArea=TRUE, shapeOptions=drawShapeOptions(fillOpacity = 0
-                                                                                          ,color = 'red'
-                                                                                          ,weight = 3, clickable = TRUE))) %>%
-       addLayersControl (baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), options = layersControlOptions(collapsed = TRUE))
-    })
+         polygonOptions = drawPolygonOptions (showArea = TRUE, 
+                                              shapeOptions = drawShapeOptions (fillOpacity = 0,
+                                                                               color = 'red',
+                                                                               weight = 3, 
+                                                                               clickable = TRUE))) %>%
+       addLayersControl (baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),
+                         options = layersControlOptions(collapsed = TRUE))
+   })
    
+   
+   ## reset map
+   observeEvent(input$reset, {
+     leafletProxy ("map") %>%
+       clearShapes () %>%
+       clearControls () %>%
+       setView (-121.7476, 53.7267, 4) %>%
+       addControl (actionButton ("reset","Refresh", icon = icon ("refresh"), 
+                                 style = "background-position: -31px -2px;"), 
+                                 position = "bottomleft") %>%
+       addPolygons (data = map.tsa.diss,  
+                    stroke = T, weight = 1, opacity = 1, color = "blue", 
+                    dashArray = "2 1", fillOpacity = 0.5,
+                    smoothFactor = 0.5,
+                    layerId = ~TSA_NUMB_1,
+                    group = ~TSA_NUMB_1,
+                    label = ~TSA_NUMB_1,
+                    labelOptions = labelOptions (noHide = FALSE, textOnly = TRUE, opacity = 1, 
+                                                 color= "black", textsize='15px'),
+                    highlight = highlightOptions (weight = 4, color = "white", dashArray = "", 
+                                                  fillOpacity = 0.3, bringToFront = TRUE)) %>%
+       addLayersControl (baseGroups = c ("OpenStreetMap", "WorldImagery", "DeLorme"), 
+                         options = layersControlOptions (collapsed = TRUE))
+   })
    
    
    # bec plot
-   output$becTSAPlot <- renderPlot({
+   output$bec2020TSAPlot <- renderPlot({
+     
+     ggplot (getDataQuery ("bec_2020s", TSASelect)) +  
+       geom_bar (aes (fill = bec), position = 'fill') +
+       ggtitle (paste (input$TSA)) +
+       xlab ("Year") +
+       ylab ("Proportion of range area") +
+       scale_fill_discrete (name = "BEC Zone") +
+       theme (axis.text = element_text (size = 12),
+              axis.title =  element_text (size = 14, face = "bold")) 
+    
    })
    
    # climate variable plots
