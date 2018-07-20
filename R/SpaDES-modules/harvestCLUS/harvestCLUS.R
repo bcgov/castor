@@ -205,7 +205,7 @@ harvestCLUSStats <- function(sim) {
   ##Create an empty raster stack objected called landscape
   if(is.null(sim$landscape)){
     crs <- CRS("+proj=utm +zone=48 +datum=WGS84")
-    ras = raster(extent(0, 150, 0, 150),res =1, vals =0, crs = crs )
+    ras = raster(extent(0, 500, 0, 500),res =1, vals =0, crs = crs )
     
     ###Use the SpaDES.tools function 
     ####Example creating a guassMap describing forest age
