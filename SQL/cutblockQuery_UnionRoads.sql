@@ -1,8 +1,7 @@
 ﻿
-
+Create TAble cutseq as
   SELECT a.areaha, a.harvestyr, ST_X(a.point) as X ,ST_Y(a.point) as Y, point FROM (SELECT areaha, harvestyr, ST_PointN(ST_Exteriorring(wkb_geometry) , 1) as point
-  FROM cns_cut_bl_polygon
-  WHERE harvestyr ='2000') a  
+  FROM cns_cut_bl_polygon) a  
 
 
  SELECT a.areaha, a.harvestyr,  ST_X(a.point) as X ,ST_Y(a.point) as Y, point, herd_name FROM sample_caribou_bound, (SELECT areaha, harvestyr, ST_PointN(ST_Exteriorring(wkb_geometry) , 1) as point
@@ -88,3 +87,38 @@ SELECT * FROM clus_introads_tsa46
 UNION ALL
 SELECT * FROM clus_introads_tsa47
 )
+
+SELECT r.road_surface, sum(ST_Length(r.wkb_geometry))/1000 as length_in_km FROM 
+integrated_roads AS r, (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+WHERE ST_Contains(m.geom,r.wkb_geometry) 
+GROUP BY m.herd_name, r.road_surface
+ORDER BY m.herd_name, r.road_surface
+
+SELECT harvestyr, x, y from cutseq, (Select * FROM gcbp_carib_polygon WHERE herd_name = 'Muskwa') as h
+WHERE h.geom && cutseq.point /* Uses GiST index with the polygon's bounding box */
+AND ST_Contains(h.geom ,cutseq.point)
+ORDER BY harvestyr; 
+
+/*For the clusgetroads*/
+SELECT clus_road_class, wkb_geometry FROM pre_roads, (SELECT geom FROM gcbp_carib_polygon WHERE herd_name = 'Muskwa') as h 
+WHERE h.geom && pre_roads.wkb_geometry /* Uses GiST index with the polygon's bounding box */
+AND ST_Contains(h.geom, pre_roads.wkb_geometry)
+ORDER BY clus_road_class; 
+
+SELECT road_class, wkb_geometry FROM integrated_roads, (SELECT geom FROM gcbp_carib_polygon WHERE herd_name = 'Hart Ranges') as h 
+WHERE h.geom && integrated_roads.wkb_geometry /* Uses GiST index with the polygon's bounding box */
+AND ST_Contains(h.geom, integrated_roads.wkb_geometry)
+ORDER BY road_class; 
+
+SELECT clus_road_class, st_length(wkb_geometry)/1000 as length_km, wkb_geometry FROM pre_roads,(SELECT geom FROM gcbp_carib_polygon 
+                         WHERE herd_name = 'Chinchaga') as h 
+                         WHERE h.geom  && pre_roads.wkb_geometry 
+                         AND ST_Contains(h.geom, pre_roads.wkb_geometry);
+
+SELECT harvestyr, x, y, point from cutseq, 
+              (Select geom FROM gcbp_carib_polygon WHERE herd_name = 'Chinchaga') as h
+              WHERE h.geom && cutseq.point 
+              AND ST_Contains(h.geom ,cutseq.point)
+              ORDER BY harvestyr
+              
+                        
