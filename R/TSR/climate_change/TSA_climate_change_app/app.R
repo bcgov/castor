@@ -34,27 +34,6 @@ getSpatialQuery <- function (sql) {
   st_read (conn, query = sql)
 }
 
-getDataQuery <- function (pgRaster, TSASelect) {
-  conn <- dbConnect (dbDriver("PostgreSQL"), 
-                     host = "",
-                     user = "postgres",
-                     dbname = "postgres",
-                     password = "postgres",
-                     port = "5432")
-  on.exit (dbDisconnect (conn))
-  raster::as.data.frame (
-    pgGetRast (
-      conn, name = "bec_2020s", 
-      boundary = spTransform (
-        as (TSASelect, "Spatial"), 
-        CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")))
-}
-# del <- raster::as.data.frame (pgGetRast (conn, name = "bec_2020s", boundary = spTransform (as (tsaData, "Spatial"), CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")))
-
-
-# need classes of raster
-
-
 #======================
 # Spatial data objects
 #=====================

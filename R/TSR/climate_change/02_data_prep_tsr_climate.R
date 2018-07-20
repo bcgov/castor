@@ -285,3 +285,104 @@ rh.ccsm4.2085 <- pgGetRast (conn, "relative_humidity_CCSM4_2071_2100")
 rh.HadGEM.2085 <- pgGetRast (conn, "relative_humidity_HadGEM2ES_2071_2100")
 rh.2085 <- mean (rh.canesm2.2085, rh.ccsm4.2085, rh.HadGEM.2085)
 pgWriteRast (conn, "relative_humidity_avg_2071_2100", rh.2085, overwrite = TRUE)
+
+
+
+
+
+
+#================================================================================
+# Pre-process data frames for generating climate plots 
+#===============================================================================
+
+
+
+
+getDataQuery <- function (pgRaster, TSASelect) {
+  conn <- dbConnect (dbDriver("PostgreSQL"), 
+                     host = "",
+                     user = "postgres",
+                     dbname = "postgres",
+                     password = "postgres",
+                     port = "5432")
+  on.exit (dbDisconnect (conn))
+  raster::as.data.frame (
+    raster::mask (
+      pgGetRast (
+        conn, name = "bec_2020s", 
+        boundary = spTransform ( # queires the data as a bounding box
+          as (TSASelect, "Spatial"), 
+          CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+      ),
+      mask = spTransform ( # clips the data to the polygon
+        as (TSASelect, "Spatial"), 
+        CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"),
+      updateNA = T,
+      updatevalue = -1 # pixels outside the mask get this value, and need to be removed from data 
+    )
+    %>%
+      filter ([, 1] > -1) # somehow remove the -1 values from datframe...
+  )
+}
+# del <- raster::as.data.frame (pgGetRast (conn, name = "bec_2020s", boundary = spTransform (as (tsaData, "Spatial"), CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")))
+
+t <- pgGetRast (conn, name = "bec_2020s", boundary = spTransform (as (tsaData, "Spatial"), CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+# need classes of raster
+# workign on renderign BEC plots usign map_click as input to bound bec raster, 
+# then convertign raster to dataframe 
+# query uses the bounding-box though; need to 'clip' to polygon extent only
+# raster:: mask fucntion
+
+
+tsaData <- tsa.diss[tsa.diss$TSA_NUMB_1 == "Arrow TSA", ]
+b <- raster::mask (
+  pgGetRast (
+    conn, name = "bec_2020s", 
+    boundary = spTransform (
+      as (tsaData, "Spatial"), 
+      CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+  ),
+  mask = spTransform (
+    as (tsaData, "Spatial"), 
+    CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+)
+
+
+plot (b)
+plot (spTransform (as (tsaData, "Spatial"), CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"), add = T)
+
+
+c <- 
+  as.data.frame (
+    raster::mask (
+      pgGetRast (
+        conn, name = "bec_2020s", 
+        boundary = spTransform (
+          as (tsaData, "Spatial"), 
+          CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+      ),
+      mask = spTransform (
+        as (tsaData, "Spatial"), 
+        CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"),
+      updateNA = T,
+      updatevalue = -1
+    ) ) %>%
+  dplyr::filter (
+    colnames (
+      as.data.frame (
+        raster::mask (
+          pgGetRast (
+            conn, name = "bec_2020s", 
+            boundary = spTransform (
+              as (tsaData, "Spatial"), 
+              CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+          ),
+          mask = spTransform (
+            as (tsaData, "Spatial"), 
+            CRS = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"),
+          updateNA = T,
+          updatevalue = -1
+        ))
+      > -1)) # how to get the row name here????
+
+mean (c)
