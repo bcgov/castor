@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "cutblockSeqPrepCLUS.Rmd"),
-  reqdPkgs = list("rpostgis", "sp","sf","rgdal"),
+  reqdPkgs = list("rpostgis", "sp","sf","rgdal", "spex"),
   parameters = rbind( 
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
@@ -32,7 +32,10 @@ defineModule(sim, list(
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
     defineParameter("dbGeom", "character", 'geom', NA, NA, "The name of the postgres file geom column"),
-    defineParameter("nameBoundary", "character", 'name', NA, NA, desc = "Name of the boundary file"),
+    defineParameter("nameBoundaryFile", "character", 'name', NA, NA, desc = "Name of the boundary file"),
+    defineParameter("nameBoundaryColumn", "character", 'name', NA, NA, desc = "Name of the column within the boundary file that has the boundary name"),
+    defineParameter("nameBoundary", "character", 'name', NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
+    defineParameter("nameBoundaryGeom", "character", 'name', NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
     defineParameter("cutblockSeqInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
@@ -43,8 +46,10 @@ defineModule(sim, list(
     defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput("herd", "character", "The herd boundaries to include in the analysis", sourceURL = NA),
-    expectsInput("tsa", "list", "The list of tsa's to include in the analysis", sourceURL = NA)
+    expectsInput("nameBoundaryFile", "character", "The boundaries file to include in the analysis", sourceURL = NA),
+    expectsInput("nameBoundary", "character", "The boundaries to include in the analysis", sourceURL = NA),
+    expectsInput("nameBoundaryColumn", "character", "The column name in the boundary file to query on", sourceURL = NA),
+    expectsInput("nameBoundaryGeom", "character", "The name of the geometry column within the boundary file", sourceURL = NA)
     #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -57,15 +62,7 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
   switch(
     eventType,
     init = {
-      #get the gdal interface
-      #install_github("JoshOBrien/gdalUtilities")
-      
-      sim <- sim$cutblockSeqPrepCLUSdbConnect(sim)
-      sim <- scheduleEvent(sim, P(sim)$end, "cutblockSeqPrepCLUS", "endConnect")
-      sim <- sim$cutblockSeqPrepCLUSgetBoundaries(sim)
-      sim<-sim$cutblockSeqPrepCLUSgetRoads(sim)
       sim <- scheduleEvent(sim, P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep")
-      sim$landings<-c(1,2)
       # schedule future event(s)
       #sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "cutblockSeqPrepCLUS", "plot")
       #sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "cutblockSeqPrepCLUS", "save")
@@ -94,63 +91,106 @@ Save <- function(sim) {
   return(invisible(sim))
 }
 
-cutblockSeqPrepCLUSdbConnect <- function(sim) {
-  sim$conn<-dbConnect("PostgreSQL",dbname= P(sim)$dbName, host=P(sim)$dbHost, port=P(sim)$dbPort ,user=P(sim)$dbUser, password=P(sim)$dbPassword)
-  return(invisible(sim))
-}
-
-cutblockSeqPrepCLUSdbDisconnect <- function(sim) {
-  dbDisconnect(sim$conn)
-  return(invisible(sim))
-}
-
-cutblockSeqPrepCLUSgetBoundaries <- function(sim) {
-  #check to see if the file exists in the output directory. If not make it from the postgres db
-  if(!file.exists(paste0(outputDir, "bounds.shp"))){
-     tryCatch( {
-      boundaries<- pgGetGeom(sim$conn, name=P(sim)$nameBoundary,  geom = P(sim)$dbGeom)
-      boundaries<-subset(boundaries , herd_name == P(sim)$herd )
-      rgdal::writeOGR(obj=boundaries, dsn=outputDir, layer="bounds", driver="ESRI Shapefile")
-      }, error=function(e) 1)
-  } else (boundaries<-readOGR(dsn=paste0(outputDir, "/bounds.shp")) )
-
-  #get the extents of the SpatialPolygonsDataFrame
-  ext<-extent(boundaries)
-  #create blank raster: TOdO change the res as an input by the user? or to match an existing resolution?
-  ras<-raster(ext, res =100)
-  #rasterize the boundaires
-  sim$bounds <- raster::rasterize(boundaries, ras, field=1)
-  raster::writeRaster(sim$bounds, filename=paste0(outputDir, "/bounds.tif"), options="INTERLEAVE=BAND", overwrite=TRUE)
-
-  return(invisible(sim))
+cutblockSeqPrepCLUSgetHistoricalLandings <- function(sim) {
+  boundaries<-getSpatialQuery(paste0("SELECT harvestyr, x, y, point from cutseq, 
+              (Select ", P(sim)$nameBoundaryGeom, " FROM ", P(sim)$nameBoundaryFile, " WHERE ", P(sim)$nameBoundaryColumn," = '", P(sim)$nameBoundary,"') as h
+              WHERE h.",P(sim)$nameBoundaryGeom," && cutseq.point 
+              AND ST_Contains(h.",P(sim)$nameBoundaryGeom ," ,cutseq.point)
+              ORDER BY harvestyr"))
+  #keep the landings as points - maybe this will change later?
+  sim$landings<-boundaries
 }
 
 cutblockSeqPrepCLUSgetRoads <- function(sim) {
-  #check to see if the file exists in the output directory. If not make it from the postgres db
-  if(!file.exists(paste0(outputDir, "bounds.shp"))){
-    tryCatch( {
-      existingRoads<-pgGetGeom(sim$conn, name=c("public","clus_introads_tsa44"),  geom="wkb_geometry")
-      rgdal::writeOGR(obj=existingRoads, dsn=outputDir, layer="roads", driver="ESRI Shapefile")
-    }, error=function(e) 1)
-  } else (existingRoads<-readOGR(dsn=paste0(outputDir, "/roads.shp")) )
+  roads<-getSpatialQuery(paste0("SELECT clus_road_class, wkb_geometry FROM pre_roads, 
+          (SELECT ", P(sim)$nameBoundaryGeom, " FROM ", P(sim)$nameBoundaryFile, " WHERE ", P(sim)$nameBoundaryColumn , " = '", P(sim)$nameBoundary, "') as h 
+          WHERE h.",P(sim)$nameBoundaryGeom,"  && pre_roads.wkb_geometry 
+          AND ST_Contains(h.", P(sim)$nameBoundaryGeom, ", pre_roads.wkb_geometry);"))
+  #Convert to polygons 
+  roads<-st_buffer(getSpatialQuery("SELECT clus_road_class, wkb_geometry FROM pre_roads,(SELECT geom FROM gcbp_carib_polygon 
+                         WHERE herd_name = 'Hart Ranges') as h 
+                         WHERE h.geom  && pre_roads.wkb_geometry 
+                         AND ST_Contains(h.geom, pre_roads.wkb_geometry);"), 10)
   
-  #get the extents of the SpatialPolygonsDataFrame
-  ext<-extent(existingRoads)
-  #create blank raster: TOdO change the res as an input by the user? or to match an existing resolution?
-  ras<-raster(ext, res =100)
-  #rasterize the boundaires
-  sim$existingRoads <- raster::rasterize(existingRoads, ras, field=1)
-  raster::writeRaster(sim$existingRoads, filename=paste0(outputDir, "/roads.tif"), options="INTERLEAVE=BAND", overwrite=TRUE)
-  #plot(sim$boundaries)
-  plot(sim$existingRoads)
-  return(invisible(sim))
+  plot(roads)
+  ras.temp<-raster(roads, resolutio = c(100,100), vals =0)
+  ras.temp[] <- 1:ncell(ras.temp)
+  rsp <- spex::polygonize(ras.temp)
+  
+  plot(rsp)
+  
+  library(fasterize)
+  library(spex)
+  
+  
+  
+  roads_sp<-fasterize(st_buffer(roads,10), ras.temp)
+  crs(roads_sp)
+  plot(roads_sp)
+  roads.raster<-raster()
+  extent(roads.raster)<-extent(roads_sp)
+  res(roads.raster)<-100
+  system.time({ roads.r<-rasterize(roads_sp, roads.raster, field='length_km', fun='sum')})
+  plot(roads.r)
+  library(mapview)
+  mapview(roads_sp)
+registerDoMC(3)
+  library('parallel')
+  library(raster)
+  library(sf)
+    # Calculate the number of cores
+  no_cores <- detectCores() - 1
+  # Number of polygons features in SPDF
+  features <- 1:nrow(roads_sp[,])
+  
+  # Split features in n parts
+  n <- 2
+  parts <- split(features, cut(features, n))
+  cl <- makeCluster(no_cores)
+  roads_sp<-as_Spatial(st_buffer(roads,10))
+  roads.raster<-raster()
+  extent(roads.raster)<-extent(roads_sp)
+  res(roads.raster)<-100
+  # Parallelize rasterize function
+  clusterExport(cl, "roads_sp")
+  clusterExport(cl, "parts")
+  clusterExport(cl, "roads.raster")
+  system.time(rParts <- parLapply(cl = cl, X = 1:n, fun = function(x) raster::rasterize(roads_sp[parts[[x]],], roads.raster, field='length_km', fun='sum')))
+  stopCluster(cl)
+  rMerge <- do.call(merge, rParts)
+  plot(rMerge)
+  writeRaster(roads.r, filename="C:/Users/KLOCHHEA/landscape.tif", options="INTERLEAVE=BAND", overwrite=TRUE)
+
+  sim$preRoads<-test
 }
 
 .inputObjects <- function(sim) {
-
   # if (!('defaultColor' %in% sim$.userSuppliedObjNames)) {
   #  sim$defaultColor <- 'red'
   # }
-
+  if(is.null(sim$landings)){
+    cutblockSeqPrepCLUSgetHistoricalLandings(sim)
+  }
+  if(is.null(sim$existingRoads)){
+    cutblockSeqPrepCLUSgetRoads(sim)
+  }
   return(invisible(sim))
+}
+
+getSpatialQuery<-function(sql){
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  on.exit(dbDisconnect(conn))
+  st_read(conn, query = sql)
+}
+
+getTableQuery<-function(sql){
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  on.exit(dbDisconnect(conn))
+  dbGetQuery(conn, sql)
+}
+
+getRasterQuery<-function(sql){
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  on.exit(dbDisconnect(conn))
+  pgGetRast(conn, sql)
 }
