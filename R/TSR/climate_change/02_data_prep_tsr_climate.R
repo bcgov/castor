@@ -288,12 +288,11 @@ rh.2085 <- mean (rh.canesm2.2085, rh.ccsm4.2085, rh.HadGEM.2085)
 pgWriteRast (conn, "relative_humidity_avg_2071_2100", rh.2085, overwrite = TRUE)
 
 #================================================================================
-# Pre-process data frames for generating climate plots 
+# Pre-process TSA polygons for generating climate plots 
 #===============================================================================
 tsa.diss <- st_read (conn, query = "SELECT * FROM fadm_tsa_dissolve_polygons")
 sp.tsa.diss <- sf::as_Spatial (st_transform (tsa.diss, 4326))
-names.TSA <- list (unique (tsa.diss$TSA_NUMB_1))
-
+# names.TSA <- list (unique (tsa.diss$TSA_NUMB_1))
 tsa.100Mile <- sp.tsa.diss[sp.tsa.diss$TSA_NUMB_1 == "100 Mile House TSA", ]
 tsa.Arrow <- sp.tsa.diss[sp.tsa.diss$TSA_NUMB_1 == "Arrow TSA", ]
 tsa.Arrowsmith <- sp.tsa.diss[sp.tsa.diss$TSA_NUMB_1 == "Arrowsmith TSA", ]
@@ -336,6 +335,7 @@ tsa.Strathcona <- sp.tsa.diss[sp.tsa.diss$TSA_NUMB_1 == "Strathcona TSA", ]
 tsa.SunshineCoast <- sp.tsa.diss[sp.tsa.diss$TSA_NUMB_1 == "Sunshine Coast TSA", ]
 tsa.WilliamsLake <- sp.tsa.diss[sp.tsa.diss$TSA_NUMB_1 == "Williams Lake TSA", ]
 
+# function to extract raster data using TSA as boundary
 fxnExtractData <- function (rasterName, TSAName) {
    na.omit (
       raster::as.data.frame (
@@ -1587,118 +1587,230 @@ data.bec$year <- as.factor (data.bec$year)
 
 dbWriteTable (conn, "plot_data_bec", data.bec)
 
+#=================================
+# COMBINE CLIMATE DATA together 
+#================================
 
+# Annual Heat Moisture Index
+# "current'
+ahm.1995.100Mile <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.100Mile)
+ahm.1995.Arrow <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Arrow)
+ahm.1995.Arrowsmith <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Arrowsmith)
+ahm.1995.Boundary <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Boundary)
+ahm.1995.Bulkley <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Bulkley)
+ahm.1995.Cascadia <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Cascadia)
+ahm.1995.Cassiar <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Cassiar)
+ahm.1995.Cranbrook <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Cranbrook)
+ahm.1995.DawsonCreek <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.DawsonCreek)
+ahm.1995.FortNelson <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.FortNelson)
+ahm.1995.FortSt.John <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.FortSt.John)
+ahm.1995.Fraser <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Fraser)
+ahm.1995.GBRNorth <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.GBRNorth)
+ahm.1995.GBRSouth <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.GBRSouth)
+ahm.1995.Golden <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Golden)
+ahm.1995.Invermere <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Invermere)
+ahm.1995.Kalum <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Kalum)
+ahm.1995.Kamloops <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Kamloops)
+ahm.1995.Kingcome <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Kingcome)
+ahm.1995.Kispiox <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Kispiox)
+ahm.1995.KootenayLake <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.KootenayLake)
+ahm.1995.Lakes <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Lakes)
+ahm.1995.Lillooet <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Lillooet)
+ahm.1995.MacKenzie <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.MacKenzie)
+ahm.1995.Merritt <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Merritt)
+ahm.1995.MidCoast <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.MidCoast)
+ahm.1995.Morice <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Morice)
+ahm.1995.Nass <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Nass)
+ahm.1995.NorthCoast <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.NorthCoast)
+ahm.1995.NorthIsland <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.NorthIsland)
+ahm.1995.Okanagan <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Okanagan)
+ahm.1995.Pacific <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Pacific)
+ahm.1995.PrinceGeorge <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.PrinceGeorge)
+ahm.1995.QueenCharlotte <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.QueenCharlotte)
+ahm.1995.Quesnel <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Quesnel)
+ahm.1995.Revelstoke <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Revelstoke)
+ahm.1995.RobsonValley <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.RobsonValley)
+ahm.1995.Soo <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Soo)
+ahm.1995.Strathcona <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.Strathcona)
+ahm.1995.SunshineCoast <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.SunshineCoast)
+ahm.1995.WilliamsLake <- fxnExtractData ("annual_heat_moisture_index_1981_2010", tsa.WilliamsLake)
 
+ahm.1995.100Mile$tsa <- "100 Mile House TSA"
+ahm.1995.Arrow$tsa <- "Arrow TSA"
+ahm.1995.Arrowsmith$tsa <- "Arrowsmith TSA"
+ahm.1995.Boundary$tsa <- "Boundary TSA" 
+ahm.1995.Bulkley$tsa <- "Bulkley TSA" 
+ahm.1995.Cascadia$tsa <- "Cascadia TSA"
+ahm.1995.Cassiar$tsa <- "Cassiar TSA"
+ahm.1995.Cranbrook$tsa <- "Cranbrook TSA"
+ahm.1995.DawsonCreek$tsa <- "Dawson Creek TSA"
+ahm.1995.FortNelson$tsa <- "Fort Nelson TSA"
+ahm.1995.FortSt.John$tsa <- "Fort St. John TSA"
+ahm.1995.Fraser$tsa <- "Fraser TSA"
+ahm.1995.GBRNorth$tsa <- "GBR North TSA"
+ahm.1995.GBRSouth$tsa <- "GBR South TSA"
+ahm.1995.Golden$tsa <- "Golden TSA"
+ahm.1995.Invermere$tsa <- "Invermere TSA"
+ahm.1995.Kalum$tsa <- "Kalum TSA"
+ahm.1995.Kamloops$tsa <- "Kamloops TSA"
+ahm.1995.Kingcome$tsa <- "Kingcome TSA"
+ahm.1995.Kispiox$tsa <- "Kispiox TSA"
+ahm.1995.KootenayLake$tsa <- "Kootenay Lake TSA"
+ahm.1995.Lakes$tsa <- "Lakes TSA"
+ahm.1995.Lillooet$tsa <- "Lillooet TSA"
+ahm.1995.MacKenzie$tsa <- "MacKenzie TSA"
+ahm.1995.Merritt$tsa <- "Merritt TSA"
+ahm.1995.MidCoast$tsa <- "Mid Coast TSA"
+ahm.1995.Morice$tsa <- "Morice TSA"
+ahm.1995.Nass$tsa <- "Nass TSA"
+ahm.1995.NorthCoast$tsa <- "North Coast TSA"
+ahm.1995.NorthIsland$tsa <- "North Island TSA"
+ahm.1995.Okanagan$tsa <- "Okanagan TSA"
+ahm.1995.Pacific$tsa <- "Pacific TSA"
+ahm.1995.PrinceGeorge$tsa <- "Prince George TSA"
+ahm.1995.QueenCharlotte$tsa <- "Queen Charlotte TSA"
+ahm.1995.Quesnel$tsa <- "Quesnel TSA"
+ahm.1995.Revelstoke$tsa <- "Revelstoke TSA"
+ahm.1995.RobsonValley$tsa <- "Robson Valley TSA"
+ahm.1995.Soo$tsa <- "Soo TSA"
+ahm.1995.Strathcona$tsa <- "Strathcona TSA"
+ahm.1995.SunshineCoast$tsa <- "Sunshine Coast TSA"
+ahm.1995.WilliamsLake$tsa <- "Williams Lake TSA"
 
+ahm.1995 <- rbind (ahm.1995.100Mile, ahm.1995.Arrow, ahm.1995.Arrowsmith, ahm.1995.Boundary,
+                   ahm.1995.Bulkley, ahm.1995.Cascadia, ahm.1995.Cassiar, ahm.1995.Cranbrook,
+                   ahm.1995.DawsonCreek, ahm.1995.FortNelson, ahm.1995.FortSt.John, 
+                   ahm.1995.Fraser, ahm.1995.GBRNorth, ahm.1995.GBRSouth, ahm.1995.Golden,
+                   ahm.1995.Invermere, ahm.1995.Kalum, ahm.1995.Kamloops, ahm.1995.Kingcome,
+                   ahm.1995.Kispiox, ahm.1995.KootenayLake, ahm.1995.Lakes, ahm.1995.Lillooet,
+                   ahm.1995.MacKenzie, ahm.1995.Merritt, ahm.1995.MidCoast, ahm.1995.Morice,
+                   ahm.1995.Nass, ahm.1995.NorthCoast, ahm.1995.NorthIsland, ahm.1995.Okanagan,
+                   ahm.1995.Pacific, ahm.1995.PrinceGeorge, ahm.1995.QueenCharlotte, 
+                   ahm.1995.Quesnel, ahm.1995.Revelstoke, ahm.1995.RobsonValley, 
+                   ahm.1995.Soo, ahm.1995.Strathcona, ahm.1995.SunshineCoast, ahm.1995.WilliamsLake)
 
+ahm.1995$year <- "1995"
 
-
-
-#==================
-# COMBINE ALL THE CLIMATE DATA together 
-#==================
-bec.2080 <- raster ("bec\\BEC_zone_2080s.tif")
-levels.bec.2080 <- data.frame (levels (bec.2080))
-
-bec.2080.100Mile <- fxnExtractData ("bec_2080s", tsa.100Mile)
-bec.2080.Arrow <- fxnExtractData ("bec_2080s", tsa.Arrow)
-bec.2080.Arrowsmith <- fxnExtractData ("bec_2080s", tsa.Arrowsmith)
-bec.2080.Boundary <- fxnExtractData ("bec_2080s", tsa.Boundary)
-bec.2080.Bulkley <- fxnExtractData ("bec_2080s", tsa.Bulkley)
-bec.2080.Cascadia <- fxnExtractData ("bec_2080s", tsa.Cascadia)
-bec.2080.Cassiar <- fxnExtractData ("bec_2080s", tsa.Cassiar)
-bec.2080.Cranbrook <- fxnExtractData ("bec_2080s", tsa.Cranbrook)
-bec.2080.DawsonCreek <- fxnExtractData ("bec_2080s", tsa.DawsonCreek)
-bec.2080.FortNelson <- fxnExtractData ("bec_2080s", tsa.FortNelson)
-bec.2080.FortSt.John <- fxnExtractData ("bec_2080s", tsa.FortSt.John)
-bec.2080.Fraser <- fxnExtractData ("bec_2080s", tsa.Fraser)
-bec.2080.GBRNorth <- fxnExtractData ("bec_2080s", tsa.GBRNorth)
-bec.2080.GBRSouth <- fxnExtractData ("bec_2080s", tsa.GBRSouth)
-bec.2080.Golden <- fxnExtractData ("bec_2080s", tsa.Golden)
-bec.2080.Invermere <- fxnExtractData ("bec_2080s", tsa.Invermere)
-bec.2080.Kalum <- fxnExtractData ("bec_2080s", tsa.Kalum)
-bec.2080.Kamloops <- fxnExtractData ("bec_2080s", tsa.Kamloops)
-bec.2080.Kingcome <- fxnExtractData ("bec_2080s", tsa.Kingcome)
-bec.2080.Kispiox <- fxnExtractData ("bec_2080s", tsa.Kispiox)
-bec.2080.KootenayLake <- fxnExtractData ("bec_2080s", tsa.KootenayLake)
-bec.2080.Lakes <- fxnExtractData ("bec_2080s", tsa.Lakes)
-bec.2080.Lillooet <- fxnExtractData ("bec_2080s", tsa.Lillooet)
-bec.2080.MacKenzie <- fxnExtractData ("bec_2080s", tsa.MacKenzie)
-bec.2080.Merritt <- fxnExtractData ("bec_2080s", tsa.Merritt)
-bec.2080.MidCoast <- fxnExtractData ("bec_2080s", tsa.MidCoast)
-bec.2080.Morice <- fxnExtractData ("bec_2080s", tsa.Morice)
-bec.2080.Nass <- fxnExtractData ("bec_2080s", tsa.Nass)
-bec.2080.NorthCoast <- fxnExtractData ("bec_2080s", tsa.NorthCoast)
-bec.2080.NorthIsland <- fxnExtractData ("bec_2080s", tsa.NorthIsland)
-bec.2080.Okanagan <- fxnExtractData ("bec_2080s", tsa.Okanagan)
-bec.2080.Pacific <- fxnExtractData ("bec_2080s", tsa.Pacific)
-bec.2080.PrinceGeorge <- fxnExtractData ("bec_2080s", tsa.PrinceGeorge)
-bec.2080.QueenCharlotte <- fxnExtractData ("bec_2080s", tsa.QueenCharlotte)
-bec.2080.Quesnel <- fxnExtractData ("bec_2080s", tsa.Quesnel)
-bec.2080.Revelstoke <- fxnExtractData ("bec_2080s", tsa.Revelstoke)
-bec.2080.RobsonValley <- fxnExtractData ("bec_2080s", tsa.RobsonValley)
-bec.2080.Soo <- fxnExtractData ("bec_2080s", tsa.Soo)
-bec.2080.Strathcona <- fxnExtractData ("bec_2080s", tsa.Strathcona)
-bec.2080.SunshineCoast <- fxnExtractData ("bec_2080s", tsa.SunshineCoast)
-bec.2080.WilliamsLake <- fxnExtractData ("bec_2080s", tsa.WilliamsLake)
-
-bec.2080.100Mile$tsa <- "100 Mile House TSA"
-bec.2080.Arrow$tsa <- "Arrow TSA"
-bec.2080.Arrowsmith$tsa <- "Arrowsmith TSA"
-bec.2080.Boundary$tsa <- "Boundary TSA" 
-bec.2080.Bulkley$tsa <- "Bulkley TSA" 
-bec.2080.Cascadia$tsa <- "Cascadia TSA"
-bec.2080.Cassiar$tsa <- "Cassiar TSA"
-bec.2080.Cranbrook$tsa <- "Cranbrook TSA"
-bec.2080.DawsonCreek$tsa <- "Dawson Creek TSA"
-bec.2080.FortNelson$tsa <- "Fort Nelson TSA"
-bec.2080.FortSt.John$tsa <- "Fort St. John TSA"
-bec.2080.Fraser$tsa <- "Fraser TSA"
-bec.2080.GBRNorth$tsa <- "GBR North TSA"
-bec.2080.GBRSouth$tsa <- "GBR South TSA"
-bec.2080.Golden$tsa <- "Golden TSA"
-bec.2080.Invermere$tsa <- "Invermere TSA"
-bec.2080.Kalum$tsa <- "Kalum TSA"
-bec.2080.Kamloops$tsa <- "Kamloops TSA"
-bec.2080.Kingcome$tsa <- "Kingcome TSA"
-bec.2080.Kispiox$tsa <- "Kispiox TSA"
-bec.2080.KootenayLake$tsa <- "Kootenay Lake TSA"
-bec.2080.Lakes$tsa <- "Lakes TSA"
-bec.2080.Lillooet$tsa <- "Lillooet TSA"
-bec.2080.MacKenzie$tsa <- "MacKenzie TSA"
-bec.2080.Merritt$tsa <- "Merritt TSA"
-bec.2080.MidCoast$tsa <- "Mid Coast TSA"
-bec.2080.Morice$tsa <- "Morice TSA"
-bec.2080.Nass$tsa <- "Nass TSA"
-bec.2080.NorthCoast$tsa <- "North Coast TSA"
-bec.2080.NorthIsland$tsa <- "North Island TSA"
-bec.2080.Okanagan$tsa <- "Okanagan TSA"
-bec.2080.Pacific$tsa <- "Pacific TSA"
-bec.2080.PrinceGeorge$tsa <- "Prince George TSA"
-bec.2080.QueenCharlotte$tsa <- "Queen Charlotte TSA"
-bec.2080.Quesnel$tsa <- "Quesnel TSA"
-bec.2080.Revelstoke$tsa <- "Revelstoke TSA"
-bec.2080.RobsonValley$tsa <- "Robson Valley TSA"
-bec.2080.Soo$tsa <- "Soo TSA"
-bec.2080.Strathcona$tsa <- "Strathcona TSA"
-bec.2080.SunshineCoast$tsa <- "Sunshine Coast TSA"
-bec.2080.WilliamsLake$tsa <- "Williams Lake TSA"
-
-bec.2080 <- rbind (bec.2080.100Mile, bec.2080.Arrow, bec.2080.Arrowsmith, bec.2080.Boundary,
-                   bec.2080.Bulkley, bec.2080.Cascadia, bec.2080.Cassiar, bec.2080.Cranbrook,
-                   bec.2080.DawsonCreek, bec.2080.FortNelson, bec.2080.FortSt.John, 
-                   bec.2080.Fraser, bec.2080.GBRNorth, bec.2080.GBRSouth, bec.2080.Golden,
-                   bec.2080.Invermere, bec.2080.Kalum, bec.2080.Kamloops, bec.2080.Kingcome,
-                   bec.2080.Kispiox, bec.2080.KootenayLake, bec.2080.Lakes, bec.2080.Lillooet,
-                   bec.2080.MacKenzie, bec.2080.Merritt, bec.2080.MidCoast, bec.2080.Morice,
-                   bec.2080.Nass, bec.2080.NorthCoast, bec.2080.NorthIsland, bec.2080.Okanagan,
-                   bec.2080.Pacific, bec.2080.PrinceGeorge, bec.2080.QueenCharlotte, 
-                   bec.2080.Quesnel, bec.2080.Revelstoke, bec.2080.RobsonValley, 
-                   bec.2080.Soo, bec.2080.Strathcona, bec.2080.SunshineCoast, bec.2080.WilliamsLake)
-
-bec.2080$year <- "2085"
-
-
-
+rm (ahm.1995.100Mile, ahm.1995.Arrow, ahm.1995.Arrowsmith, ahm.1995.Boundary,
+    ahm.1995.Bulkley, ahm.1995.Cascadia, ahm.1995.Cassiar, ahm.1995.Cranbrook,
+    ahm.1995.DawsonCreek, ahm.1995.FortNelson, ahm.1995.FortSt.John, 
+    ahm.1995.Fraser, ahm.1995.GBRNorth, ahm.1995.GBRSouth, ahm.1995.Golden,
+    ahm.1995.Invermere, ahm.1995.Kalum, ahm.1995.Kamloops, ahm.1995.Kingcome,
+    ahm.1995.Kispiox, ahm.1995.KootenayLake, ahm.1995.Lakes, ahm.1995.Lillooet,
+    ahm.1995.MacKenzie, ahm.1995.Merritt, ahm.1995.MidCoast, ahm.1995.Morice,
+    ahm.1995.Nass, ahm.1995.NorthCoast, ahm.1995.NorthIsland, ahm.1995.Okanagan,
+    ahm.1995.Pacific, ahm.1995.PrinceGeorge, ahm.1995.QueenCharlotte, 
+    ahm.1995.Quesnel, ahm.1995.Revelstoke, ahm.1995.RobsonValley, 
+    ahm.1995.Soo, ahm.1995.Strathcona, ahm.1995.SunshineCoast, ahm.1995.WilliamsLake)
 
     
+# 2011-2040
+ahm.2025.100Mile <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.100Mile)
+ahm.2025.Arrow <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Arrow)
+ahm.2025.Arrowsmith <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Arrowsmith)
+ahm.2025.Boundary <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Boundary)
+ahm.2025.Bulkley <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Bulkley)
+ahm.2025.Cascadia <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Cascadia)
+ahm.2025.Cassiar <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Cassiar)
+ahm.2025.Cranbrook <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Cranbrook)
+ahm.2025.DawsonCreek <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.DawsonCreek)
+ahm.2025.FortNelson <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.FortNelson)
+ahm.2025.FortSt.John <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.FortSt.John)
+ahm.2025.Fraser <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Fraser)
+ahm.2025.GBRNorth <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.GBRNorth)
+ahm.2025.GBRSouth <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.GBRSouth)
+ahm.2025.Golden <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Golden)
+ahm.2025.Invermere <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Invermere)
+ahm.2025.Kalum <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Kalum)
+ahm.2025.Kamloops <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Kamloops)
+ahm.2025.Kingcome <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Kingcome)
+ahm.2025.Kispiox <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Kispiox)
+ahm.2025.KootenayLake <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.KootenayLake)
+ahm.2025.Lakes <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Lakes)
+ahm.2025.Lillooet <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Lillooet)
+ahm.2025.MacKenzie <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.MacKenzie)
+ahm.2025.Merritt <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Merritt)
+ahm.2025.MidCoast <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.MidCoast)
+ahm.2025.Morice <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Morice)
+ahm.2025.Nass <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Nass)
+ahm.2025.NorthCoast <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.NorthCoast)
+ahm.2025.NorthIsland <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.NorthIsland)
+ahm.2025.Okanagan <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Okanagan)
+ahm.2025.Pacific <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Pacific)
+ahm.2025.PrinceGeorge <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.PrinceGeorge)
+ahm.2025.QueenCharlotte <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.QueenCharlotte)
+ahm.2025.Quesnel <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Quesnel)
+ahm.2025.Revelstoke <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Revelstoke)
+ahm.2025.RobsonValley <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.RobsonValley)
+ahm.2025.Soo <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Soo)
+ahm.2025.Strathcona <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.Strathcona)
+ahm.2025.SunshineCoast <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.SunshineCoast)
+ahm.2025.WilliamsLake <- fxnExtractData ("annual_heat_moisture_index_avg_2011_2040", tsa.WilliamsLake)
+
+ahm.2025.100Mile$tsa <- "100 Mile House TSA"
+ahm.2025.Arrow$tsa <- "Arrow TSA"
+ahm.2025.Arrowsmith$tsa <- "Arrowsmith TSA"
+ahm.2025.Boundary$tsa <- "Boundary TSA" 
+ahm.2025.Bulkley$tsa <- "Bulkley TSA" 
+ahm.2025.Cascadia$tsa <- "Cascadia TSA"
+ahm.2025.Cassiar$tsa <- "Cassiar TSA"
+ahm.2025.Cranbrook$tsa <- "Cranbrook TSA"
+ahm.2025.DawsonCreek$tsa <- "Dawson Creek TSA"
+ahm.2025.FortNelson$tsa <- "Fort Nelson TSA"
+ahm.2025.FortSt.John$tsa <- "Fort St. John TSA"
+ahm.2025.Fraser$tsa <- "Fraser TSA"
+ahm.2025.GBRNorth$tsa <- "GBR North TSA"
+ahm.2025.GBRSouth$tsa <- "GBR South TSA"
+ahm.2025.Golden$tsa <- "Golden TSA"
+ahm.2025.Invermere$tsa <- "Invermere TSA"
+ahm.2025.Kalum$tsa <- "Kalum TSA"
+ahm.2025.Kamloops$tsa <- "Kamloops TSA"
+ahm.2025.Kingcome$tsa <- "Kingcome TSA"
+ahm.2025.Kispiox$tsa <- "Kispiox TSA"
+ahm.2025.KootenayLake$tsa <- "Kootenay Lake TSA"
+ahm.2025.Lakes$tsa <- "Lakes TSA"
+ahm.2025.Lillooet$tsa <- "Lillooet TSA"
+ahm.2025.MacKenzie$tsa <- "MacKenzie TSA"
+ahm.2025.Merritt$tsa <- "Merritt TSA"
+ahm.2025.MidCoast$tsa <- "Mid Coast TSA"
+ahm.2025.Morice$tsa <- "Morice TSA"
+ahm.2025.Nass$tsa <- "Nass TSA"
+ahm.2025.NorthCoast$tsa <- "North Coast TSA"
+ahm.2025.NorthIsland$tsa <- "North Island TSA"
+ahm.2025.Okanagan$tsa <- "Okanagan TSA"
+ahm.2025.Pacific$tsa <- "Pacific TSA"
+ahm.2025.PrinceGeorge$tsa <- "Prince George TSA"
+ahm.2025.QueenCharlotte$tsa <- "Queen Charlotte TSA"
+ahm.2025.Quesnel$tsa <- "Quesnel TSA"
+ahm.2025.Revelstoke$tsa <- "Revelstoke TSA"
+ahm.2025.RobsonValley$tsa <- "Robson Valley TSA"
+ahm.2025.Soo$tsa <- "Soo TSA"
+ahm.2025.Strathcona$tsa <- "Strathcona TSA"
+ahm.2025.SunshineCoast$tsa <- "Sunshine Coast TSA"
+ahm.2025.WilliamsLake$tsa <- "Williams Lake TSA"
+
+ahm.2025 <- rbind (ahm.2025.100Mile, ahm.2025.Arrow, ahm.2025.Arrowsmith, ahm.2025.Boundary,
+                   ahm.2025.Bulkley, ahm.2025.Cascadia, ahm.2025.Cassiar, ahm.2025.Cranbrook,
+                   ahm.2025.DawsonCreek, ahm.2025.FortNelson, ahm.2025.FortSt.John, 
+                   ahm.2025.Fraser, ahm.2025.GBRNorth, ahm.2025.GBRSouth, ahm.2025.Golden,
+                   ahm.2025.Invermere, ahm.2025.Kalum, ahm.2025.Kamloops, ahm.2025.Kingcome,
+                   ahm.2025.Kispiox, ahm.2025.KootenayLake, ahm.2025.Lakes, ahm.2025.Lillooet,
+                   ahm.2025.MacKenzie, ahm.2025.Merritt, ahm.2025.MidCoast, ahm.2025.Morice,
+                   ahm.2025.Nass, ahm.2025.NorthCoast, ahm.2025.NorthIsland, ahm.2025.Okanagan,
+                   ahm.2025.Pacific, ahm.2025.PrinceGeorge, ahm.2025.QueenCharlotte, 
+                   ahm.2025.Quesnel, ahm.2025.Revelstoke, ahm.2025.RobsonValley, 
+                   ahm.2025.Soo, ahm.2025.Strathcona, ahm.2025.SunshineCoast, ahm.2025.WilliamsLake)
+
+ahm.2025$year <- "2025"
+
+rm (ahm.2025.100Mile, ahm.2025.Arrow, ahm.2025.Arrowsmith, ahm.2025.Boundary,
+    ahm.2025.Bulkley, ahm.2025.Cascadia, ahm.2025.Cassiar, ahm.2025.Cranbrook,
+    ahm.2025.DawsonCreek, ahm.2025.FortNelson, ahm.2025.FortSt.John, 
+    ahm.2025.Fraser, ahm.2025.GBRNorth, ahm.2025.GBRSouth, ahm.2025.Golden,
+    ahm.2025.Invermere, ahm.2025.Kalum, ahm.2025.Kamloops, ahm.2025.Kingcome,
+    ahm.2025.Kispiox, ahm.2025.KootenayLake, ahm.2025.Lakes, ahm.2025.Lillooet,
+    ahm.2025.MacKenzie, ahm.2025.Merritt, ahm.2025.MidCoast, ahm.2025.Morice,
+    ahm.2025.Nass, ahm.2025.NorthCoast, ahm.2025.NorthIsland, ahm.2025.Okanagan,
+    ahm.2025.Pacific, ahm.2025.PrinceGeorge, ahm.2025.QueenCharlotte, 
+    ahm.2025.Quesnel, ahm.2025.Revelstoke, ahm.2025.RobsonValley, 
+    ahm.2025.Soo, ahm.2025.Strathcona, ahm.2025.SunshineCoast, ahm.2025.WilliamsLake)
