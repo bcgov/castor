@@ -1,0 +1,49 @@
+---
+title: "Provincail Caribou Habtiat Model"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Rport on creation of caribou habitat model
+
+
+
+## Methods
+
+### habitat covariates to include in model
+elevation (m)
+slope (degrees)
+aspect (easting, northing, direction?)
+cutblock density (1 ha) 
+  <5 years old (yo)
+  5-10 yo
+  10-20 yo
+  20-30 yo
+  30-40 yo
+  40-50 yo
+  50-70 yo
+  >70 yo
+  
+fire density (1 ha)
+  <5 years old (yo)
+  5-10 yo
+  10-20 yo
+  20-30 yo
+  30-40 yo
+  40-50 yo
+  50-70 yo
+  >70 yo
+
+road length (density) (1 ha)
+  paved
+  loose
+  ....
+  
+forest age (vri or cutblcok or fire)
+
+
