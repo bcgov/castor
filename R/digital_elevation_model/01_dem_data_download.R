@@ -2466,9 +2466,13 @@ raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc.tif", format = "G
 dem.all <- raster ("all_bc\\dem_all_bc_clip.tif") 
 slope <- raster::terrain (dem.all, opt = 'slope', unit = "degrees", 
                           neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
+slope <- round (slope, digits = 1)
+raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", 
+                     overwrite = T, dataType = "INT1U") # save as unsigned integer
+
+
 system.time ({
-  raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", 
-                     overwrite = T, dataType = "INT1U")
+  
 })
 
 aspect.degrees <- raster::terrain (dem.all, opt = 'aspect', unit = "degrees", 
@@ -2518,10 +2522,11 @@ drv <- dbDriver ("PostgreSQL")
 conn <- dbConnect (drv, # connection to the postgres db where you want to store the data
                    host = "",
                    user = "postgres",
-                   dbname = "postgres",
+                   dbname = "caribou_habitat",
                    password = "postgres",
                    port = "5432")
-pgWriteRast (conn, "dem_all_bc", dem.all, overwrite = TRUE)
+pgWriteRast (conn, "dem_all_bc", dem.all, overwrite = TRUE, bit.depth = "16BUI", 
+             blocks = c (1000, 1000)) # http://postgis.net/docs/RT_ST_BandPixelType.html
 pgWriteRast (conn, "slope_all_bc", slope, overwrite = TRUE)
 
 
