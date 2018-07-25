@@ -13,8 +13,9 @@
 #=================================
 #  Script Name: 01_dem_data_download.R
 #  Script Version: 1.0
-#  Script Purpose: Download digital elevation model and put into postgres. Note, the code is incomplete. 
-#                  Use it to facilitate downloading and creatign a provincial DEM, but realzie it's not clean.    
+#  Script Purpose: Download digital elevation model and put into postgres. 
+#                   WARNING, the code is incomplete.  Use it to facilitate downloading and 
+#                   creating a provincial DEM, but realize it's not clean.    
 #  Script Author: Tyler Muhly, Natural Resource Modeling Specialist, Forest Analysis and 
 #                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #                 Report is located here: 
@@ -23,6 +24,10 @@
 #  R Package Versions: 
 #  Data: 
 #=================================
+
+#  WARNING, the code is incomplete.  Use it to facilitate downloading and 
+#  creating a provincial DEM, but realize it's not clean.    
+
 # packages
 require (downloader)
 require (rgdal)
@@ -2450,46 +2455,22 @@ raster::writeRaster (dem.final, filename = "all_bc\\dem_102_114_bc.tif", format 
 dem.102.114 <- raster ("all_bc\\dem_102_114_bc.tif")
 dem.82.94 <- raster ("all_bc\\dem_082_094_bc.tif")
 dem.final <- raster::merge (dem.82.94, dem.102.114, tolerance = 1)
-raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc.tif", format = "GTiff", overwrite = T)
 dem.final <- raster::projectRaster (from = dem.all, 
                                     crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
-raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc_proj.tif", format = "GTiff", overwrite = T)
-
-
-dem.all <- raster ("all_bc\\dem_all_bc_proj3.tif") 
-dem.82j <- raster ("082j\\082j_p.tif") 
-dem.82n <- raster ("082n\\082n_p.tif") 
-dem.83c <- raster ("083c\\083c_p.tif") 
-dem.83d <- raster ("083d\\083d_p.tif") 
-dem.83e <- raster ("083e\\083e_p.tif") 
-
-dem.final <- raster::merge (dem.all, dem.82j, tolerance = 1)
-dem.final <- raster::merge (dem.final, dem.82n, tolerance = 1)
-dem.final <- raster::merge (dem.final, dem.83c, tolerance = 1)
-dem.final <- raster::merge (dem.final, dem.83d, tolerance = 1)
-dem.final <- raster::merge (dem.final, dem.83e, tolerance = 1)
-
-dem.final <- raster::mosaic (dem.all, dem.83e, tolerance = 1, fun = max)
-
-dem.82.83 <- raster::mosaic (dem.83e, dem.83d, tolerance = 1, fun = max)
-
-dem.82.83 <- raster::merge (dem.83e, dem.83d, tolerance = 1)
-
-plot (dem.83d)
-summary (dem.all)
-dem.83d [dem.83d == 0] = NA 
-dem.83e [dem.83e == 0] = NA 
-
-raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc.tif", format = "GTiff", 
-                     overwrite = T, dataType = "INT2U")
+raster::writeRaster (dem.final, filename = "all_bc\\dem_all_bc.tif", format = "GTiff", overwrite = T,
+                     dataType = "INT2U")
 
 #=================================
 # Calculate aspect and slope
 #=================================
-dem.all <- raster ("all_bc\\dem_all_bc_proj3.tif") 
+dem.all <- raster ("all_bc\\dem_all_bc_clip.tif") 
 slope <- raster::terrain (dem.all, opt = 'slope', unit = "degrees", 
-                              neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
-raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", overwrite = T)
+                          neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
+system.time ({
+  raster::writeRaster (slope, filename = "all_bc\\slope_all_bc.tif", format = "GTiff", 
+                     overwrite = T, dataType = "INT1U")
+})
+
 aspect.degrees <- raster::terrain (dem.all, opt = 'aspect', unit = "degrees", 
                                    neighbors = 8) # neighbors = 8 uses 'Horn algorithm', which is best for rough surfaces (https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/terrain); most caribou live in 'rougher' terrain (mountains)
 raster::writeRaster (aspect.degrees, filename = "all_bc\\aspect_deg_all_bc.tif", format = "GTiff", overwrite = T)
@@ -2501,9 +2482,6 @@ raster::writeRaster (aspect.northing, filename = "all_bc\\aspect_northing_all_bc
 aspect.easting <- sin (aspect.radians)
 raster::writeRaster (aspect.easting, filename = "all_bc\\aspect_easting_all_bc.tif", format = "GTiff", overwrite = T)
 aspect.radians <- raster ("all_bc\\aspect_rad_all_bc.tif") # load the projected version
-
-
-
 
 # is aspect = 0 flat or north?
 # aspect.degrees <- raster ("all_bc\\aspect_deg_all_bc.tif") 
@@ -2532,10 +2510,24 @@ dem.ha.bc <- raster::resample (dem.all, ProvRast, method = "ngb") # nearest neig
 raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GTiff", overwrite = T)
 
 #=================================
-# Putting into Kyle's Postgres DB
+# Putting into Postgres DB
 #=================================
 require (RPostgreSQL)
 require (rpostgis)
+drv <- dbDriver ("PostgreSQL")
+conn <- dbConnect (drv, # connection to the postgres db where you want to store the data
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+pgWriteRast (conn, "dem_all_bc", dem.all, overwrite = TRUE)
+pgWriteRast (conn, "slope_all_bc", slope, overwrite = TRUE)
+
+
+
+
+
 drv <- dbDriver ("PostgreSQL")
 conn <- dbConnect(drv, 
                  host = "DC052586", # Kyle's computer name
