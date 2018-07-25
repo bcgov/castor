@@ -34,11 +34,23 @@ getSpatialQuery <- function (sql) {
   st_read (conn, query = sql)
 }
 
+getTableQuery<-function(sql){
+  conn <- dbConnect (dbDriver("PostgreSQL"), 
+                     host = "",
+                     user = "postgres",
+                     dbname = "postgres",
+                     password = "postgres",
+                     port = "5432")
+  on.exit (dbDisconnect (conn))
+  dbGetQuery (conn, sql)
+}
+
 #======================
 # Spatial data objects
 #=====================
 tsa.diss <- getSpatialQuery ("SELECT * FROM fadm_tsa_dissolve_polygons")
 map.tsa.diss <- sf::as_Spatial (st_transform (tsa.diss, 4326))
+bec <- getTableQuery ("SELECT * FROM public.plot_data_bec")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage (theme = shinytheme ("superhero"), 
@@ -96,6 +108,10 @@ server <- function (input, output) {
             as.character(input$map_shape_click$group)
    })
  
+   becData <- reactive({
+     dplyr::filter (bec, tsa == TSA ())
+   })
+   
    # render the leaflet map  
    output$map = renderLeaflet ({ 
      leaflet (map.tsa.diss, options = leafletOptions (doubleClickZoom = TRUE)) %>% 
@@ -203,17 +219,18 @@ server <- function (input, output) {
    
    
    # bec plot
-   output$bec2020TSAPlot <- renderPlot({
+   output$becTSAPlot <- renderPlot({
      
-     ggplot (getDataQuery ("bec_2020s", TSASelect)) +  
+     ggplot (becData (), 
+             aes (x = year)) +  
        geom_bar (aes (fill = bec), position = 'fill') +
-       ggtitle (paste (input$TSA)) +
+       ggtitle (paste (TSA ())) +
        xlab ("Year") +
        ylab ("Proportion of range area") +
        scale_fill_discrete (name = "BEC Zone") +
        theme (axis.text = element_text (size = 12),
-              axis.title =  element_text (size = 14, face = "bold")) 
-    
+              axis.title =  element_text (size = 14, face = "bold"))
+
    })
    
    # climate variable plots
