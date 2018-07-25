@@ -2663,6 +2663,9 @@ raster::writeRaster (aspect.west, filename = "all_bc\\aspect_west_all_bc.tif", f
 #=================================
 # Conform rasters to hectares BC
 #=================================
+setwd ('//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/dem/all_bc')
+dem.all<- raster ("dem_all_bc_proj3.tif")
+plot(dem.all)
 ProvRast <- raster (nrows = 15744, ncols = 17216, 
                     xmn = 159587.5, xmx = 1881187.5, 
                     ymn = 173787.5, ymx = 1748187.5, 
@@ -2670,7 +2673,7 @@ ProvRast <- raster (nrows = 15744, ncols = 17216,
                     resolution = c(100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
 dem.ha.bc <- raster::resample (dem.all, ProvRast, method = "ngb") # nearest neighbour resampling
 raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GTiff", overwrite = T)
-
+## this takes way to long - use gdalwarp
 #=================================
 # Putting into Kyle's Postgres DB
 #=================================
