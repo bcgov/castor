@@ -26,7 +26,7 @@
 #=================================
 # data directory
 #=================================
-setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\')
+setwd ('C:\\Work\\caribou\\clus_data\\')
 options (scipen = 999)
 
 #=================================
@@ -46,20 +46,76 @@ require (fasterize)
 # require (spatstat)
 # require (adehabitatHR)
 
-#=================================
-# Load data
-#=================================
-bec <- sf::st_read (dsn = "caribou_habitat_model.gdb", 
-                    layer = "bec_poly_20180725")
+#===================================================
+# Load data, rasterize to 1ha and put into postgres
+#==================================================
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+
+writeRasterQuery <- function (schemaraster, rasterR) {
+  conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                     host = "",
+                     user = "postgres",
+                     dbname = "postgres",
+                     password = "postgres",
+                     port = "5432")
+  on.exit (dbDisconnect (conn))
+  pgWriteRast (conn, schemaraster, rasterR, overwrite = TRUE)
+}
 
 
+writeTableQuery <- function (dataR, tablename){
+  conn <- dbConnect (dbDriver("PostgreSQL"), 
+                     host = "",
+                     user = "postgres",
+                     dbname = "postgres",
+                     password = "postgres",
+                     port = "5432")
+  on.exit (dbDisconnect (conn))
+  st_write (obj = dataR, dsn = conn, layer = tablename)
+}
 
-
+# ha BC standard raster
 ProvRast <- raster (nrows = 15744, ncols = 17216, 
                     xmn = 159587.5, xmx = 1881187.5, 
-                    ymn = 173787.5, ymx = 1748187.5, 
-                    crs = proj4string (dem.all), 
-                    resolution = c(100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
+                    ymn = 173787.5, ymx = 1748187.5,                      
+                    crs = 3005, 
+                    resolution = c (100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
+# writeRasterQuery (c ("admin_boundaries", "raster_ha_bc"), ProvRast)
+# ProvRast <- pgGetRast (conn, c ("admin_boundaries", "raster_ha_bc"))
+
+# bec as polygon and rasterized to ha bc
+bec <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                    layer = "bec_poly_20180725")
+
+writeTableQuery (bec, c ("vegetation", "bec_poly_20180725"))
+
+ras.bec.zone <- fasterize (bec, ProvRast, field = "ZONE" , 
+                           fun = "last") # takes the 'last' polygon value for the raster; ideally would use the most common, but couldn't find a function for that
+writeRasterQuery (c ("vegetation", "raster_bec_zone_current"), ras.bec.zone)
+lut_bec_zone_current <- data.frame (levels (bec$ZONE))
+lut_bec_zone_current$raster_integer <- c (1:16)
+writeTableQuery (lut_bec_zone_current, "lut_bec_current")
+
+
+
+
+
+
+
+
+
+# 'new' vri landscalsses for raster
+
+
+
+
+
+
 dem.ha.bc <- raster::resample (dem.all, ProvRast, method = "ngb") # nearest neighbour resampling
 raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GTiff", overwrite = T)
 
