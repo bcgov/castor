@@ -57,9 +57,14 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # <https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks->
 # Name in GDB: cutblocks_20180725
 
-# VRI; downloaded 25 July 2018
+# VRI Public; downloaded 25 July 2018
 # <https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-rank-1-layer>
-# Name in GDB: VRI_20180725
+# Name in GDB: vir_public_20180725
+
+# VRI Internal; downloaded 25 July 2018
+# NOTE: the internal data provides access to VRI in TFLs, which is NOT available in the public version 
+# <\\spatialfiles2.bcgov\work\FOR\VIC\HTS\DAM\WorkArea\Mcdougall\Projects\2018\PROJECTION_2018\Data\INTERNAL_VEG_COMP\INTERNAL_VEGCOMP
+# Name in GDB: vri_internal_20180725
 
 # Fire; downloaded 25 July 2018
 # <https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical>

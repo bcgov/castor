@@ -157,10 +157,10 @@ conn <- dbConnect (drv,
                    port = "5432")
 
 tsa <-  st_read ("tsa\\FADM_TSA_polygon_20180716.shp")
-st_write (tsa, conn, c ("admin_boundaries", "FADM_TSA_polygon"), layer_options = "OVERWRITE = true")
+st_write (tsa, conn, c ("admin_boundaries", "FADM_TSA_polygon"), overwrite = T)
 
 tsa.diss <-  st_read ("tsa\\fadm_tsa_dissolve_polygons_20180717.shp")
-st_write (tsa.diss, conn, c ("admin_boundaries", "fadm_tsa_dissolve_polygons"), layer_options = "OVERWRITE = true")
+st_write (tsa.diss, conn, c ("admin_boundaries", "fadm_tsa_dissolve_polygons"), overwrite = T)
 
 bec.current <- raster ("bec\\BEC_zone.tif")
 pgWriteRast (conn, c ("climate", "bec_current"), bec.current, overwrite = TRUE)
