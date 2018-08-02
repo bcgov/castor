@@ -15,6 +15,7 @@
 # are put into the simList. To use objects, use sim$xxx, and are thus globally available
 # to all modules. Functions can be used without sim$ as they are namespaced, like functions
 # in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
+
 defineModule(sim, list(
   name = "roadCLUS",
   description = NA, #"Simulates strategic roads using a single target access problem following Anderson and Nelson 2004",
@@ -28,9 +29,10 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "roadCLUS.Rmd"),
-  reqdPkgs = list("raster","gdistance", "sp", "latticeExtra"),
+  reqdPkgs = list("raster","gdistance", "sp", "latticeExtra", "sf"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("roadMethod", "character", "snapTo", NA, NA, "This describes the method from which to simulate roads - default is snapTo"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
     defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
@@ -52,6 +54,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    expectsInput("roadMethod", "character", "The method from which to simulate roads options are snapTo, lcp (least cost path), and mst (minimum spanning tree)", sourceURL = NA),
     expectsInput("nameBoundaryFile", "character", "The boundary table in the db to mask the extent", sourceURL = NA),
     expectsInput("nameBoundary", "character", "The boundary name in the boundary file to include in the analysis", sourceURL = NA),
     expectsInput("nameBoundaryColumn", "character", "The column name in the boundary file to query on", sourceURL = NA),
@@ -89,11 +92,26 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     },
     
     buildRoads = {
+      #Check if there are cutblock landings to simulate roading
       if(!is.null(sim$landings)){
-        print(paste0('simulating roads in: ', time(sim)))
-        sim <- roadCLUS.updateCostSurface(sim)
-        #sim <- sim$roadCLUS.getMST(sim)
-        #sim <- sim$roadCLUS.buildRoads(sim)
+        switch(P(sim)$roadMethod,
+            snapTo= {
+              sim<-roadCLUS.setSimpleCostSurface(sim)
+              sim<-roadCLUS.getClosestRoad(sim)
+              sim <- sim$roadCLUS.buildRoads(sim)
+            } ,
+            lcp ={
+              sim <- roadCLUS.updateCostSurface(sim)
+              sim<-roadCLUS.getClosestRoad(sim)
+              sim <- sim$roadCLUS.buildRoads(sim)
+            },
+            mst ={
+              sim <- roadCLUS.updateCostSurface(sim)
+              sim<-roadCLUS.getClosestRoad(sim)
+              sim <- sim$roadCLUS.getMST(sim)
+              sim <- sim$roadCLUS.buildRoads(sim)
+            }
+        )
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
       }else{
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
@@ -124,7 +142,7 @@ roadCLUS.Init <- function(sim) {
 }
 
 roadCLUS.roadsPlot<-function(sim){
-  Plot(sim$roads, title = "Simulated Roads")
+  #Plot(sim$roads, title = "Simulated Roads")
   return(invisible(sim))
 }
 
@@ -148,48 +166,64 @@ roadCLUS.getRoads <- function(sim) {
 
 ### Get the rasterized cost surface
 roadCLUS.getCostSurface<- function(sim){
-  sim$costSurface<-getRasterQuery(P(sim)$nameCostSurfaceRas, sim$bbox)
+  sim$costSurface<-resample(getRasterQuery(P(sim)$nameCostSurfaceRas, sim$bbox), sim$roads, method = 'bilinear')
   return(invisible(sim))
 }
 
 ### Set the cost surface used for road projections
 roadCLUS.updateCostSurface<- function(sim){
-  rclmat <- matrix(c(1, 1, 0), ncol=3, byrow=TRUE)
-  print(extent(sim$roads))
-  cost<-raster::reclassify(x=sim$roads, rcl=rclmat, include.lowest =TRUE,right =NA)
-  print(extent(sim$costSurface))
-  cost[is.na(cost)]<-cellStats(sim$costSurface, stat=max)
-  costNew<-sim$costSurface+cost^1.2
+  print('update cost')
   ## Need a better function for a cost surface - Toblers? Economics?
+  costNew<-1/(sim$costSurface+1)+sim$roads^1.2
   sim$trCost <- transition(1/costNew, mean, directions=8)
+  ##correct the geodistances
   sim$trCost <- geoCorrection(sim$trCost, type="c")
   return(invisible(sim))
 }
 
+roadCLUS.setSimpleCostSurface<- function(sim){
+  print('update cost')
+  costNew<-raster(extent(sim$roads), res =100, vals =1, crs =CRS("+init=epsg:3005")) #planar distance
+  sim$trCost <- transition(1/costNew, mean, directions=8)
+  return(invisible(sim))
+}
+
+#NEED TO DEBUG
+roadCLUS.getClosestRoad = function(sim){
+  pairs<-gdistance::gDistance(as(sim$roads,"SpatialPoints"), sim$landings)
+  min.d <- apply(pairs, 1, function(x) order(x, decreasing=F)[2])
+  sim$landings<-rbind(xyFromCell(sim$roads, min.d , spatial = FALSE), sim$landings)
+}
+
 roadCLUS.getMST = function(sim){
-  #CalcCostDistances from gDistance
+  print ('getMST')
+  #Calculates the CostDistances to be used as nodes in the minimum spanning tree graph
   cDist<-costDistance(sim$trCost, sim$landings)
   G = graph.adjacency(as.matrix(cDist),weighted=TRUE,mode="upper")
-  sim$T = mst(G,weighted=TRUE)
+  T = mst(G,weighted=TRUE)
+  sim$e.T<-get.edges(T,1:ecount(T))
+  plot(sim$e.T)
   return(invisible(sim))
 }
 
 roadCLUS.buildRoads = function(sim){
-  e.T<-get.edges(sim$T,1:ecount(sim$T))
-  t.len<-length(e.T)/2
-  for(i in 1:t.len){
-    #print(sim$landings[e.T[i,1],] )
-    p<-shortestPath(sim$trCost, sim$landings[e.T[i,1],], sim$landings[e.T[i,2],])
-    newRoad<-raster::raster(p)
-    if(i==1){
-      newRoads<-newRoad
+  print('build roads')
+  if(!is.null(sim$e.T)){
+    t.len<-length(sim$e.T)/2
+    #Think parralel foreach would work here?
+    for(i in 1:t.len){
+      #print(sim$landings[e.T[i,1],] )
+      newRoad<-raster::raster(shortestPath(sim$trCost, sim$landings[e.T[i,1],], sim$landings[e.T[i,2],]))
+      sim$roads<- raster::merge(sim$roads, newRoad)
     } 
-    else {
-      newRoads<- raster::merge(newRoads, newRoad)
-    }
+  }else{
+    for(i in 1:langth(sim$landings)){
+      #print(sim$landings[e.T[i,1],] )
+      newRoad<-raster::raster(shortestPath(sim$trCost, sim$landings[[i,1]], sim$landings[[i,2]]))
+      sim$roads<- raster::merge(sim$roads, newRoad)
+    } 
   }
-  #Add the new roads back to the paths layer
-  sim$roads<-raster::merge(sim$roads, newRoads)
+  sim$e.T<-NULL
   return(invisible(sim))
 }
 
@@ -215,19 +249,19 @@ roadCLUS.exampleData <- function(sim) {
 
 ### additional functions
 getSpatialQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
 
 getTableQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
 
 getRasterQuery<-function(name, bb){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   pgGetRast(conn, name, boundary = c(bb[4],bb[2],bb[3],bb[1]))
 }
