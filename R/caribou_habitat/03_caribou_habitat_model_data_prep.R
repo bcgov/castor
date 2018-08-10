@@ -18,8 +18,8 @@
 #                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #                 Report is located here: 
 #  Script Date: 25 July 2018
-#  R Version: 3.4.3
-#  R Packages: sp, raster, rgeos, dplyr, rgdal, maptools, spatstat
+#  R Version: 3.5.1
+#  R Packages: sf, RPostgreSQL, rpostgis, fasterize
 #  Data: 
 #=================================
 
@@ -91,25 +91,29 @@ ProvRast <- raster (nrows = 15744, ncols = 17216,
 # bec as polygon and rasterized to ha bc
 bec <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                     layer = "bec_poly_20180725")
-
 writeTableQuery (bec, c ("vegetation", "bec_poly_20180725"))
-
 ras.bec.zone <- fasterize (bec, ProvRast, field = "ZONE" , 
                            fun = "last") # takes the 'last' polygon value for the raster; ideally would use the most common, but couldn't find a function for that
 writeRasterQuery (c ("vegetation", "raster_bec_zone_current"), ras.bec.zone)
 lut_bec_zone_current <- data.frame (levels (bec$ZONE))
 lut_bec_zone_current$raster_integer <- c (1:16)
-writeTableQuery (lut_bec_zone_current, "lut_bec_current")
+dbWriteTable (conn, c ("vegetation", "lut_bec_current"), lut_bec_zone_current)
+
+# 'new' vri land classes and rasterized to ha bc
+# note clipped, VRI to caribou range boundaries in ArcGIS because full VRI too large for CPU to handle here
+vri <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                    layer = "vri_internal_20180725") # using the internal data, which includes TFLs
+
+
+
+# Cutblocks
+# Note that cutblocks were clipped to cariobu range
+cutblocks <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                          layer = "cutblocks_20180725") 
 
 
 
 
-
-
-
-
-
-# 'new' vri landscalsses for raster
 
 
 
@@ -903,6 +907,11 @@ boreal.locs.prj <- spTransform (boreal.locs, CRS = telem.crs)
 writeOGR (obj = prov.locs.single, 
           dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape_raw", 
           layer = "spi_telemetry_point_raw", driver = "ESRI Shapefile")
+
+
+# DONT: FORGET TEH DATA IN THE HABTIAT MODEL GDB
+
+
 
 #=================================
 #  Prepare the Telemetry Data

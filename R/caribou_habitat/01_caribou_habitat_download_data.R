@@ -132,4 +132,10 @@ WHSE_WILDLIFE_INVENTORY.SPI_TELEMETRY_OBS_ALL_SP
 SCIENTIFIC_NAME = 'Rangifer tarandus'
 # C:\Work\caribou\climate_analysis\data\caribou\caribou_telemetry.gdb
 
+# Additional data provided by Nicola Dodd
+# \\spatialfiles.bcgov\work\env\esd\eis\wld\caribou\nldodd_work\caribou\telem_data\BCtelem_draft
+# SMC_NoCentral_BConly_2002_18_July12_2018
+# SMC_CentralGroup_BConly_Telemetry_July12_2018
+# wcari_gps_Dec2011_Jan2015_master_BCEnvAlbers
+
 
