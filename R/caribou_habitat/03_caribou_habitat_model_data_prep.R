@@ -36,6 +36,7 @@ require (sf)
 require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
+require (raster)
 
 # require (sp) # spatial package; particulary useful for working with vector data
 # require (raster) # for working with and processing raster data; 
@@ -79,6 +80,21 @@ writeTableQuery <- function (dataR, tablename){
   st_write (obj = dataR, dsn = conn, layer = tablename)
 }
 
+writeCutblockRaster <- function (harvest.year) {
+  conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                     host = "",
+                     user = "postgres",
+                     dbname = "postgres",
+                     password = "postgres",
+                     port = "5432")
+  on.exit (dbDisconnect (conn))
+  pgWriteRast (conn, c ("human", paste0 ("raster_cutblocks_", harvest.year)), fasterize (
+    dplyr::filter (cutblocks, HARVEST_YEAR == harvest.year), 
+    ProvRast,  
+    field = NULL, 
+    background = 0), overwrite = TRUE)
+}
+
 # ha BC standard raster
 ProvRast <- raster (nrows = 15744, ncols = 17216, 
                     xmn = 159587.5, xmx = 1881187.5, 
@@ -106,13 +122,69 @@ vri <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb",
 
 
 
+
+
 # Cutblocks
-# Note that cutblocks were clipped to cariobu range
 cutblocks <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                           layer = "cutblocks_20180725") 
+writeTableQuery (cutblocks, c ("human", "cutblocks_20180725"))
+
+sort (unique (cutblocks$HARVEST_YEAR))
+
+# need to fileter data by year because unable to run functiosn (see below) on full dataset
+cutblocks.2017 <- dplyr::filter (cutblocks, HARVEST_YEAR == 2017)
+ras.cutblocks.2017 <- fasterize (cutblocks.2017, ProvRast, 
+                                 field = NULL,# raster cells that were cut get in 2017 get a value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+raster::writeRaster (ras.cutblocks.2017, 
+                     filename = "caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_2017.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
+
+
+# there apepars to be memory issues with saivng to postgres, so saving as TIFFs for now
+# writeRasterQuery (c ("human", "raster_cutblocks_2017"), ras.cutblocks.2017) 
+rm (cutblocks.2017, ras.cutblocks.2017)
+gc ()
+
+writeCutblockRaster (2016)
+
+
+writeCutblockRaster <- function (harvest.year) {
+  conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                     host = "",
+                     user = "postgres",
+                     dbname = "postgres",
+                     password = "postgres",
+                     port = "5432")
+  on.exit (dbDisconnect (conn))
+  pgWriteRast (conn, c ("human", paste0 ("raster_cutblocks_", harvest.year)), fasterize (
+    dplyr::filter (cutblocks, HARVEST_YEAR == harvest.year), 
+    ProvRast,  
+    field = NULL, 
+    background = 0), overwrite = TRUE)
+}
 
 
 
+
+plot (ras.cutblocks.2016)
+
+
+
+# create raster of each year a polygon could have been cut
+ras.cutblocks <- fasterize (cutblocks, ProvRast, 
+                            field = NULL, # raster cells that were cut get a value of 1
+                            by = "HARVEST_YEAR", # returns a RasterBrick with as many layers as unique values of the by column
+                            background = 0) # unharvested raster cells get value = 0 
+
+# calculate last year the raster was cut
+# ras.cutblocks <- fasterize (cutblocks, ProvRast, field = "HARVEST_YEAR" , 
+#                            fun = "last",
+#                            background = 0) # unharvested rasters get value = 0 
+
+
+# calculate area of cutblock 
 
 
 
