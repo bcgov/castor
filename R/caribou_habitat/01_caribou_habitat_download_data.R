@@ -42,7 +42,6 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 #########################
 # MANUAL DATA DOWNLOADS #
 #########################
-
 # copied from BCGW into geodatabase; for uploading to postgres
 
 # caribou range boundaries; downloaded 25 July 2018
@@ -76,12 +75,6 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # Before 2016: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pre-2016-facility-locations>
 # Name in GDB: oil_gas_facility_pre2016_20180725
 
-# Pipelines; downloaded 25 July 2018
-# After 2006: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pipeline-right-of-way-permits>
-# Name in GDB: pipeline_post2006_20180725
-# After 2016: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pipeline-segment-permits>
-# Name in GDB: pipeline_post2016_20180725
-
 # Trasnmission Lines; downloaded 25 July 2018
 # <https://catalogue.data.gov.bc.ca/dataset/bc-transmission-lines>
 # Name in GDB: transmission_line_20180725
@@ -96,7 +89,46 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 
 # Integrated roads data from cumulative effects; copied June 18, 2018
 # \\spatialfiles.bcgov\\work\\srm\\bcce\\shared\\data_library\roads\2017\BC_CE_IntegratedRoads_2017_v1_20170214.gdb
-# Get from Kyle
+# Get RASTER from Kyle
+
+# Ski Resorts
+# https://catalogue.data.gov.bc.ca/dataset/ski-resorts
+# Name in GDB: ski_resorts_20180813
+
+# Mines from MEMPR
+# http://www.empr.gov.bc.ca/Mining/Geoscience/MapPlace/metadata/Pages/minf_metadata.aspx
+# Name in GDB: minfile_20180813
+# http://www.empr.gov.bc.ca/Mining/Geoscience/MINFILE/ProductsDownloads/MINFILEDocumentation/CodingManual/Pages/default.aspx
+
+
+# Pipelines; downloaded 25 July 2018
+# After 2006: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pipeline-right-of-way-permits>
+# Name in GDB: pipeline_post2006_20180725
+# After 2016: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pipeline-segment-permits>
+# Name in GDB: pipeline_post2016_20180725
+# https://catalogue.data.gov.bc.ca/dataset/tantalis-crown-tenures
+# Name in GDB: tantalis_crown_tenures_20180814
+# https://catalogue.data.gov.bc.ca/dataset/tantalis-surveyed-parcels
+# Name in GDB: tantalis_surveyed_row_20180814
+# https://catalogue.data.gov.bc.ca/dataset/trim-cultural-lines
+# Name in GDB: trim_lines_20180814
+
+# Powerplants/Clean Energy
+# https://open.canada.ca/data/en/dataset/490db619-ab58-4a2a-a245-2376ce1840de
+# https://open.canada.ca/data/en/dataset/40fbe40c-01cd-49d3-8add-0d20ed64c90d
+
+############################
+# Cumulative Effects Data #
+##########################
+# \\transverse\work\srm\bcce\shared\data_library\development\Consolidated_Development\2015\
+# data not maintained or updated (or particularly well documented)
+# produced in 2015
+# some spot-checking suggests it is fairly accurate
+
+# Mines
+# Name in GDB: ce_mine_2015_20180814
+
+
 
 ###################################
 # Data downloadable from websites #
