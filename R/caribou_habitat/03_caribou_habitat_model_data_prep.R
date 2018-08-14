@@ -18,13 +18,13 @@
 #                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #                 Report is located here: 
 #  Script Date: 25 July 2018
-#  R Version: 3.4.3
-#  R Packages: sp, raster, rgeos, dplyr, rgdal, maptools, spatstat
+#  R Version: 3.5.1
+#  R Packages: sf, RPostgreSQL, rpostgis, fasterize, raster, dplyr
 #  Data: 
 #=================================
 
 #=================================
-# data directory
+# Set data directory
 #=================================
 setwd ('C:\\Work\\caribou\\clus_data\\')
 options (scipen = 999)
@@ -36,18 +36,19 @@ require (sf)
 require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
+require (raster)
+require (dplyr)
 
 # require (sp) # spatial package; particulary useful for working with vector data
 # require (raster) # for working with and processing raster data; 
 # require (rgeos) # geoprocessing functions
-# require (dplyr)
 # require (rgdal) # for loading and writing spatial data
 # require (maptools)
 # require (spatstat)
 # require (adehabitatHR)
 
 #===================================================
-# Load data, rasterize to 1ha and put into postgres
+# Create functions and empty ha BC raster
 #==================================================
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -79,6 +80,38 @@ writeTableQuery <- function (dataR, tablename){
   st_write (obj = dataR, dsn = conn, layer = tablename)
 }
 
+writeCutblockRaster <- function (harvest.year) {
+  writeRaster (
+    fasterize (
+      dplyr::filter (
+        cutblocks, 
+        HARVEST_YEAR == harvest.year
+      ), 
+      ProvRast,  
+      field = NULL, 
+      background = 0
+    ),
+    filename = paste0 ("caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_", harvest.year, ".tiff"),
+    format = "GTiff", 
+    datatype = 'INT1U'
+  )
+}
+
+# writeCutblockRaster <- function (harvest.year) {
+#  conn <- dbConnect (dbDriver ("PostgreSQL"), 
+#                     host = "",
+#                     user = "postgres",
+#                     dbname = "postgres",
+#                     password = "postgres",
+#                     port = "5432")
+#  on.exit (dbDisconnect (conn))
+#  pgWriteRast (conn, c ("human", paste0 ("raster_cutblocks_", harvest.year)), fasterize (
+#    dplyr::filter (cutblocks, HARVEST_YEAR == harvest.year), 
+#    ProvRast,  
+#    field = NULL, 
+#    background = 0), overwrite = TRUE)
+#}
+
 # ha BC standard raster
 ProvRast <- raster (nrows = 15744, ncols = 17216, 
                     xmn = 159587.5, xmx = 1881187.5, 
@@ -88,28 +121,99 @@ ProvRast <- raster (nrows = 15744, ncols = 17216,
 # writeRasterQuery (c ("admin_boundaries", "raster_ha_bc"), ProvRast)
 # ProvRast <- pgGetRast (conn, c ("admin_boundaries", "raster_ha_bc"))
 
+#===================================================
+# BEC data
+#==================================================
 # bec as polygon and rasterized to ha bc
 bec <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                     layer = "bec_poly_20180725")
-
 writeTableQuery (bec, c ("vegetation", "bec_poly_20180725"))
-
 ras.bec.zone <- fasterize (bec, ProvRast, field = "ZONE" , 
                            fun = "last") # takes the 'last' polygon value for the raster; ideally would use the most common, but couldn't find a function for that
 writeRasterQuery (c ("vegetation", "raster_bec_zone_current"), ras.bec.zone)
 lut_bec_zone_current <- data.frame (levels (bec$ZONE))
 lut_bec_zone_current$raster_integer <- c (1:16)
-writeTableQuery (lut_bec_zone_current, "lut_bec_current")
+dbWriteTable (conn, c ("vegetation", "lut_bec_current"), lut_bec_zone_current)
+
+#===================================================
+# Cutblocks
+#==================================================
+# idea here is to create rasters of cutblocks by year (similar to what STSM models output), 
+# then explicitly test for effects of age on caribou selection using regression models
+cutblocks <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                          layer = "cutblocks_20180725") 
+writeTableQuery (cutblocks, c ("human", "cutblocks_20180725"))
+
+cut.years <- sort (unique (cutblocks$HARVEST_YEAR)) # identify the cutblock years
+cut.years.for.raster <- cut.years[62:107]
+
+# need to fileter data by year because unable to run functions (see below) on full dataset
+cutblocks.2017 <- dplyr::filter (cutblocks, HARVEST_YEAR == 2017)
+ras.cutblocks.2017 <- fasterize (cutblocks.2017, ProvRast, 
+                                 field = NULL,# raster cells that were cut get in 2017 get a value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+raster::writeRaster (ras.cutblocks.2017, 
+                     filename = "caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_2017.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
+# there appears to be memory issues with saivng to postgres, so saving as TIFFs for now
+# writeRasterQuery (c ("human", "raster_cutblocks_2017"), ras.cutblocks.2017) 
+rm (cutblocks.2017, ras.cutblocks.2017)
+gc () # free up some RAM
+# 2017 done as test, the rest done with the writeCutblockRaster function 
+writeCutblockRaster (2016) # testing fucntion
+gc ()
+system.time (writeCutblockRaster (2015))
+gc ()
+
+for (i in cut.years.for.raster) { # run through list for 1957 to 2014
+writeCutblockRaster (i)
+gc ()
+}
+
+cutblocks.pre.1957 <- dplyr::filter (cutblocks, HARVEST_YEAR < 1957) # do one for all pre 1957 cutblocks
+ras.cutblocks.pre.1957 <- fasterize (cutblocks.pre.1957, ProvRast, 
+                                      field = NULL,# raster cells that were cut get in 2017 get a value of 1
+                                      background = 0) # unharvested raster cells get value = 0 
+raster::writeRaster (ras.cutblocks.pre.1957, 
+                     filename = "caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_pre1957.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
 
 
 
 
+ras.cutblocks.2016 <- raster ("caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_2016.tif")
+
+plot (ras.cutblocks.2016)
+
+
+
+# create raster of each year a polygon could have been cut
+ras.cutblocks <- fasterize (cutblocks, ProvRast, 
+                            field = NULL, # raster cells that were cut get a value of 1
+                            by = "HARVEST_YEAR", # returns a RasterBrick with as many layers as unique values of the by column
+                            background = 0) # unharvested raster cells get value = 0 
+
+# calculate last year the raster was cut
+# ras.cutblocks <- fasterize (cutblocks, ProvRast, field = "HARVEST_YEAR" , 
+#                            fun = "last",
+#                            background = 0) # unharvested rasters get value = 0 
+
+
+# calculate area of cutblock 
 
 
 
 
+#===================================================
+# VRI
+#==================================================
 
-# 'new' vri landscalsses for raster
+# note clipped, VRI to caribou range boundaries in ArcGIS because full VRI too large for CPU to handle here
+vri <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                    layer = "vri_internal_20180725") # using the internal data, which includes TFLs
+
 
 
 
@@ -903,6 +1007,11 @@ boreal.locs.prj <- spTransform (boreal.locs, CRS = telem.crs)
 writeOGR (obj = prov.locs.single, 
           dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape_raw", 
           layer = "spi_telemetry_point_raw", driver = "ESRI Shapefile")
+
+
+# DONT: FORGET TEH DATA IN THE HABTIAT MODEL GDB
+
+
 
 #=================================
 #  Prepare the Telemetry Data
