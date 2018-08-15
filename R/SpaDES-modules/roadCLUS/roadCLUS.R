@@ -81,14 +81,18 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       ## set seed
       #set.seed(sim$.seed)
       # schedule future event(s)
+      sim <- scheduleEvent(sim, eventTime = start(sim),  "roadCLUS", "save.sim")
       sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads")
       sim <- scheduleEvent(sim, eventTime = P(sim)$.plotInitialTime, "roadCLUS", "plot.sim")
-      
+      sim <- scheduleEvent(sim, eventTime = end(sim), "roadCLUS", "save.sim")
     },
     plot.sim = {
       # do stuff for this event
       sim <- roadCLUS.roadsPlot(sim)
-      sim <- scheduleEvent(sim, 6, "roadCLUS", "plot.sim", eventPriority = .normal()+1)
+    },
+    save.sim = {
+      # do stuff for this event
+      sim <- roadCLUS.roadsSave(sim, time(sim))
     },
     
     buildRoads = {
@@ -107,17 +111,14 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
             mst ={
               sim <- roadCLUS.updateCostSurface(sim)
               sim <- roadCLUS.getClosestRoad(sim)
-              #sim <- roadCLUS.getMST(sim)
-              #sim <- roadCLUS.buildLCPRoads(sim)
+              sim <- roadCLUS.getMST(sim)
+              sim <- roadCLUS.buildLCPRoads(sim)
             }
         )
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
       }else{
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
       }
-    },
-    save = {
-
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -145,6 +146,11 @@ roadCLUS.roadsPlot<-function(sim){
   return(invisible(sim))
 }
 
+roadCLUS.roadsSave<-function(sim, time){
+  writeRaster(sim$roads, file=paste0("RoadDensR", time, ".tif"), format="GTiff", overwrite=TRUE)
+  return(invisible(sim))
+}
+
 ### Get the boundary raster object and the bounding box extent 
 roadCLUS.getBounds<-function(sim){
   #The boundary may exist from previous modules?
@@ -168,14 +174,12 @@ roadCLUS.getCostSurface<- function(sim){
   sim$costSurface<-resample(getRasterQuery(P(sim)$nameCostSurfaceRas, sim$bbox), sim$roads, method = 'bilinear')
   return(invisible(sim))
 }
-
+test
 ### Set the cost surface used for road projections
 roadCLUS.updateCostSurface<- function(sim){
   ## Need a better function for a cost surface - Toblers? Economics?
-  costNew<-1/(sim$costSurface+1)+sim$roads^1.2
-  sim$trCost <- transition(1/costNew, mean, directions=8)
-  ##correct the geodistances
-  sim$trCost <- geoCorrection(sim$trCost, type="c")
+  costNew<-1/(sim$costSurface+1) + sim$roads
+  sim$trCost <- geoCorrection(transition(costNew, mean, directions=8), type="c")
   return(invisible(sim))
 }
 
@@ -196,48 +200,50 @@ roadCLUS.buildSnapRoads <- function(sim){
     landings<-data.frame(sim$landings)
     landings$id<-as.numeric(row.names(landings))
     coodMatrix<-rbind(rdptsXY,landings)
-    coodMatrix$attr_data<-300
+    coodMatrix$attr_data<-100
     mt<-coodMatrix %>% st_as_sf(coords=c("x","y"))%>% group_by(id) %>% summarize(m=mean(attr_data)) %>% st_cast("LINESTRING")
-    test<-fasterize::fasterize(st_buffer(mt,100),sim$roads, field = "m")
+    test<-fasterize::fasterize(st_buffer(mt,50),sim$roads, field = "m")
     sim$roads<-mosaic(test, sim$roads, fun=sum)
     rm(rdptsXY, landings, mt, coodMatrix, test)
     gc()
-    plot(sim$roads)
-    plot(sim$landings, add=TRUE, col ="red")
   }
   return(invisible(sim))
 }
 
 roadCLUS.getMST <- function(sim){
-  print ('getMST')
   #combine the nearest road points to the landings - this will ensure a consistent comparison with lcp and snap
-  sim$landings<-rbind(SpatialPoints(sim$rdptsXY ,CRS("+proj=aea +lat_1=50
-                      +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                                                +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0 ")), sim$landings)
+  sim$landings<-rbind(SpatialPoints(sim$roads.close.XY ,CRS("+proj=aea +lat_1=50
+                                                            +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                                                            +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0 ")), sim$landings)
   #Calculates the CostDistances to be used as nodes in the minimum spanning tree graph
   cDist<-costDistance(sim$trCost, sim$landings)
   G = graph.adjacency(as.matrix(cDist),weighted=TRUE,mode="upper")
   T = mst(G,weighted=TRUE)
   sim$e.T<-get.edges(T,1:ecount(T))
-  plot(sim$e.T)
   return(invisible(sim))
 }
 
 roadCLUS.buildLCPRoads <- function(sim){
-  print('build lcp roads')
   if(!is.null(sim$e.T)){
     t.len<-length(sim$e.T)/2
     #Think parralel foreach would work here?
     for(i in 1:t.len){
       #print(sim$landings[e.T[i,1],] )
       newRoad<-raster::raster(shortestPath(sim$trCost, sim$landings[e.T[i,1],], sim$landings[e.T[i,2],]))
-      sim$roads<- raster::merge(sim$roads, newRoad)
+      sim$roads<-mosaic(newRoad, sim$roads, fun=sum)
+      rm(newRoad)
+      gc()
     } 
   }else{
+    #combine the closest roads and the landings to find the least cost path between them
+    print("finding lcp")
+    rcXY<-SpatialPoints(sim$roads.close.XY, CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                         +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
     for(i in 1:length(sim$landings)){
-      #print(sim$landings[e.T[i,1],] )
-      newRoad<-raster::raster(shortestPath(sim$trCost, sim$landings[[i,1]], sim$landings[[i,2]]))
-      sim$roads<- raster::merge(sim$roads, newRoad)
+      newRoad<-raster::raster(gdistance::shortestPath(sim$trCost, sim$landings[i], rcXY[i]))*100
+      sim$roads<-mosaic(newRoad, sim$roads, fun=sum)
+      rm(newRoad)
+      gc()
     } 
   }
   sim$e.T<-NULL
