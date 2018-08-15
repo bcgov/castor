@@ -100,14 +100,17 @@ cutblockSeqPrepCLUS.getLandings <- function(sim) {
   landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + 1980) ##starting at 1980
     if(nrow(landings)>0){
       print(paste0('geting landings in: ', time(sim)))
-      sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+init=epsg:3005"))
+      sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0 "))
     }else{
       print(paste0('NO landings in: ', time(sim)))
       sim$landings<- NULL
     }
-  sim$landingsSimulated<-SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+init=epsg:3005"))
+  sim$landingsSimulated<-SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
    } else{
-    ras = raster::raster(sim$bbox, res =100, vals =0, crs = CRS("+init=epsg:3005") )
+    ras = raster::raster(sim$bbox, res =100, vals =0, crs = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0") )
     sim$landings<- xyFromCell(ras, as.integer(sample(1:ncell(ras), 5)), spatial=TRUE)
   }
   return(invisible(sim))
