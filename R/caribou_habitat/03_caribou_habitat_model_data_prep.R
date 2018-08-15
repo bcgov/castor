@@ -91,7 +91,24 @@ writeCutblockRaster <- function (harvest.year) {
       field = NULL, 
       background = 0
     ),
-    filename = paste0 ("caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_", harvest.year, ".tiff"),
+    filename = paste0 ("cutblocks\\cutblock_tiffs\\raster_cutblocks_", harvest.year, ".tiff"),
+    format = "GTiff", 
+    datatype = 'INT1U'
+  )
+}
+
+writeFireRaster <- function (fire.year) {
+  writeRaster (
+    fasterize (
+      dplyr::filter (
+        fire, 
+        FIRE_YEAR == fire.year
+      ), 
+      ProvRast,  
+      field = NULL, 
+      background = 0
+    ),
+    filename = paste0 ("fire\\fire_tiffs\\raster_fire_", fire.year, ".tiff"),
     format = "GTiff", 
     datatype = 'INT1U'
   )
@@ -145,15 +162,15 @@ cutblocks <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gd
 writeTableQuery (cutblocks, c ("human", "cutblocks_20180725"))
 
 cut.years <- sort (unique (cutblocks$HARVEST_YEAR)) # identify the cutblock years
-cut.years.for.raster <- cut.years[62:107]
+cut.years.for.raster <- cut.years[50:107]
 
-# need to fileter data by year because unable to run functions (see below) on full dataset
+# need to filter data by year because unable to run functions (see below) on full dataset
 cutblocks.2017 <- dplyr::filter (cutblocks, HARVEST_YEAR == 2017)
 ras.cutblocks.2017 <- fasterize (cutblocks.2017, ProvRast, 
                                  field = NULL,# raster cells that were cut get in 2017 get a value of 1
                                  background = 0) # unharvested raster cells get value = 0 
 raster::writeRaster (ras.cutblocks.2017, 
-                     filename = "caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_2017.tiff", 
+                     filename = "cutblocks\\cutblock_tiffs\\raster_cutblocks_2017.tiff", 
                      format = "GTiff", 
                      datatype = 'INT1U')
 # there appears to be memory issues with saivng to postgres, so saving as TIFFs for now
@@ -176,32 +193,127 @@ ras.cutblocks.pre.1957 <- fasterize (cutblocks.pre.1957, ProvRast,
                                       field = NULL,# raster cells that were cut get in 2017 get a value of 1
                                       background = 0) # unharvested raster cells get value = 0 
 raster::writeRaster (ras.cutblocks.pre.1957, 
-                     filename = "caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_pre1957.tiff", 
+                     filename = "cutblocks\\cutblock_tiffs\\raster_cutblocks_pre1957.tiff", 
                      format = "GTiff", 
                      datatype = 'INT1U')
-
-
-
-
-ras.cutblocks.2016 <- raster ("caribou_habitat_model\\cutblock_tiffs\\raster_cutblocks_2016.tif")
-
-plot (ras.cutblocks.2016)
-
-
-
-# create raster of each year a polygon could have been cut
-ras.cutblocks <- fasterize (cutblocks, ProvRast, 
-                            field = NULL, # raster cells that were cut get a value of 1
-                            by = "HARVEST_YEAR", # returns a RasterBrick with as many layers as unique values of the by column
-                            background = 0) # unharvested raster cells get value = 0 
 
 # calculate last year the raster was cut
 # ras.cutblocks <- fasterize (cutblocks, ProvRast, field = "HARVEST_YEAR" , 
 #                            fun = "last",
 #                            background = 0) # unharvested rasters get value = 0 
 
+#===================================================
+# Fire
+#==================================================
+fire <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                    layer = "fire_historic_20180725")
+writeTableQuery (fire, c ("disturbance", "fire_historic_20180725"))
+fire.years <- sort (unique (fire$FIRE_YEAR)) # identify the fire years
+fire.years.for.raster <- fire.years [41:101]
 
-# calculate area of cutblock 
+for (i in fire.years.for.raster) { # run through list for 1957 to 2017
+  writeFireRaster (i)
+  gc ()
+}
+
+fire.pre.1957 <- dplyr::filter (fire, FIRE_YEAR < 1957) # do one for all pre 1957 cutblocks
+ras.fire.pre.1957 <- fasterize (fire.pre.1957, ProvRast, 
+                                     field = NULL,# raster cells that were cut get in 2017 get a value of 1
+                                     background = 0) # unharvested raster cells get value = 0 
+raster::writeRaster (ras.fire.pre.1957, 
+                     filename = "fire\\fire_tiffs\\raster_cutblocks_pre1957.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
+gc ()
+
+#===================================================
+# Mines
+#==================================================
+# Use CE data
+
+
+
+#===================================================
+# Pipeline
+#==================================================
+
+# Built this following the CE protocol
+# completed analysis using ArcGIS
+
+# 1. WHSE_TANTALIS.TA_CROWN_TENURES_SVW
+#     Selection Criteria:
+#     TENURE_PURPOSE = 'UTILITY' AND TENURE_SUBPURPOSE = 'GAS AND OIL PIPELINE' AND 
+#     TENURE_TYPE <> 'RESERVE/NOTATION'
+#     Name in GDB: tantalis_crown_tenures_pipelines_20180814
+#     manually deleted PRGT and CGL
+
+# 2. WHSE_TANTALIS.TA_SURVEYED_ROW_PARCELS_SVW
+#     Selection Criteria:
+#     FEATURE_CODE = 'FA91300120' OR FEATURE_CODE = 'FA91400120'
+#     Name in GDB: tantalis_surveyed_row_pipelines_20180814
+
+# 3. WHSE_BASEMAPPING.TRIM_CULTURAL_LINES 
+#     Selection Criteria:
+#     FCODE = 'EA21400000' (i.e. pipeline)
+#     Name in GDB: trim_lines_pieplines_20180814
+
+# 4. pipeline_post2006_20180725
+#     Deleted PRGT adn CGL (not built yet)
+#     PROPONENT = 'Coastal GasLink Pipeline Ltd.' OR PROPONENT = 'Prince Rupert Gas Transmission Ltd.'
+
+# 5. pipeline_post2016_20180725
+#     Deleted PRGT adn CGL (not built yet)
+#     PROPONENT = 'Coastal GasLink Pipeline Ltd.' OR PROPONENT = 'Prince Rupert Gas Transmission Ltd.'
+
+
+# buffered 'tantalis_crown_tenures_pipelines_20180814' 30m each side (following CE protocol to remove overlaps <30m away)
+# clipped 'tantalis_surveyed_row_pipelines_20180814' by 30m buffered 'tantalis_crown_tenures_pipelines_20180814' = tantalis_surveyed_row_pipelines_clipped_20180814
+# merged 'tantalis_surveyed_row_pipelines_clipped_20180814' and 'tantalis_crown_tenures_pipelines_20180814' =
+# buffered '
+
+
+
+
+
+# 
+
+
+
+
+
+#===================================================
+# Wind Power
+#==================================================
+
+
+
+
+
+
+fire.years.for.raster <- fire.years [41:101]
+
+for (i in fire.years.for.raster) { # run through list for 1957 to 2017
+  writeFireRaster (i)
+  gc ()
+}
+
+fire.pre.1957 <- dplyr::filter (fire, FIRE_YEAR < 1957) # do one for all pre 1957 cutblocks
+ras.fire.pre.1957 <- fasterize (fire.pre.1957, ProvRast, 
+                                field = NULL,# raster cells that were cut get in 2017 get a value of 1
+                                background = 0) # unharvested raster cells get value = 0 
+raster::writeRaster (ras.fire.pre.1957, 
+                     filename = "fire\\fire_tiffs\\raster_cutblocks_pre1957.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
+gc ()
+
+
+
+
+
+
+
+
 
 
 
@@ -212,10 +324,7 @@ ras.cutblocks <- fasterize (cutblocks, ProvRast,
 
 # note clipped, VRI to caribou range boundaries in ArcGIS because full VRI too large for CPU to handle here
 vri <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
-                    layer = "vri_internal_20180725") # using the internal data, which includes TFLs
-
-
-
+                    layer = "vri_internal_bou_range_noHG_20180810") # using the internal data, which includes TFLs
 
 
 
@@ -236,12 +345,13 @@ roads.ce <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\roads\\BC
 vri <- readOGR (dsn = "C:\Work\caribou\climate_analysis\data\vri\vri\VEG_COMP_LYR_R1_POLY.gdb",
                 layer = "")
 
+#===================================================
+# Roads - get data from Kyle 
+#==================================================
 
-# roads <- readOGR ("roads\\DRA_DGTL_ROAD_ATLAS_DPAR_SP\\RA_DPAR_line.shp")
-# https://github.com/bcgov/bc-raster-roads
-roads.1k.rst <- raster ("roads\\dra_dens_1k_tif\\dra_dns_1km.tif")
-roads.27k.rst <- raster ("roads\\dra_dens_27km_tif\\dra_dns_27k.tif")
-cutblocks <- readOGR ("cutblocks\\VEG_CONSOLIDATED_CUT_BLOCKS_SP\\CNS_CUT_BL_polygon.shp")
+
+
+
 wells <- readOGR ("wells\\OG_WELL_FACILITY_PERMIT_SP\\OG_WEL_F_P_polygon.shp")
 
 dem <- raster ("C:\\Work\\caribou\\climate_analysis\\data\\dem\\104m16_w.dem")
