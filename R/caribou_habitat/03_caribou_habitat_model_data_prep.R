@@ -321,7 +321,6 @@ ras.pipline.na <- raster::mask (ras.pipeline, pipeline)
 ras.pipeline.dist <- raster::distance (ras.pipline.na, format = "GTiff", dataType = "INT4U")
 writeRasterQuery (c ("human", "raster_dist_to_pipeline"), ras.pipeline.dist)
 
-
 #===================================================
 # Wells and facilities
 #==================================================
@@ -376,13 +375,7 @@ seismic <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb"
                       layer = "seismic_ce_2015")
 seismic <- sf::st_cast (seismic, to = "MULTIPOLYGON")
 writeTableQuery (seismic, c ("human", "seismic_ce_2015"))
-
-
-
 seismic.buff100 <- sf::st_buffer (seismic, dist = 100)
-
-
-
 ras.seismic <- fasterize (seismic.buff100, ProvRast, 
                         field = NULL,# raster cells that are wells get a value of 1
                         background = 0) 
@@ -391,52 +384,127 @@ raster::writeRaster (ras.seismic,
                      format = "GTiff", 
                      datatype = 'INT1U',
                      overwrite = T)
-
-
-writeRasterQuery (c ("human", "raster_wells_facilities_20180815"), ras.wells)
+writeRasterQuery (c ("human", "raster_seismic_20180816"), ras.seismic)
 # didn't do a raster of distance to seismic because of high desity of seismic lines at a 1ha resolution
 
 #===================================================
 # Ski Resorts
 #==================================================
-# used the CE data, NE_Seismic and Remainder_Seismic merged together
-
-
+ski <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "ski_resorts_20180813")
+writeTableQuery (ski, c ("human", "ski_resorts_20180813"))
+ski.buff100 <- sf::st_buffer (ski, dist = 100)
+ras.ski <- fasterize (ski.buff100, ProvRast, 
+                          field = NULL,# raster cells that are wells get a value of 1
+                          background = 0) 
+raster::writeRaster (ras.ski, 
+                     filename = "ski\\raster_ski_resorts_20180816.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_ski_resorts_20180816"), ras.ski)
 
 #===================================================
-# Powerplants/Wind power
+# Wind power
 #==================================================
+power.100 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                          layer = "powerplant_100mw_20180816")
+power.1 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                          layer = "power_renewable_1mw_20180816")
 
-# select by country and province adn wind type
+# select by country and province and wind type
+power.100.wind <- dplyr::filter (power.100, Country == "Canada")
+power.100.wind <- dplyr::filter (power.100.wind, StateProv == "British Columbia")
+power.100.wind <- dplyr::filter (power.100.wind, PrimSource == "Wind")
 
+power.1.wind <- dplyr::filter (power.1, Country == "Canada")
+power.1.wind <- dplyr::filter (power.1.wind, StateProv == "British Columbia")
+power.1.wind <- dplyr::filter (power.1.wind, PrimSource == "Wind")
 
+power.wind <- rbind (power.100.wind, power.1.wind) # merge the SF Objects into 1
+power.wind <- st_transform (power.wind, 3005) # project to BC Albers
 
-
-fire.years.for.raster <- fire.years [41:101]
-
-for (i in fire.years.for.raster) { # run through list for 1957 to 2017
-  writeFireRaster (i)
-  gc ()
-}
-
-fire.pre.1957 <- dplyr::filter (fire, FIRE_YEAR < 1957) # do one for all pre 1957 cutblocks
-ras.fire.pre.1957 <- fasterize (fire.pre.1957, ProvRast, 
-                                field = NULL,# raster cells that were cut get in 2017 get a value of 1
-                                background = 0) # unharvested raster cells get value = 0 
-raster::writeRaster (ras.fire.pre.1957, 
-                     filename = "fire\\fire_tiffs\\raster_cutblocks_pre1957.tiff", 
+writeTableQuery (power.wind, c ("human", "wind_power_20180817"))
+power.wind.buff100 <- sf::st_buffer (power.wind, dist = 100)
+ras.wind <- fasterize (power.wind.buff100, ProvRast, 
+                       field = NULL,# raster cells that are wells get a value of 1
+                       background = 0) 
+raster::writeRaster (ras.wind, 
+                     filename = "wind\\raster_wind_power_20180816.tiff", 
                      format = "GTiff", 
-                     datatype = 'INT1U')
-gc ()
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_wind_power_20180816"), ras.wind)
+
+#===================================================
+# Transmission Lines
+#==================================================
+trans.line <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                          layer = "transmission_line_20180725")
+writeTableQuery (trans.line, c ("human", "transmission_line_20180817"))
+trans.line.buff100 <- sf::st_buffer (trans.line, dist = 100)
+ras.trans.line <- fasterize (trans.line.buff100, ProvRast, 
+                              field = NULL,# raster cells that are wells get a value of 1
+                              background = 0) 
+raster::writeRaster (ras.trans.line, 
+                     filename = "transmission_line\\raster_transmission_line_20180816.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_transmission_line_20180816"), ras.trans.line)
+
+#===================================================
+# Railway
+#==================================================
+rail <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                           layer = "railway_20180725")
+writeTableQuery (rail, c ("human", "railway_20180817"))
+rail.buff100 <- sf::st_buffer (rail, dist = 100)
+ras.rail <- fasterize (rail.buff100, ProvRast, 
+                       field = NULL,# raster cells that are wells get a value of 1
+                       background = 0) 
+raster::writeRaster (ras.rail, 
+                     filename = "railway\\raster_railway_20180816.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_railway_20180816"), ras.rail)
+
+#===================================================
+# Watercourses
+#==================================================
+water <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                     layer = "watercourses_20180817")
+writeTableQuery (rail, c ("water", "watercourses_20180817"))
+water.buff100 <- sf::st_buffer (water, dist = 100)
+ras.water <- fasterize (water.buff100, ProvRast, 
+                        field = NULL,# raster cells that are wells get a value of 1
+                        background = 0) 
+raster::writeRaster (ras.water, 
+                     filename = "water\\raster_watercourses_20180816.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("water", "raster_watercourses_20180816.tiff"), ras.water)
+
+#===================================================
+# Lakes
+#==================================================
+lakes <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                      layer = "lakes_20180817")
+# filter? lakes.10ha <- dplyr::filter (lakes, AREA > )
 
 
-
-
-
-
-
-
-
+writeTableQuery (lakes, c ("water", "lakes_20180817"))
+ras.lakes <- fasterize (lakes, ProvRast, 
+                        field = NULL,# raster cells that are wells get a value of 1
+                        background = 0) 
+raster::writeRaster (ras.lakes, 
+                     filename = "water\\raster_lakes_20180816.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("water", "raster_lakes_20180816.tiff"), ras.water)
 
 
 

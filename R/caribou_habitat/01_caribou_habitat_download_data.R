@@ -118,9 +118,18 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 
 # Powerplants/Clean Energy
 # https://open.canada.ca/data/en/dataset/490db619-ab58-4a2a-a245-2376ce1840de
-# Name in GDB:
+# Name in GDB: power_renewable_1mw_20180816
 # https://open.canada.ca/data/en/dataset/40fbe40c-01cd-49d3-8add-0d20ed64c90d
-# Name in GDB:
+# Name in GDB: powerplant_100mw_20180816
+
+# Watercourses
+# https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm
+# Name in GDB: watercourses_20180817
+
+# Lakes
+# https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm
+# Name in GDB: lakes_20180817
+
 
 ############################
 # Cumulative Effects Data #
