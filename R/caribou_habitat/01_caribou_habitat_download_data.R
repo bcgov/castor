@@ -74,6 +74,10 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # Name in GDB: oil_gas_facility_post2016_20180725
 # Before 2016: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pre-2016-facility-locations>
 # Name in GDB: oil_gas_facility_pre2016_20180725
+# Historic <https://catalogue.data.gov.bc.ca/dataset/trim-cultural-points>
+# Name in GDB: trim_points_20180815
+# Well surface holes:  <https://catalogue.data.gov.bc.ca/dataset/well-surface-hole-status>
+# Name in GDB: well_surface_hole_20180815
 
 # Trasnmission Lines; downloaded 25 July 2018
 # <https://catalogue.data.gov.bc.ca/dataset/bc-transmission-lines>
@@ -100,7 +104,6 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # Name in GDB: minfile_20180813
 # http://www.empr.gov.bc.ca/Mining/Geoscience/MINFILE/ProductsDownloads/MINFILEDocumentation/CodingManual/Pages/default.aspx
 
-
 # Pipelines; downloaded 25 July 2018
 # After 2006: <https://catalogue.data.gov.bc.ca/dataset/oil-and-gas-commission-pipeline-right-of-way-permits>
 # Name in GDB: pipeline_post2006_20180725
@@ -115,7 +118,9 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 
 # Powerplants/Clean Energy
 # https://open.canada.ca/data/en/dataset/490db619-ab58-4a2a-a245-2376ce1840de
+# Name in GDB:
 # https://open.canada.ca/data/en/dataset/40fbe40c-01cd-49d3-8add-0d20ed64c90d
+# Name in GDB:
 
 ############################
 # Cumulative Effects Data #
@@ -128,7 +133,9 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # Mines
 # Name in GDB: ce_mine_2015_20180814
 
-
+# Seismic data
+# NE_Seismic and Remainder_Seismic merged together
+# Name in GDB: seismic_ce_2015
 
 ###################################
 # Data downloadable from websites #

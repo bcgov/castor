@@ -230,16 +230,34 @@ gc ()
 # Mines
 #==================================================
 # Use CE data
-
+mine <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                     layer = "ce_mine_2015_20180814")
+writeTableQuery (mine, c ("human", "mines_ce_2015"))
+# raster of mines
+ras.mine <- fasterize (mine, ProvRast, 
+                       field = NULL,# raster cells that are mines get a value of 1
+                       background = 0) 
+raster::writeRaster (ras.mine, 
+                     filename = "mine\\raster_mines_ce_2015.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
+writeRasterQuery (c ("human", "raster_mines_ce_2015"), ras.mine)
+# raster of distance to mines
+# make values NA where mine polygon intesects raster
+ras.mine.na <- raster::mask (ras.mine, mine)
+# calculate distance to mine
+# NOTE: the task below was done uisng QGIS as my computer maxed-out on RAM when trying to run this function in R
+ras.mine.dist <- raster::distance (ras.mine.na, format = "GTiff", dataType = "INT4U")
+writeRasterQuery (c ("human", "raster_dist_to_mines_ce_2015"), ras.mine.dist)
 
 
 #===================================================
 # Pipeline
 #==================================================
-
 # Built this following the CE protocol
-# completed analysis using ArcGIS
+# Completed the following analysis using ArcGIS
 
+# Data sources
 # 1. WHSE_TANTALIS.TA_CROWN_TENURES_SVW
 #     Selection Criteria:
 #     TENURE_PURPOSE = 'UTILITY' AND TENURE_SUBPURPOSE = 'GAS AND OIL PIPELINE' AND 
@@ -265,27 +283,131 @@ gc ()
 #     Deleted PRGT adn CGL (not built yet)
 #     PROPONENT = 'Coastal GasLink Pipeline Ltd.' OR PROPONENT = 'Prince Rupert Gas Transmission Ltd.'
 
-
+# ArcGIS steps:
 # buffered 'tantalis_crown_tenures_pipelines_20180814' 30m each side (following CE protocol to remove overlaps <30m away)
-# clipped 'tantalis_surveyed_row_pipelines_20180814' by 30m buffered 'tantalis_crown_tenures_pipelines_20180814' = tantalis_surveyed_row_pipelines_clipped_20180814
-# merged 'tantalis_surveyed_row_pipelines_clipped_20180814' and 'tantalis_crown_tenures_pipelines_20180814' =
-# buffered '
+# erase 'tantalis_surveyed_row_pipelines_20180814' within 30m buffered 'tantalis_crown_tenures_pipelines_20180814' = tantalis_surveyed_row_pipelines_erased30m_20180814
+# merged 'tantalis_surveyed_row_pipelines_erased30m_20180814' and 'tantalis_crown_tenures_pipelines_20180814' = tantalis_all_pipelines_20180815
+# buffered 'tantalis_all_pipelines_20180815' 30m each side = tantalis_all_pipelines_buff30m_20180815
+# erase 'pipeline_post2006_20180725' within 30m buffered 'tantalis_all_pipelines_buff30m_20180815' = pipeline_post2006_erase_20180815
+# merged 'tantalis_all_pipelines_20180815' and 'pipeline_post2006_erase_20180815' = all_pipelines_2006_20180815
+# buffered pipeline_post2016_20180725' by 15m each side to polygonize line data = pipeline_post2016_buff15m_20180815
+# buffered 'trim_lines_pieplines_20180814' by 15m each side to polygonize line data = trim_lines_pipelines_buff15m_20180814
+# buffered 'all_pipelines_2006_20180815' 30m each side = all_pipelines_2006_buff30m_20180815
+# erase 'trim_lines_pipelines_buff15m_20180814' within 30m buffered 'all_pipelines_2006_buff30m_20180815' = trim_lines_pipelines_buff15m_erase_20180815
+# merged 'all_pipelines_2006_20180815' and 'trim_lines_pipelines_buff15m_erase_20180815' = pipelines_all_v2_20180815
+# buffered 'pipelines_all_v2_20180815' 30m each side = pipelines_all_v2_buff30m_20180815
+# erase 'pipeline_post2016_buff15m_20180815' within 30m buffered 'pipelines_all_v2_buff30m_20180815' = pipeline_post2016_buff15m_erase_20180815
+# merged 'pipeline_post2016_buff15m_erase_20180815' and 'pipeline_post2016_buff15m_20180815' = pipelines_final_20180815
+# buffered by 50m for rasterziation; unbuffered resulted in some raster cells getting a 0 value for pipeline = pipelines_all_final_buff50m_20180815
+pipeline <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                     layer = "pipelines_all_final_buff50m_20180815")
+pipeline <- sf::st_cast (pipeline, to = "MULTIPOLYGON") # this converts from "MULTISURFACE"
+writeTableQuery (pipeline, c ("human", "pipelines_20180815"))
+# raster of pipelines
+ras.pipeline <- fasterize (pipeline, ProvRast, 
+                            field = NULL,# raster cells that are pipelines get a value of 1
+                            background = 0) 
+raster::writeRaster (ras.pipeline, 
+                     filename = "pipelines\\raster_pipelines_20180815.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_pipelines_20180815"), ras.pipeline)
+# raster of distance to pipelines
+# make values NA where pipeline polygon intesects raster
+ras.pipline.na <- raster::mask (ras.pipeline, pipeline)
+# calculate distance to pipelines
+# NOTE: the task below was done uisng QGIS Raster>Analysis>Proximity(raster Distance) tool, as my computer maxed-out on RAM when trying to run this function in R
+ras.pipeline.dist <- raster::distance (ras.pipline.na, format = "GTiff", dataType = "INT4U")
+writeRasterQuery (c ("human", "raster_dist_to_pipeline"), ras.pipeline.dist)
+
+
+#===================================================
+# Wells and facilities
+#==================================================
+
+# Built this following the CE protocol
+# Completed the following analysis using ArcGIS
+
+# Buffered 'oil_gas_facility_pre2016_20180725' by 30m = 'oil_gas_facility_pre2016_buff30m_20180725'
+# Erased 'oil_gas_facility_post2016_20180725' within oil_gas_facility_pre2016_buff30m_20180725 = oil_gas_facility_post2016_erase_20180725
+# Merged oil_gas_facility_pre2016_20180725 and oil_gas_facility_post2016_erase_20180725 = oil_gas_facility_all_20180725
+# Buffered 'oil_gas_facility_all_20180725' by 30m = 'oil_gas_facility_all_buff30m_20180816'
+# Erased 'well_surface_hole_20180815' within 'oil_gas_facility_all_buff30m_20180816' = well_surface_hole_erase_20180815
+# Merged oil_gas_facility_all_20180725 with well_surface_hole_erase_20180815 = oil_gas_facility_wells_all_20180816
+# Buffered oil_gas_facility_wells_all_20180816 by 30m = oil_gas_facility_wells_all_buff30m_20180816
+# Erased trim_points_wells_20180815 within oil_gas_facility_wells_all_buff30m_20180816 = trim_points_wells_erase_20180815
+# converted oil_gas_facility_wells_all_point_20180816 from MULTIPOINT to POINT = oil_gas_facility_wells_all_point_20180816
+# Merged oil_gas_facility_wells_all_20180816 and trim_points_wells_erase_20180815 = oil_gas_facility_wells_final_20180816
+# Buffered by 50m to re-create well pad = oil_gas_facility_wells_final_poly_20180816
+# Buffered by 100m for rasterization = oil_gas_facility_wells_final_buff100m_20180816
+
+wells <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                         layer = "oil_gas_facility_wells_final_poly_20180816")
+wells <- sf::st_cast (wells, to = "MULTIPOLYGON")
+writeTableQuery (wells, c ("human", "oil_gas_facility_wells_20180815"))
+# raster of pipelines
+wells <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                      layer = "oil_gas_facility_wells_final_buff100m_20180816")
+gc ()
+wells <- sf::st_cast (wells, to = "MULTIPOLYGON")
+ras.wells <- fasterize (wells, ProvRast, 
+                        field = NULL,# raster cells that are wells get a value of 1
+                        background = 0) 
+raster::writeRaster (ras.wells, 
+                     filename = "wells\\raster_wells_facilities_20180815.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_wells_facilities_20180815"), ras.wells)
+# raster of distance to wells
+# make values NA where well polygon intesects raster
+ras.wells.na <- raster::mask (ras.wells, wells)
+# calculate distance to mine
+# NOTE: the task below was done uisng QGIS as my computer maxed-out on RAM when trying to run this function in R
+ras.wells.dist <- raster::distance (ras.wells.na, format = "GTiff", dataType = "INT4U")
+writeRasterQuery (c ("human", "raster_dist_to_pipeline"), ras.wells.dist)
+
+#===================================================
+# Seismic lines
+#==================================================
+# used the CE data, NE_Seismic and Remainder_Seismic merged together
+seismic <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                      layer = "seismic_ce_2015")
+seismic <- sf::st_cast (seismic, to = "MULTIPOLYGON")
+writeTableQuery (seismic, c ("human", "seismic_ce_2015"))
 
 
 
+seismic.buff100 <- sf::st_buffer (seismic, dist = 100)
 
 
-# 
+
+ras.seismic <- fasterize (seismic.buff100, ProvRast, 
+                        field = NULL,# raster cells that are wells get a value of 1
+                        background = 0) 
+raster::writeRaster (ras.seismic, 
+                     filename = "seismic\\raster_seismic_20180816.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
 
 
+writeRasterQuery (c ("human", "raster_wells_facilities_20180815"), ras.wells)
+# didn't do a raster of distance to seismic because of high desity of seismic lines at a 1ha resolution
+
+#===================================================
+# Ski Resorts
+#==================================================
+# used the CE data, NE_Seismic and Remainder_Seismic merged together
 
 
 
 #===================================================
-# Wind Power
+# Powerplants/Wind power
 #==================================================
 
-
+# select by country and province adn wind type
 
 
 
