@@ -475,9 +475,8 @@ writeRasterQuery (c ("human", "raster_railway_20180816"), ras.rail)
 #==================================================
 water <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                      layer = "watercourses_20180817")
-writeTableQuery (rail, c ("water", "watercourses_20180817"))
-water.buff100 <- sf::st_buffer (water, dist = 100)
-ras.water <- fasterize (water.buff100, ProvRast, 
+writeTableQuery (water, c ("water", "watercourses_20180817"))
+ras.water <- fasterize (water, ProvRast, 
                         field = NULL,# raster cells that are wells get a value of 1
                         background = 0) 
 raster::writeRaster (ras.water, 
@@ -485,7 +484,7 @@ raster::writeRaster (ras.water,
                      format = "GTiff", 
                      datatype = 'INT1U',
                      overwrite = T)
-writeRasterQuery (c ("water", "raster_watercourses_20180816.tiff"), ras.water)
+writeRasterQuery (c ("water", "raster_watercourses_20180816"), ras.water)
 
 #===================================================
 # Lakes
@@ -493,8 +492,6 @@ writeRasterQuery (c ("water", "raster_watercourses_20180816.tiff"), ras.water)
 lakes <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                       layer = "lakes_20180817")
 # filter? lakes.10ha <- dplyr::filter (lakes, AREA > )
-
-
 writeTableQuery (lakes, c ("water", "lakes_20180817"))
 ras.lakes <- fasterize (lakes, ProvRast, 
                         field = NULL,# raster cells that are wells get a value of 1
@@ -504,36 +501,53 @@ raster::writeRaster (ras.lakes,
                      format = "GTiff", 
                      datatype = 'INT1U',
                      overwrite = T)
-writeRasterQuery (c ("water", "raster_lakes_20180816.tiff"), ras.water)
+writeRasterQuery (c ("water", "raster_lakes_20180816"), ras.lakes)
 
+#===================================================
+# Agriculture
+#==================================================
+agriculture <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                      layer = "agriculture_ce_2015")
+writeTableQuery (agriculture, c ("human", "agriculture_ce_2015"))
+ras.agriculture <- fasterize (agriculture, ProvRast, 
+                        field = NULL,# raster cells that are wells get a value of 1
+                        background = 0) 
+raster::writeRaster (ras.agriculture, 
+                     filename = "agriculture\\agriculture_ce_2015.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "agriculture_ce_2015"), ras.agriculture)
 
 
 #===================================================
-# VRI
+# VRI - data from Kyle's postgres
 #==================================================
+drv <- dbDriver ("PostgreSQL")
+connKyle <- dbConnect(drv, 
+                      host = "DC052586",
+                      user = "Tyler",
+                      dbname = "clus",
+                      password = "tyler",
+                      port = "5432")
 
-# note clipped, VRI to caribou range boundaries in ArcGIS because full VRI too large for CPU to handle here
-vri <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
-                    layer = "vri_internal_bou_range_noHG_20180810") # using the internal data, which includes TFLs
+vri.bclcs <- sf::st_read (connKyle, 
+                          query = "SELECT bclcs_level_1, bclcs_level_2, 
+                          bclcs_level_3, bclcs_level_4, bclcs_level_5
+                          FROM public.veg_comp_lyr_l1_poly") 
+
+vri.bclcs1 <- sf::st_read (connKyle, 
+                          query = "SELECT bclcs_level_1
+                          FROM public.veg_comp_lyr_l1_poly") 
+
+vri <- sf::st_read (connKyle, 
+                           query = "SELECT *
+                           FROM public.veg_comp_lyr_l1_poly") 
 
 
 
 
-dem.ha.bc <- raster::resample (dem.all, ProvRast, method = "ngb") # nearest neighbour resampling
-raster::writeRaster (dem.ha.bc, filename = "all_bc\\dem_ha_bc.tif", format = "GTiff", overwrite = T)
 
-
-
-
-caribou.range <- readOGR ("caribou\\caribou_herd\\GCPB_CARIBOU_POPULATION_SP\\GCBP_CARIB_polygon.shp", 
-                          stringsAsFactors = T)
-prov.bnd <- readOGR ("province\\gpr_000b11a_e.shp", stringsAsFactors = T)
-bec.current <- readOGR ("bec\\BEC_current\\BEC_BIOGEOCLIMATIC_POLY\\BEC_POLY_polygon.shp", 
-                          stringsAsFactors = T)
-roads.ce <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\roads\\BC_CE_IntegratedRoads_2017_v1_20170214.gdb",
-                     layer = "integrated_roads") 
-vri <- readOGR (dsn = "C:\Work\caribou\climate_analysis\data\vri\vri\VEG_COMP_LYR_R1_POLY.gdb",
-                layer = "")
 
 #===================================================
 # Roads - get data from Kyle 
@@ -564,15 +578,58 @@ pgWriteRast (conn, "slope_all_bc", slope, overwrite = TRUE)
 
 
 
+#===================================================
+# Put 'distance to rasters' in postgres
+#==================================================
+mine <- raster ("mine\\raster_distance_to_mines_ce_2015_bcalbers.tif")
+writeRasterQuery (c ("human", "raster_distance_to_mines_ce_2015_bcalbers"), mine)
+rm (mine)
+gc ()
 
-drv <- dbDriver ("PostgreSQL")
-conn <- dbConnect(drv, 
-                  host = "DC052586", # Kyle's computer name
-                  user = "Tyler",
-                  dbname = "postgres",
-                  password = "tyler",
-                  port = "5432")
-dbListTables (conn)
+pipeline <- raster ("pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
+writeRasterQuery (c ("human", "raster_distance_to_pipelines_bcalbers_20180815"), pipeline)
+rm (pipeline)
+gc ()
+
+rail <- raster ("railway\\raster_dist_to_railway_bcalbers_20180820.tif")
+writeRasterQuery (c ("human", "raster_dist_to_railway_bcalbers_20180820"), rail)
+rm (rail)
+gc ()
+
+ski <- raster ("ski\\raster_dist_to_ski_resorts_bcalbers_20180816.tif")
+writeRasterQuery (c ("human", "raster_dist_to_ski_resorts_bcalbers_20180816"), ski)
+rm (ski)
+gc ()
+
+powerline <- raster ("transmission_line\\raster_dist_to_transmission_line_bcalbers_20180816.tif")
+writeRasterQuery (c ("human", "raster_dist_to_transmission_line_bcalbers_20180816"), powerline)
+rm (powerline)
+gc ()
+
+water <- raster ("water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
+writeRasterQuery (c ("water", "raster_dist_to_watercourses_bcalbers_20180820"), water)
+rm (water)
+gc ()
+
+wells <- raster ("wells\\raster_distance _to_wells_facilities_bcalbers_20180815.tif")
+writeRasterQuery (c ("human", "raster_distance _to_wells_facilities_bcalbers_20180815"), wells)
+rm (wells)
+gc ()
+
+wind <- raster ("wind\\raster_distance_to_wind_power_bcalbers_20180816.tif")
+writeRasterQuery (c ("human", "raster_distance_to_wind_power_bcalbers_20180816"), wind)
+rm (wind)
+gc ()
+
+
+lake <- raster ("water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
+writeRasterQuery (c ("water", "raster_dist_to_watercourses_bcalbers_20180820"), lake)
+rm (lake)
+gc ()
+
+
+
+
 
 rpostgispgWriteRast (conn = con, 
                      name = "dem_all_bc",
