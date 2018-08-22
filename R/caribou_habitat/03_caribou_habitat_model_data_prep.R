@@ -513,11 +513,34 @@ ras.agriculture <- fasterize (agriculture, ProvRast,
                         field = NULL,# raster cells that are wells get a value of 1
                         background = 0) 
 raster::writeRaster (ras.agriculture, 
-                     filename = "agriculture\\agriculture_ce_2015.tiff", 
+                     filename = "agriculture\\raster_agriculture_ce_2015.tiff", 
                      format = "GTiff", 
                      datatype = 'INT1U',
                      overwrite = T)
-writeRasterQuery (c ("human", "agriculture_ce_2015"), ras.agriculture)
+writeRasterQuery (c ("human", "raster_agriculture_ce_2015"), ras.agriculture)
+
+
+#===================================================
+# Beetle damage
+#==================================================
+
+agriculture <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                            layer = "agriculture_ce_2015")
+writeTableQuery (agriculture, c ("human", "agriculture_ce_2015"))
+ras.agriculture <- fasterize (agriculture, ProvRast, 
+                              field = NULL,# raster cells that are wells get a value of 1
+                              background = 0) 
+raster::writeRaster (ras.agriculture, 
+                     filename = "agriculture\\raster_agriculture_ce_2015.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("human", "raster_agriculture_ce_2015"), ras.agriculture)
+
+
+
+
+
 
 
 #===================================================
@@ -612,7 +635,7 @@ rm (water)
 gc ()
 
 wells <- raster ("wells\\raster_distance _to_wells_facilities_bcalbers_20180815.tif")
-writeRasterQuery (c ("human", "raster_distance _to_wells_facilities_bcalbers_20180815"), wells)
+writeRasterQuery (c ("human", "raster_distance_to_wells_facilities_bcalbers_20180815"), wells)
 rm (wells)
 gc ()
 
@@ -621,10 +644,14 @@ writeRasterQuery (c ("human", "raster_distance_to_wind_power_bcalbers_20180816")
 rm (wind)
 gc ()
 
-
 lake <- raster ("water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
 writeRasterQuery (c ("water", "raster_dist_to_watercourses_bcalbers_20180820"), lake)
 rm (lake)
+gc ()
+
+ras.agriculture <- raster ("agriculture\\agriculture_ce_2015.tif")
+writeRasterQuery (c ("human", "raster_dist_to_agriculture_bcalbers_ce_2015"), ras.agriculture)
+rm (ras.agriculture)
 gc ()
 
 

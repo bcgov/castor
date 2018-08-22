@@ -248,6 +248,63 @@ unzip ("mountain_pine_beetle\\2007.zip",
        exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2007")
 file.remove ("mountain_pine_beetle\\2007.zip")
 
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2006/fhdata_2006_final.zip",
+          dest = "mountain_pine_beetle\\2006.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2006.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2006")
+file.remove ("mountain_pine_beetle\\2006.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2005/Final/fhfdata_2005.zip",
+          dest = "mountain_pine_beetle\\2005.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2005.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2005")
+file.remove ("mountain_pine_beetle\\2005.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2004/fhf_complete_dataset_20050218.zip",
+          dest = "mountain_pine_beetle\\2004.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2004.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2004")
+file.remove ("mountain_pine_beetle\\2004.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip",
+          dest = "mountain_pine_beetle\\2003.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2003.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2003")
+file.remove ("mountain_pine_beetle\\2003.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2002/fhf-nov15-2002.zip",
+          dest = "mountain_pine_beetle\\2002.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2002.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2002")
+file.remove ("mountain_pine_beetle\\2002.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2001/shape_files/fhdata2001.zip",
+          dest = "mountain_pine_beetle\\2001.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2001.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2001")
+file.remove ("mountain_pine_beetle\\2001.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2000/provincial_data/shape.zip",
+          dest = "mountain_pine_beetle\\2000.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2000.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2000")
+file.remove ("mountain_pine_beetle\\2000.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/1999/shape/Prov_Shape.zip",
+          dest = "mountain_pine_beetle\\1999.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\1999.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\1999")
+file.remove ("mountain_pine_beetle\\1999.zip")
+# NAmes in gdb: mpb_2017 to mpb_1999
+
 ###########################
 # Caribou telemetry data #
 #########################
