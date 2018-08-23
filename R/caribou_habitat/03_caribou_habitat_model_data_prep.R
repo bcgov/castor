@@ -491,7 +491,6 @@ writeRasterQuery (c ("water", "raster_watercourses_20180816"), ras.water)
 #==================================================
 lakes <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                       layer = "lakes_20180817")
-# filter? lakes.10ha <- dplyr::filter (lakes, AREA > )
 writeTableQuery (lakes, c ("water", "lakes_20180817"))
 ras.lakes <- fasterize (lakes, ProvRast, 
                         field = NULL,# raster cells that are wells get a value of 1
@@ -523,25 +522,866 @@ writeRasterQuery (c ("human", "raster_agriculture_ce_2015"), ras.agriculture)
 #===================================================
 # Beetle damage
 #==================================================
+# focussed on four major bark beetles that cause damage:
+# Mountain pine beetle (IBM), spruce beetle (IBS), dougals-fir beetle (IBD ) and western balsam bark beetle (IBB)
+# https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/forest-pests/bark-beetles
+# Also Babita Bains, pers. comm. suggested bark beetles are most signfciant issue; 
+# also, only really feasible to measure mortality severity form aerial
 
-agriculture <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
-                            layer = "agriculture_ce_2015")
-writeTableQuery (agriculture, c ("human", "agriculture_ce_2015"))
-ras.agriculture <- fasterize (agriculture, ProvRast, 
-                              field = NULL,# raster cells that are wells get a value of 1
-                              background = 0) 
-raster::writeRaster (ras.agriculture, 
-                     filename = "agriculture\\raster_agriculture_ce_2015.tiff", 
+#########
+# 2017 #
+#######
+fh.2017 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2017")
+writeTableQuery (fh.2017, c ("vegetation", "forest_health_2017"))
+bark.beetles.2017 <- dplyr::filter (fh.2017, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                             FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                             FHF == "IBW")
+bark.beetles.vs.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "V")
+ras.bark.beetles.vs.2017 <- fasterize (bark.beetles.vs.2017, ProvRast, 
+                                    field = NULL,# raster cells that are wells get a value of 1
+                                    background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2017, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2017.tiff", 
                      format = "GTiff", 
                      datatype = 'INT1U',
                      overwrite = T)
-writeRasterQuery (c ("human", "raster_agriculture_ce_2015"), ras.agriculture)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2017"), ras.bark.beetles.vs.2017)
 
+bark.beetles.s.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "S")
+ras.bark.beetles.s.2017 <- fasterize (bark.beetles.s.2017, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2017, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2017.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2017"), ras.bark.beetles.s.2017)
 
+bark.beetles.m.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "M")
+ras.bark.beetles.m.2017 <- fasterize (bark.beetles.m.2017, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2017, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2017.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2017"), ras.bark.beetles.m.2017)
+rm (fh.2017, bark.beetles.2017, bark.beetles.s.2017, bark.beetles.vs.2017, bark.beetles.m.2017,
+    ras.bark.beetles.m.2017, ras.bark.beetles.s.2017, ras.bark.beetles.vs.2017)
+gc ()
 
+#########
+# 2016 #
+#######
+fh.2016 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2016")
+writeTableQuery (fh.2016, c ("vegetation", "forest_health_2016"))
+bark.beetles.2016 <- dplyr::filter (fh.2016, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2016 <- dplyr::filter (bark.beetles.2016, SEVERITY == "V")
+ras.bark.beetles.vs.2016 <- fasterize (bark.beetles.vs.2016, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2016, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2016.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2016"), ras.bark.beetles.vs.2016)
 
+bark.beetles.s.2016 <- dplyr::filter (bark.beetles.2016, SEVERITY == "S")
+ras.bark.beetles.s.2016 <- fasterize (bark.beetles.s.2016, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2016, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2016.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2016"), ras.bark.beetles.s.2016)
 
+bark.beetles.m.2016 <- dplyr::filter (bark.beetles.2016, SEVERITY == "M")
+ras.bark.beetles.m.2016 <- fasterize (bark.beetles.m.2016, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2016, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2016.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2016"), ras.bark.beetles.m.2016)
+rm (fh.2016, bark.beetles.2016, bark.beetles.s.2016, bark.beetles.vs.2016, bark.beetles.m.2016,
+    ras.bark.beetles.m.2016, ras.bark.beetles.s.2016, ras.bark.beetles.vs.2016)
+gc ()
 
+#########
+# 2015 #
+#######
+fh.2015 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2015")
+writeTableQuery (fh.2015, c ("vegetation", "forest_health_2015"))
+bark.beetles.2015 <- dplyr::filter (fh.2015, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2015 <- dplyr::filter (bark.beetles.2015, SEVERITY == "V")
+ras.bark.beetles.vs.2015 <- fasterize (bark.beetles.vs.2015, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2015, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2015.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2015"), ras.bark.beetles.vs.2015)
+
+bark.beetles.s.2015 <- dplyr::filter (bark.beetles.2015, SEVERITY == "S")
+ras.bark.beetles.s.2015 <- fasterize (bark.beetles.s.2015, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2015, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2015.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2015"), ras.bark.beetles.s.2015)
+
+bark.beetles.m.2015 <- dplyr::filter (bark.beetles.2015, SEVERITY == "M")
+ras.bark.beetles.m.2015 <- fasterize (bark.beetles.m.2015, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2015, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2015.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2015"), ras.bark.beetles.m.2015)
+rm (fh.2015, bark.beetles.2015, bark.beetles.s.2015, bark.beetles.vs.2015, bark.beetles.m.2015,
+    ras.bark.beetles.m.2015, ras.bark.beetles.s.2015, ras.bark.beetles.vs.2015)
+gc ()
+
+#########
+# 2014 #
+#######
+fh.2014 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2014")
+writeTableQuery (fh.2014, c ("vegetation", "forest_health_2014"))
+bark.beetles.2014 <- dplyr::filter (fh.2014, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2014 <- dplyr::filter (bark.beetles.2014, SEVERITY == "V")
+ras.bark.beetles.vs.2014 <- fasterize (bark.beetles.vs.2014, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2014, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2014.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2014"), ras.bark.beetles.vs.2014)
+
+bark.beetles.s.2014 <- dplyr::filter (bark.beetles.2014, SEVERITY == "S")
+ras.bark.beetles.s.2014 <- fasterize (bark.beetles.s.2014, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2014, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2014.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2014"), ras.bark.beetles.s.2014)
+
+bark.beetles.m.2014 <- dplyr::filter (bark.beetles.2014, SEVERITY == "M")
+ras.bark.beetles.m.2014 <- fasterize (bark.beetles.m.2014, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2014, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2014.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2014"), ras.bark.beetles.m.2014)
+rm (fh.2014, bark.beetles.2014, bark.beetles.s.2014, bark.beetles.vs.2014, bark.beetles.m.2014,
+    ras.bark.beetles.m.2014, ras.bark.beetles.s.2014, ras.bark.beetles.vs.2014)
+gc ()
+
+#########
+# 2013 #
+#######
+fh.2013 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2013")
+writeTableQuery (fh.2013, c ("vegetation", "forest_health_2013"))
+bark.beetles.2013 <- dplyr::filter (fh.2013, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2013 <- dplyr::filter (bark.beetles.2013, SEVERITY == "V")
+ras.bark.beetles.vs.2013 <- fasterize (bark.beetles.vs.2013, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2013, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2013.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2013"), ras.bark.beetles.vs.2013)
+
+bark.beetles.s.2013 <- dplyr::filter (bark.beetles.2013, SEVERITY == "S")
+ras.bark.beetles.s.2013 <- fasterize (bark.beetles.s.2013, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2013, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2013.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2013"), ras.bark.beetles.s.2013)
+
+bark.beetles.m.2013 <- dplyr::filter (bark.beetles.2013, SEVERITY == "M")
+ras.bark.beetles.m.2013 <- fasterize (bark.beetles.m.2013, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2013, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2013.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2013"), ras.bark.beetles.m.2013)
+rm (fh.2013, bark.beetles.2013, bark.beetles.s.2013, bark.beetles.vs.2013, bark.beetles.m.2013,
+    ras.bark.beetles.m.2013, ras.bark.beetles.s.2013, ras.bark.beetles.vs.2013)
+gc ()
+
+#########
+# 2012 #
+#######
+fh.2012 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2012")
+writeTableQuery (fh.2012, c ("vegetation", "forest_health_2012"))
+bark.beetles.2012 <- dplyr::filter (fh.2012, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2012 <- dplyr::filter (bark.beetles.2012, SEVERITY == "V")
+ras.bark.beetles.vs.2012 <- fasterize (bark.beetles.vs.2012, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2012, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2012.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2012"), ras.bark.beetles.vs.2012)
+
+bark.beetles.s.2012 <- dplyr::filter (bark.beetles.2012, SEVERITY == "S")
+ras.bark.beetles.s.2012 <- fasterize (bark.beetles.s.2012, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2012, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2012.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2012"), ras.bark.beetles.s.2012)
+
+bark.beetles.m.2012 <- dplyr::filter (bark.beetles.2012, SEVERITY == "M")
+ras.bark.beetles.m.2012 <- fasterize (bark.beetles.m.2012, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2012, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2012.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2012"), ras.bark.beetles.m.2012)
+rm (fh.2012, bark.beetles.2012, bark.beetles.s.2012, bark.beetles.vs.2012, bark.beetles.m.2012,
+    ras.bark.beetles.m.2012, ras.bark.beetles.s.2012, ras.bark.beetles.vs.2012)
+gc ()
+
+#########
+# 2011 #
+#######
+fh.2011 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2011")
+writeTableQuery (fh.2011, c ("vegetation", "forest_health_2011"))
+bark.beetles.2011 <- dplyr::filter (fh.2011, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2011 <- dplyr::filter (bark.beetles.2011, SEVERITY == "V")
+ras.bark.beetles.vs.2011 <- fasterize (bark.beetles.vs.2011, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2011, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2011.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2011"), ras.bark.beetles.vs.2011)
+
+bark.beetles.s.2011 <- dplyr::filter (bark.beetles.2011, SEVERITY == "S")
+ras.bark.beetles.s.2011 <- fasterize (bark.beetles.s.2011, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2011, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2011.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2011"), ras.bark.beetles.s.2011)
+
+bark.beetles.m.2011 <- dplyr::filter (bark.beetles.2011, SEVERITY == "M")
+ras.bark.beetles.m.2011 <- fasterize (bark.beetles.m.2011, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2011, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2011.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2011"), ras.bark.beetles.m.2011)
+rm (fh.2011, bark.beetles.2011, bark.beetles.s.2011, bark.beetles.vs.2011, bark.beetles.m.2011,
+    ras.bark.beetles.m.2011, ras.bark.beetles.s.2011, ras.bark.beetles.vs.2011)
+gc ()
+
+#########
+# 2010 #
+#######
+fh.2010 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2010")
+writeTableQuery (fh.2010, c ("vegetation", "forest_health_2010"))
+bark.beetles.2010 <- dplyr::filter (fh.2010, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2010 <- dplyr::filter (bark.beetles.2010, SEVERITY == "V")
+ras.bark.beetles.vs.2010 <- fasterize (bark.beetles.vs.2010, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2010, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2010.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2010"), ras.bark.beetles.vs.2010)
+
+bark.beetles.s.2010 <- dplyr::filter (bark.beetles.2010, SEVERITY == "S")
+ras.bark.beetles.s.2010 <- fasterize (bark.beetles.s.2010, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2010, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2010.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2010"), ras.bark.beetles.s.2010)
+
+bark.beetles.m.2010 <- dplyr::filter (bark.beetles.2010, SEVERITY == "M")
+ras.bark.beetles.m.2010 <- fasterize (bark.beetles.m.2010, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2010, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2010.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2010"), ras.bark.beetles.m.2010)
+rm (fh.2010, bark.beetles.2010, bark.beetles.s.2010, bark.beetles.vs.2010, bark.beetles.m.2010,
+    ras.bark.beetles.m.2010, ras.bark.beetles.s.2010, ras.bark.beetles.vs.2010)
+gc ()
+
+#########
+# 2009 #
+#######
+fh.2009 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2009")
+writeTableQuery (fh.2009, c ("vegetation", "forest_health_2009"))
+bark.beetles.2009 <- dplyr::filter (fh.2009, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2009 <- dplyr::filter (bark.beetles.2009, SEVERITY == "V")
+ras.bark.beetles.vs.2009 <- fasterize (bark.beetles.vs.2009, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2009, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2009.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2009"), ras.bark.beetles.vs.2009)
+
+bark.beetles.s.2009 <- dplyr::filter (bark.beetles.2009, SEVERITY == "S")
+ras.bark.beetles.s.2009 <- fasterize (bark.beetles.s.2009, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2009, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2009.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2009"), ras.bark.beetles.s.2009)
+
+bark.beetles.m.2009 <- dplyr::filter (bark.beetles.2009, SEVERITY == "M")
+ras.bark.beetles.m.2009 <- fasterize (bark.beetles.m.2009, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2009, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2009.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2009"), ras.bark.beetles.m.2009)
+rm (fh.2009, bark.beetles.2009, bark.beetles.s.2009, bark.beetles.vs.2009, bark.beetles.m.2009,
+    ras.bark.beetles.m.2009, ras.bark.beetles.s.2009, ras.bark.beetles.vs.2009)
+gc ()
+
+#########
+# 2008 #
+#######
+fh.2008 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2008")
+writeTableQuery (fh.2008, c ("vegetation", "forest_health_2008"))
+bark.beetles.2008 <- dplyr::filter (fh.2008, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2008 <- dplyr::filter (bark.beetles.2008, SEVERITY == "V")
+ras.bark.beetles.vs.2008 <- fasterize (bark.beetles.vs.2008, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2008, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2008.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2008"), ras.bark.beetles.vs.2008)
+
+bark.beetles.s.2008 <- dplyr::filter (bark.beetles.2008, SEVERITY == "S")
+ras.bark.beetles.s.2008 <- fasterize (bark.beetles.s.2008, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2008, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2008.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2008"), ras.bark.beetles.s.2008)
+
+bark.beetles.m.2008 <- dplyr::filter (bark.beetles.2008, SEVERITY == "M")
+ras.bark.beetles.m.2008 <- fasterize (bark.beetles.m.2008, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2008, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2008.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2008"), ras.bark.beetles.m.2008)
+rm (fh.2008, bark.beetles.2008, bark.beetles.s.2008, bark.beetles.vs.2008, bark.beetles.m.2008,
+    ras.bark.beetles.m.2008, ras.bark.beetles.s.2008, ras.bark.beetles.vs.2008)
+gc ()
+
+#########
+# 2007 #
+#######
+fh.2007 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2007")
+writeTableQuery (fh.2007, c ("vegetation", "forest_health_2007"))
+bark.beetles.2007 <- dplyr::filter (fh.2007, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2007 <- dplyr::filter (bark.beetles.2007, SEVERITY == "V")
+ras.bark.beetles.vs.2007 <- fasterize (bark.beetles.vs.2007, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2007, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2007.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2007"), ras.bark.beetles.vs.2007)
+
+bark.beetles.s.2007 <- dplyr::filter (bark.beetles.2007, SEVERITY == "S")
+ras.bark.beetles.s.2007 <- fasterize (bark.beetles.s.2007, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2007, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2007.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2007"), ras.bark.beetles.s.2007)
+
+bark.beetles.m.2007 <- dplyr::filter (bark.beetles.2007, SEVERITY == "M")
+ras.bark.beetles.m.2007 <- fasterize (bark.beetles.m.2007, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2007, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2007.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2007"), ras.bark.beetles.m.2007)
+rm (fh.2007, bark.beetles.2007, bark.beetles.s.2007, bark.beetles.vs.2007, bark.beetles.m.2007,
+    ras.bark.beetles.m.2007, ras.bark.beetles.s.2007, ras.bark.beetles.vs.2007)
+gc ()
+
+#########
+# 2006 #
+#######
+fh.2006 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2006")
+writeTableQuery (fh.2006, c ("vegetation", "forest_health_2006"))
+bark.beetles.2006 <- dplyr::filter (fh.2006, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2006 <- dplyr::filter (bark.beetles.2006, SEVERITY == "V")
+ras.bark.beetles.vs.2006 <- fasterize (bark.beetles.vs.2006, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2006, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2006.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2006"), ras.bark.beetles.vs.2006)
+
+bark.beetles.s.2006 <- dplyr::filter (bark.beetles.2006, SEVERITY == "S")
+ras.bark.beetles.s.2006 <- fasterize (bark.beetles.s.2006, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2006, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2006.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2006"), ras.bark.beetles.s.2006)
+
+bark.beetles.m.2006 <- dplyr::filter (bark.beetles.2006, SEVERITY == "M")
+ras.bark.beetles.m.2006 <- fasterize (bark.beetles.m.2006, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2006, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2006.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2006"), ras.bark.beetles.m.2006)
+rm (fh.2006, bark.beetles.2006, bark.beetles.s.2006, bark.beetles.vs.2006, bark.beetles.m.2006,
+    ras.bark.beetles.m.2006, ras.bark.beetles.s.2006, ras.bark.beetles.vs.2006)
+gc ()
+
+#########
+# 2005 #
+#######
+fh.2005 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2005")
+writeTableQuery (fh.2005, c ("vegetation", "forest_health_2005"))
+bark.beetles.2005 <- dplyr::filter (fh.2005, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2005 <- dplyr::filter (bark.beetles.2005, SEVERITY == "V")
+ras.bark.beetles.vs.2005 <- fasterize (bark.beetles.vs.2005, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2005, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2005.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2005"), ras.bark.beetles.vs.2005)
+
+bark.beetles.s.2005 <- dplyr::filter (bark.beetles.2005, SEVERITY == "S")
+ras.bark.beetles.s.2005 <- fasterize (bark.beetles.s.2005, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2005, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2005.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2005"), ras.bark.beetles.s.2005)
+
+bark.beetles.m.2005 <- dplyr::filter (bark.beetles.2005, SEVERITY == "M")
+ras.bark.beetles.m.2005 <- fasterize (bark.beetles.m.2005, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2005, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2005.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2005"), ras.bark.beetles.m.2005)
+rm (fh.2005, bark.beetles.2005, bark.beetles.s.2005, bark.beetles.vs.2005, bark.beetles.m.2005,
+    ras.bark.beetles.m.2005, ras.bark.beetles.s.2005, ras.bark.beetles.vs.2005)
+gc ()
+
+#########
+# 2004 #
+#######
+fh.2004 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2004")
+writeTableQuery (fh.2004, c ("vegetation", "forest_health_2004"))
+bark.beetles.2004 <- dplyr::filter (fh.2004, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2004 <- dplyr::filter (bark.beetles.2004, SEVERITY == "V")
+ras.bark.beetles.vs.2004 <- fasterize (bark.beetles.vs.2004, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2004, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2004.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2004"), ras.bark.beetles.vs.2004)
+
+bark.beetles.s.2004 <- dplyr::filter (bark.beetles.2004, SEVERITY == "S")
+ras.bark.beetles.s.2004 <- fasterize (bark.beetles.s.2004, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2004, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2004.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2004"), ras.bark.beetles.s.2004)
+
+bark.beetles.m.2004 <- dplyr::filter (bark.beetles.2004, SEVERITY == "M")
+ras.bark.beetles.m.2004 <- fasterize (bark.beetles.m.2004, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2004, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2004.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2004"), ras.bark.beetles.m.2004)
+rm (fh.2004, bark.beetles.2004, bark.beetles.s.2004, bark.beetles.vs.2004, bark.beetles.m.2004,
+    ras.bark.beetles.m.2004, ras.bark.beetles.s.2004, ras.bark.beetles.vs.2004)
+gc ()
+
+#########
+# 2003 #
+#######
+fh.2003 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2003")
+writeTableQuery (fh.2003, c ("vegetation", "forest_health_2003"))
+bark.beetles.2003 <- dplyr::filter (fh.2003, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "V")
+ras.bark.beetles.vs.2003 <- fasterize (bark.beetles.vs.2003, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2003, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2003.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2003"), ras.bark.beetles.vs.2003)
+
+bark.beetles.s.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "S")
+ras.bark.beetles.s.2003 <- fasterize (bark.beetles.s.2003, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2003, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2003.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2003"), ras.bark.beetles.s.2003)
+
+bark.beetles.m.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "M")
+ras.bark.beetles.m.2003 <- fasterize (bark.beetles.m.2003, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2003, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2003.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2003"), ras.bark.beetles.m.2003)
+rm (fh.2003, bark.beetles.2003, bark.beetles.s.2003, bark.beetles.vs.2003, bark.beetles.m.2003,
+    ras.bark.beetles.m.2003, ras.bark.beetles.s.2003, ras.bark.beetles.vs.2003)
+gc ()
+
+#########
+# 2002 #
+#######
+fh.2002 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2002")
+writeTableQuery (fh.2002, c ("vegetation", "forest_health_2002"))
+bark.beetles.2002 <- dplyr::filter (fh.2002, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2002 <- dplyr::filter (bark.beetles.2002, SEVERITY == "V")
+ras.bark.beetles.vs.2002 <- fasterize (bark.beetles.vs.2002, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2002, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2002.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2002"), ras.bark.beetles.vs.2002)
+
+bark.beetles.s.2002 <- dplyr::filter (bark.beetles.2002, SEVERITY == "S")
+ras.bark.beetles.s.2002 <- fasterize (bark.beetles.s.2002, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2002, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2002.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2002"), ras.bark.beetles.s.2002)
+
+bark.beetles.m.2002 <- dplyr::filter (bark.beetles.2002, SEVERITY == "M")
+ras.bark.beetles.m.2002 <- fasterize (bark.beetles.m.2002, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2002, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2002.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2002"), ras.bark.beetles.m.2002)
+rm (fh.2002, bark.beetles.2002, bark.beetles.s.2002, bark.beetles.vs.2002, bark.beetles.m.2002,
+    ras.bark.beetles.m.2002, ras.bark.beetles.s.2002, ras.bark.beetles.vs.2002)
+gc ()
+
+#########
+# 2001 #
+#######
+fh.2001 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2001")
+writeTableQuery (fh.2001, c ("vegetation", "forest_health_2001"))
+bark.beetles.2001 <- dplyr::filter (fh.2001, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2001 <- dplyr::filter (bark.beetles.2001, SEVERITY == "V")
+ras.bark.beetles.vs.2001 <- fasterize (bark.beetles.vs.2001, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2001, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2001.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2001"), ras.bark.beetles.vs.2001)
+
+bark.beetles.s.2001 <- dplyr::filter (bark.beetles.2001, SEVERITY == "S")
+ras.bark.beetles.s.2001 <- fasterize (bark.beetles.s.2001, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2001, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2001.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2001"), ras.bark.beetles.s.2001)
+
+bark.beetles.m.2001 <- dplyr::filter (bark.beetles.2001, SEVERITY == "M")
+ras.bark.beetles.m.2001 <- fasterize (bark.beetles.m.2001, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2001, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2001.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2001"), ras.bark.beetles.m.2001)
+rm (fh.2001, bark.beetles.2001, bark.beetles.s.2001, bark.beetles.vs.2001, bark.beetles.m.2001,
+    ras.bark.beetles.m.2001, ras.bark.beetles.s.2001, ras.bark.beetles.vs.2001)
+gc ()
+
+#########
+# 2000 #
+#######
+fh.2000 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2000")
+writeTableQuery (fh.2000, c ("vegetation", "forest_health_2000"))
+bark.beetles.2000 <- dplyr::filter (fh.2000, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.2000 <- dplyr::filter (bark.beetles.2000, SEVERITY == "V")
+ras.bark.beetles.vs.2000 <- fasterize (bark.beetles.vs.2000, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.2000, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_2000.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2000"), ras.bark.beetles.vs.2000)
+
+bark.beetles.s.2000 <- dplyr::filter (bark.beetles.2000, SEVERITY == "S")
+ras.bark.beetles.s.2000 <- fasterize (bark.beetles.s.2000, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.2000, 
+                     filename = "forest_health\\raster_bark_beetle_severe_2000.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_2000"), ras.bark.beetles.s.2000)
+
+bark.beetles.m.2000 <- dplyr::filter (bark.beetles.2000, SEVERITY == "M")
+ras.bark.beetles.m.2000 <- fasterize (bark.beetles.m.2000, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.2000, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_2000.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_2000"), ras.bark.beetles.m.2000)
+rm (fh.2000, bark.beetles.2000, bark.beetles.s.2000, bark.beetles.vs.2000, bark.beetles.m.2000,
+    ras.bark.beetles.m.2000, ras.bark.beetles.s.2000, ras.bark.beetles.vs.2000)
+gc ()
+
+#########
+# 1999 #
+#######
+fh.1999 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_1999")
+writeTableQuery (fh.1999, c ("vegetation", "forest_health_1999"))
+bark.beetles.1999 <- dplyr::filter (fh.1999, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                      FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                      FHF == "IBW")
+bark.beetles.vs.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "V")
+ras.bark.beetles.vs.1999 <- fasterize (bark.beetles.vs.1999, ProvRast, 
+                                       field = NULL,# raster cells that are wells get a value of 1
+                                       background = 0) 
+raster::writeRaster (ras.bark.beetles.vs.1999, 
+                     filename = "forest_health\\raster_bark_beetle_very_severe_1999.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_1999"), ras.bark.beetles.vs.1999)
+
+bark.beetles.s.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "S")
+ras.bark.beetles.s.1999 <- fasterize (bark.beetles.s.1999, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.s.1999, 
+                     filename = "forest_health\\raster_bark_beetle_severe_1999.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_severe_1999"), ras.bark.beetles.s.1999)
+
+bark.beetles.m.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "M")
+ras.bark.beetles.m.1999 <- fasterize (bark.beetles.m.1999, ProvRast, 
+                                      field = NULL,# raster cells that are wells get a value of 1
+                                      background = 0) 
+raster::writeRaster (ras.bark.beetles.m.1999, 
+                     filename = "forest_health\\raster_bark_beetle_moderate_1999.tiff", 
+                     format = "GTiff", 
+                     datatype = 'INT1U',
+                     overwrite = T)
+writeRasterQuery (c ("vegetation", "raster_bark_beetle_moderate_1999"), ras.bark.beetles.m.1999)
+rm (fh.1999, bark.beetles.1999, bark.beetles.s.1999, bark.beetles.vs.1999, bark.beetles.m.1999,
+    ras.bark.beetles.m.1999, ras.bark.beetles.s.1999, ras.bark.beetles.vs.1999)
+gc ()
 
 #===================================================
 # VRI - data from Kyle's postgres
@@ -554,10 +1394,22 @@ connKyle <- dbConnect(drv,
                       password = "tyler",
                       port = "5432")
 
+
+
+vri.bclcs <- dbGetQuery (connKyle, "SELECT geometry, bclcs_level_1, bclcs_level_2, 
+                                    bclcs_level_3, bclcs_level_4, bclcs_level_5
+                                    FROM public.veg_comp_lyr_l1_poly;")
+st_as_sf (vri.bclcs, wkt = "geometry", crs = 3005)
+
+
+
+
+
+
 vri.bclcs <- sf::st_read (connKyle, 
                           query = "SELECT bclcs_level_1, bclcs_level_2, 
                           bclcs_level_3, bclcs_level_4, bclcs_level_5
-                          FROM public.veg_comp_lyr_l1_poly") 
+                          FROM public.veg_comp_lyr_l1_poly;") 
 
 vri.bclcs1 <- sf::st_read (connKyle, 
                           query = "SELECT bclcs_level_1
