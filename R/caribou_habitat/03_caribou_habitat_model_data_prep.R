@@ -978,6 +978,8 @@ rm (fh.2008, bark.beetles.2008, bark.beetles.s.2008, bark.beetles.vs.2008, bark.
     ras.bark.beetles.m.2008, ras.bark.beetles.s.2008, ras.bark.beetles.vs.2008)
 gc ()
 
+x <- st_read (conn, table = "vegetation.raster_bark_beetle_moderate_2008",
+                 geom = "rast")
 #########
 # 2007 #
 #######
@@ -1208,20 +1210,22 @@ gc ()
 #######
 fh.2002 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                         layer = "mpb_2002")
+fh.2002 <- sf::st_cast (fh.2002, to = "MULTIPOLYGON")
 writeTableQuery (fh.2002, c ("vegetation", "forest_health_2002"))
 bark.beetles.2002 <- dplyr::filter (fh.2002, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
                                       FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                       FHF == "IBW")
 bark.beetles.vs.2002 <- dplyr::filter (bark.beetles.2002, SEVERITY == "V")
-ras.bark.beetles.vs.2002 <- fasterize (bark.beetles.vs.2002, ProvRast, 
-                                       field = NULL,# raster cells that are wells get a value of 1
-                                       background = 0) 
-raster::writeRaster (ras.bark.beetles.vs.2002, 
-                     filename = "forest_health\\raster_bark_beetle_very_severe_2002.tiff", 
-                     format = "GTiff", 
-                     datatype = 'INT1U',
-                     overwrite = T)
-writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2002"), ras.bark.beetles.vs.2002)
+# NO VS POLYS IN 2002
+# ras.bark.beetles.vs.2002 <- fasterize (bark.beetles.vs.2002, ProvRast, 
+#                                       field = NULL,# raster cells that are wells get a value of 1
+#                                       background = 0) 
+#raster::writeRaster (ras.bark.beetles.vs.2002, 
+#                     filename = "forest_health\\raster_bark_beetle_very_severe_2002.tiff", 
+#                     format = "GTiff", 
+#                     datatype = 'INT1U',
+#                     overwrite = T)
+# writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2002"), ras.bark.beetles.vs.2002)
 
 bark.beetles.s.2002 <- dplyr::filter (bark.beetles.2002, SEVERITY == "S")
 ras.bark.beetles.s.2002 <- fasterize (bark.beetles.s.2002, ProvRast, 
@@ -1257,16 +1261,17 @@ writeTableQuery (fh.2001, c ("vegetation", "forest_health_2001"))
 bark.beetles.2001 <- dplyr::filter (fh.2001, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
                                       FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                       FHF == "IBW")
-bark.beetles.vs.2001 <- dplyr::filter (bark.beetles.2001, SEVERITY == "V")
-ras.bark.beetles.vs.2001 <- fasterize (bark.beetles.vs.2001, ProvRast, 
-                                       field = NULL,# raster cells that are wells get a value of 1
-                                       background = 0) 
-raster::writeRaster (ras.bark.beetles.vs.2001, 
-                     filename = "forest_health\\raster_bark_beetle_very_severe_2001.tiff", 
-                     format = "GTiff", 
-                     datatype = 'INT1U',
-                     overwrite = T)
-writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2001"), ras.bark.beetles.vs.2001)
+# NO VS POLYS IN 2001
+bark.beetles.vs.2001 <- dplyr::filter (bark.beetles.2001, SEVERITY == "V") 
+# ras.bark.beetles.vs.2001 <- fasterize (bark.beetles.vs.2001, ProvRast, 
+#                                       field = NULL,# raster cells that are wells get a value of 1
+#                                      background = 0) 
+# raster::writeRaster (ras.bark.beetles.vs.2001, 
+#                     filename = "forest_health\\raster_bark_beetle_very_severe_2001.tiff", 
+#                     format = "GTiff", 
+#                     datatype = 'INT1U',
+#                     overwrite = T)
+# writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2001"), ras.bark.beetles.vs.2001)
 
 bark.beetles.s.2001 <- dplyr::filter (bark.beetles.2001, SEVERITY == "S")
 ras.bark.beetles.s.2001 <- fasterize (bark.beetles.s.2001, ProvRast, 
@@ -1303,15 +1308,16 @@ bark.beetles.2000 <- dplyr::filter (fh.2000, FHF == "IB" | FHF == "IBB" | FHF ==
                                       FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                       FHF == "IBW")
 bark.beetles.vs.2000 <- dplyr::filter (bark.beetles.2000, SEVERITY == "V")
-ras.bark.beetles.vs.2000 <- fasterize (bark.beetles.vs.2000, ProvRast, 
-                                       field = NULL,# raster cells that are wells get a value of 1
-                                       background = 0) 
-raster::writeRaster (ras.bark.beetles.vs.2000, 
-                     filename = "forest_health\\raster_bark_beetle_very_severe_2000.tiff", 
-                     format = "GTiff", 
-                     datatype = 'INT1U',
-                     overwrite = T)
-writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2000"), ras.bark.beetles.vs.2000)
+# NO VS POLYS IN 2000
+# ras.bark.beetles.vs.2000 <- fasterize (bark.beetles.vs.2000, ProvRast, 
+#                                       field = NULL,# raster cells that are wells get a value of 1
+#                                       background = 0) 
+# raster::writeRaster (ras.bark.beetles.vs.2000, 
+#                     filename = "forest_health\\raster_bark_beetle_very_severe_2000.tiff", 
+#                     format = "GTiff", 
+#                     datatype = 'INT1U',
+#                     overwrite = T)
+# writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_2000"), ras.bark.beetles.vs.2000)
 
 bark.beetles.s.2000 <- dplyr::filter (bark.beetles.2000, SEVERITY == "S")
 ras.bark.beetles.s.2000 <- fasterize (bark.beetles.s.2000, ProvRast, 
@@ -1348,15 +1354,16 @@ bark.beetles.1999 <- dplyr::filter (fh.1999, FHF == "IB" | FHF == "IBB" | FHF ==
                                       FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                       FHF == "IBW")
 bark.beetles.vs.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "V")
-ras.bark.beetles.vs.1999 <- fasterize (bark.beetles.vs.1999, ProvRast, 
-                                       field = NULL,# raster cells that are wells get a value of 1
-                                       background = 0) 
-raster::writeRaster (ras.bark.beetles.vs.1999, 
-                     filename = "forest_health\\raster_bark_beetle_very_severe_1999.tiff", 
-                     format = "GTiff", 
-                     datatype = 'INT1U',
-                     overwrite = T)
-writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_1999"), ras.bark.beetles.vs.1999)
+# NO VS POLYS IN 1999
+# ras.bark.beetles.vs.1999 <- fasterize (bark.beetles.vs.1999, ProvRast, 
+#                                       field = NULL,# raster cells that are wells get a value of 1
+#                                      background = 0) 
+# raster::writeRaster (ras.bark.beetles.vs.1999, 
+#                     filename = "forest_health\\raster_bark_beetle_very_severe_1999.tiff", 
+#                     format = "GTiff", 
+#                     datatype = 'INT1U',
+#                     overwrite = T)
+# writeRasterQuery (c ("vegetation", "raster_bark_beetle_very_severe_1999"), ras.bark.beetles.vs.1999)
 
 bark.beetles.s.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "S")
 ras.bark.beetles.s.1999 <- fasterize (bark.beetles.s.1999, ProvRast, 
@@ -1394,12 +1401,10 @@ connKyle <- dbConnect(drv,
                       password = "tyler",
                       port = "5432")
 
-
-
-vri.bclcs <- dbGetQuery (connKyle, "SELECT geometry, bclcs_level_1, bclcs_level_2, 
+vri.bclcs <- dbGetQuery (connKyle, "SELECT wkb_geometry, bclcs_level_1, bclcs_level_2, 
                                     bclcs_level_3, bclcs_level_4, bclcs_level_5
                                     FROM public.veg_comp_lyr_l1_poly;")
-st_as_sf (vri.bclcs, wkt = "geometry", crs = 3005)
+st_as_sf (vri.bclcs, wkt = "wkb_geometry", crs = 3005)
 
 
 
