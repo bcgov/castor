@@ -46,10 +46,10 @@ defineModule(sim, list(
     defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput("nameBoundaryFile", "character", "The boundaries file to include in the analysis", sourceURL = NA),
-    expectsInput("nameBoundary", "character", "The boundaries to include in the analysis", sourceURL = NA),
-    expectsInput("nameBoundaryColumn", "character", "The column name in the boundary file to query on", sourceURL = NA),
-    expectsInput("nameBoundaryGeom", "character", "The name of the geometry column within the boundary file", sourceURL = NA)
+    expectsInput("nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput("nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput("nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
     #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -87,37 +87,37 @@ cutblockSeqPrepCLUS.Init <- function(sim) {
 ### Set the list of the cutblock locations
 cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
   sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y from cutseq, 
-              (Select ", P(sim)$nameBoundaryGeom, " FROM ", P(sim)$nameBoundaryFile, " WHERE ", P(sim)$nameBoundaryColumn," = '", P(sim)$nameBoundary,"') as h
-              WHERE h.",P(sim)$nameBoundaryGeom," && cutseq.point 
-              AND ST_Contains(h.",P(sim)$nameBoundaryGeom ," ,cutseq.point)
+              (Select ", params(sim)$.globals$nameBoundaryGeom, " FROM ", params(sim)$.globals$nameBoundaryFile, " WHERE ", params(sim)$.globals$nameBoundaryColumn," = '", params(sim)$.globals$nameBoundary,"') as h
+              WHERE h.",params(sim)$.globals$nameBoundaryGeom," && cutseq.point 
+              AND ST_Contains(h.",params(sim)$.globals$nameBoundaryGeom ," ,cutseq.point)
               ORDER BY harvestyr"))
+  if(length(sim$histLandings)==0){ sim$histLandings<-NULL}
   return(invisible(sim))
 }
 
 ### Set a list of cutblock locations as a Spatial Points object
 cutblockSeqPrepCLUS.getLandings <- function(sim) {
   if(!is.null(sim$histLandings)){
-  landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + 1980) ##starting at 1980
+    landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + 1980) ##starting at 1980
     if(nrow(landings)>0){
       print(paste0('geting landings in: ', time(sim)))
       sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0 "))
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
     }else{
       print(paste0('NO landings in: ', time(sim)))
-      sim$landings<- NULL
     }
-  sim$landingsSimulated<-SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+    sim$landingsSimulated<-SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
-   } else{
-    ras = raster::raster(sim$bbox, res =100, vals =0, crs = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0") )
-    sim$landings<- xyFromCell(ras, as.integer(sample(1:ncell(ras), 5)), spatial=TRUE)
+  }else{
+    #ras =raster(sim$bbox, res =100, vals =0, crs = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+    #                      +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0") )
+    #sim$landings<- xyFromCell(ras, as.integer(sample(1:ncell(ras), 5)), spatial=TRUE)
   }
   return(invisible(sim))
 }
 
 getTableQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
