@@ -131,7 +131,6 @@ roadCLUS.Init <- function(sim) {
   } else{
     sim<-roadCLUS.exampleData(sim) # When the user does not supply a roads or cost surface table - use the example data
   }
-  
   if(P(sim)$roadMethod == 'lcp' || P(sim)$roadMethod == 'mst'){
     sim <- roadCLUS.getGraph(sim)
   }
@@ -145,13 +144,11 @@ roadCLUS.roadsPlot<-function(sim){
 }
 
 roadCLUS.roadsSave<-function(sim, time){
- 
   if (time == 0 && !file.exists(paste0(P(sim, "dataLoaderCLUS", "nameBoundary"), ".tif"))){
     writeRaster(sim$roads, file=paste0(P(sim, "dataLoaderCLUS", "nameBoundary"),".tif"), format="GTiff", overwrite=TRUE)
   } else{
     writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  P(sim, "dataLoaderCLUS", "nameBoundary"),"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
   }
-  
   return(invisible(sim))
 }
 
@@ -224,13 +221,12 @@ roadCLUS.lcpList<- function(sim){
 roadCLUS.mstList<- function(sim){
   #print('mstList')
   mst.v <- as.vector(rbind(cellFromXY(sim$costSurface,sim$landings ), cellFromXY(sim$costSurface,sim$roads.close.XY )))
-
   paths.matrix<-as.matrix(mst.v)
   paths.matrix<- paths.matrix[!duplicated(paths.matrix[,1]),]
-  print(paths.matrix)
+  #print(paths.matrix)
   if(length(paths.matrix) > 1){
     mst.adj <- distances(sim$g, paths.matrix, paths.matrix) # get an adjaceny matrix given then cell numbers
-    print(mst.adj)
+    #print(mst.adj)
     rownames(mst.adj)<-paths.matrix # set the verticies names as the cell numbers in the costSurface
     colnames(mst.adj)<-paths.matrix # set the verticies names as the cell numbers in the costSurface
     mst.g <- graph_from_adjacency_matrix(mst.adj, weighted=TRUE) # create a graph
@@ -251,7 +247,7 @@ roadCLUS.shortestPaths<- function(sim){
   #print('shortestPaths')
   #------finds the least cost paths between a list of two points
   if(!length(sim$paths.list)==0){
-    print(sim$paths.list)
+    #print(sim$paths.list)
     paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, x[1], x[2], out = "both"))) #create a list of shortest paths
     sim$paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), sim$paths.v))#save the verticies for mapping
     paths.e<-paths[grepl("epath",names(paths))]
@@ -291,9 +287,8 @@ roadCLUS.buildSnapRoads <- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.analysis(sim)<-function(sim){
-  if(time > 0 && !P(sim)$roadMethod == 'snap'){
-    print(paste0(P(sim, "dataLoaderCLUS", "nameBoundary"),"_",P(sim)$roadMethod, time))
+roadCLUS.analysis <- function(sim){
+  if(!P(sim)$roadMethod == 'snap'){
     ras.out<-sim$costSurface
     ras.out[]<-1:ncell(ras.out)
     ras.out[!(ras.out[] %in% as.matrix(sim$paths.v))] <- NA
@@ -303,9 +298,11 @@ roadCLUS.analysis(sim)<-function(sim){
   ras<-sim$roads
   ras[ras>0]<-1
   sim$roadsPixel<-cellStats(ras, stat='sum', na.rm=TRUE)
-  
+  print(sim$roadsPixel)
+  write.table(sim$roadsPixel, file = "road.csv",row.names=FALSE, na="",col.names=FALSE, sep=",")
   return(invisible(sim))
 }
+
 ### additional functions
 getSpatialQuery<-function(sql){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
