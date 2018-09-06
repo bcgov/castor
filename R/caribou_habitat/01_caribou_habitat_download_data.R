@@ -330,7 +330,7 @@ download ("http://www.bcogris.ca/sites/default/files/webexportcaribou.xlsx",
     # 2002-2011 file includes some caribou in SPI; only added car095-099, 118-121 and 127-131
       # Name in gdb: caribou_kennedy_2002_2011_bcalbers_20180906
     # 2012-2018 file are all new data
-      # Name in gdb: 
+      # Name in gdb: caribou_kennedy_2012_2018_bcalbers_20180906
 
 
 
