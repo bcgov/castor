@@ -323,11 +323,14 @@ download ("http://www.bcogris.ca/sites/default/files/webexportcaribou.xlsx",
     # Name in gdb: caribou_boreal_nexen_bcalbers_20180409
     # NOTE: no overlap with spi
   # Telemetry - Burnt Pine - 2003-2012
-    # Name in gdb: caribou_burnt_pine_2003_2010_20180409
-    # Name in gdb: 
     # NOTE: no overlap with spi
+    # Name in gdb: caribou_burnt_pine_2003_2010_bcalbers_20180906
+    # Name in gdb: caribou_burnt_pine_2011_2012_bcalbers_20180906
   # Telemetry - Kennedy Siding - 2002-2018
-    # 
+    # 2002-2011 file includes some caribou in SPI; only added car095-099, 118-121 and 127-131
+      # Name in gdb: caribou_kennedy_2002_2011_bcalbers_20180906
+    # 2012-2018 file are all new data
+      # Name in gdb: 
 
 
 
