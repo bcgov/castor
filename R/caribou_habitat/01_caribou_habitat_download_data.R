@@ -296,20 +296,49 @@ file.remove ("mountain_pine_beetle\\1999.zip")
 ###########################
 # Caribou telemetry data #
 #########################
-# BC OGRIS; README: <http://www.bcogris.ca/sites/default/files/bc-ogrisremb-telemetry-data-read-me-first-ver-3-dec17.pdf>
-download ("http://www.bcogris.ca/sites/default/files/webexportcaribou.xlsx", 
-          dest = "caribou\\\boreal_caribou_telemetry_2013_2018.xlsx", 
-          mode = "wb")
-
-# BCGW sensitive telemetry data
+# Started with BCGW sensitive telemetry data
 WHSE_WILDLIFE_INVENTORY.SPI_TELEMETRY_OBS_ALL_SP
 SCIENTIFIC_NAME = 'Rangifer tarandus'
-# C:\Work\caribou\climate_analysis\data\caribou\caribou_telemetry.gdb
+# saved to T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\telemetry_habitat_model_20180904\caribou_telemetry_master_20180904.gdb'
+  # Name in gdb: caribou_spi_obs_all_20180409
+
+# need to reconcile this with each other telemetry dataseta and capture files....ughh.....
+
+# BC OGRIS; README: <http://www.bcogris.ca/sites/default/files/bc-ogrisremb-telemetry-data-read-me-first-ver-3-dec17.pdf>
+download ("http://www.bcogris.ca/sites/default/files/webexportcaribou.xlsx", 
+          dest = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\boreal\\boreal_caribou_telemetry_2011_2018.xlsx", 
+          mode = "wb") # downloaded 2018-09-04
+# created spatial object in ArcGIS and added to gdb:
+# 'T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\telemetry_habitat_model_20180904\caribou_telemetry_master_20180904.gdb'
+# Name in gdb: caribou_boreal_ogris_2011_2018_20180409
+  # NOTE: no overlap with SPI
 
 # Additional data provided by Nicola Dodd
-# \\spatialfiles.bcgov\work\env\esd\eis\wld\caribou\nldodd_work\caribou\telem_data\BCtelem_draft
-# SMC_NoCentral_BConly_2002_18_July12_2018
-# SMC_CentralGroup_BConly_Telemetry_July12_2018
-# wcari_gps_Dec2011_Jan2015_master_BCEnvAlbers
+# \\spatialfiles.bcgov\work\env\esd\eis\wld\caribou\nldodd_work\caribou\telem_data\BCtelem_draft\Telem_all_herd_summary
+  # Telemetry  - Level-Kawdy 2013
+    # Not in SPI; name in gdb: caribou_level_kawdy_bcalbers_20180409
+      # NOTE: few locatons/animal so likely to serve as validation data
+  # Telemetry - Boreal (all herds) 2009-2012
+    # Nexen Final GPS Masterfile_Oct2010_copy to M Watters; see capture file: calendar_nexen_capture_2008
+    # Name in gdb: caribou_boreal_nexen_bcalbers_20180409
+    # NOTE: no overlap with spi
+  # Telemetry - Burnt Pine - 2003-2012
+    # NOTE: no overlap with spi
+    # Name in gdb: caribou_burnt_pine_2003_2010_bcalbers_20180906
+    # Name in gdb: caribou_burnt_pine_2011_2012_bcalbers_20180906
+  # Telemetry - Kennedy Siding - 2002-2018
+    # 2002-2011 file includes some caribou in SPI; only added car095-099, 118-121 and 127-131
+      # Name in gdb: caribou_kennedy_2002_2011_bcalbers_20180906
+    # 2012-2018 file are all new data
+      # Name in gdb: caribou_kennedy_2012_2018_bcalbers_20180906
+
+
+
+
+
+
+
+
+
 
 

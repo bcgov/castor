@@ -27,15 +27,6 @@ defineModule(sim, list(
   parameters = rbind( 
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
-    defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
-    defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
-    defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
-    defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
-    defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
-    defineParameter("nameBoundaryFile", "character", NULL, NA, NA, desc = "Name of the boundary file"),
-    defineParameter("nameBoundaryColumn", "character", NULL, NA, NA, desc = "Name of the column within the boundary file that has the boundary name"),
-    defineParameter("nameBoundary", "character", NULL, NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
-    defineParameter("nameBoundaryGeom", "character", NULL, NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
     defineParameter("cutblockSeqInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
@@ -87,9 +78,9 @@ cutblockSeqPrepCLUS.Init <- function(sim) {
 ### Set the list of the cutblock locations
 cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
   sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y from cutseq, 
-              (Select ", params(sim)$.globals$nameBoundaryGeom, " FROM ", params(sim)$.globals$nameBoundaryFile, " WHERE ", params(sim)$.globals$nameBoundaryColumn," = '", params(sim)$.globals$nameBoundary,"') as h
-              WHERE h.",params(sim)$.globals$nameBoundaryGeom," && cutseq.point 
-              AND ST_Contains(h.",params(sim)$.globals$nameBoundaryGeom ," ,cutseq.point)
+              (Select ", P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), " FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile") , " WHERE ", P(sim, "dataLoaderCLUS", "nameBoundaryColumn") ," = '", P(sim, "dataLoaderCLUS", "nameBoundary"),"') as h
+              WHERE h.", P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ," && cutseq.point 
+              AND ST_Contains(h.", P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ,cutseq.point)
               ORDER BY harvestyr"))
   if(length(sim$histLandings)==0){ sim$histLandings<-NULL}
   return(invisible(sim))
