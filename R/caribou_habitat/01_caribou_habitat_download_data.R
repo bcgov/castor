@@ -301,6 +301,7 @@ WHSE_WILDLIFE_INVENTORY.SPI_TELEMETRY_OBS_ALL_SP
 SCIENTIFIC_NAME = 'Rangifer tarandus'
 # saved to T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\telemetry_habitat_model_20180904\caribou_telemetry_master_20180904.gdb'
   # Name in gdb: caribou_spi_obs_all_20180409
+  # added field 'source' = "SPI"
 
 # need to reconcile this with each other telemetry dataseta and capture files....ughh.....
 
@@ -312,33 +313,62 @@ download ("http://www.bcogris.ca/sites/default/files/webexportcaribou.xlsx",
 # 'T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\telemetry_habitat_model_20180904\caribou_telemetry_master_20180904.gdb'
 # Name in gdb: caribou_boreal_ogris_2011_2018_20180409
   # NOTE: no overlap with SPI
+  # 'source' = "OGRIS"
 
 # Additional data provided by Nicola Dodd
 # \\spatialfiles.bcgov\work\env\esd\eis\wld\caribou\nldodd_work\caribou\telem_data\BCtelem_draft\Telem_all_herd_summary
   # Telemetry  - Level-Kawdy 2013
-    # Not in SPI; name in gdb: caribou_level_kawdy_bcalbers_20180409
+    # Not in SPI; 
+      # Name in gdb: caribou_level_kawdy_bcalbers_20180409
       # NOTE: few locatons/animal so likely to serve as validation data
+      # source = "levelkawdy"
   # Telemetry - Boreal (all herds) 2009-2012
     # Nexen Final GPS Masterfile_Oct2010_copy to M Watters; see capture file: calendar_nexen_capture_2008
     # Name in gdb: caribou_boreal_nexen_bcalbers_20180409
     # NOTE: no overlap with spi
+    # source = "nexen"
   # Telemetry - Burnt Pine - 2003-2012
     # NOTE: no overlap with spi
     # Name in gdb: caribou_burnt_pine_2003_2010_bcalbers_20180906
     # Name in gdb: caribou_burnt_pine_2011_2012_bcalbers_20180906
+    # source = "burntpine"
   # Telemetry - Kennedy Siding - 2002-2018
     # 2002-2011 file includes some caribou in SPI; only added car095-099, 118-121 and 127-131
       # Name in gdb: caribou_kennedy_2002_2011_bcalbers_20180906
     # 2012-2018 file are all new data
       # Name in gdb: caribou_kennedy_2012_2018_bcalbers_20180906
-
-
-
-
-
-
-
-
-
-
-
+    # source = "kennedy"
+  # Telemetry - Moberly - 2002-2012
+    # 2002-2011 file includes some caribou in SPI; only added car103, 104 and 116
+      # Name in gdb: caribou_moberly_bcalbers_20180910
+    # 2011-2012 file are all new data
+      # Name in gdb: caribou_moberly_2011_2012_bcalbers_20180910
+    # source = "moberly"
+  # Telemetry - Muskwa 2017
+    # Location data in Muskwa Caribou Collars masterfile; some location coordinates missing; deleted these rows
+    # Link to capture data in CaribouMuskwa_Master_2 through TelemetryObs_March2017 tab
+    # GMT time and local time are the same, so time needs to be converted from GMT
+      # Name in gdb: caribou_muskwa_bclabers_20180911
+    # source = "muskwa"
+  # Telemetry - Narraway - 2006-2018
+    # 2006-2009 file all in SPI
+    # 2010-2018 file includes some caribou in SPI; only added car177, 178 and 179
+      # Name in gdb: caribou_narraway_bcalbers_20180911
+    # source = "narraway"
+  # Telemetry - Quintette - 2002-2018
+    # 2002-2011 file includes some caribou in SPI; only added car106, 107, 110, 111, 113, 114, 125, 126
+        # Name in gdb: caribou_quintette_bcalbers_20180911
+    # 2011-2018 area all new data
+        # Name in gdb: caribou_quintette_2011_2018_bcalbers_20180911
+    # source = "quintette"
+  # Telemetry - Scott - 2013-2016
+    # all new data
+      # Name in gdb: caribou_scott_bcalbers_20180911
+    # source = "scott"
+  # Telemetry - Telkwa
+    # Took GPS data from caribou Access database; only one animal from after 2008 (TC009)
+      # Name in gdb: caribou_telkwa_bcalbers_20180911
+    # source = "telkwa"
+# Needed to convert SPI data from MULTIPOINT to POINT (https://support.esri.com/en/technical-article/000007983)
+  # Name in gdb: caribou_spi_obs_all_point_20180912
+  
