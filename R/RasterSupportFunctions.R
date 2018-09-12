@@ -56,12 +56,12 @@ CallPostgresRasterFunction <- function(conn, func, outRast, poly, src, qry, refR
       print(refRast)
       print(srcKey)
       if (is.null(refRast)){
-        print('hi')
+        #print('hi')
       qry = sprintf("select FAIB_GET_MASK_RASTER_FROM_RASTER('%s', '%s', '%s', '%s' );", outRast, poly, src, qry)    
       #qry = sprintf("select FAIB_GET_MASK_RASTER_FROM_RASTER('%s', '%s', '%s', '%s', '%s', '%s' );", outRast, poly, src, qry, refRast, srcKey)  
       }
       else{
-        print('how are you')
+        #print('how are you')
       qry = sprintf("select FAIB_GET_MASK_RASTER_FROM_RASTER('%s', '%s', '%s', '%s', '%s', '%s' );", outRast, poly, src, qry, refRast, srcKey)  
       #qry = sprintf("select FAIB_GET_MASK_RASTER_FROM_RASTER('%s', '%s', '%s', '%s' );", outRast, poly, src, qry)    
       }
@@ -83,7 +83,9 @@ library(sqldf)
 library(RPostgreSQL)
 
 #txtPoly = GetPolygonText(coordz[[1]])
-txtPoly = "POLYGON(( -118.503882 51.289406 ,  -116.98773 51.282535 ,  -116.976744 50.913424 ,  -118.575295 50.930738 ,  -118.503882 51.289406 ))"
+#C Polygon  
+txtPoly = "POLYGON(( -116.768005 51.138001 ,  -116.927311 51.234407 ,  -117.130563 51.289406 ,  -117.366775 51.289406 ,  -117.542561 51.251601 ,  -117.69088 51.124213 ,  -117.778773 50.979182 ,  -117.795253 50.847573 ,  -117.800746 50.715591 ,  -117.784267 50.586724 ,  -117.685387 50.509933 ,  -117.498615 50.450509 ,  -117.240429 50.408518 ,  -117.048164 50.405017 ,  -116.844911 50.433017 ,  -116.740539 50.548344 ,  -116.685606 50.698197 ,  -116.691099 50.788575 ,  -116.982244 50.785102 ,  -117.048164 50.677316 ,  -117.234936 50.666872 ,  -117.377762 50.75731 ,  -117.377762 50.882243 ,  -117.317336 51.006842 ,  -117.17451 51.069017 ,  -116.943791 51.006842 ,  -116.768005 51.138001 ))"  
+#txtPoly = "POLYGON(( -118.503882 51.289406 ,  -116.98773 51.282535 ,  -116.976744 50.913424 ,  -118.575295 50.930738 ,  -118.503882 51.289406 ))"
 #pgConn<-GetPostgresCon("postgres", "postgres", "postgres")
 pgConn<-GetPostgresCon("clus", "postgres", "postgres", "DC052586")
 
