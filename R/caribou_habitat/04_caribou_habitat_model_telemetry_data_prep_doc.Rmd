@@ -10,22 +10,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-#=================================
-#  Script Name: 04_caribou_habitat_model_telemetry_data_prep.R
+---
+title: "Caribou habitat model telemetry data preparation"
+author: "Tyler Muhly"
+date: "September 12, 2018"
+output: word_document
+#  Script Name: 04_caribou_habitat_model_telemetry_data_prep_doc.Rmd
 #  Script Version: 1.0
 #  Script Purpose: Prep telemtery data for habitat model analysis. 
-#  Script Author: Tyler Muhly, Natural Resource Modeling Specialist, Forest Analysis and 
-#                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
-#                 Report is located here: 
-#  Script Date: 31 August 2018
-#  R Version: 3.5.1
-#  R Package Versions: 
-#  Data: 
-#=================================
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
+## R Markdown
 
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
 
 #===================================
 # Caribou Home Range Scale Analysis
@@ -1401,3 +1406,5 @@ all.locations@data$year
 
 
 as.factor
+
+```
