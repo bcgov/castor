@@ -33,12 +33,12 @@ library(raster)
 #Functions for retrieving data from the postgres server (vector, raster and tables)
 #-------------------------------------------------------------------------------------------------
 getSpatialQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='xxxx')
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
 getTableQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='xxxx')
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
