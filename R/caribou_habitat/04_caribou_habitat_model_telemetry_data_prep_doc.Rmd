@@ -10,37 +10,100 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-#=================================
-#  Script Name: 04_caribou_habitat_model_telemetry_data_prep.R
+---
+title: "Caribou habitat model telemetry data preparation"
+author: "Tyler Muhly"
+date: "September 12, 2018"
+output: word_document
+#  Script Name: 04_caribou_habitat_model_telemetry_data_prep_doc.Rmd
 #  Script Version: 1.0
 #  Script Purpose: Prep telemtery data for habitat model analysis. 
-#  Script Author: Tyler Muhly, Natural Resource Modeling Specialist, Forest Analysis and 
-#                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
-#                 Report is located here: 
-#  Script Date: 31 August 2018
-#  R Version: 3.5.1
-#  R Package Versions: 
-#  Data: 
-#=================================
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set (echo = TRUE)
+# require (sp) # spatial package; particulary useful for working with vector data
+# require (raster) # for working with and processing raster data; 
+# provides tools for automatic tiling of raster objects too large to fit into memory
+# require (rgeos) # geoprocessing functions
+require (dplyr)
+# require (rgdal) # for loading and writing spatial data
+# require (maptools)
+# require (spatstat)
+require (sf)
+require (lubridate)
+# require (adehabitatHR)
+
+```
+
+## Introduction
+
+Here I document the process to generate the point location sample used to build a criobu reseoruce selction fucntion model. This includes documentation fo how telmetry data were filtered for use int eh model as teh 'used' sample (i.e., the '1' dependent values in the binary logistic regression model), how data were catergozied by biological characteristics (e.g., herd) adn time of year (e.g., season). Also includes docuemntaion of how the 'available' sample (i.e., the '0' dependent values in the binary logistic regression model) was generated, by creatign saesonal annual hoem ranges for ach anaimal and generatign randon poitns within them
+
+For review of source telemetry data, see 01_caribou_habtiat_download...  
 
 
-
-
-
-#===================================
-# Caribou Home Range Scale Analysis
-#==================================
-
+```{r telemetry data merge, warning = F, include = F}
+# Here I am loading and compiling the telemetry data for analysis
 #=================================
 # Load the Telemetry Data
 #=================================
-# needed to convert from multipoitn to pint geomtery in arcgis 
-prov.locs <- sf::st_read (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry.gdb",
-                          layer = "spi_telemetry_obs_all_caribou_20180502") # errors reading with OGR for soem reason; used SF to read 
-prov.locs.single <- st_cast (prov.locs, "POINT") # function in SF to switch form multipoint to Point feature; was having difficulties working with multipoint data 
-prov.locs.single <- as (prov.locs.single, "Spatial") # and then coerce to to SpatialPoints here; https://cran.r-project.org/web/packages/sf/vignettes/sf2.html
+locs.caribou.spi <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                layer = "caribou_spi_obs_all_point_20180912") 
+locs.caribou.spi.slim <-  dplyr::select (locs.caribou.spi, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                          OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH, 
+                                          OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
 
-boreal.locs <- readOGR ("C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape\\boreal_caribou_telemetry_2013_2018.shp")
+locs.caribou.ogris <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                layer = "caribou_boreal_ogris_2011_2018_20180409") 
+locs.caribou.ogris.slim <-  dplyr::select (locs.caribou.ogris, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                           OBSERVATION_DATE, OBSERVATION_YEAR, Latitude, Longitude, 
+                                           source)
+locs.caribou.ogris.slim$OBSERVATION_MONTH <- month (locs.caribou.ogris.slim$OBSERVATION_DATE)
+locs.caribou.ogris.slim$OBSERVATION_DAY <- day (locs.caribou.ogris.slim$OBSERVATION_DATE)
+names (locs.caribou.ogris.slim) [5] <- "LATITUDE"
+names (locs.caribou.ogris.slim) [6] <- "LONGITUDE"
+names (locs.caribou.ogris.slim) [8] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.ogris.slim) <- "GEOMETRY"
+
+# not using level-kawdy data
+locs.caribou.nexen <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                layer = "caribou_boreal_nexen_bcalbers_20180409") 
+
+
+
+
+
+
+names (locs.caribou.spi.slim)
+names (locs.caribou.ogris.slim)
+
+
+
+
+locs.caribou.bp2010 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                layer = "caribou_burnt_pine_2003_2010_bcalbers_20180906") 
+
+
+
+
+
+
+
+locs.caribou.all <- rbind (locs.caribou.spi.slim, locs.caribou.ogris.slim)
+
+
+
+
+
+
+rm (locs.caribou.spi, locs.caribou.spi.slim, locs.caribou.ogris,locs.caribou.ogris.slim, 
+    locs.caribou.nexen, locs.caribou.bp2010 )
+gc ()
+
+
+
+
 telem.crs <- proj4string (caribou.range.boreal)
 boreal.locs.prj <- spTransform (boreal.locs, CRS = telem.crs) 
 
@@ -1401,3 +1464,5 @@ all.locations@data$year
 
 
 as.factor
+
+```
