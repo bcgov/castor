@@ -371,4 +371,178 @@ download ("http://www.bcogris.ca/sites/default/files/webexportcaribou.xlsx",
     # source = "telkwa"
 # Needed to convert SPI data from MULTIPOINT to POINT (https://support.esri.com/en/technical-article/000007983)
   # Name in gdb: caribou_spi_obs_all_point_20180912
+
+locs.caribou.spi <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                 layer = "caribou_spi_obs_all_point_20180912") 
+locs.caribou.spi.slim <-  dplyr::select (locs.caribou.spi, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                         OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH, 
+                                         OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+
+locs.caribou.ogris <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                   layer = "caribou_boreal_ogris_2011_2018_20180409") 
+locs.caribou.ogris.slim <-  dplyr::select (locs.caribou.ogris, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                           OBSERVATION_DATE, OBSERVATION_YEAR, Latitude, Longitude, 
+                                           source)
+locs.caribou.ogris.slim$OBSERVATION_MONTH <- month (locs.caribou.ogris.slim$OBSERVATION_DATE)
+locs.caribou.ogris.slim$OBSERVATION_DAY <- day (locs.caribou.ogris.slim$OBSERVATION_DATE)
+names (locs.caribou.ogris.slim) [5] <- "LATITUDE"
+names (locs.caribou.ogris.slim) [6] <- "LONGITUDE"
+names (locs.caribou.ogris.slim) [8] <- "GEOMETRY" # make the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.ogris.slim) <- "GEOMETRY" # redefine the geometry column from 'shape' to 'geometry'
+
+# not using level-kawdy data
+locs.caribou.nexen <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                   layer = "caribou_boreal_nexen_bcalbers_20180409") 
+locs.caribou.nexen.slim <-  dplyr::select (locs.caribou.nexen, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                           OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                           OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.nexen.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.nexen.slim) <- "GEOMETRY"
+
+locs.caribou.bp2010 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                    layer = "caribou_burnt_pine_2003_2010_bcalbers_20180906") 
+locs.caribou.bp2010.slim <-  dplyr::select (locs.caribou.bp2010, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                            OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                            OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.bp2010.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.bp2010.slim) <- "GEOMETRY"
+
+
+locs.caribou.bp2012 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                    layer = "caribou_burnt_pine_2011_2012_bcalbers_20180906") 
+locs.caribou.bp2012.slim <-  dplyr::select (locs.caribou.bp2012, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                            OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                            OBSERVATION_DAY, Latitude, Longitude, source)
+names (locs.caribou.bp2012.slim) [7] <- "LATITUDE"
+names (locs.caribou.bp2012.slim) [8] <- "LONGITUDE"
+names (locs.caribou.bp2012.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.bp2012.slim) <- "GEOMETRY"
+
+
+locs.caribou.ks2011 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                    layer = "caribou_kennedy_2002_2011_bcalbers_20180906") 
+locs.caribou.ks2011.slim <-  dplyr::select (locs.caribou.ks2011, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                            OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                            OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.ks2011.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.ks2011.slim) <- "GEOMETRY"
+
+locs.caribou.ks2011 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                    layer = "caribou_kennedy_2002_2011_bcalbers_20180906") 
+locs.caribou.ks2011.slim <-  dplyr::select (locs.caribou.ks2011, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                            OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                            OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.ks2011.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.ks2011.slim) <- "GEOMETRY"
+
+locs.caribou.ks2018 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                    layer = "caribou_kennedy_2012_2018_bcalbers_20180906") 
+locs.caribou.ks2018.slim <-  dplyr::select (locs.caribou.ks2018, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                            OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                            OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.ks2018.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.ks2018.slim) <- "GEOMETRY"
+
+locs.caribou.moberly <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                     layer = "caribou_moberly_bcalbers_20180910") 
+locs.caribou.moberly.slim <-  dplyr::select (locs.caribou.moberly, ANIMAL_ID, OBSERVATION_DATETIME, 
+                                             OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                             OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.moberly.slim) [10] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
+st_geometry (locs.caribou.moberly.slim) <- "GEOMETRY"
+
+locs.caribou.moberly2012 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                         layer = "caribou_moberly_2011_2012_bcalbers_20180910") 
+locs.caribou.moberly2012$OBSERVATION_MONTH <- month (locs.caribou.moberly2012$OBSERVATION_DATE)
+locs.caribou.moberly2012$OBSERVATION_DAY <- day (locs.caribou.moberly2012$OBSERVATION_DATE)
+locs.caribou.moberly2012$OBSERVATION_YEAR <- year (locs.caribou.moberly2012$OBSERVATION_DATE)
+locs.caribou.moberly2012.slim <-  dplyr::select (locs.caribou.moberly2012, ANIMAL_ID, 
+                                                 OBSERVATION_DATETIME, OBSERVATION_DATE, 
+                                                 OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                                 OBSERVATION_DAY, Latitude, Longitude, source)
+names (locs.caribou.moberly2012.slim) [7] <- "LATITUDE"
+names (locs.caribou.moberly2012.slim) [8] <- "LONGITUDE"
+names (locs.caribou.moberly2012.slim) [10] <- "GEOMETRY" 
+st_geometry (locs.caribou.moberly2012.slim) <- "GEOMETRY"
+
+locs.caribou.muskwa <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                    layer = "caribou_muskwa_bclabers_20180911") 
+locs.caribou.muskwa.slim <-  dplyr::select (locs.caribou.muskwa, ANIMAL_ID, 
+                                            OBSERVATION_DATETIME, OBSERVATION_DATE, 
+                                            OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                            OBSERVATION_DAY, latitude, longitude, source)
+names (locs.caribou.muskwa.slim) [7] <- "LATITUDE"
+names (locs.caribou.muskwa.slim) [8] <- "LONGITUDE"
+names (locs.caribou.muskwa.slim) [10] <- "GEOMETRY" 
+st_geometry (locs.caribou.muskwa.slim) <- "GEOMETRY"
+
+locs.caribou.narraway <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                      layer = "caribou_narraway_bcalbers_20180911") 
+locs.caribou.narraway.slim <-  dplyr::select (locs.caribou.narraway, ANIMAL_ID, 
+                                              OBSERVATION_DATETIME, OBSERVATION_DATE, 
+                                              OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                              OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.narraway.slim) [10] <- "GEOMETRY" 
+st_geometry (locs.caribou.narraway.slim) <- "GEOMETRY"
+
+locs.caribou.quin <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                  layer = "caribou_quintette_bcalbers_20180911") 
+locs.caribou.quin.slim <-  dplyr::select (locs.caribou.quin, ANIMAL_ID, 
+                                          OBSERVATION_DATETIME, OBSERVATION_DATE, 
+                                          OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                          OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.quin.slim) [10] <- "GEOMETRY" 
+st_geometry (locs.caribou.quin.slim) <- "GEOMETRY"
+
+locs.caribou.quin2018 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                      layer = "caribou_quintette_2011_2018_bcalbers_20180911") 
+locs.caribou.quin2018.slim <-  dplyr::select (locs.caribou.quin2018, ANIMAL_ID, 
+                                              OBSERVATION_DATETIME, OBSERVATION_DATE, 
+                                              OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                              OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.quin2018.slim) [10] <- "GEOMETRY" 
+st_geometry (locs.caribou.quin2018.slim) <- "GEOMETRY"
+
+locs.caribou.scott <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
+                                   layer = "caribou_scott_bcalbers_20180911") 
+locs.caribou.scott.slim <-  dplyr::select (locs.caribou.scott, ANIMAL_ID, 
+                                           OBSERVATION_DATETIME, OBSERVATION_DATE, 
+                                           OBSERVATION_YEAR, OBSERVATION_MONTH,
+                                           OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
+names (locs.caribou.scott.slim) [10] <- "GEOMETRY" 
+st_geometry (locs.caribou.scott.slim) <- "GEOMETRY"
+
+
+
+
+locs.caribou.all <- rbind (locs.caribou.spi.slim, locs.caribou.ogris.slim, locs.caribou.nexen.slim,
+                           locs.caribou.bp2010.slim, locs.caribou.bp2012.slim,
+                           locs.caribou.ks2011.slim, locs.caribou.ks2018.slim, 
+                           locs.caribou.moberly.slim, locs.caribou.moberly2012.slim,
+                           locs.caribou.muskwa.slim, locs.caribou.narraway.slim, 
+                           locs.caribou.quin.slim, locs.caribou.quin2018.slim)
+
+
+
+
+
+
+rm (locs.caribou.spi, locs.caribou.spi.slim, locs.caribou.ogris,locs.caribou.ogris.slim, 
+    locs.caribou.nexen, locs.caribou.nexen.slim, locs.caribou.bp2010, locs.caribou.bp2010.slim,
+    locs.caribou.bp2012, locs.caribou.bp2012.slim, locs.caribou.ks2011, locs.caribou.ks2011.slim,
+    locs.caribou.ks2018, locs.caribou.ks2018.slim, locs.caribou.moberly, locs.caribou.moberly.slim,
+    locs.caribou.moberly2012, locs.caribou.moberly2012.slim, locs.caribou.muskwa, 
+    locs.caribou.muskwa.slim, locs.caribou.narraway, locs.caribou.narraway.slim, locs.caribou.quin,
+    locs.caribou.quin.slim, locs.caribou.quin2018, locs.caribou.quin2018.slim)
+gc ()
+
+
+
+
+telem.crs <- proj4string (caribou.range.boreal)
+boreal.locs.prj <- spTransform (boreal.locs, CRS = telem.crs) 
+
+writeOGR (obj = prov.locs.single, 
+          dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape_raw", 
+          layer = "spi_telemetry_point_raw", driver = "ESRI Shapefile")
   

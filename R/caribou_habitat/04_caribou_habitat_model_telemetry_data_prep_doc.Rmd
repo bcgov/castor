@@ -43,73 +43,12 @@ Here I document the process to generate the point location sample used to build 
 For review of source telemetry data, see 01_caribou_habtiat_download...  
 
 
-```{r telemetry data merge, warning = F, include = F}
+```{r telemetry data load, warning = F, include = F}
 # Here I am loading and compiling the telemetry data for analysis
 #=================================
 # Load the Telemetry Data
 #=================================
-locs.caribou.spi <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
-                                layer = "caribou_spi_obs_all_point_20180912") 
-locs.caribou.spi.slim <-  dplyr::select (locs.caribou.spi, ANIMAL_ID, OBSERVATION_DATETIME, 
-                                          OBSERVATION_DATE, OBSERVATION_YEAR, OBSERVATION_MONTH, 
-                                          OBSERVATION_DAY, LATITUDE, LONGITUDE, source)
 
-locs.caribou.ogris <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
-                                layer = "caribou_boreal_ogris_2011_2018_20180409") 
-locs.caribou.ogris.slim <-  dplyr::select (locs.caribou.ogris, ANIMAL_ID, OBSERVATION_DATETIME, 
-                                           OBSERVATION_DATE, OBSERVATION_YEAR, Latitude, Longitude, 
-                                           source)
-locs.caribou.ogris.slim$OBSERVATION_MONTH <- month (locs.caribou.ogris.slim$OBSERVATION_DATE)
-locs.caribou.ogris.slim$OBSERVATION_DAY <- day (locs.caribou.ogris.slim$OBSERVATION_DATE)
-names (locs.caribou.ogris.slim) [5] <- "LATITUDE"
-names (locs.caribou.ogris.slim) [6] <- "LONGITUDE"
-names (locs.caribou.ogris.slim) [8] <- "GEOMETRY" # give the 'geometry' column the same name as SPI
-st_geometry (locs.caribou.ogris.slim) <- "GEOMETRY"
-
-# not using level-kawdy data
-locs.caribou.nexen <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
-                                layer = "caribou_boreal_nexen_bcalbers_20180409") 
-
-
-
-
-
-
-names (locs.caribou.spi.slim)
-names (locs.caribou.ogris.slim)
-
-
-
-
-locs.caribou.bp2010 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\caribou_telemetry_master_20180904.gdb",
-                                layer = "caribou_burnt_pine_2003_2010_bcalbers_20180906") 
-
-
-
-
-
-
-
-locs.caribou.all <- rbind (locs.caribou.spi.slim, locs.caribou.ogris.slim)
-
-
-
-
-
-
-rm (locs.caribou.spi, locs.caribou.spi.slim, locs.caribou.ogris,locs.caribou.ogris.slim, 
-    locs.caribou.nexen, locs.caribou.bp2010 )
-gc ()
-
-
-
-
-telem.crs <- proj4string (caribou.range.boreal)
-boreal.locs.prj <- spTransform (boreal.locs, CRS = telem.crs) 
-
-writeOGR (obj = prov.locs.single, 
-          dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_shape_raw", 
-          layer = "spi_telemetry_point_raw", driver = "ESRI Shapefile")
 
 
 # DONT: FORGET TEH DATA IN THE HABTIAT MODEL GDB
