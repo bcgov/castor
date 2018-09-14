@@ -26,6 +26,7 @@ require (downloader)
 require (dplyr)
 require (sf)
 require (lubridate)
+require (RPostgreSQL)
 
 # data directory
 setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
@@ -545,7 +546,7 @@ rm (locs.caribou.spi, locs.caribou.spi.slim, locs.caribou.ogris,locs.caribou.ogr
     locs.caribou.scott.slim, locs.caribou.telkwa, locs.caribou.telkwa.slim)
 gc ()
 
-# abbreviate fields for saving as shapefile
+# abbreviate fields for saving as shapefile as back-up
 names (locs.caribou.all) [1] <- "animal_id"
 names (locs.caribou.all) [2] <- "datetime"
 names (locs.caribou.all) [3] <- "date"
@@ -556,3 +557,26 @@ names (locs.caribou.all) [6] <- "day"
 st_write (obj = locs.caribou.all, 
           dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904", 
           layer = "telemetry_caribou_all", driver = "ESRI Shapefile")
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = locs.caribou.all, 
+          dsn = conn, 
+          layer = "telemetry_caribou_all")
+dbDisconnect (conn)
+
+connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
+                      host = "DC052586", # Kyle's computer name
+                      user = "Tyler",
+                      dbname = "clus",
+                      password = "tyler",
+                      port = "5432")
+st_write (obj = locs.caribou.all, 
+          dsn = connKyle, 
+          layer = "telemetry_caribou_all")
+dbDisconnect (connKyle)
+
