@@ -564,9 +564,9 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-st_write (obj = locs.caribou.all, 
+st_write (obj = locs.caribou, 
           dsn = conn, 
-          layer = "telemetry_caribou_all")
+          layer = c ("caribou", "telemetry_caribou_all"))
 dbDisconnect (conn)
 
 connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
