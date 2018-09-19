@@ -27,7 +27,8 @@ require (dplyr)
 require (sf)
 require (lubridate)
 require (RPostgreSQL)
-
+require (raster)
+require (rpostgis)
 # data directory
 setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 
@@ -121,6 +122,41 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # Lakes
 # https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm
 # Name in GDB: lakes_20180817
+
+# Wetlands
+# Enhanced boreal wetland classification for boreal BC only
+# this version was derived from a Ducks Unlimited dataset, reclassified for caribou habitat 
+# report on how the classes were derived is here: https://www.researchgate.net/profile/Gilbert_Proulx/post/Are_there_studies_in_forest_ecology_and_conservation_that_used_the_Bayesian_approach_to_research/attachment/59d6203379197b807797eab3/AS%3A289179285114880%401445957123491/download/2015-2Wilson_FINAL.pdf
+# the data is downloadable from Hectares BC: https://hectaresbc.ca/app/habc/HaBC.html
+# you need an account to access the data 
+# click on the 'raster data' tab, click on the 'enhanced wetland classification' in the data layer window
+# click the export raster data button (looks like a sheet of paper with an arrow) and you will be 
+# prompted to enter your email and format you want; the data arrives via an email link
+wetlands <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\Enhanced_Wetland_Classification\\wettype.ewcmosaic.tif")
+wetlands <- projectRaster (wetlands, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
+                      host = "DC052586", # Kyle's computer name
+                      user = "Tyler",
+                      dbname = "clus",
+                      password = "tyler",
+                      port = "5432")
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+pgWriteRast (conn, c ("vegetation", "wetlands_boreal_caribou"), wetlands, overwrite = TRUE)
+pgWriteRast (connKyle, "wetlands_boreal_caribou", wetlands, overwrite = TRUE)
+wetland.lut <- read.csv ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\Enhanced_Wetland_Classification\\metadata\\wettype_ewcmosaic_category_metadata.csv",
+                         sep = ",")
+dbWriteTable (conn = connKyle, 
+              name = "lut_wetlands_boreal_caribou", 
+              value = wetland.lut) 
+dbWriteTable (conn = conn, 
+              name = c ("vegetation", "lut_wetlands_boreal_caribou"), 
+              value = wetland.lut) 
+dbDisconnect (conn) # connKyle
 
 ############################
 # Cumulative Effects Data #
@@ -575,8 +611,8 @@ connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"),
                       dbname = "clus",
                       password = "tyler",
                       port = "5432")
-st_write (obj = locs.caribou.all, 
+st_write (obj = locs.caribou, 
           dsn = connKyle, 
-          layer = "telemetry_caribou_all")
+          layer = c ("caribou", "telemetry_caribou_all"))
 dbDisconnect (connKyle)
 
