@@ -22,44 +22,70 @@ output: word_document
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set (echo = TRUE)
-# require (sp) # spatial package; particulary useful for working with vector data
-# require (raster) # for working with and processing raster data; 
-# provides tools for automatic tiling of raster objects too large to fit into memory
-# require (rgeos) # geoprocessing functions
-require (dplyr)
-# require (rgdal) # for loading and writing spatial data
-# require (maptools)
-# require (spatstat)
 require (sf)
 require (lubridate)
+require (RPostgreSQL)
+require (dplyr)
 # require (adehabitatHR)
-
+# require (sp) 
+# require (raster) 
+# require (rgeos) 
+# require (rgdal) 
+# require (maptools)
+# require (spatstat)
 ```
 
 ## Introduction
 
-Here I document the process to generate the point location sample used to build a criobu reseoruce selction fucntion model. This includes documentation fo how telmetry data were filtered for use int eh model as teh 'used' sample (i.e., the '1' dependent values in the binary logistic regression model), how data were catergozied by biological characteristics (e.g., herd) adn time of year (e.g., season). Also includes docuemntaion of how the 'available' sample (i.e., the '0' dependent values in the binary logistic regression model) was generated, by creatign saesonal annual hoem ranges for ach anaimal and generatign randon poitns within them
+Here I document the process to generate the point location sample used to build a criobu reseoruce selction fucntion model. This includes documentation fo how telmetry data were filtered for use int eh model as the 'used' sample (i.e., the '1' dependent values in the binary logistic regression model), how data were catergozied by biological characteristics (e.g., herd) adn time of year (e.g., season). Also includes docuemntaion of how the 'available' sample (i.e., the '0' dependent values in the binary logistic regression model) was generated, by creatign saesonal annual hoem ranges for ach anaimal and generatign randon poitns within them
 
 For review of source telemetry data, see 01_caribou_habtiat_download...  
 
 
-```{r telemetry data load, warning = F, include = F}
-# Here I am loading and compiling the telemetry data for analysis
+## Methods
+telemetry data compiled  from SPI (non-public version), BCOGRIS, and from regional biologists, nto yet entered into these db's. colelcted under provicnail permist amd follwoign provincial animal care protocols. data was from a wide varaiety of indivuals (males adn females of differnet ages), telemetry collar types (VHF, GPS and ARGOS, form differetn brands, such as Lotek and ATS) adn fix rates. Type of animal colalred adn colalr type not always documented; rarely had capture information. used 'as is', with ptoential for biases in some data due to differetn fix rates (e.g., fix rates may vary by colalr type and ). Older data, prior to 2008, were nto used in the analysis, as some landscape features (particualrly lienar features such as roads, pieplines and sesimic lines) do not typically have an accurate time asscoaited with their developmebnt. We did nto use data older than 10 years because   
+
+
+```{r telemetry data prep, warning = F, include = F}
+# connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
+#                      host = "DC052586", # Kyle's computer name
+#                      user = "Tyler",
+#                      dbname = "clus",
+#                      password = "tyler",
+#                      port = "5432")
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+locs.caribou <- sf::st_read  (dsn = conn, # connKyle
+                              query = "SELECT * FROM caribou.telemetry_caribou_all")
+dbDisconnect (conn) # connKyle
+
+
+# filter data before 2008
+locs.caribou.new <-  dplyr::filter (locs.caribou, year > 2007)
+locs.caribou.new$animal_id <- as.factor (locs.caribou.new$animal_id)
+
+# Building a summary table of telemetry data
+loc.year <- data.frame (table (locs.caribou.new$year)) # table of locations per year
+names (loc.year) [1] <- "Year" 
+loc.year$Year <- as.factor (loc.year$Year)
+names (loc.year) [2] <- "Number of Locations" 
+animal.year <- aggregate (data = locs.caribou.new, # number animals/year
+                          animal_id ~ year, 
+                          function(x) length(unique(x)))
+names (animal.year) [2] <- "Number of Animals" 
+names (animal.year) [1] <- "Year" 
+animal.year$Year <- as.factor (animal.year$Year)
+table.data.summary <- full_join (animal.year, loc.year, by = c ("Year", "Year"))
+rm (loc.year, animal.year)
+gc ()
+
 #=================================
-# Load the Telemetry Data
+#  Subset the data by season
 #=================================
-
-
-
-# DONT: FORGET TEH DATA IN THE HABTIAT MODEL GDB
-
-
-
-#=================================
-#  Prepare the Telemetry Data
-#=================================
-# freq.year <- table (prov.locs.single@data$OBSERVATION_YEAR) # frequency of locations by year
-# divided data by season
 # identified based on lit. review; a decent amount of variability there, but settled on:
 # calving/summer/fall	(summer) = 15-May to 31-Oct 
 # early winter =	01-Nov	to 15-Jan
@@ -69,45 +95,85 @@ For review of source telemetry data, see 01_caribou_habtiat_download...
 # resulting in highly variable home range sizes depending if and when the animal moved to calve
 # also, on further reflection I don't know if an animal was male or female, and habitat use
 # of each is obviously different, so I went with a more broader seasonal definition  
-prov.locs.summer <- subset (prov.locs.single, 
-                            prov.locs.single$OBSERVATION_MONTH == 5 & 
-                              prov.locs.single$OBSERVATION_DAY >= 15 |
-                              prov.locs.single$OBSERVATION_MONTH >= 6 &
-                              prov.locs.single$OBSERVATION_MONTH < 11)
-
-prov.locs.early.winter <- subset (prov.locs.single, 
-                                  prov.locs.single$OBSERVATION_MONTH > 10 |
-                                    prov.locs.single$OBSERVATION_MONTH == 1 &
-                                    prov.locs.single$OBSERVATION_DAY < 16)
-
-prov.locs.late.winter <- subset (prov.locs.single, 
-                                 prov.locs.single$OBSERVATION_MONTH == 1 & 
-                                   prov.locs.single$OBSERVATION_DAY > 15 |
-                                   prov.locs.single$OBSERVATION_MONTH == 5 &
-                                   prov.locs.single$OBSERVATION_DAY < 15 |
-                                   prov.locs.single$OBSERVATION_MONTH > 1 &
-                                   prov.locs.single$OBSERVATION_MONTH < 5)
-
-# boreal locations
-# NEED TO WORK ON THESE; IDEA IS TO USE JULIAN DAY
-# https://landweb.modaps.eosdis.nasa.gov/browse/calendar.html
-boreal.locs.prj@data$yr.julian <- c ("as.character(boreal.locs.prj@data$Yr)",
-                                     "as.character(boreal.locs.prj@data$Julian)") 
-
-boreal.locs.prj@data <- mutate (boreal.locs.prj@data, yr.julian = paste(boreal.locs.prj@data$Yr, 
-                                                                        boreal.locs.prj@data$Julian,
-                                                                        sep = "")) 
-boreal.locs.prj@data$yr.julian <- as.numeric (boreal.locs.prj@data$yr.julian)  
+locs.caribou.summer <- subset (locs.caribou.new, 
+                                   locs.caribou.new$month == 5 & 
+                                   locs.caribou.new$day >= 15 |
+                                   locs.caribou.new$month >= 6 &
+                                   locs.caribou.new$month < 11)
+locs.caribou.summer$season <- "Summer"
+locs.caribou.early.winter <- subset (locs.caribou.new, 
+                                     locs.caribou.new$month > 10 |
+                                     locs.caribou.new$month == 1 &
+                                     locs.caribou.new$day < 16)
+locs.caribou.early.winter$season <- "Early Winter"
+locs.caribou.late.winter <- subset (locs.caribou.new, 
+                                    locs.caribou.new$month == 1 & 
+                                    locs.caribou.new$day > 15 |
+                                    locs.caribou.new$month == 5 &
+                                    locs.caribou.new$day < 15 |
+                                    locs.caribou.new$month > 1 &
+                                    locs.caribou.new$month < 5)
+locs.caribou.late.winter$season <- "Late Winter"
 
 
 
 
-# boreal locations
-# NEED TO WORK HERE
-boreal.locs.calving <- boreal.locs.calving [boreal.locs.calving$Collar %in% 
-                                              names (table (boreal.locs.calving$Collar)) [table (boreal.locs.calving$Collar) >= 50] , ]
 
-plot (boreal.locs)
+#==============================================================
+# Load caribou range boundaries to identfy ranges and Ecotypes 
+#=============================================================
+caribou.range <- st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\caribou_herd\\GCPB_CARIBOU_POPULATION_SP\\GCBP_CARIB_polygon.shp", stringsAsFactors = T)
+# remove Haida Gwaii
+caribou.range <- caribou.range [caribou.range$OBJECTID != 138, ]
+ # NOTE: the polygon ID was obtained using ArcGIS; not sure how to get that using R 
+caribou.range$diss <- 1  # add field in data frame for 'dissolving' data
+caribou.range.boreal <- subset (caribou.range, caribou.range$ECOTYPE == "Boreal")
+caribou.range.mtn <- subset (caribou.range, caribou.range$ECOTYPE == "Mountain")
+caribou.range.north <- subset (caribou.range, caribou.range$ECOTYPE == "Northern")
+
+
+plot (caribou.range.boreal)
+
+
+
+
+
+caribou.range.boreal.diss <- aggregate (caribou.range.boreal, by = 'diss') 
+caribou.range.mtn.diss <- aggregate (caribou.range.mtn, by = 'diss') 
+caribou.range.north.diss <- aggregate (caribou.range.north, by = 'diss') 
+caribou.range.boreal.buff.25km <- gBuffer (caribou.range.boreal.diss, width = 25000) # buffer ecotype ranges by 25km, a reasonable distance based on wolf territory size (Mech et al. 2003, pg 174) 
+caribou.range.mtn.buff.25km <- gBuffer (caribou.range.mtn.diss, width = 25000) 
+caribou.range.north.buff.25km <- gBuffer (caribou.range.north.diss, width = 25000) 
+caribou.boreal.sa <- gIntersection (caribou.range.boreal.buff.25km, prov.bnd.prj) # clip by province
+caribou.mtn.sa <- gIntersection (caribou.range.mtn.buff.25km, prov.bnd.prj) 
+caribou.north.sa <- gIntersection (caribou.range.north.buff.25km, prov.bnd.prj) 
+caribou.boreal.sa.data <- data.frame (matrix (ncol = 1, nrow = 1)) # add 'data' to each area
+caribou.mtn.sa.data <- data.frame (matrix (ncol = 1, nrow = 1))
+caribou.north.sa.data <- data.frame (matrix (ncol = 1, nrow = 1))
+x <- "avail.ecotype"
+colnames (caribou.boreal.sa.data) <- x
+colnames (caribou.mtn.sa.data) <- x
+colnames (caribou.north.sa.data) <- x
+caribou.boreal.sa.data$avail.ecotype <- "Boreal"
+caribou.mtn.sa.data$avail.ecotype <- "Mountain"
+caribou.north.sa.data$avail.ecotype <- "Northern"
+caribou.boreal.sa <- SpatialPolygonsDataFrame (caribou.boreal.sa, data = caribou.boreal.sa.data)
+caribou.mtn.sa <- SpatialPolygonsDataFrame (caribou.mtn.sa, data = caribou.mtn.sa.data)
+caribou.north.sa <- SpatialPolygonsDataFrame (caribou.north.sa, data = caribou.north.sa.data)
+writeOGR (caribou.boreal.sa, dsn = "G:\\!Workgrp\\Analysts\\tmuhly\\Caribou\\climate_analysis\\data\\studyarea\\caribou_boreal_study_area.shp", 
+          layer = "caribou_boreal_study_area", driver = "ESRI Shapefile")
+writeOGR (caribou.mtn.sa, dsn = "G:\\!Workgrp\\Analysts\\tmuhly\\Caribou\\climate_analysis\\data\\studyarea\\caribou_mtn_study_area.shp", 
+          layer = "caribou_mtn_study_area", driver = "ESRI Shapefile")
+writeOGR (caribou.north.sa, dsn = "G:\\!Workgrp\\Analysts\\tmuhly\\Caribou\\climate_analysis\\data\\studyarea\\caribou_north_study_area.shp", 
+          layer = "caribou_north_study_area", driver = "ESRI Shapefile")
+# caribou.boreal.sa <- readOGR ("studyarea\\caribou_boreal_study_area.shp", stringsAsFactors = T)
+# caribou.mtn.sa <- readOGR ("studyarea\\caribou_mtn_study_area.shp", stringsAsFactors = T)
+# caribou.north.sa <- readOGR ("studyarea\\caribou_north_study_area.shp", stringsAsFactors = T)
+
+
+
+
+
 
 
 
