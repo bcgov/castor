@@ -134,13 +134,13 @@ setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
 # prompted to enter your email and format you want; the data arrives via an email link
 wetlands <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\Enhanced_Wetland_Classification\\wettype.ewcmosaic.tif")
 wetlands <- projectRaster (wetlands, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
                       host = "DC052586", # Kyle's computer name
                       user = "Tyler",
                       dbname = "clus",
                       password = "tyler",
                       port = "5432")
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
+conn <- dbConnect (drv = RPostgreSQL::PostgreSQL(), 
                    host = "",
                    user = "postgres",
                    dbname = "postgres",
