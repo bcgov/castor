@@ -26,6 +26,7 @@ require (sf)
 require (lubridate)
 require (RPostgreSQL)
 require (dplyr)
+require (kableExtra)
 # require (adehabitatHR)
 # require (sp) 
 # require (raster) 
@@ -43,10 +44,10 @@ For review of source telemetry data, see 01_caribou_habtiat_download...
 
 
 ## Methods
-telemetry data compiled  from SPI (non-public version), BCOGRIS, and from regional biologists, nto yet entered into these db's. colelcted under provicnail permist amd follwoign provincial animal care protocols. data was from a wide varaiety of indivuals (males adn females of differnet ages), telemetry collar types (VHF, GPS and ARGOS, form differetn brands, such as Lotek and ATS) adn fix rates. Type of animal colalred adn colalr type not always documented; rarely had capture information. used 'as is', with ptoential for biases in some data due to differetn fix rates (e.g., fix rates may vary by colalr type and ). Older data, prior to 2008, were nto used in the analysis, as some landscape features (particualrly lienar features such as roads, pieplines and sesimic lines) do not typically have an accurate time asscoaited with their developmebnt. We did nto use data older than 10 years because   
+telemetry data compiled  from SPI (non-public version), BCOGRIS, and from regional biologists, nto yet entered into these db's. colelcted under provicnail permist amd follwoign provincial animal care protocols. data was from a wide varaiety of indivuals (males adn females of differnet ages), telemetry collar types (VHF, GPS and ARGOS, form differetn brands, such as Lotek and ATS) adn fix rates. Type of animal colalred adn colalr type not always documented; rarely had capture information. used 'as is', with ptoential for biases in some data due to differetn fix rates (e.g., fix rates may vary by colalr type and ). Older data, prior to 2008, were nto used in the analysis, as some landscape features (particualrly lienar features such as roads, pieplines and sesimic lines) do not typically have an accurate time asscoaited with their developmebnt. We did nto use data older than 10 years because there is a higher likelyhood that these animals may have been usign areas that were less distrubed by human footprint than what coudl be measured usign teh available data.   
 
 
-```{r telemetry data prep, warning = F, include = F}
+```{r telemetry data summary, warning = F, include = F, message = F}
 # connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
 #                      host = "DC052586", # Kyle's computer name
 #                      user = "Tyler",
@@ -62,7 +63,6 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
 locs.caribou <- sf::st_read  (dsn = conn, # connKyle
                               query = "SELECT * FROM caribou.telemetry_caribou_all")
 dbDisconnect (conn) # connKyle
-
 
 # filter data before 2008
 locs.caribou.new <-  dplyr::filter (locs.caribou, year > 2007)
@@ -82,7 +82,18 @@ animal.year$Year <- as.factor (animal.year$Year)
 table.data.summary <- full_join (animal.year, loc.year, by = c ("Year", "Year"))
 rm (loc.year, animal.year)
 gc ()
+knitr::kable (table.data.summary, 
+              caption = "Table 1. Number of caribou collared and telemetry lcoations collected per year.", 
+              align = 'c', format.args = list (big.mark   = ","))  
+```
 
+
+Data were split into 3 seasons, based on lit. review (see caariobu seasosn spreadsheet):
+ calving/summer/fall	(summer) = 15-May to 31-Oct 
+early winter =	01-Nov	to 15-Jan
+late winter	= 16-Jan to 14-May
+
+```{r telemetry data seasonal summary, warning = F, include = F, message = F}
 #=================================
 #  Subset the data by season
 #=================================
@@ -115,35 +126,114 @@ locs.caribou.late.winter <- subset (locs.caribou.new,
                                     locs.caribou.new$month < 5)
 locs.caribou.late.winter$season <- "Late Winter"
 
+# recombine data
+locs.caribou.new <- rbind (locs.caribou.summer, locs.caribou.early.winter, locs.caribou.late.winter)
+locs.caribou.new$season <- as.factor (locs.caribou.new$season)
+locs.caribou.new$year <- as.factor (locs.caribou.new$year)
+
+# Seasonal summary table of telemetry data
+loc.year.season <- data.frame (locs.caribou.new %>%
+                                  group_by (year, season) %>%
+                                  summarise (count = n ()))
+loc.year.season <- loc.year.season [, c(1:3)]
+names (loc.year.season) [1] <- "Year" 
+names (loc.year.season) [2] <- "Season" 
+names (loc.year.season) [3] <- "Number of Locations" 
+animal.year.season <- aggregate (data = locs.caribou.new, # number animals/year and season
+                                 animal_id ~ year + season, 
+                                 function(x) length(unique(x)))
+names (animal.year.season) [1] <- "Year" 
+names (animal.year.season) [2] <- "Season" 
+names (animal.year.season) [3] <- "Number of Animals" 
+table.data.summary.year.season <- full_join (animal.year.season, loc.year.season, 
+                                             by = c ("Year", "Year"))
+rm (animal.year.season, loc.year.season)
+gc ()
+knitr::kable (table.data.summary.year.season, 
+              caption = "Table 2. Number of caribou collared and telemetry lcoations collected per year and season.", 
+              align = 'c', format.args = list (big.mark   = ","))  
+
+```
 
 
+data were clipped ot the province
+data were assigned to each ecotype adn herd by intersectign with the location data
 
 
+```{r assign ecotype to telemetry locations, warning = F, include = F, message = F}
 #==============================================================
-# Load caribou range boundaries to identfy ranges and Ecotypes 
+# Load caribou range boundaries to identify ranges and Ecotypes 
 #=============================================================
 caribou.range <- st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou\\caribou_herd\\GCPB_CARIBOU_POPULATION_SP\\GCBP_CARIB_polygon.shp", stringsAsFactors = T)
 # remove Haida Gwaii
 caribou.range <- caribou.range [caribou.range$OBJECTID != 138, ]
  # NOTE: the polygon ID was obtained using ArcGIS; not sure how to get that using R 
+# clip data outside province
+prov.bnd <- st_read ( dsn = "C:\\Work\\caribou\\clus_data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T)
+prov.bnd <- st_transform (prov.bnd, 3005)
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ]  
+locs.caribou.bc <- locs.caribou.new [prov.bnd, ] # clip locations to BC
+
+
+
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = locs.caribou.bc, 
+          dsn = conn, 
+          layer = c ("caribou", "telemetry_caribou_bc"))
+
+locs.caribou <- sf::st_read  (dsn = conn, # connKyle
+                              query = "SELECT * FROM caribou.telemetry_caribou_bc")
+dbDisconnect (conn)
+
+
+
+
+plot (st_geometry (prov.bnd))
+plot (st_geometry (locs.caribou.bc), add = T)
+
+
+
 caribou.range$diss <- 1  # add field in data frame for 'dissolving' data
 caribou.range.boreal <- subset (caribou.range, caribou.range$ECOTYPE == "Boreal")
 caribou.range.mtn <- subset (caribou.range, caribou.range$ECOTYPE == "Mountain")
 caribou.range.north <- subset (caribou.range, caribou.range$ECOTYPE == "Northern")
+# dissolve
+caribou.range.boreal.diss <- caribou.range.boreal %>% 
+                              group_by (diss) %>% 
+                              summarise ()
+caribou.range.mtn.diss <- caribou.range.mtn %>% 
+                              group_by (diss) %>% 
+                              summarise ()
+caribou.range.north.diss <- caribou.range.north %>% 
+                              group_by (diss) %>% 
+                              summarise ()
 
 
-plot (caribou.range.boreal)
+
+
+
+
+caribou.range.boreal.buff.25km <- st_buffer (caribou.range.boreal.diss, dist = 25000) # buffer ecotype ranges by 25km, a reasonable distance based on wolf territory size (Mech et al. 2003, pg 174) 
+caribou.range.mtn.diss.buff.25km <- st_buffer (caribou.range.mtn.diss, dist = 25000) 
+caribou.range.north.diss.buff.25km <- st_buffer (caribou.range.north.diss, dist = 25000) 
+
+
+plot (st_geometry (caribou.range.boreal.buff.25km))
+plot (st_geometry (caribou.range.mtn.diss.buff.25km), add = T)
+plot (st_geometry (caribou.range.north.diss.buff.25km), add = T)
+plot (st_geometry (locs.caribou.new), add = T)
 
 
 
 
 
-caribou.range.boreal.diss <- aggregate (caribou.range.boreal, by = 'diss') 
-caribou.range.mtn.diss <- aggregate (caribou.range.mtn, by = 'diss') 
-caribou.range.north.diss <- aggregate (caribou.range.north, by = 'diss') 
-caribou.range.boreal.buff.25km <- gBuffer (caribou.range.boreal.diss, width = 25000) # buffer ecotype ranges by 25km, a reasonable distance based on wolf territory size (Mech et al. 2003, pg 174) 
-caribou.range.mtn.buff.25km <- gBuffer (caribou.range.mtn.diss, width = 25000) 
-caribou.range.north.buff.25km <- gBuffer (caribou.range.north.diss, width = 25000) 
+caribou.range.north.buff.25km <- gBuffer (, width = 25000) 
 caribou.boreal.sa <- gIntersection (caribou.range.boreal.buff.25km, prov.bnd.prj) # clip by province
 caribou.mtn.sa <- gIntersection (caribou.range.mtn.buff.25km, prov.bnd.prj) 
 caribou.north.sa <- gIntersection (caribou.range.north.buff.25km, prov.bnd.prj) 
@@ -169,6 +259,18 @@ writeOGR (caribou.north.sa, dsn = "G:\\!Workgrp\\Analysts\\tmuhly\\Caribou\\clim
 # caribou.boreal.sa <- readOGR ("studyarea\\caribou_boreal_study_area.shp", stringsAsFactors = T)
 # caribou.mtn.sa <- readOGR ("studyarea\\caribou_mtn_study_area.shp", stringsAsFactors = T)
 # caribou.north.sa <- readOGR ("studyarea\\caribou_north_study_area.shp", stringsAsFactors = T)
+
+
+
+```
+
+
+
+
+
+
+
+
 
 
 
@@ -277,6 +379,10 @@ prov.locs.all.used.herd$joinID <- 1:469998 # create a joinID to join data on; I 
 prov.locs.all.used@data$joinID <- 1:469998 
 prov.locs.all.used@data <- dplyr::full_join (prov.locs.all.used@data, prov.locs.all.used.herd, 
                                              by = c ("joinID" = "joinID")) 
+
+
+
+
 prov.locs.all.used@data <- mutate (prov.locs.all.used@data, 
                                    uniqueID = paste (prov.locs.all.used@data$ANIMAL_ID,
                                                      prov.locs.all.used@data$HERD_NAME,
@@ -1469,5 +1575,3 @@ all.locations@data$year
 
 
 as.factor
-
-```
