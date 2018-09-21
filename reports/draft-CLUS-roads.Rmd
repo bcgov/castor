@@ -53,26 +53,226 @@ Decomposing the MTAP we find a similar smaller problem, connecting a single targ
 ###Minimum Spanning Tree
 A minimum spanning tree (MST) connects all nodes in a graph with out any loops or cycles. In the forestry context, the nodes of the MST are cutblock locations and existing road networks and the edges are routes solved using a Least-Cost Path algorthium (eg., [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)). To solve the MST, [Kruskal's algorithm](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm) is often used , however, this algrotihum is 'greedy' (finds a locally optimal choice using a problem solving heuristic with the intent of finding a global optimum) and thus various alternatives exist  (see [Prim's algorithm](https://en.wikipedia.org/wiki/Prim%27s_algorithm)). [Kruskal's algorithm](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm) begins by sorting graph edges with respect to their weights (these are the total cost of the least cost path). Then, add edges to the MST by starting with the edges with the smallest weight and going until the edge of the largest weight. Lastly, only add edges that do not form a loop or cycle. A complete graphical example can be found [here](http://optlab-server.sce.carleton.ca/POAnimations2007/MinSpanTree.html). 
 
-##Objectives
+
 Various approaches to simulating road development in BC were compared for purposes of identifying their differences and evaluating trade-offs. To provide this comparison, the approaches were first contrasted based on their conceptual and structural assumptions. Using these assumptions, versions of the  approaches were then developed in the R programming language within the [SpaDES](https://cran.r-project.org/web/packages/SpaDES/index.html) package to support a consistent comparison between accuracy and speed of execution. The following describes the approaches and provides a comparison of the simulated outcomes.
 
 ##Description of Approaches
 
-All of the methods are dependent on two considerations: i) the road building cost and ii) the view of road branching. First, road building cost is given as a surface constructed from many spatial layers including hydrology, slope, altitude, topography etc. However, the cost can also deal with transportation cost, destruction risk or negative impacts to the environment or wildlife habitat. Second, a degraded version of the MTAP is considered by forcing the only possible branching points of the road network to be targets. However, solutions to these problems increase the time and complexity of the algorithm which severely limits the number of possible scenarios that can be run. For the remainder of this analysis, the degraded version of the MTAP is considered becuase all of the proposed approaches make this assumption.
+All of the methods are dependent on two considerations: i) the road building cost and ii) the view of road branching. First, road building cost is given as a surface constructed from many spatial layers including hydrology, slope, BEC etc. However, the cost can also deal with transportation cost, destruction risk or negative impacts to the environment or wildlife habitat. Second, a degraded version of the MTAP is considered by forcing the only possible branching points of the simulated road network to be targets. However, solutions to these problems increase the time and complexity of the algorithm which severely limits the number of possible scenarios that can be run. For the remainder of this analysis, the degraded version of the MTAP is considered.
+
+```{r , echo=FALSE, message=FALSE}
+#get an igraph?
+library(igraph)
+library(SpaDES)
+library(raster)
+library(data.table)
+library(rgeos)
+library(sf)
+library(dplyr)
+
+#Empty raster0
+x.size = 5
+y.size = 5
+ras = raster(extent(0, x.size, 0, y.size),res =1, vals =1)
+ras[]<-runif(as.integer(x.size*x.size), 1,20)
+ras[1:5]<-0
+plot(ras)
+title('Cost Surface')
+
+startCells <- xyFromCell(ras, as.integer(sample(11:ncell(ras), 4)), spatial=FALSE)
+sC<-SpatialPoints(startCells)
+sC$ID<-paste(1:4, sep = "")
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+print("NOTE: black line is a road. Red crosses are targets (i.e., landing locations)")
+``` 
 
 ### The 'Snapping' Approach 
-This approach simply snaps a landing (i.e., cutblock location) to the nearest existing road segment. Since the snapping is done for each landing it is also called an independent path with reduction method. First the existing road network is closest road point is determined using gdistance
+This approach simply snaps a landing (i.e., cutblock location) to the nearest existing road segment. Since the snapping is done for each landing it is also called an independent path method. First, using the existing road network, the closest road point is determined using rgeos [gDistance](https://www.rdocumentation.org/packages/rgeos/versions/0.3-28/topics/gDistance) function .
 
+```{r}
+#convert the raster pixels that are roads (i.e., cost = 0) to points
+roads.pts <- rasterToPoints(ras, fun=function(x){x == 0})  
+#get the distance between the two geometries (road points and targets) and select the minimum
+closest.roads.pts <- apply(rgeos::gDistance(SpatialPoints(roads.pts),SpatialPoints(sC), byid=TRUE), 1, which.min) 
+
+#The top row corresponds to the landing ID and the bottom row corresponds to the closest road point. Note the raster is labeled from 1 to n cells starting from left to right, top to bottom.
+closest.roads.pts
+
+# convert to a matrix
+roads.close.XY <- as.matrix(roads.pts[closest.roads.pts, 1:2,drop=F]) 
+plot(ras)
+title('Cost Surface')
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+#NOTE: black triangles are closest point on the existing road"
+```
+
+Second, connecting the closest road points (i.e., roads.close.XY) to the targets (landings) simply involves drawing a line between the two points using the sf and dplyr packages.
+
+```{r}
+rdptsXY<-data.frame(roads.close.XY) #convert to a data.frame
+rdptsXY$id<-as.numeric(row.names(rdptsXY))
+landings<-data.frame(sC)
+landings<-landings[,2:3]
+landings$id<-as.numeric(row.names(landings))
+
+coordMatrix<-rbind(rdptsXY,landings)
+coordMatrix$attr_data<-100
+mt<-coordMatrix %>% st_as_sf(coords=c("x","y"))%>% group_by(id) %>% summarize(m=mean(attr_data)) %>% st_cast("LINESTRING")
+
+plot(ras)
+title('Cost Surface')
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+plot(mt$geometry,add=TRUE, lwd= 2)
+```
+
+Using this approach, a few issues would arise: 1) parrallel roads are not realistic since there is no branching and this ultimately leads to increases in the amount of roads; 2) costs are not included (i.e., slope and barriers like lakes); This means this approach, while simple to implement, would over estimate the amount of simulated roads.
 
 ### Least Cost Paths Approach 
-This approach builds upon the snapping approach by first assuming a path for each landing to the existing road network and second including the cost of barriers and impedance attributes. This approach requires a cost surface that is more complicated than the snapping approach and thus requires greater computational time. 
+This approach builds upon the snapping approach by assuming a 'cost directed' path for each landing to the existing road network. This includes the cost of barriers and impedance attributes. However, this approach requires a cost surface that needs to be estimated, updated within the simulations and thus, requires greater computational time, realtive to the snapping approach. First the cost surface raster is converted to a data.table (a faster data structure when storing large amounts of data). This data.table is then used to build a graph using [igraph](http://igraph.org/r/) 
+
+```{r}
+#convert the cost surface raster to a matrix
+ras.matrix<-raster::as.matrix(ras)
+weight<-c(t(ras.matrix)) #transpose then vectorize. This follows how rasters are read
+
+#This matrix is simply the values from the raster. Notice that the first 5 elements are 0 indicating the road.
+weight
+weight<-data.table(weight) #convert to a data.table
+weight$id<-as.integer(row.names(weight)) # add an ID
+
+#---------------
+#build the graph
+#---------------
+
+#get the adjaceny
+edges<-adj(returnDT= TRUE, numCol = 5, numCell=25, directions =8, cells = 1:25)
+#merge and average between the to and from 
+test<-merge(x=edges, y=weight, by.x= "from", by.y ="id")
+setnames(test, c("from", "to", "w1"))
+
+test2<-setDT(merge(x=test, y=weight, by.x= "to", by.y ="id"))
+setnames(test2, c("from", "to", "w1", "w2"))
+test2$weight<-(test2$w1 + test2$w2) /2 # take the average between the two pixels
+edges.weight<-test2[complete.cases(test2), ]
+
+edges.weight$id<-1:nrow(edges.weight)
+
+g<-graph.edgelist(as.matrix(edges.weight)[,1:2], dir = FALSE)
+#assign weights to the graph
+E(g)$weight<-as.matrix(edges.weight)[,5]
+
+#From this grah you can see the verticies labeled according to the raster cell number and the edges that connect a pixel to its neighbours
+plot(g)
+
+```
+Once the graph is built, it is simple to get the least cost path between any two verticies. Using [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm), the [shortest_paths](http://igraph.org/r/doc/distances.html) function is called in [igraph](http://igraph.org/r/doc/#R). Further, the graph can be esily updated to simulate the change in the cost surface from dynamically developing roads during the simulation. Note, that  this dynamic behaviour would not be possible in a pre-solve of the road network.
+
+```{r}
+
+paths.matrix<-cbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY ))
+paths.list<-split(paths.matrix, 1:nrow(paths.matrix)) #convert to a list for lapply
+
+#get the shortest paths
+paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both")))
+paths.v<-NULL
+paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v))
+
+paths.e<-paths[grepl("epath",names(paths))]
+r<-raster(ras)
+r[]<-1:25 #assign the cell number ID as raster values
+r2<-r
+
+r[!(r[] %in% as.matrix(paths.v))] <- NA
+r[r[]>0] <- 1
+r[1:5]<- 1
+plot(r)
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+
+#show comparison to the cost surface
+plot(ras)
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+
+```
+
+The main disadvantage of this approach is the independancy of simulating each road. While in some cases there will be branching where two roads connecting targets to existing road network will use a section of the same path; this will be dependant on the cost surface. In other cases the shortest path may produce parrellel or redundant roads given a path is made for each target to the corresponding closest point. Thus, the least cost path may produce both less or more road development than the corresponding snap approach.
 
 ### MST-Least Cost Paths Approach 
-This approach builds upon the least cost paths approach by determining if landings should be connected to one another before being connected to the exiting road network. Least cost distances are estimated both between landings and landings with the existing road network. These distances are then used as nodes for solving a minim spanning tree problem. Least cost paths are then constructed following the solution to the MST. This approach allows for greater branching in simulated roads which would reduce the cost relative to the least cost paths approach. However, the computational time would increase over the least cost paths approach given the extra step of solving the MST. 
+This approach builds upon the least cost paths approach by determining if landings should be connected to one another before being connected to the exiting road network. Least cost distances are estimated both between landings and landings with the existing road network. These distances are then used as nodes for solving a minimum spanning tree problem. Least cost paths are then constructed following the solution to the MST. This approach allows for greater branching in simulated roads which would reduce the cost relative to the least cost paths approach. However, the computational time would increase over the least cost paths approach given the extra step of solving the MST.
+
+```{r}
+mst.v <- as.vector(rbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY )))
+paths.matrix<-as.matrix(mst.v)
+paths.matrix<- paths.matrix[!duplicated(paths.matrix[,1]),]
+
+mst.adj <- distances(g, paths.matrix, paths.matrix) # get an adjaceny matrix given then cell numbers
+mst.adj
+# set the verticies names as the cell numbers in the costSurface
+rownames(mst.adj)<-paths.matrix 
+# set the verticies names as the cell numbers in the costSurface
+colnames(mst.adj)<-paths.matrix 
+
+mst.g <- graph_from_adjacency_matrix(mst.adj, weighted=TRUE) # create a graph
+mst.paths <- mst(mst.g, weighted=TRUE) # get the the minimum spanning tree
+paths.matrix<-noquote(get.edgelist(mst.paths, names=TRUE))
+class(paths.matrix) <- "numeric"
+paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
+
+paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both")))
+paths.v<-NULL
+paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v))
+
+paths.e<-paths[grepl("epath",names(paths))]
+#The edge lists
+paths.e
+
+#plot the resulting paths
+r<-raster(ras)
+r[]<-1:25
+r2<-r
+
+r[!(r[] %in% as.matrix(paths.v))] <- NA
+r[r[]>0] <- 1
+r[1:5]<- 1
+plot(r)
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+
+#compare to the cost surface
+plot(ras)
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+```
+
+The approach will produce the least amount of roads, given targets are allowed to connect to other target locations. THis approach simulates branching better than the other two approaches. However, given the need to solve a mst and then construct the least cost paths, it is the most costly in terms of computation.
 
 #Comparison
 
-To compare the three approaches: i) a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file; ii) these landings were then selected within a study area representing a caribou boundary; iii) each of the three approachs were simulated; iv) an analysis on the resulting simulated roads was then compared to the current (2018) state of road development.
+To compare the three approaches: i) a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file; ii) these landings were then selected within a study area representing a caribou boundary; iii) each of the three approachs were simulated; iv) an analysis on the resulting simulated roads was then compared to the current (2018) state of road development for 'loose' roads.
 
 Selecting the landings involved the following query. Note the ST_Exteriorring function being used - this function was chosen over centroid because a centroid would only by applicable to a spatial contiguous cutblock. For cutblocks that are not spatially contiguous the selection of a randomly selected exterior point would resemble an actual location of a landing. This could be further improved by querying further on the selection of exterior points that were closest to the centroid or an existing road network or other.
 
