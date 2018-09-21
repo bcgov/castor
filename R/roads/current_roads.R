@@ -35,19 +35,19 @@ dir.create(file.path(dataOutDir), showWarnings = FALSE)
 dir.create(file.path(tileOutDir), showWarnings = FALSE)
 
 getSpatialQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
 
-roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'paved' and (road_class <> 'water' or road_class <> 'pedestrian');")
-roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'loose' and (road_class <> 'proposed');")
-roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'rough' or road_surface = 'seasonal') and (road_class <> 'proposed');")
-roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'unknown') and (road_class <> 'proposed');")
-roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_BASEMAPPING.TRIM_TRANSPORTATION_LINES'")
+#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'paved' and (road_class <> 'water' or road_class <> 'pedestrian');")
+#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'loose' and (road_class <> 'proposed');")
+#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'rough' or road_surface = 'seasonal') and (road_class <> 'proposed');")
+#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'unknown') and (road_class <> 'proposed');")
+#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_BASEMAPPING.TRIM_TRANSPORTATION_LINES'")
 
-roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_RDS_PRE06_PUB_SP' or
-bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_ACCESS_ROADS_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_ROADS_PUB_SP'")
+#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_RDS_PRE06_PUB_SP' or
+#bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_ACCESS_ROADS_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_ROADS_PUB_SP'")
 
 roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_FOREST_VEGETATION.RSLT_FOREST_COVER_INV_SVW' or
 bcgw_source = 'WHSE_FOREST_TENURE.FTEN_ROAD_SECTION_LINES_SVW' or bcgw_source = 'WHSE_FOREST_TENURE.ABR_ROAD_SECTION_LINE'")
