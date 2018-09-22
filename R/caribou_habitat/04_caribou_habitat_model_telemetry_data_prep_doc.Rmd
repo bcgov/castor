@@ -174,9 +174,7 @@ prov.bnd <- st_transform (prov.bnd, 3005)
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ]  
 locs.caribou.bc <- locs.caribou.new [prov.bnd, ] # clip locations to BC
 
-
-
-
+# saved data, because clip process took awhile
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
                    user = "postgres",
@@ -186,11 +184,220 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
 st_write (obj = locs.caribou.bc, 
           dsn = conn, 
           layer = c ("caribou", "telemetry_caribou_bc"))
-
-locs.caribou <- sf::st_read  (dsn = conn, # connKyle
-                              query = "SELECT * FROM caribou.telemetry_caribou_bc")
 dbDisconnect (conn)
 
+# Select fields to intersect with points 
+caribou.ecotype.herd <- caribou.range %>% 
+                          select (HERD_NAME, ECOTYPE)
+locs.caribou.ecotype.herd <- st_intersection (locs.caribou, caribou.ecotype.herd)
+
+# saved data, because intersect process took awhile 
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = locs.caribou.ecotype.herd, 
+          dsn = conn, 
+          layer = c ("caribou", "telemetry_caribou_bc_ecotype_herd"))
+dbDisconnect (conn)
+
+# some locations occur outside of the herd boundaries; here I am assigning appropriate 
+# values to those NA values
+
+# subset of locations with no herd name values
+locs.caribou.ecotype.herd.na <- locs.caribou.ecotype.herd [is.na (locs.caribou.ecotype.herd$HERD_NAME), ]
+
+# animals with NA values for herd/ecotype
+table.animal.id.na <- data.frame (unique (locs.caribou.ecotype.herd.na$animal_id))
+
+# subset the data to see where these anaiamls are from
+locs.caribou.ecotype.herd.c234c <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C234C", ] # only three locations total, delete from data
+locs.caribou.ecotype.herd.C310T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C310T", ] # no locations in herd ranges; closest to Chase (looked at map) so assigned there 
+locs.caribou.ecotype.herd.C307T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C307T", ] 
+locs.caribou.ecotype.herd.C306T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C306T", ] 
+locs.caribou.ecotype.herd.C305T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C305T", ] 
+locs.caribou.ecotype.herd.C303T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C303T", ] 
+locs.caribou.ecotype.herd.C302T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C302T", ] 
+locs.caribou.ecotype.herd.C301T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C301T", ] 
+locs.caribou.ecotype.herd.C296T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C296T", ] 
+locs.caribou.ecotype.herd.C295T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C295T", ] 
+locs.caribou.ecotype.herd.C298T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C298T", ] 
+locs.caribou.ecotype.herd.C297T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C297T", ] 
+locs.caribou.ecotype.herd.C294T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C294T", ]
+locs.caribou.ecotype.herd.C293T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C293T", ]
+locs.caribou.ecotype.herd.40 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "40", ]
+locs.caribou.ecotype.herd.39 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "39", ]
+locs.caribou.ecotype.herd.37 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "37", ]
+locs.caribou.ecotype.herd.49 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "49", ]
+locs.caribou.ecotype.herd.46 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "46", ]
+locs.caribou.ecotype.herd.42 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "42", ]
+locs.caribou.ecotype.herd.162 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "162", ] # deleted
+locs.caribou.ecotype.herd.CS1 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "CS1", ]
+locs.caribou.ecotype.herd.CS3 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "CS3", ]
+locs.caribou.ecotype.herd.CS7 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "CS7", ]
+locs.caribou.ecotype.herd.34 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "34", ]
+locs.caribou.ecotype.herd.CS4 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "CS4", ]
+locs.caribou.ecotype.herd.CS5 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "CS5", ]
+locs.caribou.ecotype.herd.81 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "81", ]
+locs.caribou.ecotype.herd.SS1 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SS 1", ]
+locs.caribou.ecotype.herd.SS4 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SS 4", ]
+locs.caribou.ecotype.herd.SL26 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SL26", ]
+locs.caribou.ecotype.herd.HSCEK077 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "HSCEK077", ]
+locs.caribou.ecotype.herd.SCEK002 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK002", ]
+locs.caribou.ecotype.herd.SCEK003 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK003", ]
+locs.caribou.ecotype.herd.SCEK007 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK007", ]
+locs.caribou.ecotype.herd.SCEK007b <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK007b", ]
+locs.caribou.ecotype.herd.SCEK009 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK009", ]
+locs.caribou.ecotype.herd.SCEK009b <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK009b", ]
+locs.caribou.ecotype.herd.SCEK026 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK026", ]
+locs.caribou.ecotype.herd.SCEK044 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK044", ]
+locs.caribou.ecotype.herd.SCEK050 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK050", ]
+locs.caribou.ecotype.herd.SCEK066b <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK066b", ]
+locs.caribou.ecotype.herd.SCEK079 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK079", ]
+locs.caribou.ecotype.herd.SCEK133 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK133", ]
+locs.caribou.ecotype.herd.SCEK136 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK136", ]
+locs.caribou.ecotype.herd.SCEK136b <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK136b", ]
+locs.caribou.ecotype.herd.SCEK143 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK143", ]
+locs.caribou.ecotype.herd.SCEK161 <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK161", ]
+locs.caribou.ecotype.herd.SCEK161b <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "SCEK161b", ]
+
+
+
+
+
+# assigned herd and ecotype
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C310T"] <- "Chase"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C310T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C307T"] <- "Finlay"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C307T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C306T"] <- "Frog"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C306T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C305T"] <- "Frog"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C305T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C303T"] <- "Spatsizi"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C303T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C302T"] <- "Chase"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C302T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C301T"] <- "Spatsizi"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C301T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C296T"] <- "Chase"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C296T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C295T"] <- "Chase"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C295T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C298T"] <- "Spatsizi"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C298T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C297T"] <- "Spatsizi"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C297T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C294T"] <- "Frog"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C294T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "C293T"] <- "Frog"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "C293T"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "40"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "40"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "39"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "39"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "37"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "37"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "49"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "49"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "46"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "46"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "42"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "42"] <- "Northern"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "CS1"] <- "Nakusp"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "CS1"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "CS3"] <- "Nakusp"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "CS3"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "CS7"] <- "Nakusp"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "CS7"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "34"] <- "Itcha-Ilgachuz"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "34"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "CS4"] <- "Nakusp"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "CS4"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "CS5"] <- "Nakusp"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "CS5"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "81"] <- "Wells Gray"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "81"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SS 1"] <- "South Selkirks"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SS 1"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SS 4"] <- "South Selkirks"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SS 4"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SL26"] <- "Swan Lake"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SL26"] <- "Mountain"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "HSCEK077"] <- "Snake-Sahtaneh"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "HSCEK077"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK002"] <- "Maxhamish"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK002"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK003"] <- "Maxhamish"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK003"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK007"] <- "Maxhamish"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK007"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK007b"] <- "Muskwa"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK007b"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK009"] <- "Maxhamish"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK009"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK009b"] <- "Maxhamish"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK009b"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK026"] <- "Chinchaga"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK026"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK044"] <- "Prophet"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK044"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK050"] <- "Prophet"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK050"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK066b"] <- "Maxhamish"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK066b"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK079"] <- "Snake-Sahtaneh"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK079"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK133"] <- "Calendar"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK133"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK136"] <- "Calendar"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK136"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK136b"] <- "Calendar"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK136b"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK143"] <- "Prophet"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK143"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK161"] <- "Prophet"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK161"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK161b"] <- "Chinchaga"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK161b"] <- "Boreal"
+
+
+
+# deleted data
+locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id != "C234C", ]
+locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id != "162", ]
+
+
+
+
+
+head (locs.caribou.ecotype.herd.SCEK143)
+
+rm (locs.caribou.ecotype.herd.c234c, locs.caribou.ecotype.herd.C310T, locs.caribou.ecotype.herd.C307T,
+    locs.caribou.ecotype.herd.C306T, locs.caribou.ecotype.herd.C305T, locs.caribou.ecotype.herd.C303T,
+    locs.caribou.ecotype.herd.C302T, locs.caribou.ecotype.herd.C301T, locs.caribou.ecotype.herd.C296T,
+    locs.caribou.ecotype.herd.C295T, locs.caribou.ecotype.herd.C298T, locs.caribou.ecotype.herd.C297T,
+    locs.caribou.ecotype.herd.C294T, locs.caribou.ecotype.herd.C293T, locs.caribou.ecotype.herd.40,
+    locs.caribou.ecotype.herd.39, locs.caribou.ecotype.herd.37, locs.caribou.ecotype.herd.49,
+    locs.caribou.ecotype.herd.46, locs.caribou.ecotype.herd.42, locs.caribou.ecotype.herd.162,
+    locs.caribou.ecotype.herd.CS1, locs.caribou.ecotype.herd.CS3, locs.caribou.ecotype.herd.CS7,
+    locs.caribou.ecotype.herd.34, locs.caribou.ecotype.herd.CS4, locs.caribou.ecotype.herd.CS5,
+    locs.caribou.ecotype.herd.81, locs.caribou.ecotype.herd.SS1, locs.caribou.ecotype.herd.SS4,
+    locs.caribou.ecotype.herd.SL26, locs.caribou.ecotype.herd.HSCEK077, 
+    locs.caribou.ecotype.herd.SCEK002, locs.caribou.ecotype.herd.SCEK003, 
+    locs.caribou.ecotype.herd.SCEK007, locs.caribou.ecotype.herd.SCEK007b,
+    locs.caribou.ecotype.herd.SCEK009, locs.caribou.ecotype.herd.SCEK009b,
+    locs.caribou.ecotype.herd.SCEK026, locs.caribou.ecotype.herd.SCEK044, 
+    locs.caribou.ecotype.herd.SCEK050, locs.caribou.ecotype.herd.SCEK066b,
+    locs.caribou.ecotype.herd.SCEK079, locs.caribou.ecotype.herd.SCEK133, 
+    locs.caribou.ecotype.herd.SCEK136, locs.caribou.ecotype.herd.SCEK143,
+    locs.caribou.ecotype.herd.SCEK161, )
+gc ()
+
+
+# check if is.na again......
 
 
 
