@@ -1,7 +1,4 @@
 ---
-output:
-rmarkdown::github_document
----
 <!---
 # Copyright 2018 Province of British Columbia
 # 
@@ -16,12 +13,12 @@ rmarkdown::github_document
 # See the License for the specific language governing permissions and limitations under the License.
 
 #=============================================================================
---->
+
 
 ---
 title: "CLUS - roads"
-output:
- html_document: default
+  html_document:
+        keep_md: true
 ---
 
 <div style="margin-bottom:100px;">
