@@ -1,7 +1,7 @@
 ---
 output:
   html_document: default
-  pdf_document: default
+   keep_md: true
 ---
 <!---
 # Copyright 2018 Province of British Columbia
