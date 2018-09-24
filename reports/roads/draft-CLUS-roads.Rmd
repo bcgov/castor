@@ -1,7 +1,6 @@
 ---
 output:
-  html_document: default
-   keep_md: true
+rmarkdown::github_document
 ---
 <!---
 # Copyright 2018 Province of British Columbia
