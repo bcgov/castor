@@ -1,8 +1,8 @@
-source("R/functions.R") # get the functions used for database connectiviity
+source("R/functions/functions.R") # get the functions used for database connectiviity
 library(raster)
 
 saList<-list("Barkerville",	"Central Rockies",	"Chase",	"Chinchaga",	"Columbia North",	"Finlay",	"Graham",	"Groundhog",	"Hart Ranges",	"Horseranch",	"Itcha-Ilgachuz",	"Moberly",	"Muskwa",	"Nakusp",	"Narraway",	"North Cariboo",	"Quintette",	"Rainbows",	"Scott",	"South Selkirks",	"Takla",	"Telkwa",	"Tweedsmuir",	"Wells Gray",	"Wolverine")
-
+saList<-list("Barkerville")
 list<-lapply(saList, function(saList) {
   
   sa.vec<-getSpatialQuery(paste0("SELECT geom FROM public.gcbp_carib_polygon WHERE herd_name = '",saList , "';" ))
@@ -13,7 +13,6 @@ list<-lapply(saList, function(saList) {
   road.pre.obs<-resample(getRasterQuery('pre_roads_ras', st_bbox(sa.mask)),sa.mask, method = 'bilinear')*sa.mask
   road.obs<- road.obs + road.pre.obs
   road.obs[!road.obs[] == 0] <-1
-  
   road.pred.snap<-resample(raster(paste0("R/outputs/",saList,"/",saList,"_snap_38.tif")),sa.mask, method = 'bilinear')*sa.mask
   road.pred.snap[!road.pred.snap[] ==0] <-1
   
