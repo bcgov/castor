@@ -371,14 +371,27 @@ plot(mst, main = "Minimum Spanning Tree")
 ```
 
 #Conclusion
-In conclusion, a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used by wildlife biologist as a predictor of caribou selection. The mst method is recommended if road density is used as a predictor of wildlife metrics. This method is slightly slower than the lcp method, but its improved accuracy overcomes the increased computational time. 
+In conclusion, based on our preliminary analysis, we believe a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used as a predictor of caribou avoidance of roads (e.g., Dyer et al. 2001; Polfus et al. 2011). This approach is more useful when measuring the influence of a specific road on wildlife, rather than cumulative effects of roads. In this case, the amount of roads is less important than knowing the general location of a road. Redundant, or 'unbranched' roads may have less influence on distance to road measures, if the general location of the road is reasonably estimated. However, the spatial accuracy of teh simualtion estimate needs to be carefully considered here. 
+
+
+The MST method is recommended if road density is used as a predictor of wildlife metrics (e.g., Leblond et al. 2011; DeCesare et al. 2012). This method is slightly slower than the LCP method, but its improved accuracy overcomes the increased computational time. We believe this method is more appropriate where the amount of roads in an area is important to know as it is less likley than the otehr metods to overestimaet road density by building redundent roads. 
+
+A more detailed analysis is needed (i.e., test how the different approaches influence resoruce slection covraites for road density and distance to road) to fully undertsadn the implcaiitons of each approach to esitmaing impacts to cairobu resoruce ssleciton adn habtiat.  
 
 #References
 Anderson, A. E. and J. Nelson. 2004. Projecting vector based road networks with a shortest path algorithm. Can. J. For. Res., 34(7):1444–1457.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x04-030#.WyFgGu4vxEY)
 
 Dean, D. J. Finding optimal routes for networks of harvest site access roads using GIS-based techniques. Can. J. For. Res., 27:11–22, 1997.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x96-144#.WyFgPu4vxEY)
 
+DeCesare, N. J., Hebblewhite, M., Schmiegelow, F., Hervieux, D., McDermid, G. J., Neufeld, L., ... & Wheatley, M. (2012). Transcending scale dependence in identifying habitat with resource selection functions. Ecological Applications, 22(4), 1068-1083.
+
+Dyer, S. J., O'Neill, J. P., Wasel, S. M., & Boutin, S. (2001). Avoidance of industrial development by woodland caribou. The Journal of Wildlife Management, 531-542.
+
+Leblond, M., Frair, J., Fortin, D., Dussault, C., Ouellet, J. P., & Courtois, R. (2011). Assessing the influence of resource covariates at multiple spatial scales: an application to forest-dwelling caribou faced with intensive human activity. Landscape Ecology, 26(10), 1433-1446.
+
 Murray, A. T. 1998.Route planning for harvest site access. Can. J. For. Res., 28(7):1084–1087.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x98-122#.WyFgWu4vxEY)
 
 Picard, N., Gazull, L. and Freycon, V. 2006. Finding optimal routes for harvesting tree access. International Journal of Forest Engineering. 17(2): 35-50.[Cross-ref](https://journals.lib.unb.ca/index.php/ijfe/article/view/5695/6700)
+
+Polfus, J. L., Hebblewhite, M., & Heinemeyer, K. (2011). Identifying indirect habitat loss and avoidance of human infrastructure by northern mountain woodland caribou. Biological Conservation, 144(11), 2637-2646.
 
