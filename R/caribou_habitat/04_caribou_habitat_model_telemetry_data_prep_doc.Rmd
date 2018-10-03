@@ -213,7 +213,7 @@ locs.caribou.ecotype.herd.na <- locs.caribou.ecotype.herd [is.na (locs.caribou.e
 table.animal.id.na <- data.frame (unique (locs.caribou.ecotype.herd.na$animal_id))
 
 # subset the data to see where these anaiamls are from
-# e.g.,
+# e.g., 
 locs.caribou.ecotype.herd.c234c <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C234C", ] # only three locations total, delete from data
 locs.caribou.ecotype.herd.C310T <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id == "C310T", ] # no locations in herd ranges; closest to Chase (looked at map) so assigned there 
 
@@ -307,6 +307,11 @@ locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK1
 locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK136b"] <- "Calendar"
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK136b"] <- "Boreal"
 locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK143"] <- "Prophet"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK143"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK161"] <- "Prophet"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK161"] <- "Boreal"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK161b"] <- "Chinchaga"
+locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK161b"] <- "Boreal"
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK143"] <- "Boreal"
 locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCEK161"] <- "Prophet"
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK161"] <- "Boreal"
@@ -440,7 +445,7 @@ locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "SCE
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "SCEK239"] <- "Boreal"
 locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "NX16"] <- "Calendar"
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "NX16"] <- "Boreal"
-locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "NX06"] <- "Calendar"
+locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "NX06"] <- "Calendar" 
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "NX06"] <- "Boreal"
 locs.caribou.ecotype.herd$HERD_NAME [locs.caribou.ecotype.herd$animal_id == "NX17"] <- "Snake-Sahtaneh"
 locs.caribou.ecotype.herd$ECOTYPE [locs.caribou.ecotype.herd$animal_id == "NX17"] <- "Boreal"
@@ -453,41 +458,23 @@ locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.her
 locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id != "C308T", ]
 locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$animal_id != "C284C", ]
 
-# saved data
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-st_write (obj = locs.caribou.ecotype.herd, 
-          dsn = conn, 
-          layer = c ("caribou", "telemetry_caribou_bc_ecotype_herd_all_id"))
-dbDisconnect (conn)
 
 
-
-
-
-head (locs.caribou.ecotype.herd)
-
-plot (st_geometry (prov.bnd))
-plot (st_geometry (locs.caribou.bc), add = T)
-
-
-# create unique ID by ecotype, animal ID, year, and season
-locs.caribou.ecotype.herd <- mutate (locs.caribou.ecotype.herd, 
-                                     uniqueID = paste (locs.caribou.ecotype.herd$ecotype,
-                                                     locs.caribou.ecotype.herd$ANIMAL_ID,
-                                                      locs.caribou.ecotype.herd$OBSERVATION_YEAR,
-                                                     locs.caribou.ecotype.herd$season,
-                                                     sep = "_"))
-
-
+prov.locs.all.used@data <- mutate (prov.locs.all.used@data, 
+                                   uniqueID = paste (prov.locs.all.used@data$ANIMAL_ID,
+                                                     prov.locs.all.used@data$HERD_NAME,
+                                                     prov.locs.all.used@data$ecotype,
+                                                     prov.locs.all.used@data$season,
+                                                     prov.locs.all.used@data$OBSERVATION_YEAR,
+                                                     sep = "_")) 
+prov.locs.all.used <- prov.locs.all.used [prov.locs.all.used$uniqueID %in% 
+                                            names (table (prov.locs.all.used$uniqueID)) [table (prov.locs.all.used$uniqueID) >= 50] , ]
+writeOGR (prov.locs.all.used, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_final\\locs_all_used.shp", 
+          layer = "locs_all_used", driver = "ESRI Shapefile")
+# remove animals with <50 locations
 
 
 ```
-
 
 
 
@@ -551,12 +538,7 @@ prov.locs.all.used@data <- dplyr::full_join (prov.locs.all.used@data, prov.locs.
 
 
 
- 
-prov.locs.all.used <- prov.locs.all.used [prov.locs.all.used$uniqueID %in% 
-                                            names (table (prov.locs.all.used$uniqueID)) [table (prov.locs.all.used$uniqueID) >= 50] , ]
-writeOGR (prov.locs.all.used, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\caribou_telemetry_final\\locs_all_used.shp", 
-          layer = "locs_all_used", driver = "ESRI Shapefile")
-# remove animals with <50 locations again 
+  
 
 # rm (prov.locs.calving.boreal, prov.locs.summ.fall.boreal, prov.locs.early.winter.boreal,
 #    prov.locs.late.winter.boreal, prov.locs.calving.mount, prov.locs.summ.fall.mount,
