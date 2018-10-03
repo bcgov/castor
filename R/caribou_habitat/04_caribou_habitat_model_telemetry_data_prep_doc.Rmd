@@ -462,10 +462,16 @@ locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.her
 
 prov.locs.all.used@data <- mutate (prov.locs.all.used@data, 
                                    uniqueID = paste (prov.locs.all.used@data$ANIMAL_ID,
+<<<<<<< HEAD
+                                                     prov.locs.all.used@data$ecotype,
+                                                     prov.locs.all.used@data$OBSERVATION_YEAR,
+                                                     prov.locs.all.used@data$season,
+=======
                                                      prov.locs.all.used@data$HERD_NAME,
                                                      prov.locs.all.used@data$ecotype,
                                                      prov.locs.all.used@data$season,
                                                      prov.locs.all.used@data$OBSERVATION_YEAR,
+>>>>>>> 71ec23c57bdaa6b1786bafee1948e48a870f42dc
                                                      sep = "_")) 
 prov.locs.all.used <- prov.locs.all.used [prov.locs.all.used$uniqueID %in% 
                                             names (table (prov.locs.all.used$uniqueID)) [table (prov.locs.all.used$uniqueID) >= 50] , ]
