@@ -7,16 +7,7 @@ output: pdf_document
 
 # Overview
 
-Provide an overview of what the module does / how to use the module.
-
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
-
-## R Markdown
-
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
-For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
+The data loader preps the database connectivitiy and other objects required to run CLUS
 
 # Usage
 
@@ -24,16 +15,14 @@ For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 library(igraph)
 library(SpaDES.core)
 
-moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+moduleDir <- file.path("/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
+                        dbName = 'clus', nameBoundary ='North Cariboo', nameBoundaryGeom = 'geom')
 )
 modules <- list("dataLoaderCLUS")
 objects <- list()

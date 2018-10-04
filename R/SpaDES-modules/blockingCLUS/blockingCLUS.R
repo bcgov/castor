@@ -70,9 +70,10 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       if(!is.null(sim$landings)){
         switch(P(sim)$blockMethod,
                pre= {
-                 sim <- roadCLUS.spreadBlock(sim)
+                 sim <- blockingCLUS.preBlock(sim)
                } ,
                dynamic ={
+                 sim <- blockingCLUS.spreadBlock(sim)
                }
         )
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildBlocks")
@@ -88,11 +89,12 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
 
 blockingCLUS.Init <- function(sim) {
+  print(getwd())
   if(is.null(P(sim)$nameBoundaryFile)){
-    sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine other data
-    sim<-blockingCLUS.getTHLB(sim) 
+    #sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine other data
+    #sim<-blockingCLUS.getTHLB(sim) 
   } else {
-    sim<-blockingCLUS.exampleData(sim) # When the user does not supply a spatial bounds
+    #sim<-blockingCLUS.exampleData(sim) # When the user does not supply a spatial bounds
   }
   return(invisible(sim))
 }
@@ -107,10 +109,13 @@ Plot <- function(sim) {
 }
 
 ### template for your event1
-Event1 <- function(sim) {
+blockingCLUS.preBlock <- function(sim) {
   return(invisible(sim))
 }
 
+blockingCLUS.spreadBlock<- function(sim) {
+  return(invisible(sim))
+}
 
 .inputObjects <- function(sim) {
   # if (!('defaultColor' %in% sim$.userSuppliedObjNames)) {
@@ -120,4 +125,4 @@ Event1 <- function(sim) {
 
   return(invisible(sim))
 }
-### add additional events as needed by copy/pasting from above
+
