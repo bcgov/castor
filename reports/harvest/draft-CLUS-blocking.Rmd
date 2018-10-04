@@ -8,23 +8,26 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ##Introduction
-The size of a harvest unit (ie. a cutblock) has important implications for ecnomic feasiblity, patch size distrubtion across the landscape and metrics important to wildlife habitat (Ie. distance to a cutblock). How do we simulate the size of a cutblock? The spatial bounds on a cutblock, are generally predicated. The Forest Practices Code of British Columbia Act ["Operation and Site Planning Regulation"](http://www.bclaws.ca/civix/document/id/loo60/loo60/107_98) states (11(1)) - the maximum size of a cutblock must not exceed 40 ha for coast forest region and some areas within the South interior region and 60 ha for the northern interior region and some areas within the South interior region. However, these maximal sizes can be increased further: given objectives from a high level forest plan for the salvage timber from natural disturbances; it retains 40% or more of the pre-harvest basal area or at the discretion of the district manager.  
+The size of a harvest unit (ie. a cutblock) has important implications for economic feasiblity, patch size distrubtion objectives and metrics important to wildlife habitat (Ie. distance to a cutblock). While forest cover-polygons, representing stand-level forest attributes, may be assumed as an operational unit; typically, harvest units have included the aggregation many forest cover-polygons given harvesting operations can capture economies of scale from harvesting a number of stands in a spatially contiguous area. How do we simulate into the future the size of these operational harvesting units? First, the spatial bounds on a cutblock, are generally predicated by law. The Forest Practices Code of British Columbia Act ["Operation and Site Planning Regulation"](http://www.bclaws.ca/civix/document/id/loo60/loo60/107_98) states (11(1)) - the maximum size of a cutblock must not exceed 40 ha for coast forest region and some areas within the South interior region and 60 ha for the northern interior region and some areas within the South interior region. However, these maximal sizes can be increased further: given objectives from a high level forest plan for the salvage timber from natural disturbances; it retains 40% or more of the pre-harvest basal area or at the discretion of the district manager. Second, given these spatial bounds, we need an alogirthum for aggregating polygons or pixels into harvest units or blocks.
 
-The block building algorithum aggregates polygons or pixels into harvest blocks. The general algorithum is as follows:
-1. the area is randomly seeded and block grow around the seeds until opening-size objectives are met
-2. the largest blocks are generally built first since these are difficult to construct once other blocks are present
-3. Various priorities based on stand type, age, terrain can be used to direct the blocking to achieve homogeneity
+A block building algorithum aggregates polygons or pixels into harvest units or blocks. Note that the term block here does not convey any information concerning the geometry of the harvest unit but rather the term is used to concisely describe operational harvesting boundaries which can take on many shapes and include alternative harvesting systems to clearcutting. Two general assumptions about block development have been made i) 'pre-blocking' (e.g., Murray and Weintraub 2002) and ii) 'dynamic blocking' (e.g., Gustafson 1998). Typically, the choice of these assumptions are made in concordance with the harrvest schedule approach being used because some timber harvest scheduling models require harvest units or blocks as inputs.Under a pre-blocking approach, the entire landscape is divided into blocks before the harvest schedule is determined. Conversely, dynamic blocking assigns harvest unit size and determines its geometry during the harvest scheduling simulation. The advantages of 'pre-blocking' is a cost saving during run time of the simulation and the ability to leverage spatial optimization formulations of the harvest schedule problem. An advantages of using a 'dynamic blocking' approach is that during the simulation emergant processes like salvage operations can be included to dictate block size.
 
+The general blocking algorithum is as follows from Murray and Weintraub (2002):
+1. the area is randomly seeded with the asu block grow around the seeds 
+2. polygons/pixels are then grouped into harvest units based on the closest seed point
+3. the harvest unit size is thus controlled by the number of initital seed points
+
+Various modifications to this approach have been made with consideration to i) using a random variable sampled from a distribution as the block size target and ii) including various priorities like stand type, age, and terrain for achieving objectives of block homogeneity during the aggregation of pixels or polygons.
 
 ```{r, echo =FALSE, message=FALSE}
 source("C:/Users/KLOCHHEA/clus/R/functions/functions.R")
 library(ggplot2)
 ```
 
-Below is a histogram of the historical (1908-2018) cutblock size.
+Below is a histogram of the historical (1908-2018) cutblock size which could be used direct block size.The negative "J" shaped curve is often similar to natural distruabnce size and thus provides some empirical evidence of cutblock size emulating natural disturbances which has been argued as a foundation for achieving forest management objectives. This is useful becuase forests without a comprehensive historical cutblock dataset could thus rely on the natural disturbance size distribution.
 ```{r}
 dist.cutblk.size<-getTableQuery("select width_bucket(areaha, 0, 100, 100) as sizebin, count(*)
-    from cns_cut_bl_polygon where harvestyr >= 1980
+    from cns_cut_bl_polygon where harvestyr >= 1980 and datasource != 'Landsat'
     group by sizebin 
     order by sizebin;") 
 
@@ -34,7 +37,22 @@ ggplot(dist.cutblk.size, aes(x = sizebin,y =count)) +
   ylab("Frequency")
 ```
 
-The negative "J" shaped curve provides some empirical evidence of cutblock size being dictated by natural disturbance size. Emulating natural disturbances has been used as a basis for achieving forest management objectives.
+
+
+Lu and Eriksson (1999) used a genetic algorithum to build harvest units but this algorthium was applied to a 20 ha landscape with realtively long run-times. Boyland (2004) used simulated annealing to group polygons into harvest units based on area, age, species and shape criteria for the Invermere TSA. The use of algorithums with greater complexity increases the computational time and restricts the scalability of the analysis. characteristics are vitally important to the caribou and landscape simulator, which requires the simulation of land use events across very large spatial and temporal scales in a timely manner.
 
 ##Case Study
 The spatial simulation of cutblock size can be approached in 3 ways. 1) set the cutblock size as a random variable from a distribution (estimated empirically), 2) pre-solve the forest area into blocks by aggregating based on some rule
+
+#References
+
+Gustafson, E.J. 1998. Clustering timber harvests and the effect of dynamic forest management policy on forest fragmentation.
+Ecosystems 1:484-492.
+
+Nelson, J.D. 2001. Assessment of harvest blocks generate from operational polygons and forest cover polygons in tactical and strategic planning. Can. J. For. Res. 31:682-693.
+
+Lu, F. and Eriksson, L.O. 2000. Formation of harvest units with genetic algorithms. For. Ecol. And Manage. 130:57-67. 
+
+Murray, A.T., and Weintraub, A. 2002. Scale and unit specification influences in harvest scheduling with maximum area restrictions. For. Sci. 48(4):779-789.
+
+
