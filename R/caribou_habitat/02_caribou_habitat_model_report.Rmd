@@ -11,9 +11,44 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Rport on creation of caribou habitat model
 
+Met with wildife bios in PG, FSJ, Smithers adn Cranborrk to get input on model
 
 
 ## Methods
+
+### key poitns from workshops with reagional biologists
+General:
+- lienar featrues in core cariobu habtait are bad; lienar density
+- Basal area is good representation of forest attributes desirable to caribou
+- fire
+- cutblock characteristics; slope, snow, roads
+- disatcne to permamabnet human ladn use (ag)
+
+Boreal:
+- Demars RSFs for boreal?
+- DU wetland data
+
+Nrothern
+- low elevation, pine-lichen stands
+- high leavtion
+- terretiral lichen
+- sub-alpine arboreal lichen
+
+
+Moutnain cariobu:
+- habtait could be simpyl dfined by elevation and BEC 
+  - some herds at high elevation yer round, others seasonal
+- snow is imrptoant in soutehrn herds; coudl use elvation as a proxy, but PAS may also be useufl 
+- BEC is a key covriate in moutnain cariobu ecoptype
+  - ineractison with snow depth and seral satge likely also important
+  - BEC and lichen?
+- old growth forest >150 y.o. adn arboral lichen
+- new colalr data form revelstoke affected by pen
+- balasm leading 
+- ESSF
+- low elevation cedar-hemlock
+
+
 
 ### habitat covariates to include in model
 elevation (m)
