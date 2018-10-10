@@ -9,28 +9,18 @@ output: pdf_document
 
 The roading module simulates the development of future roads within a landscape object (rasterStack with defined RasterLayers). Based on a user defined set of points or 'landings' the roading module connects these points to the nearest road section. A elast cost path is used to connect landing to the road network. For cases with more than one landing a minimum spanning tree is used.
 
-## R Markdown
-
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
-For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 
 # Usage
 
 ```{r module_usage}
-library(igraph)
 library(SpaDES.core)
 
-moduleDir <- file.path("H:/Documents/SpaDESintro/modules")
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
 )
 modules <- list("roadCLUS")
 objects <- list()
