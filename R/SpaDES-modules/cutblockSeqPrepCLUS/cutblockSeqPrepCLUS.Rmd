@@ -10,10 +10,6 @@ output: pdf_document
 The cutblockSeqPrep uses a defined area to grab the spatial locations of cutblocks that have been harvested over the past 50 years in BC.
 
 
-## R Markdown
-
-
-
 # Usage
 
 ```{r module_usage}
