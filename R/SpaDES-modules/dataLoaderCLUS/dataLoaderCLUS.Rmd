@@ -5,6 +5,20 @@ date: "04 September 2018"
 output: pdf_document
 ---
 
+```{r, eval =FALSE}
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
+
+#===========================================================================================
+```
+
 # Overview
 
 The data loader preps the database connectivitiy and other objects required to run CLUS
@@ -12,18 +26,15 @@ The data loader preps the database connectivitiy and other objects required to r
 # Usage
 
 ```{r module_usage}
-library(igraph)
+library(SpaDES)
 library(SpaDES.core)
 
-moduleDir <- file.path("/R/SpaDES-modules")
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
-parameters <- list(
-dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
-                        dbName = 'clus', nameBoundary ='North Cariboo', nameBoundaryGeom = 'geom')
-)
+parameters <- list()
 modules <- list("dataLoaderCLUS")
 objects <- list()
 paths <- list(
@@ -41,12 +52,12 @@ spades(mySim)
 
 # Events
 
-The module only has an inititialization event for connecting to a database
+The module only has an inititialization event for connecting to a database and establishing database objects
 
 
 ## Output data
 
-The outputs contain the database connection object and functions needed to generate queries
+The outputs contain the database connection object, functions needed to generate queries and the boundary and bounding box of the boundary needed for other queries
 
 # Links to other modules
 

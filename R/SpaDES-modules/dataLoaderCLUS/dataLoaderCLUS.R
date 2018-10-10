@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataLoaderCLUS.Rmd"),
-  reqdPkgs = list(),
+  reqdPkgs = list("sf", "rpostgis"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -36,10 +36,10 @@ defineModule(sim, list(
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
-    defineParameter("nameBoundaryFile", "character", NULL, NA, NA, desc = "Name of the boundary file"),
-    defineParameter("nameBoundaryColumn", "character", NULL, NA, NA, desc = "Name of the column within the boundary file that has the boundary name"),
-    defineParameter("nameBoundary", "character", NULL, NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
-    defineParameter("nameBoundaryGeom", "character", NULL, NA, NA, desc = "Name of the geom column in the boundary file")
+    defineParameter("nameBoundaryFile", "character", "gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file"),
+    defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name"),
+    defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
+    defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file")
     ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -49,12 +49,9 @@ defineModule(sim, list(
     expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    #createsOutput("objectName", "objectClass", "output object description", ...),
-    #createsOutput(objectName = NA, objectClass = NA, desc = NA)
-    createsOutput("nameBoundaryFile", objectClass ="character", desc = NA),
-    createsOutput("nameBoundary", objectClass ="character", desc = NA),
-    createsOutput("nameBoundaryColumn", objectClass ="character", desc = NA),
-    createsOutput("nameBoundaryGeom", objectClass ="character", desc = NA)
+    createsOutput("boundaryInfo", objectClass ="character", desc = NA),
+    createsOutput("bbox", objectClass ="numeric", desc = NA),
+    createsOutput("boundary", objectClass ="sf", desc = NA)
   )
 ))
 
@@ -62,15 +59,32 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-     
+      sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
+      sim$bbox<-st_bbox(sim$boundary)
+      sim$boundaryInfo <- c(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
   return(invisible(sim))
 }
-
-
-Init <- function(sim) {
+.inputObjects <- function(sim) {
   return(invisible(sim))
+}
+getSpatialQuery<-function(sql){
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  on.exit(dbDisconnect(conn))
+  st_read(conn, query = sql)
+}
+
+getTableQuery<-function(sql){
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  on.exit(dbDisconnect(conn))
+  dbGetQuery(conn, sql)
+}
+
+getRasterQuery<-function(name, bb){
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  on.exit(dbDisconnect(conn))
+  pgGetRast(conn, name, boundary = c(bb[4],bb[2],bb[3],bb[1]))
 }
