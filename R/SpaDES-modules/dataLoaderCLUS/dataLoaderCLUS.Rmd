@@ -41,28 +41,14 @@ spades(mySim)
 
 # Events
 
-Describe what happens for each event type.
+The module only has an inititialization event for connecting to a database
 
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
-
-# Data dependencies
-
-## Input data
-
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("dataLoaderCLUS", "path/to/modules/dir")` may be sufficient.
 
 ## Output data
 
-Description of the module outputs.
+The outputs contain the database connection object and functions needed to generate queries
 
 # Links to other modules
 
-Describe any anticipated linkages to other modules.
+Links to every module required by CLUS
 
