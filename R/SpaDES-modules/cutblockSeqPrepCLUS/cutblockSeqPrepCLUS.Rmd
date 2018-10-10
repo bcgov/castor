@@ -9,7 +9,6 @@ output: pdf_document
 
 The cutblockSeqPrep uses a defined area to grab the spatial locations of cutblocks that have been harvested over the past 50 years in BC.
 
-
 # Usage
 
 ```{r module_usage}
@@ -44,28 +43,21 @@ spades(mySim)
 
 # Events
 
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
+The module queries the consolidated cutblocks data set that is stored within a postgres database
 
 # Data dependencies
 
+Boundary information - namely the file name, the column to query, the name of the boudary within the column and geometry name
+
 ## Input data
 
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("cutblockSeqPrepCLUS", "path/to/modules/dir")` may be sufficient.
+https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-
 
 ## Output data
 
-Description of the module outputs.
+Produces a query of cutblock schedules based on historic accounts
 
 # Links to other modules
 
-Describe any anticipated linkages to other modules.
+Links to dataLoaderCLUS to set up database connectivity
 
