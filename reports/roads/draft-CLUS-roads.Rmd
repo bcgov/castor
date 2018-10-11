@@ -6,7 +6,8 @@ output:
   html_document: 
     keep_md: yes
 ---
-
+```{r , echo=FALSE, message=FALSE, warning =FALSE}
+```
 #Introduction
 
 Roads are a consequence of resource development that influences both future resource development opportunites and other landscape values, such as wildlife and wildlife habitat. In particular, caribou are a threatened species in some regions of BC that are highly sensitive to road development and use. As such, restrictions on future road development may be implemented in caribou habitat areas as part of caribou conservation and recovery actions. To test the implications of alternative recovery policies to caribou, there is a need to spaitally simulate future roads as a consequence of resource development. 

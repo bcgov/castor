@@ -45,7 +45,7 @@ All of the methods are dependent on two considerations: i) the road building cos
 
 The following figure represents a simple raster with values pertaining to road build costs.
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 ```
 ## [1] "NOTE: black line is a road. Red crosses are targets (i.e., landing locations)"
@@ -67,7 +67,7 @@ closest.roads.pts
 
 ```
 ## 1 2 3 4 
-## 1 4 3 5
+## 5 2 1 4
 ```
 
 ```r
@@ -82,7 +82,7 @@ lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 ```r
 #NOTE: black triangles are closest point on the existing road"
@@ -112,7 +112,7 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 plot(mt$geometry,add=TRUE, lwd= 2)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 Using this approach, a few issues would arise: 1) parrallel roads are not realistic since there is no branching and this ultimately leads to increases in the amount of roads; 2) costs are not included (i.e., slope and barriers like lakes); This means this approach, while simple to implement, would over estimate the amount of simulated roads
 
@@ -130,10 +130,10 @@ weight
 ```
 
 ```
-##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000  3.328846 17.212029
-##  [8]  1.855019  2.175439 16.628089  1.649588  5.455912 13.217454  1.666702
-## [15]  5.156799  9.949149 10.835684 10.817245  2.166367  8.558210 14.919831
-## [22] 13.890891 18.310609 19.296008  7.287112
+##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000  3.758875  1.126208
+##  [8]  3.162550 12.845375 19.397105 12.087208 16.219304  4.119510  3.558820
+## [15] 17.036823  3.066249  8.544559  1.581652 18.134080 18.335127 13.301241
+## [22]  2.121180  3.094034  4.018103 15.830161
 ```
 
 ```r
@@ -165,7 +165,7 @@ E(g)$weight<-as.matrix(edges.weight)[,5]
 plot(g)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 Once the graph is built, it is simple to get the least cost path between any two verticies. Using [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm), the [shortest_paths](http://igraph.org/r/doc/distances.html) function is called in [igraph](http://igraph.org/r/doc/#R). Further, the graph can be easily updated to simulate the change in the cost surface from dynamically developing roads during the simulation. Note, that this dynamic behaviour would not be possible in a pre-solve of the road network.
 
 
@@ -194,7 +194,7 @@ lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 ```r
 #show comparison to the cost surface
@@ -206,7 +206,7 @@ lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
 
 The main disadvantage of this approach is the independant perspective of road planning. While in some cases there will be branching where two roads connecting targets to existing road network will use the same path; this will be dependant on the cost surface. In other cases the shortest path may produce parrellel or redundant roads given a path is made for each target to the corresponding closest point. Thus, the amount of road being developed from the least cost path is dependant on the cost surface and may be either higher or lower than the corresponding snap approach.
 
@@ -224,23 +224,23 @@ mst.adj
 ```
 
 ```
-##          [,1]      [,2]     [,3]      [,4]     [,5]      [,6]      [,7]
-## [1,]  0.00000 22.387499 37.72359 22.387499 27.45090 22.387499 31.719142
-## [2,] 22.38750  0.000000 15.33609  0.000000 14.84339  0.000000  9.331644
-## [3,] 37.72359 15.336092  0.00000 15.336092 18.80331 15.336092 13.291560
-## [4,] 22.38750  0.000000 15.33609  0.000000 14.84339  0.000000  9.331644
-## [5,] 27.45090 14.843392 18.80331 14.843392  0.00000 14.843392 14.965227
-## [6,] 22.38750  0.000000 15.33609  0.000000 14.84339  0.000000  9.331644
-## [7,] 31.71914  9.331644 13.29156  9.331644 14.96523  9.331644  0.000000
-## [8,] 22.38750  0.000000 15.33609  0.000000 14.84339  0.000000  9.331644
+##          [,1]      [,2]      [,3]      [,4]     [,5]      [,6]      [,7]
+## [1,]  0.00000 15.888934 18.580315 15.888934 23.07984 15.888934 10.946974
+## [2,] 15.88893  0.000000  9.517998  0.000000 15.59917  0.000000  4.941960
+## [3,] 18.58032  9.517998  0.000000  9.517998 10.92290  9.517998  7.633342
+## [4,] 15.88893  0.000000  9.517998  0.000000 15.59917  0.000000  4.941960
+## [5,] 23.07984 15.599171 10.922900 15.599171  0.00000 15.599171 12.132862
+## [6,] 15.88893  0.000000  9.517998  0.000000 15.59917  0.000000  4.941960
+## [7,] 10.94697  4.941960  7.633342  4.941960 12.13286  4.941960  0.000000
+## [8,] 15.88893  0.000000  9.517998  0.000000 15.59917  0.000000  4.941960
 ##           [,8]
-## [1,] 22.387499
+## [1,] 15.888934
 ## [2,]  0.000000
-## [3,] 15.336092
+## [3,]  9.517998
 ## [4,]  0.000000
-## [5,] 14.843392
+## [5,] 15.599171
 ## [6,]  0.000000
-## [7,]  9.331644
+## [7,]  4.941960
 ## [8,]  0.000000
 ```
 
@@ -266,14 +266,10 @@ paths.e
 ```
 
 ```
-## 1.epath1 1.epath2 1.epath3 1.epath4 1.epath5 2.epath1 2.epath2 2.epath3 
-##      132      117       77       35        6       40       77      117 
-## 2.epath4 3.epath1 3.epath2 3.epath3 3.epath4 3.epath5  4.epath 5.epath1 
-##      143      143      117       77       35        6      142      143 
-## 5.epath2 5.epath3 5.epath4 6.epath1 6.epath2 6.epath3 6.epath4 6.epath5 
-##      117       77       37      143      117       77       37       20 
-## 7.epath1 7.epath2 7.epath3 7.epath4 7.epath5 7.epath6 7.epath7 
-##       20       14        9       25       58       92      126
+## 1.epath1 1.epath2 1.epath3  2.epath 3.epath1 3.epath2  4.epath 5.epath1 
+##       20       37       77      125      104      109      123       77 
+## 5.epath2 6.epath1 6.epath2 6.epath3 7.epath1 7.epath2 
+##       35       77       35        6       37       77
 ```
 
 ```r
@@ -293,7 +289,7 @@ lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ```r
 #compare to the cost surface
@@ -305,7 +301,7 @@ lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
 
 The approach will produce the least amount of roads, given targets are allowed to connect to other target locations. This approach simulates a more realistic view of branching, realtive to the other two approaches. However, given the need to solve a mst and then construct the least cost paths, it is the most costly in terms of computation.
 
@@ -407,7 +403,7 @@ A road cost surface was created using road cost estimates from the [Interior](ht
 ##Timing
 All of the approaches resulted in execution times that were nearly linear with the number of landings. The 'snap' approach is the fastest (slope = 0.000743) with execution times of less than 4 minutes for very large study areas with many landings. The lcp was on average ~12 times slower, the mst was ~37 times slower than the 'snap' approach. 
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 ##Accuracy
 The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the 'lcp' approach.The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=25) was the smallest with the 'mst' approach. Both 'snap' and 'lcp' approaches had similar RMSEs; the 'lcp' had a slightly smaller RMSE than the 'snap'. The 'mst' approach had the highest user accuracy, followed by the 'lcp' approach.
@@ -448,7 +444,7 @@ The 'snap' approach resulted in the greatest number of predicted roaded pixels, 
 </table>
 
 ##Example
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-1.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-2.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-3.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-4.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-5.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-17-1.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-17-2.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-17-3.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-17-4.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-17-5.png)<!-- -->
 
 #Conclusion
 In conclusion, based on our preliminary analysis, we believe a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used as a predictor of caribou avoidance of roads (e.g., Dyer et al. 2001; Polfus et al. 2011). This approach is more useful when measuring the influence of a specific road on wildlife, rather than cumulative effects of roads. In this case, the amount of roads is less important than knowing the general location of a road. Redundant, or 'unbranched' roads may have less influence on distance to road measures, if the general location of the road is reasonably estimated. However, the spatial accuracy of the simualtion estimate needs to be carefully considered here. 
