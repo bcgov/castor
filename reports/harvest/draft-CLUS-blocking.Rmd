@@ -13,9 +13,9 @@ The size of a harvest unit (ie. a cutblock) has important implications for econo
 A block building algorithum aggregates polygons or pixels into harvest units or blocks. Note that the term block here does not convey any information concerning the geometry of the harvest unit but rather the term is used to concisely describe operational harvesting boundaries which can take on many shapes and include alternative harvesting systems to clearcutting. Two general assumptions about block development have been made i) 'pre-blocking' (e.g., Murray and Weintraub 2002) and ii) 'dynamic blocking' (e.g., Gustafson 1998). Typically, the choice of these assumptions are made in concordance with the harrvest schedule approach being used because some timber harvest scheduling models require harvest units or blocks as inputs.Under a pre-blocking approach, the entire landscape is divided into blocks before the harvest schedule is determined. Conversely, dynamic blocking assigns harvest unit size and determines its geometry during the harvest scheduling simulation. The advantages of 'pre-blocking' is a cost saving during run time of the simulation and the ability to leverage spatial optimization formulations of the harvest schedule problem. An advantages of using a 'dynamic blocking' approach is that during the simulation emergant processes like salvage operations can be included to dictate block size.
 
 The general blocking algorithum is as follows from Murray and Weintraub (2002):
-1. the area is randomly seeded with the asu block grow around the seeds 
+1. the area is randomly seeded with blocks 'growing' around the seeds 
 2. polygons/pixels are then grouped into harvest units based on the closest seed point
-3. the harvest unit size is thus controlled by the number of initital seed points
+3. the harvest unit size is thus controlled by the number of initial seed points
 
 Various modifications to this approach have been made with consideration to i) using a random variable sampled from a distribution as the block size target and ii) including various priorities like stand type, age, and terrain for achieving objectives of block homogeneity during the aggregation of pixels or polygons.
 

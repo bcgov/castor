@@ -34,8 +34,8 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
-    defineParameter("nameCostSurfaceRas", "character", NULL, NA, NA, desc = "Name of the cost surface raster"),
-    defineParameter("nameRoads", "character", NULL, NA, NA, desc = "Name of the pre-roads raster and schema"),
+    defineParameter("nameCostSurfaceRas", "character", "rd_cost_surface", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("nameRoads", "character", "pre_roads_ras", NA, NA, desc = "Name of the pre-roads raster and schema"),
     defineParameter("roadSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which roads should be build"),
     defineParameter(".plotInitialTime", "numeric", 1, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
@@ -46,18 +46,15 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="roadMethod", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundary",  objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameRoads", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput("bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = "roads", objectClass = "RasterLayer", desc = NA),
-    createsOutput(objectName = "roadsPixel", objectClass = "numeric", desc = NA)
+    createsOutput(objectName = "roads", objectClass = "RasterLayer", desc = NA)
   )
 ))
 
@@ -123,14 +120,9 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 roadCLUS.Init <- function(sim) {
-    sim$roadsPixel<- numeric()
-    if(!is.null(P(sim)$nameRoads) && !is.null(P(sim)$nameCostSurfaceRas)){
-    sim<-roadCLUS.getBounds(sim) # Get the boundary from which to confine the roads
-    sim<-roadCLUS.getRoads(sim) # Get the existing roads
-    sim<-roadCLUS.getCostSurface(sim) # Get the cost surface
-  } else{
-    sim<-roadCLUS.exampleData(sim) # When the user does not supply a roads or cost surface table - use the example data
-  }
+  sim<-roadCLUS.getRoads(sim) # Get the existing roads
+  sim<-roadCLUS.getCostSurface(sim) # Get the cost surface
+  
   if(P(sim)$roadMethod == 'lcp' || P(sim)$roadMethod == 'mst'){
     sim <- roadCLUS.getGraph(sim)
   }
@@ -144,22 +136,10 @@ roadCLUS.roadsPlot<-function(sim){
 }
 
 roadCLUS.roadsSave<-function(sim, time){
-  if (time == 0 && !file.exists(paste0(P(sim, "dataLoaderCLUS", "nameBoundary"), ".tif"))){
-    writeRaster(sim$roads, file=paste0(P(sim, "dataLoaderCLUS", "nameBoundary"),".tif"), format="GTiff", overwrite=TRUE)
+  if (time == 0 && !file.exists(paste0(sim$boundaryInfo[3], ".tif"))){
+    writeRaster(sim$roads, file=paste0(sim$boundaryInfo[3],".tif"), format="GTiff", overwrite=TRUE)
   } else{
-    writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  P(sim, "dataLoaderCLUS", "nameBoundary"),"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
-  }
-  return(invisible(sim))
-}
-
-### Get the boundary raster object and the bounding box extent 
-roadCLUS.getBounds<-function(sim){
-  #The boundary may exist from previous modules?
-  if(is.null(sim$boundary)){
-    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
-    sim$bbox<-st_bbox(sim$boundary)
-  }else{
-    sim$bbox<-st_bbox(sim$boundary)
+    writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
   }
   return(invisible(sim))
 }
@@ -295,29 +275,20 @@ roadCLUS.analysis <- function(sim){
     #ras.out<-raster::reclassify(ras.out, c(0.000000000001, maxValue(ras.out),0))
     sim$roads<-raster::merge(ras.out, sim$roads)
   } 
-  ras<-sim$roads
-  ras[ras>0]<-1
-  sim$roadsPixel<-cellStats(ras, stat='sum', na.rm=TRUE)
-  print(sim$roadsPixel)
-  write.table(sim$roadsPixel, file = "road.csv",row.names=FALSE, na="",col.names=FALSE, sep=",")
   return(invisible(sim))
 }
 
+.inputObjects <- function(sim) {
+  if(!suppliedElsewhere("boundaryInfo", sim)){
+    sim$boundaryInfo<-c("gcbp_carib_polygon","herd_name","Muskwa","geom")
+  }
+  if(!suppliedElsewhere("bbox", sim)){
+    sim$bbox<-st_bbox(getSpatialQuery(paste0("SELECT * FROM ",  sim$boundaryInfo[1], " WHERE ",    sim$boundaryInfo[2], "= '",   sim$boundaryInfo[3],"';" )))
+  }
+  if(!suppliedElsewhere("landings", sim)){
+    sim$landings<-NULL
+  }
+  return(invisible(sim))
+}
 ### additional functions
-getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  st_read(conn, query = sql)
-}
-
-getTableQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  dbGetQuery(conn, sql)
-}
-
-getRasterQuery<-function(name, bb){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  pgGetRast(conn, name, boundary = c(bb[4],bb[2],bb[3],bb[1]))
-}
+source("R/functions.R")

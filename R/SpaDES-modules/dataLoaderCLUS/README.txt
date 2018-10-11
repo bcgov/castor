@@ -1,3 +1,1 @@
-
-Any other details that a user may need to know, like where to get more information,
-where to download data, etc.
+This module requires specific data types in a postgresql dataabse

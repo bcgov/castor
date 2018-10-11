@@ -53,18 +53,11 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-blockingCLUS.Init(sim)
-      ## set seed
-      #set.seed(sim$.seed)
-      # schedule future event(s)
       #sim <- scheduleEvent(sim, eventTime = start(sim),  "blockingCLUS", "save.sim")
       sim <- scheduleEvent(sim, eventTime = start(sim), "blockingCLUS", "buildBlocks")
 
       #sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "blockingCLUS", "plot")
       #sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "blockingCLUS", "save")
-    },
-    plot = {
-    },
-    save = {
     },
     buildBlocks = {
       if(!is.null(sim$landings)){

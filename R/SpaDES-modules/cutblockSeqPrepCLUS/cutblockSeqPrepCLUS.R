@@ -9,8 +9,8 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-
 #===========================================================================================
+
 defineModule(sim, list(
   name = "cutblockSeqPrepCLUS",
   description = NA, #"insert module description here",
@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "cutblockSeqPrepCLUS.Rmd"),
-  reqdPkgs = list("rpostgis", "sp","sf", "dplyr"),
+  reqdPkgs = list("rpostgis", "sp","sf", "dplyr", "SpaDES.core"),
   parameters = rbind( 
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
@@ -37,11 +37,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput("nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
-    #expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
+    expectsInput("boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     createsOutput("landings", "SpatialPoints", "This describes a series of point locations representing the cutblocks or their landings", ...)
@@ -78,9 +74,9 @@ cutblockSeqPrepCLUS.Init <- function(sim) {
 ### Set the list of the cutblock locations
 cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
   sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y from cutseq, 
-              (Select ", P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), " FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile") , " WHERE ", P(sim, "dataLoaderCLUS", "nameBoundaryColumn") ," = '", P(sim, "dataLoaderCLUS", "nameBoundary"),"') as h
-              WHERE h.", P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ," && cutseq.point 
-              AND ST_Contains(h.", P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ,cutseq.point)
+              (Select ", sim$boundaryInfo[4], " FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," = '", sim$boundaryInfo[3],"') as h
+              WHERE h.", sim$boundaryInfo[4] ," && cutseq.point 
+              AND ST_Contains(h.", sim$boundaryInfo[4]," ,cutseq.point)
               ORDER BY harvestyr"))
   if(length(sim$histLandings)==0){ sim$histLandings<-NULL}
   return(invisible(sim))
@@ -107,9 +103,16 @@ cutblockSeqPrepCLUS.getLandings <- function(sim) {
   return(invisible(sim))
 }
 
+.inputObjects <- function(sim) {
+  if(!suppliedElsewhere("boundaryInfo", sim)){
+    sim$boundaryInfo<-c("gcbp_carib_polygon","herd_name","Muskwa","geom")
+  }
+  return(invisible(sim))
+}
+
+
 getTableQuery<-function(sql){
-  conn<-dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
-
