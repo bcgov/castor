@@ -378,7 +378,12 @@ plot(mst, main = "Minimum Spanning Tree")
 ```
 
 #Conclusion
-In conclusion, based on our preliminary analysis, we believe a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used as a predictor of caribou avoidance of roads (e.g., Dyer et al. 2001; Polfus et al. 2011). This approach is more useful when measuring the influence of a specific road on wildlife, rather than cumulative effects of roads. In this case, the amount of roads is less important than knowing the general location of a road. Redundant, or 'unbranched' roads may have less influence on distance to road measures, if the general location of the road is reasonably estimated. However, the spatial accuracy of teh simualtion estimate needs to be carefully considered here. 
+In conclusion, based on our preliminary analysis, we believe the MST method is the best approach for simulating road impacts on wildlife, including caribou 
+
+
+
+
+ a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used as a predictor of caribou avoidance of roads (e.g., Dyer et al. 2001; Polfus et al. 2011). This approach is more useful when measuring the influence of a specific road on wildlife, rather than cumulative effects of roads. In this case, the amount of roads is less important than knowing the general location of a road. Redundant, or 'unbranched' roads may have less influence on distance to road measures, if the general location of the road is reasonably estimated. However, the spatial accuracy of teh simualtion estimate needs to be carefully considered here. 
 
 
 The MST method is recommended if road density is used as a predictor of wildlife metrics (e.g., Leblond et al. 2011; DeCesare et al. 2012). This method is slightly slower than the LCP method, but its improved accuracy overcomes the increased computational time. We believe this method is more appropriate where the amount of roads in an area is important to know as it is less likley than the otehr metods to overestimaet road density by building redundent roads. 
