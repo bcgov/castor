@@ -1,6 +1,11 @@
+---
+title       : "A demenstration of road simulation in CLUS"
+author      : "Kyle Lochhead & Tyler Muhley"
+date        : "October 1, 2018"
+---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE, echo = TRUE, eval = FALSE)
 ```
 ##Introduction
 
