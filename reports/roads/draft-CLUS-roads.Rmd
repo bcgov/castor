@@ -345,7 +345,7 @@ levels(data$METHOD)<- c('snap', 'lcp', 'mst')
 data %>% group_by(METHOD) %>% summarise (NUM_ROAD_OBS = sum(OBS_NUM_ROADS), NUM_ROAD_PRED = sum(PRED_NUM), NUM_RMSE = mean(SSE_NUM)**0.5, USERS_ACCURACY=mean(USERS)*100) %>% kable() %>% kable_styling(c("striped", "condensed"), full_width = F)
 ```
 
-##Example
+## Example
 ```{r, echo = FALSE, message=FALSE,warning=FALSE}
 ape<-raster::raster("Barkerville.tif")
 ape[ape[] == 0]<-999
