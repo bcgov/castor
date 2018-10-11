@@ -7,7 +7,6 @@ output:
     keep_md: yes
 ---
 
-
 ##Introduction
 
 Roads are a consequence of resource development that influences both future resource development opportunites and other landscape values, such as wildlife and wildlife habitat. In particular, caribou are a threatened species in some regions of BC that are highly sensitive to road development and use. As such, restrictions on future road development may be implemented in caribou habitat areas as part of caribou conservation and recovery actions. To test the implications of alternative recovery policies to caribou, there is a need to spaitally simulate future roads as a consequence of resource development. 
@@ -49,7 +48,7 @@ The following figure represents a simple raster with values pertaining to road b
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
 ```
-# [1] "NOTE: black line is a road. Red crosses are targets (i.e., landing locations)"
+## [1] "NOTE: black line is a road. Red crosses are targets (i.e., landing locations)"
 ```
 
 ### The 'Snapping' Approach 
@@ -64,9 +63,14 @@ closest.roads.pts <- apply(rgeos::gDistance(SpatialPoints(roads.pts),SpatialPoin
 
 #The top row corresponds to the landing ID and the bottom row corresponds to the closest road point. Note the raster is labeled from 1 to n cells starting from left to right, top to bottom.
 closest.roads.pts
-# 1 2 3 4 
-# 4 2 1 2
+```
 
+```
+## 1 2 3 4 
+## 1 5 1 2
+```
+
+```r
 # convert to a matrix
 roads.close.XY <- as.matrix(roads.pts[closest.roads.pts, 1:2,drop=F]) 
 plot(ras)
@@ -123,10 +127,16 @@ weight<-c(t(ras.matrix)) #transpose then vectorize. This follows how rasters are
 
 #This matrix is simply the values from the raster. Notice that the first 5 elements are 0 indicating the road.
 weight
-#  [1]  0.000000  0.000000  0.000000  0.000000  0.000000 12.014780  9.771327
-#  [8]  5.248694 18.895561 18.307264 14.536602 11.280333  4.947209  5.143712
-# [15]  6.276044  6.361660 12.737121 16.505953 11.351005  3.796962 11.016931
-# [22]  6.443756 15.052657  5.098431 17.322801
+```
+
+```
+##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000 18.248097  3.419792
+##  [8] 16.977965 11.492952 16.671176 17.462434 18.523826 13.698890 15.268404
+## [15]  5.856812 14.846298 14.697631  2.570919 14.161165 16.098446  2.012834
+## [22] 13.490056  9.358346 12.118771 14.900097
+```
+
+```r
 weight<-data.table(weight) #convert to a data.table
 weight$id<-as.integer(row.names(weight)) # add an ID
 
@@ -160,7 +170,6 @@ Once the graph is built, it is simple to get the least cost path between any two
 
 
 ```r
-
 paths.matrix<-cbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY ))
 paths.list<-split(paths.matrix, 1:nrow(paths.matrix)) #convert to a list for lapply
 
@@ -188,7 +197,6 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```r
-
 #show comparison to the cost surface
 plot(ras)
 plot(sC, col ='red', add=TRUE)
@@ -213,14 +221,20 @@ paths.matrix<- paths.matrix[!duplicated(paths.matrix[,1]),]
 
 mst.adj <- distances(g, paths.matrix, paths.matrix) # get an adjaceny matrix given then cell numbers
 mst.adj
-#          [,1]     [,2]     [,3]     [,4]      [,5]     [,6]      [,7]
-# [1,]  0.00000 16.73858 22.07727 16.73858 29.554094 16.73858 20.823751
-# [2,] 16.73858  0.00000 10.88886  0.00000 28.399152  0.00000 26.112565
-# [3,] 22.07727 10.88886  0.00000 10.88886 17.510292 10.88886 15.223704
-# [4,] 16.73858  0.00000 10.88886  0.00000 28.399152  0.00000 26.112565
-# [5,] 29.55409 28.39915 17.51029 28.39915  0.000000 28.39915  8.730343
-# [6,] 16.73858  0.00000 10.88886  0.00000 28.399152  0.00000 26.112565
-# [7,] 20.82375 26.11256 15.22370 26.11256  8.730343 26.11256  0.000000
+```
+
+```
+##          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]
+## [1,]  0.00000 28.30537 43.05294 28.30537 16.15437 16.68506 28.30537
+## [2,] 28.30537  0.00000 38.72990  0.00000 12.15101 12.68171  0.00000
+## [3,] 43.05294 38.72990  0.00000 38.72990 45.56859 31.40165 38.72990
+## [4,] 28.30537  0.00000 38.72990  0.00000 12.15101 12.68171  0.00000
+## [5,] 16.15437 12.15101 45.56859 12.15101  0.00000 17.99313 12.15101
+## [6,] 16.68506 12.68171 31.40165 12.68171 17.99313  0.00000 12.68171
+## [7,] 28.30537  0.00000 38.72990  0.00000 12.15101 12.68171  0.00000
+```
+
+```r
 # set the verticies names as the cell numbers in the costSurface
 rownames(mst.adj)<-paths.matrix 
 # set the verticies names as the cell numbers in the costSurface
@@ -239,11 +253,16 @@ paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v))
 paths.e<-paths[grepl("epath",names(paths))]
 #The edge lists
 paths.e
-# 1.epath1 1.epath2 2.epath1 2.epath2 2.epath3 3.epath1 3.epath2 4.epath1 
-#       37       66       66       35        6       90      128       35 
-# 4.epath2  5.epath 6.epath1 6.epath2 6.epath3 6.epath4 6.epath5 
-#       66      130        6       35       77      123      137
+```
 
+```
+## 1.epath1 1.epath2 2.epath1 2.epath2 2.epath3 2.epath4  3.epath 4.epath1 
+##       27       56       20       14       34       56       92      107 
+## 4.epath2 4.epath3 5.epath1 5.epath2 6.epath1 6.epath2 
+##      140      142       28       56       28       67
+```
+
+```r
 #plot the resulting paths
 r<-raster(ras)
 r[]<-1:25
@@ -263,7 +282,6 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 ```r
-
 #compare to the cost surface
 plot(ras)
 plot(sC, col ='red', add=TRUE)
