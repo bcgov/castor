@@ -67,7 +67,7 @@ closest.roads.pts
 
 ```
 ## 1 2 3 4 
-## 5 5 3 4
+## 1 5 4 4
 ```
 
 ```r
@@ -130,10 +130,10 @@ weight
 ```
 
 ```
-##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000  2.386459 11.281959
-##  [8] 18.480872  9.603195  4.724718 19.155593 15.748633  7.929218  6.648513
-## [15]  8.005085 10.074180 10.090975 15.104821 10.016090  3.425577  7.277392
-## [22]  3.517048  9.297859  3.257264  4.517804
+##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000 16.999954  7.441515
+##  [8] 19.363333  3.883083  5.943222 13.505261  5.166114 13.747122 12.370717
+## [15] 19.562798  7.317908 14.033785 12.327847  3.316296  1.572933 16.623096
+## [22] 17.038726 13.019333 17.973239 16.410117
 ```
 
 ```r
@@ -224,14 +224,14 @@ mst.adj
 ```
 
 ```
-##           [,1]     [,2]      [,3]     [,4]     [,5]      [,6]     [,7]
-## [1,]  0.000000 13.08602  5.715331 12.32591 13.08602  3.341420 13.08602
-## [2,] 13.086019  0.00000  8.727260 13.56780  0.00000 16.427439  0.00000
-## [3,]  5.715331  8.72726  0.000000 14.61566  8.72726  9.056751  8.72726
-## [4,] 12.325910 13.56780 14.615664  0.00000 13.56780 15.609331 13.56780
-## [5,] 13.086019  0.00000  8.727260 13.56780  0.00000 16.427439  0.00000
-## [6,]  3.341420 16.42744  9.056751 15.60933 16.42744  0.000000 16.42744
-## [7,] 13.086019  0.00000  8.727260 13.56780  0.00000 16.427439  0.00000
+##          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]
+## [1,]  0.00000 16.26658 29.93107 16.26658 22.81106 16.26658 30.13953
+## [2,] 16.26658  0.00000 13.66448  0.00000 17.91195  0.00000 26.81335
+## [3,] 29.93107 13.66448  0.00000 13.66448 11.43955 13.66448 20.34095
+## [4,] 16.26658  0.00000 13.66448  0.00000 17.91195  0.00000 26.81335
+## [5,] 22.81106 17.91195 11.43955 17.91195  0.00000 17.91195 10.64477
+## [6,] 16.26658  0.00000 13.66448  0.00000 17.91195  0.00000 26.81335
+## [7,] 30.13953 26.81335 20.34095 26.81335 10.64477 26.81335  0.00000
 ```
 
 ```r
@@ -256,10 +256,10 @@ paths.e
 ```
 
 ```
-##  1.epath 2.epath1 2.epath2 3.epath1 3.epath2 3.epath3 4.epath1 4.epath2 
-##      121       86       55       86       51       14       86       51 
-## 5.epath1 5.epath2  6.epath 
-##       82      123      137
+## 1.epath1 1.epath2 1.epath3 1.epath4 2.epath1 2.epath2 3.epath1 3.epath2 
+##       85       47        9        6       85       45       44       85 
+##  4.epath 5.epath1 5.epath2 5.epath3 5.epath4  6.epath 
+##      113       14       34       67       90      138
 ```
 
 ```r
@@ -298,7 +298,7 @@ The approach will produce the least amount of roads, given targets are allowed t
 # Case study
 
 To compare the three approaches (snap, lcp and mst): 
-1. a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file conditional on the boundary of the selected study area representing a caribou boundary (_n_=25);
+1. a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file conditional on the boundary of the selected study area representing a caribou boundary (_n_=24);
 2. the existing road network assumed in 1980 was spatially queried based on the bounding box of these study areas;
 3. each of the three approachs were then simulated over an estimated cost surface and over the time period; 
 4. an analysis on the resulting simulated roads was then compared to the current (2018) state of road development for 'forest tenure' roads. An description of the datasets follows next.
@@ -396,8 +396,8 @@ All of the approaches resulted in execution times that were nearly linear with t
 
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
-##Accuracy
-The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the 'lcp' approach.The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=25) was the smallest with the 'mst' approach. Both 'snap' and 'lcp' approaches had similar RMSEs; the 'lcp' had a slightly smaller RMSE than the 'snap'. The 'mst' approach had the highest user accuracy, followed by the 'lcp' approach.
+## Accuracy
+The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the 'lcp' approach.The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the 'mst' approach. Both 'snap' and 'lcp' approaches had similar RMSEs; the 'lcp' had a slightly smaller RMSE than the 'snap'. The 'mst' approach had the highest user accuracy, followed by the 'lcp' approach.
 
 <table class="table table-striped table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
@@ -412,17 +412,17 @@ The 'snap' approach resulted in the greatest number of predicted roaded pixels, 
 <tbody>
   <tr>
    <td style="text-align:left;"> snap </td>
-   <td style="text-align:right;"> 536814 </td>
-   <td style="text-align:right;"> 746360 </td>
-   <td style="text-align:right;"> 11590.166 </td>
-   <td style="text-align:right;"> 45.21347 </td>
+   <td style="text-align:right;"> 486579 </td>
+   <td style="text-align:right;"> 684033 </td>
+   <td style="text-align:right;"> 11568.784 </td>
+   <td style="text-align:right;"> 45.06240 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> lcp </td>
-   <td style="text-align:right;"> 457524 </td>
-   <td style="text-align:right;"> 646759 </td>
-   <td style="text-align:right;"> 11535.857 </td>
-   <td style="text-align:right;"> 45.05994 </td>
+   <td style="text-align:right;"> 486579 </td>
+   <td style="text-align:right;"> 686012 </td>
+   <td style="text-align:right;"> 12069.050 </td>
+   <td style="text-align:right;"> 45.13484 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> mst </td>

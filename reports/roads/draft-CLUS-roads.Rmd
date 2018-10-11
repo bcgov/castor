@@ -258,7 +258,7 @@ The approach will produce the least amount of roads, given targets are allowed t
 # Case study
 
 To compare the three approaches (snap, lcp and mst): 
-1. a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file conditional on the boundary of the selected study area representing a caribou boundary (_n_=25);
+1. a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file conditional on the boundary of the selected study area representing a caribou boundary (_n_=24);
 2. the existing road network assumed in 1980 was spatially queried based on the bounding box of these study areas;
 3. each of the three approachs were then simulated over an estimated cost surface and over the time period; 
 4. an analysis on the resulting simulated roads was then compared to the current (2018) state of road development for 'forest tenure' roads. An description of the datasets follows next.
@@ -337,8 +337,8 @@ stat_poly_eq(formula = y ~ x -1 ,
 
 ```
 
-##Accuracy
-The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the 'lcp' approach.The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=25) was the smallest with the 'mst' approach. Both 'snap' and 'lcp' approaches had similar RMSEs; the 'lcp' had a slightly smaller RMSE than the 'snap'. The 'mst' approach had the highest user accuracy, followed by the 'lcp' approach.
+## Accuracy
+The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the 'lcp' approach.The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the 'mst' approach. Both 'snap' and 'lcp' approaches had similar RMSEs; the 'lcp' had a slightly smaller RMSE than the 'snap'. The 'mst' approach had the highest user accuracy, followed by the 'lcp' approach.
 
 ```{r, echo = FALSE, message=FALSE}
 levels(data$METHOD)<- c('snap', 'lcp', 'mst')
