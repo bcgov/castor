@@ -7,7 +7,12 @@ output: pdf_document
 
 # Overview
 
-The roading module simulates the development of future roads within a landscape object (rasterStack with defined RasterLayers). Based on a user defined set of points or 'landings' the roading module connects these points to the nearest road section. A elast cost path is used to connect landing to the road network. For cases with more than one landing a minimum spanning tree is used.
+The roading module simulates the development of future roads within a landscape object. Based on a user defined set of points or 'landings' the roading module connects these points to the nearest existing road section using one of three possible approaches.
+1. A snapping approach that simulates the road as the crow flies
+2. A least cost path that simulates as the wolf runs
+3. A minimum spanning tree with least cost paths to promote branching
+
+For a comparison on these approaches go [here](https://github.com/bcgov/clus/blob/master/reports/roads/draft-CLUS-roads.md)
 
 
 # Usage
@@ -37,30 +42,5 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 spades(mySim)
 ```
 
-# Events
 
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
-
-# Data dependencies
-
-## Input data
-
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("roadCLUS", "path/to/modules/dir")` may be sufficient.
-
-## Output data
-
-Description of the module outputs.
-
-# Links to other modules
-
-Describe any anticipated linkages to other modules.
 

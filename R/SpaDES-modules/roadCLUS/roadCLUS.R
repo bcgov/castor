@@ -34,8 +34,8 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
-    defineParameter("nameCostSurfaceRas", "character", NULL, NA, NA, desc = "Name of the cost surface raster"),
-    defineParameter("nameRoads", "character", NULL, NA, NA, desc = "Name of the pre-roads raster and schema"),
+    defineParameter("nameCostSurfaceRas", "character", "rd_cost_surface", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("nameRoads", "character", "pre_roads_ras", NA, NA, desc = "Name of the pre-roads raster and schema"),
     defineParameter("roadSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which roads should be build"),
     defineParameter(".plotInitialTime", "numeric", 1, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
@@ -49,6 +49,7 @@ defineModule(sim, list(
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameRoads", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput("bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -119,13 +120,9 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 roadCLUS.Init <- function(sim) {
-    if(!is.null(P(sim)$nameRoads) && !is.null(P(sim)$nameCostSurfaceRas)){
-    sim<-roadCLUS.getBounds(sim) # Get the boundary from which to confine the roads
-    sim<-roadCLUS.getRoads(sim) # Get the existing roads
-    sim<-roadCLUS.getCostSurface(sim) # Get the cost surface
-  } else{
-    sim<-roadCLUS.exampleData(sim) # When the user does not supply a roads or cost surface table - use the example data
-  }
+  sim<-roadCLUS.getRoads(sim) # Get the existing roads
+  sim<-roadCLUS.getCostSurface(sim) # Get the cost surface
+  
   if(P(sim)$roadMethod == 'lcp' || P(sim)$roadMethod == 'mst'){
     sim <- roadCLUS.getGraph(sim)
   }
@@ -144,11 +141,6 @@ roadCLUS.roadsSave<-function(sim, time){
   } else{
     writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
   }
-  return(invisible(sim))
-}
-
-### Get the boundary raster object and the bounding box extent 
-roadCLUS.getBounds<-function(sim){
   return(invisible(sim))
 }
 
@@ -286,5 +278,17 @@ roadCLUS.analysis <- function(sim){
   return(invisible(sim))
 }
 
+.inputObjects <- function(sim) {
+  if(!suppliedElsewhere("boundaryInfo", sim)){
+    sim$boundaryInfo<-c("gcbp_carib_polygon","herd_name","Muskwa","geom")
+  }
+  if(!suppliedElsewhere("bbox", sim)){
+    sim$bbox<-st_bbox(getSpatialQuery(paste0("SELECT * FROM ",  sim$boundaryInfo[1], " WHERE ",    sim$boundaryInfo[2], "= '",   sim$boundaryInfo[3],"';" )))
+  }
+  if(!suppliedElsewhere("landings", sim)){
+    sim$landings<-NULL
+  }
+  return(invisible(sim))
+}
 ### additional functions
-source("R/functions/functions.R")
+source("R/functions.R")
