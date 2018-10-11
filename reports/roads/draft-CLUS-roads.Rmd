@@ -1,8 +1,3 @@
----
-output: 
-  html_document: 
-    keep_md: yes
----
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -208,7 +203,7 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 The main disadvantage of this approach is the independant perspective of road planning. While in some cases there will be branching where two roads connecting targets to existing road network will use the same path; this will be dependant on the cost surface. In other cases the shortest path may produce parrellel or redundant roads given a path is made for each target to the corresponding closest point. Thus, the amount of road being developed from the least cost path is dependant on the cost surface and may be either higher or lower than the corresponding snap approach.
 
 ### Minnimum Spanning Tree with Least Cost Paths Approach 
-This approach builds upon the least cost paths approach by determining if landings should be connected to one another before being connected to the exiting road network. Least cost distances are estimated both between the landings and between landings and the existing road network. These distances are then used as nodes for solving a minimum spanning tree (mst) problem. Least cost paths are then constructed following the solution to the MST. This approach allows for greater branching in simulated roads which would reduce the cost relative to the least cost paths approach. However, the computational time would increase over the least cost paths approach given the extra step of solving the MST.
+This approach builds upon the least cost paths approach by determining if landings should be connected to one another before being connected to the existing road network. Least cost distances are estimated both between the landings and between landings and the existing road network. These distances are then used as nodes for solving a minimum spanning tree (mst) problem. Least cost paths are then constructed following the solution to the MST. This approach allows for greater branching in simulated roads which would reduce the cost relative to the least cost paths approach. However, the computational time would increase over the least cost paths approach given the extra step of solving the MST.
 
 ```{r}
 mst.v <- as.vector(rbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY )))
@@ -268,7 +263,7 @@ To compare the three approaches (snap, lcp and mst):
 1. a schedule of historical harvest locations or landings was queried (starting from 1980 to 2018) from the consoldated cutblocks polygon spatial file conditional on the boundary of the selected study area representing a caribou boundary (_n_=25);
 2. the existing road network assumed in 1980 was spatially queried based on the bounding box of these study areas;
 3. each of the three approachs were then simulated over an estimated cost surface and over the time period; 
-4. an analysis on the resulting simulated roads was then compared to the current (2018) state of road development for 'forest tenure' roads. An explaination of the datasets follows next.
+4. an analysis on the resulting simulated roads was then compared to the current (2018) state of road development for 'forest tenure' roads. An description of the datasets follows next.
 
 ###Landings
 
@@ -378,12 +373,12 @@ plot(mst, main = "Minimum Spanning Tree")
 ```
 
 #Conclusion
-In conclusion, based on our preliminary analysis, we believe a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used as a predictor of caribou avoidance of roads (e.g., Dyer et al. 2001; Polfus et al. 2011). This approach is more useful when measuring the influence of a specific road on wildlife, rather than cumulative effects of roads. In this case, the amount of roads is less important than knowing the general location of a road. Redundant, or 'unbranched' roads may have less influence on distance to road measures, if the general location of the road is reasonably estimated. However, the spatial accuracy of teh simualtion estimate needs to be carefully considered here. 
+In conclusion, based on our preliminary analysis, we believe a snapping approach is useful if the impact of roads on wildlife is a distance based measure. For example, a distance to nearest road is often used as a predictor of caribou avoidance of roads (e.g., Dyer et al. 2001; Polfus et al. 2011). This approach is more useful when measuring the influence of a specific road on wildlife, rather than cumulative effects of roads. In this case, the amount of roads is less important than knowing the general location of a road. Redundant, or 'unbranched' roads may have less influence on distance to road measures, if the general location of the road is reasonably estimated. However, the spatial accuracy of the simualtion estimate needs to be carefully considered here. 
 
 
-The MST method is recommended if road density is used as a predictor of wildlife metrics (e.g., Leblond et al. 2011; DeCesare et al. 2012). This method is slightly slower than the LCP method, but its improved accuracy overcomes the increased computational time. We believe this method is more appropriate where the amount of roads in an area is important to know as it is less likley than the otehr metods to overestimaet road density by building redundent roads. 
+The MST method is recommended if road density is used as a predictor of wildlife metrics (e.g., Leblond et al. 2011; DeCesare et al. 2012). This method is slightly slower than the LCP method, but its improved accuracy overcomes the increased computational time. We believe this method is more appropriate where the amount of roads in an area is important to know as it is less likley than the other methods to overestimate road density by building redundent roads. 
 
-A more detailed analysis is needed (i.e., test how the different approaches influence resoruce slection covraites for road density and distance to road) to fully undertsadn the implcaiitons of each approach to esitmaing impacts to cairobu resoruce ssleciton adn habtiat.  
+A more detailed analysis is needed (i.e., test how the different approaches influence resource selection covarites for road density and distance to road) to fully understand the implcaiitons of each approach to estimating impacts to caribou resource selection habtiat.  
 
 #References
 Anderson, A. E. and J. Nelson. 2004. Projecting vector based road networks with a shortest path algorithm. Can. J. For. Res., 34(7):1444–1457.[Cross-ref](http://www.nrcresearchpress.com/doi/abs/10.1139/x04-030#.WyFgGu4vxEY)
