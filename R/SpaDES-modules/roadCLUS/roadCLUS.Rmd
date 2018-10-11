@@ -7,9 +7,9 @@ output: pdf_document
 
 # Overview
 
-The roading module simulates the development of future roads within a landscape object. Based on a user defined set of points or 'landings' the roading module connects these points to the nearest existing road section using one of three possible approaches.
-1. A snapping approach that simulates the road as the crow flies
-2. A least cost path that simulates as the wolf runs
+The roading module simulates the development of future roads within a landscape object. Based on a user defined set of points or 'landings' the roading module connects these points to the nearest existing road section using one of three possible approaches:
+1. A snapping approach that simulates the road as the crow flies;
+2. A least cost path that simulates as the wolf runs; and
 3. A minimum spanning tree with least cost paths to promote branching
 
 For a comparison on these approaches go [here](https://github.com/bcgov/clus/blob/master/reports/roads/draft-CLUS-roads.md)
