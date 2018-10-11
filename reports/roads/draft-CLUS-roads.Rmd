@@ -2,6 +2,9 @@
 title       : "A demo of road simulation in CLUS"
 author      : "Kyle Lochhead & Tyler Muhley"
 date        : "October 1, 2018"
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
