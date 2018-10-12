@@ -26,6 +26,7 @@ defineModule(sim, list(
   reqdPkgs = list(),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -35,11 +36,8 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundary",  objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -53,42 +51,22 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-blockingCLUS.Init(sim)
-      #sim <- scheduleEvent(sim, eventTime = start(sim),  "blockingCLUS", "save.sim")
-      sim <- scheduleEvent(sim, eventTime = start(sim), "blockingCLUS", "buildBlocks")
-
-      #sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "blockingCLUS", "plot")
-      #sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "blockingCLUS", "save")
+      switch(P(sim)$blockMethod,
+             pre= {
+               sim <- blockingCLUS.preBlock(sim)
+             } ,
+             dynamic ={
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
+             }
+      )
     },
     buildBlocks = {
-      if(!is.null(sim$landings)){
-        switch(P(sim)$blockMethod,
-               pre= {
-                 sim <- blockingCLUS.preBlock(sim)
-               } ,
-               dynamic ={
-                 sim <- blockingCLUS.spreadBlock(sim)
-               }
-        )
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildBlocks")
-      }else{
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildBlocks")
-      }
+        sim <- blockingCLUS.spreadBlock(sim)
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
-  return(invisible(sim))
-}
-
-
-blockingCLUS.Init <- function(sim) {
-  print(getwd())
-  if(is.null(P(sim)$nameBoundaryFile)){
-    #sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine other data
-    #sim<-blockingCLUS.getTHLB(sim) 
-  } else {
-    #sim<-blockingCLUS.exampleData(sim) # When the user does not supply a spatial bounds
-  }
   return(invisible(sim))
 }
 
@@ -101,21 +79,28 @@ Plot <- function(sim) {
   return(invisible(sim))
 }
 
-### template for your event1
+blockingCLUS.Init <- function(sim) {
+  sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking
+  sim<-blockingCLUS.get
+  return(invisible(sim))
+}
+
 blockingCLUS.preBlock <- function(sim) {
+  print("preBlock")
+  
   return(invisible(sim))
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
   return(invisible(sim))
 }
-
-.inputObjects <- function(sim) {
-  # if (!('defaultColor' %in% sim$.userSuppliedObjNames)) {
-  #  sim$defaultColor <- 'red'
-  # }
-  # ! ----- EDIT BELOW ----- ! #
-
+blockingCLUS.getBounds<-function(sim){
+  #The boundary may exist from previous modules?
+  if(!suppliedElsewhere("bbox", sim)){
+    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
+    sim$bbox<-st_bbox(sim$boundary)
+  }
   return(invisible(sim))
 }
-
+### additional functions
+source("R/functions/functions.R")
