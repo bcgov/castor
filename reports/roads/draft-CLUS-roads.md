@@ -47,8 +47,9 @@ The following figure represents a simple raster with values pertaining to road b
 
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
-```
-## [1] "NOTE: black line is a road. Red crosses are targets (i.e., landing locations)"
+
+```r
+#NOTE: black line is a road. Red crosses are targets (i.e., landing locations)
 ```
 
 ### The 'Snapping' Approach 
@@ -67,7 +68,7 @@ closest.roads.pts
 
 ```
 ## 1 2 3 4 
-## 3 4 1 5
+## 2 2 4 3
 ```
 
 ```r
@@ -82,13 +83,13 @@ lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 ```r
 #NOTE: black triangles are closest point on the existing road"
 ```
 
-Second, connecting the closest road points (i.e., roads.close.XY) to the targets (landings) simply involves drawing a line between the two points using the sf and dplyr packages.
+Second, connecting the closest road points (i.e., roads.close.XY) to the targets (landings) simply involves drawing a line between the two points using the [sf](https://cran.r-project.org/web/packages/sf/vignettes/sf1.html) and [dplyr](https://cran.r-project.org/web/packages/dplyr/vignettes/dplyr.html) packages.
 
 
 ```r
@@ -100,8 +101,13 @@ landings$id<-as.numeric(row.names(landings))
 
 coordMatrix<-rbind(rdptsXY,landings)
 coordMatrix$attr_data<-100
-mt<-coordMatrix %>% st_as_sf(coords=c("x","y"))%>% group_by(id) %>% summarize(m=mean(attr_data)) %>% st_cast("LINESTRING")
+mt<-coordMatrix %>% 
+  st_as_sf(coords=c("x","y"))%>% 
+  group_by(id) %>% 
+  summarize(m=mean(attr_data)) %>% 
+  st_cast("LINESTRING")
 
+#plot the results
 plot(ras)
 title('Cost Surface')
 plot(sC, col ='red', add=TRUE)
@@ -112,28 +118,28 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 plot(mt$geometry,add=TRUE, lwd= 2)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
-Using this approach, a few issues would arise: 1) parrallel roads are not realistic since there is no branching and this ultimately leads to increases in the amount of roads; 2) costs are not included (i.e., slope and barriers like lakes); This means this approach, while simple to implement, would over estimate the amount of simulated roads
+Using this approach, a few issues would arise: 1) parrallel roads are not realistic since there is no branching and this ultimately leads to increases in the amount of roads; 2) costs are not included (i.e., slope and barriers like large waterbodies). This means this approach, while simple to implement, would over estimate the amount of simulated roads
 
 ### Least Cost Paths (LCP) Approach 
-This approach builds upon the snapping approach by assuming a 'cost directed' path for each landing to the existing road network. This includes the cost of barriers and impedance attributes. However, this approach requires a cost surface that needs to be estimated, then updated within the simulations and thus, requires greater computational time realtive to the snapping approach. First the cost surface raster is converted to a data.table (a faster data structure when storing large amounts of data). This data.table is then used to build a graph using [igraph](http://igraph.org/r/) 
+This approach builds upon the snapping approach by assuming a 'cost directed' path (i.e., "as the wolf runs") for each landing to the existing road network. This includes the cost of barriers and impedance attributes. However, this approach requires a cost surface that needs to be estimated, then updated within the simulations and thus, requires greater computational time relative to the snapping approach. First, the cost surface raster is converted to a data.table (a faster data structure when storing large amounts of data; see [Is R fast enough?](https://cran.r-project.org/web/packages/SpaDES.core/vignettes/i-introduction.html)). This data.table is then used to build a mathematical [graph](https://en.wikipedia.org/wiki/Graph_theory) using [igraph](http://igraph.org/r/) 
 
 
 ```r
 #convert the cost surface raster to a matrix
 ras.matrix<-raster::as.matrix(ras)
-weight<-c(t(ras.matrix)) #transpose then vectorize. This follows how rasters are read
+weight<-c(t(ras.matrix)) #transpose then vectorize. This follows how raster layer objects are read
 
 #This matrix is simply the values from the raster. Notice that the first 5 elements are 0 indicating the road.
 weight
 ```
 
 ```
-##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000  2.024087 18.223470
-##  [8]  7.832751  1.788729  4.186177 12.615178  6.105481  6.489213  2.120266
-## [15] 17.777474 11.194269  4.365983  4.337810 10.732536 15.473902  2.540362
-## [22]  3.898807 19.673080  9.591537  3.740218
+##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000 13.935156 18.606541
+##  [8] 14.360353 19.133610  6.786025 19.892808 18.474542  4.395348 15.699968
+## [15]  7.366572  5.948353 14.490353  2.518648 11.203557 17.455384 15.064308
+## [22]  5.774712  6.746514 12.064487 14.661422
 ```
 
 ```r
@@ -165,8 +171,9 @@ E(g)$weight<-as.matrix(edges.weight)[,5]
 plot(g)
 ```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
-Once the graph is built, it is simple to get the least cost path between any two verticies. Using [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm), the [shortest_paths](http://igraph.org/r/doc/distances.html) function is called in [igraph](http://igraph.org/r/doc/#R). Further, the graph can be easily updated to simulate the change in the cost surface from dynamically developing roads during the simulation. Note, that this dynamic behaviour would not be possible in a pre-solve of the road network.
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+Once the graph is built, it is simple to get the least cost path between any two verticies. Using [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm), the [shortest_paths](http://igraph.org/r/doc/distances.html) function is called in [igraph](http://igraph.org/r/doc/#R). Further, the graph can be easily updated to simulate the change in the cost surface from dynamically developing roads during the simulation. Note, that this dynamic behaviour would not be possible in a pre-solve of the road network. To implement a pre-solve approach the [igraph](http://igraph.org/r/doc/#R) function [all_shortest_paths](http://igraph.org/r/doc/distances.html) can be used to calculate all shortest paths between pairs of vertices; however, this is not included in the comparison.
 
 
 ```r
@@ -174,113 +181,18 @@ paths.matrix<-cbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY ))
 paths.list<-split(paths.matrix, 1:nrow(paths.matrix)) #convert to a list for lapply
 
 #get the shortest paths
-paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both")))
+paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both"))) #both the epath (edge paths) and vpath (vertex path) are required
 paths.v<-NULL
-paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v))
+paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v)) #remove same paths
+paths.e<-paths[grepl("epath",names(paths))] #get the edge paths because these have the raster id labels
 
-paths.e<-paths[grepl("epath",names(paths))]
+#rasteruze the paths
 r<-raster(ras)
 r[]<-1:25 #assign the cell number ID as raster values
 r2<-r
-
 r[!(r[] %in% as.matrix(paths.v))] <- NA
-r[r[]>0] <- 1
-r[1:5]<- 1
-plot(r)
-plot(sC, col ='red', add=TRUE)
-segments(0,5,5,5, lwd =2)
-text(sC, labels=sC$ID, pos=2)
-lines(c(0,5),c(4.5,4.5), lwd =2)
-plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
-```
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
-
-```r
-#show comparison to the cost surface
-plot(ras)
-plot(sC, col ='red', add=TRUE)
-segments(0,5,5,5, lwd =2)
-text(sC, labels=sC$ID, pos=2)
-lines(c(0,5),c(4.5,4.5), lwd =2)
-plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
-```
-
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
-
-The main disadvantage of this approach is the independence of landings in the road simulation. While in some cases there will be branching, where two roads connecting two landings to an existing road network use the same path, this will be dependant on the local cost surface. In other cases the shortest path may produce parellel or redundant roads given a path is made for each target to the corresponding closest point. Thus, the amount of road being developed from the LCP is dependant on the local cost surface and may be either higher or lower than the corresponding snap approach.
-
-### Minimum Spanning Tree (MST) with Least Cost Paths (LCP) Approach 
-The MST approach builds upon the LCP approach by determining if landings should be connected to one another before being connected to the existing road network. LCPs are estimated both between the landings and between landings and the existing road network. These distances are then used as nodes for solving a minimum spanning tree (MST). LCPs are then constructed following the solution to the MST. This approach allows for greater branching in simulated roads which would reduce the cost relative to the LCP approach. However, the computational time would increase over the LCP approach given the extra step of solving the MST.
-
-
-```r
-mst.v <- as.vector(rbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY )))
-paths.matrix<-as.matrix(mst.v)
-paths.matrix<- paths.matrix[!duplicated(paths.matrix[,1]),]
-
-mst.adj <- distances(g, paths.matrix, paths.matrix) # get an adjaceny matrix given then cell numbers
-mst.adj
-```
-
-```
-##          [,1]      [,2]      [,3]      [,4]     [,5]      [,6]     [,7]
-## [1,]  0.00000 18.083345 15.202808 18.083345 19.33248 18.083345 24.03157
-## [2,] 18.08335  0.000000  9.275263  0.000000 13.72670  0.000000 11.64595
-## [3,] 15.20281  9.275263  0.000000  9.275263 19.20002  9.275263 13.10322
-## [4,] 18.08335  0.000000  9.275263  0.000000 13.72670  0.000000 11.64595
-## [5,] 19.33248 13.726703 19.200020 13.726703  0.00000 13.726703 23.69097
-## [6,] 18.08335  0.000000  9.275263  0.000000 13.72670  0.000000 11.64595
-## [7,] 24.03157 11.645946 13.103219 11.645946 23.69097 11.645946  0.00000
-## [8,] 18.08335  0.000000  9.275263  0.000000 13.72670  0.000000 11.64595
-##           [,8]
-## [1,] 18.083345
-## [2,]  0.000000
-## [3,]  9.275263
-## [4,]  0.000000
-## [5,] 13.726703
-## [6,]  0.000000
-## [7,] 11.645946
-## [8,]  0.000000
-```
-
-```r
-# set the verticies names as the cell numbers in the costSurface
-rownames(mst.adj)<-paths.matrix 
-# set the verticies names as the cell numbers in the costSurface
-colnames(mst.adj)<-paths.matrix 
-
-mst.g <- graph_from_adjacency_matrix(mst.adj, weighted=TRUE) # create a graph
-mst.paths <- mst(mst.g, weighted=TRUE) # get the the minimum spanning tree
-paths.matrix<-noquote(get.edgelist(mst.paths, names=TRUE))
-class(paths.matrix) <- "numeric"
-paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
-
-paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both")))
-paths.v<-NULL
-paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v))
-
-paths.e<-paths[grepl("epath",names(paths))]
-#The edge lists
-paths.e
-```
-
-```
-## 1.epath1 1.epath2 1.epath3  2.epath 3.epath1 3.epath2 3.epath3 3.epath4 
-##       47       79      117      132      117       79       47        9 
-## 3.epath5 4.epath1 4.epath2 4.epath3 5.epath1 5.epath2 5.epath3 5.epath4 
-##        6       45       79      117       90       64       25        9 
-## 6.epath1 6.epath2 6.epath3 6.epath4 6.epath5 7.epath1 7.epath2 7.epath3 
-##      123       79       47        9        6       44       79      117
-```
-
-```r
-#plot the resulting paths
-r<-raster(ras)
-r[]<-1:25
-r2<-r
-
-r[!(r[] %in% as.matrix(paths.v))] <- NA
+#rearrange the raster to plot 1's for roads
 r[r[]>0] <- 1
 r[1:5]<- 1
 plot(r)
@@ -294,7 +206,7 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 ```r
-#compare to the cost surface
+#show comparison to the cost surface
 plot(ras)
 plot(sC, col ='red', add=TRUE)
 segments(0,5,5,5, lwd =2)
@@ -305,20 +217,112 @@ plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
 
-The MST approach will produce the least amount of roads, given targets are allowed to connect to other target locations. This approach simulates a more realistic view of road branching relative to the other two approaches. However, given the need to solve a MST and then construct the LCPs, it is the most costly in terms of computation.
+The main disadvantage of this approach is the view of independence of road development. The least cost path may produce parallel or redundant roads given a path is made for each target to the corresponding closest point. This may mimic road development given road tenures are able to all licensees the right to limit other industrial users from using their road (i.e., gated roads); thereby forcing the other industrial user to consider building a nearly paralell road. In some cases there will be branching, where two roads connecting two landings to an existing road network will use the same least cost path; however, this will be conditional on the spatial configuration of the local cost surface and the existing road network. Thus, the amount of road being developed from the LCP is dependant on the local cost surface and may be either higher or lower than the corresponding snap approach.
+
+### Minimum Spanning Tree (MST) with Least Cost Paths (LCP) Approach 
+The MST approach builds upon the LCP approach by determining if landings should be connected to one another before being connected to the existing road network. In the MST approach, LCPs are estimated both between the landings and between landings and the existing road network. These distances are then used as nodes for solving a minimum spanning tree (MST). The sequence of verticies from the LCPs are then constructed following the solution to the MST. This approach allows for greater branching in simulated roads which would reduce the road building cost relative to the LCP approach. However, the computational time would increase over the LCP approach given the extra steps of getting LCP distances and then solving the MST.
+
+
+```r
+mst.v <- as.vector(rbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY )))
+paths.matrix<-as.matrix(mst.v)
+paths.matrix<- paths.matrix[!duplicated(paths.matrix[,1]),]
+
+mst.adj <- distances(g, paths.matrix, paths.matrix) # get an adjaceny matrix given then cell numbers
+mst.adj
+```
+
+```
+##           [,1]     [,2]     [,3]      [,4]     [,5]      [,6]     [,7]
+## [1,]  0.000000 26.00088 16.48245 15.365603 26.00088  8.504501 26.00088
+## [2,] 26.000877  0.00000 23.17243 19.754375  0.00000 20.015025  0.00000
+## [3,] 16.482447 23.17243  0.00000 17.357698 23.17243 10.496595 23.17243
+## [4,] 15.365603 19.75438 17.35770  0.000000 19.75438  6.861103 19.75438
+## [5,] 26.000877  0.00000 23.17243 19.754375  0.00000 20.015025  0.00000
+## [6,]  8.504501 20.01502 10.49659  6.861103 20.01502  0.000000 20.01502
+## [7,] 26.000877  0.00000 23.17243 19.754375  0.00000 20.015025  0.00000
+```
+
+```r
+# set the verticies names as the cell numbers in the costSurface
+rownames(mst.adj)<-paths.matrix 
+# set the verticies names as the cell numbers in the costSurface
+colnames(mst.adj)<-paths.matrix 
+
+mst.g <- graph_from_adjacency_matrix(mst.adj, weighted=TRUE) # create a graph
+mst.paths <- mst(mst.g, weighted=TRUE) # get the the minimum spanning tree
+paths.matrix<-noquote(get.edgelist(mst.paths, names=TRUE)) #get the paths needed for solving the LCP
+class(paths.matrix) <- "numeric"
+paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
+
+#Get the LCP's
+paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both")))
+paths.v<-NULL
+paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v))
+paths.e<-paths[grepl("epath",names(paths))]
+#The edge lists
+paths.e
+```
+
+```
+##  1.epath 2.epath1 2.epath2 2.epath3 2.epath4 2.epath5  3.epath 4.epath1 
+##      107      113       86       51       14        9      111      113 
+## 4.epath2 4.epath3 4.epath4 5.epath1 5.epath2 5.epath3  6.epath 
+##       86       51       14       51       86      113      104
+```
+
+```r
+#plot the resulting paths
+r<-raster(ras)
+r[]<-1:25
+r2<-r
+r[!(r[] %in% as.matrix(paths.v))] <- NA
+r[r[]>0] <- 1
+r[1:5]<- 1
+plot(r)
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+```
+
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+```r
+#compare to the cost surface
+plot(ras)
+plot(sC, col ='red', add=TRUE)
+segments(0,5,5,5, lwd =2)
+text(sC, labels=sC$ID, pos=2)
+lines(c(0,5),c(4.5,4.5), lwd =2)
+plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
+```
+
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
+
+The MST approach will produce the least amount of roads (relative to the other approaches), given targets are allowed to connect to other target locations. This approach simulates a realistic view of road branching relative to the other two approaches. However, given the need to get LCP distances, solve a MST and then construct the LCPs, it will likely be the most costly in terms of computation time.
 
 # Case study
 
-To compare the three approaches (snap, LCP and MST), we: 
+To compare the three approaches (snap, LCP and MST), based on accuracy and computational time we: 
 1. Developed a schedule of historical harvest locations or landings queried (starting from 1980 to 2018) from the consolidated cutblocks polygon spatial data for British Columbia conditional on the boundary of the selected study area representing, a caribou herd boundary (_n_=24);
 2. Identified the putative road network in 1980 and spatially queried it based on the bounding box of these study areas;
 3. Simulated road development using each of the three approaches over an estimated cost surface from 1980 to 2018; 
-4.Compared the resulting simulated road density to the current (2018) desnity of 'forest tenure' roads. A description of the datasets is provided in the methods.
+4.Compared the resulting simulated road density to the current (2018) desnity of 'forest tenure' roads. 
+
+This comparison was coded using the [SpaDES](http://predictiveecology.org/SpaDES/) package in R with a Intel(R) Xeon(R) CPU-1620 @ 3.5GHz and 64 GB of RAM. A description of the datasets is provided in the methods.
 
 # Methods
+## Study Areas
+
+The study areas included various [caribou herd locations](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc) around the province. In the north-west, the herd locations are relatively large in area but with little forestry activity. Conversely the south-eastern herd locations are smaller in area but with a greater density of landings.
+
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-8-1.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+
 ## Landings
 
-Selecting the landings involved the following query with [cns_cut_bl_polygon](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) used as the cutblock data. Note that the ST_Exteriorring function was used to query cutblocks rather than querying the cutblock centroid because a centroid would only by applicable to a spatial contiguous cutblock. For cutblocks that are not spatially contiguous the selection of a randomly selected exterior point would resemble an actual location of a landing. This query could be further improved by selecting for exterior points that were closest to the centroid of an existing road network or nearby landing.
+Landings represent a single point with X, Y, coordinates. Selecting the landings involved getting a single point from within a cutblock polygon. The cutblock polygons were sourced from [cns_cut_bl_polygon](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) The following query was used:
 
 
 ```sql
@@ -329,8 +333,10 @@ Create Table cutseq as
 
 ```
 
+Note that the ST_Exteriorring function was used to query a landing of the cutblocks rather than querying the cutblock centroid. The reasoning for this is that a centroid would only by applicable to a spatially contiguous cutblock. For cutblocks that are not spatially contiguous the selection of a randomly selected exterior point would resemble an actual location of a landing. However, this query could be further improved by selecting for exterior points that were closest to an existing road network (i.e., a likely location for a landing).
+
 ## Existing Roads
-The spatially comprehensive roads datafor the province of BC does not contain dates of road creation. Therefore, a series of assumptions were used to query the roads data that would be indicative of the road network in 1980. This dataset was created by using the [Cumulative Effects Framework](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/cumulative-effects-framework) (CEF) integrated roads dataset and augmenting it with some additional road classifications from the Digital Roads Atlas (DRA) and Forest Tenure Administration (FTA) roads. The CEF integrated roads have a script to classify roads into High, Moderate and Low use (1,2,3) respectively. (See query). The ‘high’ use roads were mainly paved roads and were missing some primary resource roads such as mainlines as well as other ‘local’ roads that are well established. To attempt to better incorporate these missing roads the following classification logic was applied and then added to the dataset. The end product is the CEF integrated roads data where High use with classes 1B,1C,1D and 1E features merged into it to create a permanent road product, by TSA.
+The spatially comprehensive roads data for the province of BC does not contain dates of road creation. Therefore, a series of assumptions were used to query the roads data that would be indicative of the road network in 1980. This dataset was created by using the [Cumulative Effects Framework](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/cumulative-effects-framework) (CEF) integrated roads dataset and augmenting it with some additional road classifications from the Digital Roads Atlas (DRA) and Forest Tenure Administration (FTA) roads. The CEF integrated roads have a script to classify roads into High, Moderate and Low use (1,2,3) respectively. (See query). The ‘high’ use roads were mainly paved roads and were missing some primary resource roads such as mainlines as well as other ‘local’ roads that are well established. To attempt to better incorporate these missing roads the following classification logic was applied and then added to the dataset. The end product is the CEF integrated roads data where High use with classes 1B,1C,1D and 1E features merged in, which created a permanent road product. Overall, the 1980 roads network were assumed to be permanant or 'main line' roads.
 
 <table class="table table-striped table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
@@ -399,13 +405,13 @@ FILE_TYPE_DESCRIPTION IN ('Forest Service Road', 'Road Permit') AND RETIREMENT_D
 ```
 
 ## Cost Surface
-A road cost surface was created using road cost estimates from the [Interior](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual) and [Coast Appraisal Mannual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual). These cost estimates were conditional on region (Timber Supply Areas), slope, biogeoclimatic zone, pipeline crossings, and watercourse crossings. Major waterbodies (lakes) were also included to act as barriers to road development.
+A road cost surface was created using road cost estimates from the [Interior](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual) and [Coast Appraisal Mannual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual). These cost estimates were conditional on region (Timber Supply Areas), slope, biogeoclimatic zone, pipeline crossings, and watercourse crossings. Major waterbodies (lakes) were also included to act as barriers to road development. The pixels of these barriers were not included in the graph and thus the labels (i.e., ID's) of these raster pixels were not possible verticies from which to build a path. Note the snapping approach does not consider barriers or costs to road development.
 
 # Results
 ## Timing
-All of the approaches resulted in computer processing execution times that were nearly linear with the number of landings analyzed. The 'snap' approach was the fastest (slope = 0.000743) with execution times of less than 4 minutes for very large study areas (approx. size?) with many (approx. number?) landings. The LCP was on average ~12 times slower and the MST was ~37 times slower than the 'snap' approach. 
+All of the approaches resulted in computer processing execution times that were nearly linear with the number of landings analyzed (i.e., Pearson Correlation Coeffiecents ranged 0.91 to 0.94). The 'snap' approach was the fastest (slope = 0.000743) with execution times of less than 4 minutes for very large study areas (e.g., 2.1 Mha) and many (e.g., 4,704) landings. The LCP was on average ~12 times slower and the MST was ~37 times slower than the 'snap' approach. 
 
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 ## Accuracy
 The 'snap' approach resulted in the greatest number of predicted roaded pixels (this needs to be fleshed out in methods at some point; pixel size, process of rasterizing roads), followed by the LCP approach. The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the MST approach. Both the 'snap' and LCP approaches had similar RMSEs, but t he LCP had a slightly smaller RMSE than the 'snap'. The MST approach had the highest user accuracy, followed by the LCP approach.
@@ -446,7 +452,7 @@ The 'snap' approach resulted in the greatest number of predicted roaded pixels (
 </table>
 
 ## Example
-![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-1.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-2.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-3.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-4.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-5.png)<!-- -->
+![](draft-CLUS-roads_files/figure-html/unnamed-chunk-18-1.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-18-2.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-18-3.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-18-4.png)<!-- -->![](draft-CLUS-roads_files/figure-html/unnamed-chunk-18-5.png)<!-- -->
 
 # Conclusion
 Based on our preliminary analysis, we believe the MST method is the best approach for simulating road impacts on wildlife, including caribou. The MST method was the most accurate in terms of representing road density and thus is particularly recommended if road density is used as a predictor of wildlife density or distribution (e.g., Leblond et al. 2011; DeCesare et al. 2012). Other approaches will likely overestimate the density of roads and lead to overestimating the impacts of roads on wildlife. 
