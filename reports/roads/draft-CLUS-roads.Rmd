@@ -379,8 +379,10 @@ An attempt to model roads that are trunk, main sections based on feature length 
 FILE_TYPE_DESCRIPTION IN ('Forest Service Road', 'Road Permit') AND RETIREMENT_DATE IS NULL and FEATURE_LENGTH >= 10000
 ```
 
+The existing road network was rasterized using the [fasterize](https://cran.r-project.org/web/packages/fasterize/index.html) R package to match the resolution and extent of indicators from [Hectares BC](https://www.hectaresbc.org/app/habc/HaBC.html) (e.g., nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5) 
+
 ## Cost Surface
-A road cost surface was created using road cost estimates from the [Interior](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual) and [Coast Appraisal Mannual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual). These cost estimates were conditional on region (Timber Supply Areas), slope, biogeoclimatic zone, pipeline crossings, and watercourse crossings. Major waterbodies (lakes) were also included to act as barriers to road development. The pixels of these barriers were not included in the graph and thus the labels (i.e., ID's) of these raster pixels were not possible verticies from which to build a path. Note the snapping approach does not consider barriers or costs to road development.
+A road cost surface was created using road cost estimates from the [Interior](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual) and [Coast Appraisal Mannual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual). These cost estimates were conditional on region (Timber Supply Areas), slope, biogeoclimatic zone, pipeline crossings, and watercourse crossings. Major waterbodies (lakes) were also included to act as barriers to road development. The pixels of these barriers were not included in the graph and thus the labels (i.e., ID's) of these raster pixels were not possible verticies from which to build a path. Note the snapping approach does not consider barriers or costs to road development. All datasets were projected in [BC Albers](https://epsg.io/3005) and resampled to match the extent and resolution (100m x 100m) of the existintg roads network raster.
 
 # Results
 ## Timing
@@ -398,7 +400,7 @@ stat_poly_eq(formula = y ~ x -1 ,
 ```
 
 ## Accuracy
-The 'snap' approach resulted in the greatest number of predicted roaded pixels (this needs to be fleshed out in methods at some point; pixel size, process of rasterizing roads), followed by the LCP approach. The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the MST approach. Both the 'snap' and LCP approaches had similar RMSEs, but t he LCP had a slightly smaller RMSE than the 'snap'. The MST approach had the highest user accuracy, followed by the LCP approach.
+The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the LCP approach. The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the MST approach. Both the 'snap' and LCP approaches had similar RMSEs, but t he LCP had a slightly smaller RMSE than the 'snap'. The MST approach had the highest user accuracy, followed by the LCP approach.
 
 ```{r, echo = FALSE, message=FALSE}
 levels(data$METHOD)<- c('snap', 'lcp', 'mst')

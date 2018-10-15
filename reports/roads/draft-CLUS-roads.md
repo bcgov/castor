@@ -68,7 +68,7 @@ closest.roads.pts
 
 ```
 ## 1 2 3 4 
-## 2 2 3 4
+## 1 1 3 2
 ```
 
 ```r
@@ -136,10 +136,10 @@ weight
 ```
 
 ```
-##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000  9.492831 16.611236
-##  [8] 14.212873  9.727132 18.508749 15.190783  6.663791  2.261006 10.507255
-## [15]  6.409785 15.902449 16.128591 18.462240  4.201505 10.523704  4.582600
-## [22] 12.990825 14.514800 16.218036  3.450828
+##  [1]  0.000000  0.000000  0.000000  0.000000  0.000000  7.214175  1.258065
+##  [8] 10.619183 19.560616 19.919981  6.014289  8.317879  5.530117 15.205632
+## [15]  5.874441  3.277478 10.568542  1.668068 10.146455  9.629243 17.967134
+## [22] 15.705720 15.114178 17.505389  7.827401
 ```
 
 ```r
@@ -233,14 +233,14 @@ mst.adj
 ```
 
 ```
-##          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]
-## [1,]  0.00000 12.82473 11.39619 17.05181 12.82473 10.84653 12.82473
-## [2,] 12.82473  0.00000 20.05243 23.44704  0.00000 14.98076  0.00000
-## [3,] 11.39619 20.05243  0.00000 15.32170 20.05243 15.57893 20.05243
-## [4,] 17.05181 23.44704 15.32170  0.00000 23.44704 16.71253 23.44704
-## [5,] 12.82473  0.00000 20.05243 23.44704  0.00000 14.98076  0.00000
-## [6,] 10.84653 14.98076 15.57893 16.71253 14.98076  0.00000 14.98076
-## [7,] 12.82473  0.00000 20.05243 23.44704  0.00000 14.98076  0.00000
+##           [,1]      [,2]      [,3]     [,4]      [,5]      [,6]      [,7]
+## [1,]  0.000000  8.911093  4.645884 19.18177  8.911093  9.491599  8.911093
+## [2,]  8.911093  0.000000  4.265209 16.01334  0.000000 16.309109  0.000000
+## [3,]  4.645884  4.265209  0.000000 19.02048  4.265209 14.137483  4.265209
+## [4,] 19.181775 16.013338 19.020483  0.00000 16.013338 15.409949 16.013338
+## [5,]  8.911093  0.000000  4.265209 16.01334  0.000000 16.309109  0.000000
+## [6,]  9.491599 16.309109 14.137483 15.40995 16.309109  0.000000 16.309109
+## [7,]  8.911093  0.000000  4.265209 16.01334  0.000000 16.309109  0.000000
 ```
 
 ```r
@@ -265,10 +265,10 @@ paths.e
 ```
 
 ```
-## 1.epath1 1.epath2  2.epath 3.epath1 3.epath2 3.epath3  4.epath 5.epath1 
-##       64       25       96       64       25        9      133       82 
-## 5.epath2 6.epath1 6.epath2 6.epath3 6.epath4 
-##       71       14        9       25       64
+##  1.epath 2.epath1 2.epath2  3.epath  4.epath 5.epath1 5.epath2 6.epath1 
+##      128       27       56       92      135       34       56       28 
+## 6.epath2 
+##       56
 ```
 
 ```r
@@ -404,8 +404,10 @@ An attempt to model roads that are trunk, main sections based on feature length 
 FILE_TYPE_DESCRIPTION IN ('Forest Service Road', 'Road Permit') AND RETIREMENT_DATE IS NULL and FEATURE_LENGTH >= 10000
 ```
 
+The existing road network was rasterized using the [fasterize](https://cran.r-project.org/web/packages/fasterize/index.html) R package to match the resolution and extent of indicators from [Hectares BC](https://www.hectaresbc.org/app/habc/HaBC.html) (e.g., nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5) 
+
 ## Cost Surface
-A road cost surface was created using road cost estimates from the [Interior](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual) and [Coast Appraisal Mannual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual). These cost estimates were conditional on region (Timber Supply Areas), slope, biogeoclimatic zone, pipeline crossings, and watercourse crossings. Major waterbodies (lakes) were also included to act as barriers to road development. The pixels of these barriers were not included in the graph and thus the labels (i.e., ID's) of these raster pixels were not possible verticies from which to build a path. Note the snapping approach does not consider barriers or costs to road development.
+A road cost surface was created using road cost estimates from the [Interior](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/interior-timber-pricing/interior-appraisal-manual) and [Coast Appraisal Mannual](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/coast-timber-pricing/coast-appraisal-manual). These cost estimates were conditional on region (Timber Supply Areas), slope, biogeoclimatic zone, pipeline crossings, and watercourse crossings. Major waterbodies (lakes) were also included to act as barriers to road development. The pixels of these barriers were not included in the graph and thus the labels (i.e., ID's) of these raster pixels were not possible verticies from which to build a path. Note the snapping approach does not consider barriers or costs to road development. All datasets were projected in [BC Albers](https://epsg.io/3005) and resampled to match the extent and resolution (100m x 100m) of the existintg roads network raster.
 
 # Results
 ## Timing
@@ -414,7 +416,7 @@ All of the approaches resulted in computer processing execution times that were 
 ![](draft-CLUS-roads_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 ## Accuracy
-The 'snap' approach resulted in the greatest number of predicted roaded pixels (this needs to be fleshed out in methods at some point; pixel size, process of rasterizing roads), followed by the LCP approach. The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the MST approach. Both the 'snap' and LCP approaches had similar RMSEs, but t he LCP had a slightly smaller RMSE than the 'snap'. The MST approach had the highest user accuracy, followed by the LCP approach.
+The 'snap' approach resulted in the greatest number of predicted roaded pixels, followed by the LCP approach. The root mean squared error (RMSE) for predicting the total number of roaded pixels in each study area (_n_=24) was the smallest with the MST approach. Both the 'snap' and LCP approaches had similar RMSEs, but t he LCP had a slightly smaller RMSE than the 'snap'. The MST approach had the highest user accuracy, followed by the LCP approach.
 
 <table class="table table-striped table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
