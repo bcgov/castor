@@ -51,9 +51,12 @@ Moutnain cariobu:
 
 
 ### habitat covariates to include in model
-elevation (m)
-slope (degrees)
+elevation (m) (Johnson et al. 2004 - Hart Ranges - winter - elevation + elevation^2; select elevations ~1200m, distribtuion skewed left a bit)
+slope (degrees) (Johnson et al. 2004 - Hart Ranges - winter - slope + slope^2; select slopes ~35deg, normal distribtuon)
 aspect (easting, northing, direction?)
+
+
+
 cutblock density (1 ha) 
   <5 years old (yo)
   5-10 yo
@@ -81,4 +84,30 @@ road length (density) (1 ha)
   
 forest age (vri or cutblcok or fire)
 
+stand type (Johnson et al. 2004 - Hart Ranges - winter):
+- subapline fir (>80%; selected)
+- mix subapline fir (subalipmne fir dominated)
+- spruce (spruce dominated)
+- mix lodgepole pine dominated
+- cedar/hemlock dominated
+- alpine forest (high elevation forest; selected)
+- alpine (no trees; selected)
+- other (infrequent types)
 
+- subalpine fir x stand age
+- subalpine fir x site productivity
+- subalpine fir x elevation
+- subalpine fir x slope x slope^2
+
+### estimaetign hoem ranges
+remove animals with <50 locations  
+literature recommends minimum 50 locatiosn to calcualte a hoem range (eaman 1999, Kernohan 2001)
+
+Seaman, D. E., Millspaugh, J. J., Kernohan, B. J., Brundige, G. C., Raedeke, K. J., & Gitzen, R. A. (1999). Effects of sample size on kernel home range estimates. The journal of wildlife management, 739-747.
+Kernohan, B. J., R. A. Gitzen, and J. J. Millspaugh. 2001. Analysis of animal space use and movements. Pages 125–166 in J. J. Millspaugh and J. M. Marzluff, editors. Radio tracking and animal populations. Academic Press, San Diego, CA, USA
+
+
+
+
+## Literature Cited
+Johnson, C. J., Seip, D. R., & Boyce, M. S. (2004). A quantitative approach to conservation planning: using resource selection functions to map the distribution of mountain caribou at multiple spatial scales. Journal of Applied Ecology, 41(2), 238-251.
