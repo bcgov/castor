@@ -561,120 +561,118 @@ locs.caribou.hr <- as (locs.caribou.ecotype.herd, 'Spatial')
 locs.caribou.hr.summer.du6 <- locs.caribou.hr [locs.caribou.hr@data$season == "Summer" & locs.caribou.hr@data$du == "du6", ]
 locs.caribou.hr.summer.du6@data$uniqueID <- factor (locs.caribou.hr.summer.du6@data$uniqueID) # drop animals with no locations
 
+locs.caribou.hr.ewinter.du6 <- locs.caribou.hr [locs.caribou.hr@data$season == "EarlyWinter" & locs.caribou.hr@data$du == "du6", ]
+locs.caribou.hr.ewinter.du6@data$uniqueID <- factor (locs.caribou.hr.ewinter.du6@data$uniqueID)
+
+locs.caribou.hr.lwinter.du6 <- locs.caribou.hr [locs.caribou.hr@data$season == "LateWinter" & locs.caribou.hr@data$du == "du6", ]
+locs.caribou.hr.lwinter.du6@data$uniqueID <- factor (locs.caribou.hr.lwinter.du6@data$uniqueID)
 
 
 
 
 
-locs.caribou.hr.ewinter.mtn <- locs.caribou.hr [locs.caribou.hr@data$season == "EarlyWinter" & locs.caribou.hr@data$du == "du6", ]
-locs.caribou.hr.ewinter.mtn@data$uniqueID <- factor (locs.caribou.hr.ewinter.mtn@data$uniqueID)
 
-locs.caribou.hr.lwinter.mtn <- locs.caribou.hr [locs.caribou.hr@data$season == "LateWinter" & locs.caribou.hr@data$du == "du6", ]
-locs.caribou.hr.lwinter.mtn@data$uniqueID <- factor (locs.caribou.hr.lwinter.mtn@data$uniqueID)
+
+
+# hr's with h = 750
+locs.caribou.hr.summer.du6.h750 <- kernelUD (locs.caribou.hr.summer.du6 [, 14],
+                                          h = 750, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du6.h750 <- getverticeshr (locs.caribou.hr.summer.du6.h750, percent = 95)
+writeOGR (homerange.summer.du6.h750, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du6_h750.shp", 
+          layer = "hr_summer_du6_h750.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.ewinter.du6.h750 <- kernelUD (locs.caribou.hr.ewinter.du6 [, 14],
+                                          h = 750, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.ewinter.du6.h750 <- getverticeshr (locs.caribou.hr.ewinter.du6.h750, percent = 95)
+writeOGR (homerange.ewinter.du6.h750, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h750.shp", 
+          layer = "hr_ewinter_du6_h750.shp", driver = "ESRI Shapefile")
+
+
 
 
 
 
 # hr's with h = 500
-locs.caribou.hr.summer.du6.h500 <- kernelUD (locs.caribou.hr.summer.mtn [, 13], # column of unique ID
+locs.caribou.hr.summer.du6.h500 <- kernelUD (locs.caribou.hr.summer.du6 [, 14], # column of unique ID
                                           h = 500, # smoothing parameter (h) tried different h values 
                                           grid = 1000, # grid 1km x 1km
                                           extent = 2)  # extent is 2x the 'normal' size
-homerange.summer.mtn.h500 <- getverticeshr (locs.caribou.hr.summer.du6.h500, percent = 95)
+homerange.summer.du6.h500 <- getverticeshr (locs.caribou.hr.summer.du6.h500, percent = 95)
 # save data 
-writeOGR (homerange.summer.mtn.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du6_h500.shp", 
+writeOGR (homerange.summer.du6.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du6_h500.shp", 
           layer = "hr_summer_du6_h500.shp", driver = "ESRI Shapefile")
 
-
-
-
-locs.caribou.hr.ewinter.mtn.h500 <- kernelUD (locs.caribou.hr.ewinter.mtn [, 13], 
+locs.caribou.hr.ewinter.du6.h500 <- kernelUD (locs.caribou.hr.ewinter.du6 [, 14],
                                           h = 500, 
                                           grid = 1000, 
                                           extent = 2)  
-homerange.ewinter.mtn.h500 <- getverticeshr (locs.caribou.hr.ewinter.mtn.h500, percent = 95)
-writeOGR (homerange.ewinter.mtn.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_mtn_h500.shp", 
-          layer = "hr_ewinter_mtn_h500.shp", driver = "ESRI Shapefile")
+homerange.ewinter.du6.h500 <- getverticeshr (locs.caribou.hr.ewinter.du6.h500, percent = 95)
+writeOGR (homerange.ewinter.du6.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h500.shp", 
+          layer = "hr_ewinter_du6_h500.shp", driver = "ESRI Shapefile")
 
-locs.caribou.hr.lwinter.mtn.h500 <- kernelUD (locs.caribou.hr.lwinter.mtn [, 13], 
-                                          h = 500, 
+
+
+
+
+
+
+
+# hr's with h = 350
+locs.caribou.hr.summer.du6.h350 <- kernelUD (locs.caribou.hr.summer.du6 [, 14],
+                                          h = 350, 
                                           grid = 1000, 
                                           extent = 2)  
-homerange.lwinter.mtn.h500 <- getverticeshr (locs.caribou.hr.lwinter.mtn.h500, percent = 95)
-writeOGR (homerange.lwinter.mtn.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_mtn_h500.shp", 
-          layer = "hr_lwinter_mtn_h500.shp", driver = "ESRI Shapefile")
+homerange.summer.du6.h350 <- getverticeshr (locs.caribou.hr.summer.du6.h350, percent = 95)
+writeOGR (homerange.summer.du6.h350, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du6_h350.shp", 
+          layer = "hr_summer_du6_h350.shp", driver = "ESRI Shapefile")
 
-locs.caribou.hr.summer.boreal.h500 <- kernelUD (locs.caribou.hr.summer.boreal [, 13], 
-                                          h = 500, 
+locs.caribou.hr.ewinter.du6.h350 <- kernelUD (locs.caribou.hr.ewinter.du6 [, 14],
+                                          h = 350, 
                                           grid = 1000, 
                                           extent = 2)  
-homerange.summer.boreal.h500 <- getverticeshr (locs.caribou.hr.summer.boreal.h500, percent = 95)
-writeOGR (homerange.summer.boreal.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_boreal_h500.shp", 
-          layer = "hr_summer_boreal_h500.shp", driver = "ESRI Shapefile")
+homerange.ewinter.du6.h350 <- getverticeshr (locs.caribou.hr.ewinter.du6.h350, percent = 95)
+writeOGR (homerange.ewinter.du6.h350, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h350.shp", 
+          layer = "hr_ewinter_du6_h350.shp", driver = "ESRI Shapefile")
+
 
 
 
 # hr's with h = 250
-locs.caribou.hr.summer.mtn.h250 <- kernelUD (locs.caribou.hr.summer.mtn [, 13], 
+locs.caribou.hr.summer.du6.h250 <- kernelUD (locs.caribou.hr.summer.du6 [, 14], 
                                           h = 250, 
                                           grid = 1000, 
                                           extent = 2)  
-homerange.summer.mtn.h250 <- getverticeshr (locs.caribou.hr.summer.mtn.h250, percent = 95)
-writeOGR (homerange.summer.mtn.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_mtn_h250.shp", 
-          layer = "hr_summer_mtn_h250.shp", driver = "ESRI Shapefile")
+homerange.summer.du6.h250 <- getverticeshr (locs.caribou.hr.summer.du6.h250, percent = 95)
+writeOGR (homerange.summer.du6.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du6_h250.shp", 
+          layer = "hr_summer_du6_h250.shp", driver = "ESRI Shapefile")
 
-locs.caribou.hr.ewinter.mtn.h250 <- kernelUD (locs.caribou.hr.ewinter.mtn [, 13], 
+locs.caribou.hr.ewinter.du6.h250 <- kernelUD (locs.caribou.hr.ewinter.du6 [, 14], 
                                           h = 250, 
                                           grid = 1000, 
                                           extent = 2)  
-homerange.ewinter.mtn.h250 <- getverticeshr (locs.caribou.hr.ewinter.mtn.h250, percent = 95)
-writeOGR (homerange.ewinter.mtn.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_mtn_h250.shp", 
-          layer = "hr_ewinter_mtn_h250.shp", driver = "ESRI Shapefile")
-
-locs.caribou.hr.lwinter.mtn.h250 <- kernelUD (locs.caribou.hr.lwinter.mtn [, 13], 
-                                          h = 250, 
-                                          grid = 1000, 
-                                          extent = 2)  
-homerange.lwinter.mtn.h250 <- getverticeshr (locs.caribou.hr.lwinter.mtn.h250, percent = 95)
-writeOGR (homerange.lwinter.mtn.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_mtn_h250.shp", 
-          layer = "hr_lwinter_mtn_h250.shp", driver = "ESRI Shapefile")
-
-locs.caribou.hr.summer.boreal.h250 <- kernelUD (locs.caribou.hr.summer.boreal [, 13], 
-                                          h = 250, 
-                                          grid = 1000, 
-                                          extent = 2)  
-homerange.summer.boreal.h250 <- getverticeshr (locs.caribou.hr.summer.boreal.h250, percent = 95)
-writeOGR (homerange.summer.boreal.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_boreal_h250.shp", 
-          layer = "hr_summer_boreal_h250.shp", driver = "ESRI Shapefile")
+homerange.ewinter.du6.h250 <- getverticeshr (locs.caribou.hr.ewinter.du6.h250, percent = 95)
+writeOGR (homerange.ewinter.du6.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h250.shp", 
+          layer = "hr_ewinter_du6_h250.shp", driver = "ESRI Shapefile")
 
 
 
 
 
-# hr's with h = 100
-locs.caribou.hr.summer.mtn.h100 <- kernelUD (locs.caribou.hr.summer.mtn [, 13],
-                                          h = 100, 
-                                          grid = 1000, 
-                                          extent = 2)  
-homerange.summer.mtn.h100 <- getverticeshr (locs.caribou.hr.summer.mtn.h100, percent = 95)
-writeOGR (homerange.summer.mtn.h100, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_mtn_h100.shp", 
-          layer = "hr_summer_mtn_h100.shp", driver = "ESRI Shapefile")
 
-locs.caribou.hr.ewinter.mtn.h100 <- kernelUD (locs.caribou.hr.ewinter.mtn [, 13],
-                                          h = 100, 
-                                          grid = 1000, 
-                                          extent = 2)  
-homerange.ewinter.mtn.h100 <- getverticeshr (locs.caribou.hr.ewinter.mtn.h100, percent = 95)
-writeOGR (homerange.ewinter.mtn.h100, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_mtn_h100.shp", 
-          layer = "hr_ewinter_mtn_h100.shp", driver = "ESRI Shapefile")
 
-locs.caribou.hr.lwinter.mtn.h100 <- kernelUD (locs.caribou.hr.lwinter.mtn [, 13],
-                                          h = 100, 
-                                          grid = 1000, 
-                                          extent = 2)  
-homerange.lwinter.mtn.h100 <- getverticeshr (locs.caribou.hr.lwinter.mtn.h100, percent = 95)
-writeOGR (homerange.lwinter.mtn.h100, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_mtn_h100.shp", 
-          layer = "hr_lwinter_mtn_h100.shp", driver = "ESRI Shapefile")
+
+
+
+
+
+
+
+
+
 
 
 
@@ -688,7 +686,9 @@ writeOGR (homerange.lwinter.mtn.h100, dsn = "C:\\Work\\caribou\\clus_data\\carib
 
 
 show exampels of each size for why picked
-resoltuion of data: smallest size (h=100) is ~200 m from point locations to egde of hr, leaving littel room for avriability in habitat between used and avalable for analysis @1ha resoltuion 
+resoltuion of data: smallest size (h=100) is ~200 m from point locations to egde of hr in some cases, leaving littel room for avriability in habitat between used and avalable for analysis @1ha resoltuion; larger sizes (h = 750) tended to estiamet large outer extents form teh points (>1 km) that may not realistially be a part of a hoem rnage
+
+h=500 seemed to provide rasonable trade-off between capturing contiguous ranges encompassign lcoations, but not estimatign large extents outside teh bounds of the locations
 
 
 ```{r, example of 3 hr sizes, warning = F, include = F, message = F}
@@ -707,9 +707,13 @@ dbDisconnect (conn)
 
 
 
-Mountain_Summer_car078_2008
-Boreal_Summer_SCEK43_2013
 
+du6_Summer_SCEK43_2013
+
+
+
+
+Mountain_Summer_car078_2008
 
 bind exampels adn save in data folder?
 
