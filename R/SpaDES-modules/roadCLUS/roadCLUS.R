@@ -69,11 +69,15 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim<-roadCLUS.Init(sim)
       ## set seed
       #set.seed(sim$.seed)
+      if(P(sim)$roadMethod == 'pre'){
+        sim <- roadCLUS.PreSolve(sim)
+      }else{
       # schedule future event(s)
       sim <- scheduleEvent(sim, eventTime = start(sim),  "roadCLUS", "save.sim")
       sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads")
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "analysis.sim", eventPriority=19)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim",eventPriority=20)
+      }
     },
     plot.sim = {
       # do stuff for this event
@@ -106,6 +110,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
               sim <- roadCLUS.mstList(sim)# will take more time than lcpList given the construction of a mst
               sim <- roadCLUS.shortestPaths(sim)# update graph is within the shorestPaths function
             }
+
         )
         
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
@@ -123,10 +128,9 @@ roadCLUS.Init <- function(sim) {
   sim<-roadCLUS.getRoads(sim) # Get the existing roads
   sim<-roadCLUS.getCostSurface(sim) # Get the cost surface
   
-  if(P(sim)$roadMethod == 'lcp' || P(sim)$roadMethod == 'mst'){
+  if(!P(sim)$roadMethod == 'snap'){
     sim <- roadCLUS.getGraph(sim)
   }
- 
   return(invisible(sim))
 }
 
@@ -165,6 +169,7 @@ roadCLUS.getGraph<- function(sim){
   ras.matrix<-raster::as.matrix(sim$costSurface)#get the cost surface as a matrix using the raster package
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
+  #weight<-data.table(getValues(sim$costSurface)) #Try
   weight$id<-as.integer(row.names(weight)) # get the id for ther verticies which is used to merge with the edge list from adj
   
   #------get the adjacency using SpaDES function adj
@@ -189,6 +194,12 @@ roadCLUS.getGraph<- function(sim){
   return(invisible(sim))
 }
 
+roadCLUS.PreSolve<-function(sim){
+  #------solve the minnimum spanning tree
+  paths<-mst(sim$g)
+  #To DO: need some functions to determine which roads to 'activate' and which to 'close'
+  return(invisible(sim)) 
+}
 ##Get a list of paths from which there is a to and from point
 roadCLUS.lcpList<- function(sim){
   paths.matrix<-cbind(cellFromXY(sim$costSurface,sim$landings ), cellFromXY(sim$costSurface,sim$roads.close.XY ))
@@ -218,7 +229,6 @@ roadCLUS.mstList<- function(sim){
     rm(mst.paths,mst.g, mst.adj, mst.v, paths.matrix)
     gc()
   }
-  
   return(invisible(sim))
 }
 
