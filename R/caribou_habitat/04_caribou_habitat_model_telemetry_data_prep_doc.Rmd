@@ -567,6 +567,37 @@ locs.caribou.hr.ewinter.du6@data$uniqueID <- factor (locs.caribou.hr.ewinter.du6
 locs.caribou.hr.lwinter.du6 <- locs.caribou.hr [locs.caribou.hr@data$season == "LateWinter" & locs.caribou.hr@data$du == "du6", ]
 locs.caribou.hr.lwinter.du6@data$uniqueID <- factor (locs.caribou.hr.lwinter.du6@data$uniqueID)
 
+# DU7 
+locs.caribou.hr.summer.du7 <- locs.caribou.hr [locs.caribou.hr@data$season == "Summer" & locs.caribou.hr@data$du == "du7", ]
+locs.caribou.hr.summer.du7.south <- locs.caribou.hr.summer.du7 [locs.caribou.hr.summer.du7@data$HERD_NAME == "Itcha-Ilgachuz" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Rainbows" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Charlotte Alplands" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Tweedsmuir" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Telkwa" , ]
+locs.caribou.hr.summer.du7.south@data$uniqueID <- factor (locs.caribou.hr.summer.du7.south@data$uniqueID)
+
+locs.caribou.hr.ewinter.du7 <- locs.caribou.hr [locs.caribou.hr@data$season == "EarlyWinter" & locs.caribou.hr@data$du == "du7", ]
+locs.caribou.hr.ewinter.du7.south <- locs.caribou.hr.ewinter.du7 [locs.caribou.hr.ewinter.du7@data$HERD_NAME == "Itcha-Ilgachuz" | locs.caribou.hr.ewinter.du7@data$HERD_NAME == "Rainbows" | locs.caribou.hr.ewinter.du7@data$HERD_NAME == "Charlotte Alplands" | locs.caribou.hr.ewinter.du7@data$HERD_NAME == "Tweedsmuir" | locs.caribou.hr.ewinter.du7@data$HERD_NAME == "Telkwa" , ]
+locs.caribou.hr.ewinter.du7.south@data$uniqueID <- factor (locs.caribou.hr.ewinter.du7.south@data$uniqueID)
+
+locs.caribou.hr.lwinter.du7 <- locs.caribou.hr [locs.caribou.hr@data$season == "LateWinter" & locs.caribou.hr@data$du == "du7", ]
+locs.caribou.hr.lwinter.du7.south <- locs.caribou.hr.lwinter.du7 [locs.caribou.hr.lwinter.du7@data$HERD_NAME == "Itcha-Ilgachuz" | locs.caribou.hr.lwinter.du7@data$HERD_NAME == "Rainbows" | locs.caribou.hr.lwinter.du7@data$HERD_NAME == "Charlotte Alplands" | locs.caribou.hr.lwinter.du7@data$HERD_NAME == "Tweedsmuir" | locs.caribou.hr.lwinter.du7@data$HERD_NAME == "Telkwa" , ]
+locs.caribou.hr.lwinter.du7.south@data$uniqueID <- factor (locs.caribou.hr.lwinter.du7.south@data$uniqueID)
+
+locs.caribou.hr.summer.du7.ne <- locs.caribou.hr.summer.du7 [locs.caribou.hr.summer.du7@data$HERD_NAME == "Graham" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Chase" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Muskwa" |
+locs.caribou.hr.summer.du7@data$HERD_NAME == "Frog" | locs.caribou.hr.summer.du7@data$HERD_NAME == "Finlay" , ]
+
+locs.caribou.hr.summer.du7.spat <- locs.caribou.hr.summer.du7 [locs.caribou.hr.summer.du7@data$HERD_NAME == "Spatsizi" , ]
+locs.caribou.hr.summer.du7.spat.C297T <- locs.caribou.hr.summer.du7.spat [locs.caribou.hr.summer.du7.spat@data$animal_id == "C297T" , ]
+locs.caribou.hr.summer.du7.spat.C301T <- locs.caribou.hr.summer.du7.spat [locs.caribou.hr.summer.du7.spat@data$animal_id == "C301T" , ]
+locs.caribou.hr.summer.du7.spat.C303T <- locs.caribou.hr.summer.du7.spat [locs.caribou.hr.summer.du7.spat@data$animal_id == "C303T" , ]
+locs.caribou.hr.summer.du7.spat.C298T <- locs.caribou.hr.summer.du7.spat [locs.caribou.hr.summer.du7.spat@data$animal_id == "C298T" , ]
+
+locs.caribou.hr.summer.du7.pink <- locs.caribou.hr.summer.du7 [locs.caribou.hr.summer.du7@data$HERD_NAME == "Pink Mountain" , ]
+locs.caribou.hr.summer.du7.pink.41243 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41243" , ]
+locs.caribou.hr.summer.du7.pink.41253 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41253" , ]
+locs.caribou.hr.summer.du7.pink.41255 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41255" , ]
+locs.caribou.hr.summer.du7.pink.41249 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41249" , ]
+locs.caribou.hr.summer.du7.pink.41258 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41258" , ]
+locs.caribou.hr.summer.du7.pink.41262 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41262" , ]
+locs.caribou.hr.summer.du7.pink.41265 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41265" , ]
+
 
 
 
@@ -591,6 +622,41 @@ homerange.ewinter.du6.h750 <- getverticeshr (locs.caribou.hr.ewinter.du6.h750, p
 writeOGR (homerange.ewinter.du6.h750, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h750.shp", 
           layer = "hr_ewinter_du6_h750.shp", driver = "ESRI Shapefile")
 
+locs.caribou.hr.lwinter.du6.h750 <- kernelUD (locs.caribou.hr.lwinter.du6 [, 14],
+                                          h = 750, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du6.h750 <- getverticeshr (locs.caribou.hr.lwinter.du6.h750, percent = 95)
+writeOGR (homerange.lwinter.du6.h750, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du6_h750.shp", 
+          layer = "hr_lwinter_du6_h750.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.south.h750 <- kernelUD (locs.caribou.hr.summer.du7.south [, 14],
+                                          h = 750, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.h750.south <- getverticeshr (locs.caribou.hr.summer.du7.south.h750, percent = 95)
+writeOGR (homerange.summer.du7.h750.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_south_h750.shp", 
+          layer = "hr_summer_du7_south_h750.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.ewinter.du7.south.h750 <- kernelUD (locs.caribou.hr.ewinter.du7.south [, 14],
+                                          h = 750, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.ewinter.du7.h750.south <- getverticeshr (locs.caribou.hr.ewinter.du7.south.h750, percent = 95)
+writeOGR (homerange.ewinter.du7.h750.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_south_h750.shp", 
+          layer = "hr_ewinter_du7_south_h750.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.lwinter.du7.south.h750 <- kernelUD (locs.caribou.hr.lwinter.du7.south [, 14],
+                                          h = 750, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du7.h750.south <- getverticeshr (locs.caribou.hr.lwinter.du7.south.h750, percent = 95)
+writeOGR (homerange.lwinter.du7.h750.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du7_south_h750.shp", 
+          layer = "hr_lwinter_du7_south_h750.shp", driver = "ESRI Shapefile")
+
+
+
+
 
 
 
@@ -613,6 +679,102 @@ locs.caribou.hr.ewinter.du6.h500 <- kernelUD (locs.caribou.hr.ewinter.du6 [, 14]
 homerange.ewinter.du6.h500 <- getverticeshr (locs.caribou.hr.ewinter.du6.h500, percent = 95)
 writeOGR (homerange.ewinter.du6.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h500.shp", 
           layer = "hr_ewinter_du6_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.lwinter.du6.h500 <- kernelUD (locs.caribou.hr.lwinter.du6 [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du6.h500 <- getverticeshr (locs.caribou.hr.lwinter.du6.h500, percent = 95)
+writeOGR (homerange.lwinter.du6.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du6_h500.shp", 
+          layer = "hr_lwinter_du6_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.h500 <- kernelUD (locs.caribou.hr.summer.du7 [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.h500 <- getverticeshr (locs.caribou.hr.summer.du7.h500, percent = 95)
+writeOGR (homerange.summer.du7.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_h500.shp", 
+          layer = "hr_summer_du7_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.south.h500 <- kernelUD (locs.caribou.hr.summer.du7.south [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.h500.south <- getverticeshr (locs.caribou.hr.summer.du7.south.h500, percent = 95)
+writeOGR (homerange.summer.du7.h500.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_south_h500.shp", 
+          layer = "hr_summer_du7_south_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.ewinter.du7.south.h500 <- kernelUD (locs.caribou.hr.ewinter.du7.south [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.ewinter.du7.h500.south <- getverticeshr (locs.caribou.hr.ewinter.du7.south.h500, percent = 95)
+writeOGR (homerange.ewinter.du7.h500.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_south_h500.shp", 
+          layer = "hr_ewinter_du7_south_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.lwinter.du7.south.h500 <- kernelUD (locs.caribou.hr.lwinter.du7.south [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du7.h500.south <- getverticeshr (locs.caribou.hr.lwinter.du7.south.h500, percent = 95)
+writeOGR (homerange.lwinter.du7.h500.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du7_south_h500.shp", 
+          layer = "hr_lwinter_du7_south_h500.shp", driver = "ESRI Shapefile")
+
+
+locs.caribou.hr.summer.du7.ne.h500 <- kernelUD (locs.caribou.hr.summer.du7.ne [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.ne.h500 <- getverticeshr (locs.caribou.hr.summer.du7.ne.h500, percent = 95)
+writeOGR (homerange.summer.du7.ne.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_ne_h500.shp", 
+          layer = "hr_summer_du7_ne_h500.shp", driver = "ESRI Shapefile")
+
+
+
+
+locs.caribou.hr.summer.du7.spat.C297T.h500 <- kernelUD (locs.caribou.hr.summer.du7.spat.C297T [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.spat.C297T.h500 <- getverticeshr (locs.caribou.hr.summer.du7.spat.C297T.h500, percent = 95)
+writeOGR (homerange.summer.du7.spat.C297T.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_spat_C297T_h500.shp", 
+          layer = "hr_summer_du7_spat_C297T_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.spat.C301T.h500 <- kernelUD (locs.caribou.hr.summer.du7.spat.C301T [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.spat.C301T.h500 <- getverticeshr (locs.caribou.hr.summer.du7.spat.C301T.h500, percent = 95)
+writeOGR (homerange.summer.du7.spat.C301T.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_spat_C301T_h500.shp", 
+          layer = "hr_summer_du7_spat_C301T_h500.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.spat.C303T.h500 <- kernelUD (locs.caribou.hr.summer.du7.spat.C303T [, 14],
+                                          h = 500, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.spat.C303T.h500 <- getverticeshr (locs.caribou.hr.summer.du7.spat.C303T.h500, percent = 95)
+writeOGR (homerange.summer.du7.spat.C303T.h500, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_spat_C303T_h500.shp", 
+          layer = "hr_summer_du7_spat_C303T_h500.shp", driver = "ESRI Shapefile")
+
+
+
+locs.caribou.hr.summer.du7.spat.C303T <- locs.caribou.hr.summer.du7.spat [locs.caribou.hr.summer.du7.spat@data$animal_id == "C303T" , ]
+locs.caribou.hr.summer.du7.spat.C298T <- locs.caribou.hr.summer.du7.spat [locs.caribou.hr.summer.du7.spat@data$animal_id == "C298T" , ]
+
+locs.caribou.hr.summer.du7.pink <- locs.caribou.hr.summer.du7 [locs.caribou.hr.summer.du7@data$HERD_NAME == "Pink Mountain" , ]
+locs.caribou.hr.summer.du7.pink.41243 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41243" , ]
+locs.caribou.hr.summer.du7.pink.41253 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41253" , ]
+locs.caribou.hr.summer.du7.pink.41255 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41255" , ]
+locs.caribou.hr.summer.du7.pink.41249 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41249" , ]
+locs.caribou.hr.summer.du7.pink.41258 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41258" , ]
+locs.caribou.hr.summer.du7.pink.41262 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41262" , ]
+locs.caribou.hr.summer.du7.pink.41265 <- locs.caribou.hr.summer.du7.pink [locs.caribou.hr.summer.du7.pink@data$animal_id == "41265" , ]
+
+
+
+
+
+
 
 
 
@@ -638,6 +800,32 @@ homerange.ewinter.du6.h350 <- getverticeshr (locs.caribou.hr.ewinter.du6.h350, p
 writeOGR (homerange.ewinter.du6.h350, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h350.shp", 
           layer = "hr_ewinter_du6_h350.shp", driver = "ESRI Shapefile")
 
+locs.caribou.hr.lwinter.du6.h350 <- kernelUD (locs.caribou.hr.lwinter.du6 [, 14],
+                                          h = 350, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du6.h350 <- getverticeshr (locs.caribou.hr.lwinter.du6.h350, percent = 95)
+writeOGR (homerange.lwinter.du6.h350, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du6_h350.shp", 
+          layer = "hr_lwinter_du6_h350.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.south.h350 <- kernelUD (locs.caribou.hr.summer.du7.south [, 14],
+                                          h = 350, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.h350.south <- getverticeshr (locs.caribou.hr.summer.du7.south.h350, percent = 95)
+writeOGR (homerange.summer.du7.h350.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_south_h350.shp", 
+          layer = "hr_summer_du7_south_h350.shp", driver = "ESRI Shapefile")
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -659,12 +847,39 @@ writeOGR (homerange.ewinter.du6.h250, dsn = "C:\\Work\\caribou\\clus_data\\carib
           layer = "hr_ewinter_du6_h250.shp", driver = "ESRI Shapefile")
 
 
+locs.caribou.hr.lwinter.du6.h250 <- kernelUD (locs.caribou.hr.lwinter.du6 [, 14], 
+                                          h = 250, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du6.h250 <- getverticeshr (locs.caribou.hr.lwinter.du6.h250, percent = 95)
+writeOGR (homerange.lwinter.du6.h250, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du6_h250.shp", 
+          layer = "hr_lwinter_du6_h250.shp", driver = "ESRI Shapefile")
+
+locs.caribou.hr.summer.du7.south.h250 <- kernelUD (locs.caribou.hr.summer.du7.south [, 14],
+                                          h = 250, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.summer.du7.h250.south <- getverticeshr (locs.caribou.hr.summer.du7.south.h250, percent = 95)
+writeOGR (homerange.summer.du7.h250.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_south_h250.shp", 
+          layer = "hr_summer_du7_south_h250.shp", driver = "ESRI Shapefile")
 
 
+locs.caribou.hr.ewinter.du7.south.h250 <- kernelUD (locs.caribou.hr.ewinter.du7.south [, 14],
+                                          h = 250, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.ewinter.du7.h250.south <- getverticeshr (locs.caribou.hr.ewinter.du7.south.h250, percent = 95)
+writeOGR (homerange.ewinter.du7.h250.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_south_h250.shp", 
+          layer = "hr_ewinter_du7_south_h250.shp", driver = "ESRI Shapefile")
 
 
-
-
+locs.caribou.hr.lwinter.du7.south.h250 <- kernelUD (locs.caribou.hr.lwinter.du7.south [, 14],
+                                          h = 250, 
+                                          grid = 1000, 
+                                          extent = 2)  
+homerange.lwinter.du7.h250.south <- getverticeshr (locs.caribou.hr.lwinter.du7.south.h250, percent = 95)
+writeOGR (homerange.lwinter.du7.h250.south, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du7_south_h250.shp", 
+          layer = "hr_lwinter_du7_south_h250.shp", driver = "ESRI Shapefile")
 
 
 
@@ -709,11 +924,11 @@ dbDisconnect (conn)
 
 
 du6_Summer_SCEK43_2013
+du6_LateWinter_SCEK143_2015
+du7_Summer_TC009_2013
+du7_EarlyWinter_33_2012
 
 
-
-
-Mountain_Summer_car078_2008
 
 bind exampels adn save in data folder?
 
