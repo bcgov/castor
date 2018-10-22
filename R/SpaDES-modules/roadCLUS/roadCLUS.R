@@ -174,6 +174,9 @@ roadCLUS.getGraph<- function(sim){
   
   #------get the adjacency using SpaDES function adj
   edges<-adj(returnDT= TRUE, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix), directions =8, cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))
+  edges<-data.table(edges)
+  edges[from < to, c("from", "to") := .(to, from)]
+  edges<-unique(edges)
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="id") #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1")) #reformat
   edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="id"))#merge in the weights to a cost surface
