@@ -1396,7 +1396,10 @@ dbDisconnect (conn)
 
 
 
-bind the used and available locations into a dataframe
+bind the used and available locations into a dataframe adn clean it up a bit
+- visual qa
+- remove if <1050 used/available locations
+- fill in blank ecotype and herd name columns for available data
 
 ```{r, bind used and available location data, warning = F, include = F, message = F}
 
@@ -1450,79 +1453,329 @@ rsf.locations$HERD_NAME <- as.factor (rsf.locations$HERD_NAME)
 
 # some cleaning-up to do
 # need to fill in blank ECOTYPE and HERD_NAME
-rsf.locations$ECOTYPE [rsf.locations$du == "du6"] <- 'Boreal' # make all DU6 animals 
-
+rsf.locations$ECOTYPE [rsf.locations$du == "du6"] <- 'Boreal' # make all DU6 animals boreal ecotype
+rsf.locations$ECOTYPE [rsf.locations$du == "du7"] <- 'Northern' # make all DU7 northern ecotype
+rsf.locations$ECOTYPE [rsf.locations$du == "du8"] <- 'Northern' # make all DU8 northern ecotype
+rsf.locations$ECOTYPE [rsf.locations$du == "du9"] <- 'Mountain' # make all DU9 mountain ecotype
+rsf.locations$ECOTYPE <- as.character (rsf.locations$ECOTYPE)
+rsf.locations$ECOTYPE <- as.factor (rsf.locations$ECOTYPE)
 
 unique.data <- rsf.locations %>% # unique IDs in the data
-                  distinct (uniqueID, .keep_all = T)
-  
-  
-  
-unique.data.north <- unique.data %>%
-                      filter (ECOTYPE == "Northern")
+                distinct (uniqueID, HERD_NAME, .keep_all = T)
+st_geometry (unique.data) <- NULL
+unique.data$HERD_NAME <- as.character (unique.data$HERD_NAME)
+unique.data$HERD_NAME <- as.factor (unique.data$HERD_NAME)
+unique (unique.data$HERD_NAME)
 
-unique.data.north <- unique.data %>%
-                      filter (ECOTYPE == "Northern")
+# unique IDs by herd
+unique.data.II <- unique.data %>% 
+                   filter (HERD_NAME == "Itcha-Ilgachuz") %>%
+                    dplyr::select (uniqueID)
+unique.data.r <- unique.data %>% 
+                   filter (HERD_NAME == "Rainbows") %>%
+                    dplyr::select (uniqueID)
+unique.data.ca <- unique.data %>% 
+                   filter (HERD_NAME == "Charlotte Alplands") %>%
+                    dplyr::select (uniqueID)
+unique.data.n <- unique.data %>% 
+                   filter (HERD_NAME == "Nakusp") %>%
+                    dplyr::select (uniqueID)
+unique.data.hr <- unique.data %>% 
+                   filter (HERD_NAME == "Hart Ranges") %>%
+                    dplyr::select (uniqueID)
+unique.data.ks <- unique.data %>% 
+                   filter (HERD_NAME == "Kennedy Siding") %>%
+                    dplyr::select (uniqueID)
+unique.data.bp <- unique.data %>% 
+                   filter (HERD_NAME == "Burnt Pine") %>%
+                    dplyr::select (uniqueID)
+unique.data.mo <- unique.data %>% 
+                   filter (HERD_NAME == "Moberly") %>%
+                    dplyr::select (uniqueID)
+unique.data.q <- unique.data %>% 
+                   filter (HERD_NAME == "Quintette") %>%
+                    dplyr::select (uniqueID)
+unique.data.sc <- unique.data %>% 
+                   filter (HERD_NAME == "Scott") %>%
+                    dplyr::select (uniqueID)
+unique.data.sp <- unique.data %>% 
+                   filter (HERD_NAME == "Spatsizi") %>%
+                    dplyr::select (uniqueID)
+unique.data.sl <- unique.data %>% 
+                   filter (HERD_NAME == "Swan Lake") %>%
+                    dplyr::select (uniqueID)
+unique.data.te <- unique.data %>% 
+                   filter (HERD_NAME == "Telkwa") %>%
+                    dplyr::select (uniqueID)
+unique.data.ts <- unique.data %>% 
+                   filter (HERD_NAME == "Tsenaglode") %>%
+                    dplyr::select (uniqueID)
+unique.data.tw <- unique.data %>% 
+                   filter (HERD_NAME == "Tweedsmuir") %>%
+                    dplyr::select (uniqueID)
+unique.data.na <- unique.data %>% 
+                   filter (HERD_NAME == "Narraway") %>%
+                    dplyr::select (uniqueID)
+unique.data.ss <- unique.data %>% 
+                   filter (HERD_NAME == "South Selkirks") %>%
+                    dplyr::select (uniqueID)
+unique.data.mu <- unique.data %>% 
+                   filter (HERD_NAME == "Muskwa") %>%
+                    dplyr::select (uniqueID)
+unique.data.pa <- unique.data %>% 
+                   filter (HERD_NAME == "Parker") %>%
+                    dplyr::select (uniqueID)
+unique.data.fr <- unique.data %>% 
+                   filter (HERD_NAME == "Frog") %>%
+                    dplyr::select (uniqueID)
+unique.data.pm <- unique.data %>% 
+                   filter (HERD_NAME == "Pink Mountain") %>%
+                    dplyr::select (uniqueID)
+unique.data.gr <- unique.data %>% 
+                   filter (HERD_NAME == "Graham") %>%
+                    dplyr::select (uniqueID)
+unique.data.ch <- unique.data %>% 
+                   filter (HERD_NAME == "Chase") %>%
+                    dplyr::select (uniqueID)
+unique.data.fi <- unique.data %>% 
+                   filter (HERD_NAME == "Finlay") %>%
+                    dplyr::select (uniqueID)
+unique.data.sns <- unique.data %>% 
+                   filter (HERD_NAME == "Snake-Sahtaneh") %>%
+                    dplyr::select (uniqueID)
+unique.data.mx <- unique.data %>% 
+                   filter (HERD_NAME == "Maxhamish") %>%
+                    dplyr::select (uniqueID)
+unique.data.chi <- unique.data %>% 
+                   filter (HERD_NAME == "Chinchaga") %>%
+                    dplyr::select (uniqueID)
+unique.data.pro <- unique.data %>% 
+                   filter (HERD_NAME == "Prophet") %>%
+                    dplyr::select (uniqueID)
+unique.data.cal <- unique.data %>% 
+                   filter (HERD_NAME == "Calendar") %>%
+                    dplyr::select (uniqueID)
 
-
-list.uniqueID.north <- as.character (unique (unique.data.north$uniqueID))
-
-
-
-rsf.locations.test <- rsf.locations %>%
-                          filter (ECOTYPE == "Northern")
-
-
-rsf.locations.test$ECOTYPE [rsf.locations.test$uniqueID == "du7_EarlyWinter_C303T_2014" |   rsf.locations.test$uniqueID == "du7_EarlyWinter_C303T_2013"] <- 'Northern'
-
-
-for (i in list.uniqueID.north) {
-  if (rsf.locations.test$uniqueID == i) {
-    rsf.locations.test$ECOTYPE == "Northern"
-  } else {rsf.locations.test$ECOTYPE == ""}
+# loop through herd IDs to fill in blanks
+for (i in unique.data.II$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Itcha-Ilgachuz" 
+}
+for (i in unique.data.r$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Rainbows" 
+}
+for (i in unique.data.ca$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Charlotte Alplands" 
+}
+for (i in unique.data.n$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Nakusp" 
+}
+for (i in unique.data.hr$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Hart Ranges" 
+}
+for (i in unique.data.ks$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Kennedy Siding" 
+}
+for (i in unique.data.bp$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Burnt Pine" 
+}
+for (i in unique.data.mo$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Moberly" 
+}
+for (i in unique.data.q$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Quintette" 
+}
+for (i in unique.data.sc$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Scott" 
+}
+for (i in unique.data.sp$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Spatsizi" 
+}
+for (i in unique.data.sl$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Swan Lake" 
+}
+for (i in unique.data.te$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Telkwa" 
+}
+for (i in unique.data.ts$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Tsenaglode" 
+}
+for (i in unique.data.tw$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Tweedsmuir" 
+}
+for (i in unique.data.na$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Narraway" 
+}
+for (i in unique.data.ss$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "South Selkirks" 
+}
+for (i in unique.data.mu$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Muskwa" 
+}
+for (i in unique.data.pa$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Parker" 
+}
+for (i in unique.data.fr$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Frog" 
+}
+for (i in unique.data.pm$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Pink Mountain" 
+}
+for (i in unique.data.gr$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Graham" 
+}
+for (i in unique.data.ch$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Chase" 
+}
+for (i in unique.data.fi$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Finlay" 
+}
+for (i in unique.data.sns$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Snake-Sahtaneh" 
+}
+for (i in unique.data.mx$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Maxhamish" 
+}
+for (i in unique.data.chi$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Chinchaga" 
+}
+for (i in unique.data.pro$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Prophet" 
+}
+for (i in unique.data.cal$uniqueID) { 
+  rsf.locations$HERD_NAME [rsf.locations$uniqueID == i] <- "Calendar" 
 }
 
+# no 'used' locations for this animal
+rsf.locations <- rsf.locations [rsf.locations$uniqueID != "du7_EarlyWinter_41247_2016", ] 
 
- (rsf.locations$uniqueID = list.uniqueID.north, , )
+# remove <1050 locations
+count <- data.frame (table (rsf.locations$uniqueID))
+rsf.locations <- rsf.locations [rsf.locations$uniqueID %in% names (table (rsf.locations$uniqueID)) [table (rsf.locations$uniqueID) >= 1050], ]
 
+# add ptID for each location; for visual check
+rsf.locations$ptID <- c (1:2672104)
 
+# delete the following records; are in wierd locations, based on visual QC
+rsf.locations <- rsf.locations [rsf.locations$ptID != 1831924 & rsf.locations$ptID != 1831925 &
+                                 rsf.locations$ptID != 1831926 & rsf.locations$ptID != 1882933 &
+                                 rsf.locations$ptID != 1190932 & rsf.locations$ptID != 1190935 &
+                                 rsf.locations$ptID != 1190954 & rsf.locations$ptID != 1190955 &
+                                 rsf.locations$ptID != 1190956 & rsf.locations$ptID != 1190964 &
+                                 rsf.locations$ptID != 1190965 & rsf.locations$ptID != 1190978 &
+                                 rsf.locations$ptID != 1190982 & rsf.locations$ptID != 1190986 &
+                                 rsf.locations$ptID != 1190989 & rsf.locations$ptID != 1190998 &
+                                 rsf.locations$ptID != 1190999 & rsf.locations$ptID != 1191004 &
+                                 rsf.locations$ptID != 1191009 & rsf.locations$ptID != 1191011 &
+                                 rsf.locations$ptID != 1191012 & rsf.locations$ptID != 1191013 &
+                                 rsf.locations$ptID != 1191014 & rsf.locations$ptID != 1191017 &
+                                 rsf.locations$ptID != 1191018 & rsf.locations$ptID != 1191035 &
+                                 rsf.locations$ptID != 1191037 & rsf.locations$ptID != 1191038 &
+                                 rsf.locations$ptID != 1191044 & rsf.locations$ptID != 1191047 &
+                                 rsf.locations$ptID != 1191050 & rsf.locations$ptID != 1191058 &
+                                 rsf.locations$ptID != 1191068 & rsf.locations$ptID != 1191074 &
+                                 rsf.locations$ptID != 1191079 & rsf.locations$ptID != 1191081 &
+                                 rsf.locations$ptID != 1191084 & rsf.locations$ptID != 1191103 &
+                                 rsf.locations$ptID != 1191104 & rsf.locations$ptID != 1191111 &
+                                 rsf.locations$ptID != 1191120 & rsf.locations$ptID != 1191123 &
+                                 rsf.locations$ptID != 1191124 & rsf.locations$ptID != 1191129 &
+                                 rsf.locations$ptID != 1191130 & rsf.locations$ptID != 1191137 &
+                                 rsf.locations$ptID != 1191144 & rsf.locations$ptID != 1191146 &
+                                 rsf.locations$ptID != 1191147 & rsf.locations$ptID != 1191156 &
+                                 rsf.locations$ptID != 1191157 & rsf.locations$ptID != 1191158 &
+                                 rsf.locations$ptID != 1191164 & rsf.locations$ptID != 1191167 &
+                                 rsf.locations$ptID != 1191174 & rsf.locations$ptID != 1191191 &
+                                 rsf.locations$ptID != 1191202 & rsf.locations$ptID != 1191204 &
+                                 rsf.locations$ptID != 1191218 & rsf.locations$ptID != 1191221 &
+                                 rsf.locations$ptID != 1191225 & rsf.locations$ptID != 1191227 &
+                                 rsf.locations$ptID != 1191229 & rsf.locations$ptID != 1191233 &
+                                 rsf.locations$ptID != 1191238 & rsf.locations$ptID != 1191239 &
+                                 rsf.locations$ptID != 1191242 & rsf.locations$ptID != 1191243 &
+                                 rsf.locations$ptID != 1191250 & rsf.locations$ptID != 1191269 &
+                                 rsf.locations$ptID != 1191275 & rsf.locations$ptID != 1191278 &
+                                 rsf.locations$ptID != 1191282 & rsf.locations$ptID != 1191283 &
+                                 rsf.locations$ptID != 1191286 & rsf.locations$ptID != 1191289 &
+                                 rsf.locations$ptID != 1191290 & rsf.locations$ptID != 1191298 &
+                                 rsf.locations$ptID != 1191300 & rsf.locations$ptID != 1191304 &
+                                 rsf.locations$ptID != 1191324 & rsf.locations$ptID != 1191331 &
+                                 rsf.locations$ptID != 1191332 & rsf.locations$ptID != 1191339 &
+                                 rsf.locations$ptID != 1191340 & rsf.locations$ptID != 1191341 &
+                                 rsf.locations$ptID != 1191342 & rsf.locations$ptID != 1191345 &
+                                 rsf.locations$ptID != 1191349 & rsf.locations$ptID != 1191350 &
+                                 rsf.locations$ptID != 1191353 & rsf.locations$ptID != 1191358 &
+                                 rsf.locations$ptID != 1191359 & rsf.locations$ptID != 1191364 &
+                                 rsf.locations$ptID != 1191365 & rsf.locations$ptID != 1191366 &
+                                 rsf.locations$ptID != 1191370 & rsf.locations$ptID != 1191371 &
+                                 rsf.locations$ptID != 1191375 & rsf.locations$ptID != 1191377 &
+                                 rsf.locations$ptID != 1191381 & rsf.locations$ptID != 1191382 &
+                                 rsf.locations$ptID != 1191386 & rsf.locations$ptID != 1191387 &
+                                 rsf.locations$ptID != 1191398 & rsf.locations$ptID != 1191399 &
+                                 rsf.locations$ptID != 1191402 & rsf.locations$ptID != 1191406 &
+                                 rsf.locations$ptID != 1191408 & rsf.locations$ptID != 1191413 &
+                                 rsf.locations$ptID != 1191414 & rsf.locations$ptID != 1191418 &
+                                 rsf.locations$ptID != 1191428 & rsf.locations$ptID != 1191430 &
+                                 rsf.locations$ptID != 1191431 & rsf.locations$ptID != 1191434 &
+                                 rsf.locations$ptID != 1191436 & rsf.locations$ptID != 1191441 &
+                                 rsf.locations$ptID != 1191443 & rsf.locations$ptID != 1191445 &
+                                 rsf.locations$ptID != 1191446 & rsf.locations$ptID != 1191447 &
+                                 rsf.locations$ptID != 1191448 & rsf.locations$ptID != 1191453 &
+                                 rsf.locations$ptID != 1191460 & rsf.locations$ptID != 1191461 &
+                                 rsf.locations$ptID != 1191473 & rsf.locations$ptID != 1191475 &
+                                 rsf.locations$ptID != 1191482 & rsf.locations$ptID != 1191486 &
+                                 rsf.locations$ptID != 1191490 & rsf.locations$ptID != 1191493 &
+                                 rsf.locations$ptID != 1191502 & rsf.locations$ptID != 1191506 &
+                                 rsf.locations$ptID != 1191509 & rsf.locations$ptID != 1191510 &
+                                 rsf.locations$ptID != 1191524 & rsf.locations$ptID != 1191527 &
+                                 rsf.locations$ptID != 1191547 & rsf.locations$ptID != 1191548 &
+                                 rsf.locations$ptID != 1191549 & rsf.locations$ptID != 1191551 &
+                                 rsf.locations$ptID != 1191553 & rsf.locations$ptID != 1191555 &
+                                 rsf.locations$ptID != 1191559 & rsf.locations$ptID != 1191563 &
+                                 rsf.locations$ptID != 1191570 & rsf.locations$ptID != 1191571 &
+                                 rsf.locations$ptID != 1191574 & rsf.locations$ptID != 1191580 &
+                                 rsf.locations$ptID != 1191581 & rsf.locations$ptID != 1191582 &
+                                 rsf.locations$ptID != 1191587 & rsf.locations$ptID != 1191589 &
+                                 rsf.locations$ptID != 1191591 & rsf.locations$ptID != 1191600 &
+                                 rsf.locations$ptID != 1191602 & rsf.locations$ptID != 1191605 &
+                                 rsf.locations$ptID != 1191606 & rsf.locations$ptID != 1191610 &
+                                 rsf.locations$ptID != 1191617 & rsf.locations$ptID != 1191627 &
+                                 rsf.locations$ptID != 1191644 & rsf.locations$ptID != 1191646 &
+                                 rsf.locations$ptID != 1191649 & rsf.locations$ptID != 1191655 &
+                                 rsf.locations$ptID != 1191660 & rsf.locations$ptID != 1191663 &
+                                 rsf.locations$ptID != 1191667 & rsf.locations$ptID != 1191672 &
+                                 rsf.locations$ptID != 1191679 & rsf.locations$ptID != 1191692 &
+                                 rsf.locations$ptID != 1191696 & rsf.locations$ptID != 1191700 &
+                                 rsf.locations$ptID != 1191705 & rsf.locations$ptID != 1191706 &
+                                 rsf.locations$ptID != 1191709 & rsf.locations$ptID != 1191717 &
+                                 rsf.locations$ptID != 1191719 & rsf.locations$ptID != 1191720 &
+                                 rsf.locations$ptID != 1191728 & rsf.locations$ptID != 1191731 &
+                                 rsf.locations$ptID != 1191740 & rsf.locations$ptID != 1191747 &
+                                 rsf.locations$ptID != 1191749 & rsf.locations$ptID != 1191755 &
+                                 rsf.locations$ptID != 1191762 & rsf.locations$ptID != 1191771 &
+                                 rsf.locations$ptID != 1191775 & rsf.locations$ptID != 1191777 &
+                                 rsf.locations$ptID != 1191782 & rsf.locations$ptID != 1191784 &
+                                 rsf.locations$ptID != 1191785 & rsf.locations$ptID != 1191788 &
+                                 rsf.locations$ptID != 1191789 & rsf.locations$ptID != 1191791 &
+                                 rsf.locations$ptID != 1191795 & rsf.locations$ptID != 1191796 &
+                                 rsf.locations$ptID != 1191801 & rsf.locations$ptID != 1191802 &
+                                 rsf.locations$ptID != 1191803 & rsf.locations$ptID != 1191805 &
+                                 rsf.locations$ptID != 1191808 & rsf.locations$ptID != 1191815 &
+                                 rsf.locations$ptID != 1191818 & rsf.locations$ptID != 1191819 &
+                                 rsf.locations$ptID != 1191820 & rsf.locations$ptID != 1191825 &
+                                 rsf.locations$ptID != 1191838 & rsf.locations$ptID != 1191841 &
+                                 rsf.locations$ptID != 1191849 & rsf.locations$ptID != 1191851 &
+                                 rsf.locations$ptID != 1191866 & rsf.locations$ptID != 1191867 &
+                                 rsf.locations$ptID != 1191868 & rsf.locations$ptID != 1191870 &
+                                 rsf.locations$ptID != 1191875 & rsf.locations$ptID != 1191876 &
+                                 rsf.locations$ptID != 1191877 & rsf.locations$ptID != 1191879 &
+                                 rsf.locations$ptID != 1191883 & rsf.locations$ptID != 1191884 &
+                                 rsf.locations$ptID != 1191890 & rsf.locations$ptID != 1191892 &
+                                 rsf.locations$ptID != 1191893 & rsf.locations$ptID != 1191898 &
+                                 rsf.locations$ptID != 1191899 & rsf.locations$ptID != 1191918 &
+                                 rsf.locations$ptID != 1191924 & rsf.locations$ptID != 1935685 &
+                                 rsf.locations$ptID != 1935686 & rsf.locations$ptID != 1935687 &
+                                 rsf.locations$ptID != 1935688 & rsf.locations$ptID != 1935689, ]
+rsf.locations <- rsf.locations [rsf.locations$ptID != 1907119, ]
 
-
-
-
-
-
-
-rsf.locations.test <- rsf.locations %>% 
-                  dplyr::arrange (uniqueID) %>% # sort by unique identifier
-                  tidyr::fill (ECOTYPE, .direction = "down") # replace empty ECOTYPE values with previous rows value
-
-
-
-
-rsf.locations.test <- rsf.locations %>% 
-                  dplyr::group_by (uniqueID) %>% # group by unique identifier
-                  tifyr::na.locf (rsf.locations$HERD_NAME) # replace empty HERD_NAME values with previous rows value
-
-
-rsf.locations$ECOTYPE <- ifelse (rsf.locations$ECOTYPE == "", rsf.locations$uniqueID, rsf.locations$ECOTYPE) # fillign in blank ecotypes and herd names
-
-
-
-dupes <- duplicated (rsf.locations) # looking for duplicates
-
-
-unique.count <- data.frame (table (rsf.locations$uniqueID))
-
-
-locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$uniqueID %in% names (table (locs.caribou.ecotype.herd$uniqueID)) [table (locs.caribou.ecotype.herd$uniqueID) >= 50], ]
-
-
-
-
-
-
-
+# save it
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
                    user = "postgres",
@@ -1534,20 +1787,17 @@ st_write (obj = rsf.locations,
           layer = c ("caribou", "rsf_locations_caribou_bc"))
 dbDisconnect (conn)
 
+```
+
+sample habitat at locations
 
 
-
-
-
-
+```{r, sample habitat at used/available locations, warning = F, include = F, message = F}
 
 
 
 
 ```
-
-
-
 
 
 
@@ -1593,36 +1843,3 @@ dbDisconnect (connKyle)
 
 
 
-
-
-
-#================================================
-# Bind the available and used locations together
-#===============================================
-prov.locs.all.used@data$ecotype <- as.character (prov.locs.all.used@data$ecotype)
-prov.locs.all.used@data$OBSERVATION_YEAR <- as.character (prov.locs.all.used@data$OBSERVATION_YEAR)
-prov.locs.all.used@data$uniqueID <- as.character (prov.locs.all.used@data$uniqueID)
-prov.locs.all.used@data$season <- as.character (prov.locs.all.used@data$season)
-prov.locs.all.used@data$HERD_NAME <- as.character (prov.locs.all.used@data$HERD_NAME)
-prov.locs.all.used@data$ANIMAL_ID <- as.character (prov.locs.all.used@data$ANIMAL_ID)
-
-id.points.out.all <- spTransform (id.points.out.all, CRS = proj4string (prov.locs.all.used)) # reproject
-id.points.out.all@data [setdiff (names (prov.locs.all.used@data), names(id.points.out.all@data))] <- NA # create the same column names
-prov.locs.all.used@data [setdiff (names (id.points.out.all@data), names(prov.locs.all.used@data))] <- NA # create the same column names
-id.points.out.all@data$ptID <- c (453377:1978377)
-all.locations <- rbind (prov.locs.all.used, id.points.out.all)
-
-
-select ()
-
-
-
-
-
-all.locations@data$ecotype 
-all.locations@data$season 
-all.locations@data$season 
-all.locations@data$year 
-
-
-as.factor
