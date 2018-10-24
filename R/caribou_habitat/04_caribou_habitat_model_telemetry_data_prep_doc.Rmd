@@ -29,11 +29,12 @@ require (dplyr)
 require (kableExtra)
 require (ggplot2)
 require (raster)
+require (rgdal)
+require (tidyr)
 # require (adehabitatHR)
 # require (sp) 
 # require (raster) 
 # require (rgeos) 
-# require (rgdal) 
 # require (maptools)
 # require (spatstat)
 ```
@@ -1155,6 +1156,13 @@ resoltuion of data: smallest size (h=250) is ~200 m from point locations to egde
 
 h=500 seemed to provide rasonable trade-off between capturing contiguous ranges encompassign lcoations, but not estimatign large extents outside teh bounds of the locations
 
+![Example of home ranges exstimated using different smoothing factors (h) in DU7, early winter. ](caribou33_homerange_example_20181022.jpg) 
+
+![Example of home ranges exstimated uisng different smoothing factors (h) in DU8, summer.](caribou056_homerange_example_20181022.jpg) 
+
+![Example of home ranges exstimated uisng different smoothing factors (h) in DU6, late winter.](caribou143_homerange_example_20181022.jpg) 
+
+![Example of home ranges exstimated uisng different smoothing factors (h) in DU7, summer.](cariboutc009_homerange_example_20181022.jpg) 
 
 ```{r, example of 3 hr sizes, warning = F, include = F, message = F}
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
@@ -1165,121 +1173,182 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    port = "5432")
 locs.caribou <- sf::st_read (dsn = conn,
                              query = "SELECT * FROM caribou.telemetry_caribou_bc_used_final")
-dbDisconnect (conn) 
+dbDisconnect (conn)  
 
-# SCEK 143
 locs.caribou.SCEK143 <- locs.caribou.example %>%
-                        filter (uniqueID == 'du6_LateWinter_SCEK143_2015')
-locs.caribou.SCEK143.geo <- st_transform (x = locs.caribou.SCEK143, crs = 4326)
+  filter (uniqueID == 'du6_LateWinter_SCEK143_2015')
+locs.caribou.SCEK143 <- as (locs.caribou.SCEK143, "Spatial")
+writeOGR (locs.caribou.SCEK143, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\locs_caribou_SCEK143.shp", 
+          layer = "locs_caribou_SCEK143.shp", driver = "ESRI Shapefile")
 
+locs.caribou.TC009 <- locs.caribou.example %>%
+  filter (uniqueID == 'du7_Summer_TC009_2013')
+locs.caribou.TC009 <- as (locs.caribou.TC009, "Spatial")
+writeOGR (locs.caribou.TC009, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\locs_caribou_TC009.shp", 
+          layer = "locs_caribou_TC009.shp", driver = "ESRI Shapefile")
+
+locs.caribou.33 <- locs.caribou.example %>% 
+  filter (uniqueID == 'du7_EarlyWinter_33_2012')
+locs.caribou.33 <- as (locs.caribou.33, "Spatial")
+writeOGR (locs.caribou.33, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\locs_caribou_33.shp", 
+          layer = "locs_caribou_33.shp", driver = "ESRI Shapefile")
+
+locs.caribou.056 <- locs.caribou.example %>%
+  filter (uniqueID == 'du8_Summer_car056_2008')
+locs.caribou.056 <- as (locs.caribou.056, "Spatial")
+writeOGR (locs.caribou.056, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\locs_caribou_056.shp", 
+          layer = "locs_caribou_056.shp", driver = "ESRI Shapefile")
 
 hr.750.caribou.SCEK143 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_lwinter_du6_h750.shp")
 hr.750.caribou.SCEK143 <- hr.750.caribou.SCEK143 %>%
-                          filter (id == 'du6_LateWinter_SCEK143_2015') 
-hr.750.caribou.SCEK143$hr <- "750"
+                            filter (id == 'du6_LateWinter_SCEK143_2015')
+hr.750.caribou.SCEK143 <- as (hr.750.caribou.SCEK143, "Spatial")
+writeOGR (hr.750.caribou.SCEK143, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_750_caribou_SCEK143.shp", 
+          layer = "hr_750_caribou_SCEK143.shp", driver = "ESRI Shapefile")
 hr.500.caribou.SCEK143 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du6_h500.shp")
 hr.500.caribou.SCEK143 <- hr.500.caribou.SCEK143 %>%
-                          filter (id == 'du6_LateWinter_SCEK143_2015')
-hr.500.caribou.SCEK143$hr <- "500"
+                            filter (id == 'du6_LateWinter_SCEK143_2015')
+hr.500.caribou.SCEK143 <- as (hr.500.caribou.SCEK143, "Spatial")
+writeOGR (hr.500.caribou.SCEK143, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_500_caribou_SCEK143.shp", 
+          layer = "hr_500_caribou_SCEK143.shp", driver = "ESRI Shapefile")
 hr.250.caribou.SCEK143 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_lwinter_du6_h250.shp")
 hr.250.caribou.SCEK143 <- hr.250.caribou.SCEK143 %>%
-                          filter (id == 'du6_LateWinter_SCEK143_2015')
-hr.250.caribou.SCEK143$hr <- "250"
+                            filter (id == 'du6_LateWinter_SCEK143_2015')
+hr.250.caribou.SCEK143 <- as (hr.250.caribou.SCEK143, "Spatial")
+writeOGR (hr.250.caribou.SCEK143, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_250_caribou_SCEK143.shp", 
+          layer = "hr_250_caribou_SCEK143.shp", driver = "ESRI Shapefile")
 
+hr.750.caribou.TC009 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_summer_du7_south_h750.shp")
+hr.750.caribou.TC009 <- hr.750.caribou.TC009 %>%
+                            filter (id == 'du7_Summer_TC009_2013')
+hr.750.caribou.TC009 <- as (hr.750.caribou.TC009, "Spatial")
+writeOGR (hr.750.caribou.TC009, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_750_caribou_TC009.shp", 
+          layer = "hr_750_caribou_TC009.shp", driver = "ESRI Shapefile")
+hr.500.caribou.TC009 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_south_h500.shp")
+hr.500.caribou.TC009 <- hr.500.caribou.TC009 %>%
+                            filter (id == 'du7_Summer_TC009_2013')
+hr.500.caribou.TC009 <- as (hr.500.caribou.TC009, "Spatial")
+writeOGR (hr.500.caribou.TC009, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_500_caribou_TC009.shp", 
+          layer = "hr_500_caribou_TC009.shp", driver = "ESRI Shapefile")
+hr.250.caribou.TC009 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_summer_du7_south_h250.shp")
+hr.250.caribou.TC009 <- hr.250.caribou.TC009 %>%
+                            filter (id == 'du7_Summer_TC009_2013')
+hr.250.caribou.TC009 <- as (hr.250.caribou.TC009, "Spatial")
+writeOGR (hr.250.caribou.TC009, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_250_caribou_TC009.shp", 
+          layer = "hr_250_caribou_TC009.shp", driver = "ESRI Shapefile")
 
-bb <- attr (locs.caribou.SCEK143, "bb")
-bb2 <- data.frame(long = unlist(bb[c(2, 4)]), lat = unlist(bb[c(1,3)]))
+hr.750.caribou.33 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_ewinter_du7_south_h750.shp")
+hr.750.caribou.33 <- hr.750.caribou.33 %>%
+                            filter (id == 'du7_EarlyWinter_33_2012')
+hr.750.caribou.33 <- as (hr.750.caribou.33, "Spatial")
+writeOGR (hr.750.caribou.33, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_750_caribou_33.shp", 
+          layer = "hr_750_caribou_33.shp", driver = "ESRI Shapefile")
+hr.500.caribou.33 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_south_h500.shp")
+hr.500.caribou.33 <- hr.500.caribou.33 %>%
+                            filter (id == 'du7_EarlyWinter_33_2012')
+hr.500.caribou.33 <- as (hr.500.caribou.33, "Spatial")
+writeOGR (hr.500.caribou.33, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_500_caribou_33.shp", 
+          layer = "hr_500_caribou_33.shp", driver = "ESRI Shapefile")
+hr.250.caribou.33 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_ewinter_du7_south_h250.shp")
+hr.250.caribou.33 <- hr.250.caribou.33 %>%
+                            filter (id == 'du7_EarlyWinter_33_2012')
+hr.250.caribou.33 <- as (hr.250.caribou.33, "Spatial")
+writeOGR (hr.250.caribou.33, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_250_caribou_33.shp", 
+          layer = "hr_250_caribou_33.shp", driver = "ESRI Shapefile")
 
+hr.750.caribou.056 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_summer_du8_h750.shp")
+hr.750.caribou.056 <- hr.750.caribou.056 %>%
+                            filter (id == 'du8_Summer_car056_2008')
+hr.750.caribou.056 <- as (hr.750.caribou.056, "Spatial")
+writeOGR (hr.750.caribou.056, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_750_caribou_056.shp", 
+          layer = "hr_750_caribou_056.shp", driver = "ESRI Shapefile")
+hr.500.caribou.056 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du8_h500.shp")
+hr.500.caribou.056 <- hr.500.caribou.056 %>%
+                            filter (id == 'du8_Summer_car056_2008')
+hr.500.caribou.056 <- as (hr.500.caribou.056, "Spatial")
+writeOGR (hr.500.caribou.056, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_500_caribou_056.shp", 
+          layer = "hr_500_caribou_056.shp", driver = "ESRI Shapefile")
+hr.250.caribou.056 <- sf::st_read ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\archive\\hr_summer_du8_h250.shp")
+hr.250.caribou.056 <- hr.250.caribou.056 %>%
+                            filter (id == 'du8_Summer_car056_2008')
+hr.250.caribou.056 <- as (hr.250.caribou.056, "Spatial")
+writeOGR (hr.250.caribou.056, dsn = "C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\examples\\hr_250_caribou_056.shp", 
+          layer = "hr_250_caribou_056.shp", driver = "ESRI Shapefile")
 
-
-
-ggplot () +
-  geom_sf (data = hr.750.caribou.SCEK143, linetype = "dotted") +
-  geom_sf (data = hr.500.caribou.SCEK143) +
-  geom_sf (data = hr.250.caribou.SCEK143, linetype = "dashed") +
-  geom_sf (data = locs.caribou.SCEK143.geo) + 
-  labs (title = "Estimated home range of caribou SCEK143 in late winter") +
-  theme (plot.title = element_text (size = 12)) +
-  labs (caption = "Dotted line: h = 750; Solid line: h = 500; Dashed line: h = 250") +
-  scalebar (locs.caribou.SCEK143.geo, dist = 1, dd2km = T, model = "WGS84")
-  
-
-
-ggplot () +
-  geom_sf (data = locs.caribou.SCEK143.geo) +
-  scalebar (locs.caribou.SCEK143.geo, dist = 0.5, dd2km = TRUE, model = 'WGS84')
-
-
-
-plot (st_geometry (hr.750.caribou.SCEK143), lty = 2) 
- plot (st_geometry (hr.500.caribou.SCEK143), lty = 1, add = T) 
- plot (st_geometry (hr.250.caribou.SCEK143), lty = 3, add = T)
- plot (st_geometry (locs.caribou.SCEK143), pch = 16, cex = 0.2, add = T)
- scalebar (d = 1000, divs = 2, type = "bar", xy = c (10,10), label = c (0, 1000, 2000))
-  
-
-
-locs.caribou.TC009 <- locs.caribou.example %>%
-                        filter (uniqueID == 'du7_Summer_TC009_2013')
-locs.caribou.33 <- locs.caribou.example %>%
-                        filter (uniqueID == 'du7_EarlyWinter_33_2012')
-locs.caribou.056 <- locs.caribou.example %>%
-                        filter (uniqueID == 'du8_Summer_car056_2008'
-
+# Exported these data to arcgis to create maps
 ```
 
 
+Sample available locatiosn at 1,000 locations per unique ID
 
-
-
-SAMPLE 1 location/ha
-
-
+```{r, sample available locations, warning = F, include = F, message = F}
 
 #===============================================================
 # Random sample of 'available' points in home ranges
 #==============================================================
 # https://gis.stackexchange.com/questions/108046/how-to-create-randomly-points-within-polygons-for-each-row-of-a-dataframe-matchi
-homerange.summer.boreal.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_summer_h500.shp",
-                                         layer = "hr_boreal_summer_h500")
-homerange.early.winter.boreal.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_early.winter_h500.shp",
-                                               layer = "hr_boreal_early.winter_h500")
-homerange.late.winter.boreal.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_boreal_late.winter_h500.shp",
-                                              layer = "hr_boreal_late.winter_h500")
-homerange.summer.mount.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_summer_h500.shp",
-                                        layer = "hr_mount_summer_h500")
-homerange.early.winter.mount.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_early.winter_h500.shp",
-                                              layer = "hr_mount_early.winter_h500")
-homerange.late.winter.mount.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_mount_late.winter_h500.shp",
-                                             layer = "hr_mount_late.winter_h500")
-homerange.summer.north.h500.top <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500_top.shp",
-                                            layer = "hr_north_summer_h500_top")
-homerange.summer.north.h500.bottom <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_summer_h500_bottom.shp",
-                                               layer = "hr_north_summer_h500_bottom")
-homerange.early.winter.north.h500 <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_early.winter_h500.shp",
-                                              layer = "hr_north_early.winter_h500")
-homerange.late.winter.north.h500.top <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h500_top.shp",
-                                                 layer = "hr_north_late.winter_h500_top")
-homerange.late.winter.north.h500.bottom <- readOGR (dsn = "C:\\Work\\caribou\\climate_analysis\\data\\caribou\\homeranges\\hr_north_late.winter_h500_bottom.shp",
-                                                    layer = "hr_north_late.winter_h500_bottom")
-homerange.all <- rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (homerange.summer.boreal.h500, homerange.early.winter.boreal.h500),
-                                                                                homerange.late.winter.boreal.h500), homerange.summer.mount.h500), 
-                                                                  homerange.early.winter.mount.h500), homerange.late.winter.mount.h500), 
-                                                    homerange.summer.north.h500.top), homerange.summer.north.h500.bottom), 
-                                      homerange.early.winter.north.h500), homerange.late.winter.north.h500.top),
-                        homerange.late.winter.north.h500.bottom)
+
+# load the hr data, bind together and save
+hr.ewinter.du6 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du6_h500.shp")
+hr.summer.du6 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du6_h500.shp")
+hr.lwinter.du6 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du6_h500.shp")
+hr.summer.du7.south <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_south_h500.shp")
+hr.summer.du7.ne <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_ne_h500.shp")
+hr.summer.du7.C303T <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_spat_C303T_h500.shp")
+hr.summer.du7.C298T <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_spat_C298T_h500.shp")
+hr.summer.du7.41243 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41243_h500.shp")
+hr.summer.du7.41253 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41253_h500.shp")
+hr.summer.du7.41255 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41255_h500.shp")
+hr.summer.du7.41249 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41249_h500.shp")
+hr.summer.du7.41262 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41262_h500.shp")
+hr.summer.du7.41255 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41255_h500.shp")
+hr.summer.du7.41258 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_pink_41258_h500.shp")
+hr.summer.du7.C301T <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du7_spat_C301T_h500.shp")
+hr.ewinter.du7.south <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_south_h500.shp")
+hr.ewinter.du7.ne <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_ne_h500.shp")
+hr.ewinter.du7.007b <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_muskwa_SCEK007b_h500.shp")
+hr.ewinter.du7.41251 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_muskwa_41251_h500.shp")
+hr.ewinter.du7.41250 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_muskwa_41250_h500.shp")
+hr.ewinter.du7.41248 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_muskwa_41248_h500.shp")
+hr.ewinter.du7.41241 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_muskwa_41241_h500.shp")
+hr.ewinter.du7.41247 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du7_muskwa_41247_h500.shp")
+hr.lwinter.du7 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du7_h500.shp")
+hr.lwinter.du8 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du8_h500.shp")
+hr.summer.du8 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du8_h500.shp")
+hr.ewinter.du8 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du8_h500.shp")
+hr.summer.du9 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_summer_du9_h500.shp")
+hr.lwinter.du9 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_lwinter_du9_h500.shp")
+hr.ewinter.du9 <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\homeranges\\hr_ewinter_du9_h500.shp")
+
+homerange.all <- rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (rbind (hr.ewinter.du6, hr.lwinter.du6), hr.summer.du6), hr.lwinter.du7), hr.ewinter.du7.007b), hr.ewinter.du7.41241), hr.ewinter.du7.41247), hr.ewinter.du7.41248), hr.ewinter.du7.41250), hr.ewinter.du7.41251), hr.ewinter.du7.ne), hr.ewinter.du7.south), hr.summer.du7.41243), hr.summer.du7.41249), hr.summer.du7.41253), hr.summer.du7.41255), hr.summer.du7.41258), hr.summer.du7.41262), hr.summer.du7.C298T), hr.summer.du7.C301T), hr.summer.du7.C303T), hr.summer.du7.ne), hr.summer.du7.south), hr.ewinter.du8), hr.lwinter.du8), hr.summer.du8), hr.ewinter.du9), hr.lwinter.du9), hr.summer.du9)
+
+colnames (homerange.all@data)[1] <- "uniqueID"
+colnames (homerange.all@data)[2] <- "area.ha"
+
+homerange.all.sf <- st_as_sf (homerange.all)
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = homerange.all.sf, 
+          dsn = conn, 
+          layer = c ("caribou", "homeranges_caribou_bc"))
+dbDisconnect (conn)
+
 
 # create spatialpointsdataframe to bind to in loop
-sample.pts.boreal.C1_Maxhamish_Boreal_Summer_2006 <- spsample (homerange.summer.boreal.h500 [homerange.summer.boreal.h500@data$id == "C1_Maxhamish_Boreal_Summer_2006",], 
-                                                               n = 1000, type = "random")
-sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006 <- data.frame (matrix (ncol = 2, nrow = nrow (sample.pts.boreal.C1_Maxhamish_Boreal_Summer_2006@coords)))
-colnames (sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006) <- c ("pttype", "uniqueID")
-sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006$pttype <- 0
-sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006$uniqueID <- paste (i)
-id.points.out.all <- SpatialPointsDataFrame (sample.pts.boreal.C1_Maxhamish_Boreal_Summer_2006, data = sample.pts.boreal.data.C1_Maxhamish_Boreal_Summer_2006)
+sample.pts.start <- spsample (homerange.all [homerange.all@data$uniqueID == "du6_EarlyWinter_HSCEK077_2012",], n = 1000, type = "random")
+sample.pts.start.data <- data.frame (matrix (ncol = 2, nrow = nrow (sample.pts.start@coords)))
+colnames (sample.pts.start.data) <- c ("pttype", "uniqueID")
+sample.pts.start.data$pttype <- 0
+sample.pts.start.data$uniqueID <- "du6_EarlyWinter_HSCEK077_2012"
+id.points.out.all <- SpatialPointsDataFrame (sample.pts.start, data = sample.pts.start.data)
 
-for (i in levels (homerange.all@data$id)) { # loop to sample 1000 random points for each polygon
-  id.poly <- homerange.all [homerange.all@data$id == i,]
+for (i in levels (homerange.all@data$uniqueID)) { # loop to sample 1000 random points for each polygon
+  id.poly <- homerange.all [homerange.all@data$uniqueID == i,]
   id.points <- spsample (id.poly, 
                          n = 1000, type = "random", iter = 50)
   data.pts <- data.frame (matrix (ncol = 2, nrow = nrow (id.points@coords)))
@@ -1290,28 +1359,219 @@ for (i in levels (homerange.all@data$id)) { # loop to sample 1000 random points 
   id.points.out.all <- rbind (id.points.out.all, id.points.out)
 }
 
-id.points.out.all@data$ecotype <- gsub (".*(Northern|Mountain|Boreal).*$", # define ecotype, season, etc. 
-                                        "\\1", 
-                                        id.points.out.all@data$uniqueID, ignore.case = F)
-id.points.out.all@data$season <- gsub (".*(Early Winter|Late Winter|Summer).*$", # define ecotype, season, etc. 
+id.points.out.all@data$uniqueID <- as.factor (id.points.out.all@data$uniqueID)
+id.points.out.all@data$du <- gsub (".*(du6|du7|du8|du9).*$", 
+                                   "\\1", 
+                                   id.points.out.all@data$uniqueID, ignore.case = F)
+id.points.out.all@data$du <- as.factor (id.points.out.all@data$du)
+
+id.points.out.all@data$season <- gsub (".*(EarlyWinter|LateWinter|Summer).*$", 
                                        "\\1", 
                                        id.points.out.all@data$uniqueID, ignore.case = F)
-id.points.out.all@data$ANIMAL_ID <- sub ('_.*$', '', id.points.out.all@data$uniqueID)
-id.points.out.all@data$OBSERVATION_YEAR <-  sub ('^.*_', '', id.points.out.all@data$uniqueID)
-id.points.out.all@data$HERD_NAME <- gsub (".*(Snake-Sahtaneh|Maxhamish|Chinchaga|Hart Ranges|Wells Gray|Frisby-Boulder|Columbia North|Groundhog|Monashee|Purcells South|Graham|Telkwa|Atlin|Swan Lake|Quintette|Narraway|Kennedy Siding|Moberly|Scott|Wolverine|Chase|Finlay|Pink Mountain|Tweedsmuir|Frog|Spatsizi|Level Kawdy|Little Rancheria|Edziza|Itcha-Ilgachuz|Rainbows|Charlotte Alplands|Burnt Pine  
-).*$", # define ecotype, season, etc. 
-                                          "\\1", 
-                                          id.points.out.all@data$uniqueID, ignore.case = F)
-writeOGR (id.points.out.all, dsn = "C:\\Work\\caribou\\climate_analysis\\data\\samplepoints\\homerange_scale\\homerange_avail_points.shp", 
-          layer = "homerange_avail_points", driver = "ESRI Shapefile")
+id.points.out.all@data$season <- as.factor (id.points.out.all@data$season)
 
-#===============================
-# Sample habitat at locations
-#===============================
+id.points.out.all@data$animal_id <- gsub ("^[^_]+_|_[^_]+$", '', id.points.out.all@data$uniqueID)
+id.points.out.all@data$animal_id <- sub (".*?_", '', id.points.out.all@data$animal_id)
+id.points.out.all@data$animal_id <- as.factor (id.points.out.all@data$animal_id)
 
-id.points.out.all
-prov.locs.all.used
 
+id.points.out.all@data$year <- sub (".*_", '', id.points.out.all@data$uniqueID)
+id.points.out.all@data$year <- as.factor (id.points.out.all@data$year)
+
+id.points.out.all.sf <- st_as_sf (id.points.out.all)
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = id.points.out.all.sf, 
+          dsn = conn, 
+          layer = c ("caribou", "available_locations_caribou_bc"))
+dbDisconnect (conn)
+
+
+```
+
+
+
+bind the used and available locations into a dataframe
+
+```{r, bind used and available location data, warning = F, include = F, message = F}
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+locs.caribou <- sf::st_read  (dsn = conn, # connKyle
+                              query = "SELECT * FROM caribou.telemetry_caribou_bc_used_final")
+id.points.out.all.sf <- sf::st_read  (dsn = conn, # connKyle
+                              query = "SELECT * FROM caribou.available_locations_caribou_bc")
+dbDisconnect (conn) # connKyle
+st_crs (id.points.out.all.sf) <- 3005
+
+locs.caribou$pttype <- 1
+locs.caribou$animal_id <- as.factor (locs.caribou$animal_id)
+locs.caribou$season <- as.factor (locs.caribou$season)
+locs.caribou$year <- as.factor (locs.caribou$year)
+locs.caribou$HERD_NAME <- as.factor (locs.caribou$HERD_NAME)
+locs.caribou$ECOTYPE <- as.factor (locs.caribou$ECOTYPE)
+locs.caribou$du <- as.factor (locs.caribou$du)
+locs.caribou$uniqueID <- as.factor (locs.caribou$uniqueID)
+
+locs.caribou.lean <- locs.caribou %>%
+                      dplyr::select (pttype, uniqueID, du, season, animal_id, year, GEOMETRY, ECOTYPE, HERD_NAME)
+
+id.points.out.all.sf$ECOTYPE <- "NA"
+id.points.out.all.sf$ECOTYPE <- as.factor (id.points.out.all.sf$ECOTYPE)
+id.points.out.all.sf$HERD_NAME <- "NA"
+id.points.out.all.sf$HERD_NAME <- as.factor (id.points.out.all.sf$HERD_NAME)
+id.points.out.all.sf$uniqueID <- as.factor (id.points.out.all.sf$uniqueID)
+id.points.out.all.sf$du <- as.factor (id.points.out.all.sf$du)
+id.points.out.all.sf$season <- as.factor (id.points.out.all.sf$season)
+id.points.out.all.sf$animal_id <- as.factor (id.points.out.all.sf$animal_id)
+id.points.out.all.sf$year <- as.factor (id.points.out.all.sf$year)
+names (id.points.out.all.sf) [7] <- "GEOMETRY"
+attr (id.points.out.all.sf, "sf_column") <- "GEOMETRY" # geometry names not consistent, need to rename one 
+names (locs.caribou.lean) == names (id.points.out.all.sf) # check the consistency of column names
+
+rsf.locations <- rbind (locs.caribou.lean, id.points.out.all.sf)
+
+rsf.locations$uniqueID <- as.factor (rsf.locations$uniqueID)
+rsf.locations$du <- as.factor (rsf.locations$du)
+rsf.locations$season <- as.factor (rsf.locations$season)
+rsf.locations$animal_id <- as.factor (rsf.locations$animal_id)
+rsf.locations$year <- as.factor (rsf.locations$year)
+rsf.locations$ECOTYPE <- as.factor (rsf.locations$ECOTYPE)
+rsf.locations$HERD_NAME <- as.factor (rsf.locations$HERD_NAME)
+
+# some cleaning-up to do
+# need to fill in blank ECOTYPE and HERD_NAME
+rsf.locations$ECOTYPE [rsf.locations$du == "du6"] <- 'Boreal' # make all DU6 animals 
+
+
+unique.data <- rsf.locations %>% # unique IDs in the data
+                  distinct (uniqueID, .keep_all = T)
+  
+  
+  
+unique.data.north <- unique.data %>%
+                      filter (ECOTYPE == "Northern")
+
+unique.data.north <- unique.data %>%
+                      filter (ECOTYPE == "Northern")
+
+
+list.uniqueID.north <- as.character (unique (unique.data.north$uniqueID))
+
+
+
+rsf.locations.test <- rsf.locations %>%
+                          filter (ECOTYPE == "Northern")
+
+
+rsf.locations.test$ECOTYPE [rsf.locations.test$uniqueID == "du7_EarlyWinter_C303T_2014" |   rsf.locations.test$uniqueID == "du7_EarlyWinter_C303T_2013"] <- 'Northern'
+
+
+for (i in list.uniqueID.north) {
+  if (rsf.locations.test$uniqueID == i) {
+    rsf.locations.test$ECOTYPE == "Northern"
+  } else {rsf.locations.test$ECOTYPE == ""}
+}
+
+
+ (rsf.locations$uniqueID = list.uniqueID.north, , )
+
+
+
+
+
+
+
+
+
+rsf.locations.test <- rsf.locations %>% 
+                  dplyr::arrange (uniqueID) %>% # sort by unique identifier
+                  tidyr::fill (ECOTYPE, .direction = "down") # replace empty ECOTYPE values with previous rows value
+
+
+
+
+rsf.locations.test <- rsf.locations %>% 
+                  dplyr::group_by (uniqueID) %>% # group by unique identifier
+                  tifyr::na.locf (rsf.locations$HERD_NAME) # replace empty HERD_NAME values with previous rows value
+
+
+rsf.locations$ECOTYPE <- ifelse (rsf.locations$ECOTYPE == "", rsf.locations$uniqueID, rsf.locations$ECOTYPE) # fillign in blank ecotypes and herd names
+
+
+
+dupes <- duplicated (rsf.locations) # looking for duplicates
+
+
+unique.count <- data.frame (table (rsf.locations$uniqueID))
+
+
+locs.caribou.ecotype.herd <- locs.caribou.ecotype.herd [locs.caribou.ecotype.herd$uniqueID %in% names (table (locs.caribou.ecotype.herd$uniqueID)) [table (locs.caribou.ecotype.herd$uniqueID) >= 50], ]
+
+
+
+
+
+
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = rsf.locations, 
+          dsn = conn, 
+          layer = c ("caribou", "rsf_locations_caribou_bc"))
+dbDisconnect (conn)
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r, back-up to Kyle's postgres db, warning = F, include = F, message = F}
+
+connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
+                      host = "DC052586", # Kyle's computer name
+                     user = "Tyler",                      
+                     dbname = "clus",
+                     password = "tyler",
+                     port = "5432")
+st_write (obj = rsf.locations, 
+          dsn = connKyle, 
+          layer = c ("public", "rsf_locations_caribou_bc"))
+st_write (obj = locs.caribou, 
+          dsn = connKyle, 
+          layer = c ("public", "telemetry_caribou_bc_final"))
+st_write (obj = id.points.out.all.sf, 
+          dsn = connKyle, 
+          layer = c ("public", "available_locations_caribou_bc"))
+dbDisconnect (connKyle) 
+```
 
 
 
