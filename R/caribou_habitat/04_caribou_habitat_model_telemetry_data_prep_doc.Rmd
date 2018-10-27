@@ -31,6 +31,7 @@ require (ggplot2)
 require (raster)
 require (rgdal)
 require (tidyr)
+require (snow)
 # require (adehabitatHR)
 # require (sp) 
 # require (raster) 
@@ -1775,6 +1776,10 @@ rsf.locations <- rsf.locations [rsf.locations$ptID != 1831924 & rsf.locations$pt
                                  rsf.locations$ptID != 1935688 & rsf.locations$ptID != 1935689, ]
 rsf.locations <- rsf.locations [rsf.locations$ptID != 1907119, ]
 
+# recreate ptID for each location; for linkign to raster data
+rsf.locations$ptID <- NULL
+rsf.locations$ptID <- c (1:2671047)
+
 # save it
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -1790,9 +1795,380 @@ dbDisconnect (conn)
 ```
 
 sample habitat at locations
+need to convert sf to sp object
 
 
 ```{r, sample habitat at used/available locations, warning = F, include = F, message = F}
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+rsf.locations <- sf::st_read  (dsn = conn,
+                               query = "SELECT * FROM caribou.rsf_locations_caribou_bc")
+dbDisconnect (conn)
+
+# need to convert sf object to sp object
+rsf.locations <-  as (rsf.locations, "Spatial")
+
+#=============
+# Terrain
+#============
+# beginCluster () # use the 4 cores of the CPU; note that use of clusters is 'automatic' for the raster::extract function
+
+elevation <- raster ("C:\\Work\\caribou\\clus_data\\dem\\all_bc\\dem_all_bc_clip.tif")
+rsf.locations.elev <- raster::extract (elevation, rsf.locations, method = 'simple',
+                                       factors = F, df = T) 
+rsf.locations.elev$ptID <- 1:2671047
+names (rsf.locations.elev) [2] <- "elevation"
+rsf.locations@data <- dplyr::full_join (rsf.locations@data, rsf.locations.elev, 
+                                   by = c ("ptID" = "ptID")) 
+rsf.locations@data$ID <- NULL
+rm (rsf.locations.elev, elevation, test)
+gc ()
+easting <- raster ("C:\\Work\\caribou\\clus_data\\dem\\all_bc\\eastness_all_bc.tif")
+rsf.locations.easting <- raster::extract (easting, rsf.locations, method = 'simple',
+                                          factors = F, df = T, sp = T) 
+names (rsf.locations.easting) [11] <- "easting"
+rsf.locations <- rsf.locations.easting
+rm (rsf.locations.easting, easting, test)
+slope <- raster ("C:\\Work\\caribou\\clus_data\\dem\\all_bc\\slope_deg_all_bc_8_clip.tif")
+rsf.locations <- raster::extract (slope, rsf.locations, method = 'simple',
+                                  factors = F, df = T , sp = T) 
+names (rsf.locations) [10] <- "slope"
+rm (slope)
+gc ()
+northing <- raster ("C:\\Work\\caribou\\clus_data\\dem\\all_bc\\northness_all_bc.tif")
+rsf.locations.northing <- raster::extract (northing, rsf.locations, method = 'simple',
+                                          factors = F, df = T, sp = T) 
+names (rsf.locations.northing) [11] <- "northing"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations.northing@data [c (9, 11)],
+                                   by = c ("ptID" = "ptID")) 
+rm (rsf.locations.northing, northing)
+gc ()
+
+#================
+# Human/Land Use
+#===============
+# Agriculture
+dist.to.agriculture <- raster ("C:\\Work\\caribou\\clus_data\\agriculture\\raster_dist_to_agriculture_bcalbers_ce_2015.tif")
+rsf.locations <- raster::extract (dist.to.agriculture, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [11] <- "distance_to_agriculture"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.to.agriculture)
+gc ()
+# Cutblocks
+cut.pre1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_pre1957.tif")
+rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
+                                              factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "cutblocks_pre1957"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.pre1957)
+gc ()
+cut.1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1957.tif")
+rsf.locations <- raster::extract (cut.1957, rsf.locations, method = 'simple',
+                                              factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "cutblocks_1957"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1957)
+gc ()
+cut.1958 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1958.tif")
+rsf.locations <- raster::extract (cut.1958, rsf.locations, method = 'simple',
+                                              factors = T, df = T, sp = T) 
+names (rsf.locations) [14] <- "cutblocks_1958"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1958)
+gc ()
+cut.1959 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1959.tif")
+rsf.locations <- raster::extract (cut.1959, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+
+names (rsf.locations) [15] <- "cutblocks_1959"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1959)
+gc ()
+cut.1960 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1960.tif")
+rsf.locations <- raster::extract (cut.1960, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [16] <- "cutblocks_1960"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1960)
+gc ()
+cut.1961 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1961.tif")
+rsf.locations <- raster::extract (cut.1961, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [17] <- "cutblocks_1961"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1961)
+gc ()
+cut.1962 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1962.tif")
+rsf.locations <- raster::extract (cut.1962, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [18] <- "cutblocks_1962"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1962)
+gc ()
+cut.1963 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1963.tif")
+rsf.locations <- raster::extract (cut.1963, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [19] <- "cutblocks_1963"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1963)
+gc ()
+cut.1964 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1964.tif")
+rsf.locations <- raster::extract (cut.1964, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [20] <- "cutblocks_1964"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1964)
+gc ()
+cut.1965 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1965.tif")
+rsf.locations <- raster::extract (cut.1965, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [21] <- "cutblocks_1965"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1965)
+gc ()
+cut.1966 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1966.tif")
+rsf.locations <- raster::extract (cut.1966, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [22] <- "cutblocks_1966"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1966)
+gc ()
+cut.1967 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1967.tif")
+rsf.locations <- raster::extract (cut.1967, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [23] <- "cutblocks_1967"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1967)
+gc ()
+cut.1968 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1968.tif")
+rsf.locations <- raster::extract (cut.1968, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [24] <- "cutblocks_1968"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1968)
+gc ()
+cut.1969 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1969.tif")
+rsf.locations <- raster::extract (cut.1969, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [25] <- "cutblocks_1969"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1969)
+gc ()
+cut.1970 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1970.tif")
+rsf.locations <- raster::extract (cut.1970, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [26] <- "cutblocks_1970"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1970)
+gc ()
+cut.1971 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1971.tif")
+rsf.locations <- raster::extract (cut.1971, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [27] <- "cutblocks_1971"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1971)
+gc ()
+cut.1972 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1972.tif")
+rsf.locations <- raster::extract (cut.1972, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [28] <- "cutblocks_1972"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1972)
+gc ()
+cut.1973 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1973.tif")
+rsf.locations <- raster::extract (cut.1973, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [29] <- "cutblocks_1973"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1973)
+gc ()
+cut.1974 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1974.tif")
+rsf.locations <- raster::extract (cut.1974, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [30] <- "cutblocks_1974"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1974)
+gc ()
+cut.1975 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1975.tif")
+rsf.locations <- raster::extract (cut.1975, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "cutblocks_1975"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1975)
+gc ()
+
+
+
+
+
+
+
+
+cut.1976 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1976.tif")
+rsf.locations <- raster::extract (cut.1976, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "cutblocks_1976"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1976)
+gc ()
+cut.1977 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1977.tif")
+rsf.locations <- raster::extract (cut.1977, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [32] <- "cutblocks_1977"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1977)
+gc ()
+cut.1978 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1978.tif")
+rsf.locations <- raster::extract (cut.1978, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [33] <- "cutblocks_1978"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1978)
+gc ()
+cut.1979 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1979.tif")
+rsf.locations <- raster::extract (cut.1979, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [34] <- "cutblocks_1979"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1979)
+gc ()
+cut.1980 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1980.tif")
+rsf.locations <- raster::extract (cut.1980, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [35] <- "cutblocks_1980"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1980)
+gc ()
+cut.1981 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1981.tif")
+rsf.locations <- raster::extract (cut.1981, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [36] <- "cutblocks_1981"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1981)
+gc ()
+cut.1982 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1982.tif")
+rsf.locations <- raster::extract (cut.1982, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [37] <- "cutblocks_1982"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1982)
+gc ()
+cut.1983 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1983.tif")
+rsf.locations <- raster::extract (cut.1983, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [38] <- "cutblocks_1983"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1983)
+gc ()
+cut.1984 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1984.tif")
+rsf.locations <- raster::extract (cut.1984, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [39] <- "cutblocks_1984"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1984)
+gc ()
+
+
+
+
+# rsf.data <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv")
+
+
+
+write.table (rsf.data, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv",
+             sep = ",")
+
+test <- rsf.data %>%
+          filter (ptID == 963805)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cut.2017 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2017.tif")
+rsf.locations.cut.2017 <- raster::extract (cut.2017, rsf.locations, method = 'simple',
+                                              factors = T, df = T) 
+rsf.locations.cut.2017$ptID <- 1:2671047
+rsf.locations <- dplyr::full_join (rsf.locations, rsf.locations.cut.2017, 
+                                   by = c ("ptID" = "ptID")) 
+rm (rsf.locations.cut.2017, cut.2017)
+gc ()
+
+
+
+
+
+
+
+
+# roads
+
+rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T, buffer = 200, fun = sum) 
+names (rsf.locations) [13] <- "cutblocks_pre1957_200m"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+
+
+
+
+
+#===================================================
+# Sample current BEC at locations
+#===================================================
+sample.pts.bec <- sp::over (sample.pts.prj, bec.current [15]) # column 15 is the BEC name
+sample.pts.bec$ptID <- 1:131054 # create a ptID to join data on
+sample.pts.prj@data <- dplyr::full_join (sample.pts.prj@data, sample.pts.bec, 
+                                         by = c ("ptID" = "ptID")) 
+# I did some visual inspection in GIS to see where points fell relative to caribou range and 
+# confirmed that the point order is equivalent to ID. 
+
+
+
 
 
 
