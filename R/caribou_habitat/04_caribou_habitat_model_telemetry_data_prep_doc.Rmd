@@ -1812,6 +1812,8 @@ dbDisconnect (conn)
 # need to convert sf object to sp object
 rsf.locations <-  as (rsf.locations, "Spatial")
 
+# rsf.data <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv")
+
 #=============
 # Terrain
 #============
@@ -1860,6 +1862,7 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)],
                               by = c ("ptID" = "ptID")) 
 rm (dist.to.agriculture)
 gc ()
+
 # Cutblocks
 cut.pre1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_pre1957.tif")
 rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
@@ -1869,6 +1872,20 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.pre1957)
 gc ()
+system ("gdal_proximity.bat C:/Work/caribou/clus_data/cutblocks/cutblock_tiffs/raster_cutblocks_pre1957.tif C:/Work/caribou/clus_data/cutblocks/cutblock_tiffs/raster_dist_cutblocks_pre1957.tif -of GTiff -ot UInt32 -values 1" ) # run gdal_proximity from command line
+dist.cut.1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_pre1957.tif")
+dist.cut.1957 <- dist.cut.1957 * 100 # multiply by 100, because gdal produces # pixels, not distance for some reason (each pixel here is 1 ha)
+
+rsf.locations <- raster::extract (dist.cut.1957, rsf.locations, method = 'simple',
+                                              factors = T, df = T, sp = T)
+names (rsf.locations) [10] <- "distance_to_cutblocks_pre1957"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_pre1957.tif") # removing these files because 1GB and size, but fast to create
+rm (dist.cut.1957)
+gc ()
+
 cut.1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1957.tif")
 rsf.locations <- raster::extract (cut.1957, rsf.locations, method = 'simple',
                                               factors = T, df = T, sp = T) 
@@ -1877,6 +1894,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1957)
 gc ()
+dist.cut.1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1957.tif") # batch processed these in QGIS; uses same gdal command as above
+rsf.locations <- raster::extract (dist.cut.1957, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [10] <- "distance_to_cutblocks_1957"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1957.tif")
+rm (dist.cut.1957)
+gc ()
+
 cut.1958 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1958.tif")
 rsf.locations <- raster::extract (cut.1958, rsf.locations, method = 'simple',
                                               factors = T, df = T, sp = T) 
@@ -1884,6 +1911,15 @@ names (rsf.locations) [14] <- "cutblocks_1958"
 rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1958)
+gc ()
+dist.cut.1958 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1958.tif") # batch processed these in QGIS; uses same gdal command as above
+rsf.locations <- raster::extract (dist.cut.1958, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [11] <- "distance_to_cutblocks_1958"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1958.tif")
+rm (dist.cut.1958)
 gc ()
 cut.1959 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1959.tif")
 rsf.locations <- raster::extract (cut.1959, rsf.locations, method = 'simple',
@@ -1894,6 +1930,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1959)
 gc ()
+dist.cut.1959 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1959.tif") # batch processed these in QGIS; uses same gdal command as above
+rsf.locations <- raster::extract (dist.cut.1959, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [12] <- "distance_to_cutblocks_1959"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1959.tif")
+rm (dist.cut.1959)
+gc ()
+
 cut.1960 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1960.tif")
 rsf.locations <- raster::extract (cut.1960, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1902,6 +1948,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1960)
 gc ()
+dist.cut.1960 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1960.tif") 
+rsf.locations <- raster::extract (dist.cut.1960, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [13] <- "distance_to_cutblocks_1960"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1960.tif")
+rm (dist.cut.1960)
+gc ()
+
 cut.1961 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1961.tif")
 rsf.locations <- raster::extract (cut.1961, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1910,6 +1966,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1961)
 gc ()
+dist.cut.1961 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1961.tif") 
+rsf.locations <- raster::extract (dist.cut.1961, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [14] <- "distance_to_cutblocks_1961"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1961.tif")
+rm (dist.cut.1961)
+gc ()
+
 cut.1962 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1962.tif")
 rsf.locations <- raster::extract (cut.1962, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1918,6 +1984,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1962)
 gc ()
+dist.cut.1962 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1962.tif") 
+rsf.locations <- raster::extract (dist.cut.1962, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [15] <- "distance_to_cutblocks_1962"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1962.tif")
+rm (dist.cut.1962)
+gc ()
+
 cut.1963 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1963.tif")
 rsf.locations <- raster::extract (cut.1963, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1926,6 +2002,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1963)
 gc ()
+dist.cut.1963 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1963.tif") 
+rsf.locations <- raster::extract (dist.cut.1963, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [16] <- "distance_to_cutblocks_1963"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1963.tif")
+rm (dist.cut.1963)
+gc ()
+
 cut.1964 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1964.tif")
 rsf.locations <- raster::extract (cut.1964, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1934,6 +2020,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1964)
 gc ()
+dist.cut.1964 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1964.tif") 
+rsf.locations <- raster::extract (dist.cut.1964, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [17] <- "distance_to_cutblocks_1964"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1964.tif")
+rm (dist.cut.1964)
+gc ()
+
 cut.1965 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1965.tif")
 rsf.locations <- raster::extract (cut.1965, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1942,6 +2038,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1965)
 gc ()
+dist.cut.1965 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1965.tif") 
+rsf.locations <- raster::extract (dist.cut.1965, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [18] <- "distance_to_cutblocks_1965"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1965.tif")
+rm (dist.cut.1965)
+gc ()
+
 cut.1966 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1966.tif")
 rsf.locations <- raster::extract (cut.1966, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1950,6 +2056,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1966)
 gc ()
+dist.cut.1966 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1966.tif") 
+rsf.locations <- raster::extract (dist.cut.1966, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [19] <- "distance_to_cutblocks_1966"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1966.tif")
+rm (dist.cut.1966)
+gc ()
+
 cut.1967 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1967.tif")
 rsf.locations <- raster::extract (cut.1967, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1958,6 +2074,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1967)
 gc ()
+dist.cut.1967 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1967.tif") 
+rsf.locations <- raster::extract (dist.cut.1967, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [20] <- "distance_to_cutblocks_1967"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1967.tif")
+rm (dist.cut.1967)
+gc ()
+
 cut.1968 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1968.tif")
 rsf.locations <- raster::extract (cut.1968, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1966,6 +2092,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1968)
 gc ()
+dist.cut.1968 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1968.tif") 
+rsf.locations <- raster::extract (dist.cut.1968, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [21] <- "distance_to_cutblocks_1968"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1968.tif")
+rm (dist.cut.1968)
+gc ()
+
 cut.1969 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1969.tif")
 rsf.locations <- raster::extract (cut.1969, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1973,6 +2109,15 @@ names (rsf.locations) [25] <- "cutblocks_1969"
 rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1969)
+gc ()
+dist.cut.1969 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1969.tif") 
+rsf.locations <- raster::extract (dist.cut.1969, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [22] <- "distance_to_cutblocks_1969"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1969.tif")
+rm (dist.cut.1969)
 gc ()
 cut.1970 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1970.tif")
 rsf.locations <- raster::extract (cut.1970, rsf.locations, method = 'simple',
@@ -1982,6 +2127,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1970)
 gc ()
+dist.cut.1970 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1970.tif") 
+rsf.locations <- raster::extract (dist.cut.1970, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [23] <- "distance_to_cutblocks_1970"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1970.tif")
+rm (dist.cut.1970)
+gc ()
+
 cut.1971 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1971.tif")
 rsf.locations <- raster::extract (cut.1971, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1990,6 +2145,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1971)
 gc ()
+dist.cut.1971 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1971.tif") 
+rsf.locations <- raster::extract (dist.cut.1971, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [24] <- "distance_to_cutblocks_1971"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1971.tif")
+rm (dist.cut.1971)
+gc ()
+
 cut.1972 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1972.tif")
 rsf.locations <- raster::extract (cut.1972, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -1998,6 +2163,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1972)
 gc ()
+dist.cut.1972 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1972.tif") 
+rsf.locations <- raster::extract (dist.cut.1972, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [25] <- "distance_to_cutblocks_1972"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1972.tif")
+rm (dist.cut.1972)
+gc ()
+
 cut.1973 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1973.tif")
 rsf.locations <- raster::extract (cut.1973, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -2006,6 +2181,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1973)
 gc ()
+dist.cut.1973 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1973.tif") 
+rsf.locations <- raster::extract (dist.cut.1973, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [26] <- "distance_to_cutblocks_1973"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1973.tif")
+rm (dist.cut.1973)
+gc ()
+
 cut.1974 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1974.tif")
 rsf.locations <- raster::extract (cut.1974, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -2014,6 +2199,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1974)
 gc ()
+dist.cut.1974 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1974.tif") 
+rsf.locations <- raster::extract (dist.cut.1974, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [27] <- "distance_to_cutblocks_1974"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1974.tif")
+rm (dist.cut.1974)
+gc ()
+
 cut.1975 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1975.tif")
 rsf.locations <- raster::extract (cut.1975, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
@@ -2022,85 +2217,820 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)],
                               by = c ("ptID" = "ptID")) 
 rm (cut.1975)
 gc ()
-
-
-
-
-
-
-
+dist.cut.1975 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1975.tif") 
+rsf.locations <- raster::extract (dist.cut.1975, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [28] <- "distance_to_cutblocks_1975"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1975.tif")
+rm (dist.cut.1975)
+gc ()
 
 cut.1976 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1976.tif")
 rsf.locations <- raster::extract (cut.1976, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [31] <- "cutblocks_1976"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+names (rsf.locations) [32] <- "cutblocks_1976"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1976)
 gc ()
+dist.cut.1976 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1976.tif") 
+rsf.locations <- raster::extract (dist.cut.1976, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [29] <- "distance_to_cutblocks_1976"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1976.tif")
+rm (dist.cut.1976)
+gc ()
+
 cut.1977 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1977.tif")
 rsf.locations <- raster::extract (cut.1977, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [32] <- "cutblocks_1977"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+names (rsf.locations) [33] <- "cutblocks_1977"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1977)
 gc ()
+dist.cut.1977 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1977.tif") 
+rsf.locations <- raster::extract (dist.cut.1977, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [30] <- "distance_to_cutblocks_1977"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1977.tif")
+rm (dist.cut.1977)
+gc ()
+
 cut.1978 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1978.tif")
 rsf.locations <- raster::extract (cut.1978, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [33] <- "cutblocks_1978"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+names (rsf.locations) [34] <- "cutblocks_1978"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1978)
 gc ()
+dist.cut.1978 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1978.tif") 
+rsf.locations <- raster::extract (dist.cut.1978, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [31] <- "distance_to_cutblocks_1978"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1978.tif")
+rm (dist.cut.1978)
+gc ()
+
 cut.1979 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1979.tif")
 rsf.locations <- raster::extract (cut.1979, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [34] <- "cutblocks_1979"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+names (rsf.locations) [35] <- "cutblocks_1979"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1979)
 gc ()
+dist.cut.1979 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1979.tif") 
+rsf.locations <- raster::extract (dist.cut.1979, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [32] <- "distance_to_cutblocks_1979"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1979.tif")
+rm (dist.cut.1979)
+gc ()
+
 cut.1980 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1980.tif")
 rsf.locations <- raster::extract (cut.1980, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [35] <- "cutblocks_1980"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (35)], 
+names (rsf.locations) [36] <- "cutblocks_1980"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1980)
 gc ()
+dist.cut.1980 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1980.tif") 
+rsf.locations <- raster::extract (dist.cut.1980, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [33] <- "distance_to_cutblocks_1980"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1980.tif")
+rm (dist.cut.1980)
+gc ()
+
 cut.1981 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1981.tif")
 rsf.locations <- raster::extract (cut.1981, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [36] <- "cutblocks_1981"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (36)], 
+names (rsf.locations) [37] <- "cutblocks_1981"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1981)
 gc ()
+dist.cut.1981 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1981.tif") 
+rsf.locations <- raster::extract (dist.cut.1981, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [34] <- "distance_to_cutblocks_1981"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1981.tif")
+rm (dist.cut.1981)
+gc ()
+
 cut.1982 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1982.tif")
 rsf.locations <- raster::extract (cut.1982, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [37] <- "cutblocks_1982"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (37)], 
+names (rsf.locations) [38] <- "cutblocks_1982"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1982)
 gc ()
+dist.cut.1982 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1982.tif") 
+rsf.locations <- raster::extract (dist.cut.1982, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [35] <- "distance_to_cutblocks_1982"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1982.tif")
+rm (dist.cut.1982)
+gc ()
+
 cut.1983 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1983.tif")
 rsf.locations <- raster::extract (cut.1983, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [38] <- "cutblocks_1983"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (38)], 
+names (rsf.locations) [39] <- "cutblocks_1983"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1983)
 gc ()
+dist.cut.1983 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1983.tif") 
+rsf.locations <- raster::extract (dist.cut.1983, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [36] <- "distance_to_cutblocks_1983"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1983.tif")
+rm (dist.cut.1983)
+gc ()
+
 cut.1984 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1984.tif")
 rsf.locations <- raster::extract (cut.1984, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [39] <- "cutblocks_1984"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (39)], 
+names (rsf.locations) [40] <- "cutblocks_1984"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
                               by = c ("ptID" = "ptID")) 
 rm (cut.1984)
+gc ()
+dist.cut.1984 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1984.tif") 
+rsf.locations <- raster::extract (dist.cut.1984, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [37] <- "distance_to_cutblocks_1984"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1984.tif")
+rm (dist.cut.1984)
+gc ()
+
+cut.1985 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1985.tif")
+rsf.locations <- raster::extract (cut.1985, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [41] <- "cutblocks_1985"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 41)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1985)
+gc ()
+dist.cut.1985 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1985.tif") 
+rsf.locations <- raster::extract (dist.cut.1985, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [38] <- "distance_to_cutblocks_1985"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1985.tif")
+rm (dist.cut.1985)
+gc ()
+
+cut.1986 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1986.tif")
+rsf.locations <- raster::extract (cut.1986, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [42] <- "cutblocks_1986"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 42)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1986)
+gc ()
+dist.cut.1986 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1986.tif") 
+rsf.locations <- raster::extract (dist.cut.1986, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [39] <- "distance_to_cutblocks_1986"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1986.tif")
+rm (dist.cut.1986)
+gc ()
+
+cut.1987 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1987.tif")
+rsf.locations <- raster::extract (cut.1987, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [43] <- "cutblocks_1987"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 43)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1987)
+gc ()
+dist.cut.1987 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1987.tif") 
+rsf.locations <- raster::extract (dist.cut.1987, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [40] <- "distance_to_cutblocks_1987"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1987.tif")
+rm (dist.cut.1987)
+gc ()
+
+cut.1988 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1988.tif")
+rsf.locations <- raster::extract (cut.1988, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [44] <- "cutblocks_1988"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 44)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1988)
+gc ()
+dist.cut.1988 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1988.tif") 
+rsf.locations <- raster::extract (dist.cut.1988, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [41] <- "distance_to_cutblocks_1988"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 41)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1988.tif")
+rm (dist.cut.1988)
+gc ()
+
+cut.1989 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1989.tif")
+rsf.locations <- raster::extract (cut.1989, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [45] <- "cutblocks_1989"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 45)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1989)
+gc ()
+dist.cut.1989 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1989.tif") 
+rsf.locations <- raster::extract (dist.cut.1989, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [42] <- "distance_to_cutblocks_1989"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 42)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1989.tif")
+rm (dist.cut.1989)
+gc ()
+
+cut.1990 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1990.tif")
+rsf.locations <- raster::extract (cut.1990, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [46] <- "cutblocks_1990"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 46)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1990)
+gc ()
+dist.cut.1990 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1990.tif") 
+rsf.locations <- raster::extract (dist.cut.1990, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [43] <- "distance_to_cutblocks_1990"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 43)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1990.tif")
+rm (dist.cut.1990)
+gc ()
+
+cut.1991 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1991.tif")
+rsf.locations <- raster::extract (cut.1991, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [47] <- "cutblocks_1991"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 47)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1991)
+gc ()
+dist.cut.1991 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1991.tif") 
+rsf.locations <- raster::extract (dist.cut.1991, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [44] <- "distance_to_cutblocks_1991"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 44)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1991.tif")
+rm (dist.cut.1991)
+gc ()
+
+cut.1992 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1992.tif")
+rsf.locations <- raster::extract (cut.1992, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [48] <- "cutblocks_1992"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 48)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1992)
+gc ()
+dist.cut.1992 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1992.tif") 
+rsf.locations <- raster::extract (dist.cut.1992, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [45] <- "distance_to_cutblocks_1992"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 45)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1992.tif")
+rm (dist.cut.1992)
+gc ()
+
+cut.1993 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1993.tif")
+rsf.locations <- raster::extract (cut.1993, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [49] <- "cutblocks_1993"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 49)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1993)
+gc ()
+dist.cut.1993 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1993.tif") 
+rsf.locations <- raster::extract (dist.cut.1993, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [46] <- "distance_to_cutblocks_1993"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 46)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1993.tif")
+rm (dist.cut.1993)
+gc ()
+
+cut.1994 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1994.tif")
+rsf.locations <- raster::extract (cut.1994, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [50] <- "cutblocks_1994"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 50)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1994)
+gc ()
+dist.cut.1994 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1994.tif") 
+rsf.locations <- raster::extract (dist.cut.1994, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [47] <- "distance_to_cutblocks_1994"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 47)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1994.tif")
+rm (dist.cut.1994)
+gc ()
+
+cut.1995 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1995.tif")
+rsf.locations <- raster::extract (cut.1995, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [51] <- "cutblocks_1995"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 51)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1995)
+gc ()
+dist.cut.1995 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1995.tif") 
+rsf.locations <- raster::extract (dist.cut.1995, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [48] <- "distance_to_cutblocks_1995"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 48)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1995.tif")
+rm (dist.cut.1995)
+gc ()
+
+cut.1996 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1996.tif")
+rsf.locations <- raster::extract (cut.1996, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [52] <- "cutblocks_1996"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 52)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1996)
+gc ()
+dist.cut.1996 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1996.tif") 
+rsf.locations <- raster::extract (dist.cut.1996, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [49] <- "distance_to_cutblocks_1996"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 49)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1996.tif")
+rm (dist.cut.1996)
+gc ()
+
+cut.1997 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1997.tif")
+rsf.locations <- raster::extract (cut.1997, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [53] <- "cutblocks_1997"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 53)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1997)
+gc ()
+dist.cut.1997 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1997.tif") 
+rsf.locations <- raster::extract (dist.cut.1997, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [50] <- "distance_to_cutblocks_1997"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 50)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1997.tif")
+rm (dist.cut.1997)
+gc ()
+
+cut.1998 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1998.tif")
+rsf.locations <- raster::extract (cut.1998, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [54] <- "cutblocks_1998"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 54)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1998)
+gc ()
+dist.cut.1998 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1998.tif") 
+rsf.locations <- raster::extract (dist.cut.1998, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [51] <- "distance_to_cutblocks_1998"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 51)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1998.tif")
+rm (dist.cut.1998)
+gc ()
+
+cut.1999 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_1999.tif")
+rsf.locations <- raster::extract (cut.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [55] <- "cutblocks_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 55)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.1999)
+gc ()
+dist.cut.1999 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1999.tif") 
+rsf.locations <- raster::extract (dist.cut.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [52] <- "distance_to_cutblocks_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 52)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1999.tif")
+rm (dist.cut.1999)
+gc ()
+
+cut.2000 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2000.tif")
+rsf.locations <- raster::extract (cut.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [56] <- "cutblocks_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 56)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2000)
+gc ()
+dist.cut.2000 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2000.tif") 
+rsf.locations <- raster::extract (dist.cut.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [53] <- "distance_to_cutblocks_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 53)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2000.tif")
+rm (dist.cut.2000)
+gc ()
+
+cut.2001 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2001.tif")
+rsf.locations <- raster::extract (cut.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [57] <- "cutblocks_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 57)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2001)
+gc ()
+dist.cut.2001 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2001.tif") 
+rsf.locations <- raster::extract (dist.cut.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [54] <- "distance_to_cutblocks_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 54)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2001.tif")
+rm (dist.cut.2001)
+gc ()
+
+cut.2002 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2002.tif")
+rsf.locations <- raster::extract (cut.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [58] <- "cutblocks_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 58)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2002)
+gc ()
+dist.cut.2002 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2002.tif") 
+rsf.locations <- raster::extract (dist.cut.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [55] <- "distance_to_cutblocks_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 55)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2002.tif")
+rm (dist.cut.2002)
+gc ()
+
+cut.2003 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2003.tif")
+rsf.locations <- raster::extract (cut.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [59] <- "cutblocks_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 59)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2003)
+gc ()
+dist.cut.2003 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2003.tif") 
+rsf.locations <- raster::extract (dist.cut.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [56] <- "distance_to_cutblocks_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 56)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2003.tif")
+rm (dist.cut.2003)
+gc ()
+
+cut.2004 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2004.tif")
+rsf.locations <- raster::extract (cut.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [60] <- "cutblocks_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 60)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2004)
+gc ()
+dist.cut.2004 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2004.tif") 
+rsf.locations <- raster::extract (dist.cut.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [57] <- "distance_to_cutblocks_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 57)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2004.tif")
+rm (dist.cut.2004)
+gc ()
+
+cut.2005 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2005.tif")
+rsf.locations <- raster::extract (cut.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [61] <- "cutblocks_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 61)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2005)
+gc ()
+dist.cut.2005 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2005.tif") 
+rsf.locations <- raster::extract (dist.cut.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [58] <- "distance_to_cutblocks_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 58)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2005.tif")
+rm (dist.cut.2005)
+gc ()
+
+cut.2006 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2006.tif")
+rsf.locations <- raster::extract (cut.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [62] <- "cutblocks_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 62)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2006)
+gc ()
+dist.cut.2006 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2006.tif") 
+rsf.locations <- raster::extract (dist.cut.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [59] <- "distance_to_cutblocks_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 59)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2006.tif")
+rm (dist.cut.2006)
+gc ()
+
+cut.2007 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2007.tif")
+rsf.locations <- raster::extract (cut.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [63] <- "cutblocks_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 63)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2007)
+gc ()
+dist.cut.2007 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2007.tif") 
+rsf.locations <- raster::extract (dist.cut.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [60] <- "distance_to_cutblocks_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 60)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2007.tif")
+rm (dist.cut.2007)
+gc ()
+
+cut.2008 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2008.tif")
+rsf.locations <- raster::extract (cut.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [64] <- "cutblocks_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 64)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2008)
+gc ()
+dist.cut.2008 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2008.tif") 
+rsf.locations <- raster::extract (dist.cut.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [61] <- "distance_to_cutblocks_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 61)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2008.tif")
+rm (dist.cut.2008)
+gc ()
+
+cut.2009 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2009.tif")
+rsf.locations <- raster::extract (cut.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [65] <- "cutblocks_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 65)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2009)
+gc ()
+dist.cut.2009 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2009.tif") 
+rsf.locations <- raster::extract (dist.cut.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [62] <- "distance_to_cutblocks_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 62)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2009.tif")
+rm (dist.cut.2009)
+gc ()
+
+cut.2010 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2010.tif")
+rsf.locations <- raster::extract (cut.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [66] <- "cutblocks_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 66)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2010)
+gc ()
+dist.cut.2010 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2010.tif") 
+rsf.locations <- raster::extract (dist.cut.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [63] <- "distance_to_cutblocks_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 63)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2010.tif")
+rm (dist.cut.2010)
+gc ()
+
+cut.2011 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2011.tif")
+rsf.locations <- raster::extract (cut.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [67] <- "cutblocks_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 67)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2011)
+gc ()
+dist.cut.2011 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2011.tif") 
+rsf.locations <- raster::extract (dist.cut.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [64] <- "distance_to_cutblocks_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 64)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2011.tif")
+rm (dist.cut.2011)
+gc ()
+
+cut.2012 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2012.tif")
+rsf.locations <- raster::extract (cut.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [68] <- "cutblocks_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 68)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2012)
+gc ()
+dist.cut.2012 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2012.tif") 
+rsf.locations <- raster::extract (dist.cut.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [65] <- "distance_to_cutblocks_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 65)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2012.tif")
+rm (dist.cut.2012)
+gc ()
+
+cut.2013 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2013.tif")
+rsf.locations <- raster::extract (cut.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [69] <- "cutblocks_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 69)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2013)
+gc ()
+dist.cut.2013 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2013.tif") 
+rsf.locations <- raster::extract (dist.cut.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [66] <- "distance_to_cutblocks_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 66)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2013.tif")
+rm (dist.cut.2013)
+gc ()
+
+cut.2014 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2014.tif")
+rsf.locations <- raster::extract (cut.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [70] <- "cutblocks_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 70)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2014)
+gc ()
+dist.cut.2014 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2014.tif") 
+rsf.locations <- raster::extract (dist.cut.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [67] <- "distance_to_cutblocks_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 67)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2014.tif")
+rm (dist.cut.2014)
+gc ()
+
+cut.2015 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2015.tif")
+rsf.locations <- raster::extract (cut.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [71] <- "cutblocks_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 71)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2015)
+gc ()
+dist.cut.2015 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2015.tif") 
+rsf.locations <- raster::extract (dist.cut.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [68] <- "distance_to_cutblocks_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 68)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2015.tif")
+rm (dist.cut.2015)
+gc ()
+
+cut.2016 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2016.tif")
+rsf.locations <- raster::extract (cut.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [72] <- "cutblocks_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 72)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2016)
+gc ()
+dist.cut.2016 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2016.tif") 
+rsf.locations <- raster::extract (dist.cut.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [69] <- "distance_to_cutblocks_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 69)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2016.tif")
+rm (dist.cut.2016)
+gc ()
+
+cut.2017 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2017.tif")
+rsf.locations <- raster::extract (cut.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [73] <- "cutblocks_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 73)], 
+                              by = c ("ptID" = "ptID")) 
+rm (cut.2017)
+gc ()
+dist.cut.2017 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2017.tif") 
+rsf.locations <- raster::extract (dist.cut.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T)
+names (rsf.locations) [70] <- "distance_to_cutblocks_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 70)], 
+                              by = c ("ptID" = "ptID")) 
+file.remove ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_2017.tif")
+rm (dist.cut.2017)
+gc ()
+
+# mines
+mines <- raster ("C:\\Work\\caribou\\clus_data\\mine\\raster_distance_to_mines_ce_2015_bcalbers.tif")
+rsf.locations <- raster::extract (mines, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "distance_to_mines"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (mines)
+gc ()
+
+# wind power
+wind <- raster ("C:\\Work\\caribou\\clus_data\\wind\\raster_distance_to_wind_power_bcalbers_20180816.tif")
+rsf.locations <- raster::extract (wind, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [11] <- "distance_to_wind_power"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (wind)
+gc ()
+
+# railway
+rail <- raster ("C:\\Work\\caribou\\clus_data\\railway\\raster_dist_to_railway_bcalbers_20180820.tif")
+rsf.locations <- raster::extract (rail, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "distance_to_railway"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (rail)
+gc ()
+
+# pipelines
+dist.pipelines <- raster ("C:\\Work\\caribou\\clus_data\\pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
+rsf.locations <- raster::extract (dist.pipelines, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "distance_to_pipeline"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.pipelines)
+gc ()
+
+# seismic
+seismic <- raster ("C:\\Work\\caribou\\clus_data\\seismic\\raster_seismic_20180816.tif")
+rsf.locations <- raster::extract (seismic, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "distance_to_pipeline"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.pipelines)
 gc ()
 
 
@@ -2109,9 +3039,7 @@ gc ()
 # rsf.data <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv")
 
 
-
-write.table (rsf.data, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv",
-             sep = ",")
+# write.table (rsf.data, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv", sep = ",")
 
 test <- rsf.data %>%
           filter (ptID == 963805)
@@ -2128,23 +3056,6 @@ test <- rsf.data %>%
 
 
 
-
-cut.2017 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_2017.tif")
-rsf.locations.cut.2017 <- raster::extract (cut.2017, rsf.locations, method = 'simple',
-                                              factors = T, df = T) 
-rsf.locations.cut.2017$ptID <- 1:2671047
-rsf.locations <- dplyr::full_join (rsf.locations, rsf.locations.cut.2017, 
-                                   by = c ("ptID" = "ptID")) 
-rm (rsf.locations.cut.2017, cut.2017)
-gc ()
-
-
-
-
-
-
-
-
 # roads
 
 rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
@@ -2153,6 +3064,21 @@ names (rsf.locations) [13] <- "cutblocks_pre1957_200m"
 rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
                               by = c ("ptID" = "ptID")) 
 
+
+
+rsf.locations.data <- st_as_sf (rsf.locations)
+
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+st_write (obj = rsf.locations.data, 
+          dsn = conn, 
+          layer = c ("caribou", "rsf_locations_caribou_bc_habitat_data"))
+dbDisconnect (conn)
 
 
 
