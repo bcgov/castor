@@ -104,10 +104,12 @@ public class Forest_Hierarchy {
 				d = 1;
 			}
 			 
-			if(nTarget == 0){
+			if(nTarget == 0 ){
 				hist.setLastBin();//Remove the last bin
-				maxTargetSize = hist.bins.get(hist.getLastBin()-1).max_block_size;
-				nTarget =  hist.bins.get(hist.getLastBin()-1).n;
+				if(!(hist.bins.isEmpty())){
+					maxTargetSize = hist.bins.get(hist.getLastBin()-1).max_block_size;
+					nTarget =  hist.bins.get(hist.getLastBin()-1).n;
+				}
 			}
 			
 			if(edgeList.size() == 0 || hist.bins.isEmpty()) findBlocks = false; //Exit the while loop
@@ -251,7 +253,7 @@ public class Forest_Hierarchy {
         
         public histogram() {
         	// TODO  need a way to make this discrete --issues with rounding up and down?
-        	areaBin ab  = new areaBin();
+/*        	areaBin ab  = new areaBin();
             ab.max_block_size = 2;
             ab.freq = 0.4;
             ab.n = 3;
@@ -267,7 +269,7 @@ public class Forest_Hierarchy {
             ab11.max_block_size = 4;
             ab11.freq = 0.2;
             ab11.n = 2;
-            bins.add(ab11);
+            bins.add(ab11);*/
             
             areaBin ab111  = new areaBin();
             ab111.max_block_size = 5; //changed this from 5, needed a large block that is more than the degrees
