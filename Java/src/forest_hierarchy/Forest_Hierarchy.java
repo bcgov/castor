@@ -264,12 +264,12 @@ public class Forest_Hierarchy {
             ab1.freq = 0.28;
             ab1.n = 2;
             bins.add(ab1);
-            
+            */
             areaBin ab11  = new areaBin();
             ab11.max_block_size = 4;
             ab11.freq = 0.2;
             ab11.n = 2;
-            bins.add(ab11);*/
+            bins.add(ab11);
             
             areaBin ab111  = new areaBin();
             ab111.max_block_size = 5; //changed this from 5, needed a large block that is more than the degrees
