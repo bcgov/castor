@@ -3027,14 +3027,491 @@ gc ()
 seismic <- raster ("C:\\Work\\caribou\\clus_data\\seismic\\raster_seismic_20180816.tif")
 rsf.locations <- raster::extract (seismic, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [13] <- "distance_to_pipeline"
+names (rsf.locations) [10] <- "seismic"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (seismic)
+gc ()
+
+# wells/facilities
+dist.wells <- raster ("C:\\Work\\caribou\\clus_data\\wells\\raster_distance _to_wells_facilities_bcalbers_20180815.tif")
+rsf.locations <- raster::extract (dist.wells, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "distance_to_wells"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.wells)
+gc ()
+
+# roads
+# paved
+dist.paved <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_paved.tif")
+rsf.locations <- raster::extract (dist.paved, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [11] <- "distance_to_paved_road"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.paved)
+gc ()
+
+# loose
+dist.loose <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_loose.tif")
+rsf.locations <- raster::extract (dist.loose, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "distance_to_loose_road"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.loose)
+gc ()
+
+# petroleum
+dist.petroleum <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_petroleum.tif")
+rsf.locations <- raster::extract (dist.petroleum, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "distance_to_petroleum_road"
 rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
                               by = c ("ptID" = "ptID")) 
-rm (dist.pipelines)
+rm (dist.petroleum)
+gc ()
+
+# rough
+dist.rough <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_rough.tif")
+rsf.locations <- raster::extract (dist.rough, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [14] <- "distance_to_rough_road"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.rough)
+gc ()
+
+# trim_transport
+dist.trim_transport <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_trim_transport.tif")
+rsf.locations <- raster::extract (dist.trim_transport, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [15] <- "distance_to_trim_transport_road"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.trim_transport)
+gc ()
+
+# unknown
+dist.unknown <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_unknown.tif")
+rsf.locations <- raster::extract (dist.unknown, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [16] <- "distance_to_unknown_road"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.unknown)
+gc ()
+
+#===================================================
+# Fire
+#===================================================
+fire.1957 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1957.tif")
+rsf.locations <- raster::extract (fire.1957, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [17] <- "fire_1957"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1957)
+gc ()
+
+fire.1958 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1958.tif")
+rsf.locations <- raster::extract (fire.1958, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [18] <- "fire_1958"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1958)
+gc ()
+
+fire.1959 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1959.tif")
+rsf.locations <- raster::extract (fire.1959, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [19] <- "fire_1959"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1959)
+gc ()
+
+fire.1960 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1960.tif")
+rsf.locations <- raster::extract (fire.1960, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [20] <- "fire_1960"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1960)
+gc ()
+
+fire.1961 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1961.tif")
+rsf.locations <- raster::extract (fire.1961, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [21] <- "fire_1961"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1961)
+gc ()
+
+fire.1962 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1962.tif")
+rsf.locations <- raster::extract (fire.1962, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [22] <- "fire_1962"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1962)
+gc ()
+
+fire.1963 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1963.tif")
+rsf.locations <- raster::extract (fire.1963, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [23] <- "fire_1963"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1963)
+gc ()
+
+fire.1964 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1964.tif")
+rsf.locations <- raster::extract (fire.1964, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [24] <- "fire_1964"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1964)
+gc ()
+
+fire.1965 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1965.tif")
+rsf.locations <- raster::extract (fire.1965, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [25] <- "fire_1965"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1965)
+gc ()
+
+fire.1966 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1966.tif")
+rsf.locations <- raster::extract (fire.1966, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [26] <- "fire_1966"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1966)
+gc ()
+
+fire.1967 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1967.tif")
+rsf.locations <- raster::extract (fire.1967, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [27] <- "fire_1967"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1967)
+gc ()
+
+fire.1968 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1968.tif")
+rsf.locations <- raster::extract (fire.1968, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [28] <- "fire_1968"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1968)
+gc ()
+
+fire.1969 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1969.tif")
+rsf.locations <- raster::extract (fire.1969, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [29] <- "fire_1969"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1969)
+gc ()
+
+fire.1970 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1970.tif")
+rsf.locations <- raster::extract (fire.1970, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [30] <- "fire_1970"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1970)
+gc ()
+
+fire.1971 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1971.tif")
+rsf.locations <- raster::extract (fire.1971, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "fire_1971"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1971)
+gc ()
+
+fire.1972 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1972.tif")
+rsf.locations <- raster::extract (fire.1972, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [32] <- "fire_1972"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1972)
+gc ()
+
+fire.1973 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1973.tif")
+rsf.locations <- raster::extract (fire.1973, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [33] <- "fire_1973"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1973)
+gc ()
+
+fire.1974 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1974.tif")
+rsf.locations <- raster::extract (fire.1974, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [34] <- "fire_1974"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1974)
+gc ()
+
+fire.1975 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1975.tif")
+rsf.locations <- raster::extract (fire.1975, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [35] <- "fire_1975"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1975)
+gc ()
+
+fire.1976 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1976.tif")
+rsf.locations <- raster::extract (fire.1976, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [36] <- "fire_1976"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1976)
+gc ()
+
+fire.1977 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1977.tif")
+rsf.locations <- raster::extract (fire.1977, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [37] <- "fire_1977"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1977)
+gc ()
+
+fire.1978 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1978.tif")
+rsf.locations <- raster::extract (fire.1978, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [38] <- "fire_1978"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1978)
 gc ()
 
 
+fire.1979 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1979.tif")
+rsf.locations <- raster::extract (fire.1979, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [39] <- "fire_1979"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1979)
+gc ()
 
+fire.1980 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1980.tif")
+rsf.locations <- raster::extract (fire.1980, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [40] <- "fire_1980"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1980)
+gc ()
+
+fire.1981 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1981.tif")
+rsf.locations <- raster::extract (fire.1981, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "fire_1981"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1981)
+gc ()
+
+fire.1982 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1982.tif")
+rsf.locations <- raster::extract (fire.1982, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [11] <- "fire_1982"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1982)
+gc ()
+
+fire.1983 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1983.tif")
+rsf.locations <- raster::extract (fire.1983, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "fire_1983"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1983)
+gc ()
+
+fire.1984 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1984.tif")
+rsf.locations <- raster::extract (fire.1984, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "fire_1984"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1984)
+gc ()
+
+fire.1985 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1985.tif")
+rsf.locations <- raster::extract (fire.1985, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [14] <- "fire_1985"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1985)
+gc ()
+
+fire.1986 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1986.tif")
+rsf.locations <- raster::extract (fire.1986, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [15] <- "fire_1986"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1986)
+gc ()
+
+fire.1987 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1987.tif")
+rsf.locations <- raster::extract (fire.1987, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [10] <- "fire_1987"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1987)
+gc ()
+
+fire.1988 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1988.tif")
+rsf.locations <- raster::extract (fire.1988, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [11] <- "fire_1988"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1988)
+gc ()
+
+fire.1989 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1989.tif")
+rsf.locations <- raster::extract (fire.1989, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "fire_1989"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1989)
+gc ()
+
+fire.1990 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1990.tif")
+rsf.locations <- raster::extract (fire.1990, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "fire_1990"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1990)
+gc ()
+
+fire.1991 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1991.tif")
+rsf.locations <- raster::extract (fire.1991, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [14] <- "fire_1991"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1991)
+gc ()
+
+fire.1992 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1992.tif")
+rsf.locations <- raster::extract (fire.1992, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [15] <- "fire_1992"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1992)
+gc ()
+
+fire.1993 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1993.tif")
+rsf.locations <- raster::extract (fire.1993, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [16] <- "fire_1993"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1993)
+gc ()
+
+fire.1994 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1994.tif")
+rsf.locations <- raster::extract (fire.1994, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [17] <- "fire_1994"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1994)
+gc ()
+
+fire.1995 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1995.tif")
+rsf.locations <- raster::extract (fire.1995, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [18] <- "fire_1995"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1995)
+gc ()
+
+fire.1996 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1996.tif")
+rsf.locations <- raster::extract (fire.1996, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [19] <- "fire_1996"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1996)
+gc ()
+
+fire.1997 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1997.tif")
+rsf.locations <- raster::extract (fire.1997, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [20] <- "fire_1997"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1997)
+gc ()
+
+fire.1998 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1998.tif")
+rsf.locations <- raster::extract (fire.1998, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [21] <- "fire_1998"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1998)
+gc ()
+
+fire.1999 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1999.tif")
+rsf.locations <- raster::extract (fire.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [22] <- "fire_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.1999)
+gc ()
+
+fire.2000 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2000.tif")
+rsf.locations <- raster::extract (fire.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [23] <- "fire_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2000)
+gc ()
+
+fire.2001 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2001.tif")
+rsf.locations <- raster::extract (fire.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [23] <- "fire_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2001)
+gc ()
 
 # rsf.data <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv")
 
@@ -3055,14 +3532,6 @@ test <- rsf.data %>%
 
 
 
-
-# roads
-
-rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
-                                  factors = T, df = T, sp = T, buffer = 200, fun = sum) 
-names (rsf.locations) [13] <- "cutblocks_pre1957_200m"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
-                              by = c ("ptID" = "ptID")) 
 
 
 
@@ -3088,6 +3557,7 @@ dbDisconnect (conn)
 #===================================================
 sample.pts.bec <- sp::over (sample.pts.prj, bec.current [15]) # column 15 is the BEC name
 sample.pts.bec$ptID <- 1:131054 # create a ptID to join data on
+
 sample.pts.prj@data <- dplyr::full_join (sample.pts.prj@data, sample.pts.bec, 
                                          by = c ("ptID" = "ptID")) 
 # I did some visual inspection in GIS to see where points fell relative to caribou range and 
