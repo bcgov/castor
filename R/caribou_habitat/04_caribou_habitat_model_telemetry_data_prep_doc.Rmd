@@ -1863,6 +1863,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)],
 rm (dist.to.agriculture)
 gc ()
 
+# Ski hills
+dist.to.ski <- raster ("C:\\Work\\caribou\\clus_data\\ski\\raster_dist_to_ski_resorts_bcalbers_20180816.tif")
+rsf.locations <- raster::extract (dist.to.ski, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [10] <- "distance_to_ski_hill"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.to.ski)
+gc ()
+
 # Cutblocks
 cut.pre1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_pre1957.tif")
 rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
@@ -3507,11 +3517,669 @@ gc ()
 fire.2001 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2001.tif")
 rsf.locations <- raster::extract (fire.2001, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [23] <- "fire_2001"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+names (rsf.locations) [24] <- "fire_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
                               by = c ("ptID" = "ptID")) 
 rm (fire.2001)
 gc ()
+
+fire.2002 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2002.tif")
+rsf.locations <- raster::extract (fire.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [25] <- "fire_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2002)
+gc ()
+
+fire.2003 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2003.tif")
+rsf.locations <- raster::extract (fire.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [26] <- "fire_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2003)
+gc ()
+
+fire.2004 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2004.tif")
+rsf.locations <- raster::extract (fire.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [27] <- "fire_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2004)
+gc ()
+
+fire.2005 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2005.tif")
+rsf.locations <- raster::extract (fire.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [28] <- "fire_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2005)
+gc ()
+
+fire.2006 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2006.tif")
+rsf.locations <- raster::extract (fire.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [29] <- "fire_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2006)
+gc ()
+
+fire.2007 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2007.tif")
+rsf.locations <- raster::extract (fire.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [30] <- "fire_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2007)
+gc ()
+
+fire.2008 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2008.tif")
+rsf.locations <- raster::extract (fire.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "fire_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2008)
+gc ()
+
+fire.2009 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2009.tif")
+rsf.locations <- raster::extract (fire.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [32] <- "fire_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2009)
+gc ()
+
+fire.2010 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2010.tif")
+rsf.locations <- raster::extract (fire.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [33] <- "fire_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2010)
+gc ()
+
+fire.2011 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2011.tif")
+rsf.locations <- raster::extract (fire.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [34] <- "fire_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2011)
+gc ()
+
+fire.2012 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2012.tif")
+rsf.locations <- raster::extract (fire.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [35] <- "fire_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2012)
+gc ()
+
+fire.2013 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2013.tif")
+rsf.locations <- raster::extract (fire.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [36] <- "fire_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2013)
+gc ()
+
+fire.2014 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2014.tif")
+rsf.locations <- raster::extract (fire.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [37] <- "fire_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2014)
+gc ()
+
+fire.2015 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2015.tif")
+rsf.locations <- raster::extract (fire.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [38] <- "fire_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2015)
+gc ()
+
+fire.2016 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2016.tif")
+rsf.locations <- raster::extract (fire.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [39] <- "fire_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2016)
+gc ()
+
+fire.2017 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2017.tif")
+rsf.locations <- raster::extract (fire.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [40] <- "fire_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2017)
+gc ()
+
+#===================================================
+# forest health
+#===================================================
+# moderate beetle kill
+beetle.moderate.1999 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_1999_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "beetle_moderate_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.1999)
+gc ()
+
+beetle.moderate.2000 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2000_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [11] <- "beetle_moderate_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2000)
+gc ()
+
+beetle.moderate.2001 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2001_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "beetle_moderate_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2001)
+gc ()
+
+beetle.moderate.2002 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2002_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "beetle_moderate_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2002)
+gc ()
+
+beetle.moderate.2003 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2003_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [14] <- "beetle_moderate_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2003)
+gc ()
+
+beetle.moderate.2004 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2004_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [15] <- "beetle_moderate_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2004)
+gc ()
+
+beetle.moderate.2005 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2005_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [16] <- "beetle_moderate_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2005)
+gc ()
+
+beetle.moderate.2006 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2006_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [17] <- "beetle_moderate_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2006)
+gc ()
+
+beetle.moderate.2007 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2007_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [18] <- "beetle_moderate_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2007)
+gc ()
+
+beetle.moderate.2008 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2008_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [19] <- "beetle_moderate_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2008)
+gc ()
+
+beetle.moderate.2009 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2009_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [20] <- "beetle_moderate_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2009)
+gc ()
+
+beetle.moderate.2010 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2010_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [21] <- "beetle_moderate_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2010)
+gc ()
+
+beetle.moderate.2011 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2011_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [22] <- "beetle_moderate_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2011)
+gc ()
+
+beetle.moderate.2012 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2012_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [23] <- "beetle_moderate_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2012)
+gc ()
+
+beetle.moderate.2013 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2013_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [24] <- "beetle_moderate_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2013)
+gc ()
+
+beetle.moderate.2014 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2014_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [25] <- "beetle_moderate_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2014)
+gc ()
+
+beetle.moderate.2015 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2015_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [26] <- "beetle_moderate_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2015)
+gc ()
+
+beetle.moderate.2016 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2016_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [27] <- "beetle_moderate_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2016)
+gc ()
+
+beetle.moderate.2017 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2017_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [28] <- "beetle_moderate_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2017)
+gc ()
+
+# severe beetle kill
+beetle.severe.1999 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_1999_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [29] <- "beetle_severe_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.1999)
+gc ()
+
+beetle.severe.2000 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2000_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [30] <- "beetle_severe_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2000)
+gc ()
+
+beetle.severe.2001 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2001_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "beetle_severe_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2001)
+gc ()
+
+beetle.severe.2002 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2002_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [32] <- "beetle_severe_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2002)
+gc ()
+
+beetle.severe.2003 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2003_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [33] <- "beetle_severe_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2003)
+gc ()
+
+beetle.severe.2004 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2004_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [34] <- "beetle_severe_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2004)
+gc ()
+
+beetle.severe.2005 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2005_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [35] <- "beetle_severe_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2005)
+gc ()
+
+beetle.severe.2006 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2006_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [36] <- "beetle_severe_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2006)
+gc ()
+
+beetle.severe.2007 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2007_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [37] <- "beetle_severe_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2007)
+gc ()
+
+beetle.severe.2008 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2008_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [38] <- "beetle_severe_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2008)
+gc ()
+
+beetle.severe.2009 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2009_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [39] <- "beetle_severe_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2009)
+gc ()
+
+beetle.severe.2010 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2010_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [40] <- "beetle_severe_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2010)
+gc ()
+
+beetle.severe.2011 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2011_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [41] <- "beetle_severe_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 41)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2011)
+gc ()
+
+beetle.severe.2012 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2012_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [42] <- "beetle_severe_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 42)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2012)
+gc ()
+
+beetle.severe.2013 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2013_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [43] <- "beetle_severe_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 43)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2013)
+gc ()
+
+beetle.severe.2014 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2014_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [44] <- "beetle_severe_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 44)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2014)
+gc ()
+
+beetle.severe.2015 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2015_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [45] <- "beetle_severe_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 45)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2015)
+gc ()
+
+beetle.severe.2016 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2016_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [46] <- "beetle_severe_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 46)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2016)
+gc ()
+
+beetle.severe.2017 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2017_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [47] <- "beetle_severe_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 47)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2017)
+gc ()
+
+# very severe beetle kill
+beetle.very.severe.2003 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2003_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [48] <- "beetle_very_severe_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 48)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2003)
+gc ()
+
+beetle.very.severe.2004 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2004_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [49] <- "beetle_very_severe_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 49)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2004)
+gc ()
+
+beetle.very.severe.2005 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2005_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [50] <- "beetle_very_severe_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 50)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2005)
+gc ()
+
+beetle.very.severe.2006 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2006_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [51] <- "beetle_very_severe_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 51)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2006)
+gc ()
+
+beetle.very.severe.2007 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2007_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [52] <- "beetle_very_severe_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 52)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2007)
+gc ()
+
+beetle.very.severe.2008 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2008_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [53] <- "beetle_very_severe_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 53)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2008)
+gc ()
+
+beetle.very.severe.2009 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2009_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [54] <- "beetle_very_severe_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 54)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2009)
+gc ()
+
+beetle.very.severe.2010 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2010_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [55] <- "beetle_very_severe_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 55)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2010)
+gc ()
+
+beetle.very.severe.2011 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2011_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [56] <- "beetle_very_severe_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 56)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2011)
+gc ()
+
+beetle.very.severe.2012 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2012_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [57] <- "beetle_very_severe_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 57)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2012)
+gc ()
+
+beetle.very.severe.2013 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2013_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [58] <- "beetle_very_severe_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 58)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2013)
+gc ()
+
+beetle.very.severe.2014 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2014_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [59] <- "beetle_very_severe_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 59)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2014)
+gc ()
+
+beetle.very.severe.2015 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2015_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [60] <- "beetle_very_severe_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 60)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2015)
+gc ()
+
+beetle.very.severe.2016 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2016_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [61] <- "beetle_very_severe_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 61)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2016)
+gc ()
+
+beetle.very.severe.2017 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2017_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [62] <- "beetle_very_severe_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 62)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2017)
+gc ()
+
+
+#===================================================
+# Water
+#===================================================
+dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_lakes_bcalbers_20180820.tif")
+rsf.locations <- raster::extract (dist.lake, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [11] <- "distance_to_lake"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.lake)
+gc ()
+
+dist.watercourse <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
+rsf.locations <- raster::extract (dist.watercourse, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [12] <- "distance_to_watercourse"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.watercourse)
+gc ()
+
+#===================================================
+# Climate
+#===================================================
+
+
+
+
+
 
 # rsf.data <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv")
 
