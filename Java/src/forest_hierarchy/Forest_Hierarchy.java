@@ -21,7 +21,6 @@ public class Forest_Hierarchy {
 	}
 	
 	public static void main(String[] arg) {
-		// TODO Running from the main need a int[] method for running this?
 		  if (arg.length != 3) {
 	            System.err.println("Usage: java forest_hierarchy <Edges> <degree> <histogram>");
 	            //System.out.println("Creating a test run...");
@@ -44,23 +43,23 @@ public class Forest_Hierarchy {
 		this.edgeList.sort((o1, o2) -> Double.compare(o1.getWeight(), o2.getWeight()));		
 		//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 		while(findBlocks){
-			System.out.println("edgeList: " + this.edgeList.size());
-			System.out.println("nTarget: " + nTarget);	
-			System.out.println("maxTargetSize" + this.hist.bins.get(this.hist.getLastBin()-1).max_block_size);	
+			//System.out.println("edgeList: " + this.edgeList.size());
+			//System.out.println("nTarget: " + nTarget);	
+			//System.out.println("maxTargetSize" + this.hist.bins.get(this.hist.getLastBin()-1).max_block_size);	
 			if(blockSize == 0){
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList)); // get the largest degree 
 				//degreeList.set(seed, (degreeList.get(seed).intValue() - 1)); //assign a zero degree to the pixel
-				System.out.println("pixel with the greatest degree:" + (seed + 1));
+				//System.out.println("pixel with the greatest degree:" + (seed + 1));
 			}else{
 				if(this.degreeList.get(seed) > 0) { //if there are still edges from the seed to spawn
-					System.out.println("the pixel in the last blocklist: " + blockList.get(blockList.size()-d-1).intValue());
+					//System.out.println("the pixel in the last blocklist: " + blockList.get(blockList.size()-d-1).intValue());
 					seedNew = findPixelToAdd(seed); //get the lowest weighted edge. Note the first edge to be added will have the lowest weight because it is sorted 
 				} else{
 					//Need a loop here to find branches off the main
 					d++; //counts the number of edges being connected. 
 					int counter = 0;
 					for(int b = d; b < blockList.size() ; b++){
-						System.out.println("blockList.size: " + this.blockList.size() + " d: " + d + " b: " + b);
+						//System.out.println("blockList.size: " + this.blockList.size() + " d: " + d + " b: " + b);
 						seed = this.blockList.get(b).intValue() -1;
 						if(this.degreeList.get(seed) > 0) {
 							seedNew = findPixelToAdd(seed);
@@ -71,14 +70,14 @@ public class Forest_Hierarchy {
 				}
 			}
 			if(blockSize < maxTargetSize && nTarget > 0){
-				System.out.println("degree:" + degreeList.get(seed).intValue() );
+				//System.out.println("degree:" + degreeList.get(seed).intValue() );
 				if(seedNew >= -1){
 					if(seedNew == -1) {
 						this.blockList.add(seed + 1);
-						System.out.println("block list: " + (seed + 1));
+						//System.out.println("block list: " + (seed + 1));
 					}else {
 						this.blockList.add(seedNew + 1);
-						System.out.println("block list: " + (seedNew + 1));
+						//System.out.println("block list: " + (seedNew + 1));
 						seedNew = -1;
 					}
 					blockSize ++;
@@ -88,7 +87,7 @@ public class Forest_Hierarchy {
 				}
 			}	
 			
-			System.out.println("block size: " + blockSize);
+			//System.out.println("block size: " + blockSize);
 			
 			if((blockSize >= maxTargetSize && nTarget > 0 )|| this.edgeList.size() == 0 ){ //Found all the pixels needed to make the target block
 				blockID ++; //assign a blockID to the temp list of vertices
@@ -98,7 +97,7 @@ public class Forest_Hierarchy {
 		            int x = (Integer)itr.next(); 
 		            pixelBlock[x-1] = blockID;
 		            removeEdges(x); //remove all remaining edges in the edgeList. So that each block has a unique set of pixels
-		            System.out.println("pixel: " + x + " is assigned block: " + pixelBlock[x-1]);
+		            //System.out.println("pixel: " + x + " is assigned block: " + pixelBlock[x-1]);
 		                itr.remove(); 
 		        } 
 		        this.blockList.clear();
@@ -121,7 +120,7 @@ public class Forest_Hierarchy {
 				blockID++;
 				pixelBlock[r] = blockID ;
 			}
-			System.out.println("The clustering of " + (r+1) + ": " + pixelBlock[r]);
+			//System.out.println("The clustering of " + (r+1) + ": " + pixelBlock[r]);
 		}
 		setBlockPixels(pixelBlock);
 		//little garbage collection?
@@ -145,7 +144,7 @@ public class Forest_Hierarchy {
 			}
 		}
 		if(nextPixel > 0){ //remove degrees from each of the pixels
-			System.out.println("seed:" + seed + " nextpixel: " + nextPixel);
+			//System.out.println("seed:" + seed + " nextpixel: " + nextPixel);
 			this.degreeList.set(seed, (this.degreeList.get(seed).intValue() - 1)); //assign a zero degree to the pixel
 			this.degreeList.set((nextPixel -1), (this.degreeList.get((nextPixel-1)).intValue() - 1)); //assign a zero degree to the pixel
 		}
@@ -178,11 +177,11 @@ public class Forest_Hierarchy {
 			 Object[] row = dfList.get(i).values().toArray();
 			 this.edgeList.add( new Edges((int)row[0], (int)row[1], (double)row[2]));
 		}
-		//System.out.println(dfList.size() + " edges have been added");
+		System.out.println(dfList.size() + " edges have been added");
 		
 
 		this.degree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
-		//System.out.println(degree.length + " pixel degrees have been added");
+		System.out.println(degree.length + " pixel degrees have been added");
 		
 		this.hist = new histogram(histTable);
 		System.out.println(this.hist.bins.size() + " target bins have been added");
