@@ -87,8 +87,6 @@ public class Forest_Hierarchy {
 				}
 			}	
 			
-			//System.out.println("block size: " + blockSize);
-			
 			if((blockSize >= maxTargetSize && nTarget > 0 )|| this.edgeList.size() == 0 ){ //Found all the pixels needed to make the target block
 				blockID ++; //assign a blockID to the temp list of vertices
 				//System.out.println("block ID" + blockID);
@@ -105,6 +103,7 @@ public class Forest_Hierarchy {
 				nTarget =  this.hist.bins.get(this.hist.getLastBin()-1).n;
 				blockSize = 0; //reset the new blockSize to zero
 				d = 0;
+				System.out.println("left: " + nTarget);
 			}			 
 			if(nTarget == 0 ){
 				this.hist.setLastBin();//Remove the last bin
@@ -171,13 +170,12 @@ public class Forest_Hierarchy {
 		}
 	}
 	
-	public void setRParms(ArrayList<LinkedHashMap<String, Object>> dfList, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable ) {
+	public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable ) {
 		//Instantiate the Edge objects from the R data.table
-		for(int i =0;  i < dfList.size(); i++){
-			 Object[] row = dfList.get(i).values().toArray();
-			 this.edgeList.add( new Edges((int)row[0], (int)row[1], (double)row[2]));
+		for(int i =0;  i < to.length; i++){
+			 this.edgeList.add( new Edges((int)to[i], (int)from[i], (double)weight[i]));
 		}
-		System.out.println(dfList.size() + " edges have been added");
+		System.out.println(to.length + " edges have been added");
 		
 
 		this.degree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
@@ -188,7 +186,9 @@ public class Forest_Hierarchy {
 		
 		dg = null;
 		histTable.clear();
-		dfList.clear();
+		to = null;
+		from =null;
+		weight = null;
 	}
 
 
