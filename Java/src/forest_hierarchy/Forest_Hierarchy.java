@@ -103,8 +103,9 @@ public class Forest_Hierarchy {
 				nTarget =  this.hist.bins.get(this.hist.getLastBin()-1).n;
 				blockSize = 0; //reset the new blockSize to zero
 				d = 0;
-				System.out.println("left: " + nTarget);
-			}			 
+				//System.out.println("left: " + nTarget);
+			}	
+			
 			if(nTarget == 0 ){
 				this.hist.setLastBin();//Remove the last bin
 				if(!(this.hist.bins.isEmpty())){
@@ -112,6 +113,7 @@ public class Forest_Hierarchy {
 					nTarget =  this.hist.bins.get(this.hist.getLastBin()-1).n;
 				}
 			}
+			
 			if(this.edgeList.size() == 0 || this.hist.bins.isEmpty()) findBlocks = false; //Exit the while loop
 		}//End of the while loop
 		for (int r = 0; r < pixelBlock.length ; r++){ //assign the remaining blocks their own blockID
@@ -123,7 +125,7 @@ public class Forest_Hierarchy {
 		}
 		setBlockPixels(pixelBlock);
 		//little garbage collection?
-		d=1;
+		d=0;
 		pixelBlock = null;
 		this.blockList.clear();
 		this.edgeList.clear();
