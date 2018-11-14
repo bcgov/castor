@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list(),
+  reqdPkgs = list("rJava","jdx","igraph","data.table", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
@@ -81,13 +81,24 @@ Plot <- function(sim) {
 
 blockingCLUS.Init <- function(sim) {
   sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking
-  sim<-blockingCLUS.get
+  #Get the similarity matrix 
+  
+  
   return(invisible(sim))
 }
 
 blockingCLUS.preBlock <- function(sim) {
   print("preBlock")
-  
+  .jinit(classpath= paste0(getwd(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
+  d<-convertToJava(degree)
+  h<-convertToJava(histogram)
+  h<-rJava::.jcast(histogram, getJavaClassName(h), convert.array = TRUE)
+  to<-.jarray(as.matrix(paths.matrix[,1]))
+  from<-.jarray(as.matrix(paths.matrix[,2]))
+  weight<-.jarray(as.matrix(paths.matrix[,3]))
+  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
+  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
+  fhClass$blockEdges() # creates the blocks
   return(invisible(sim))
 }
 
@@ -104,3 +115,5 @@ blockingCLUS.getBounds<-function(sim){
 }
 ### additional functions
 source("R/functions/functions.R")
+
+

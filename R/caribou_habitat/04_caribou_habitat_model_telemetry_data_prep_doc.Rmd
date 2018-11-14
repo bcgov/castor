@@ -1863,6 +1863,16 @@ rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)],
 rm (dist.to.agriculture)
 gc ()
 
+# Ski hills
+dist.to.ski <- raster ("C:\\Work\\caribou\\clus_data\\ski\\raster_dist_to_ski_resorts_bcalbers_20180816.tif")
+rsf.locations <- raster::extract (dist.to.ski, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [10] <- "distance_to_ski_hill"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.to.ski)
+gc ()
+
 # Cutblocks
 cut.pre1957 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_cutblocks_pre1957.tif")
 rsf.locations <- raster::extract (cut.pre1957, rsf.locations, method = 'simple',
@@ -3507,33 +3517,1789 @@ gc ()
 fire.2001 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2001.tif")
 rsf.locations <- raster::extract (fire.2001, rsf.locations, method = 'simple',
                                   factors = T, df = T, sp = T) 
-names (rsf.locations) [23] <- "fire_2001"
-rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+names (rsf.locations) [24] <- "fire_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
                               by = c ("ptID" = "ptID")) 
 rm (fire.2001)
 gc ()
 
-# rsf.data <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv")
+fire.2002 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2002.tif")
+rsf.locations <- raster::extract (fire.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [25] <- "fire_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2002)
+gc ()
+
+fire.2003 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2003.tif")
+rsf.locations <- raster::extract (fire.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [26] <- "fire_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2003)
+gc ()
+
+fire.2004 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2004.tif")
+rsf.locations <- raster::extract (fire.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [27] <- "fire_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2004)
+gc ()
+
+fire.2005 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2005.tif")
+rsf.locations <- raster::extract (fire.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [28] <- "fire_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2005)
+gc ()
+
+fire.2006 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2006.tif")
+rsf.locations <- raster::extract (fire.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [29] <- "fire_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2006)
+gc ()
+
+fire.2007 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2007.tif")
+rsf.locations <- raster::extract (fire.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [30] <- "fire_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2007)
+gc ()
+
+fire.2008 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2008.tif")
+rsf.locations <- raster::extract (fire.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "fire_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2008)
+gc ()
+
+fire.2009 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2009.tif")
+rsf.locations <- raster::extract (fire.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [32] <- "fire_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2009)
+gc ()
+
+fire.2010 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2010.tif")
+rsf.locations <- raster::extract (fire.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [33] <- "fire_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2010)
+gc ()
+
+fire.2011 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2011.tif")
+rsf.locations <- raster::extract (fire.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [34] <- "fire_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2011)
+gc ()
+
+fire.2012 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2012.tif")
+rsf.locations <- raster::extract (fire.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [35] <- "fire_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2012)
+gc ()
+
+fire.2013 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2013.tif")
+rsf.locations <- raster::extract (fire.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [36] <- "fire_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2013)
+gc ()
+
+fire.2014 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2014.tif")
+rsf.locations <- raster::extract (fire.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [37] <- "fire_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2014)
+gc ()
+
+fire.2015 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2015.tif")
+rsf.locations <- raster::extract (fire.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [38] <- "fire_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2015)
+gc ()
+
+fire.2016 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2016.tif")
+rsf.locations <- raster::extract (fire.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [39] <- "fire_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2016)
+gc ()
+
+fire.2017 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_2017.tif")
+rsf.locations <- raster::extract (fire.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [40] <- "fire_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fire.2017)
+gc ()
+
+#===================================================
+# forest health
+#===================================================
+# moderate beetle kill
+beetle.moderate.1999 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_1999_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "beetle_moderate_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.1999)
+gc ()
+
+beetle.moderate.2000 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2000_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [11] <- "beetle_moderate_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2000)
+gc ()
+
+beetle.moderate.2001 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2001_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [12] <- "beetle_moderate_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2001)
+gc ()
+
+beetle.moderate.2002 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2002_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [13] <- "beetle_moderate_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2002)
+gc ()
+
+beetle.moderate.2003 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2003_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [14] <- "beetle_moderate_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2003)
+gc ()
+
+beetle.moderate.2004 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2004_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [15] <- "beetle_moderate_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2004)
+gc ()
+
+beetle.moderate.2005 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2005_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [16] <- "beetle_moderate_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2005)
+gc ()
+
+beetle.moderate.2006 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2006_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [17] <- "beetle_moderate_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2006)
+gc ()
+
+beetle.moderate.2007 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2007_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [18] <- "beetle_moderate_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2007)
+gc ()
+
+beetle.moderate.2008 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2008_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [19] <- "beetle_moderate_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2008)
+gc ()
+
+beetle.moderate.2009 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2009_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [20] <- "beetle_moderate_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2009)
+gc ()
+
+beetle.moderate.2010 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2010_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [21] <- "beetle_moderate_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2010)
+gc ()
+
+beetle.moderate.2011 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2011_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [22] <- "beetle_moderate_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2011)
+gc ()
+
+beetle.moderate.2012 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2012_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [23] <- "beetle_moderate_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2012)
+gc ()
+
+beetle.moderate.2013 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2013_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [24] <- "beetle_moderate_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 24)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2013)
+gc ()
+
+beetle.moderate.2014 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2014_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [25] <- "beetle_moderate_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2014)
+gc ()
+
+beetle.moderate.2015 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2015_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [26] <- "beetle_moderate_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2015)
+gc ()
+
+beetle.moderate.2016 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2016_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [27] <- "beetle_moderate_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2016)
+gc ()
+
+beetle.moderate.2017 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_moderate_2017_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.moderate.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [28] <- "beetle_moderate_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.moderate.2017)
+gc ()
+
+# severe beetle kill
+beetle.severe.1999 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_1999_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.1999, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [29] <- "beetle_severe_1999"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.1999)
+gc ()
+
+beetle.severe.2000 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2000_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2000, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [30] <- "beetle_severe_2000"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2000)
+gc ()
+
+beetle.severe.2001 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2001_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2001, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [31] <- "beetle_severe_2001"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2001)
+gc ()
+
+beetle.severe.2002 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2002_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2002, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [32] <- "beetle_severe_2002"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2002)
+gc ()
+
+beetle.severe.2003 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2003_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [33] <- "beetle_severe_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2003)
+gc ()
+
+beetle.severe.2004 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2004_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [34] <- "beetle_severe_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2004)
+gc ()
+
+beetle.severe.2005 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2005_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [35] <- "beetle_severe_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2005)
+gc ()
+
+beetle.severe.2006 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2006_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [36] <- "beetle_severe_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2006)
+gc ()
+
+beetle.severe.2007 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2007_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [37] <- "beetle_severe_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2007)
+gc ()
+
+beetle.severe.2008 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2008_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [38] <- "beetle_severe_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2008)
+gc ()
+
+beetle.severe.2009 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2009_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [39] <- "beetle_severe_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2009)
+gc ()
+
+beetle.severe.2010 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2010_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [40] <- "beetle_severe_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2010)
+gc ()
+
+beetle.severe.2011 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2011_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [41] <- "beetle_severe_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 41)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2011)
+gc ()
+
+beetle.severe.2012 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2012_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [42] <- "beetle_severe_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 42)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2012)
+gc ()
+
+beetle.severe.2013 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2013_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [43] <- "beetle_severe_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 43)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2013)
+gc ()
+
+beetle.severe.2014 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2014_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [44] <- "beetle_severe_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 44)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2014)
+gc ()
+
+beetle.severe.2015 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2015_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [45] <- "beetle_severe_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 45)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2015)
+gc ()
+
+beetle.severe.2016 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2016_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [46] <- "beetle_severe_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 46)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2016)
+gc ()
+
+beetle.severe.2017 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_severe_2017_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.severe.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [47] <- "beetle_severe_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 47)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.severe.2017)
+gc ()
+
+# very severe beetle kill
+beetle.very.severe.2003 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2003_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2003, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [48] <- "beetle_very_severe_2003"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 48)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2003)
+gc ()
+
+beetle.very.severe.2004 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2004_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2004, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [49] <- "beetle_very_severe_2004"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 49)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2004)
+gc ()
+
+beetle.very.severe.2005 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2005_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2005, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [50] <- "beetle_very_severe_2005"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 50)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2005)
+gc ()
+
+beetle.very.severe.2006 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2006_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2006, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [51] <- "beetle_very_severe_2006"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 51)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2006)
+gc ()
+
+beetle.very.severe.2007 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2007_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2007, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [52] <- "beetle_very_severe_2007"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 52)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2007)
+gc ()
+
+beetle.very.severe.2008 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2008_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2008, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [53] <- "beetle_very_severe_2008"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 53)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2008)
+gc ()
+
+beetle.very.severe.2009 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2009_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2009, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [54] <- "beetle_very_severe_2009"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 54)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2009)
+gc ()
+
+beetle.very.severe.2010 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2010_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2010, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [55] <- "beetle_very_severe_2010"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 55)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2010)
+gc ()
+
+beetle.very.severe.2011 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2011_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2011, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [56] <- "beetle_very_severe_2011"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 56)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2011)
+gc ()
+
+beetle.very.severe.2012 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2012_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2012, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [57] <- "beetle_very_severe_2012"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 57)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2012)
+gc ()
+
+beetle.very.severe.2013 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2013_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2013, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [58] <- "beetle_very_severe_2013"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 58)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2013)
+gc ()
+
+beetle.very.severe.2014 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2014_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2014, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [59] <- "beetle_very_severe_2014"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 59)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2014)
+gc ()
+
+beetle.very.severe.2015 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2015_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2015, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [60] <- "beetle_very_severe_2015"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 60)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2015)
+gc ()
+
+beetle.very.severe.2016 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2016_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2016, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [61] <- "beetle_very_severe_2016"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 61)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2016)
+gc ()
+
+beetle.very.severe.2017 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_very_severe_2017_bcalbers.tif")
+rsf.locations <- raster::extract (beetle.very.severe.2017, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [62] <- "beetle_very_severe_2017"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 62)], 
+                              by = c ("ptID" = "ptID")) 
+rm (beetle.very.severe.2017)
+gc ()
 
 
-# write.table (rsf.data, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data.csv", sep = ",")
+#===================================================
+# Water
+#===================================================
+dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_lakes_bcalbers_20180820.tif")
+rsf.locations <- raster::extract (dist.lake, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [11] <- "distance_to_lake"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.lake)
+gc ()
+
+dist.watercourse <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
+rsf.locations <- raster::extract (dist.watercourse, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [12] <- "distance_to_watercourse"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (dist.watercourse)
+gc ()
+
+#===================================================
+# Climate
+#===================================================
+# Annual
+begin.frost.free <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\bffp")
+begin.frost.free <- raster::projectRaster (begin.frost.free, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (begin.frost.free, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [13] <- "frost_free_start_julian"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (begin.frost.free)
+gc ()
+
+growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\dd5")
+growing.degree.day <- raster::projectRaster (growing.degree.day, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [14] <- "growing_degree_days"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day)
+gc ()
+
+end.frost.free <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\effp")
+end.frost.free <- raster::projectRaster (end.frost.free, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (end.frost.free, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [15] <- "frost_free_end_julian"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (end.frost.free)
+gc ()
+
+frost.free.period <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\ffp")
+frost.free.period <- raster::projectRaster (frost.free.period, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.period, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [16] <- "frost_free_period"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.period)
+gc ()
+
+mean.annual.ppt <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\map")
+mean.annual.ppt <- raster::projectRaster (mean.annual.ppt, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (mean.annual.ppt, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [17] <- "mean_annual_ppt"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (mean.annual.ppt)
+gc ()
+
+mean.annual.temp <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\mat")
+mean.annual.temp <- raster::projectRaster (mean.annual.temp, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+mean.annual.temp <- mean.annual.temp / 10
+rsf.locations <- raster::extract (mean.annual.temp, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [18] <- "mean_annual_temp"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (mean.annual.temp)
+gc ()
+
+mean.cold.month.temp <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\mcmt")
+mean.cold.month.temp <- raster::projectRaster (mean.cold.month.temp, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (mean.cold.month.temp, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [19] <- "mean_coldest_month_temp"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rsf.data$mean_coldest_month_temp <- rsf.data$mean_coldest_month_temp / 10
+rm (mean.cold.month.temp)
+gc ()
+
+mean.summer.ppt <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\msp")
+mean.summer.ppt <- raster::projectRaster (mean.summer.ppt, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (mean.summer.ppt, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [20] <- "mean_summer_ppt"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (mean.summer.ppt)
+gc ()
+
+mean.warm.month.temp <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\mwmt")
+mean.warm.month.temp <- raster::projectRaster (mean.warm.month.temp, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+mean.warm.month.temp <- mean.warm.month.temp / 10
+rsf.locations <- raster::extract (mean.warm.month.temp, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [22] <- "mean_warmest_month_temp"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 22)], 
+                              by = c ("ptID" = "ptID")) 
+rm (mean.warm.month.temp)
+gc ()
+
+number.frost.free.days <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\nffd")
+number.frost.free.days <- raster::projectRaster (number.frost.free.days, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (number.frost.free.days, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [23] <- "number_frost_free_days"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 23)], 
+                              by = c ("ptID" = "ptID")) 
+rm (number.frost.free.days)
+gc ()
+
+ppt.as.snow <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\pas")
+ppt.as.snow <- raster::projectRaster (ppt.as.snow, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [33] <- "ppt_as_snow_annual"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow)
+gc ()
+
+# Seasonal
+fall.growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\dd5_at")
+fall.growing.degree.day <- raster::projectRaster (fall.growing.degree.day, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (fall.growing.degree.day, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [25] <- "fall_growing_degree_days"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (fall.growing.degree.day)
+gc ()
+
+summer.growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\dd5_sm")
+summer.growing.degree.day <- raster::projectRaster (summer.growing.degree.day, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (summer.growing.degree.day, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [26] <- "summer_growing_degree_days"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (summer.growing.degree.day)
+gc ()
+
+spring.growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\dd5_sp")
+spring.growing.degree.day <- raster::projectRaster (spring.growing.degree.day, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (spring.growing.degree.day, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [27] <- "spring_growing_degree_days"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (spring.growing.degree.day)
+gc ()
+
+winter.growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\dd5_wt")
+winter.growing.degree.day <- raster::projectRaster (winter.growing.degree.day, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (winter.growing.degree.day, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [28] <- "winter_growing_degree_days"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (winter.growing.degree.day)
+gc ()
+
+frost.free.days.autumn <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\nffd_at")
+frost.free.days.autumn <- raster::projectRaster (frost.free.days.autumn, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.days.autumn, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [29] <- "frost_free_days_autumn"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.days.autumn)
+gc ()
+
+frost.free.days.summer <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\nffd_sm")
+frost.free.days.summer <- raster::projectRaster (frost.free.days.summer, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.days.summer, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [30] <- "frost_free_days_summer"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.days.summer)
+gc ()
+
+frost.free.days.spring <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\nffd_sp")
+frost.free.days.spring <- raster::projectRaster (frost.free.days.spring, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.days.spring, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [31] <- "frost_free_days_spring"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.days.spring)
+gc ()
+
+frost.free.days.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\nffd_wt")
+frost.free.days.winter <- raster::projectRaster (frost.free.days.winter, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.days.winter, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [34] <- "frost_free_days_winter"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.days.winter)
+gc ()
+
+ppt.as.snow.autumn <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_at")
+ppt.as.snow.autumn <- raster::projectRaster (ppt.as.snow.autumn, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.autumn, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [35] <- "ppt_as_snow_autumn"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.autumn)
+gc ()
+
+ppt.as.snow.summer <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_sm")
+ppt.as.snow.summer <- raster::projectRaster (ppt.as.snow.summer, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.summer, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [36] <- "ppt_as_snow_summer"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.summer)
+gc ()
+
+ppt.as.snow.spring <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_sp")
+ppt.as.snow.spring <- raster::projectRaster (ppt.as.snow.spring, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.spring, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [37] <- "ppt_as_snow_spring"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.spring)
+gc ()
+
+ppt.as.snow.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_wt")
+ppt.as.snow.winter <- raster::projectRaster (ppt.as.snow.winter, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.winter, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [38] <- "ppt_as_snow_winter"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.winter)
+gc ()
+
+ppt.autumn <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\ppt_at")
+ppt.autumn <- raster::projectRaster (ppt.autumn, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.autumn, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [39] <- "ppt_autumn"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.autumn)
+gc ()
+
+ppt.summer <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\ppt_sm")
+ppt.summer <- raster::projectRaster (ppt.summer, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.summer, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [40] <- "ppt_summer"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.summer)
+gc ()
+
+ppt.spring <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\ppt_sp")
+ppt.spring <- raster::projectRaster (ppt.spring, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.spring, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [41] <- "ppt_spring"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 41)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.spring)
+gc ()
+
+ppt.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\ppt_wt")
+ppt.winter <- raster::projectRaster (ppt.winter, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.winter, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [42] <- "ppt_winter"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 42)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.winter)
+gc ()
+
+temp.avg.autumn <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tave_at")
+temp.avg.autumn <- raster::projectRaster (temp.avg.autumn, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.avg.autumn <- temp.avg.autumn / 10
+rsf.locations <- raster::extract (temp.avg.autumn, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [43] <- "temp_avg_autumn"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 43)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.avg.autumn)
+gc ()
+
+temp.avg.summer <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tave_sm")
+temp.avg.summer <- raster::projectRaster (temp.avg.summer, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.avg.summer <- temp.avg.summer / 10
+rsf.locations <- raster::extract (temp.avg.summer, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [44] <- "temp_avg_summer"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 44)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.avg.summer)
+gc ()
+
+temp.avg.spring <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tave_sp")
+temp.avg.spring <- raster::projectRaster (temp.avg.spring, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.avg.spring <- temp.avg.spring / 10
+rsf.locations <- raster::extract (temp.avg.spring, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [45] <- "temp_avg_spring"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 45)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.avg.spring)
+gc ()
+
+temp.avg.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tave_wt")
+temp.avg.winter <- raster::projectRaster (temp.avg.winter, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.avg.winter <- temp.avg.winter / 10
+rsf.locations <- raster::extract (temp.avg.winter, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [46] <- "temp_avg_winter"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 46)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.avg.winter)
+gc ()
+
+temp.max.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmax_wt")
+temp.max.winter <- raster::projectRaster (temp.max.winter, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.max.winter <- temp.max.winter / 10
+rsf.locations <- raster::extract (temp.max.winter, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [47] <- "temp_max_winter"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 47)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.max.winter)
+gc ()
+
+temp.max.autumn <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmax_at")
+temp.max.autumn <- raster::projectRaster (temp.max.autumn, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.max.autumn <- temp.max.autumn / 10
+rsf.locations <- raster::extract (temp.max.autumn, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [49] <- "temp_max_autumn"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 49)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.max.autumn)
+gc ()
+
+temp.max.summer <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmax_sm")
+temp.max.summer <- raster::projectRaster (temp.max.summer, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.max.summer <- temp.max.summer / 10
+rsf.locations <- raster::extract (temp.max.summer, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [50] <- "temp_max_summer"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 50)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.max.summer)
+gc ()
+
+temp.max.spring <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmax_sp")
+temp.max.spring <- raster::projectRaster (temp.max.spring, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.max.spring <- temp.max.spring / 10
+rsf.locations <- raster::extract (temp.max.spring, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [51] <- "temp_max_spring"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 51)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.max.spring)
+gc ()
+
+temp.min.autumn <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmin_at")
+temp.min.autumn <- raster::projectRaster (temp.min.autumn, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.min.autumn <- temp.min.autumn / 10
+rsf.locations <- raster::extract (temp.min.autumn, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [52] <- "temp_min_autumn"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 52)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.min.autumn)
+gc ()
+
+temp.min.summer <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmin_sm")
+temp.min.summer <- raster::projectRaster (temp.min.summer, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.min.summer <- temp.min.summer / 10
+rsf.locations <- raster::extract (temp.min.summer, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [53] <- "temp_min_summer"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 53)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.min.summer)
+gc ()
+
+temp.min.spring <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmin_sp")
+temp.min.spring <- raster::projectRaster (temp.min.spring, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.min.spring <- temp.min.spring / 10
+rsf.locations <- raster::extract (temp.min.spring, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [54] <- "temp_min_spring"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 54)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.min.spring)
+gc ()
+
+temp.min.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tmin_sp")
+temp.min.winter <- raster::projectRaster (temp.min.winter, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+temp.min.winter <- temp.min.winter / 10
+rsf.locations <- raster::extract (temp.min.winter, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [55] <- "temp_min_winter"
+rsf.data <- dplyr::full_join (rsf.data, rsf.locations@data [c (9, 55)], 
+                              by = c ("ptID" = "ptID")) 
+rm (temp.min.winter)
+gc ()
+
+# Monthly
+# switched here to covariate-specifc data.frames becuase getting large
+growing.degree.day.jan <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_01")
+growing.degree.day.jan <- raster::projectRaster (growing.degree.day.jan, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.jan, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [10] <- "growing_degree_days_january"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.jan)
+gc ()
+
+growing.degree.day.feb <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_02")
+growing.degree.day.feb <- raster::projectRaster (growing.degree.day.feb, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.feb, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [11] <- "growing_degree_days_february"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 11)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.feb)
+gc ()
+
+growing.degree.day.mar <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_03")
+growing.degree.day.mar <- raster::projectRaster (growing.degree.day.mar, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.mar, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [12] <- "growing_degree_days_march"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 12)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.mar)
+gc ()
+
+growing.degree.day.apr <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_04")
+growing.degree.day.apr <- raster::projectRaster (growing.degree.day.apr, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.apr, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [13] <- "growing_degree_days_april"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 13)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.apr)
+gc ()
+
+growing.degree.day.may <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_05")
+growing.degree.day.may <- raster::projectRaster (growing.degree.day.may, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.may, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [14] <- "growing_degree_days_may"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 14)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.may)
+gc ()
+
+growing.degree.day.june <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_06")
+growing.degree.day.june <- raster::projectRaster (growing.degree.day.june, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.june, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [15] <- "growing_degree_days_june"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 15)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.june)
+gc ()
+
+growing.degree.day.july <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_07")
+growing.degree.day.july <- raster::projectRaster (growing.degree.day.july, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.july, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [16] <- "growing_degree_days_july"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 16)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.july)
+gc ()
+
+growing.degree.day.aug <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_08")
+growing.degree.day.aug <- raster::projectRaster (growing.degree.day.aug, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.aug, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [17] <- "growing_degree_days_aug"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 17)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.aug)
+gc ()
+
+growing.degree.day.sept <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_09")
+growing.degree.day.sept <- raster::projectRaster (growing.degree.day.sept, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.sept, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [18] <- "growing_degree_days_sept"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 18)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.sept)
+gc ()
+
+growing.degree.day.oct <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_10")
+growing.degree.day.oct <- raster::projectRaster (growing.degree.day.oct, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.oct, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [19] <- "growing_degree_days_oct"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 19)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.oct)
+gc ()
+
+growing.degree.day.nov <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_11")
+growing.degree.day.nov <- raster::projectRaster (growing.degree.day.nov, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.nov, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [20] <- "growing_degree_days_nov"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 20)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.nov)
+gc ()
+
+growing.degree.day.dec <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\dd5_12")
+growing.degree.day.dec <- raster::projectRaster (growing.degree.day.dec, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (growing.degree.day.dec, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [21] <- "growing_degree_days_dec"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 21)], 
+                              by = c ("ptID" = "ptID")) 
+rm (growing.degree.day.dec)
+gc ()
+
+frost.free.day.jan <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd01")
+frost.free.day.jan <- raster::projectRaster (frost.free.day.jan, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.jan, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [33] <- "frost_free_days_january"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.jan)
+gc ()
+
+frost.free.day.feb <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd02")
+frost.free.day.feb <- raster::projectRaster (frost.free.day.feb, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.feb, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [34] <- "frost_free_days_february"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 34)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.feb)
+gc ()
+
+frost.free.day.mar <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd03")
+frost.free.day.mar <- raster::projectRaster (frost.free.day.mar, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.mar, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [24] <- "frost_free_days_march"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 24)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.mar)
+gc ()
+
+frost.free.day.apr <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd04")
+frost.free.day.apr <- raster::projectRaster (frost.free.day.apr, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.apr, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [25] <- "frost_free_days_april"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 25)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.apr)
+gc ()
+
+frost.free.day.may <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd05")
+frost.free.day.may <- raster::projectRaster (frost.free.day.may, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.may, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [26] <- "frost_free_days_may"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 26)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.may)
+gc ()
+
+frost.free.day.june <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd06")
+frost.free.day.june <- raster::projectRaster (frost.free.day.june, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.june, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [27] <- "frost_free_days_june"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 27)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.june)
+gc ()
+
+frost.free.day.july <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd07")
+frost.free.day.july <- raster::projectRaster (frost.free.day.july, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.july, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [28] <- "frost_free_days_july"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 28)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.july)
+gc ()
+
+frost.free.day.aug <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd08")
+frost.free.day.aug <- raster::projectRaster (frost.free.day.aug, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.aug, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [29] <- "frost_free_days_aug"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 29)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.aug)
+gc ()
+
+frost.free.day.sept <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd09")
+frost.free.day.sept <- raster::projectRaster (frost.free.day.sept, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.sept, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [30] <- "frost_free_days_sept"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 30)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.sept)
+gc ()
+
+frost.free.day.oct <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd10")
+frost.free.day.oct <- raster::projectRaster (frost.free.day.oct, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.oct, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [31] <- "frost_free_days_oct"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 31)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.oct)
+gc ()
+
+frost.free.day.nov <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd11")
+frost.free.day.nov <- raster::projectRaster (frost.free.day.nov, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.nov, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [32] <- "frost_free_days_nov"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 32)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.nov)
+gc ()
+
+frost.free.day.dec <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\nffd12")
+frost.free.day.dec <- raster::projectRaster (frost.free.day.dec, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (frost.free.day.dec, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [33] <- "frost_free_days_dec"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 33)], 
+                              by = c ("ptID" = "ptID")) 
+rm (frost.free.day.dec)
+gc ()
+
+ppt.as.snow.jan <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas01")
+ppt.as.snow.jan <- raster::projectRaster (ppt.as.snow.jan, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.jan, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [35] <- "ppt_as_snow_january"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 35)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.jan)
+gc ()
+
+ppt.as.snow.feb <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas02")
+ppt.as.snow.feb <- raster::projectRaster (ppt.as.snow.feb, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.feb, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [36] <- "ppt_as_snow_february"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 36)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.feb)
+gc ()
+
+ppt.as.snow.mar <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas03")
+ppt.as.snow.mar <- raster::projectRaster (ppt.as.snow.mar, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.mar, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [37] <- "ppt_as_snow_march"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 37)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.mar)
+gc ()
+
+ppt.as.snow.apr <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas04")
+ppt.as.snow.apr <- raster::projectRaster (ppt.as.snow.apr, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.apr, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [38] <- "ppt_as_snow_april"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 38)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.apr)
+gc ()
+
+ppt.as.snow.may <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas05")
+ppt.as.snow.may <- raster::projectRaster (ppt.as.snow.may, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.may, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [39] <- "ppt_as_snow_may"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 39)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.may)
+gc ()
+
+ppt.as.snow.june <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas06")
+ppt.as.snow.june <- raster::projectRaster (ppt.as.snow.june, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.june, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [40] <- "ppt_as_snow_june"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 40)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.june)
+gc ()
+
+ppt.as.snow.july <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas07")
+ppt.as.snow.july <- raster::projectRaster (ppt.as.snow.july, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.july, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [41] <- "ppt_as_snow_july"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 41)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.july)
+gc ()
+
+ppt.as.snow.aug <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas08")
+ppt.as.snow.aug <- raster::projectRaster (ppt.as.snow.aug, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.aug, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [42] <- "ppt_as_snow_aug"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 42)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.aug)
+gc ()
+
+ppt.as.snow.sept <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas09")
+ppt.as.snow.sept <- raster::projectRaster (ppt.as.snow.sept, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.sept, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [43] <- "ppt_as_snow_sept"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 43)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.sept)
+gc ()
+
+ppt.as.snow.oct <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas10")
+ppt.as.snow.oct <- raster::projectRaster (ppt.as.snow.oct, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.oct, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [44] <- "ppt_as_snow_oct"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 44)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.oct)
+gc ()
+
+ppt.as.snow.nov <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas11")
+ppt.as.snow.nov <- raster::projectRaster (ppt.as.snow.nov, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.nov, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [45] <- "ppt_as_snow_nov"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 45)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.nov)
+gc ()
+
+ppt.as.snow.dec <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\pas12")
+ppt.as.snow.dec <- raster::projectRaster (ppt.as.snow.dec, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.as.snow.dec, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [46] <- "ppt_as_snow_dec"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 46)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.as.snow.dec)
+gc ()
+
+ppt.jan <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt01")
+ppt.jan <- raster::projectRaster (ppt.jan, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.jan, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [47] <- "ppt_january"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 47)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.jan)
+gc ()
+
+ppt.feb <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt02")
+ppt.feb <- raster::projectRaster (ppt.feb, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.feb, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [48] <- "ppt_february"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 48)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.feb)
+gc ()
+
+ppt.mar <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt03")
+ppt.mar <- raster::projectRaster (ppt.mar, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.mar, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [49] <- "ppt_march"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 49)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.mar)
+gc ()
+
+ppt.apr <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt04")
+ppt.apr <- raster::projectRaster (ppt.apr, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.apr, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [50] <- "ppt_april"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 50)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.apr)
+gc ()
+
+ppt.may <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt05")
+ppt.may <- raster::projectRaster (ppt.may, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.may, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [51] <- "ppt_may"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 51)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.may)
+gc ()
+
+ppt.june <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt06")
+ppt.june <- raster::projectRaster (ppt.june, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.june, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [52] <- "ppt_june"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 52)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.june)
+gc ()
+
+ppt.july <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt07")
+ppt.july <- raster::projectRaster (ppt.july, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.july, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [53] <- "ppt_july"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 53)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.july)
+gc ()
+
+ppt.aug <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt08")
+ppt.aug <- raster::projectRaster (ppt.aug, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.aug, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [54] <- "ppt_aug"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 54)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.aug)
+gc ()
+
+ppt.sept <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt09")
+ppt.sept <- raster::projectRaster (ppt.sept, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.sept, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [55] <- "ppt_sept"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 55)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.sept)
+gc ()
+
+ppt.oct <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt10")
+ppt.oct <- raster::projectRaster (ppt.oct, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.oct, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [56] <- "ppt_oct"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 56)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.oct)
+gc ()
+
+ppt.nov <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt11")
+ppt.nov <- raster::projectRaster (ppt.nov, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.nov, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [57] <- "ppt_nov"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 57)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.nov)
+gc ()
+
+ppt.dec <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\ppt12")
+ppt.dec <- raster::projectRaster (ppt.dec, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (ppt.dec, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [58] <- "ppt_dec"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 58)], 
+                              by = c ("ptID" = "ptID")) 
+rm (ppt.dec)
+gc ()
+
+tave.jan <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave01")
+tave.jan <- raster::projectRaster (tave.jan, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.jan <- tave.jan / 10
+rsf.locations <- raster::extract (tave.jan, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [59] <- "temp_avg_january"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 59)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.jan)
+gc ()
+
+tave.feb <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave02")
+tave.feb <- raster::projectRaster (tave.feb, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.feb <- tave.feb / 10
+rsf.locations <- raster::extract (tave.feb, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [60] <- "temp_avg_february"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 60)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.feb)
+gc ()
+
+tave.mar <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave03")
+tave.mar <- raster::projectRaster (tave.mar, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.mar <- tave.mar / 10
+rsf.locations <- raster::extract (tave.mar, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [61] <- "temp_avg_march"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 61)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.mar)
+gc ()
+
+tave.apr <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave04")
+tave.apr <- raster::projectRaster (tave.apr, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.apr <- tave.apr / 10
+rsf.locations <- raster::extract (tave.apr, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [62] <- "temp_avg_april"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 62)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.apr)
+gc ()
+
+tave.may <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave05")
+tave.may <- raster::projectRaster (tave.may, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.may <- tave.may / 10
+rsf.locations <- raster::extract (tave.may, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [63] <- "temp_avg_may"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 63)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.may)
+gc ()
+
+tave.june <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave06")
+tave.june <- raster::projectRaster (tave.june, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.june <- tave.june / 10
+rsf.locations <- raster::extract (tave.june, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [64] <- "temp_avg_june"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 64)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.june)
+gc ()
+
+tave.july <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave07")
+tave.july <- raster::projectRaster (tave.july, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.july <- tave.july / 10
+rsf.locations <- raster::extract (tave.july, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [65] <- "temp_avg_july"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 65)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.july)
+gc ()
+
+tave.aug <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave08")
+tave.aug <- raster::projectRaster (tave.aug, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.aug <- tave.aug / 10
+rsf.locations <- raster::extract (tave.aug, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [66] <- "temp_avg_aug"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 66)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.aug)
+gc ()
+
+tave.sept <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave09")
+tave.sept <- raster::projectRaster (tave.sept, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.sept <- tave.sept / 10
+rsf.locations <- raster::extract (tave.sept, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [67] <- "temp_avg_sept"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 67)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.sept)
+gc ()
+
+tave.oct <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave10")
+tave.oct <- raster::projectRaster (tave.oct, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.oct <- tave.oct / 10
+rsf.locations <- raster::extract (tave.oct, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [68] <- "temp_avg_oct"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 68)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.oct)
+gc ()
+
+tave.nov <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave11")
+tave.nov <- raster::projectRaster (tave.nov, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.nov <- tave.nov / 10
+rsf.locations <- raster::extract (tave.nov, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [69] <- "temp_avg_nov"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 69)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.nov)
+gc ()
+
+tave.dec <- raster ("C:\\Work\\caribou\\clus_data\\climate\\monthly\\tave12")
+tave.dec <- raster::projectRaster (tave.dec, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+tave.dec <- tave.dec / 10
+rsf.locations <- raster::extract (tave.dec, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [70] <- "temp_avg_dec"
+rsf.data.climate <- dplyr::full_join (rsf.data.climate, rsf.locations@data [c (9, 70)], 
+                              by = c ("ptID" = "ptID")) 
+rm (tave.dec)
+gc ()
+
+
+#===================================================
+# Vegetation
+#===================================================
+# BEC
+bec <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\bec_20181106\\BEC_BIOGEOCLIMATIC_POLY.gdb", layer = "WHSE_FOREST_VEGETATION_BEC_BIOGEOCLIMATIC_POLY")
+bec <- as (bec, 'Spatial')
+sample.pts.bec <- sp::over (rsf.locations, bec [8]) # column 8 is the BEC label
+sample.pts.bec$ptID <- 1:2671047 # create a ptID to join data on
+rsf.locations@data <- dplyr::full_join (rsf.locations@data, sample.pts.bec, 
+                                         by = c ("ptID" = "ptID")) 
+# I did some visual inspection in GIS to see where points fell relative to caribou range and 
+# confirmed that the point order is equivalent to ID. 
+names (rsf.locations) [10] <- "bec_label"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (bec)
+gc ()
+
+# DU wetlands
+du.wetland <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_du_wetland_bcalbers.tif")
+# du.wetland <- raster::projectRaster (du.wetland, methods = 'ngb', crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+
+
+
+
+
+class.du.wetland <- read.csv ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\du_wetland_classes.csv",
+                              sep = ",")
+
+
+
+
+sample.pts.bec <- sp::over (rsf.locations, bec [8]) # column 8 is the BEC label
+sample.pts.bec$ptID <- 1:2671047 # create a ptID to join data on
+rsf.locations@data <- dplyr::full_join (rsf.locations@data, sample.pts.bec, 
+                                         by = c ("ptID" = "ptID")) 
+# I did some visual inspection in GIS to see where points fell relative to caribou range and 
+# confirmed that the point order is equivalent to ID. 
+names (rsf.locations) [10] <- "bec_label"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 10)], 
+                              by = c ("ptID" = "ptID")) 
+rm (bec)
+gc ()
+
+
+
+ogrListLayers("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\DUC_EWC_Deliverables\\Data\\DUC_NEBC_Enhanced_Wetland_Classification.gdb")
+
+
+
+
+# write.table (rsf.data.veg, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv", sep = ",")
+
+
+
+
+
+# rsf.data.climate <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv")
+
+
+# write.table (rsf.data.climate, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv", sep = ",")
 
 test <- rsf.data %>%
           filter (ptID == 963805)
 
+test <- rsf.locations@data %>%
+          filter (ptID == 2374727)
 
 
+#===================================================
+# Saving covariate-specific data frames
+#===================================================
+rsf.data.veg <- rsf.data.climate %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID)
+write.table (rsf.data.veg, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv", sep = ",")
 
+rsf.data.terrain <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, elevation, easting, northing, slope)
+write.table (rsf.data.terrain, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_terrain.csv", sep = ",")
 
+rsf.data.human.nonforest <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, distance_to_agriculture, distance_to_mines, distance_to_wind_power, distance_to_railway, distance_to_pipeline, seismic, distance_to_wells, distance_to_paved_road, distance_to_loose_road, distance_to_petroleum_road, distance_to_rough_road, distance_to_trim_transport_road, distance_to_unknown_road, distance_to_ski_hill)
+write.table (rsf.data.human.nonforest, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_human_nonforest.csv", sep = ",")
 
+rsf.data.cutblock <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, cutblocks_pre1957, cutblocks_1958, cutblocks_1959, cutblocks_1960, cutblocks_1961, cutblocks_1962, cutblocks_1963, cutblocks_1964, cutblocks_1965, cutblocks_1966, cutblocks_1967, cutblocks_1968, cutblocks_1969, cutblocks_1970, cutblocks_1971, cutblocks_1972, cutblocks_1973, cutblocks_1974, cutblocks_1975, cutblocks_1976, cutblocks_1977, cutblocks_1978, cutblocks_1979, cutblocks_1980, cutblocks_1981, cutblocks_1982, cutblocks_1983, cutblocks_1984, cutblocks_1985, cutblocks_1986, cutblocks_1987, cutblocks_1988, cutblocks_1989, cutblocks_1990, cutblocks_1991, cutblocks_1992, cutblocks_1993, cutblocks_1994, cutblocks_1995, cutblocks_1996, cutblocks_1997, cutblocks_1998, cutblocks_1999, cutblocks_2000, cutblocks_2001, cutblocks_2002, cutblocks_2003, cutblocks_2004, cutblocks_2005, cutblocks_2006, cutblocks_2007, cutblocks_2008, cutblocks_2009, cutblocks_2010, cutblocks_2011, cutblocks_2012, cutblocks_2013, cutblocks_2014, cutblocks_2015, cutblocks_2016, cutblocks_2017, distance_to_cutblocks_pre1957, distance_to_cutblocks_1957, distance_to_cutblocks_1958, distance_to_cutblocks_1959, distance_to_cutblocks_1960, distance_to_cutblocks_1961, distance_to_cutblocks_1962, distance_to_cutblocks_1963,  distance_to_cutblocks_1964, distance_to_cutblocks_1965, distance_to_cutblocks_1966, distance_to_cutblocks_1967, distance_to_cutblocks_1968, distance_to_cutblocks_1969, distance_to_cutblocks_1970, distance_to_cutblocks_1971, distance_to_cutblocks_1972, distance_to_cutblocks_1973, distance_to_cutblocks_1974, distance_to_cutblocks_1975,distance_to_cutblocks_1976, distance_to_cutblocks_1977, distance_to_cutblocks_1978, distance_to_cutblocks_1979,  distance_to_cutblocks_1980, distance_to_cutblocks_1981, distance_to_cutblocks_1982, distance_to_cutblocks_1983, distance_to_cutblocks_1984, distance_to_cutblocks_1985, distance_to_cutblocks_1986, distance_to_cutblocks_1987,  distance_to_cutblocks_1988, distance_to_cutblocks_1989, distance_to_cutblocks_1990, distance_to_cutblocks_1991, distance_to_cutblocks_1992, distance_to_cutblocks_1993, distance_to_cutblocks_1994, distance_to_cutblocks_1995, distance_to_cutblocks_1996, distance_to_cutblocks_1997, distance_to_cutblocks_1998, distance_to_cutblocks_1999, distance_to_cutblocks_2000, distance_to_cutblocks_2001, distance_to_cutblocks_2002, distance_to_cutblocks_2003, distance_to_cutblocks_2004, distance_to_cutblocks_2005, distance_to_cutblocks_2006, distance_to_cutblocks_2007, distance_to_cutblocks_2008, distance_to_cutblocks_2009, distance_to_cutblocks_2010, distance_to_cutblocks_2011, distance_to_cutblocks_2012, distance_to_cutblocks_2013, distance_to_cutblocks_2014, distance_to_cutblocks_2015, distance_to_cutblocks_2016, distance_to_cutblocks_2017)
+write.table (rsf.data.cutblock, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock.csv", sep = ",")
 
+rsf.data.fire <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, fire_1957, fire_1958, fire_1959, fire_1960, fire_1961, fire_1962, fire_1963, fire_1964, fire_1965, fire_1966,fire_1967, fire_1968,fire_1969, fire_1970,fire_1971, fire_1972, fire_1973, fire_1974, fire_1975, fire_1976, fire_1977, fire_1978, fire_1979, fire_1980, fire_1981, fire_1982, fire_1983, fire_1984, fire_1985, fire_1986, fire_1987, fire_1988, fire_1989, fire_1990, fire_1991, fire_1992, fire_1993, fire_1994, fire_1995, fire_1996, fire_1997, fire_1998, fire_1999, fire_2000, fire_2001, fire_2002, fire_2003, fire_2004, fire_2005, fire_2006, fire_2007, fire_2008, fire_2009, fire_2010, fire_2011, fire_2012, fire_2013, fire_2014, fire_2015, fire_2016, fire_2017)
+write.table (rsf.data.fire, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_fire.csv", sep = ",")
 
+rsf.data.beetle <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, beetle_moderate_1999, beetle_moderate_2000, beetle_moderate_2001, beetle_moderate_2002, beetle_moderate_2003, beetle_moderate_2004, beetle_moderate_2005, beetle_moderate_2006, beetle_moderate_2007, beetle_moderate_2008, beetle_moderate_2009, beetle_moderate_2010, beetle_moderate_2011, beetle_moderate_2012, beetle_moderate_2013, beetle_moderate_2014, beetle_moderate_2015, beetle_moderate_2016, beetle_moderate_2017, beetle_severe_1999, beetle_severe_2000, beetle_severe_2001, beetle_severe_2002, beetle_severe_2003, beetle_severe_2004, beetle_severe_2005, beetle_severe_2006, beetle_severe_2007, beetle_severe_2008, beetle_severe_2009, beetle_severe_2010, beetle_severe_2011, beetle_severe_2012, beetle_severe_2013, beetle_severe_2014, beetle_severe_2015, beetle_severe_2016, beetle_severe_2017, beetle_very_severe_2003, beetle_very_severe_2004, beetle_very_severe_2005, beetle_very_severe_2006, beetle_very_severe_2007, beetle_very_severe_2008, beetle_very_severe_2009, beetle_very_severe_2010, beetle_very_severe_2011, beetle_very_severe_2012, beetle_very_severe_2013, beetle_very_severe_2014, beetle_very_severe_2015, beetle_very_severe_2016, beetle_very_severe_2017)
+write.table (rsf.data.beetle, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_beetle.csv", sep = ",")
 
+rsf.data.water <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, distance_to_lake, distance_to_watercourse)
+write.table (rsf.data.water, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_water.csv", sep = ",")
 
-
-
-
-
+rsf.data.climate <- rsf.data %>%
+dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, frost_free_start_julian, growing_degree_days, frost_free_end_julian, frost_free_period, mean_annual_ppt, mean_annual_temp, mean_coldest_month_temp, mean_summer_ppt, mean_warmest_month_temp, number_frost_free_days, fall_growing_degree_days, summer_growing_degree_days, spring_growing_degree_days, winter_growing_degree_days, frost_free_days_autumn, frost_free_days_summer, frost_free_days_spring, ppt_as_snow_annual, frost_free_days_winter, ppt_as_snow_autumn, ppt_as_snow_summer, ppt_as_snow_spring, ppt_as_snow_winter, ppt_autumn, ppt_summer, ppt_spring, ppt_winter, temp_avg_autumn, temp_avg_summer, temp_avg_spring, temp_avg_winter, temp_max_winter, temp_max_autumn, temp_max_summer, temp_max_spring, temp_min_autumn, temp_min_summer, temp_min_spring, temp_min_winter)
+write.table (rsf.data.climate, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv", sep = ",")
 
 rsf.locations.data <- st_as_sf (rsf.locations)
 
@@ -3552,16 +5318,7 @@ dbDisconnect (conn)
 
 
 
-#===================================================
-# Sample current BEC at locations
-#===================================================
-sample.pts.bec <- sp::over (sample.pts.prj, bec.current [15]) # column 15 is the BEC name
-sample.pts.bec$ptID <- 1:131054 # create a ptID to join data on
 
-sample.pts.prj@data <- dplyr::full_join (sample.pts.prj@data, sample.pts.bec, 
-                                         by = c ("ptID" = "ptID")) 
-# I did some visual inspection in GIS to see where points fell relative to caribou range and 
-# confirmed that the point order is equivalent to ID. 
 
 
 

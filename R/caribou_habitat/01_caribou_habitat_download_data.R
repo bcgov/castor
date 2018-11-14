@@ -30,7 +30,7 @@ require (RPostgreSQL)
 require (raster)
 require (rpostgis)
 # data directory
-setwd ('C:\\Work\\caribou\\clus_data\\caribou_habitat_model')
+setwd ('C:\\Work\\caribou\\clus_data\\')
 
 #########################
 # MANUAL DATA DOWNLOADS #
@@ -188,14 +188,39 @@ unzip ("province\\border.zip",
        exdir = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\province")
 file.remove ("province\\border.zip")
 
-# current climate measures; downloaded 25 July 2018
+# current climate measures; downloaded 6 November 2018
 # Reference: <http://climatebcdata.climatewna.com/#3._reference> # Wang, T., Hamann, A., Spittlehouse, D.L., Murdock, T., 2012. ClimateWNA - High-Resolution Spatial Climate Data for Western North America. Journal of Applied Meteorology and Climatology, 51: 16-29.
-download ("http://climatebcdata.climatewna.com/download/Normal_1981_2010MSY/Normal_1981_2010_seasonal.zip", 
-          dest = "climate\\Normal_1981_2010_seasonal.zip", 
+# Annual
+download ("http://climatebcdata.climatewna.com/download/Normal_1981_2010MSY/Normal_1981_2010_annual.zip", 
+          dest = "climate\\annual\\Normal_1981_2010_annual.zip", 
           mode = "wb")
-unzip ("climate\\Normal_1981_2010_seasonal.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\climate")
-file.remove ("climate\\Normal_1981_2010_seasonal.zip")
+unzip ("climate\\annual\\Normal_1981_2010_annual.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\climate\\annual")
+file.remove ("climate\\annual\\Normal_1981_2010_annual.zip")
+
+# Seasonal
+download ("http://climatebcdata.climatewna.com/download/Normal_1981_2010MSY/Normal_1981_2010_seasonal.zip", 
+          dest = "climate\\seasonal\\Normal_1981_2010_seasonal.zip", 
+          mode = "wb")
+unzip ("climate\\seasonal\\Normal_1981_2010_seasonal.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\climate\\seasonal")
+file.remove ("climate\\seasonal\\Normal_1981_2010_seasonal.zip")
+
+# Monthly
+download ("http://climatebcdata.climatewna.com/download/Normal_1981_2010MSY/Normal_1981_2010_monthly.zip", 
+          dest = "climate\\monthly\\Normal_1981_2010_monthly.zip", 
+          mode = "wb")
+unzip ("climate\\monthly\\Normal_1981_2010_monthly.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\climate\\monthly")
+file.remove ("climate\\monthly\\Normal_1981_2010_monthly.zip")
+
+# Monthly derived
+download ("http://climatebcdata.climatewna.com/download/Normal_1981_2010MSY/Normal_1981_2010_MonthDrv.zip", 
+          dest = "climate\\monthly\\Normal_1981_2010_MonthDrv.zip", 
+          mode = "wb")
+unzip ("climate\\monthly\\Normal_1981_2010_MonthDrv.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\climate\\monthly")
+file.remove ("climate\\monthly\\Normal_1981_2010_MonthDrv.zip")
 
 # Mountain Pine Beetle
 # https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/aerial-overview-surveys/methods/damage-ratings
