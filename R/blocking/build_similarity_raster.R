@@ -15,3 +15,5 @@
 #The workflow follows as:
 #1. Get bc thlb - as a mask for pixels to be included in the analysis
 #2. Get 2003 VRI information of forest structure (Basal Area, Volume, Age)
+
+source()
