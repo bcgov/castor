@@ -34,8 +34,9 @@ setCSVPostgresTable<-function(name, table){
 }
 
 #----------------------------------------------------------------------------------------------------------------------------------------
-#R functions for Accessing PostGIS FAIB Raster functions
-#This assumes the functions are loaded in db.
+##R functions for Accessing PostGIS FAIB Raster functions
+##This assumes the functions are loaded in db.
+## See https://github.com/bcgov/clus/blob/master/SQL/Raster/Documentation/FAIB_PostGIS_Raster_Function_Documentation.md
 
 #Mike Fowler
 #Spatial Data Analyst
