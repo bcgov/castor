@@ -4,9 +4,7 @@ output:
     keep_md: yes
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 ## Introduction
 The size of a harvest unit (ie. a cutblock) has important implications for economic feasiblity, patch size distrubtion objectives and metrics important to wildlife habitat (Ie. distance to a cutblock). While forest cover-polygons, representing stand-level forest attributes, may be assumed as an operational unit; typically, harvest units have included the aggregation of many forest cover-polygons given harvesting operations can capture economies of scale from harvesting a number of stands in a spatially contiguous manner. Given the implications of harvesting units on wildlife and other forest values; how do we simulate into the future the size of these operational harvesting units? 
 
@@ -42,28 +40,16 @@ In blockingCLUS, we leverage ideas from image based segementation and SCRM to de
 
 The following is an example of an example test from using this algorithum
 
-```{r, echo =FALSE, message=FALSE}
-library(raster)
-plot(raster("test.tif"))
-title("Example 'homogenous' harvest units with some random variability")
-
-plot(raster("simulated.tif"))
-title("Simulated harvest unit boundaries")
-```
-
-An important consideration of this pre-block algorithum is thTwo improvements to this algorithum can be made for future work : i) if a size constraint is not met then determine if the current harvest unit could fit in the next largest size constraint; ii) use the weights of the edges to determine the order from which to add pixels. For instance, the 'islands' within a harvest unit is a result of this issue. 
-
+![](draft-CLUS-blocking_files/figure-html/unnamed-chunk-1-1.png)<!-- -->![](draft-CLUS-blocking_files/figure-html/unnamed-chunk-1-2.png)<!-- -->
 
 ## Case Study
-```{r, echo =FALSE, message=FALSE}
-source("C:/Users/KLOCHHEA/clus/R/functions/functions.R")
-library(ggplot2)
-```
+
 
 The spatial simulation of cutblock size can be approached in 3 ways. 1) set the cutblock size as a random variable from a distribution (estimated empirically), 2) pre-solve the forest area into blocks by aggregating based on some rule
 
 Below is a histogram of the historical (1908-2018) cutblock size which could be used direct block size.The negative "J" shaped curve is often similar to natural distruabnce size and thus provides some empirical evidence of cutblock size emulating natural disturbances which has been argued as a foundation for achieving forest management objectives. This is useful becuase forests without a comprehensive historical cutblock dataset could thus rely on the natural disturbance size distribution.
-```{r}
+
+```r
 dist.cutblk.size<-getTableQuery("select width_bucket(areaha, 0, 100, 100) as sizebin, count(*)
     from cns_cut_bl_polygon where harvestyr >= 1980 and datasource != 'Landsat'
     group by sizebin 
@@ -74,6 +60,8 @@ ggplot(dist.cutblk.size, aes(x = sizebin,y =count)) +
   xlab("Cutblock Size (ha)") + 
   ylab("Frequency")
 ```
+
+![](draft-CLUS-blocking_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 
 
