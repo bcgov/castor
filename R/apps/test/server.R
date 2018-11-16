@@ -152,9 +152,9 @@ shinyServer(function(input, output, session) {
     
   })
   uwrHerdSelect<-reactive({
-    uwr<-uwr[st_buffer(herdSelect(), dist=25000),,op=st_intersects]
-    if(length(uwr$geom) > 0){
-      uwr
+    uw<-uwr[st_buffer(herdSelect(), dist=25000),,op=st_intersects]
+    if(length(uw$geom) > 0){
+      uw
     }else{
       empt
     }
