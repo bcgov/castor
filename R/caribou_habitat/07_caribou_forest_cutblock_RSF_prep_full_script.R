@@ -23,6 +23,20 @@
 #  R Packages: sf, RPostgreSQL, rpostgis, fasterize, raster, dplyr
 #  Data: 
 #=================================
+options (scipen=999)
+require (RPostgreSQL)
+require (dplyr)
+require (ggplot2)
+require (raster)
+require (rgdal)
+require (tidyr)
+require (snow)
+require (ggcorrplot)
+require (rpart)
+require (car)
+require (reshape2)
+require (lme4)
+require (mcgv)
 
 #================
 # Cutblocks Data
@@ -5435,8 +5449,9 @@ p.mat <- round (cor_pmat (corr.du9), 2)
 ggcorrplot (corr.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation")
 
-
-## GLMs ##
+#================================
+# GLMs with new age categories
+#================================
 dist.cut.data <- rsf.data.cut.age [c (1, 3:4, 112:119)] # cutblock data only
 
 # filter data by DU and season
@@ -5928,9 +5943,9 @@ levels (table.glm.summary$years) <- c ("1 to 4 years old", "5 to 9 years old", "
 table.glm.summary$Season <- as.factor (table.glm.summary$Season)
 
 
-#================
-### PLOTS ####
-#================
+#===================================================
+### PLOTS of GLM outputs and disatcne to values ####
+#==================================================
 rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
 
 ### DU6 ###
@@ -6102,8 +6117,6 @@ ggplot (data = table.glm.summary.du8,
   scale_y_continuous (limits = c (-0.04, 0.03), breaks = seq (-0.04, 0.03, by = 0.01))
 
 
-
-
 ### DU9 ###
 # box plot of values
 rsf.data.data.cut.age.du9 <- rsf.data.cut.age %>%
@@ -6160,8 +6173,82 @@ ggplot (data = table.glm.summary.du9,
          panel.background = element_blank ()) +
   scale_y_continuous (limits = c (-0.01, 0.08), breaks = seq (-0.01, 0.08, by = 0.01))
 
+#================================
+# GLMs with fxn responses
+#================================
+rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
+dist.cut.data <- rsf.data.cut.age [c (1:9, 112:115)] # cutblock data only
+# filter data by DU and season
+dist.cut.data.du.6.ew <- dist.cut.data %>%
+  dplyr::filter (du == "du6") %>% 
+  dplyr::filter (season == "EarlyWinter")
+dist.cut.data.du.6.lw <- dist.cut.data %>%
+  dplyr::filter (du == "du6") %>% 
+  dplyr::filter (season == "LateWinter")
+dist.cut.data.du.6.s <- dist.cut.data %>%
+  dplyr::filter (du == "du6") %>% 
+  dplyr::filter (season == "Summer")
+
+dist.cut.data.du.7.ew <- dist.cut.data %>%
+  dplyr::filter (du == "du7") %>% 
+  dplyr::filter (season == "EarlyWinter")
+dist.cut.data.du.7.lw <- dist.cut.data %>%
+  dplyr::filter (du == "du7") %>% 
+  dplyr::filter (season == "LateWinter")
+dist.cut.data.du.7.s <- dist.cut.data %>%
+  dplyr::filter (du == "du7") %>% 
+  dplyr::filter (season == "Summer")
+
+dist.cut.data.du.7.ew <- dist.cut.data %>%
+  dplyr::filter (du == "du7") %>% 
+  dplyr::filter (season == "EarlyWinter")
+dist.cut.data.du.7.lw <- dist.cut.data %>%
+  dplyr::filter (du == "du7") %>% 
+  dplyr::filter (season == "LateWinter")
+dist.cut.data.du.7.s <- dist.cut.data %>%
+  dplyr::filter (du == "du7") %>% 
+  dplyr::filter (season == "Summer")
+
+
+### DU6 ###
+## Early Winter
 
 
 
 
 
+# Standardising covariates (helps with model convergence)
+subda$slope_a<-(subda$slope_a-mean(subda$slope_a))/sd(subda$slope_a)
+subda$distedg<-(subda$distedg-mean(subda$distedg))/sd(subda$distedg)
+subda$disthgh<-(subda$disthgh-mean(subda$disthgh))/sd(subda$disthgh)
+
+sub <- subset (data, use==0)
+slope_E < -tapply (sub$slope_a, sub$packid, mean)
+slope_E2<-tapply(sub$slope_a^2, sub$packid, mean)
+distedg_E<-tapply(sub$distedg, sub$packid, mean)
+distedg_E2<-tapply(sub$distedg^2, sub$packid, mean)
+disthgh_E<-tapply(sub$disthgh, sub$packid, mean)
+disthgh_E2<-tapply(sub$disthgh^2, sub$packid, mean)
+inds<-as.character(subda$packid)
+subda<-cbind(subda,"slopeE"=slope_E[inds],"slopeE2"=slope_E2[inds],"distedgE"=distedg_E[inds],"distedgE2"=distedg_E2[inds],"disthghE"=disthgh_E[inds],"disthghE2"=disthgh_E2[inds],
+             "BurntE"=Burnt_E[inds],"AlpineE"=Alpine_E[inds],"ShrubE"=Shrub_E[inds],"RockE"=Rock_E[inds],
+             "OconifE"=Oconif_E[inds],"HerbaciousE"=Herbacious_E[inds],"CutblockE"=Cutblock_E[inds])
+
+
+
+
+
+# GAMS?
+model.boreal.gam <- gam (pttype ~ s (st.tave.wt.2010) + s(st.nffd.sp.2010) + s(st.pas.wt.2010) + 
+                           s(st.road.dns.27k) + bec.curr.simple + 
+                           (st.pas.wt.2010*st.tave.wt.2010) + (st.nffd.sp.2010*st.tave.wt.2010) +
+                           (st.road.dns.27k*st.tave.wt.2010), 
+                         data = data.boreal,
+                         family = binomial (link = 'logit'))
+model.boreal.gam.resid.partial <- data.frame (predict (model.boreal.gam, type = "terms") + 
+                                                residuals (model.boreal.gam)) # calculate partial residuals
+plot (predict (model.boreal.gam, type = 'response'), residuals.gam (model.boreal.gam, type = "pearson")) # should be mostly a straight line
+plot (data.boreal$st.tave.wt.2010, model.boreal.gam.resid.partial$s.st.tave.wt.2010.) 
+plot (data.boreal$st.road.dns.27k, model.boreal.gam.resid.partial$s.st.road.dns.27k.)
+plot (data.boreal$st.nffd.sp.2010, model.boreal.gam.resid.partial$s.st.nffd.sp.2010.)
+plot (data.boreal$st.pas.wt.2010, model.boreal.gam.resid.partial$s.st.pas.wt.2010.)
