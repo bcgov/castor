@@ -1,0 +1,107 @@
+---
+title: "Caribou Forest Cutblock Resoruce Selection Function Report"
+output: word_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Introduction
+Here I summarize the data visualization and exploration done to identify which forestry cutblokc covariates to include in cairobu reserocue selction fucntion (RSF) models. This was doen across three seasons adn across four designatable units (DUs). I had data thqat estiametd teh disatnce of each cariobu telemerty and each sampled available location to the nearest cutblock, by year, from one year old cuts up to greater than 50 year old cuts. I can;t have 51 disatnce to cutblock covariaets int eh model, so here I look at whether distande to cublcok acorss eyars are correalted with each other. I also fit signle covairate genelaized lieanr models to look at changes in slection of ctublocks acorss years. I use this to group years that are correalted in a meaningful way that will help simplify the model. 
+
+I then also fit distance to cutblcok models usign  fucntional responses adn egeralized addtive models (GAMs) to look for non-lienar firts to teh data. In teh former case, I am teasing whetehr slection fo cublcoks is a fucntion of disatnce to cutblocks within the cariobu home rnage. For the latter I am lookign for non-linear realtionhsips between cariobu selctiona dn distance to cutblock.  
+
+
+
+
+- data on git?
+
+
+CORRELATIONS
+
+first looked at cutblocks. did corratlion plots.  broke into 10 year periods and examined correaltion across years. 
+
+first 10 years highly corralted with each otehr. distance to cutblock very highyl correalted  within 1 year (.e.,g year 1 adn 2, year 2 adn 3) (i.e., corr >0.74) and within 2 years  corr >0.7,  highyl correlated within 3 years  (i.e., corr >0.6) adn somewhat correalted (>0.41) within 4 years.
+
+even more correlated within  years 11 to 20. distance to cutblock very highyl correalted  within 1 year  (i.e., corr >0.8), and within 2 years  corr >0.7,  and highyl correlated within 3 years  (i.e., corr >0.66), and 4 years (>0.68) within 4 years. adn then again highly correlated within 5- 10 years (>0.73)
+
+and then the next 10 years (years 21-30 eyars old) even more correlated, all >0.73.
+
+years 31-40 years old distance to cutblock also generally highyl correalted  (>0.35)
+
+years 41 to >50 years old distance to cutblock correaltion become weak acros years in many cases, but highly variable, e.g., corr = 0.89 between 49 adn 50 years old but 0.32 between 44 adn 45 years old.
+
+
+broke out by DUs to see if teh pattern holds
+DU6; first 10 years distance to cutblock generally very highyl correalted  within 1 year but within 3-4 years  teh correaltion becomes weak. However, years 11-20 are generally highly correalted with each other, although waeker at 30-4 years apart adn stonger again at >4 years apart, adn then years 21-30 adn 31-40 all stongly corerealted with each other. But then >40 years old and generally not correlated and in osme cases negatively correlaetd with each other.
+
+DU7; first 10 years distance to cutblock generally very highyl correalted  across years, and years 11-20, 21-30, 31-40 adn 41-50 even more so. 
+
+DU8; first 10 years distance to cutblock generally highly corealted first 2-4 years, less correaltd 5-10 years; years 11-20 adn 21-30 adn 31-40, highkly correalted within a year, but less so >1 year; years 41 to >50 not very correalted, but morseos 2-3 years
+
+DU9; first 10 years distance to cutblock generally highly corealted first 2-3 years, but not much after; years 11-20 gebnerally correlated; years 21->50 very highly correalted 
+
+here it looks like corealtiosn are generaly strong across teh entire 50 years, but generaly correaltiosn are stonger within 3-4 years of each other. 
+
+## group into ~5-year periods; try corr again ##
+```{r}
+
+```
+
+
+
+
+
+next tried GLMs
+single covariate models, by year adn comapred beta coeeficents across years
+break out by DU and season adn made a table of it then illsutrated
+
+conlcusions:
+- DU6
+    - almost no effect of cutblocks across years; likely due to low density of cutblocks in boreal
+    - all seasons, first 3 years avoid cut
+    - late and early winter patterns generally the same; select cuts years 4-7, then generally avoid
+    - summer, select cuts years 4-11, then hihgly cyclical across years 
+
+- DU7
+    - late and early winter patterns generally the same; weak selection to no selection of cuts 
+      years 1-25, then general avoidance >25
+    - summer, select cuts years 1 to 30-35, then egenrally avoid
+
+- DU8
+  - all seasons, generally select cut years 1-10to20, then generally avoid years >20
+  
+- DU9
+  - general avoidance acorss all years, but some selection between eyars 5-10
+  
+  
+- categorize as years 1-4, 5-9, 10-29, >30
+
+```{r}
+
+```
+
+- categorize as years 1-4, 5-9, 10-29, >30
+  -take minimum ditance to cut for these grousp of years
+
+
+- test with correaltion adn GLMs again
+  - DU6
+      - high corealtion between 10to29 and >29
+      - covariate efefct simialr @ 10to29 and >29 so may  combine these
+  
+  - DU7
+      - high correlation between 5to9, 10to29 and >29 
+      - 
+      
+  - DU8
+      - generally low correaltion; some better 1to4 and 5to9
+      
+  - DU9
+      - high corealtion between 10to29 and >29
+
+
+
+
