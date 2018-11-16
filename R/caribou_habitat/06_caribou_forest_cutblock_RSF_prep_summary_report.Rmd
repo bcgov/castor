@@ -3,15 +3,20 @@ title: "Caribou Forest Cutblock Resoruce Selection Function Report"
 output: word_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
-## R Markdown
+## Introduction
+Here I summarize the data visualization and exploration done to identify which forestry cutblokc covariates to include in cairobu reserocue selction fucntion (RSF) models. This was doen across three seasons adn across four designatable units (DUs). I had data thqat estiametd teh disatnce of each cariobu telemerty and each sampled available location to the nearest cutblock, by year, from one year old cuts up to greater than 50 year old cuts. I can;t have 51 disatnce to cutblock covariaets int eh model, so here I look at whether distande to cublcok acorss eyars are correalted with each other. I also fit signle covairate genelaized lieanr models to look at changes in slection of ctublocks acorss years. I use this to group years that are correalted in a meaningful way that will help simplify the model. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+I then also fit distance to cutblcok models usign  fucntional responses adn egeralized addtive models (GAMs) to look for non-lienar firts to teh data. In teh former case, I am teasing whetehr slection fo cublcoks is a fucntion of disatnce to cutblocks within the cariobu home rnage. For the latter I am lookign for non-linear realtionhsips between cariobu selctiona dn distance to cutblock.  
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+- data on git?
 
 
 CORRELATIONS
