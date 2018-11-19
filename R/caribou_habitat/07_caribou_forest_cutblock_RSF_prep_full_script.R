@@ -23,16 +23,16 @@
 #  R Packages: sf, RPostgreSQL, rpostgis, fasterize, raster, dplyr
 #  Data: 
 #=================================
-options (scipen=999)
+options (scipen = 999)
 require (RPostgreSQL)
 require (dplyr)
 require (ggplot2)
 require (raster)
 require (rgdal)
 require (tidyr)
-require (snow)
+# require (snow)
 require (ggcorrplot)
-require (rpart)
+# require (rpart)
 require (car)
 require (reshape2)
 require (lme4)
@@ -50,36 +50,38 @@ rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_mod
 # broke into 10 year chunks;
 # first 10 years
 dist.cut.1.10.corr <- rsf.data.cut.age [c (10:19)]
-corr.1.10 <- round (cor (dist.cut.1.10.corr), 3)
+corr.1.10 <- round (cor (dist.cut.1.10.corr, method = "spearman"), 3)
 p.mat.1.10 <- round (cor_pmat (dist.cut.1.10.corr), 2)
 ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation Years 1 to 10")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10.png")
 # ggcorrplot (corr, type = "lower", p.mat = p.mat, insig = "blank")
 
 # 10-20  years
 dist.cut.11.20.corr <- rsf.data.cut.age [c (20:29)]
-corr.11.20 <- round (cor (dist.cut.11.20.corr), 3)
+corr.11.20 <- round (cor (dist.cut.11.20.corr, method = "spearman"), 3)
 p.mat.11.20 <- round (cor_pmat (dist.cut.11.20.corr), 2)
 ggcorrplot (corr.11.20, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation Years 11 to 20")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20.png")
 
 # 21-30  years
 dist.cut.21.30.corr <- rsf.data.cut.age [c (30:39)]
-corr.21.30 <- round (cor (dist.cut.21.30.corr), 3)
+corr.21.30 <- round (cor (dist.cut.21.30.corr, method = "spearman"), 3)
 p.mat.21.30 <- round (cor_pmat (dist.cut.21.30.corr), 2)
 ggcorrplot (corr.21.30, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation Years 21 to 30")
 
 # 31-40  years
 dist.cut.31.40.corr <- rsf.data.cut.age [c (40:49)]
-corr.31.40 <- round (cor (dist.cut.31.40.corr), 3)
+corr.31.40 <- round (cor (dist.cut.31.40.corr, method = "spearman"), 3)
 p.mat.31.40 <- round (cor_pmat (dist.cut.31.40.corr), 2)
 ggcorrplot (corr.31.40, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation Years 31 to 40")
 
 # >41  years
 dist.cut.41.50.corr <- rsf.data.cut.age [c (50:60)]
-corr.41.50 <- round (cor (dist.cut.41.50.corr), 3)
+corr.41.50 <- round (cor (dist.cut.41.50.corr, method = "spearman"), 3)
 p.mat.41.50 <- round (cor_pmat (dist.cut.41.50.corr), 2)
 ggcorrplot (corr.41.50, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation Years 41 to >50")
@@ -91,34 +93,39 @@ dist.cut.corr.du.6 <- rsf.data.cut.age %>%
   dplyr::filter (du == "du6")
 
 dist.cut.1.10.corr.du.6 <- dist.cut.corr.du.6 [c (10:19)]
-corr.1.10.du6 <- round (cor (dist.cut.1.10.corr.du.6), 3)
+corr.1.10.du6 <- round (cor (dist.cut.1.10.corr.du.6, method = "spearman"), 3)
 p.mat.1.10 <- round (cor_pmat (corr.1.10.du6), 2)
 ggcorrplot (corr.1.10.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU6 Distance to Cutblock Correlation Years 1 to 10")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10_du6.png")
 
 dist.cut.11.20.corr.du.6 <- dist.cut.corr.du.6 [c (20:29)]
-corr.11.20.du6 <- round (cor (dist.cut.11.20.corr.du.6), 3)
+corr.11.20.du6 <- round (cor (dist.cut.11.20.corr.du.6, method = "spearman"), 3)
 p.mat.11.20 <- round (cor_pmat (corr.11.20.du6), 2)
 ggcorrplot (corr.11.20.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU6 Distance to Cutblock Correlation Years 11 to 20")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20_du6.png")
 
 dist.cut.21.30.corr.du.6 <- dist.cut.corr.du.6 [c (30:39)]
-corr.21.30.du6 <- round (cor (dist.cut.21.30.corr.du.6), 3)
+corr.21.30.du6 <- round (cor (dist.cut.21.30.corr.du.6, method = "spearman"), 3)
 p.mat.21.30 <- round (cor_pmat (corr.21.30.du6), 2)
 ggcorrplot (corr.21.30.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU6 Distance to Cutblock Correlation Years 21 to 30")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_21_30_du6.png")
 
 dist.cut.31.40.corr.du.6 <- dist.cut.corr.du.6 [c (40:49)]
-corr.31.40.du6 <- round (cor (dist.cut.31.40.corr.du.6), 3)
+corr.31.40.du6 <- round (cor (dist.cut.31.40.corr.du.6, method = "spearman"), 3)
 p.mat.31.40 <- round (cor_pmat (corr.31.40.du6), 2)
 ggcorrplot (corr.31.40.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU6 Distance to Cutblock Correlation Years 31 to 40")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_31_40_du6.png")
 
 dist.cut.41.50.corr.du.6 <- dist.cut.corr.du.6 [c (50:60)]
-corr.41.50.du6 <- round (cor (dist.cut.41.50.corr.du.6), 3)
+corr.41.50.du6 <- round (cor (dist.cut.41.50.corr.du.6, method = "spearman"), 3)
 p.mat.41.50 <- round (cor_pmat (corr.41.50.du6), 2)
 ggcorrplot (corr.41.50.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU6 Distance to Cutblock Correlation Years 41 to >50")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_41_50_du6.png")
 
 #########
 ## DU7 ## 
@@ -127,34 +134,39 @@ dist.cut.corr.du.7 <- rsf.data.cut.age %>%
   dplyr::filter (du == "du7")
 
 dist.cut.1.10.corr.du.7 <- dist.cut.corr.du.7 [c (10:19)]
-corr.1.10.du7 <- round (cor (dist.cut.1.10.corr.du.7), 3)
+corr.1.10.du7 <- round (cor (dist.cut.1.10.corr.du.7, method = "spearman"), 3)
 p.mat.1.10 <- round (cor_pmat (corr.1.10.du7), 2)
 ggcorrplot (corr.1.10.du7, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU7 Distance to Cutblock Correlation Years 1 to 10")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10_du7.png")
 
 dist.cut.11.20.corr.du.7 <- dist.cut.corr.du.7 [c (20:29)]
-corr.11.20.du7 <- round (cor (dist.cut.11.20.corr.du.7), 3)
+corr.11.20.du7 <- round (cor (dist.cut.11.20.corr.du.7, method = "spearman"), 3)
 p.mat.11.20 <- round (cor_pmat (corr.11.20.du7), 2)
 ggcorrplot (corr.11.20.du7, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU7 Distance to Cutblock Correlation Years 11 to 20")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20_du7.png")
 
 dist.cut.21.30.corr.du.7 <- dist.cut.corr.du.7 [c (30:39)]
-corr.21.30.du7 <- round (cor (dist.cut.21.30.corr.du.7), 3)
+corr.21.30.du7 <- round (cor (dist.cut.21.30.corr.du.7, method = "spearman"), 3)
 p.mat.21.30 <- round (cor_pmat (corr.21.30.du7), 2)
 ggcorrplot (corr.21.30.du7, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU7 Distance to Cutblock Correlation Years 21 to 30")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_21_30_du7.png")
 
 dist.cut.31.40.corr.du.7 <- dist.cut.corr.du.7 [c (40:49)]
-corr.31.40.du7 <- round (cor (dist.cut.31.40.corr.du.7), 3)
+corr.31.40.du7 <- round (cor (dist.cut.31.40.corr.du.7, method = "spearman"), 3)
 p.mat.31.40 <- round (cor_pmat (corr.31.40.du7), 2)
 ggcorrplot (corr.31.40.du7, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU7 Distance to Cutblock Correlation Years 31 to 40")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_31_40_du7.png")
 
 dist.cut.41.50.corr.du.7 <- dist.cut.corr.du.7 [c (50:60)]
-corr.41.50.du7 <- round (cor (dist.cut.41.50.corr.du.7), 3)
+corr.41.50.du7 <- round (cor (dist.cut.41.50.corr.du.7, method = "spearman"), 3)
 p.mat.41.50 <- round (cor_pmat (corr.41.50.du7), 2)
 ggcorrplot (corr.41.50.du7, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU7 Distance to Cutblock Correlation Years 41 to >50")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_41_50_du7.png")
 
 #########
 ## DU8 ## 
@@ -163,34 +175,39 @@ dist.cut.corr.du.8 <- rsf.data.cut.age %>%
   dplyr::filter (du == "du8")
 
 dist.cut.1.10.corr.du.8 <- dist.cut.corr.du.8 [c (10:19)]
-corr.1.10.du8 <- round (cor (dist.cut.1.10.corr.du.8), 3)
+corr.1.10.du8 <- round (cor (dist.cut.1.10.corr.du.8, method = "spearman"), 3)
 p.mat.1.10 <- round (cor_pmat (corr.1.10.du8), 2)
 ggcorrplot (corr.1.10.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU8 Distance to Cutblock Correlation Years 1 to 10")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10_du8.png")
 
 dist.cut.11.20.corr.du.8 <- dist.cut.corr.du.8 [c (20:29)]
-corr.11.20.du8 <- round (cor (dist.cut.11.20.corr.du.8), 3)
+corr.11.20.du8 <- round (cor (dist.cut.11.20.corr.du.8, method = "spearman"), 3)
 p.mat.11.20 <- round (cor_pmat (corr.11.20.du8), 2)
 ggcorrplot (corr.11.20.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU8 Distance to Cutblock Correlation Years 11 to 20")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20_du8.png")
 
 dist.cut.21.30.corr.du.8 <- dist.cut.corr.du.8 [c (30:39)]
-corr.21.30.du8 <- round (cor (dist.cut.21.30.corr.du.8), 3)
+corr.21.30.du8 <- round (cor (dist.cut.21.30.corr.du.8, method = "spearman"), 3)
 p.mat.21.30 <- round (cor_pmat (corr.21.30.du8), 2)
 ggcorrplot (corr.21.30.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU8 Distance to Cutblock Correlation Years 21 to 30")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_21_30_du8.png")
 
 dist.cut.31.40.corr.du.8 <- dist.cut.corr.du.8 [c (40:49)]
-corr.31.40.du8 <- round (cor (dist.cut.31.40.corr.du.8), 3)
+corr.31.40.du8 <- round (cor (dist.cut.31.40.corr.du.8, method = "spearman"), 3)
 p.mat.31.40 <- round (cor_pmat (corr.31.40.du8), 2)
 ggcorrplot (corr.31.40.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU8 Distance to Cutblock Correlation Years 31 to 40")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_31_40_du8.png")
 
 dist.cut.41.50.corr.du.8 <- dist.cut.corr.du.8 [c (50:60)]
-corr.41.50.du8 <- round (cor (dist.cut.41.50.corr.du.8), 3)
+corr.41.50.du8 <- round (cor (dist.cut.41.50.corr.du.8, method = "spearman"), 3)
 p.mat.41.50 <- round (cor_pmat (corr.41.50.du8), 2)
 ggcorrplot (corr.41.50.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU8 Distance to Cutblock Correlation Years 41 to >50")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_41_50_du8.png")
 
 #########
 ## DU9 ## 
@@ -199,34 +216,39 @@ dist.cut.corr.du.9 <- rsf.data.cut.age %>%
   dplyr::filter (du == "du9")
 
 dist.cut.1.10.corr.du.9 <- dist.cut.corr.du.9 [c (10:19)]
-corr.1.10.du9 <- round (cor (dist.cut.1.10.corr.du.9), 3)
+corr.1.10.du9 <- round (cor (dist.cut.1.10.corr.du.9, method = "spearman"), 3)
 p.mat.1.10 <- round (cor_pmat (corr.1.10.du9), 2)
 ggcorrplot (corr.1.10.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation Years 1 to 10")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10_du9.png")
 
 dist.cut.11.20.corr.du.9 <- dist.cut.corr.du.9 [c (20:29)]
-corr.11.20.du9 <- round (cor (dist.cut.11.20.corr.du.9), 3)
+corr.11.20.du9 <- round (cor (dist.cut.11.20.corr.du.9, method = "spearman"), 3)
 p.mat.11.20 <- round (cor_pmat (corr.11.20.du9), 2)
 ggcorrplot (corr.11.20.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation Years 11 to 20")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20_du9.png")
 
 dist.cut.21.30.corr.du.9 <- dist.cut.corr.du.9 [c (30:39)]
-corr.21.30.du9 <- round (cor (dist.cut.21.30.corr.du.9), 3)
+corr.21.30.du9 <- round (cor (dist.cut.21.30.corr.du.9, method = "spearman"), 3)
 p.mat.21.30 <- round (cor_pmat (corr.21.30.du9), 2)
 ggcorrplot (corr.21.30.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation Years 21 to 30")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_21_30_du9.png")
 
 dist.cut.31.40.corr.du.9 <- dist.cut.corr.du.9 [c (40:49)]
-corr.31.40.du9 <- round (cor (dist.cut.31.40.corr.du.9), 3)
+corr.31.40.du9 <- round (cor (dist.cut.31.40.corr.du.9, method = "spearman"), 3)
 p.mat.31.40 <- round (cor_pmat (corr.31.40.du9), 2)
 ggcorrplot (corr.31.40.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation Years 31 to 40")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_31_40_du9.png")
 
 dist.cut.41.50.corr.du.9 <- dist.cut.corr.du.9 [c (50:60)]
-corr.41.50.du9 <- round (cor (dist.cut.41.50.corr.du.9), 3)
+corr.41.50.du9 <- round (cor (dist.cut.41.50.corr.du.9, method = "spearman"), 3)
 p.mat.41.50 <- round (cor_pmat (corr.41.50.du9), 2)
 ggcorrplot (corr.41.50.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation Years 41 to >50")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_41_50_du9.png")
 
 #=============================================================================
 # Classification and regression trees to see how the covariates relate to use
@@ -6172,6 +6194,39 @@ ggplot (data = table.glm.summary.du9,
          panel.border = element_blank (),
          panel.background = element_blank ()) +
   scale_y_continuous (limits = c (-0.01, 0.08), breaks = seq (-0.01, 0.08, by = 0.01))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #================================
 # GLMs with fxn responses
