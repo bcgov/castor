@@ -1,6 +1,7 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
 output: word_document
+  keep_md: true
 ---
 
 ```{r setup, include = FALSE}
@@ -16,9 +17,10 @@ I then also fit distance to cutblcok models usign  fucntional responses adn eger
 ## Methods
 
 ### Correlation of Distance to Cutblock across Years
-I looked tested whether distance to cutlbock at locations in cariobu home ranges tend to be correlated across years. I used a Spearman correlation 
+I looked tested whether distance to cutlbock at locations in cariobu home ranges tend to be correlated across years. I used a Spearman (\rho) correlation and correlated distance to cutblock between years in 10 years increments. Data were divided by designatable unit (DU) 
 
-divided by DU
+
+
 
 ```{r, correaltion plot code, eval = F, echo = T}
 require (ggplot2)
@@ -64,7 +66,7 @@ Distance to cutblock was highly correlated across years within all the 10 years 
 ![](C:/Work/caribou/clus_github/R/caribou_habitat/plots/plot_dist_cut_corr_41_50_du7.png)
 
 ### Correlation Plots of Designatable Unit (DU) 8
-In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were typically strongeer in the first two to three years (\rho > 0.35) and weaker after three to four years.
+In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were typically strongeer in the first two to three years (\rho > 0.35) and weaker after three to four years. Distance to cutblock was 
 
 
 
