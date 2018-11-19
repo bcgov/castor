@@ -5,9 +5,7 @@ output:
     keep_md: true
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 ## Introduction
 Here I summarize the data visualization and exploration done to identify which forestry cutblokc covariates to include in cairobu reserocue selction fucntion (RSF) models. This was doen across three seasons (early witner, ater winter adn summer) adn across four designatable units (DUs). I had data that estiametd the disatnce of each cariobu telemerty and each sampled available location to the nearest cutblock, by year, from one year old cuts up to greater than 50 year old cuts. I can't have 51 disatnce to cutblock covariaets int eh model, so here I look at whether distande to cublcok acorss eyars are correalted with each other. I also fit signle covairate genelaized lieanr models to look at changes in slection of ctublocks acorss years. I use this information to group years that are correalted in a meaningful way that will help simplify the model. 
@@ -20,7 +18,8 @@ I then also fit distance to cutblcok models usign  fucntional responses adn eger
 I looked tested whether distance to cutlbock at locations in cariobu home ranges tend to be correlated across years. I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 years increments. Data were divided by designatable unit (DU) to comapre correaltions within similar types of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf). 
 
 
-```{r, correaltion plot code, eval = F, echo = T}
+
+```r
 require (ggplot2)
 require (ggcorrplot)
 
@@ -129,9 +128,7 @@ Given the high correaltions across years, better to group
 
 
 ## group into ~5-year periods; try corr again ##
-```{r}
 
-```
 
 
 
@@ -162,9 +159,7 @@ conlcusions:
   
 - categorize as years 1-4, 5-9, 10-29, >30
 
-```{r}
 
-```
 
 - categorize as years 1-4, 5-9, 10-29, >30
   -take minimum ditance to cut for these grousp of years
