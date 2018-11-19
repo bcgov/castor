@@ -1,5 +1,6 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
+
 output: 
   word_document:
     keep_md: true
@@ -40,7 +41,11 @@ ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 ### Correlation Plots of Designatable Unit (DU) 6
 In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 years old), distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were particularly strong in the first two to three years ($\rho$ > 0.45). Correaltions generally became weaker ($\rho$ < 0.4) after three to four years. Correlation between distance to cutblock 11 to 20, 21 to 30 and 31 to 40 years old were highly correlated across all 10 years ($\rho$ > 0.45). However, correlation between distance to cutblock in years 41 to 50 were gnerally not as strong, but also highly variable ($\rho$ = -0.07 to 0.86). 
 
+<<<<<<< HEAD
 ![](R/caribou_habitat/plots/plot_dist_cut_corr_1_10_du6.png)
+=======
+![](plots/plot_dist_cut_corr_1_10_du6.png)
+>>>>>>> f5b23386179d1d576e225fc2469a4de76f96c5c0
 
 ![](plots/plot_dist_cut_corr_11_20_du6.png)
 
