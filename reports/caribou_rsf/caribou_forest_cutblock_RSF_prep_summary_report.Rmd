@@ -1,9 +1,6 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
-output: 
-  html_document:
-    keep_md: true
-    self_contained: no
+output: word_document
 ---
 
 ```{r setup, include = FALSE}
@@ -138,12 +135,12 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 
 In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, however, the pattern was generally consistent across seasons. In general, caribou in DU6 appear to avoid cutblocks less than 3 years old, select cutblocks four to seven years old and then avoid cutblocks over seven years old.  
 
-```{r, DU6 single covariate RSF model output, echo = F}
+```{r, DU6 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du6 <- table.glm.summary %>%
   filter (DU == 6)
-ggplot (data = table.glm.summary.du6, 
+print (ggplot (data = table.glm.summary.du6, 
         aes (years, coefficent.km)) +
   geom_line (aes (colour = Season)) +
   ggtitle ("Beta coefficient values of distance to cutblock by \n year and season for caribou designatable unit (DU) 6.") +
@@ -160,7 +157,7 @@ ggplot (data = table.glm.summary.du6,
          panel.border = element_blank (),
          panel.background = element_blank ()) +
   scale_x_continuous (limits = c (0, 51), breaks = seq (0, 51, by = 5)) +
-  scale_y_continuous (limits = c (-0.005, 0.005), breaks = seq (-0.005, 0.005, by = 0.001))
+  scale_y_continuous (limits = c (-0.005, 0.005), breaks = seq (-0.005, 0.005, by = 0.001)))
 
 ```
 
@@ -168,7 +165,7 @@ ggplot (data = table.glm.summary.du6,
 
 In DU7, 
 
-```{r, DU7 single covariate RSF model output, echo = F,  fig.width=8, fig.height=6}
+```{r, DU7 single covariate RSF model output, echo = F,  fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du7 <- table.glm.summary %>%
@@ -204,7 +201,7 @@ ggplot (data = table.glm.summary.du7,
   - all seasons, generally select cut years 1-10to20, then generally avoid years >20
   
   
-```{r, DU8 single covariate RSF model output, echo = F}
+```{r, DU8 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du8 <- table.glm.summary %>%
@@ -244,7 +241,7 @@ ggplot (data = table.glm.summary.du8,
 
 
 
-```{r, DU9 single covariate RSF model output, echo = F}
+```{r, DU9 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du9 <- table.glm.summary %>%
