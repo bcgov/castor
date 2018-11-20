@@ -131,14 +131,16 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 
 
 ### Resource Selection Function (RSF) Distance to Cutblock Beta Coefficients bu Season and Designatable Unit (DU)
+
 In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, however, the pattern was generally consistent across seasons. In general, caribou in DU6 appear to avoid cutblocks less than 3 years old, select cutblocks four to seven years old and then avoid cutblocks over seven years old.  
 
-![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/all DUs single covariate RSF model output-1.png)<!-- -->
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU6 single covariate RSF model output-1.png)<!-- -->
 
 
 
 In DU7, 
 
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU7 single covariate RSF model output-1.png)<!-- -->
 
 
 
@@ -150,6 +152,12 @@ In DU7,
 - DU8
   - all seasons, generally select cut years 1-10to20, then generally avoid years >20
   
+  
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU8 single covariate RSF model output-1.png)<!-- -->
+  
+
+
+  
 - DU9
   - general avoidance acorss all years, but some selection between eyars 5-10
   
@@ -158,11 +166,9 @@ In DU7,
 
 
 
-![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU6 single covariate RSF model output-1.png)<!-- -->
 
-![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU7 single covariate RSF model output-1.png)<!-- -->
 
-![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU8 single covariate RSF model output-1.png)<!-- -->
+
 
 ![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU9 single covariate RSF model output-1.png)<!-- -->
 

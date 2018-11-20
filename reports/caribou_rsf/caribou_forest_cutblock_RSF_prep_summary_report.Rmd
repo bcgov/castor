@@ -139,6 +139,8 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, however, the pattern was generally consistent across seasons. In general, caribou in DU6 appear to avoid cutblocks less than 3 years old, select cutblocks four to seven years old and then avoid cutblocks over seven years old.  
 
 ```{r, DU6 single covariate RSF model output, echo = F}
+table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
+table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du6 <- table.glm.summary %>%
   filter (DU == 6)
 ggplot (data = table.glm.summary.du6, 
@@ -166,7 +168,9 @@ ggplot (data = table.glm.summary.du6,
 
 In DU7, 
 
-```{r, DU7 single covariate RSF model output, echo = F}
+```{r, DU7 single covariate RSF model output, echo = F,  fig.width=8, fig.height=6}
+table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
+table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du7 <- table.glm.summary %>%
   filter (DU == 7)
 ggplot (data = table.glm.summary.du7, 
@@ -201,6 +205,8 @@ ggplot (data = table.glm.summary.du7,
   
   
 ```{r, DU8 single covariate RSF model output, echo = F}
+table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
+table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du8 <- table.glm.summary %>%
   filter (DU == 8)
 ggplot (data = table.glm.summary.du8, 
@@ -239,6 +245,8 @@ ggplot (data = table.glm.summary.du8,
 
 
 ```{r, DU9 single covariate RSF model output, echo = F}
+table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
+table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du9 <- table.glm.summary %>%
   filter (DU == 9)
 ggplot (data = table.glm.summary.du9, 
