@@ -1,8 +1,9 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
 output: 
-  word_document:
+  html_document:
     keep_md: true
+    self_contained: no
 ---
 
 
@@ -15,14 +16,13 @@ I then also fit distance to cutblcok models usign  fucntional responses adn eger
 ## Methods
 
 ### Correlation of Distance to Cutblock across Years
-I looked tested whether distance to cutlbock at locations in cariobu home ranges tend to be correlated across years. I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 years increments. Data were divided by designatable unit (DU) to comapre correaltions within similar types of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf). 
+Here I tested whether distance to cutblock at locations in caribou home ranges tended to be correlated across years. The hypothesis was that distance to cutblock would be more correlated in proximate years (e.g., within 5 years) than years further apart. If distance to cutblock was highly correlated across proximate years, then it would be possible (and indeed necessary) to reduce the number of distance to cutblock covaraites in an RSF by grouping years together.   
 
+I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 years increments. Data were divided by designatable unit (DU) to comapre correaltions within similar types of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf). 
 
+The following is an example of the code used to calculate and display the correaltion plots:
 
 ```r
-require (ggplot2)
-require (ggcorrplot)
-
 # data
 rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
 
@@ -35,11 +35,52 @@ ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation Years 1 to 10")
 ```
 
+### Generalized Linear Models (GLMs) of Distance to Cutblock across Years
+Here I test whether cariobu selection of distance to cutblock changes across years. The intent was to identify if there are temporal patterns in how cariobu slect cublocks, depending on teh age of the cutblock. This would also help with temporally grouping distance to cutblock, by identifying groups of years when caribou consistently selected or avodied cutblocks.  
+
+I compared how caribou selected distance to cutblock across years by fitting seperate resource selection functions (RSFs), where each RSF had a single covariate for distance to cublock for each year since cut. For example, a RSF was fit with a single covariate for distance to one year old cutblock. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations). RSFs were fit for each season and DU to test whether patterns in distance to cutblock selection varied by each. 
+
+
+The following is an example of the code used to calculate RSFs:
+
+```r
+dist.cut.data.du.6.ew <- dist.cut.data %>%
+  dplyr::filter (du == "du6") %>% 
+  dplyr::filter (season == "EarlyWinter")
+glm.du.6.ew.1yo <- glm (pttype ~ distance_to_cut_1yo, 
+                        data = dist.cut.data.du.6.ew,
+                        family = binomial (link = 'logit'))
+glm.du.6.ew.2yo <- glm (pttype ~ distance_to_cut_2yo, 
+                        data = dist.cut.data.du.6.ew,
+                        family = binomial (link = 'logit'))
+....
+....
+....
+glm.du.6.ew.51yo <- glm (pttype ~ distance_to_cut_pre50yo, 
+                         data = dist.cut.data.du.6.ew,
+                         family = binomial (link = 'logit'))
+```
+
+The beta coefficients of the distance to cutblock covariate were outputted from each model and plotted against the year age of the cutblock to illustrate how selection changed depending on the age of the cutblock. 
+
+### Grouping Data
+
+
+
+
+
+
+
+
+
+
 ## Results
 ### Correlation Plots of Designatable Unit (DU) 6
-In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 years old), distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were particularly strong in the first two to three years ($\rho$ > 0.45). Correaltions generally became weaker ($\rho$ < 0.4) after three to four years. Correlation between distance to cutblock 11 to 20, 21 to 30 and 31 to 40 years old were highly correlated across all 10 years ($\rho$ > 0.45). However, correlation between distance to cutblock in years 41 to 50 were gnerally not as strong, but also highly variable ($\rho$ = -0.07 to 0.86). 
+In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 years old), distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were particularly strong within two to three years ($\rho$ > 0.45). Correlations generally became weaker ($\rho$ < 0.4) after three to four years. Correlation between distance to cutblock 11 to 20, 21 to 30 and 31 to 40 years old were highly correlated across all 10 years ($\rho$ > 0.45). However, correlation between distance to cutblock in years 41 to 50 were gnerally not as strong, but also highly variable ($\rho$ = -0.07 to 0.86). 
 
 ![](R/caribou_habitat/plots/plot_dist_cut_corr_1_10_du6.png)
+
+![](plots/plot_dist_cut_corr_1_10_du6.png)
 
 ![](plots/plot_dist_cut_corr_11_20_du6.png)
 
@@ -63,17 +104,7 @@ Distance to cutblock was highly correlated across years within all the 10 years 
 ![](plots/plot_dist_cut_corr_41_50_du7.png)
 
 ### Correlation Plots of Designatable Unit (DU) 8
-In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were typically strongeer in the first two to three years ($\rho$ > 0.35) and weaker after three to four years. In years 11 to 20, distance to cutblock was highly correlated within 
-
-
-
-
-
-
-
-
-DU8; first 10 years distance to cutblock generally highly corealted first 2-4 years, less correaltd 5-10 years; years 11-20 adn 21-30 adn 31-40, highkly correalted within a year, but less so >1 year; years 41 to >50 not very correalted, but morseos 2-3 years
-
+In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were typically stronger within two to three years ($\rho$ > 0.35) and weaker after three to four years. In years 11 to 20, 21 to 30 and 31 to 40, distance to cutblock was highly correlated within one year ($\rho$ > 0.41), but less correlated when greater than one year apart. In years 41 to greater than 50 years, correlations were generally weak between years
 
 ![](plots/plot_dist_cut_corr_1_10_du8.png)
 
@@ -85,16 +116,8 @@ DU8; first 10 years distance to cutblock generally highly corealted first 2-4 ye
 
 ![](plots/plot_dist_cut_corr_41_50_du8.png)
 
-
-
 ### Correlation Plots of Designatable Unit (DU) 9
-
-
-DU9; first 10 years distance to cutblock generally highly corealted first 2-3 years, but not much after; years 11-20 gebnerally correlated; years 21->50 very highly correalted 
-
-here it looks like corealtiosn are generaly strong across teh entire 50 years, but generaly correaltiosn are stonger within 3-4 years of each other. 
-
-
+In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated within one year ($\rho$ > 0.44), and generally weaker thereafter. Correlation between distance to cutblock 11 to 20, 21 to 30, 31 to 40 adn 41 to greater than 50 years old were generally highly correlated across all 10 years, with few exceptions.
 
 ![](plots/plot_dist_cut_corr_1_10_du9.png)
 
@@ -107,43 +130,17 @@ here it looks like corealtiosn are generaly strong across teh entire 50 years, b
 ![](plots/plot_dist_cut_corr_41_50_du9.png)
 
 
+### Resource Selection Function (RSF) Distance to Cutblock Beta Coefficients bu Season and Designatable Unit (DU)
+In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, however, the pattern was generally consistent across seasons. In general, caribou in DU6 appear to avoid cutblocks less than 3 years old, select cutblocks four to seven years old and then avoid cutblocks over seven years old.  
+
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/all DUs single covariate RSF model output-1.png)<!-- -->
 
 
 
+In DU7, 
 
 
 
-
-## Conclusions
-### Designatable Unit (DU) 6
-Given the high correaltions across years, better to group
-
-
-
-### Designatable Unit (DU) 7
-Given the high correaltions across years, better to group
-
-
-
-
-
-## group into ~5-year periods; try corr again ##
-
-
-
-
-
-
-next tried GLMs
-single covariate models, by year adn comapred beta coeeficents across years
-break out by DU and season adn made a table of it then illsutrated
-
-conlcusions:
-- DU6
-    - almost no effect of cutblocks across years; likely due to low density of cutblocks in boreal
-    - all seasons, first 3 years avoid cut
-    - late and early winter patterns generally the same; select cuts years 4-7, then generally avoid
-    - summer, select cuts years 4-11, then hihgly cyclical across years 
 
 - DU7
     - late and early winter patterns generally the same; weak selection to no selection of cuts 
@@ -158,6 +155,46 @@ conlcusions:
   
   
 - categorize as years 1-4, 5-9, 10-29, >30
+
+
+
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU6 single covariate RSF model output-1.png)<!-- -->
+
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU7 single covariate RSF model output-1.png)<!-- -->
+
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU8 single covariate RSF model output-1.png)<!-- -->
+
+![](caribou_forest_cutblock_RSF_prep_summary_report_files/figure-html/DU9 single covariate RSF model output-1.png)<!-- -->
+
+
+
+
+
+
+
+
+
+
+
+## Conclusions
+### Designatable Unit (DU) 6
+Given the high correaltions across years, likely need to group into few categories to avoid autocorrelation. Selection generally weak and patern not clear, but first few years coudl be grouped together into 3-5 year groups, but genrally older than 10 years old cutblocsk coudl be greouped toegther. 
+
+
+
+### Designatable Unit (DU) 7
+Given the high correaltions across years, likely need to group into few categories to avoid autocorrelation
+
+### Designatable Unit (DU) 8
+generally not that correlated if more than 1 or two years apart, so less need to group
+
+
+### Designatable Unit (DU) 8
+In more recent cuts, nerally not that correlated if more than 1 or two years apart, so less need to group, but in older cuts, likely need to group into few categories to avoid autocorrelation
+
+
+
+
 
 
 
