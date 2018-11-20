@@ -135,7 +135,11 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 
 In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, however, the pattern was generally consistent across seasons. In general, caribou in DU6 appear to avoid cutblocks less than 3 years old, select cutblocks four to seven years old and then avoid cutblocks over seven years old.  
 
+<<<<<<< HEAD
 ```{r, DU6 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
+=======
+```{r, DU6 single covariate RSF model output, echo = F}
+>>>>>>> 75eca9d270dfcf9de385344576f9c953445a9349
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du6 <- table.glm.summary %>%
@@ -165,7 +169,11 @@ print (ggplot (data = table.glm.summary.du6,
 
 In DU7, 
 
+<<<<<<< HEAD
 ```{r, DU7 single covariate RSF model output, echo = F,  fig.width = 7, fig.height = 5}
+=======
+```{r, DU7 single covariate RSF model output, echo = F,  fig.width=8, fig.height=6}
+>>>>>>> 75eca9d270dfcf9de385344576f9c953445a9349
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du7 <- table.glm.summary %>%
@@ -201,7 +209,11 @@ ggplot (data = table.glm.summary.du7,
   - all seasons, generally select cut years 1-10to20, then generally avoid years >20
   
   
+<<<<<<< HEAD
 ```{r, DU8 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
+=======
+```{r, DU8 single covariate RSF model output, echo = F}
+>>>>>>> 75eca9d270dfcf9de385344576f9c953445a9349
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du8 <- table.glm.summary %>%
@@ -241,7 +253,11 @@ ggplot (data = table.glm.summary.du8,
 
 
 
+<<<<<<< HEAD
 ```{r, DU9 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
+=======
+```{r, DU9 single covariate RSF model output, echo = F}
+>>>>>>> 75eca9d270dfcf9de385344576f9c953445a9349
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
 table.glm.summary.du9 <- table.glm.summary %>%
