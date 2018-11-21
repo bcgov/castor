@@ -5437,8 +5437,9 @@ corr.du6 <- round (cor (dist.cut.corr.du.6), 3)
 p.mat <- round (cor_pmat (corr.du6), 2)
 ggcorrplot (corr.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU6 Distance to Cutblock Correlation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_dist_cut_corr_class_du6.png")
 
-#########
+########
 ## DU7 ## 
 #########
 dist.cut.corr.du.7 <- rsf.data.cut.age %>%
@@ -5448,6 +5449,7 @@ corr.du7 <- round (cor (dist.cut.corr.du.7), 3)
 p.mat <- round (cor_pmat (corr.du7), 2)
 ggcorrplot (corr.du7, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU7 Distance to Cutblock Correlation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_dist_cut_corr_class_du7.png")
 
 #########
 ## DU8 ## 
@@ -5459,6 +5461,7 @@ corr.du8 <- round (cor (dist.cut.corr.du.8), 3)
 p.mat <- round (cor_pmat (corr.du8), 2)
 ggcorrplot (corr.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU8 Distance to Cutblock Correlation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_dist_cut_corr_class_du8.png")
 
 #########
 ## DU9 ## 
@@ -5470,6 +5473,7 @@ corr.du9 <- round (cor (dist.cut.corr.du.9), 3)
 p.mat <- round (cor_pmat (corr.du9), 2)
 ggcorrplot (corr.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
             title = "DU9 Distance to Cutblock Correlation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_dist_cut_corr_class_du9.png")
 
 #================================
 # GLMs with new age categories
@@ -6202,7 +6206,8 @@ ggplot (data = table.glm.summary.du9,
 
 
 
-
+# Model selction Process
+# GLMs for 
 
 
 
