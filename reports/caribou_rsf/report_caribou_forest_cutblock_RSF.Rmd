@@ -1,6 +1,7 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
 output: word_document
+    # keep_md: T
 ---
 
 ```{r setup, include = FALSE}
@@ -12,18 +13,17 @@ require (gridExtra)
 ```
 
 ## Introduction
-Here I summarize the data visualization and exploration done to identify which forestry cutblokc covariates to include in cairobu reserocue selction fucntion (RSF) models. This was doen across three seasons (early witner, ater winter adn summer) adn across four designatable units (DUs). I had data that estiametd the disatnce of each cariobu telemerty and each sampled available location to the nearest cutblock, by year, from one year old cuts up to greater than 50 year old cuts. I can't have 51 disatnce to cutblock covariaets int eh model, so here I look at whether distande to cublcok acorss eyars are correalted with each other. I also fit signle covairate genelaized lieanr models to look at changes in slection of ctublocks acorss years. I use this information to group years that are correalted in a meaningful way that will help simplify the model. 
+Here I summarize the data exploration and model selection process done to identify how to parsimoniously include distance to cutblock covariates in caribou resource selection function (RSF) models (Boyce et al. 1999; Manly et al. 2007). RSF models will be calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)
 
-I then also fit distance to cutblcok models usign  fucntional responses adn egeralized addtive models (GAMs) to look for non-lienar fits to the data. In the former case, I am testing whetehr slection of cublcoks is a fucntion of available disatnce to cutblocks within the caribou home range For the latter I am lookign for non-linear realtionhsips between cariobu selction and distance to cutblock.  
+I had data that estimated the distance of each caribou telemetry location, or randomly sampled location within caribou home ranges (i.e., 'available' locations), to the nearest cutblock, by cutblock age, from one year old cutblocks up to greater than 50 year old cutblocks. The hypothesis was that distance to cutblock would be more correlated in proximate years (e.g., within 5 years) than years further apart. Also, I likely could not properly fit a RSF model with 51 distance to cutblock covariates, therefore I did these preliminary analyses to identify a parsimonious number of distance to cutblock covariates to inlude in a RSF model. These analyses included testing for correlation between distance to cutblock measures across years and fitting single covariate generalized linear models to look at changes in caribou selection of distance to cutblock acorss years. I use this information to group the distance to cutblock measures across years in a way that reduces the number of covariates, but still captures variability in how caribou respond to cutblocks as they age. 
+
+After temporally grouping the distance to cutblock data, I did further data exploration and correlation analyses of tehse covariates by season and DU. I then fit distance to cutblock RSF models using functional responses (Matthiopolous et al. 2010) and generalized additive models (GAMs). In the former case, I am testing whether caribou selection of cutblocks is a function of the available distance to cutblocks within the caribou's home range. Specifically, I am testing the hypothesis whether caribou are more likely to avoid cutblocks in home ranges located closer to cutblocks. In the latter case I am testing for non-linear relationships between caribou selection and distance to cutblock. These models were comapred using Akaike Information Criterion (AIC)  
 
 ## Methods
+### Correlation of Distance to Cutblock Across Years
+Here I tested whether distance to cutblocks of different ages, from one year old to greater than 50 years old, at locations in caribou home ranges, were correlated. If distance to cutblock was highly correlated across proximate years, then it would be possible (and indeed necessary) to reduce the number of distance to cutblock covariates in an RSF model by grouping cutblock ages together.   
 
-### Correlation of Distance to Cutblock across Years
-Here I tested whether distance to cutblock at locations in caribou home ranges tended to be correlated across years. The hypothesis was that distance to cutblock would be more correlated in proximate years (e.g., within 5 years) than years further apart. If distance to cutblock was highly correlated across proximate years, then it would be possible (and indeed necessary) to reduce the number of distance to cutblock covaraites in an RSF by grouping years together.   
-
-I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 years increments. Data were divided by designatable unit (DU) to comapre correaltions within similar types of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf). 
-
-The following is an example of the code used to calculate and display the correaltion plots:
+I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
 ```{r, correlation plot code, eval = F, echo = T}
 # data
 rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
@@ -38,14 +38,11 @@ ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 ```
 
 ### Generalized Linear Models (GLMs) of Distance to Cutblock across Years
-Here I test whether cariobu selection of distance to cutblock changes across years. The intent was to identify if there are temporal patterns in how cariobu slect cublocks, depending on teh age of the cutblock. This would also help with temporally grouping distance to cutblock, by identifying groups of years when caribou consistently selected or avodied cutblocks.  
+Here I tested whether caribou selection of distance to cutblock changed as cublocks aged. This helped with temporally grouping distance to cutblock data by age, by illustrating if and when caribou consistently selected or avoided cutblocks of similar ages. 
 
-I compared how caribou selected distance to cutblock across years by fitting seperate resource selection functions (RSFs), where each RSF had a single covariate for distance to cublock for each year since cut. For example, a RSF was fit with a single covariate for distance to one year old cutblock. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations). RSFs were fit for each season and DU to test whether patterns in distance to cutblock selection varied by each. 
-
-
-The following is an example of the code used to calculate RSFs:
+I compared how caribou selected distance to cutblock across years by fitting seperate caribou RSFs, where each RSF had a single covariate for distance to cublock for each cutblock age. For example, a RSF was fit with a single covariate for distance to one year old cutblock. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations, where used locations are caribou telmetry locations and available locations are randomly sampled locations within the extent of estimated caribou home ranges). RSFs were fit for each season and DU. The following is an example of the R code used to calculate RSFs:
 ```{r, single covariate RSF model code, eval = F, echo = T}
-dist.cut.data.du.6.ew <- dist.cut.data %>%
+dist.cut.data.du.6.ew <- dist.cut.data %>% # sub-sample the data by season and DU
   dplyr::filter (du == "du6") %>% 
   dplyr::filter (season == "EarlyWinter")
 glm.du.6.ew.1yo <- glm (pttype ~ distance_to_cut_1yo, 
@@ -62,10 +59,16 @@ glm.du.6.ew.51yo <- glm (pttype ~ distance_to_cut_pre50yo,
                          family = binomial (link = 'logit'))
 ```
 
-The beta coefficients of the distance to cutblock covariate were outputted from each model and plotted against the year age of the cutblock to illustrate how selection changed depending on the age of the cutblock. 
+The beta coefficients of the distance to cutblock covariate were outputted from each model and plotted against the age of the cutblock to illustrate how selection changed as the cutblock aged.  
 
-### Correlation of Distance to Cutblock Categories
-Based on the results of the analysis described above, I grouped disatnce to cutblock into four temporal categories: one to four years old, five to nine years old, 10 to 29 years old and over 29 years old (see Results and Conclusion, below, for rational).
+### Resource Selection Function (RSF) Model Secltion fo Distance to Cutblock Covariates by Cutblock Age
+Based on the results of the analysis described above, I grouped distance to cutblock into four age categories: one to four years old, five to nine years old, 10 to 29 years old and over 29 years old (see Results and Conclusion, below, for rational). I then tested for correaltion between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; manly et al. 2007; DeCesare et al. 2012), then one fo the covariates was removed from analysis, or distance to cutblock was further grouped into larger age classes. 
+
+
+
+
+
+
 
 ## Results
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 6
@@ -229,5 +232,39 @@ ggplot (data = table.glm.summary.du9,
 ```
 
 
+### Resource Selection Function (RSF) Model Selection
+#### DU6
+##### Early Winter
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.85), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old)
+
+![](/plots/plot_dist_cut_corr_du_6_ew.png)
+
+I then fit a GLM and calcuted VIFs using the vif() fucntion form the 'car' package in R. The VIF scores for each covairate were less than 1.7, incidating they were not hgihly correlated. 
+```{r, example of GLM and VIF code, eval = F, echo = T}
+model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
+                          distance_to_cut_10yoorOver, 
+                         data = dist.cut.data.du.6.ew,
+                         family = binomial (link = 'logit'))
+vif (model.glm.du6.ew) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Conclusions
 Based on the high correaltion of annual distacne to cutblock measures across years, there is a need to group into few categories to avoid correlation of covaraites in the RSF model. At a minimum it appears that disatnce to cutblock measures are correalted 2-5 years apart. Patterns in cariobu selciton of cutlbocks suggest that cariobu may avoid or have weak responses to cutblocks when they are realtively new (less than five years old), but selection of cutblocks from five up to 30 years old (dpending on teh DU and season) adn avoidance of cutblocks over 10 to 30 years old. Therefore, I reclassifed disatcne to cutblock into four classes: one to four years old, five to nine years old, ten to 29 years old and 30 and over. 
+
+## Literature Cited
+DeCesare, N. J., Hebblewhite, M., Schmiegelow, F., Hervieux, D., McDermid, G. J., Neufeld, L., ... & Wheatley, M. (2012). Transcending scale dependence in identifying habitat with resource selection functions. Ecological Applications, 22(4), 1068-1083.
+
+Montgomery, D. C., and E. A. Peck. 1992. Introduction to linear regression analysis. Wiley, New York, New York, USA
+
