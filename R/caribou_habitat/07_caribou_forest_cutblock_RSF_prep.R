@@ -6200,45 +6200,22 @@ ggplot (data = table.glm.summary.du9,
   scale_y_continuous (limits = c (-0.01, 0.08), breaks = seq (-0.01, 0.08, by = 0.01))
 
 
+#=================================================
+# Model selection Process by DU and Season 
+#================================================
+# packages
+require (car)
+require (MASS)
+require (ROCR)
+require (lme4)
+require (gam)
+require (rpart)
 
-
-
-
-
-
-# Model selction Process
-# GLMs for 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#================================
-# GLMs with fxn responses
-#================================
+# load data
 rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
-dist.cut.data <- rsf.data.cut.age [c (1:9, 112:115)] # cutblock data only
-# filter data by DU and season
+dist.cut.data <- rsf.data.cut.age [c (1:9, 112:115)] # cutblock age class data only
+
+# filter by DU, Season 
 dist.cut.data.du.6.ew <- dist.cut.data %>%
   dplyr::filter (du == "du6") %>% 
   dplyr::filter (season == "EarlyWinter")
@@ -6269,9 +6246,89 @@ dist.cut.data.du.7.s <- dist.cut.data %>%
   dplyr::filter (du == "du7") %>% 
   dplyr::filter (season == "Summer")
 
+#================================
+# GLMs
+#================================
+## Build an AIC Table
+table.aic <- data.frame (matrix (ncol = 6, nrow = 0))
+colnames (table.aic) <- c ("DU", "Season", "Model Name", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw", "AUC")
+table.aic [1:3, 1] <- "DU6"
+table.aic [4:6, 1] <- "DU7"
+table.aic [7:9, 1] <- "DU8"
+table.aic [10:12, 1] <- "DU9"
+table.aic [c (1, 4, 7, 10), 2] <- "Early Winter"
+table.aic [c (2, 5, 8, 11), 2] <- "Late Winter"
+table.aic [c (3, 6, 9, 12), 2] <- "Summer"
 
-### DU6 ###
-## Early Winter
+table.aic [1, 3] <- "GLM with Individual and Year Random Effect"
+
+
+table.aic [1, 4] <- "Distance to Cutblock 1 to 4 years old, Distance to Cutblock 5 to 9 years old, Distance to Cutblock greater than 9 years old"
+table.aic [1, 5] <- "Individual/Season"
+
+
+## DU6 ##
+## Early Winter ##
+### Corrletion
+corr.dist.cut.du.6.ew <- round (cor (dist.cut.data.du.6.ew [10:13], method = "spearman"), 3)
+ggcorrplot (corr.dist.cut.du.6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Distance to Cutblock Correlation DU6 Early Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_dist_cut_corr_du_6_ew.png")
+
+# distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated
+# grouped together
+dist.cut.data.du.6.ew <- dplyr::mutate (dist.cut.data.du.6.ew, distance_to_cut_10yoorOver = pmin (distance_to_cut_10to29yo, distance_to_cut_30orOveryo))
+
+### CART
+cart.du.6.ew <- rpart (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
+                       distance_to_cut_10yoorOver,
+                       data = dist.cut.data.du.6.ew, 
+                       method = "class")
+summary (cart.du.6.ew)
+print (cart.du.6.ew)
+plot (cart.du.6.ew, uniform = T)
+text (cart.du.6.ew, use.n = T, splits = T, fancy = F)
+post (cart.du.6.ew, file = "", uniform = T)
+# results indicate no partioning, suggesting no effect of cutblocks
+
+### VIF
+model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
+                          distance_to_cut_10yoorOver, 
+                         data = dist.cut.data.du.6.ew,
+                         family = binomial (link = 'logit'))
+vif (model.glm.du6.ew) 
+
+
+# Generalized Linear Mixed Models (GLLMs)
+
+
+
+
+
+
+# GAMS
+# AIC; with fxn responses
+
+# standardize data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
