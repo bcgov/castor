@@ -75,7 +75,12 @@ ggplot(dist.cutblk.size, aes(x = sizebin,y =count)) +
   ylab("Frequency")
 ```
 
-
+```{r}
+library(DBI)
+library(RPostgreSQL)
+conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='postgres' ,password='postgres')
+dbListTables(conn)
+```
 
 
 

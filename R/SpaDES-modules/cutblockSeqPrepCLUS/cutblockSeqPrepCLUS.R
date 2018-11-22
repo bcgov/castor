@@ -26,6 +26,7 @@ defineModule(sim, list(
   reqdPkgs = list("rpostgis", "sp","sf", "dplyr", "SpaDES.core"),
   parameters = rbind( 
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("startHarvestYear", "numeric", 1980, NA, NA, "This describes the min year from which to query the cutblocks"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
@@ -76,16 +77,18 @@ cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
   sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y from cutseq, 
               (Select ", sim$boundaryInfo[4], " FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," = '", sim$boundaryInfo[3],"') as h
               WHERE h.", sim$boundaryInfo[4] ," && cutseq.point 
-              AND ST_Contains(h.", sim$boundaryInfo[4]," ,cutseq.point)
+              AND ST_Contains(h.", sim$boundaryInfo[4]," ,cutseq.point) AND harvestyr >= ", P(sim)$startHarvestYear,"
               ORDER BY harvestyr"))
   if(length(sim$histLandings)==0){ sim$histLandings<-NULL}
   return(invisible(sim))
 }
 
+
+
 ### Set a list of cutblock locations as a Spatial Points object
 cutblockSeqPrepCLUS.getLandings <- function(sim) {
   if(!is.null(sim$histLandings)){
-    landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + 1980) ##starting at 1980
+    landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) ##starting at 1980
     if(nrow(landings)>0){
       print(paste0('geting landings in: ', time(sim)))
       sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
