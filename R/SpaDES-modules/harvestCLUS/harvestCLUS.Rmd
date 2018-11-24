@@ -14,6 +14,9 @@ The module simulates the spreading of harvest units --- right now just a simple 
 
 ```{r module_usage}
 library(SpaDES)
+
+source("R/functions/R_Postgres.R")
+
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")

@@ -28,6 +28,7 @@ The data loader preps the database connectivitiy and other objects required to r
 ```{r module_usage}
 library(SpaDES)
 library(SpaDES.core)
+source("R/functions/R_Postgres.R")
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)

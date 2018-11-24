@@ -24,6 +24,8 @@ For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
 library(igraph)
 library(SpaDES.core)
 
+source("R/functions/R_Postgres.R")
+
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES/modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
