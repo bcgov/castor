@@ -64,7 +64,77 @@ The beta coefficients of the distance to cutblock covariate were outputted from 
 ### Resource Selection Function (RSF) Model Secltion fo Distance to Cutblock Covariates by Cutblock Age
 Based on the results of the analysis described above, I grouped distance to cutblock into four age categories: one to four years old, five to nine years old, 10 to 29 years old and over 29 years old (see Results and Conclusion, below, for rational). I then tested for correaltion between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; manly et al. 2007; DeCesare et al. 2012), then one fo the covariates was removed from analysis, or distance to cutblock was further grouped into larger age classes. 
 
+I a GLM and calculated VIFs using the vif() function from the 'car' package in R. The VIF scores for each covairate were less than 1.7, incidating they were not highly correlated. 
+```{r, example of GLM and VIF code, eval = F, echo = T}
+model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
+                          distance_to_cut_10yoorOver, 
+                         data = dist.cut.data.du.6.ew,
+                         family = binomial (link = 'logit'))
+vif (model.glm.du6.ew) 
+```
 
+Next, I tested whether models with a fucntional repsonse (*sensu* Matthiplolus et al. 2010) improved model fit by comaprign models with adn without interaction terms for available disatnce to buclobk, by age class. 
+
+I fit a mixed effects regression models usign the glmer() fucntion in the lme4 package of R. I fit models with correlated random effect intercepts and slopes for each distacne to cutblock covariate by each unique indivdual cariobu and year in the model (i.e., a unique identifier). I fit models with all combinations of distance to cutblock covariates and comapred them using AIC. To faciliate model converngence, I standardized the distance to cutblock covaraites by subtracting the mean and dividing by the standard deviation of the covariate.
+
+```{r, example of GLMM code, eval = F, echo = T}
+# Generalized Linear Mixed Models (GLMMs)
+# standardize covariates  (helps with model convergence)
+dist.cut.data.du.6.ew$std.distance_to_cut_1to4yo <- (dist.cut.data.du.6.ew$distance_to_cut_1to4yo - mean (dist.cut.data.du.6.ew$distance_to_cut_1to4yo)) / sd (dist.cut.data.du.6.ew$distance_to_cut_1to4yo)
+dist.cut.data.du.6.ew$std.distance_to_cut_5to9yo <- (dist.cut.data.du.6.ew$distance_to_cut_5to9yo - mean (dist.cut.data.du.6.ew$distance_to_cut_5to9yo)) / sd (dist.cut.data.du.6.ew$distance_to_cut_5to9yo)
+dist.cut.data.du.6.ew$std.distance_to_cut_10yoorOver <- (dist.cut.data.du.6.ew$distance_to_cut_10yoorOver - mean (dist.cut.data.du.6.ew$distance_to_cut_10yoorOver)) / sd (dist.cut.data.du.6.ew$distance_to_cut_10yoorOver)
+
+# fit correlated random effects model
+model.lme.du6.ew <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                            std.distance_to_cut_10yoorOver + 
+                            (std.distance_to_cut_1to4yo | uniqueID) + 
+                            (std.distance_to_cut_5to9yo | uniqueID) +
+                            (std.distance_to_cut_10yoorOver | uniqueID) , 
+                          data = dist.cut.data.du.6.ew, 
+                          family = binomial,
+                          REML = F, 
+                          verbose = T)
+AIC (model.lme.du6.ew)
+# AUC 
+pr.temp <- prediction (predict (model.lme.du6.ew, type = 'response'), dist.cut.data.du.6.ew$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc <- performance (pr.temp, measure = "auc")
+auc <- auc@y.values[[1]]
+```
+
+Next I fit functional response models where I included covariates representign teh mean diatsance to cutblcok (for each age class) within each individual cariobu's annual seasoanal hoem rnage as interactions with disatnce to cutblcok at each lcoation. 
+
+```{r, example of GLMM fxn response code, eval = F, echo = T}
+### Fit model with functional responses
+# Calculating dataframe with covariate expectations
+sub <- subset (dist.cut.data.du.6.ew, pttype == 0)
+std.distance_to_cut_1to4yo_E <- tapply (sub$std.distance_to_cut_1to4yo, sub$uniqueID, mean)
+std.distance_to_cut_5to9yo_E <- tapply (sub$std.distance_to_cut_5to9yo, sub$uniqueID, mean)
+std.distance_to_cut_10yoorOver_E <- tapply (sub$std.distance_to_cut_10yoorOver, sub$uniqueID, mean)
+inds <- as.character (dist.cut.data.du.6.ew$uniqueID)
+dist.cut.data.du.6.ew <- cbind (dist.cut.data.du.6.ew, 
+                                "std.distance_to_cut_1to4yo_E" = std.distance_to_cut_1to4yo_E [inds],
+                                "std.distance_to_cut_5to9yo_E" = std.distance_to_cut_5to9yo_E [inds],
+                                "std.distance_to_cut_10yoorOver_E" = std.distance_to_cut_10yoorOver_E [inds])
+
+model.lme.fxn.du6.ew <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                               std.distance_to_cut_10yoorOver + std.distance_to_cut_1to4yo_E +
+                               std.distance_to_cut_5to9yo_E + std.distance_to_cut_10yoorOver_E +
+                               std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                               std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                               std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                               (1 | uniqueID), 
+                               data = dist.cut.data.du.6.ew, 
+                               family = binomial (link = "logit"),
+                               verbose = T,
+                               control = glmerControl (calc.derivs = FALSE, 
+                                                       optimizer = "nloptwrap",
+                                                       optCtrl = list (maxfun = 2e5)))
+```
+
+
+I calculated the AIC for both models and compared them to asses the most parsimonious model fit. I also calcaulated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curve for each model using teh ROCR package in R to test the accuracy of predcitons. The model with the highest AIC weight but also a reaasonaby high AUC score (i.e., teh abiliy of the model to accurately predict cariobu loations) was consdiered the best distance to cutblock model.
 
 
 
@@ -235,18 +305,65 @@ ggplot (data = table.glm.summary.du9,
 ### Resource Selection Function (RSF) Model Selection
 #### DU6
 ##### Early Winter
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.85), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old)
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.85), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
 
-![](/plots/plot_dist_cut_corr_du_6_ew.png)
+![](plots/plot_dist_cut_corr_du_6_ew.png)
 
-I then fit a GLM and calcuted VIFs using the vif() fucntion form the 'car' package in R. The VIF scores for each covairate were less than 1.7, incidating they were not hgihly correlated. 
-```{r, example of GLM and VIF code, eval = F, echo = T}
-model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
-                          distance_to_cut_10yoorOver, 
-                         data = dist.cut.data.du.6.ew,
-                         family = binomial (link = 'logit'))
-vif (model.glm.du6.ew) 
-```
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <1.7, indicating covariates were not highly correalted. 
+
+The top-ranked model included covariates of distance to cutblock ages five to nine years old and over nine years, but no functional response, and had an AIC weight (AIC*~w~*) of 1.00. In addition, the top model had the second highest AUC (AUC = 0.604), which was very close to the highest AUC value in teh model set (AUC = 0.607).
+
+##### Late Winter
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.79), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
+
+![](plots/plot_dist_cut_corr_du_6_lw.png)
+
+The maximum VIF from the simple GLM covariate model was <1.6, indicating covariates were not highly correlated. 
+
+The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response,and had an AIC*~w~* of 1.00. In addition, the top model had the highest AUC (AUC = 0.665).
+
+##### Summer
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.82), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
+
+![](plots/plot_dist_cut_corr_du_6_s.png)
+
+The maximum VIF from the simple GLM covariate model was <1.7, indicating covariates were not highly correalted.
+
+
+
+
+The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response,and had an AIC*~w~* of 1.00. In addition, the top model had the highest AUC (AUC = 0.665).
+
+
+
+
+
+
+
+
+
+
+#### DU7
+##### Early Winter
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.81), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
+
+![](plots/plot_dist_cut_corr_du_7_ew.png)
+
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <4.1, indicating covaraites were not highly correalted. The AIC*~w~* of the model without fucntional response covaraites was 1.00, indicating a lack of fucntional response in caribou selection for cutblcoks. In addition, the AUC of the simpler model (AUC = 0.679) was slightly better than the functional response model (AUC = 0.668). 
+
+##### Late Winter
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.82) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.71) therefore, I grouped these three age categories together (i.e., distance to cutblcoks greater than 5 years old).
+
+![](plots/plot_dist_cut_corr_du_7_lw.png)
+
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.8, indicating covariates were not highly correlated. The AIC*~w~* of the model without fucntional response covariates was 1.00, indicating a lack of fucntional response in caribou selection for cutblcoks. In addition, the AUC of the simpler model (AUC = 0.690) was slightly better than the functional response model (AUC = 0.675). 
+
+##### Summer
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.80) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.87) therefore, I grouped these three age categories together (i.e., distance to cutblcoks greater than 5 years old).
+
+![](plots/plot_dist_cut_corr_du_7_s.png)
+
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.6, indicating covariates were not highly correlated. The AIC*~w~* of the model without fucntional response covariates was 1.00, indicating a lack of fucntional response in caribou selection for cutblcoks. In addition, the AUC of the simpler model (AUC = 0.690) was slightly better than the functional response model (AUC = 0.675
 
 
 
@@ -262,6 +379,18 @@ vif (model.glm.du6.ew)
 
 ## Conclusions
 Based on the high correaltion of annual distacne to cutblock measures across years, there is a need to group into few categories to avoid correlation of covaraites in the RSF model. At a minimum it appears that disatnce to cutblock measures are correalted 2-5 years apart. Patterns in cariobu selciton of cutlbocks suggest that cariobu may avoid or have weak responses to cutblocks when they are realtively new (less than five years old), but selection of cutblocks from five up to 30 years old (dpending on teh DU and season) adn avoidance of cutblocks over 10 to 30 years old. Therefore, I reclassifed disatcne to cutblock into four classes: one to four years old, five to nine years old, ten to 29 years old and 30 and over. 
+
+
+
+which covariates to inlcude
+
+
+
+Cutblocks not all that improant in DU6 early winter; eefct was nto that strong when look at fit plots adn AUC, but stogner in summer than witner seasons; probably generally slectect younger cutblocks 1 to 9, esp. 5 to 9 and aovid older
+
+
+DU7, cublcoks storner, more improatn efefct
+
 
 ## Literature Cited
 DeCesare, N. J., Hebblewhite, M., Schmiegelow, F., Hervieux, D., McDermid, G. J., Neufeld, L., ... & Wheatley, M. (2012). Transcending scale dependence in identifying habitat with resource selection functions. Ecological Applications, 22(4), 1068-1083.
