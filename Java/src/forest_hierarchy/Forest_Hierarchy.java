@@ -47,7 +47,8 @@ public class Forest_Hierarchy {
 			//System.out.println("nTarget: " + nTarget);	
 			//System.out.println("maxTargetSize" + this.hist.bins.get(this.hist.getLastBin()-1).max_block_size);	
 			if(blockSize == 0){
-				seed = this.degreeList.indexOf(Collections.max(this.degreeList)); // get the largest degree 
+				seed = this.degreeList.indexOf(Collections.max(this.degreeList)); // get the largest degree?
+				
 				//degreeList.set(seed, (degreeList.get(seed).intValue() - 1)); //assign a zero degree to the pixel
 				//System.out.println("pixel with the greatest degree:" + (seed + 1));
 			}else{
