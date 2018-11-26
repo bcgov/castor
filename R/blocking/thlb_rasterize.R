@@ -14,7 +14,7 @@ getSpatialQuery<-function(sql){
   on.exit(DBI::dbDisconnect(conn))
   sf::st_read(conn, query = sql)
 }
-#Get data 
+#Get coast thlb 
 layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_data_rco"))
 
 #Make an empty provincial raster aligned with hectares BC
@@ -26,37 +26,19 @@ layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fa
 writeRaster(layer.ras, file="thlb_rco_Lyr.tif", format="GTiff", overwrite=TRUE)
 
 
-#Get data 
+#Get southern interior data 
 layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_data_sir"))
-
-#Make an empty provincial raster aligned with hectares BC
-ProvRast <- raster(
-  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(layer)$proj4string, resolution = c(100, 100), vals = 0
-)
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
 writeRaster(layer.ras, file="thlb_sir_Lyr.tif", format="GTiff", overwrite=TRUE)
 
 
-#Get data 
+#Get northern interior data 
 layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_data_nir"))
-
-#Make an empty provincial raster aligned with hectares BC
-ProvRast <- raster(
-  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(layer)$proj4string, resolution = c(100, 100), vals = 0
-)
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
 writeRaster(layer.ras, file="thlb_nir_Lyr.tif", format="GTiff", overwrite=TRUE)
 
-#Get data 
+#Get thlb 2018 data 
 layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.bc_thlb"))
-
-#Make an empty provincial raster aligned with hectares BC
-ProvRast <- raster(
-  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(layer)$proj4string, resolution = c(100, 100), vals = 0
-)
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
 writeRaster(layer.ras, file="thlb2018", format="GTiff", overwrite=TRUE)
 

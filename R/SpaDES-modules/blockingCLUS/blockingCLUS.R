@@ -26,7 +26,7 @@ defineModule(sim, list(
   reqdPkgs = list("rJava","jdx","igraph","data.table", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter("nameSimilarityRas", "character", "ras_similarity", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
@@ -38,8 +38,8 @@ defineModule(sim, list(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA)
+    #expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -82,10 +82,19 @@ Plot <- function(sim) {
 }
 
 blockingCLUS.Init <- function(sim) {
-  sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking
-  #Get the similarity matrix 
-  
-  
+  sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
+  conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+  geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
+  sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
+  return(invisible(sim))
+}
+
+blockingCLUS.getBounds<-function(sim){
+  #The boundary may exist from previous modules?
+  if(!suppliedElsewhere("bbox", sim)){
+    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
+    sim$bbox<-st_bbox(sim$boundary)
+  }
   return(invisible(sim))
 }
 
@@ -107,15 +116,8 @@ blockingCLUS.preBlock <- function(sim) {
 blockingCLUS.spreadBlock<- function(sim) {
   return(invisible(sim))
 }
-blockingCLUS.getBounds<-function(sim){
-  #The boundary may exist from previous modules?
-  if(!suppliedElsewhere("bbox", sim)){
-    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
-    sim$bbox<-st_bbox(sim$boundary)
-  }
-  return(invisible(sim))
-}
+
 ### additional functions
-source("R/functions/functions.R")
+
 
 
