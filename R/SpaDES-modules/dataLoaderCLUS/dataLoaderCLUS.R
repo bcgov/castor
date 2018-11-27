@@ -68,9 +68,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   )
   return(invisible(sim))
 }
-.inputObjects <- function(sim) {
-  return(invisible(sim))
-}
+
 getSpatialQuery<-function(sql){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
