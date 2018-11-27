@@ -11,7 +11,7 @@ public class Forest_Hierarchy {
 	ArrayList<Edges> edgeList = new ArrayList<Edges>(); //a minnimum spanning tree solved from igraph in R
 	ArrayList<Integer> blockList = new ArrayList<Integer>();
 	List<Integer> degreeList; // the degree of a vertex of a graph is the number of edges incident to the vertex, with loops counted twice
-	int[] blockPixels ;
+	Integer[] blockPixels ;
 	histogram hist;
 	Integer[] degree;
 	private static final int EMPTY = -1;
@@ -33,13 +33,16 @@ public class Forest_Hierarchy {
 	}
 
 	public void blockEdges() {
-		int[] pixelBlock = new int[(int)(this.edgeList.size() + 1)];
-		Arrays.fill(pixelBlock, EMPTY);		
+		
+			
 		int blockID = 0, blockSize = 0, seed = 0, seedNew = -1, d = 0;
 		int nTarget =  this.hist.bins.get(this.hist.getLastBin()-1).n;
 		double maxTargetSize = this.hist.bins.get(this.hist.getLastBin()-1).max_block_size;
 		boolean findBlocks=	!this.hist.bins.isEmpty(); //if there is a histogram with bins then findBlocks
-		this.degreeList = Arrays.asList(this.degree);	
+		this.degreeList = Arrays.asList(this.degree);
+		Integer [] idegree = degree;
+		Integer[] pixelBlock = new Integer[this.degree.length];
+		Arrays.fill(pixelBlock, EMPTY);	
 		this.edgeList.sort((o1, o2) -> Double.compare(o1.getWeight(), o2.getWeight()));		
 		//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 		while(findBlocks){
@@ -118,7 +121,7 @@ public class Forest_Hierarchy {
 			if(this.edgeList.size() == 0 || this.hist.bins.isEmpty()) findBlocks = false; //Exit the while loop
 		}//End of the while loop
 		for (int r = 0; r < pixelBlock.length ; r++){ //assign the remaining blocks their own blockID
-			if(pixelBlock[r]==(EMPTY)){
+			if(pixelBlock[r]==(EMPTY) && idegree[r] > 0){
 				blockID++;
 				pixelBlock[r] = blockID ;
 			}
@@ -327,12 +330,12 @@ public class Forest_Hierarchy {
 		
 	}
 	
-	private void setBlockPixels(int[] pixelBlock) {
+	private void setBlockPixels(Integer[] pixelBlock) {
 		this.blockPixels = null;
 		this.blockPixels = pixelBlock;
 	}
 	
-	public int[] getBlocks(){
+	public Integer[] getBlocks(){
 		return this.blockPixels;
 	}
 }
