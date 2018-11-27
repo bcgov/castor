@@ -39,6 +39,7 @@ require (lme4)
 require (mgcv)
 require (gamm4)
 require (lattice)
+require (ROCR)
 
 #================
 # Cutblocks Data
@@ -7231,7 +7232,7 @@ save (model.lme.du6.lw,
 
 #============================================
 ## Summer ##
-### Corrletion
+### Correlation
 corr.dist.cut.du.6.s <- round (cor (dist.cut.data.du.6.s [10:13], method = "spearman"), 3)
 ggcorrplot (corr.dist.cut.du.6.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Distance to Cutblock Correlation DU6 Summer")
@@ -7282,26 +7283,107 @@ summary (model.lme.du6.s)
 anova (model.lme.du6.s)
 plot (model.lme.du6.s) # should be mostly a straight line
 
-dist.cut.data.du.6.s$preds.lme.re <- predict (model.lme.du6.s, type = 'response') 
-dist.cut.data.du.6.s$preds.lme.re.fe <- predict (model.lme.du6.s, type = 'response', 
-                                                  re.form = NA,
-                                                  newdata = dist.cut.data.du.6.s) 
-plot (dist.cut.data.du.6.s$distance_to_cut_1to4yo, dist.cut.data.du.6.s$preds.lme.re.fe) # fixed effect predictions against covariate value
-plot (dist.cut.data.du.6.s$distance_to_cut_5to9yo, dist.cut.data.du.6.s$preds.lme.re.fe) 
-plot (dist.cut.data.du.6.s$distance_to_cut_10yoorOver, dist.cut.data.du.6.s$preds.lme.re.fe) 
-
-save (model.lme.du6.s, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_lme_du6_lw.rda")
-# sjp.lmer (model.lme.du6.s, type = "pred", vars = "std.distance_to_cut_1to4yo")
 # AIC
-table.aic [5, 6] <- AIC (model.lme.du6.s)
+table.aic [29, 1] <- "DU6"
+table.aic [29, 2] <- "Summer"
+table.aic [29, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [29, 4] <- "DC1to4, DC5to9, DCover9"
+table.aic [29, 5] <- "(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID)"
+table.aic [29, 6] <- AIC (model.lme.du6.s)
 
 # AUC 
 pr.temp <- prediction (predict (model.lme.du6.s, type = 'response'), dist.cut.data.du.6.s$pttype)
 prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
 plot (prf.temp)
 auc.temp <- performance (pr.temp, measure = "auc")
-table.aic [5, 8] <- auc.temp@y.values[[1]]
+table.aic [29, 8] <- auc.temp@y.values[[1]]
+
+# AGE 1to4
+model.lme.du6.s.14 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                  (std.distance_to_cut_1to4yo | uniqueID), 
+                                data = dist.cut.data.du.6.s, 
+                                family = binomial (link = "logit"),
+                                verbose = T,
+                                control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                        optimizer = "nloptwrap", # these settings should provide results quicker
+                                                        optCtrl = list (maxfun = 2e5))) 
+# AIC
+table.aic [30, 1] <- "DU6"
+table.aic [30, 2] <- "Summer"
+table.aic [30, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [30, 4] <- "DC1to4"
+table.aic [30, 5] <- "(DC1to4 | UniqueID)"
+table.aic [30, 6] <- AIC (model.lme.du6.s.14)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du6.s.14, type = 'response'), dist.cut.data.du.6.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [30, 8] <- auc.temp@y.values[[1]]
+
+# AGE 5to9
+model.lme.du6.s.59 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                               (std.distance_to_cut_5to9yo | uniqueID), 
+                             data = dist.cut.data.du.6.s, 
+                             family = binomial (link = "logit"),
+                             verbose = T,
+                             control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                     optimizer = "nloptwrap", # these settings should provide results quicker
+                                                     optCtrl = list (maxfun = 2e5))) 
+# AIC
+table.aic [31, 1] <- "DU6"
+table.aic [31, 2] <- "Summer"
+table.aic [31, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [31, 4] <- "DC5to9"
+table.aic [31, 5] <- "(DC5to9 | UniqueID)"
+table.aic [31, 6] <- AIC (model.lme.du6.s.59)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du6.s.59, type = 'response'), dist.cut.data.du.6.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [31, 8] <- auc.temp@y.values[[1]]
+
+
+# AGE over9
+model.lme.du6.s.over9 <- glmer (pttype ~ std.distance_to_cut_10yoorOver + 
+                               (std.distance_to_cut_10yoorOver | uniqueID), 
+                             data = dist.cut.data.du.6.s, 
+                             family = binomial (link = "logit"),
+                             verbose = T,
+                             control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                     optimizer = "nloptwrap", # these settings should provide results quicker
+                                                     optCtrl = list (maxfun = 2e5))) 
+# AIC
+table.aic [32, 1] <- "DU6"
+table.aic [32, 2] <- "Summer"
+table.aic [32, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [32, 4] <- "DCover9"
+table.aic [32, 5] <- "(DCover9 | UniqueID)"
+table.aic [32, 6] <- AIC (model.lme.du6.s.over9)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du6.s.over9, type = 'response'), dist.cut.data.du.6.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [32, 8] <- auc.temp@y.values[[1]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Fit model with functional responses
 # Calculating dataframe with covariate expectations
