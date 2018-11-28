@@ -51,7 +51,9 @@ paths <- list(
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-spades(mySim)
+
+mysimout<-spades(mySim)
+eventDiagram(mySimOut)
 ```
 
 # Events

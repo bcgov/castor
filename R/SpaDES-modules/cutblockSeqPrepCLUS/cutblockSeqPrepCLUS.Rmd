@@ -28,7 +28,7 @@ The cutblockSeqPrep uses a defined area to grab the spatial locations of cutbloc
 library(igraph)
 library(SpaDES.core)
 
-source("R/functions/R_Postgres.R")
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
@@ -53,7 +53,8 @@ paths <- list(
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-spades(mySim)
+mySimOut<-spades(mySim)
+eventDiagram(mySimOut)
 ```
 
 # Events
