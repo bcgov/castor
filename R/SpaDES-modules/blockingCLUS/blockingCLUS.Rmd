@@ -24,8 +24,8 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
-  dbName = 'clus', nameBoundary ='Purcells South', nameBoundaryGeom = 'geom'),
-  blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003')
+  dbName = 'clus', nameBoundary ='Barkerville', nameBoundaryGeom = 'geom'),
+  blockingCLUS = list(blockMethod = 'pre', nameSimilarityRas = 'ras_similar_vri2003')
 )
 modules <- list("dataLoaderCLUS","blockingCLUS")
 objects <- list()
@@ -44,28 +44,19 @@ spades(mySim)
 
 # Events
 
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
+There are two methods used in blockingCLUS: 1) pre blocking and 2) dynamic blocking. 
 
 # Data dependencies
 
 ## Input data
 
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("blockingCLUS", "path/to/modules/dir")` may be sufficient.
+A raster describing the similarity between pixels is required
 
 ## Output data
 
-Description of the module outputs.
+A raster of block IDs
 
 # Links to other modules
 
-Describe any anticipated linkages to other modules.
+Requires dataloaderCLUS to establish the database connections and define the area of interest.
 

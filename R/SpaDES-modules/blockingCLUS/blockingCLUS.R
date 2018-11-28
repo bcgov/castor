@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list("rJava","jdx","igraph","data.table", "raster"),
+  reqdPkgs = list("here", "rJava","jdx","igraph","data.table", "raster", "SpaDES.tools"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
@@ -87,6 +87,12 @@ blockingCLUS.Init <- function(sim) {
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
+  
+  if(P(sim)$blockMethod == 'dynamic'){
+    sim$aoi<-sim$ras.similar
+    sim$aoi[!is.na(aoi[])]<-1
+  }
+  
   return(invisible(sim))
 }
 
@@ -106,7 +112,7 @@ blockingCLUS.preBlock <- function(sim) {
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   weight[, id := seq_len(.N)] # set the id for ther verticies which is used to merge with the edge list from adj
   
-  edges<-adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
+  edges<-SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
              cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))
   edges<-data.table(edges)
   #edges[from < to, c("from", "to") := .(to, from)]
@@ -136,13 +142,15 @@ blockingCLUS.preBlock <- function(sim) {
   paths.matrix[, V2 := as.integer(V2)]
   d<-convertToJava(as.integer(degree(g.mst)))
   
-  h<-convertToJava(data.table(size= c(200,400,600,100), n = as.integer(c(1000000, 300000,10000,1000))))
+  h<-convertToJava(data.table(size= c(20,40,60,100), n = as.integer(c(1000000, 300000,10000,1000))))
   h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
   
   to<-.jarray(as.matrix(paths.matrix[,1]))
   from<-.jarray(as.matrix(paths.matrix[,2]))
   weight<-.jarray(as.matrix(paths.matrix[,3]))
-  
+  library(here) #Need this package to find the root directory
+
+  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
   fhClass$blockEdges() # creates the blocks
@@ -154,13 +162,12 @@ blockingCLUS.preBlock <- function(sim) {
   plot(sim$harvestUnits)
   rm(test, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
-  #writeRaster(sim$harvestUnits, "test.tif", overwrite=TRUE)
+  writeRaster(sim$harvestUnits, "test.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
-  aoi<-sim$ras.similar
-  aoi[!is.na(aoi[])]<-1
+
   landings<-
   stopRuleHistogram <- function(landscape, endSizes, id) sum(landscape) > endSizes[id]
   stopRuleA<-spread(landscape=aoi, loci = c(1,20, 16), exactSizes = TRUE, maxsize= 10, stopRule = stopRule3, spreadProb = ras, id= TRUE, directions =4
