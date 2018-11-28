@@ -38,8 +38,8 @@ defineModule(sim, list(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA)
-    #expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -154,11 +154,21 @@ blockingCLUS.preBlock <- function(sim) {
   plot(sim$harvestUnits)
   rm(test, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
-  writeRaster(sim$harvestUnits, "test.tif", overwrite=TRUE)
+  #writeRaster(sim$harvestUnits, "test.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
+  aoi<-sim$ras.similar
+  aoi[!is.na(aoi[])]<-1
+  landings<-
+  stopRuleHistogram <- function(landscape, endSizes, id) sum(landscape) > endSizes[id]
+  stopRuleA<-spread(landscape=aoi, loci = c(1,20, 16), exactSizes = TRUE, maxsize= 10, stopRule = stopRule3, spreadProb = ras, id= TRUE, directions =4
+                    , stopRuleBehavior = "excludePixel", endSizes = c(10,10,10))
+  foo <- cbind(vals = ras[stopRuleA], id = stopRuleA[stopRuleA > 0]);
+  tapply(foo[, "vals"], foo[, "id"], sum)
+  plot(stopRuleA)
+  
   return(invisible(sim))
 }
 
