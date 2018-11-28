@@ -300,7 +300,8 @@ roadCLUS.analysis <- function(sim){
     sim$bbox<-st_bbox(getSpatialQuery(paste0("SELECT * FROM ",  sim$boundaryInfo[1], " WHERE ",    sim$boundaryInfo[2], "= '",   sim$boundaryInfo[3],"';" )))
   }
   if(!suppliedElsewhere("landings", sim)){
-    sim$landings<-NULL
+    sim$roads<-getRasterQuery(P(sim)$nameRoads, sim$bbox)
+    sim$landings<-xyFromCell(sim$roads, sample(1:ncell(sim$roads), 5), Spatial = TRUE)
   }
   return(invisible(sim))
 }

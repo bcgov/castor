@@ -25,9 +25,8 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
-times <- list(start = 0, end = 10)
-parameters <- list(
-)
+times <- list(start = 0, end = 1)
+parameters <- list(nameRoads =  'pre_roads_ras')
 modules <- list("roadCLUS")
 objects <- list()
 paths <- list(
