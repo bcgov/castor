@@ -167,14 +167,15 @@ blockingCLUS.preBlock <- function(sim) {
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
-
-  landings<-
   stopRuleHistogram <- function(landscape, endSizes, id) sum(landscape) > endSizes[id]
-  stopRuleA<-spread(landscape=aoi, loci = c(1,20, 16), exactSizes = TRUE, maxsize= 10, stopRule = stopRule3, spreadProb = ras, id= TRUE, directions =4
-                    , stopRuleBehavior = "excludePixel", endSizes = c(10,10,10))
-  foo <- cbind(vals = ras[stopRuleA], id = stopRuleA[stopRuleA > 0]);
-  tapply(foo[, "vals"], foo[, "id"], sum)
-  plot(stopRuleA)
+  
+  if (!is.null(sim$landings)) {
+    landings<-cellFromXY(sim$aoi, sim$landings)
+    print(length(landings))
+    stopRuleA<-spread(landscape=aoi, loci = landings, exactSizes = TRUE, maxsize= 1000, stopRule = stopRuleHistogram, spreadProb = sim$similar, id= TRUE, directions =4, 
+                      stopRuleBehavior = "excludePixel", endSizes = rnorm(length(landings), 40, 40))
+    writeRaster(stopRuleA, "test.tif", overwrite = TRUE)
+    }
   
   return(invisible(sim))
 }
