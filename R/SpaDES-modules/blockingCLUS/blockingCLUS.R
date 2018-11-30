@@ -90,7 +90,8 @@ blockingCLUS.Init <- function(sim) {
   
   if(P(sim)$blockMethod == 'dynamic'){
     sim$aoi<-sim$ras.similar
-    sim$aoi[!is.na(aoi[])]<-1
+    sim$aoi[aoi[]>0]<-1
+    sim$harvestUnits<-NULL
   }
   
   return(invisible(sim))
@@ -167,16 +168,24 @@ blockingCLUS.preBlock <- function(sim) {
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
-  stopRuleHistogram <- function(landscape, endSizes, id) sum(landscape) > endSizes[id]
-  
+  print(paste0("landings null:", is.null(sim$landings)))
   if (!is.null(sim$landings)) {
-    landings<-cellFromXY(sim$aoi, sim$landings)
-    print(length(landings))
-    stopRuleA<-spread(landscape=aoi, loci = landings, exactSizes = TRUE, maxsize= 1000, stopRule = stopRuleHistogram, spreadProb = sim$similar, id= TRUE, directions =4, 
-                      stopRuleBehavior = "excludePixel", endSizes = rnorm(length(landings), 40, 40))
-    writeRaster(stopRuleA, "test.tif", overwrite = TRUE)
-    }
-  
+      landings<-cellFromXY(sim$aoi, sim$landings)
+      size<-as.integer(runif(length(landings), 10, 40))
+      simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings, directions =4, 
+                     exactSize= size, asRaster = TRUE)
+      mV<-maxValue(simBlocks)
+      sim$aoi<-sim$aoi*reclassify(simBlocks, matrix(cbind(0, 0, 1, 1, mV, 0), ncol =3, byrow =TRUE))
+      
+      if(!is.null(sim$harvestUnits)){ 
+          sim$harvestUnits<- (mV + simBlocks) + sim$harvestUnits #relabels the block IDS
+      }else{
+          sim$harvestUnits = simBlocks #the first spreading event 
+      }
+  }
+  rm(size, simBlocks, mV)
+  gc()
+  writeRaster(sim$harvestUnits, "test.tif", overwrite = TRUE)
   return(invisible(sim))
 }
 

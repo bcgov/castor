@@ -1,6 +1,6 @@
 ---
 title: "blockingCLUS"
-author: ""
+author: "Kyle Lochhead"
 date: "03 October 2018"
 output: pdf_document
 ---
@@ -31,15 +31,15 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
-times <- list(start = 0, end = 10)
+times <- list(start = 0, end = 2)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
-  dbName = 'clus', nameBoundary ='Barkerville', nameBoundaryGeom = 'geom'),
-  blockingCLUS = list(blockMethod = 'pre', nameSimilarityRas = 'ras_similar_vri2003')
+  dbName = 'clus', nameBoundary ='Chinchaga', nameBoundaryGeom = 'geom'),
+  blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003')
 )
-modules <- list("dataLoaderCLUS","blockingCLUS")
+modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -53,7 +53,7 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 
 
 mysimout<-spades(mySim)
-eventDiagram(mySimOut)
+#eventDiagram(mySimOut)
 ```
 
 # Events
