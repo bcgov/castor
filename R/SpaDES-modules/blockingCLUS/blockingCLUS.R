@@ -88,9 +88,10 @@ blockingCLUS.Init <- function(sim) {
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
   
-  if(P(sim)$blockMethod == 'dynamic'){
+  if(P(sim)$blockMethod == 'dynamic'){ #create a aoi mask
     sim$aoi<-sim$ras.similar
     sim$aoi[aoi[]>0]<-1
+    sim$aoi[is.na(aoi[])]<-0
     sim$harvestUnits<-NULL
   }
   
@@ -172,20 +173,31 @@ blockingCLUS.spreadBlock<- function(sim) {
   if (!is.null(sim$landings)) {
       landings<-cellFromXY(sim$aoi, sim$landings)
       size<-as.integer(runif(length(landings), 10, 40))
-      simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings, directions =4, 
-                     exactSize= size, asRaster = TRUE)
-      mV<-maxValue(simBlocks)
-      sim$aoi<-sim$aoi*reclassify(simBlocks, matrix(cbind(0, 0, 1, 1, mV, 0), ncol =3, byrow =TRUE))
       
-      if(!is.null(sim$harvestUnits)){ 
-          sim$harvestUnits<- (mV + simBlocks) + sim$harvestUnits #relabels the block IDS
-      }else{
-          sim$harvestUnits = simBlocks #the first spreading event 
+      simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings, directions =4, 
+                     maxSize= size, asRaster = TRUE)
+      
+      mV<-maxValue(simBlocks) 
+      writeRaster(sim$aoi, "aoi1.tif", overwrite = TRUE)
+      #update the aoi to remove areas that have already been spread to...?
+      maskSimBlocks<-reclassify(simBlocks, matrix(cbind( NA, NA, 1, -Inf,0.5, 1, 0.5, mV + 1, 0), ncol =3, byrow =TRUE))
+      sim$aoi<- sim$aoi*maskSimBlocks
+      writeRaster(sim$aoi, "aoi2.tif", overwrite = TRUE)
+      if(is.null(sim$harvestUnits)){ 
+        simBlocks[is.na(simBlocks[])] <- 0
+        sim$harvestUnits <- simBlocks #the first spreading event
+        writeRaster(sim$harvestUnits, "test1.tif", overwrite = TRUE)
+      }
+      else{
+        newSimBlocks <- simBlocks + maxValue(sim$harvestUnits)
+        newSimBlocks[is.na(newSimBlocks[])] <- 0
+        writeRaster(newSimBlocks, "newSimBlocks.tif", overwrite = TRUE)
+        sim$harvestUnits <- sim$harvestUnits +  newSimBlocks
       }
   }
   rm(size, simBlocks, mV)
   gc()
-  writeRaster(sim$harvestUnits, "test.tif", overwrite = TRUE)
+  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   return(invisible(sim))
 }
 
