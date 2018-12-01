@@ -83,8 +83,6 @@ cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
   return(invisible(sim))
 }
 
-
-
 ### Set a list of cutblock locations as a Spatial Points object
 cutblockSeqPrepCLUS.getLandings <- function(sim) {
   if(!is.null(sim$histLandings)){

@@ -1,3 +1,2 @@
 
-Any other details that a user may need to know, like where to get more information,
-where to download data, etc.
+Needs work to stand alone -- porting this code over to R package roads: https://github.com/LandSciTech/roads

@@ -1,10 +1,22 @@
 ---
 title: "blockingCLUS"
-author: ""
+author: "Kyle Lochhead"
 date: "03 October 2018"
 output: pdf_document
 ---
-
+```{r, eval = FALSE}
+# Copyright 2018 Province of British Columbia
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
+```
 # Overview
 
 This module groups pixels together to form harvest units. The purpose of this process is for the user to specfiy the distribution of patches formed through forestry activities. For a greater description of this process and the calibration go [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md) 
@@ -19,15 +31,15 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
-times <- list(start = 0, end = 10)
+times <- list(start = 0, end = 2)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
-  dbName = 'clus', nameBoundary ='Purcells South', nameBoundaryGeom = 'geom'),
+  dbName = 'clus', nameBoundary ='Chinchaga', nameBoundaryGeom = 'geom'),
   blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003')
 )
-modules <- list("dataLoaderCLUS","blockingCLUS")
+modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -39,33 +51,26 @@ paths <- list(
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-spades(mySim)
+
+mysimout<-spades(mySim)
+#eventDiagram(mySimOut)
 ```
 
 # Events
 
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
+There are two methods used in blockingCLUS: 1) pre blocking and 2) dynamic blocking. 
 
 # Data dependencies
 
 ## Input data
 
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("blockingCLUS", "path/to/modules/dir")` may be sufficient.
+A raster describing the similarity between pixels is required
 
 ## Output data
 
-Description of the module outputs.
+A raster of block IDs
 
 # Links to other modules
 
-Describe any anticipated linkages to other modules.
+Requires dataloaderCLUS to establish the database connections and define the area of interest.
 
