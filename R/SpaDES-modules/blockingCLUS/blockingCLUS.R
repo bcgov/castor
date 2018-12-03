@@ -53,6 +53,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-blockingCLUS.Init(sim)
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks" ,eventPriority=21)
       switch(P(sim)$blockMethod,
              pre= {
                sim <- blockingCLUS.preBlock(sim)
@@ -65,6 +66,10 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     buildBlocks = {
         sim <- blockingCLUS.spreadBlock(sim)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
+    },
+    writeBlocks = {
+      writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+      writeRaster(sim$aoi, "aoi_last.tif", overwrite = TRUE)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -169,35 +174,31 @@ blockingCLUS.preBlock <- function(sim) {
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
-  print(paste0("landings null:", is.null(sim$landings)))
   if (!is.null(sim$landings)) {
-      landings<-cellFromXY(sim$aoi, sim$landings)
-      size<-as.integer(runif(length(landings), 10, 40))
-      
+      landings<-unique(cellFromXY(sim$aoi, sim$landings))
+      size<-as.integer(runif(length(landings), 20, 100))
+      writeRaster(sim$aoi, "aoi.tif", overwrite = TRUE)
+      print(sim$landings)
       simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings, directions =4, 
-                     maxSize= size, asRaster = TRUE)
-      
+                     maxSize= size, allowOverlap=FALSE)
+
       mV<-maxValue(simBlocks) 
-      writeRaster(sim$aoi, "aoi1.tif", overwrite = TRUE)
       #update the aoi to remove areas that have already been spread to...?
-      maskSimBlocks<-reclassify(simBlocks, matrix(cbind( NA, NA, 1, -Inf,0.5, 1, 0.5, mV + 1, 0), ncol =3, byrow =TRUE))
+      maskSimBlocks<-reclassify(simBlocks, matrix(cbind( NA, NA, 1, -1,0.5, 1, 0.5, mV + 1, 0), ncol =3, byrow =TRUE))
       sim$aoi<- sim$aoi*maskSimBlocks
-      writeRaster(sim$aoi, "aoi2.tif", overwrite = TRUE)
       if(is.null(sim$harvestUnits)){ 
+        writeRaster(sim$aoi, "aoi_0.tif", overwrite = TRUE)
         simBlocks[is.na(simBlocks[])] <- 0
         sim$harvestUnits <- simBlocks #the first spreading event
-        writeRaster(sim$harvestUnits, "test1.tif", overwrite = TRUE)
       }
       else{
-        newSimBlocks <- simBlocks + maxValue(sim$harvestUnits)
-        newSimBlocks[is.na(newSimBlocks[])] <- 0
-        writeRaster(newSimBlocks, "newSimBlocks.tif", overwrite = TRUE)
-        sim$harvestUnits <- sim$harvestUnits +  newSimBlocks
+        simBlocks <- simBlocks + maxValue(sim$harvestUnits)
+        simBlocks[is.na(simBlocks[])] <- 0
+        sim$harvestUnits <- sim$harvestUnits +  simBlocks
       }
   }
-  rm(size, simBlocks, mV)
+  rm( simBlocks,  maskSimBlocks)
   gc()
-  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   return(invisible(sim))
 }
 
