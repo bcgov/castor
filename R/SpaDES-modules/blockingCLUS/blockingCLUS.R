@@ -27,6 +27,8 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
+    defineParameter("useSpreadProbRas", "logical", FALSE, NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
@@ -39,11 +41,12 @@ defineModule(sim, list(
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = NA, objectClass = NA, desc = NA),
+    createsOutput(objectName = "ras.similar", objectClass = "RasterLayer", desc = NA),
     createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA)
   )
 ))
@@ -59,6 +62,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                sim <- blockingCLUS.preBlock(sim)
              } ,
              dynamic ={
+               sim <- blockingCLUS.setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
              }
       )
@@ -69,20 +73,10 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     },
     writeBlocks = {
       writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
-      writeRaster(sim$aoi, "aoi_last.tif", overwrite = TRUE)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
-  return(invisible(sim))
-}
-
-Save <- function(sim) {
-  sim <- saveFiles(sim)
-  return(invisible(sim))
-}
-
-Plot <- function(sim) {
   return(invisible(sim))
 }
 
@@ -92,14 +86,6 @@ blockingCLUS.Init <- function(sim) {
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
-  
-  if(P(sim)$blockMethod == 'dynamic'){ #create a aoi mask
-    sim$aoi<-sim$ras.similar
-    sim$aoi[aoi[]>0]<-1
-    sim$aoi[is.na(aoi[])]<-0
-    sim$harvestUnits<-NULL
-  }
-  
   return(invisible(sim))
 }
 
@@ -111,6 +97,16 @@ blockingCLUS.getBounds<-function(sim){
   }
   return(invisible(sim))
 }
+
+blockingCLUS.setSpreadProb<- function(sim) {
+  sim$aoi<-sim$ras.similar
+  sim$aoi[aoi[]>0]<-1
+  sim$aoi[is.na(aoi[])]<-0
+  sim$harvestUnits<-NULL
+  sim$ras.similar<-1-(sim$ras.similar - minValue(sim$ras.similar))/(maxValue(sim$ras.similar)-minValue(sim$ras.similar))
+  return(invisible(sim))
+}
+
 
 blockingCLUS.preBlock <- function(sim) {
   print("preBlock")
@@ -166,39 +162,48 @@ blockingCLUS.preBlock <- function(sim) {
   #print(convertToR(test))
   sim$harvestUnits<-sim$ras.similar
   sim$harvestUnits[]<-convertToR(test)
-  plot(sim$harvestUnits)
   rm(test, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
-  writeRaster(sim$harvestUnits, "test.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
   if (!is.null(sim$landings)) {
-      landings<-unique(cellFromXY(sim$aoi, sim$landings))
-      size<-as.integer(runif(length(landings), 20, 100))
-      writeRaster(sim$aoi, "aoi.tif", overwrite = TRUE)
-      print(sim$landings)
-      simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings, directions =4, 
-                     maxSize= size, allowOverlap=FALSE)
-
+    
+      if(P(sim)$useLandingsArea){
+        size<-sim$landingsArea
+      }else{
+        size<-as.integer(runif(length(landings), 20, 100))
+      }
+    
+      landings<-cellFromXY(sim$aoi, sim$landings)
+      landings<-as.data.frame(cbind(landings, size))
+      landings<-landings[!duplicated(landings$landings),]
+      
+      if(P(sim)$useSpreadProbRas){
+        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.similar, start = landings[,1], directions =4, 
+                                         maxSize= landings[,2], allowOverlap=FALSE)
+      }else{
+          simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings[,1], directions =4, 
+                     maxSize= landings[,2], allowOverlap=FALSE)
+      }
       mV<-maxValue(simBlocks) 
       #update the aoi to remove areas that have already been spread to...?
       maskSimBlocks<-reclassify(simBlocks, matrix(cbind( NA, NA, 1, -1,0.5, 1, 0.5, mV + 1, 0), ncol =3, byrow =TRUE))
       sim$aoi<- sim$aoi*maskSimBlocks
+      
       if(is.null(sim$harvestUnits)){ 
-        writeRaster(sim$aoi, "aoi_0.tif", overwrite = TRUE)
         simBlocks[is.na(simBlocks[])] <- 0
         sim$harvestUnits <- simBlocks #the first spreading event
-      }
-      else{
+
+      }else{
         simBlocks <- simBlocks + maxValue(sim$harvestUnits)
         simBlocks[is.na(simBlocks[])] <- 0
         sim$harvestUnits <- sim$harvestUnits +  simBlocks
       }
+      rm( simBlocks, maskSimBlocks, landings, mV, size)
+      gc()
   }
-  rm( simBlocks,  maskSimBlocks)
-  gc()
   return(invisible(sim))
 }
 

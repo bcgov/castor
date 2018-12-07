@@ -26,6 +26,8 @@ defineModule(sim, list(
   reqdPkgs = list("rpostgis", "sp","sf", "dplyr", "SpaDES.core"),
   parameters = rbind( 
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("queryCutblocks", "character", "cutseq", NA, NA, "This describes the type of query for the cutblocks"),
+    defineParameter("getArea", "logical", FALSE, NA, NA, "This describes if the area ha should be returned for each landing"),
     defineParameter("startHarvestYear", "numeric", 1980, NA, NA, "This describes the min year from which to query the cutblocks"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
@@ -41,7 +43,8 @@ defineModule(sim, list(
     expectsInput("boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    createsOutput("landings", "SpatialPoints", "This describes a series of point locations representing the cutblocks or their landings", ...)
+    createsOutput("landings", "SpatialPoints", "This describes a series of point locations representing the cutblocks or their landings", ...),
+    createsOutput("landingsArea", "numeric", "This creates a vector of area in ha for each landing", ...)
     #createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
 ))
@@ -69,16 +72,18 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
 cutblockSeqPrepCLUS.Init <- function(sim) {
   #Get the XY location of the historical cutblock landings
   sim<-cutblockSeqPrepCLUS.getHistoricalLandings(sim)
+  sim$landings<-NULL
+  sim$landingsArea<-NULL
   return(invisible(sim))
 }
 
 ### Set the list of the cutblock locations
 cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
-  sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y from cutseq, 
-              (Select ", sim$boundaryInfo[4], " FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," = '", sim$boundaryInfo[3],"') as h
-              WHERE h.", sim$boundaryInfo[4] ," && cutseq.point 
-              AND ST_Contains(h.", sim$boundaryInfo[4]," ,cutseq.point) AND harvestyr >= ", P(sim)$startHarvestYear,"
-              ORDER BY harvestyr"))
+  sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[4], " FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," = '", sim$boundaryInfo[3],"') as h
+              WHERE h.", sim$boundaryInfo[4] ," && ",  P(sim)$queryCutblocks, ".point 
+                                         AND ST_Contains(h.", sim$boundaryInfo[4]," ,",P(sim)$queryCutblocks,".point) AND harvestyr >= ", P(sim)$startHarvestYear,"
+                                         ORDER BY harvestyr"))
+  
   if(length(sim$histLandings)==0){ sim$histLandings<-NULL}
   return(invisible(sim))
 }
@@ -91,15 +96,13 @@ cutblockSeqPrepCLUS.getLandings <- function(sim) {
       print(paste0('geting landings in: ', time(sim)))
       sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+      if(P(sim)$getArea){sim$landingsArea<-landings[,4]}else {sim$landingsArea<-NULL}
+      
     }else{
       print(paste0('NO landings in: ', time(sim)))
+      sim$landings<-NULL
+      sim$landingsArea<-NULL
     }
-    sim$landingsSimulated<-SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
-  }else{
-    #ras =raster(sim$bbox, res =100, vals =0, crs = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-    #                      +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0") )
-    #sim$landings<- xyFromCell(ras, as.integer(sample(1:ncell(ras), 5)), spatial=TRUE)
   }
   return(invisible(sim))
 }

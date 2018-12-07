@@ -19,6 +19,7 @@ output: pdf_document
 ```
 # Overview
 
+
 This module groups pixels together to form harvest units. The purpose of this process is for the user to specfiy the distribution of patches formed through forestry activities. For a greater description of this process and the calibration go [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md) 
 
 # Usage
@@ -28,16 +29,18 @@ library(SpaDES.core)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
-inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(moduleDir, "outputs")
-cacheDir <- file.path(outputDir, "cache")
-times <- list(start = 0, end = 2)
+inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+times <- list(start = 0, end = 15)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
-  dbName = 'clus', nameBoundary ='Chinchaga', nameBoundaryGeom = 'geom'),
-  blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003')
+  dbName = 'clus', nameBoundary ='Telkwa', nameBoundaryGeom = 'geom'),
+  blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003', useLandingsArea = TRUE, useSpreadProbRas = TRUE),
+  cutblockSeqPrepCLUS = list(queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
+                             getArea =TRUE)
 )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS")
 objects <- list()

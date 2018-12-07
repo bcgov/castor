@@ -159,6 +159,8 @@ roadCLUS.getRoads <- function(sim) {
 roadCLUS.getCostSurface<- function(sim){
   rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
   sim$costSurface<-rds*(resample(getRasterQuery(P(sim)$nameCostSurfaceRas, sim$bbox), sim$roads, method = 'bilinear')*288 + 3243)#multiply the cost surface by the existing roads
+  rm(rds)
+  gc()
   return(invisible(sim))
 }
 
@@ -246,10 +248,7 @@ roadCLUS.shortestPaths<- function(sim){
     sim$paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), sim$paths.v))#save the verticies for mapping
     paths.e<-paths[grepl("epath",names(paths))]
     edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
-    
-    #reset landings and roads close to them
-    sim$landings<-NULL
-    sim$roads.close.XY<-NULL
+
     rm(paths.e)
     gc()
   }
