@@ -33,8 +33,8 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput(objectName = "roads", objectClass = "RasterLayer", desc = NA),
-    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA)
+    expectsInput(objectName = "roads", objectClass = "RasterLayer", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -49,14 +49,16 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "disturbanceCalcCLUS", "roads")
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "disturbanceCalcCLUS", "cutblocks")
+      sim <- scheduleEvent(sim, P(sim, "roadCLUS", "roadSeqInterval"), "disturbanceCalcCLUS", "roads")
+      sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
     },
     roads = {
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "disturbanceCalcCLUS", "roads")
+      sim<- disturbanceCalcCLUS.roads(sim)
+      sim <- scheduleEvent(sim, P(sim, "roadCLUS", "roadSeqInterval"), "disturbanceCalcCLUS", "roads")
     },
     cutblocks = {
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "disturbanceCalcCLUS", "cutblocks")
+      sim<- disturbanceCalcCLUS.cutblocks(sim)
+      sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -69,13 +71,14 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 
-roads <- function(sim) {
+disturbanceCalcCLUS.roads <- function(sim) {
+  print('calc roads')
   return(invisible(sim))
 }
-cutblocks <- function(sim) {
+disturbanceCalcCLUS.cutblocks <- function(sim) {
+  print('calc cutblocks')
   return(invisible(sim))
 }
-
 
 
 .inputObjects <- function(sim) {
@@ -85,7 +88,7 @@ cutblocks <- function(sim) {
   }
   
   if(!suppliedElsewhere("harvestUnits", sim)){
-    sim<-harvestUnits<-0
+    sim$harvestUnits<-0
   }
   
   return(invisible(sim))

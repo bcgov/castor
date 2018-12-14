@@ -28,9 +28,9 @@ parameters <- list(
   blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003', useLandingsArea = TRUE, useSpreadProbRas = TRUE),
   cutblockSeqPrepCLUS = list(queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
                              getArea =TRUE),
-  roadCLUS = list(roadMethod = 'mst', nameCostSurfaceRas = 'rd_cost_surface', nameRoads =  'pre_roads_ras')
+  roadCLUS = list(roadMethod = 'snap', nameCostSurfaceRas = 'rd_cost_surface', nameRoads =  'pre_roads_ras')
 )
-modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS", "roadCLUS")
+modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS", "roadCLUS", "disturbanceCalcCLUS")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -43,7 +43,8 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
 
-mysimout<-spades(mySim)  
+mysimout<-spades(mySim) 
+eventDiagram(mysimout)
 ```
 
 
