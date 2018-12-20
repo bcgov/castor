@@ -318,9 +318,7 @@ The correlation plot indicated that distance to cutblocks 10 to 29 years old and
 
 ![](plots/plot_dist_cut_corr_du_6_lw.png)
 
-The maximum VIF from the simple GLM covariate model was <1.6, indicating covariates were not highly correlated. 
-
-The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response,and had an AIC*~w~* of 1.00. In addition, the top model had the highest AUC (AUC = 0.665).
+The maximum VIF from the simple GLM covariate model was <1.6, indicating covariates were not highly correlated. The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response,and had an AIC*~w~* of 1.00. In addition, the top model had the highest AUC (AUC = 0.665).
 
 ##### Summer
 The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.82), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
@@ -335,28 +333,63 @@ The correlation plot indicated that distance to cutblocks 10 to 29 years old and
 
 ![](plots/plot_dist_cut_corr_du_7_ew.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <4.1, indicating covaraites were not highly correlated. The AIC*~w~* of the model without fucntional response covaraites was 1.00, indicating a lack of functional response in caribou selection for cutblcoks. In addition, the AUC of the simpler model (AUC = 0.679) was slightly better than the functional response model (AUC = 0.668). 
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <4.1, indicating covaraites were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.679) was better than all other models.
 
 ##### Late Winter
 The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.82) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.71) therefore, I grouped these three age categories together (i.e., distance to cutblocks greater than 5 years old).
 
 ![](plots/plot_dist_cut_corr_du_7_lw.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.8, indicating covariates were not highly correlated. The AIC*~w~* of the model without functional response covariates was 1.00, indicating a lack of fucntional response in caribou selection for cutblcoks. In addition, the AUC of theis simpler model (AUC = 0.690) was slightly better than the functional response model (AUC = 0.675). 
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.8, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.690) was better than all other models.
 
 ##### Summer
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.80) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.87) therefore, I grouped these three age categories together (i.e., distance to cutblocks greater than 5 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.80) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.87) therefore, I grouped these three age category covariates together (i.e., distance to cutblocks greater than 5 years old).
 
 ![](plots/plot_dist_cut_corr_du_7_s.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.6, indicating covariates were not highly correlated. The AIC*~w~* of the model without functional response covariates was 1.00, indicating a lack of functional response in caribou selection for cutblocks. In addition, the AUC of the simpler model (AUC = 0.694) was better than the functional response model (AUC = 0.678).
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.6, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
 
 #### DU8
 ##### Early Winter
+The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.61). Therefore, I did not group any of the age covariates together.
+
+![](plots/plot_dist_cut_corr_du_8_ew.png)
+
+The maximum VIF from the simple GLM covariate model was <1.9, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.698) was better than all other models.
+
+##### Late Winter
+The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.57). Therefore, I did not group any of the age covariates together.
+
+![](plots/plot_dist_cut_corr_du_8_lw.png)
+
+The maximum VIF from the simple GLM covariate model was <1.7, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.715) was better than all other models.
+
+##### Summer
+The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.54). Therefore, I did not group any of the age covariates together.
+
+![](plots/plot_dist_cut_corr_du_8_s.png)
+
+The maximum VIF from the simple GLM covariate model was <1.8, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.701) was better than all other models.
+
+#### DU9
+##### Early Winter
+The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.67). Therefore, I did not group any of the age covariates together.
+
+![](plots/plot_dist_cut_corr_du_9_ew.png)
+
+The maximum VIF from the simple GLM covariate model was <6.6, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 0.90. It included all temporal distance to cutblock covariates with a functional response in caribou selection for cutblocks for each covariate. The AUC of the top model (AUC = 0.636) was about average for the model set, and slightly less than the most predictive model (i.e., AUC = 0.648).
+
+##### Late Winter
+The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.57). Therefore, I did not group any of the age covariates together.
+
+![](plots/plot_dist_cut_corr_du_9_lw.png)
+
+The maximum VIF from the simple GLM covariate model was <3.5, indicating covariates were not highly correlated.
 
 
 
 
+ The AIC*~w~* of the top model was 0.90. It included all temporal distance to cutblock covariates with a functional response in caribou selection for cutblocks for each covariate. The AUC of the top model (AUC = 0.636) was about average for the model set, and slightly less than the most predictive model (i.e., AUC = 0.648).
 
 
 
