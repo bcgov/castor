@@ -1,7 +1,8 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
-output: word_document
-    # keep_md: T
+output: 
+    word_document:
+    keep_md: T
 ---
 
 ```{r setup, include = FALSE}
