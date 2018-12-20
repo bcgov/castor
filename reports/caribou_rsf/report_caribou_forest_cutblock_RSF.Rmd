@@ -1,8 +1,9 @@
 ---
 title: "Caribou Forest Cutblock Resoruce Selection Function Report"
 output: 
-    word_document:
+    html_document:
     keep_md: T
+    self_contained: F
 ---
 
 ```{r setup, include = FALSE}
