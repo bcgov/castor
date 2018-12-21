@@ -1,10 +1,10 @@
 ---
 title: "Caribou Forestry Cutblock Resource Selection Function Report"
 output: 
-  pdf_document:
+  # pdf_document:
   html_document:
-      keep_md: YES
-      self_contained: YES
+      keep_md: TRUE
+      self_contained: FALSE
 ---
 
 ```{r setup, include = FALSE}
