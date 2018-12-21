@@ -6,13 +6,7 @@ output:
       self_contained: FALSE
 ---
 
-```{r setup, include = FALSE}
-knitr::opts_chunk$set (echo = TRUE)
-require (dplyr)
-require (ggplot2)
-require (ggcorrplot)
-require (gridExtra)
-```
+
 
 ## Introduction
 Here I summarize the data exploration and model selection process done to identify how to parsimoniously include distance to cutblock covariates in caribou resource selection function (RSF) models (Boyce et al. 1999; Manly et al. 2007). RSF models will be calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)
@@ -26,7 +20,8 @@ After temporally grouping the distance to cutblock data, I did further data expl
 Here I tested whether distance to cutblocks of different ages, from one year old to greater than 50 years old, at locations in caribou home ranges, were correlated. If distance to cutblock was highly correlated across proximate years, then it would be possible (and indeed necessary) to reduce the number of distance to cutblock covariates in an RSF model by grouping cutblock ages together.   
 
 I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
-```{r, correlation plot code, eval = F, echo = T}
+
+```r
 # data
 rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
 
@@ -43,7 +38,8 @@ ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 Here I tested whether caribou selection of distance to cutblock changed as cublocks aged. This helped with temporally grouping distance to cutblock data by age, by illustrating if and when caribou consistently selected or avoided cutblocks of similar ages. 
 
 I compared how caribou selected distance to cutblock across years by fitting seperate caribou RSFs, where each RSF had a single covariate for distance to cublock for each cutblock age. For example, a RSF was fit with a single covariate for distance to one year old cutblock. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations, where used locations are caribou telmetry locations and available locations are randomly sampled locations within the extent of estimated caribou home ranges). RSFs were fit for each season and DU. The following is an example of the R code used to calculate RSFs:
-```{r, single covariate RSF model code, eval = F, echo = T}
+
+```r
 dist.cut.data.du.6.ew <- dist.cut.data %>% # sub-sample the data by season and DU
   dplyr::filter (du == "du6") %>% 
   dplyr::filter (season == "EarlyWinter")
@@ -63,11 +59,12 @@ glm.du.6.ew.51yo <- glm (pttype ~ distance_to_cut_pre50yo,
 
 The beta coefficients of the distance to cutblock covariate were outputted from each model and plotted against the age of the cutblock to illustrate how selection changed as the cutblock aged.  
 
-### Resource Selection Function (RSF) Model Secltion of Distance to Cutblock Covariates by Cutblock Age
+### Resource Selection Function (RSF) Model Secltion fo Distance to Cutblock Covariates by Cutblock Age
 Based on the results of the analysis described above, I grouped distance to cutblock into four age categories: one to four years old, five to nine years old, 10 to 29 years old and over 29 years old (see Results and Conclusion, below, for rational). I then tested for correaltion between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; manly et al. 2007; DeCesare et al. 2012), then one fo the covariates was removed from analysis, or distance to cutblock was further grouped into larger age classes. 
 
 I a GLM and calculated VIFs using the vif() function from the 'car' package in R. The VIF scores for each covairate were less than 1.7, incidating they were not highly correlated. 
-```{r, example of GLM and VIF code, eval = F, echo = T}
+
+```r
 model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
                           distance_to_cut_10yoorOver, 
                          data = dist.cut.data.du.6.ew,
@@ -79,7 +76,8 @@ Next, I tested whether models with a fucntional repsonse (*sensu* Matthiplolus e
 
 I fit a mixed effects regression models usign the glmer() fucntion in the lme4 package of R. I fit models with correlated random effect intercepts and slopes for each distacne to cutblock covariate by each unique indivdual cariobu and year in the model (i.e., a unique identifier). I fit models with all combinations of distance to cutblock covariates and comapred them using AIC. To faciliate model converngence, I standardized the distance to cutblock covaraites by subtracting the mean and dividing by the standard deviation of the covariate.
 
-```{r, example of GLMM code, eval = F, echo = T}
+
+```r
 # Generalized Linear Mixed Models (GLMMs)
 # standardize covariates  (helps with model convergence)
 dist.cut.data.du.6.ew$std.distance_to_cut_1to4yo <- (dist.cut.data.du.6.ew$distance_to_cut_1to4yo - mean (dist.cut.data.du.6.ew$distance_to_cut_1to4yo)) / sd (dist.cut.data.du.6.ew$distance_to_cut_1to4yo)
@@ -107,7 +105,8 @@ auc <- auc@y.values[[1]]
 
 Next I fit functional response models where I included covariates representign teh mean diatsance to cutblcok (for each age class) within each individual cariobu's annual seasoanal hoem rnage as interactions with disatnce to cutblcok at each lcoation. 
 
-```{r, example of GLMM fxn response code, eval = F, echo = T}
+
+```r
 ### Fit model with functional responses
 # Calculating dataframe with covariate expectations
 sub <- subset (dist.cut.data.du.6.ew, pttype == 0)
@@ -199,109 +198,16 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 
 ### Resource Selection Function (RSF) Distance to Cutblock Beta Coefficients by Year, Season and Designatable Unit (DU)
 In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, and this lack of  pattern was consistent across seasons. In general, it appears that caribou in DU6, across all seasons, appear to avoid cutblocks less than three years old, select cutblocks four to ten years old and then avoid cutblocks over seven to ten years old.  
-```{r, DU6 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
-table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
-table.glm.summary$DU <- as.factor (table.glm.summary$DU )
-table.glm.summary.du6 <- table.glm.summary %>%
-  filter (DU == 6)
-print (ggplot (data = table.glm.summary.du6, 
-        aes (years, coefficent.km)) +
-  geom_line (aes (colour = Season)) +
-  ggtitle ("Beta coefficient values of distance to cutblock by \n year and season for caribou designatable unit (DU) 6.") +
-  xlab ("Years since harvest") + 
-  ylab ("Beta coefficient") +
-  geom_line (aes (x = years, y = 0), 
-             size = 0.5, linetype = "solid", colour = "black") +
-  theme (plot.title = element_text (hjust = 0.5),
-         axis.text = element_text (size = 10),
-         axis.title = element_text (size = 12),
-         axis.line.x = element_line (size = 1),
-         axis.line.y = element_line (size = 1),
-         panel.grid.minor = element_blank (),
-         panel.border = element_blank (),
-         panel.background = element_blank ()) +
-  scale_x_continuous (limits = c (0, 51), breaks = seq (0, 51, by = 5)) +
-  scale_y_continuous (limits = c (-0.005, 0.005), breaks = seq (-0.005, 0.005, by = 0.001)))
-
-```
+![](report_caribou_forest_cutblock_RSF_files/figure-html/DU6 single covariate RSF model output-1.png)<!-- -->
 
 In DU7, there was a more distinct pattern in caribou selection of cutblocks, and this pattern was different among the winter adn summer seasons. The early witner and late winter seasons were generally consistent. The  efefct of disatcne to cutblcoks was realtively weak across years, but the effect shifted from little or no selection of more recent cutlbocks (cutblocks less than 25 years old), to greater avoidance of older cutblocks (greater than 25 years old). In the summer, cutblocks less than four years old appeared to have little effect on caribou. However, there was realtively stong slection fo cutblcoks five to 30 years old adn then general avoidance of cutblocks older than 30 to 35 years old. 
-```{r, DU7 single covariate RSF model output, echo = F,  fig.width = 7, fig.height = 5}
-table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
-table.glm.summary$DU <- as.factor (table.glm.summary$DU )
-table.glm.summary.du7 <- table.glm.summary %>%
-  filter (DU == 7)
-ggplot (data = table.glm.summary.du7, 
-        aes (years, coefficent.km)) +
-  geom_line (aes (colour = Season)) +
-  ggtitle ("Beta coefficient values of distance to cutblock by \n year and season for caribou designatable unit (DU) 7.") +
-  xlab ("Years since harvest") + 
-  ylab ("Beta coefficient") +
-  geom_line (aes (x = years, y = 0), 
-             size = 0.5, linetype = "solid", colour = "black") +
-  theme (plot.title = element_text (hjust = 0.5),
-         axis.text = element_text (size = 10),
-         axis.title = element_text (size = 12),
-         axis.line.x = element_line (size = 1),
-         axis.line.y = element_line (size = 1),
-         panel.grid.minor = element_blank (),
-         panel.border = element_blank (),
-         panel.background = element_blank ()) +
-  scale_x_continuous (limits = c (0, 51), breaks = seq (0, 51, by = 5)) +
-  scale_y_continuous (limits = c (-0.012, 0.012), breaks = seq (-0.012, 0.012, by = 0.003))
-```
+![](report_caribou_forest_cutblock_RSF_files/figure-html/DU7 single covariate RSF model output-1.png)<!-- -->
 
 In DU8, selection of cutblocks was realtively strong and consistent across all saeosns, btu the apptern of selction was highly variable. However, in general, caribou selected younger cutblocks (approximately one to 20 years old) and avoided older cutblocks(greater than 20 years old). 
-```{r, DU8 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
-table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
-table.glm.summary$DU <- as.factor (table.glm.summary$DU )
-table.glm.summary.du8 <- table.glm.summary %>%
-  filter (DU == 8)
-ggplot (data = table.glm.summary.du8, 
-        aes (years, coefficent.km)) +
-  geom_line (aes (colour = Season)) +
-  ggtitle ("Beta coefficient values of distance to cutblock by \n year and season for caribou designatable unit (DU) 8.") +
-  xlab ("Years since harvest") + 
-  ylab ("Beta coefficient") +
-  geom_line (aes (x = years, y = 0), 
-             size = 0.5, linetype = "solid", colour = "black") +
-  theme (plot.title = element_text (hjust = 0.5),
-         axis.text = element_text (size = 10),
-         axis.title = element_text (size = 12),
-         axis.line.x = element_line (size = 1),
-         axis.line.y = element_line (size = 1),
-         panel.grid.minor = element_blank (),
-         panel.border = element_blank (),
-         panel.background = element_blank ()) +
-  scale_x_continuous (limits = c (0, 51), breaks = seq (0, 51, by = 5)) +
-  scale_y_continuous (limits = c (-0.025, 0.025), breaks = seq (-0.025, 0.025, by = 0.005))
-```
+![](report_caribou_forest_cutblock_RSF_files/figure-html/DU8 single covariate RSF model output-1.png)<!-- -->
   
 In DU9, teh efefct of cutblocks was realtively strong and consistent acorss saesons. In egenral, cariobu qavoidd cutblocks, although avoidacne of younger (less than 10 year old) cutblocks was weaker than older (greater htan 10 years old) cutlbocks. 
-```{r, DU9 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
-table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
-table.glm.summary$DU <- as.factor (table.glm.summary$DU )
-table.glm.summary.du9 <- table.glm.summary %>%
-  filter (DU == 9)
-ggplot (data = table.glm.summary.du9, 
-        aes (years, coefficent.km)) +
-  geom_line (aes (colour = Season)) +
-  ggtitle ("Beta coefficient values of distance to cutblock by \n year and season for caribou designatable unit (DU) 9.") +
-  xlab ("Years since harvest") + 
-  ylab ("Beta coefficient") +
-  geom_line (aes (x = years, y = 0), 
-             size = 0.5, linetype = "solid", colour = "black") +
-  theme (plot.title = element_text(hjust = 0.5),
-         axis.text = element_text (size = 10),
-         axis.title = element_text (size = 12),
-         axis.line.x = element_line (size = 1),
-         axis.line.y = element_line (size = 1),
-         panel.grid.minor = element_blank (),
-         panel.border = element_blank (),
-         panel.background = element_blank ()) +
-  scale_x_continuous (limits = c (0, 51), breaks = seq (0, 51, by = 5)) +
-  scale_y_continuous (limits = c (-0.025, 0.055), breaks = seq (-0.025, 0.055, by = 0.01))
-```
+![](report_caribou_forest_cutblock_RSF_files/figure-html/DU9 single covariate RSF model output-1.png)<!-- -->
 
 
 ### Resource Selection Function (RSF) Model Selection
