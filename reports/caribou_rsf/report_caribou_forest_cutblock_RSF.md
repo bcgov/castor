@@ -314,9 +314,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 219570.594 </td>
+   <td style="text-align:right;"> 219571 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6069125 </td>
+   <td style="text-align:right;"> 0.607 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -324,9 +324,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 219770.472 </td>
+   <td style="text-align:right;"> 219770 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5937545 </td>
+   <td style="text-align:right;"> 0.594 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -334,9 +334,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 219655.915 </td>
+   <td style="text-align:right;"> 219656 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5986322 </td>
+   <td style="text-align:right;"> 0.599 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -344,9 +344,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover9 </td>
    <td style="text-align:left;"> (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 219680.649 </td>
+   <td style="text-align:right;"> 219681 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5991059 </td>
+   <td style="text-align:right;"> 0.599 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -354,9 +354,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 219665.960 </td>
+   <td style="text-align:right;"> 219666 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5991413 </td>
+   <td style="text-align:right;"> 0.599 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -364,9 +364,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 219643.992 </td>
+   <td style="text-align:right;"> 219644 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6036803 </td>
+   <td style="text-align:right;"> 0.604 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -374,9 +374,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 219543.927 </td>
+   <td style="text-align:right;"> 219544 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6036803 </td>
+   <td style="text-align:right;"> 0.604 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -384,9 +384,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219759.887 </td>
+   <td style="text-align:right;"> 219760 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5919242 </td>
+   <td style="text-align:right;"> 0.592 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -394,9 +394,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219766.007 </td>
+   <td style="text-align:right;"> 219766 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6036803 </td>
+   <td style="text-align:right;"> 0.604 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -404,9 +404,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219788.578 </td>
+   <td style="text-align:right;"> 219789 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5914720 </td>
+   <td style="text-align:right;"> 0.591 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -414,9 +414,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover9, A_DCover9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219767.932 </td>
+   <td style="text-align:right;"> 219768 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5914720 </td>
+   <td style="text-align:right;"> 0.591 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -424,9 +424,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219771.400 </td>
+   <td style="text-align:right;"> 219771 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5917261 </td>
+   <td style="text-align:right;"> 0.592 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -434,9 +434,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219761.994 </td>
+   <td style="text-align:right;"> 219762 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5918944 </td>
+   <td style="text-align:right;"> 0.592 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -444,9 +444,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 219765.450 </td>
+   <td style="text-align:right;"> 219765 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.5916762 </td>
+   <td style="text-align:right;"> 0.592 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -454,9 +454,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 380908.091 </td>
+   <td style="text-align:right;"> 380908 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6653907 </td>
+   <td style="text-align:right;"> 0.665 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -464,9 +464,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 383349.458 </td>
+   <td style="text-align:right;"> 383349 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6478508 </td>
+   <td style="text-align:right;"> 0.648 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -474,9 +474,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 382911.177 </td>
+   <td style="text-align:right;"> 382911 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6489808 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -484,9 +484,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover9 </td>
    <td style="text-align:left;"> (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 382830.429 </td>
+   <td style="text-align:right;"> 382830 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6491990 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -494,9 +494,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 381949.115 </td>
+   <td style="text-align:right;"> 381949 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6491990 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -504,9 +504,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 381760.138 </td>
+   <td style="text-align:right;"> 381760 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6588841 </td>
+   <td style="text-align:right;"> 0.659 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -514,9 +514,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 381949.115 </td>
+   <td style="text-align:right;"> 381949 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6577028 </td>
+   <td style="text-align:right;"> 0.658 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -524,9 +524,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385132.898 </td>
+   <td style="text-align:right;"> 385133 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6299152 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -534,9 +534,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385197.315 </td>
+   <td style="text-align:right;"> 385197 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6293981 </td>
+   <td style="text-align:right;"> 0.629 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -544,9 +544,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385170.093 </td>
+   <td style="text-align:right;"> 385170 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6298724 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -554,9 +554,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover9, A_DCover9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385164.575 </td>
+   <td style="text-align:right;"> 385165 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6296997 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -564,9 +564,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385161.153 </td>
+   <td style="text-align:right;"> 385161 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6298100 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -574,9 +574,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385150.627 </td>
+   <td style="text-align:right;"> 385151 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6295634 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -584,9 +584,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 385146.930 </td>
+   <td style="text-align:right;"> 385147 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6299700 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -594,9 +594,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 426565.386 </td>
+   <td style="text-align:right;"> 426565 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6975474 </td>
+   <td style="text-align:right;"> 0.698 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -604,9 +604,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 432125.101 </td>
+   <td style="text-align:right;"> 432125 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6748133 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -614,9 +614,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 431383.922 </td>
+   <td style="text-align:right;"> 431384 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6730889 </td>
+   <td style="text-align:right;"> 0.673 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -624,9 +624,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover9 </td>
    <td style="text-align:left;"> (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 430372.475 </td>
+   <td style="text-align:right;"> 430372 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6770102 </td>
+   <td style="text-align:right;"> 0.677 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -634,9 +634,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 429136.717 </td>
+   <td style="text-align:right;"> 429137 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6867359 </td>
+   <td style="text-align:right;"> 0.687 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -644,9 +644,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 427978.547 </td>
+   <td style="text-align:right;"> 427979 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6902663 </td>
+   <td style="text-align:right;"> 0.690 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -654,9 +654,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 428097.461 </td>
+   <td style="text-align:right;"> 428097 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6881320 </td>
+   <td style="text-align:right;"> 0.688 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -664,9 +664,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 435823.782 </td>
+   <td style="text-align:right;"> 435824 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6488822 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -674,9 +674,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 436081.158 </td>
+   <td style="text-align:right;"> 436081 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6469039 </td>
+   <td style="text-align:right;"> 0.647 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -684,9 +684,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 435864.565 </td>
+   <td style="text-align:right;"> 435865 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6491104 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -694,9 +694,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover9, A_DCover9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 435965.517 </td>
+   <td style="text-align:right;"> 435966 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6470590 </td>
+   <td style="text-align:right;"> 0.647 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -704,9 +704,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 435853.075 </td>
+   <td style="text-align:right;"> 435853 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6492180 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -714,9 +714,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 435951.860 </td>
+   <td style="text-align:right;"> 435952 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6475110 </td>
+   <td style="text-align:right;"> 0.648 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU6 </td>
@@ -724,9 +724,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 435823.701 </td>
+   <td style="text-align:right;"> 435824 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6487732 </td>
+   <td style="text-align:right;"> 0.649 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -734,9 +734,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 134484.792 </td>
+   <td style="text-align:right;"> 134485 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6785259 </td>
+   <td style="text-align:right;"> 0.679 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -744,9 +744,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 134750.397 </td>
+   <td style="text-align:right;"> 134750 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6715706 </td>
+   <td style="text-align:right;"> 0.672 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -754,9 +754,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 134623.558 </td>
+   <td style="text-align:right;"> 134624 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6736243 </td>
+   <td style="text-align:right;"> 0.674 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -764,9 +764,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover9 </td>
    <td style="text-align:left;"> (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 134667.478 </td>
+   <td style="text-align:right;"> 134667 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6731335 </td>
+   <td style="text-align:right;"> 0.673 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -774,9 +774,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 134566.469 </td>
+   <td style="text-align:right;"> 134566 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6757624 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -784,9 +784,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 134590.305 </td>
+   <td style="text-align:right;"> 134590 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6758017 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -794,9 +794,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover9 | UniqueID) </td>
-   <td style="text-align:right;"> 134563.620 </td>
+   <td style="text-align:right;"> 134564 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6762069 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -804,9 +804,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134855.008 </td>
+   <td style="text-align:right;"> 134855 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6676513 </td>
+   <td style="text-align:right;"> 0.668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -814,9 +814,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134872.530 </td>
+   <td style="text-align:right;"> 134873 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6677218 </td>
+   <td style="text-align:right;"> 0.668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -824,9 +824,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134877.488 </td>
+   <td style="text-align:right;"> 134877 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6674779 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -834,9 +834,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover9, A_DCover9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134864.874 </td>
+   <td style="text-align:right;"> 134865 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6676152 </td>
+   <td style="text-align:right;"> 0.668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -844,9 +844,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134877.230 </td>
+   <td style="text-align:right;"> 134877 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6676896 </td>
+   <td style="text-align:right;"> 0.668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -854,9 +854,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134867.788 </td>
+   <td style="text-align:right;"> 134868 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6677862 </td>
+   <td style="text-align:right;"> 0.668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -864,9 +864,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 134853.886 </td>
+   <td style="text-align:right;"> 134854 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6675454 </td>
+   <td style="text-align:right;"> 0.668 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -874,9 +874,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover5 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover5 | UniqueID) </td>
-   <td style="text-align:right;"> 261751.898 </td>
+   <td style="text-align:right;"> 261752 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6901078 </td>
+   <td style="text-align:right;"> 0.690 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -884,9 +884,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 262605.002 </td>
+   <td style="text-align:right;"> 262605 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6827657 </td>
+   <td style="text-align:right;"> 0.683 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -894,9 +894,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover5 </td>
    <td style="text-align:left;"> (DCover5 | UniqueID) </td>
-   <td style="text-align:right;"> 262788.832 </td>
+   <td style="text-align:right;"> 262789 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6820883 </td>
+   <td style="text-align:right;"> 0.682 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -904,9 +904,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover5, A_DC1to4, A_DCover5, DC1to4*A_DC1to4, DCover5*A_DCover5 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 263471.255 </td>
+   <td style="text-align:right;"> 263471 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6747590 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -914,9 +914,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 263470.135 </td>
+   <td style="text-align:right;"> 263470 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6746544 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -924,9 +924,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover5, A_DCover5, DCover5*A_DCover5 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 263470.135 </td>
+   <td style="text-align:right;"> 263470 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6746544 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -934,9 +934,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover5 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover5 | UniqueID) </td>
-   <td style="text-align:right;"> 254657.814 </td>
+   <td style="text-align:right;"> 254658 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6943307 </td>
+   <td style="text-align:right;"> 0.694 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -944,9 +944,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 256004.615 </td>
+   <td style="text-align:right;"> 256005 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6852690 </td>
+   <td style="text-align:right;"> 0.685 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -954,9 +954,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover5 </td>
    <td style="text-align:left;"> (DCover5 | UniqueID) </td>
-   <td style="text-align:right;"> 255401.137 </td>
+   <td style="text-align:right;"> 255401 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6884055 </td>
+   <td style="text-align:right;"> 0.688 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -964,9 +964,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover5, A_DC1to4, A_DCover5, DC1to4*A_DC1to4, DCover5*A_DCover5 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 256854.514 </td>
+   <td style="text-align:right;"> 256855 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6782352 </td>
+   <td style="text-align:right;"> 0.678 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -974,9 +974,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 257153.254 </td>
+   <td style="text-align:right;"> 257153 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6768409 </td>
+   <td style="text-align:right;"> 0.677 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU7 </td>
@@ -984,9 +984,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover5, A_DCover5, DCover5*A_DCover5 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 256871.472 </td>
+   <td style="text-align:right;"> 256871 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6781573 </td>
+   <td style="text-align:right;"> 0.678 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -994,9 +994,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 169165.913 </td>
+   <td style="text-align:right;"> 169166 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6984592 </td>
+   <td style="text-align:right;"> 0.698 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1004,9 +1004,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 171143.776 </td>
+   <td style="text-align:right;"> 171144 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6763776 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1014,9 +1014,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 170983.210 </td>
+   <td style="text-align:right;"> 170983 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6768742 </td>
+   <td style="text-align:right;"> 0.677 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1024,9 +1024,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 170650.481 </td>
+   <td style="text-align:right;"> 170650 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6788544 </td>
+   <td style="text-align:right;"> 0.679 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1034,9 +1034,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover30 </td>
    <td style="text-align:left;"> (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 171314.739 </td>
+   <td style="text-align:right;"> 171315 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6746474 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1044,9 +1044,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 170429.664 </td>
+   <td style="text-align:right;"> 170430 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6856307 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1054,9 +1054,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 170219.682 </td>
+   <td style="text-align:right;"> 170220 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6862134 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1064,9 +1064,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 170651.047 </td>
+   <td style="text-align:right;"> 170651 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6838681 </td>
+   <td style="text-align:right;"> 0.684 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1074,9 +1074,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 170085.763 </td>
+   <td style="text-align:right;"> 170086 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6866272 </td>
+   <td style="text-align:right;"> 0.687 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1084,9 +1084,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 170523.143 </td>
+   <td style="text-align:right;"> 170523 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6851130 </td>
+   <td style="text-align:right;"> 0.685 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1094,9 +1094,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 170182.845 </td>
+   <td style="text-align:right;"> 170183 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6866402 </td>
+   <td style="text-align:right;"> 0.687 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1104,9 +1104,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 169492.478 </td>
+   <td style="text-align:right;"> 169492 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6932058 </td>
+   <td style="text-align:right;"> 0.693 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1114,9 +1114,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 170046.102 </td>
+   <td style="text-align:right;"> 170046 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6908469 </td>
+   <td style="text-align:right;"> 0.691 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1124,9 +1124,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 169816.246 </td>
+   <td style="text-align:right;"> 169816 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6916868 </td>
+   <td style="text-align:right;"> 0.692 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1134,9 +1134,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 169764.695 </td>
+   <td style="text-align:right;"> 169765 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6926306 </td>
+   <td style="text-align:right;"> 0.693 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1144,9 +1144,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171689.571 </td>
+   <td style="text-align:right;"> 171690 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6659708 </td>
+   <td style="text-align:right;"> 0.666 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1154,9 +1154,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 172046.068 </td>
+   <td style="text-align:right;"> 172046 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6622205 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1164,9 +1164,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171957.667 </td>
+   <td style="text-align:right;"> 171958 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6625220 </td>
+   <td style="text-align:right;"> 0.663 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1174,9 +1174,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, A_DC10to29, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 172153.722 </td>
+   <td style="text-align:right;"> 172154 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6613438 </td>
+   <td style="text-align:right;"> 0.661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1184,9 +1184,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover30, A_DCover30, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171916.985 </td>
+   <td style="text-align:right;"> 171917 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6636456 </td>
+   <td style="text-align:right;"> 0.664 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1194,9 +1194,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171943.417 </td>
+   <td style="text-align:right;"> 171943 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6628815 </td>
+   <td style="text-align:right;"> 0.663 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1204,9 +1204,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171978.000 </td>
+   <td style="text-align:right;"> 171978 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6630951 </td>
+   <td style="text-align:right;"> 0.663 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1214,9 +1214,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171831.666 </td>
+   <td style="text-align:right;"> 171832 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6645972 </td>
+   <td style="text-align:right;"> 0.665 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1224,9 +1224,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171855.991 </td>
+   <td style="text-align:right;"> 171856 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6636403 </td>
+   <td style="text-align:right;"> 0.664 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1234,9 +1234,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171768.884 </td>
+   <td style="text-align:right;"> 171769 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6646900 </td>
+   <td style="text-align:right;"> 0.665 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1244,9 +1244,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171872.710 </td>
+   <td style="text-align:right;"> 171873 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6641337 </td>
+   <td style="text-align:right;"> 0.664 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1254,9 +1254,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171845.255 </td>
+   <td style="text-align:right;"> 171845 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6640307 </td>
+   <td style="text-align:right;"> 0.664 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1264,9 +1264,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171769.520 </td>
+   <td style="text-align:right;"> 171770 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6648524 </td>
+   <td style="text-align:right;"> 0.665 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1274,9 +1274,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171785.381 </td>
+   <td style="text-align:right;"> 171785 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6652730 </td>
+   <td style="text-align:right;"> 0.665 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1284,9 +1284,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 171689.222 </td>
+   <td style="text-align:right;"> 171689 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6657521 </td>
+   <td style="text-align:right;"> 0.666 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1294,9 +1294,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 254338.194 </td>
+   <td style="text-align:right;"> 254338 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.7154196 </td>
+   <td style="text-align:right;"> 0.715 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1304,9 +1304,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 258523.184 </td>
+   <td style="text-align:right;"> 258523 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6818131 </td>
+   <td style="text-align:right;"> 0.682 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1314,9 +1314,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 258348.920 </td>
+   <td style="text-align:right;"> 258349 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6825417 </td>
+   <td style="text-align:right;"> 0.683 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1324,9 +1324,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 258090.503 </td>
+   <td style="text-align:right;"> 258091 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6837166 </td>
+   <td style="text-align:right;"> 0.684 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1334,9 +1334,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover30 </td>
    <td style="text-align:left;"> (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 257635.408 </td>
+   <td style="text-align:right;"> 257635 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6874427 </td>
+   <td style="text-align:right;"> 0.687 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1344,9 +1344,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 257194.925 </td>
+   <td style="text-align:right;"> 257195 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6939387 </td>
+   <td style="text-align:right;"> 0.694 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1354,9 +1354,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 256814.516 </td>
+   <td style="text-align:right;"> 256815 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6952917 </td>
+   <td style="text-align:right;"> 0.695 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1364,9 +1364,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 256530.819 </td>
+   <td style="text-align:right;"> 256531 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6971946 </td>
+   <td style="text-align:right;"> 0.697 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1374,9 +1374,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 256704.490 </td>
+   <td style="text-align:right;"> 256704 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6961360 </td>
+   <td style="text-align:right;"> 0.696 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1384,9 +1384,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 256572.779 </td>
+   <td style="text-align:right;"> 256573 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6969591 </td>
+   <td style="text-align:right;"> 0.697 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1394,9 +1394,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 256458.500 </td>
+   <td style="text-align:right;"> 256459 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6969174 </td>
+   <td style="text-align:right;"> 0.697 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1404,9 +1404,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 255644.489 </td>
+   <td style="text-align:right;"> 255644 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.7058054 </td>
+   <td style="text-align:right;"> 0.706 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1414,9 +1414,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 255558.430 </td>
+   <td style="text-align:right;"> 255558 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.7064405 </td>
+   <td style="text-align:right;"> 0.706 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1424,9 +1424,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 255361.909 </td>
+   <td style="text-align:right;"> 255362 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.7064563 </td>
+   <td style="text-align:right;"> 0.706 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1434,9 +1434,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 255318.276 </td>
+   <td style="text-align:right;"> 255318 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.7071663 </td>
+   <td style="text-align:right;"> 0.707 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1444,9 +1444,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259316.194 </td>
+   <td style="text-align:right;"> 259316 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6724429 </td>
+   <td style="text-align:right;"> 0.672 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1454,9 +1454,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259754.731 </td>
+   <td style="text-align:right;"> 259755 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6688364 </td>
+   <td style="text-align:right;"> 0.669 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1464,9 +1464,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259813.330 </td>
+   <td style="text-align:right;"> 259813 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6686219 </td>
+   <td style="text-align:right;"> 0.669 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1474,9 +1474,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, A_DC10to29, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259565.160 </td>
+   <td style="text-align:right;"> 259565 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6709280 </td>
+   <td style="text-align:right;"> 0.671 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1484,9 +1484,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover30, A_DCover30, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259713.445 </td>
+   <td style="text-align:right;"> 259713 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6691556 </td>
+   <td style="text-align:right;"> 0.669 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1494,9 +1494,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259741.881 </td>
+   <td style="text-align:right;"> 259742 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6689372 </td>
+   <td style="text-align:right;"> 0.669 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1504,9 +1504,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259501.522 </td>
+   <td style="text-align:right;"> 259502 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6712424 </td>
+   <td style="text-align:right;"> 0.671 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1514,9 +1514,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259637.220 </td>
+   <td style="text-align:right;"> 259637 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6696592 </td>
+   <td style="text-align:right;"> 0.670 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1524,9 +1524,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259495.864 </td>
+   <td style="text-align:right;"> 259496 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6711626 </td>
+   <td style="text-align:right;"> 0.671 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1534,9 +1534,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259688.419 </td>
+   <td style="text-align:right;"> 259688 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6694994 </td>
+   <td style="text-align:right;"> 0.669 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1544,9 +1544,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259402.539 </td>
+   <td style="text-align:right;"> 259403 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6722030 </td>
+   <td style="text-align:right;"> 0.672 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1554,9 +1554,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259452.813 </td>
+   <td style="text-align:right;"> 259453 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6713664 </td>
+   <td style="text-align:right;"> 0.671 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1564,9 +1564,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259628.662 </td>
+   <td style="text-align:right;"> 259629 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6697536 </td>
+   <td style="text-align:right;"> 0.670 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1574,9 +1574,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259343.500 </td>
+   <td style="text-align:right;"> 259343 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6723146 </td>
+   <td style="text-align:right;"> 0.672 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1584,9 +1584,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 259351.169 </td>
+   <td style="text-align:right;"> 259351 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6724220 </td>
+   <td style="text-align:right;"> 0.672 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1594,9 +1594,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 233968.687 </td>
+   <td style="text-align:right;"> 233969 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.7005032 </td>
+   <td style="text-align:right;"> 0.701 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1604,9 +1604,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 237217.376 </td>
+   <td style="text-align:right;"> 237217 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6751287 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1614,9 +1614,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 236986.527 </td>
+   <td style="text-align:right;"> 236987 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6760052 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1624,9 +1624,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 237219.522 </td>
+   <td style="text-align:right;"> 237220 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6749546 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1634,9 +1634,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover30 </td>
    <td style="text-align:left;"> (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 237098.319 </td>
+   <td style="text-align:right;"> 237098 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6749995 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1644,9 +1644,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 235862.925 </td>
+   <td style="text-align:right;"> 235863 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6859174 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1654,9 +1654,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 236128.042 </td>
+   <td style="text-align:right;"> 236128 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6848767 </td>
+   <td style="text-align:right;"> 0.685 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1664,9 +1664,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 235819.499 </td>
+   <td style="text-align:right;"> 235819 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6858648 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1674,9 +1674,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 235783.024 </td>
+   <td style="text-align:right;"> 235783 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6857185 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1684,9 +1684,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 235785.140 </td>
+   <td style="text-align:right;"> 235785 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6858670 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1694,9 +1694,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 235941.720 </td>
+   <td style="text-align:right;"> 235942 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6852542 </td>
+   <td style="text-align:right;"> 0.685 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1704,9 +1704,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 234847.283 </td>
+   <td style="text-align:right;"> 234847 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6939453 </td>
+   <td style="text-align:right;"> 0.694 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1714,9 +1714,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 234700.873 </td>
+   <td style="text-align:right;"> 234701 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6946089 </td>
+   <td style="text-align:right;"> 0.695 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1724,9 +1724,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 235046.896 </td>
+   <td style="text-align:right;"> 235047 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6928040 </td>
+   <td style="text-align:right;"> 0.693 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1734,9 +1734,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 234787.418 </td>
+   <td style="text-align:right;"> 234787 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6935790 </td>
+   <td style="text-align:right;"> 0.694 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1744,9 +1744,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238373.066 </td>
+   <td style="text-align:right;"> 238373 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6626646 </td>
+   <td style="text-align:right;"> 0.663 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1754,9 +1754,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238682.615 </td>
+   <td style="text-align:right;"> 238683 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6596239 </td>
+   <td style="text-align:right;"> 0.660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1764,9 +1764,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238687.240 </td>
+   <td style="text-align:right;"> 238687 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6594053 </td>
+   <td style="text-align:right;"> 0.659 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1774,9 +1774,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, A_DC10to29, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238676.317 </td>
+   <td style="text-align:right;"> 238676 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6601272 </td>
+   <td style="text-align:right;"> 0.660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1784,9 +1784,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover30, A_DCover30, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238514.323 </td>
+   <td style="text-align:right;"> 238514 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6612101 </td>
+   <td style="text-align:right;"> 0.661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1794,9 +1794,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238655.688 </td>
+   <td style="text-align:right;"> 238656 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6600671 </td>
+   <td style="text-align:right;"> 0.660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1804,9 +1804,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238627.588 </td>
+   <td style="text-align:right;"> 238628 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6603809 </td>
+   <td style="text-align:right;"> 0.660 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1814,9 +1814,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238460.843 </td>
+   <td style="text-align:right;"> 238461 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6615939 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1824,9 +1824,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238606.706 </td>
+   <td style="text-align:right;"> 238607 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6605742 </td>
+   <td style="text-align:right;"> 0.661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1834,9 +1834,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238485.093 </td>
+   <td style="text-align:right;"> 238485 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6612081 </td>
+   <td style="text-align:right;"> 0.661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1844,9 +1844,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238459.281 </td>
+   <td style="text-align:right;"> 238459 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6620050 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1854,9 +1854,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238459.281 </td>
+   <td style="text-align:right;"> 238459 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6620050 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1864,9 +1864,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238433.835 </td>
+   <td style="text-align:right;"> 238434 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6619105 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1874,9 +1874,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238422.485 </td>
+   <td style="text-align:right;"> 238422 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6620542 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU8 </td>
@@ -1884,9 +1884,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 238410.972 </td>
+   <td style="text-align:right;"> 238411 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6621938 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1894,9 +1894,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7636.975 </td>
+   <td style="text-align:right;"> 7637 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6482940 </td>
+   <td style="text-align:right;"> 0.648 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1904,9 +1904,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 7639.439 </td>
+   <td style="text-align:right;"> 7639 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6335919 </td>
+   <td style="text-align:right;"> 0.634 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1914,9 +1914,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 7630.828 </td>
+   <td style="text-align:right;"> 7631 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6400415 </td>
+   <td style="text-align:right;"> 0.640 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1924,9 +1924,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 7633.379 </td>
+   <td style="text-align:right;"> 7633 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6373622 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1934,9 +1934,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover30 </td>
    <td style="text-align:left;"> (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7636.136 </td>
+   <td style="text-align:right;"> 7636 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6348337 </td>
+   <td style="text-align:right;"> 0.635 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1944,9 +1944,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 7633.149 </td>
+   <td style="text-align:right;"> 7633 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6410024 </td>
+   <td style="text-align:right;"> 0.641 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1954,9 +1954,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 7636.305 </td>
+   <td style="text-align:right;"> 7636 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6384805 </td>
+   <td style="text-align:right;"> 0.638 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1964,9 +1964,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7639.058 </td>
+   <td style="text-align:right;"> 7639 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6365667 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1974,9 +1974,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 7626.204 </td>
+   <td style="text-align:right;"> 7626 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6466919 </td>
+   <td style="text-align:right;"> 0.647 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1984,9 +1984,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7635.361 </td>
+   <td style="text-align:right;"> 7635 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6421834 </td>
+   <td style="text-align:right;"> 0.642 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -1994,9 +1994,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7631.432 </td>
+   <td style="text-align:right;"> 7631 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6405776 </td>
+   <td style="text-align:right;"> 0.641 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2004,9 +2004,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 7632.449 </td>
+   <td style="text-align:right;"> 7632 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6469102 </td>
+   <td style="text-align:right;"> 0.647 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2014,9 +2014,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7638.129 </td>
+   <td style="text-align:right;"> 7638 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6418691 </td>
+   <td style="text-align:right;"> 0.642 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2024,9 +2024,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7637.664 </td>
+   <td style="text-align:right;"> 7638 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6407455 </td>
+   <td style="text-align:right;"> 0.641 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2034,9 +2034,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 7630.743 </td>
+   <td style="text-align:right;"> 7631 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6481358 </td>
+   <td style="text-align:right;"> 0.648 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2044,9 +2044,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7591.890 </td>
+   <td style="text-align:right;"> 7592 </td>
    <td style="text-align:right;"> 0.898 </td>
-   <td style="text-align:right;"> 0.6359964 </td>
+   <td style="text-align:right;"> 0.636 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2054,9 +2054,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7609.721 </td>
+   <td style="text-align:right;"> 7610 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6327438 </td>
+   <td style="text-align:right;"> 0.633 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2064,9 +2064,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7628.886 </td>
+   <td style="text-align:right;"> 7629 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6374809 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2074,9 +2074,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, A_DC10to29, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7636.496 </td>
+   <td style="text-align:right;"> 7636 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6271505 </td>
+   <td style="text-align:right;"> 0.627 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2084,9 +2084,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover30, A_DCover30, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7642.765 </td>
+   <td style="text-align:right;"> 7643 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6281944 </td>
+   <td style="text-align:right;"> 0.628 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2094,9 +2094,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7604.629 </td>
+   <td style="text-align:right;"> 7605 </td>
    <td style="text-align:right;"> 0.002 </td>
-   <td style="text-align:right;"> 0.6370884 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2104,9 +2104,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7611.237 </td>
+   <td style="text-align:right;"> 7611 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6325166 </td>
+   <td style="text-align:right;"> 0.633 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2114,9 +2114,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7614.454 </td>
+   <td style="text-align:right;"> 7614 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6328786 </td>
+   <td style="text-align:right;"> 0.633 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2124,9 +2124,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7632.040 </td>
+   <td style="text-align:right;"> 7632 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6375811 </td>
+   <td style="text-align:right;"> 0.638 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2134,9 +2134,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7628.214 </td>
+   <td style="text-align:right;"> 7628 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6360592 </td>
+   <td style="text-align:right;"> 0.636 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2144,9 +2144,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7628.214 </td>
+   <td style="text-align:right;"> 7628 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6360592 </td>
+   <td style="text-align:right;"> 0.636 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2154,9 +2154,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7604.723 </td>
+   <td style="text-align:right;"> 7605 </td>
    <td style="text-align:right;"> 0.001 </td>
-   <td style="text-align:right;"> 0.6352424 </td>
+   <td style="text-align:right;"> 0.635 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2164,9 +2164,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7608.045 </td>
+   <td style="text-align:right;"> 7608 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6367731 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2174,9 +2174,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7596.351 </td>
+   <td style="text-align:right;"> 7596 </td>
    <td style="text-align:right;"> 0.097 </td>
-   <td style="text-align:right;"> 0.6255130 </td>
+   <td style="text-align:right;"> 0.626 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2184,9 +2184,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 7632.701 </td>
+   <td style="text-align:right;"> 7633 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6368432 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2194,9 +2194,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 17185.672 </td>
+   <td style="text-align:right;"> 17186 </td>
    <td style="text-align:right;"> 0.986 </td>
-   <td style="text-align:right;"> 0.6814224 </td>
+   <td style="text-align:right;"> 0.681 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2204,9 +2204,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 17297.988 </td>
+   <td style="text-align:right;"> 17298 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6540371 </td>
+   <td style="text-align:right;"> 0.654 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2214,9 +2214,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 17323.504 </td>
+   <td style="text-align:right;"> 17324 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6511166 </td>
+   <td style="text-align:right;"> 0.651 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2224,9 +2224,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 17355.164 </td>
+   <td style="text-align:right;"> 17355 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6398369 </td>
+   <td style="text-align:right;"> 0.640 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2234,9 +2234,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover30 </td>
    <td style="text-align:left;"> (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 17271.976 </td>
+   <td style="text-align:right;"> 17272 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6609956 </td>
+   <td style="text-align:right;"> 0.661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2244,9 +2244,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 17260.085 </td>
+   <td style="text-align:right;"> 17260 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6607748 </td>
+   <td style="text-align:right;"> 0.661 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2254,9 +2254,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 17241.448 </td>
+   <td style="text-align:right;"> 17241 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6673880 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2264,9 +2264,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 17231.947 </td>
+   <td style="text-align:right;"> 17232 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6697752 </td>
+   <td style="text-align:right;"> 0.670 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2274,9 +2274,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 17272.381 </td>
+   <td style="text-align:right;"> 17272 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6623489 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2284,9 +2284,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 17248.742 </td>
+   <td style="text-align:right;"> 17249 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6666333 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2294,9 +2294,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 17237.964 </td>
+   <td style="text-align:right;"> 17238 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6729749 </td>
+   <td style="text-align:right;"> 0.673 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2304,9 +2304,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC5to9 | DC10to29) </td>
-   <td style="text-align:right;"> 17216.907 </td>
+   <td style="text-align:right;"> 17217 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6713172 </td>
+   <td style="text-align:right;"> 0.671 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2314,9 +2314,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | DC10to29) </td>
-   <td style="text-align:right;"> 17219.979 </td>
+   <td style="text-align:right;"> 17220 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6708745 </td>
+   <td style="text-align:right;"> 0.671 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2324,9 +2324,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | DC10to29) </td>
-   <td style="text-align:right;"> 17194.227 </td>
+   <td style="text-align:right;"> 17194 </td>
    <td style="text-align:right;"> 0.014 </td>
-   <td style="text-align:right;"> 0.6806345 </td>
+   <td style="text-align:right;"> 0.681 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2334,9 +2334,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | DC10to29) </td>
-   <td style="text-align:right;"> 17218.278 </td>
+   <td style="text-align:right;"> 17218 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6776196 </td>
+   <td style="text-align:right;"> 0.678 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2344,9 +2344,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17203.163 </td>
+   <td style="text-align:right;"> 17203 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6574830 </td>
+   <td style="text-align:right;"> 0.657 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2354,9 +2354,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17350.784 </td>
+   <td style="text-align:right;"> 17351 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6372065 </td>
+   <td style="text-align:right;"> 0.637 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2364,9 +2364,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17348.865 </td>
+   <td style="text-align:right;"> 17349 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6403273 </td>
+   <td style="text-align:right;"> 0.640 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2374,9 +2374,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, A_DC10to29, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17350.114 </td>
+   <td style="text-align:right;"> 17350 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6299816 </td>
+   <td style="text-align:right;"> 0.630 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2384,9 +2384,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DCover30, A_DCover30, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17398.672 </td>
+   <td style="text-align:right;"> 17399 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6287403 </td>
+   <td style="text-align:right;"> 0.629 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2394,9 +2394,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17328.626 </td>
+   <td style="text-align:right;"> 17329 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6447556 </td>
+   <td style="text-align:right;"> 0.645 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2404,9 +2404,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17269.871 </td>
+   <td style="text-align:right;"> 17270 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6446436 </td>
+   <td style="text-align:right;"> 0.645 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2414,9 +2414,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17291.299 </td>
+   <td style="text-align:right;"> 17291 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6474565 </td>
+   <td style="text-align:right;"> 0.647 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2424,9 +2424,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17278.130 </td>
+   <td style="text-align:right;"> 17278 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6463570 </td>
+   <td style="text-align:right;"> 0.646 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2434,9 +2434,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17298.022 </td>
+   <td style="text-align:right;"> 17298 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6478255 </td>
+   <td style="text-align:right;"> 0.648 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2444,9 +2444,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17331.924 </td>
+   <td style="text-align:right;"> 17332 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6337486 </td>
+   <td style="text-align:right;"> 0.634 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2454,9 +2454,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17249.881 </td>
+   <td style="text-align:right;"> 17250 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6507047 </td>
+   <td style="text-align:right;"> 0.651 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2464,9 +2464,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17265.440 </td>
+   <td style="text-align:right;"> 17265 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6531821 </td>
+   <td style="text-align:right;"> 0.653 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2474,9 +2474,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17230.057 </td>
+   <td style="text-align:right;"> 17230 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6515447 </td>
+   <td style="text-align:right;"> 0.652 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2484,9 +2484,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 17244.602 </td>
+   <td style="text-align:right;"> 17245 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6515156 </td>
+   <td style="text-align:right;"> 0.652 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2494,9 +2494,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31672.859 </td>
+   <td style="text-align:right;"> 31673 </td>
    <td style="text-align:right;"> 1.000 </td>
-   <td style="text-align:right;"> 0.6944693 </td>
+   <td style="text-align:right;"> 0.694 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2504,9 +2504,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID) </td>
-   <td style="text-align:right;"> 31865.447 </td>
+   <td style="text-align:right;"> 31865 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6761732 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2514,9 +2514,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 31894.939 </td>
+   <td style="text-align:right;"> 31895 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6745193 </td>
+   <td style="text-align:right;"> 0.675 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2524,9 +2524,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 31857.886 </td>
+   <td style="text-align:right;"> 31858 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6755082 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2534,9 +2534,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DCover30 </td>
    <td style="text-align:left;"> (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31879.775 </td>
+   <td style="text-align:right;"> 31880 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6764217 </td>
+   <td style="text-align:right;"> 0.676 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2544,9 +2544,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID) </td>
-   <td style="text-align:right;"> 31793.248 </td>
+   <td style="text-align:right;"> 31793 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6822002 </td>
+   <td style="text-align:right;"> 0.682 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2554,9 +2554,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 31758.623 </td>
+   <td style="text-align:right;"> 31759 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6841722 </td>
+   <td style="text-align:right;"> 0.684 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2564,9 +2564,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31768.294 </td>
+   <td style="text-align:right;"> 31768 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6853126 </td>
+   <td style="text-align:right;"> 0.685 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2574,9 +2574,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 31768.778 </td>
+   <td style="text-align:right;"> 31769 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6858148 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2584,9 +2584,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31812.960 </td>
+   <td style="text-align:right;"> 31813 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6833647 </td>
+   <td style="text-align:right;"> 0.683 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2594,9 +2594,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31802.026 </td>
+   <td style="text-align:right;"> 31802 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6858890 </td>
+   <td style="text-align:right;"> 0.686 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2604,9 +2604,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID) </td>
-   <td style="text-align:right;"> 31704.881 </td>
+   <td style="text-align:right;"> 31705 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6891427 </td>
+   <td style="text-align:right;"> 0.689 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2614,9 +2614,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31741.362 </td>
+   <td style="text-align:right;"> 31741 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6889162 </td>
+   <td style="text-align:right;"> 0.689 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2624,9 +2624,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31714.320 </td>
+   <td style="text-align:right;"> 31714 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6912401 </td>
+   <td style="text-align:right;"> 0.691 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2634,9 +2634,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Individual and Year (UniqueID) Random Effect </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30 </td>
    <td style="text-align:left;"> (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID) </td>
-   <td style="text-align:right;"> 31733.453 </td>
+   <td style="text-align:right;"> 31733 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6911387 </td>
+   <td style="text-align:right;"> 0.691 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2644,9 +2644,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31965.100 </td>
+   <td style="text-align:right;"> 31965 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6672302 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2654,9 +2654,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, A_DC1to4, DC1to4*A_DC1to4 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 32002.198 </td>
+   <td style="text-align:right;"> 32002 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6616168 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2664,9 +2664,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, A_DC5to9, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 32003.991 </td>
+   <td style="text-align:right;"> 32004 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6615746 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2674,9 +2674,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, A_DC10to29, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31979.307 </td>
+   <td style="text-align:right;"> 31979 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6660735 </td>
+   <td style="text-align:right;"> 0.666 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2684,9 +2684,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31998.285 </td>
+   <td style="text-align:right;"> 31998 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6616353 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2694,9 +2694,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31975.001 </td>
+   <td style="text-align:right;"> 31975 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6618046 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2704,9 +2704,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31975.001 </td>
+   <td style="text-align:right;"> 31975 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6665377 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2714,9 +2714,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31993.683 </td>
+   <td style="text-align:right;"> 31994 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6627158 </td>
+   <td style="text-align:right;"> 0.663 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2724,9 +2724,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31974.658 </td>
+   <td style="text-align:right;"> 31975 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6663791 </td>
+   <td style="text-align:right;"> 0.666 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2734,9 +2734,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31993.368 </td>
+   <td style="text-align:right;"> 31993 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6618896 </td>
+   <td style="text-align:right;"> 0.662 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2744,9 +2744,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31971.339 </td>
+   <td style="text-align:right;"> 31971 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6662015 </td>
+   <td style="text-align:right;"> 0.666 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2754,9 +2754,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31969.444 </td>
+   <td style="text-align:right;"> 31969 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6668405 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2764,9 +2764,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31989.862 </td>
+   <td style="text-align:right;"> 31990 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6634097 </td>
+   <td style="text-align:right;"> 0.663 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2774,9 +2774,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31966.746 </td>
+   <td style="text-align:right;"> 31967 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6668891 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> DU9 </td>
@@ -2784,9 +2784,9 @@ Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to c
    <td style="text-align:left;"> GLMM with Functional Response </td>
    <td style="text-align:left;"> DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30 </td>
    <td style="text-align:left;"> (1 | UniqueID) </td>
-   <td style="text-align:right;"> 31969.888 </td>
+   <td style="text-align:right;"> 31970 </td>
    <td style="text-align:right;"> 0.000 </td>
-   <td style="text-align:right;"> 0.6666760 </td>
+   <td style="text-align:right;"> 0.667 </td>
   </tr>
 </tbody>
 </table>

@@ -392,6 +392,9 @@ The maximum VIF from the simple GLM covariate model was <2.2, indicating covaria
 Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to cutblock resoruce selection models for caribou. 
 ```{r table of aic results, echo = F}
 table.aic <- read.csv ("data/table_aic_forestry.csv")
+table.aic$AIC <- round (table.aic$AIC, 0)
+table.aic$AICw <- round (table.aic$AICw, 3)
+table.aic$AUC <- round (table.aic$AUC, 3)
 table.aic %>%
   kable () %>%
   kable_styling (bootstrap_options = c ("striped", "condensed"))
