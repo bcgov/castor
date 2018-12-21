@@ -1,8 +1,10 @@
 ---
 title: "Caribou Forestry Cutblock Resource Selection Function Report"
 output: 
-  word_document:
-    always_allow_html: yes
+  pdf_document:
+  html_document:
+      keep_md: YES
+      self_contained: YES
 ---
 
 ```{r setup, include = FALSE}
@@ -140,7 +142,7 @@ I calculated the AIC for each model and compared them to asses the most parsimon
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 6
 In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 years old), distance to cublock at locations in caribou home ranges were generally correlated. Correlations were relatively strong within two to three years ($\rho$ > 0.45). Correlations generally became weaker ($\rho$ < 0.4) after three to four years. Correlation between distance to cutblock 11 to 20, 21 to 30 and 31 to 40 years old were correlated across all 10 years ($\rho$ > 0.45). Correlation between distance to cutblock in years 41 to 50 were generally weaker, but also highly variable ($\rho$ = -0.07 to 0.86). 
 
-![](R/caribou_habitat/plots/plot_dist_cut_corr_1_10_du6.png)
+![](plots/plot_dist_cut_corr_1_10_du6.png)
 
 ![](plots/plot_dist_cut_corr_1_10_du6.png)
 
@@ -153,7 +155,7 @@ In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 
 ![](plots/plot_dist_cut_corr_41_50_du6.png)
 
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 7
-Distance to cutblock was consistently correlated across years within all the 10 years periods (\rho > 0.5), and generally highly correlated (\rho > 0.7) across ten year periods for older cutblocks (older than ten years). In general, proximate years (i.e., three to four years apart) tended to be highly correlated (\rho > 0.7) for newer cutblocks (one to ten yeas old).
+Distance to cutblock was consistently correlated across years within all the 10 years periods ($\rho$ > 0.5), and generally highly correlated ($\rho$ > 0.7) across ten year periods for older cutblocks (older than ten years). In general, proximate years (i.e., three to four years apart) tended to be highly correlated ($\rho$ > 0.7) for newer cutblocks (one to ten yeas old).
 
 ![](plots/plot_dist_cut_corr_1_10_du7.png)
 
@@ -395,8 +397,12 @@ table.aic$AIC <- round (table.aic$AIC, 0)
 table.aic$AICw <- round (table.aic$AICw, 3)
 table.aic$AUC <- round (table.aic$AUC, 3)
 table.aic %>%
-  kable () %>%
-  kable_styling (bootstrap_options = c ("striped", "condensed"))
+  kable (longtable = T, booktabs = T) %>%
+  kable_styling (bootstrap_options = c ("striped", "condensed"),
+                 latex_options = c ("repeat_header","HOLD_position","scale_down"),
+                 font_size = 10) %>%
+  landscape () %>%
+  column_spec (c (3:5), width = "15em")
 ```
 
 ## Conclusions
