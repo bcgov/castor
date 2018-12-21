@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "disturbanceCalcCLUS.Rmd"),
-  reqdPkgs = list(),
+  reqdPkgs = list("raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -38,7 +38,7 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    
+    createsOutput("distInfo", "list", "Summary per simulation year of the disturbances")
   )
 ))
 
@@ -49,8 +49,10 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
+      sim$distInfo <- list() #instantiate a new list
       sim <- scheduleEvent(sim, P(sim, "roadCLUS", "roadSeqInterval"), "disturbanceCalcCLUS", "roads")
       sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
+      sim <- scheduleEvent(sim, end(sim), "disturbanceCalcCLUS", "analysis")
     },
     roads = {
       sim<- disturbanceCalcCLUS.roads(sim)
@@ -59,6 +61,9 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
     cutblocks = {
       sim<- disturbanceCalcCLUS.cutblocks(sim)
       sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
+    },
+    analysis = {
+      sim<- disturbanceCalcCLUS.analysis(sim)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -73,22 +78,39 @@ Init <- function(sim) {
 
 disturbanceCalcCLUS.roads <- function(sim) {
   print('calc roads')
-  return(invisible(sim))
-}
-disturbanceCalcCLUS.cutblocks <- function(sim) {
-  print('calc cutblocks')
+  
+  if(!is.null(sim$roads)){
+    x<-sim$roads
+    x[x[] > 0] <-1
+    sim$distInfo$roads[[(time(sim))]]<- raster::cellStats(x, sum) 
+  }
   return(invisible(sim))
 }
 
+disturbanceCalcCLUS.cutblocks <- function(sim) {
+  print('calc cutblocks')
+  if(!is.null(sim$harvestUnits)){
+    x<-sim$harvestUnits
+    x[x[] > 0] <-1
+    sim$distInfo$cutblocks[[(time(sim))]]<- raster::cellStats(x, sum)
+  }
+
+  return(invisible(sim))
+}
+
+disturbanceCalcCLUS.analysis <- function(sim) {
+  print(sim$distInfo)
+  return(invisible(sim))
+}
 
 .inputObjects <- function(sim) {
   
   if(!suppliedElsewhere("roads", sim)){
-      sim$roads<-0
+      sim$roads<-NULL
   }
   
   if(!suppliedElsewhere("harvestUnits", sim)){
-    sim$harvestUnits<-0
+    sim$harvestUnits<-NULL
   }
   
   return(invisible(sim))
