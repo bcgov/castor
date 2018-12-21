@@ -1,0 +1,249 @@
+"DU","Season","Model.Type","Fixed.Effects.Covariates","Random.Effects.Covariates","AIC","AICw","AUC"
+"1","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover9","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID)",219570.594301948,0,0.606912485324635
+"2","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",219770.472110182,0,0.593754549878284
+"3","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",219655.914705546,0,0.598632200830765
+"4","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover9","(DCover9 | UniqueID)",219680.648740931,0,0.599105888072521
+"5","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",219665.96020958,0,0.599141318331602
+"6","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover9","(DC1to4 | UniqueID), (DCover9 | UniqueID)",219643.992070291,0,0.603680335190394
+"7","DU6","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover9","(DC5to9 | UniqueID), (DCover9 | UniqueID)",219543.926823245,1,0.603680335190394
+"8","DU6","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",219759.886742192,0,0.591924187926125
+"9","DU6","Early Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",219766.007269178,0,0.603680335190394
+"10","DU6","Early Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",219788.577716115,0,0.591472030257102
+"11","DU6","Early Winter","GLMM with Functional Response","DCover9, A_DCover9, DCover9*A_DCover9","(1 | UniqueID)",219767.93158326,0,0.591472030257102
+"12","DU6","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",219771.399901895,0,0.591726054022606
+"13","DU6","Early Winter","GLMM with Functional Response","DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9","(1 | UniqueID)",219761.994347558,0,0.591894406462447
+"14","DU6","Early Winter","GLMM with Functional Response","DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",219765.450132511,0,0.591676204382789
+"15","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover9","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID)",380908.090654466,1,0.665390721775306
+"16","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",383349.458432513,0,0.647850815556617
+"17","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",382911.176659816,0,0.648980801817585
+"18","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover9","(DCover9 | UniqueID)",382830.428916754,0,0.649198956723458
+"19","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",381949.114646428,0,0.649198956723458
+"20","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover9","(DC1to4 | UniqueID), (DCover9 | UniqueID)",381760.13808585,0,0.658884148159393
+"21","DU6","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover9","(DC5to9 | UniqueID), (DCover9 | UniqueID)",381949.114646428,0,0.657702792356014
+"22","DU6","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",385132.897566956,0,0.629915175002799
+"23","DU6","Late Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",385197.314636496,0,0.629398072858638
+"24","DU6","Late Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",385170.092892003,0,0.62987239851583
+"25","DU6","Late Winter","GLMM with Functional Response","DCover9, A_DCover9, DCover9*A_DCover9","(1 | UniqueID)",385164.575427101,0,0.62969969930563
+"26","DU6","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",385161.153002565,0,0.629810027270435
+"27","DU6","Late Winter","GLMM with Functional Response","DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9","(1 | UniqueID)",385150.626747596,0,0.629563426678784
+"28","DU6","Late Winter","GLMM with Functional Response","DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",385146.930475165,0,0.629970019882568
+"29","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover9","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID)",426565.385777912,1,0.697547448615874
+"30","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",432125.101360957,0,0.674813327769118
+"31","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",431383.922393179,0,0.673088927771608
+"32","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DCover9","(DCover9 | UniqueID)",430372.474880375,0,0.677010223004976
+"33","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",429136.717046537,0,0.686735919740186
+"34","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover9","(DC1to4 | UniqueID), (DCover9 | UniqueID)",427978.546924753,0,0.690266302662437
+"35","DU6","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover9","(DC5to9 | UniqueID), (DCover9 | UniqueID)",428097.460914031,0,0.688132018392251
+"36","DU6","Summer","GLMM with Functional Response","DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",435823.781622315,0,0.648882161493365
+"37","DU6","Summer","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",436081.158204438,0,0.646903851288755
+"38","DU6","Summer","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",435864.564834601,0,0.649110370993153
+"39","DU6","Summer","GLMM with Functional Response","DCover9, A_DCover9, DCover9*A_DCover9","(1 | UniqueID)",435965.517297829,0,0.647059040796581
+"40","DU6","Summer","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",435853.075239798,0,0.649217961473053
+"41","DU6","Summer","GLMM with Functional Response","DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9","(1 | UniqueID)",435951.859740821,0,0.647511044813859
+"42","DU6","Summer","GLMM with Functional Response","DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",435823.700766349,0,0.648773159285051
+"43","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover9","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover9 | UniqueID)",134484.79150589,1,0.678525930817655
+"44","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",134750.396796621,0,0.671570624862106
+"45","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",134623.557500566,0,0.673624346576695
+"46","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover9","(DCover9 | UniqueID)",134667.478237465,0,0.673133478122952
+"47","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",134566.469077945,0,0.675762362490353
+"48","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover9","(DC1to4 | UniqueID), (DCover9 | UniqueID)",134590.305216204,0,0.67580170534336
+"49","DU7","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover9","(DC5to9 | UniqueID), (DCover9 | UniqueID)",134563.619987637,0,0.676206861504319
+"50","DU7","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover9, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",134855.008092908,0,0.667651329669311
+"51","DU7","Early Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",134872.53015506,0,0.667721826767872
+"52","DU7","Early Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",134877.487843126,0,0.667477949181768
+"53","DU7","Early Winter","GLMM with Functional Response","DCover9, A_DCover9, DCover9*A_DCover9","(1 | UniqueID)",134864.874110619,0,0.667615185546531
+"54","DU7","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",134877.229614243,0,0.667689645636238
+"55","DU7","Early Winter","GLMM with Functional Response","DC1to4, DCover9, A_DC1to4, A_DCover9, DC1to4*A_DC1to4, DCover9*A_DCover9","(1 | UniqueID)",134867.787639657,0,0.667786212099504
+"56","DU7","Early Winter","GLMM with Functional Response","DC5to9, DCover9, A_DC5to9, A_DCover9, DC5to9*A_DC5to9, DCover9*A_DCover9","(1 | UniqueID)",134853.886491258,0,0.667545366168217
+"57","DU7","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover5","(DC1to4 | UniqueID), (DCover5 | UniqueID)",261751.898361432,1,0.690107833401598
+"58","DU7","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",262605.00161061,0,0.682765724462797
+"59","DU7","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover5","(DCover5 | UniqueID)",262788.831965626,0,0.68208830011477
+"60","DU7","Late Winter","GLMM with Functional Response","DC1to4, DCover5, A_DC1to4, A_DCover5, DC1to4*A_DC1to4, DCover5*A_DCover5","(1 | UniqueID)",263471.255495286,0,0.674758963660403
+"61","DU7","Late Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",263470.134795976,0,0.674654449875118
+"62","DU7","Late Winter","GLMM with Functional Response","DCover5, A_DCover5, DCover5*A_DCover5","(1 | UniqueID)",263470.134795976,0,0.674654449875118
+"63","DU7","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover5","(DC1to4 | UniqueID), (DCover5 | UniqueID)",254657.814162428,1,0.694330699180233
+"64","DU7","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",256004.614708699,0,0.685269022723212
+"65","DU7","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DCover5","(DCover5 | UniqueID)",255401.136684869,0,0.688405473399063
+"66","DU7","Summer","GLMM with Functional Response","DC1to4, DCover5, A_DC1to4, A_DCover5, DC1to4*A_DC1to4, DCover5*A_DCover5","(1 | UniqueID)",256854.514227804,0,0.678235159243019
+"67","DU7","Summer","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",257153.254370768,0,0.676840863004331
+"68","DU7","Summer","GLMM with Functional Response","DCover5, A_DCover5, DCover5*A_DCover5","(1 | UniqueID)",256871.471573307,0,0.678157282102385
+"69","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",169165.912586827,1,0.698459246316972
+"70","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",171143.776226897,0,0.676377593991646
+"71","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",170983.210038353,0,0.676874219241113
+"72","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29","(DC10to29 | UniqueID)",170650.481293486,0,0.678854361210358
+"73","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover30","(DCover30 | UniqueID)",171314.739024844,0,0.674647383015809
+"74","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",170429.664239573,0,0.685630719880078
+"75","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29","(DC1to4 | UniqueID), (DC10to29 | UniqueID)",170219.682372267,0,0.68621341189418
+"76","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover30","(DC1to4 | UniqueID), (DCover30 | UniqueID)",170651.046727402,0,0.683868088525613
+"77","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29","(DC5to9 | UniqueID), (DC10to29 | UniqueID)",170085.762897147,0,0.686627210093221
+"78","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover30","(DC5to9 | UniqueID), (DCover30 | UniqueID)",170523.142968268,0,0.685112974221041
+"79","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29, DCover30","(DC10to29 | UniqueID), (DCover30 | UniqueID)",170182.844779674,0,0.686640236178822
+"80","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID)",169492.477503595,0,0.693205757327271
+"81","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID)",170046.102418069,0,0.690846851106607
+"82","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29, DCover30","(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",169816.246106842,0,0.691686835371947
+"83","DU8","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29, DCover30","(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",169764.694540031,0,0.692630592451424
+"84","DU8","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",171689.570612722,0,0.665970812389443
+"85","DU8","Early Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",172046.06812008,0,0.662220494231295
+"86","DU8","Early Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",171957.667127996,0,0.662521992067815
+"87","DU8","Early Winter","GLMM with Functional Response","DC10to29, A_DC10to29, DC10to29*A_DC10to29","(1 | UniqueID)",172153.722028718,0,0.661343814732447
+"88","DU8","Early Winter","GLMM with Functional Response","DCover30, A_DCover30, DCover30*A_DCover30","(1 | UniqueID)",171916.984566071,0,0.663645634737711
+"89","DU8","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",171943.416711734,0,0.66288146820297
+"90","DU8","Early Winter","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",171978.000374331,0,0.663095063673776
+"91","DU8","Early Winter","GLMM with Functional Response","DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30","(1 | UniqueID)",171831.665561481,0,0.664597174557038
+"92","DU8","Early Winter","GLMM with Functional Response","DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",171855.99080181,0,0.663640337807459
+"93","DU8","Early Winter","GLMM with Functional Response","DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",171768.883855493,0,0.664690003392043
+"94","DU8","Early Winter","GLMM with Functional Response","DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",171872.709686822,0,0.664133679763899
+"95","DU8","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",171845.254937381,0,0.664030682106284
+"96","DU8","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",171769.519921195,0,0.664852360390351
+"97","DU8","Early Winter","GLMM with Functional Response","DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",171785.38113312,0,0.665272989624934
+"98","DU8","Early Winter","GLMM with Functional Response","DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",171689.221656056,0,0.665752136228409
+"99","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",254338.194438931,1,0.715419645873736
+"100","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",258523.184069699,0,0.681813141739161
+"101","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",258348.919565797,0,0.682541713400659
+"102","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29","(DC10to29 | UniqueID)",258090.502599583,0,0.683716550875046
+"103","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover30","(DCover30 | UniqueID)",257635.408445262,0,0.687442683682929
+"104","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",257194.924706296,0,0.693938732489922
+"105","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29","(DC1to4 | UniqueID), (DC10to29 | UniqueID)",256814.515931697,0,0.6952916627869
+"106","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover30","(DC1to4 | UniqueID), (DCover30 | UniqueID)",256530.819415674,0,0.697194640116944
+"107","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29","(DC5to9 | UniqueID), (DC10to29 | UniqueID)",256704.490298341,0,0.696135974631488
+"108","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover30","(DC5to9 | UniqueID), (DCover30 | UniqueID)",256572.779245437,0,0.696959135064788
+"109","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29, DCover30","(DC10to29 | UniqueID), (DCover30 | UniqueID)",256458.500117956,0,0.696917418147323
+"110","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID)",255644.489102162,0,0.705805374070146
+"111","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID)",255558.429570839,0,0.706440534085226
+"112","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29, DCover30","(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",255361.908786917,0,0.706456278432511
+"113","DU8","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29, DCover30","(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",255318.276397281,0,0.707166336075117
+"114","DU8","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",259316.194472805,0,0.672442889455058
+"115","DU8","Late Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",259754.730977559,0,0.668836370534027
+"116","DU8","Late Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",259813.330417979,0,0.668621943680037
+"117","DU8","Late Winter","GLMM with Functional Response","DC10to29, A_DC10to29, DC10to29*A_DC10to29","(1 | UniqueID)",259565.159918482,0,0.670927977707723
+"118","DU8","Late Winter","GLMM with Functional Response","DCover30, A_DCover30, DCover30*A_DCover30","(1 | UniqueID)",259713.445094019,0,0.669155643795888
+"119","DU8","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",259741.881370581,0,0.668937227543748
+"120","DU8","Late Winter","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",259501.522194585,0,0.671242428132213
+"121","DU8","Late Winter","GLMM with Functional Response","DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30","(1 | UniqueID)",259637.219601379,0,0.669659188280285
+"122","DU8","Late Winter","GLMM with Functional Response","DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",259495.863629394,0,0.671162579304628
+"123","DU8","Late Winter","GLMM with Functional Response","DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",259688.418918675,0,0.669499366698166
+"124","DU8","Late Winter","GLMM with Functional Response","DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",259402.539160124,0,0.672202974668478
+"125","DU8","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",259452.813436184,0,0.671366444520129
+"126","DU8","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",259628.661514939,0,0.669753616998147
+"127","DU8","Late Winter","GLMM with Functional Response","DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",259343.499691971,0,0.672314593374033
+"128","DU8","Late Winter","GLMM with Functional Response","DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",259351.168761824,0,0.672422027299701
+"129","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",233968.686923813,1,0.700503206438907
+"130","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",237217.375607893,0,0.67512873345164
+"131","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",236986.526751326,0,0.676005224188459
+"132","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29","(DC10to29 | UniqueID)",237219.521883809,0,0.674954591331618
+"133","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DCover30","(DCover30 | UniqueID)",237098.319301927,0,0.674999495825441
+"134","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",235862.9251399,0,0.685917435630996
+"135","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29","(DC1to4 | UniqueID), (DC10to29 | UniqueID)",236128.042198264,0,0.68487673189116
+"136","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover30","(DC1to4 | UniqueID), (DCover30 | UniqueID)",235819.498719172,0,0.685864835694409
+"137","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29","(DC5to9 | UniqueID), (DC10to29 | UniqueID)",235783.023739416,0,0.685718483149389
+"138","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover30","(DC5to9 | UniqueID), (DCover30 | UniqueID)",235785.139636277,0,0.685866952470715
+"139","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29, DCover30","(DC10to29 | UniqueID), (DCover30 | UniqueID)",235941.7204538,0,0.685254223092832
+"140","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID)",234847.283497591,0,0.693945264417245
+"141","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID)",234700.873222672,0,0.694608909645715
+"142","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29, DCover30","(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",235046.895630205,0,0.692804042079879
+"143","DU8","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29, DCover30","(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",234787.418434925,0,0.693579005081484
+"144","DU8","Summer","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",238373.065680149,0,0.662664608742242
+"145","DU8","Summer","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",238682.614624789,0,0.659623903635804
+"146","DU8","Summer","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",238687.240487687,0,0.659405303430895
+"147","DU8","Summer","GLMM with Functional Response","DC10to29, A_DC10to29, DC10to29*A_DC10to29","(1 | UniqueID)",238676.316772685,0,0.660127158116324
+"148","DU8","Summer","GLMM with Functional Response","DCover30, A_DCover30, DCover30*A_DCover30","(1 | UniqueID)",238514.322594784,0,0.661210141877402
+"149","DU8","Summer","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",238655.688332387,0,0.66006710883212
+"150","DU8","Summer","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",238627.588109563,0,0.660380898269649
+"151","DU8","Summer","GLMM with Functional Response","DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30","(1 | UniqueID)",238460.842556279,0,0.661593917968354
+"152","DU8","Summer","GLMM with Functional Response","DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",238606.706064681,0,0.660574157709957
+"153","DU8","Summer","GLMM with Functional Response","DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",238485.092940283,0,0.661208079450151
+"154","DU8","Summer","GLMM with Functional Response","DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",238459.28130717,0,0.662005018723626
+"155","DU8","Summer","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",238459.28130717,0,0.662005018723626
+"156","DU8","Summer","GLMM with Functional Response","DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",238433.835301342,0,0.661910484991536
+"157","DU8","Summer","GLMM with Functional Response","DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",238422.484595532,0,0.662054165127474
+"158","DU8","Summer","GLMM with Functional Response","DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",238410.971718003,0,0.662193822641961
+"159","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",7636.9745790376,0,0.648294011544025
+"160","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",7639.43883899265,0,0.633591883116884
+"161","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",7630.82818086174,0,0.640041522366517
+"162","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29","(DC10to29 | UniqueID)",7633.3790418449,0,0.637362157287162
+"163","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover30","(DCover30 | UniqueID)",7636.13557853906,0,0.63483373015873
+"164","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",7633.14872624826,0,0.641002417027431
+"165","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29","(DC1to4 | UniqueID), (DC10to29 | UniqueID)",7636.30505856502,0,0.638480483405491
+"166","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover30","(DC1to4 | UniqueID), (DCover30 | UniqueID)",7639.0579262706,0,0.636566738816744
+"167","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29","(DC5to9 | UniqueID), (DC10to29 | UniqueID)",7626.20350732591,0,0.646691883116893
+"168","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover30","(DC5to9 | UniqueID), (DCover30 | UniqueID)",7635.36129290469,0,0.642183369408361
+"169","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29, DCover30","(DC10to29 | UniqueID), (DCover30 | UniqueID)",7631.4322558326,0,0.640577633477632
+"170","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID)",7632.44863679078,0,0.646910245310256
+"171","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID)",7638.12923207298,0,0.641869119769111
+"172","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29, DCover30","(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",7637.66362190959,0,0.640745526695526
+"173","DU9","Early Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29, DCover30","(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",7630.74337793986,0,0.648135786435791
+"174","DU9","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",7591.88960974796,0.898,0.635996392496393
+"175","DU9","Early Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",7609.72067443487,0,0.632743831168837
+"176","DU9","Early Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",7628.88607562575,0,0.637480916305926
+"177","DU9","Early Winter","GLMM with Functional Response","DC10to29, A_DC10to29, DC10to29*A_DC10to29","(1 | UniqueID)",7636.49564618492,0,0.627150468975475
+"178","DU9","Early Winter","GLMM with Functional Response","DCover30, A_DCover30, DCover30*A_DCover30","(1 | UniqueID)",7642.76474577254,0,0.628194408369418
+"179","DU9","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",7604.62896721883,0.002,0.637088419913434
+"180","DU9","Early Winter","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",7611.23718366945,0,0.632516558441569
+"181","DU9","Early Winter","GLMM with Functional Response","DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30","(1 | UniqueID)",7614.45448704378,0,0.632878643578647
+"182","DU9","Early Winter","GLMM with Functional Response","DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",7632.03973704766,0,0.637581060606063
+"183","DU9","Early Winter","GLMM with Functional Response","DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",7628.21390159492,0,0.636059199134208
+"184","DU9","Early Winter","GLMM with Functional Response","DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",7628.21390159492,0,0.636059199134208
+"185","DU9","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",7604.72268893512,0.001,0.635242424242431
+"186","DU9","Early Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",7608.04535089413,0,0.636773088023087
+"187","DU9","Early Winter","GLMM with Functional Response","DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",7596.35149534429,0.097,0.62551298701299
+"188","DU9","Early Winter","GLMM with Functional Response","DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",7632.70052177566,0,0.636843217893231
+"189","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",17185.6719108302,0.986,0.681422422442774
+"190","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",17297.9879344601,0,0.654037104078534
+"191","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",17323.5035220636,0,0.651116600227796
+"192","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29","(DC10to29 | UniqueID)",17355.1642527187,0,0.639836946794666
+"193","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DCover30","(DCover30 | UniqueID)",17271.9758988383,0,0.660995566221937
+"194","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",17260.0846501171,0,0.660774772209561
+"195","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29","(DC1to4 | UniqueID), (DC10to29 | UniqueID)",17241.4479772092,0,0.667387982698758
+"196","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover30","(DC1to4 | UniqueID), (DCover30 | UniqueID)",17231.9471688204,0,0.669775151860289
+"197","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29","(DC5to9 | UniqueID), (DC10to29 | UniqueID)",17272.3808161468,0,0.662348851556551
+"198","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover30","(DC5to9 | UniqueID), (DCover30 | UniqueID)",17248.7417458635,0,0.666633331977433
+"199","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29, DCover30","(DC10to29 | UniqueID), (DCover30 | UniqueID)",17237.9635208833,0,0.672974888816567
+"200","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC5to9 | DC10to29)",17216.9072416882,0,0.671317204957142
+"201","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | DC10to29)",17219.9785356002,0,0.670874545775037
+"202","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29, DCover30","(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | DC10to29)",17194.2270021073,0.014,0.680634470929611
+"203","DU9","Late Winter","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29, DCover30","(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | DC10to29)",17218.278164292,0,0.677619569638786
+"204","DU9","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",17203.1628999669,0,0.657483017409693
+"205","DU9","Late Winter","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",17350.7838348485,0,0.637206509653975
+"206","DU9","Late Winter","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",17348.8646099185,0,0.640327306378129
+"207","DU9","Late Winter","GLMM with Functional Response","DC10to29, A_DC10to29, DC10to29*A_DC10to29","(1 | UniqueID)",17350.113628339,0,0.629981580160544
+"208","DU9","Late Winter","GLMM with Functional Response","DCover30, A_DCover30, DCover30*A_DCover30","(1 | UniqueID)",17398.6723277153,0,0.628740332465563
+"209","DU9","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",17328.6258369072,0,0.644755559171261
+"210","DU9","Late Winter","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",17269.8705364578,0,0.644643568987966
+"211","DU9","Late Winter","GLMM with Functional Response","DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30","(1 | UniqueID)",17291.2994331992,0,0.647456516433436
+"212","DU9","Late Winter","GLMM with Functional Response","DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",17278.1296272348,0,0.646356986929178
+"213","DU9","Late Winter","GLMM with Functional Response","DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",17298.0216686753,0,0.647825516596166
+"214","DU9","Late Winter","GLMM with Functional Response","DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",17331.9241475075,0,0.633748562750833
+"215","DU9","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",17249.8811261861,0,0.650704733430951
+"216","DU9","Late Winter","GLMM with Functional Response","DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",17265.4396930438,0,0.653182130654094
+"217","DU9","Late Winter","GLMM with Functional Response","DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",17230.0568497847,0,0.651544669975064
+"218","DU9","Late Winter","GLMM with Functional Response","DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",17244.6022196231,0,0.651515613135917
+"219","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",31672.8589208454,1,0.694469295584303
+"220","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4","(DC1to4 | UniqueID)",31865.4474611196,0,0.676173175754564
+"221","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9","(DC5to9 | UniqueID)",31894.9392274032,0,0.674519320407104
+"222","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29","(DC10to29 | UniqueID)",31857.8857883869,0,0.675508166239167
+"223","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DCover30","(DCover30 | UniqueID)",31879.7751684395,0,0.676421718564686
+"224","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9","(DC1to4 | UniqueID), (DC5to9 | UniqueID)",31793.2475013392,0,0.68220023949399
+"225","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29","(DC1to4 | UniqueID), (DC10to29 | UniqueID)",31758.6227119423,0,0.684172212722138
+"226","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DCover30","(DC1to4 | UniqueID), (DCover30 | UniqueID)",31768.2939038272,0,0.685312636180599
+"227","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29","(DC5to9 | UniqueID), (DC10to29 | UniqueID)",31768.7775427039,0,0.685814755311638
+"228","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DCover30","(DC5to9 | UniqueID), (DCover30 | UniqueID)",31812.9603204989,0,0.683364704286985
+"229","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC10to29, DCover30","(DC10to29 | UniqueID), (DCover30 | UniqueID)",31802.0264013218,0,0.685889000744692
+"230","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DC10to29","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID)",31704.8812965815,0,0.689142747147686
+"231","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC5to9, DCover30","(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID)",31741.361807708,0,0.688916248356652
+"232","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC1to4, DC10to29, DCover30","(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",31714.3199557125,0,0.691240098463758
+"233","DU9","Summer","GLMM with Individual and Year (UniqueID) Random Effect","DC5to9, DC10to29, DCover30","(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)",31733.4532413636,0,0.691138678967742
+"234","DU9","Summer","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",31965.1003342373,0,0.667230215314737
+"235","DU9","Summer","GLMM with Functional Response","DC1to4, A_DC1to4, DC1to4*A_DC1to4","(1 | UniqueID)",32002.1975159,0,0.661616828014837
+"236","DU9","Summer","GLMM with Functional Response","DC5to9, A_DC5to9, DC5to9*A_DC5to9","(1 | UniqueID)",32003.9905423412,0,0.661574643057448
+"237","DU9","Summer","GLMM with Functional Response","DC10to29, A_DC10to29, DC10to29*A_DC10to29","(1 | UniqueID)",31979.3071219186,0,0.666073454781139
+"238","DU9","Summer","GLMM with Functional Response","DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9","(1 | UniqueID)",31998.2849649266,0,0.661635263535327
+"239","DU9","Summer","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",31975.0011287716,0,0.661804619337891
+"240","DU9","Summer","GLMM with Functional Response","DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29","(1 | UniqueID)",31975.0011287716,0,0.666537663991336
+"241","DU9","Summer","GLMM with Functional Response","DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30","(1 | UniqueID)",31993.6829012571,0,0.662715836482162
+"242","DU9","Summer","GLMM with Functional Response","DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",31974.6584433201,0,0.666379073925967
+"243","DU9","Summer","GLMM with Functional Response","DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",31993.3676278694,0,0.661889632806581
+"244","DU9","Summer","GLMM with Functional Response","DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",31971.339428181,0,0.666201487528838
+"245","DU9","Summer","GLMM with Functional Response","DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29","(1 | UniqueID)",31969.4439962559,0,0.666840460692641
+"246","DU9","Summer","GLMM with Functional Response","DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30","(1 | UniqueID)",31989.862126129,0,0.66340969789743
+"247","DU9","Summer","GLMM with Functional Response","DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",31966.7455000836,0,0.666889058204851
+"248","DU9","Summer","GLMM with Functional Response","DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30","(1 | UniqueID)",31969.8881503938,0,0.666675991302829
