@@ -13179,12 +13179,12 @@ auc.temp <- performance (pr.temp, measure = "auc")
 table.aic [212, 8] <- auc.temp@y.values[[1]]
 
 # 5to9, over30
-model.lme.fxn.du9.lw.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
-                                             std.distance_to_cut_10to29yo + 
+model.lme.fxn.du9.lw.5to9.over30 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_30orOveryo + 
                                              std.distance_to_cut_5to9yo_E + 
-                                             std.distance_to_cut_10to29yo_E + 
+                                             std.distance_to_cut_30orOveryo_E + 
                                              std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
-                                             std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                             std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
                                              (1 | uniqueID), 
                                            data = dist.cut.data.du.9.lw, 
                                            family = binomial (link = "logit"),
@@ -13193,20 +13193,19 @@ model.lme.fxn.du9.lw.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_5to9yo +
                                                                    optimizer = "nloptwrap", # these settings should provide results quicker
                                                                    optCtrl = list (maxfun = 2e5)))
 # AIC
-table.aic [212, 1] <- "DU9"
-table.aic [212, 2] <- "Late Winter"
-table.aic [212, 3] <- "GLMM with Functional Response"
-table.aic [212, 4] <- "DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29"
-table.aic [212, 5] <- "(1 | UniqueID)"
-table.aic [212, 6] <- AIC (model.lme.fxn.du9.lw.5to9.10to29)
+table.aic [213, 1] <- "DU9"
+table.aic [213, 2] <- "Late Winter"
+table.aic [213, 3] <- "GLMM with Functional Response"
+table.aic [213, 4] <- "DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30"
+table.aic [213, 5] <- "(1 | UniqueID)"
+table.aic [213, 6] <- AIC (model.lme.fxn.du9.lw.5to9.over30)
 
 # AUC 
-pr.temp <- prediction (predict (model.lme.fxn.du9.lw.5to9.10to29, type = 'response'), dist.cut.data.du.9.lw$pttype)
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.5to9.over30, type = 'response'), dist.cut.data.du.9.lw$pttype)
 prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
 plot (prf.temp)
 auc.temp <- performance (pr.temp, measure = "auc")
-table.aic [212, 8] <- auc.temp@y.values[[1]]
-
+table.aic [213, 8] <- auc.temp@y.values[[1]]
 
 # 10to29, over30
 model.lme.fxn.du9.lw.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_10to29yo + 
@@ -13223,16 +13222,1184 @@ model.lme.fxn.du9.lw.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_10to29
                                                                    optimizer = "nloptwrap", # these settings should provide results quicker
                                                                    optCtrl = list (maxfun = 2e5)))
 # AIC
-table.aic [213, 1] <- "DU9"
-table.aic [213, 2] <- "Late Winter"
-table.aic [213, 3] <- "GLMM with Functional Response"
-table.aic [213, 4] <- "DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30"
-table.aic [213, 5] <- "(1 | UniqueID)"
-table.aic [213, 6] <- AIC (model.lme.fxn.du9.lw.10to29.over30)
+table.aic [214, 1] <- "DU9"
+table.aic [214, 2] <- "Late Winter"
+table.aic [214, 3] <- "GLMM with Functional Response"
+table.aic [214, 4] <- "DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [214, 5] <- "(1 | UniqueID)"
+table.aic [214, 6] <- AIC (model.lme.fxn.du9.lw.10to29.over30)
 
 # AUC 
 pr.temp <- prediction (predict (model.lme.fxn.du9.lw.10to29.over30, type = 'response'), dist.cut.data.du.9.lw$pttype)
 prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
 plot (prf.temp)
 auc.temp <- performance (pr.temp, measure = "auc")
-table.aic [213, 8] <- auc.temp@y.values[[1]]
+table.aic [214, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9, 10to29
+model.lme.fxn.du9.lw.1to4.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo +
+                                                  std.distance_to_cut_10to29yo +
+                                                  std.distance_to_cut_1to4yo_E + 
+                                                  std.distance_to_cut_5to9yo_E +
+                                                  std.distance_to_cut_10to29yo_E + 
+                                                  std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                  std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                                  std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                                  (1 | uniqueID), 
+                                             data = dist.cut.data.du.9.lw, 
+                                             family = binomial (link = "logit"),
+                                             verbose = T,
+                                             control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                     optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                     optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [215, 1] <- "DU9"
+table.aic [215, 2] <- "Late Winter"
+table.aic [215, 3] <- "GLMM with Functional Response"
+table.aic [215, 4] <- "DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29"
+table.aic [215, 5] <- "(1 | UniqueID)"
+table.aic [215, 6] <- AIC (model.lme.fxn.du9.lw.1to4.5to9.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.1to4.5to9.10to29, type = 'response'), dist.cut.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [215, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9, over30
+model.lme.fxn.du9.lw.1to4.5to9.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo +
+                                                  std.distance_to_cut_30orOveryo +
+                                                  std.distance_to_cut_1to4yo_E + 
+                                                  std.distance_to_cut_5to9yo_E +
+                                                  std.distance_to_cut_30orOveryo_E + 
+                                                  std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                  std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                                  std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                                  (1 | uniqueID), 
+                                                data = dist.cut.data.du.9.lw, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T,
+                                                control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                        optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                        optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [216, 1] <- "DU9"
+table.aic [216, 2] <- "Late Winter"
+table.aic [216, 3] <- "GLMM with Functional Response"
+table.aic [216, 4] <- "DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30"
+table.aic [216, 5] <- "(1 | UniqueID)"
+table.aic [216, 6] <- AIC (model.lme.fxn.du9.lw.1to4.5to9.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.1to4.5to9.over30, type = 'response'), dist.cut.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [216, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 10to29, over30
+model.lme.fxn.du9.lw.1to4.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_10to29yo +
+                                                    std.distance_to_cut_30orOveryo +
+                                                    std.distance_to_cut_1to4yo_E + 
+                                                    std.distance_to_cut_10to29yo_E +
+                                                    std.distance_to_cut_30orOveryo_E + 
+                                                    std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                    std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                                    std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                                  (1 | uniqueID), 
+                                                data = dist.cut.data.du.9.lw, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T,
+                                                control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                        optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                        optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [217, 1] <- "DU9"
+table.aic [217, 2] <- "Late Winter"
+table.aic [217, 3] <- "GLMM with Functional Response"
+table.aic [217, 4] <- "DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [217, 5] <- "(1 | UniqueID)"
+table.aic [217, 6] <- AIC (model.lme.fxn.du9.lw.1to4.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.1to4.10to29.over30, type = 'response'), dist.cut.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [217, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, 10to29, over30
+model.lme.fxn.du9.lw.5to9.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_5to9yo +
+                                                            std.distance_to_cut_10to29yo +
+                                                            std.distance_to_cut_30orOveryo +
+                                                            std.distance_to_cut_5to9yo_E +
+                                                            std.distance_to_cut_10to29yo_E +
+                                                            std.distance_to_cut_30orOveryo_E + 
+                                                    std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                                    std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                                    std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                                  (1 | uniqueID), 
+                                                data = dist.cut.data.du.9.lw, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T,
+                                                control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                        optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                        optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [218, 1] <- "DU9"
+table.aic [218, 2] <- "Late Winter"
+table.aic [218, 3] <- "GLMM with Functional Response"
+table.aic [218, 4] <- "DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [218, 5] <- "(1 | UniqueID)"
+table.aic [218, 6] <- AIC (model.lme.fxn.du9.lw.5to9.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.5to9.10to29.over30, type = 'response'), dist.cut.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [218, 8] <- auc.temp@y.values[[1]]
+
+# AIC comparison 
+list.aic.like <- c ((exp (-0.5 * (table.aic [189, 6] - min (table.aic [189:218, 6])))), 
+                    (exp (-0.5 * (table.aic [190, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [191, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [192, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [193, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [194, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [195, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [196, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [197, 6] - min (table.aic [189:218, 6])))), 
+                    (exp (-0.5 * (table.aic [198, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [199, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [200, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [201, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [202, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [203, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [204, 6] - min (table.aic [189:218, 6])))), 
+                    (exp (-0.5 * (table.aic [205, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [206, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [207, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [208, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [209, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [210, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [211, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [212, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [213, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [214, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [215, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [216, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [217, 6] - min (table.aic [189:218, 6])))),
+                    (exp (-0.5 * (table.aic [218, 6] - min (table.aic [189:218, 6])))))
+table.aic [189, 7] <- round ((exp (-0.5 * (table.aic [189, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [190, 7] <- round ((exp (-0.5 * (table.aic [190, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [191, 7] <- round ((exp (-0.5 * (table.aic [191, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [192, 7] <- round ((exp (-0.5 * (table.aic [192, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [193, 7] <- round ((exp (-0.5 * (table.aic [193, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [194, 7] <- round ((exp (-0.5 * (table.aic [194, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [195, 7] <- round ((exp (-0.5 * (table.aic [195, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [196, 7] <- round ((exp (-0.5 * (table.aic [196, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [197, 7] <- round ((exp (-0.5 * (table.aic [197, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [198, 7] <- round ((exp (-0.5 * (table.aic [198, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [199, 7] <- round ((exp (-0.5 * (table.aic [199, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [200, 7] <- round ((exp (-0.5 * (table.aic [200, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [201, 7] <- round ((exp (-0.5 * (table.aic [201, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [202, 7] <- round ((exp (-0.5 * (table.aic [202, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [203, 7] <- round ((exp (-0.5 * (table.aic [203, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [204, 7] <- round ((exp (-0.5 * (table.aic [204, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [205, 7] <- round ((exp (-0.5 * (table.aic [205, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [206, 7] <- round ((exp (-0.5 * (table.aic [206, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [207, 7] <- round ((exp (-0.5 * (table.aic [207, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [208, 7] <- round ((exp (-0.5 * (table.aic [208, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [209, 7] <- round ((exp (-0.5 * (table.aic [209, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [210, 7] <- round ((exp (-0.5 * (table.aic [210, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [211, 7] <- round ((exp (-0.5 * (table.aic [211, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [212, 7] <- round ((exp (-0.5 * (table.aic [212, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [213, 7] <- round ((exp (-0.5 * (table.aic [213, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [214, 7] <- round ((exp (-0.5 * (table.aic [214, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [215, 7] <- round ((exp (-0.5 * (table.aic [215, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [216, 7] <- round ((exp (-0.5 * (table.aic [216, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [217, 7] <- round ((exp (-0.5 * (table.aic [217, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+table.aic [218, 7] <- round ((exp (-0.5 * (table.aic [218, 6] - min (table.aic [189:218, 6])))) / sum (list.aic.like), 3)
+
+# save the table
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_forestry.csv", sep = ",")
+
+# save the top model
+save (model.lme.du9.lw.all, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_lme_fxn_du9_lw_top.rda")
+
+
+## Summer ##
+### Correlation
+corr.dist.cut.du.9.s <- round (cor (dist.cut.data.du.9.s [10:13], method = "spearman"), 3)
+ggcorrplot (corr.dist.cut.du.9.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Distance to Cutblock Correlation DU9 Summer")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_dist_cut_corr_du_9_s.png")
+
+# distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated
+# grouped together
+# dist.cut.data.du.9.s <- dplyr::mutate (dist.cut.data.du.9.s, distance_to_cut_10yoorOver = pmin (distance_to_cut_10to29yo, distance_to_cut_30orOveryo))
+
+### CART
+cart.du.9.s <- rpart (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
+                         distance_to_cut_10to29yo + distance_to_cut_30orOveryo,
+                       data = dist.cut.data.du.9.s, 
+                       method = "class")
+summary (cart.du.9.s)
+print (cart.du.9.s)
+plot (cart.du.9.s, uniform = T)
+text (cart.du.9.s, use.n = T, splits = T, fancy = F)
+post (cart.du.9.s, file = "", uniform = T)
+# results indicate partioning
+
+### VIF
+model.glm.du9.s <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
+                           distance_to_cut_10to29yo + distance_to_cut_30orOveryo, 
+                         data = dist.cut.data.du.9.s,
+                         family = binomial (link = 'logit'))
+vif (model.glm.du9.s) 
+
+# Generalized Linear Mixed Models (GLMMs)
+# standardize covariates  (helps with model convergence)
+dist.cut.data.du.9.s$std.distance_to_cut_1to4yo <- (dist.cut.data.du.9.s$distance_to_cut_1to4yo - mean (dist.cut.data.du.9.s$distance_to_cut_1to4yo)) / sd (dist.cut.data.du.9.s$distance_to_cut_1to4yo)
+dist.cut.data.du.9.s$std.distance_to_cut_5to9yo <- (dist.cut.data.du.9.s$distance_to_cut_5to9yo - mean (dist.cut.data.du.9.s$distance_to_cut_5to9yo)) / sd (dist.cut.data.du.9.s$distance_to_cut_5to9yo)
+dist.cut.data.du.9.s$std.distance_to_cut_10to29yo <- (dist.cut.data.du.9.s$distance_to_cut_10to29yo - mean (dist.cut.data.du.9.s$distance_to_cut_10to29yo)) / sd (dist.cut.data.du.9.s$distance_to_cut_10to29yo)
+dist.cut.data.du.9.s$std.distance_to_cut_30orOveryo <- (dist.cut.data.du.9.s$distance_to_cut_30orOveryo - mean (dist.cut.data.du.9.s$distance_to_cut_30orOveryo)) / sd (dist.cut.data.du.9.s$distance_to_cut_30orOveryo)
+
+### fit corr random effects models
+# ALL COVARS
+model.lme.du9.s.all <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                                 std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                 (std.distance_to_cut_1to4yo | uniqueID) + 
+                                 (std.distance_to_cut_5to9yo | uniqueID) +
+                                 (std.distance_to_cut_10to29yo | uniqueID) +
+                                 (std.distance_to_cut_30orOveryo | uniqueID), 
+                               data = dist.cut.data.du.9.s, 
+                               family = binomial (link = "logit"),
+                               verbose = T,
+                               control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                       optimizer = "nloptwrap", # these settings should provide results quicker
+                                                       optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [219, 1] <- "DU9"
+table.aic [219, 2] <- "Summer"
+table.aic [219, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [219, 4] <- "DC1to4, DC5to9, DC10to29, DCover30"
+table.aic [219, 5] <- "(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)"
+table.aic [219, 6] <- AIC (model.lme.du9.s.all)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.all, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [219, 8] <- auc.temp@y.values[[1]]
+
+# 1to4
+model.lme.du9.s.1to4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                      (std.distance_to_cut_1to4yo | uniqueID), 
+                              data = dist.cut.data.du.9.s, 
+                              family = binomial (link = "logit"),
+                              verbose = T,
+                              control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                      optimizer = "nloptwrap", # these settings should provide results quicker
+                                                      optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [220, 1] <- "DU9"
+table.aic [220, 2] <- "Summer"
+table.aic [220, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [220, 4] <- "DC1to4"
+table.aic [220, 5] <- "(DC1to4 | UniqueID)"
+table.aic [220, 6] <- AIC (model.lme.du9.s.1to4)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1to4, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [220, 8] <- auc.temp@y.values[[1]]
+
+# 5to9
+model.lme.du9.s.5to9 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                 (std.distance_to_cut_5to9yo | uniqueID), 
+                               data = dist.cut.data.du.9.s, 
+                               family = binomial (link = "logit"),
+                               verbose = T,
+                               control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                       optimizer = "nloptwrap", # these settings should provide results quicker
+                                                       optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [221, 1] <- "DU9"
+table.aic [221, 2] <- "Summer"
+table.aic [221, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [221, 4] <- "DC5to9"
+table.aic [221, 5] <- "(DC5to9 | UniqueID)"
+table.aic [221, 6] <- AIC (model.lme.du9.s.5to9)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.5to9, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [221, 8] <- auc.temp@y.values[[1]]
+
+# 10to29
+model.lme.du9.s.10to29 <- glmer (pttype ~ std.distance_to_cut_10to29yo + 
+                                 (std.distance_to_cut_10to29yo | uniqueID), 
+                               data = dist.cut.data.du.9.s, 
+                               family = binomial (link = "logit"),
+                               verbose = T,
+                               control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                       optimizer = "nloptwrap", # these settings should provide results quicker
+                                                       optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [222, 1] <- "DU9"
+table.aic [222, 2] <- "Summer"
+table.aic [222, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [222, 4] <- "DC10to29"
+table.aic [222, 5] <- "(DC10to29 | UniqueID)"
+table.aic [222, 6] <- AIC (model.lme.du9.s.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [222, 8] <- auc.temp@y.values[[1]]
+
+# over30
+model.lme.du9.s.over30 <- glmer (pttype ~ std.distance_to_cut_30orOveryo + 
+                                   (std.distance_to_cut_30orOveryo | uniqueID), 
+                                 data = dist.cut.data.du.9.s, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T,
+                                 control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                         optimizer = "nloptwrap", # these settings should provide results quicker
+                                                         optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [223, 1] <- "DU9"
+table.aic [223, 2] <- "Summer"
+table.aic [223, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [223, 4] <- "DCover30"
+table.aic [223, 5] <- "(DCover30 | UniqueID)"
+table.aic [223, 6] <- AIC (model.lme.du9.s.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [223, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9
+model.lme.du9.s.1o4.5to9 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                       std.distance_to_cut_5to9yo + 
+                                      (std.distance_to_cut_1to4yo | uniqueID) +
+                                      (std.distance_to_cut_5to9yo | uniqueID), 
+                                 data = dist.cut.data.du.9.s, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T,
+                                 control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                         optimizer = "nloptwrap", # these settings should provide results quicker
+                                                         optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [224, 1] <- "DU9"
+table.aic [224, 2] <- "Summer"
+table.aic [224, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [224, 4] <- "DC1to4, DC5to9"
+table.aic [224, 5] <- "(DC1to4 | UniqueID), (DC5to9 | UniqueID)"
+table.aic [224, 6] <- AIC (model.lme.du9.s.1o4.5to9)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1o4.5to9, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [224, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 10to29
+model.lme.du9.s.1o4.10to29 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                       std.distance_to_cut_10to29yo + 
+                                     (std.distance_to_cut_1to4yo | uniqueID) +
+                                     (std.distance_to_cut_10to29yo | uniqueID), 
+                                   data = dist.cut.data.du.9.s, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                           optimizer = "nloptwrap", # these settings should provide results quicker
+                                                           optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [225, 1] <- "DU9"
+table.aic [225, 2] <- "Summer"
+table.aic [225, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [225, 4] <- "DC1to4, DC10to29"
+table.aic [225, 5] <- "(DC1to4 | UniqueID), (DC10to29 | UniqueID)"
+table.aic [225, 6] <- AIC (model.lme.du9.s.1o4.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1o4.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [225, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, over30
+model.lme.du9.s.1o4.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                       std.distance_to_cut_30orOveryo + 
+                                       (std.distance_to_cut_1to4yo | uniqueID) +
+                                       (std.distance_to_cut_30orOveryo | uniqueID), 
+                                     data = dist.cut.data.du.9.s, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T,
+                                     control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                             optimizer = "nloptwrap", # these settings should provide results quicker
+                                                             optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [226, 1] <- "DU9"
+table.aic [226, 2] <- "Summer"
+table.aic [226, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [226, 4] <- "DC1to4, DCover30"
+table.aic [226, 5] <- "(DC1to4 | UniqueID), (DCover30 | UniqueID)"
+table.aic [226, 6] <- AIC (model.lme.du9.s.1o4.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1o4.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [226, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, 10to29
+model.lme.du9.s.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                        std.distance_to_cut_10to29yo + 
+                                       (std.distance_to_cut_5to9yo | uniqueID) +
+                                       (std.distance_to_cut_10to29yo | uniqueID), 
+                                     data = dist.cut.data.du.9.s, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T,
+                                     control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                             optimizer = "nloptwrap", # these settings should provide results quicker
+                                                             optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [227, 1] <- "DU9"
+table.aic [227, 2] <- "Summer"
+table.aic [227, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [227, 4] <- "DC5to9, DC10to29"
+table.aic [227, 5] <- "(DC5to9 | UniqueID), (DC10to29 | UniqueID)"
+table.aic [227, 6] <- AIC (model.lme.du9.s.5to9.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.5to9.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [227, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, over30
+model.lme.du9.s.5to9.over30 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                        std.distance_to_cut_30orOveryo + 
+                                        (std.distance_to_cut_5to9yo | uniqueID) +
+                                        (std.distance_to_cut_30orOveryo | uniqueID), 
+                                      data = dist.cut.data.du.9.s, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T,
+                                      control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                              optimizer = "nloptwrap", # these settings should provide results quicker
+                                                              optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [228, 1] <- "DU9"
+table.aic [228, 2] <- "Summer"
+table.aic [228, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [228, 4] <- "DC5to9, DCover30"
+table.aic [228, 5] <- "(DC5to9 | UniqueID), (DCover30 | UniqueID)"
+table.aic [228, 6] <- AIC (model.lme.du9.s.5to9.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.5to9.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [228, 8] <- auc.temp@y.values[[1]]
+
+# 10to29, over30
+model.lme.du9.s.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_10to29yo + 
+                                        std.distance_to_cut_30orOveryo + 
+                                        (std.distance_to_cut_10to29yo | uniqueID) +
+                                        (std.distance_to_cut_30orOveryo | uniqueID), 
+                                      data = dist.cut.data.du.9.s, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T,
+                                      control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                              optimizer = "nloptwrap", # these settings should provide results quicker
+                                                              optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [229, 1] <- "DU9"
+table.aic [229, 2] <- "Summer"
+table.aic [229, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [229, 4] <- "DC10to29, DCover30"
+table.aic [229, 5] <- "(DC10to29 | UniqueID), (DCover30 | UniqueID)"
+table.aic [229, 6] <- AIC (model.lme.du9.s.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.10to29.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [229, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9, 10to29
+model.lme.du9.s.1to4.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_10to29yo + 
+                                          (std.distance_to_cut_1to4yo | uniqueID) +
+                                          (std.distance_to_cut_5to9yo | uniqueID) +
+                                          (std.distance_to_cut_10to29yo | uniqueID), 
+                                        data = dist.cut.data.du.9.s, 
+                                        family = binomial (link = "logit"),
+                                        verbose = T,
+                                        control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [230, 1] <- "DU9"
+table.aic [230, 2] <- "Summer"
+table.aic [230, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [230, 4] <- "DC1to4, DC5to9, DC10to29"
+table.aic [230, 5] <- "(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DC10to29 | UniqueID)"
+table.aic [230, 6] <- AIC (model.lme.du9.s.1to4.5to9.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1to4.5to9.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [230, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9, over30
+model.lme.du9.s.1to4.5to9.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_30orOveryo + 
+                                             (std.distance_to_cut_1to4yo | uniqueID) +
+                                             (std.distance_to_cut_5to9yo | uniqueID) +
+                                             (std.distance_to_cut_30orOveryo | uniqueID), 
+                                           data = dist.cut.data.du.9.s, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T,
+                                           control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                   optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                   optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [231, 1] <- "DU9"
+table.aic [231, 2] <- "Summer"
+table.aic [231, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [231, 4] <- "DC1to4, DC5to9, DCover30"
+table.aic [231, 5] <- "(DC1to4 | UniqueID), (DC5to9 | UniqueID), (DCover30 | UniqueID)"
+table.aic [231, 6] <- AIC (model.lme.du9.s.1to4.5to9.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1to4.5to9.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [231, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 10to29, over30
+model.lme.du9.s.1to4.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                std.distance_to_cut_10to29yo +
+                                                std.distance_to_cut_30orOveryo +
+                                                (std.distance_to_cut_1to4yo | uniqueID) +
+                                                (std.distance_to_cut_10to29yo | uniqueID) +
+                                                (std.distance_to_cut_30orOveryo | uniqueID), 
+                                           data = dist.cut.data.du.9.s, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T,
+                                           control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                   optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                   optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [232, 1] <- "DU9"
+table.aic [232, 2] <- "Summer"
+table.aic [232, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [232, 4] <- "DC1to4, DC10to29, DCover30"
+table.aic [232, 5] <- "(DC1to4 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)"
+table.aic [232, 6] <- AIC (model.lme.du9.s.1to4.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1to4.10to29.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [232, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, 10to29, over30
+model.lme.du9.s.5to9.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                               std.distance_to_cut_10to29yo +
+                                               std.distance_to_cut_30orOveryo +
+                                               (std.distance_to_cut_5to9yo | uniqueID) +
+                                               (std.distance_to_cut_10to29yo | uniqueID) +
+                                               (std.distance_to_cut_30orOveryo | uniqueID), 
+                                             data = dist.cut.data.du.9.s, 
+                                             family = binomial (link = "logit"),
+                                             verbose = T,
+                                             control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                     optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                     optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+
+# AIC
+table.aic [233, 1] <- "DU9"
+table.aic [233, 2] <- "Summer"
+table.aic [233, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [233, 4] <- "DC5to9, DC10to29, DCover30"
+table.aic [233, 5] <- "(DC5to9 | UniqueID), (DC10to29 | UniqueID), (DCover30 | UniqueID)"
+table.aic [233, 6] <- AIC (model.lme.du9.s.5to9.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.5to9.10to29.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [233, 8] <- auc.temp@y.values[[1]]
+
+# FUNCTIONAL RESPONSE
+# All Covariates
+sub <- subset (dist.cut.data.du.9.s, pttype == 0)
+std.distance_to_cut_1to4yo_E <- tapply (sub$std.distance_to_cut_1to4yo, sub$uniqueID, mean)
+std.distance_to_cut_5to9yo_E <- tapply (sub$std.distance_to_cut_5to9yo, sub$uniqueID, mean)
+std.distance_to_cut_10to29yo_E <- tapply (sub$std.distance_to_cut_10to29yo, sub$uniqueID, mean)
+std.distance_to_cut_30orOveryo_E <- tapply (sub$std.distance_to_cut_30orOveryo, sub$uniqueID, mean)
+
+inds <- as.character (dist.cut.data.du.9.s$uniqueID)
+dist.cut.data.du.9.s <- cbind (dist.cut.data.du.9.s, 
+                                "std.distance_to_cut_1to4yo_E" = std.distance_to_cut_1to4yo_E [inds],
+                                "std.distance_to_cut_5to9yo_E" = std.distance_to_cut_5to9yo_E [inds],
+                                "std.distance_to_cut_10to29yo_E" = std.distance_to_cut_10to29yo_E [inds],
+                                "std.distance_to_cut_30orOveryo_E" = std.distance_to_cut_30orOveryo_E [inds])
+# Functional Responses
+# All COVARS
+model.lme.fxn.du9.s.all <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                                     std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                     std.distance_to_cut_1to4yo_E + std.distance_to_cut_5to9yo_E + 
+                                     std.distance_to_cut_10to29yo_E + std.distance_to_cut_30orOveryo_E +
+                                     std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                     std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                     std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                     std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                     (1 | uniqueID), 
+                                   data = dist.cut.data.du.9.s, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                           optimizer = "nloptwrap", # these settings should provide results quicker
+                                                           optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [234, 1] <- "DU9"
+table.aic [234, 2] <- "Summer"
+table.aic [234, 3] <- "GLMM with Functional Response"
+table.aic [234, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, A_DC1to4, A_DC5to9, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [234, 5] <- "(1 | UniqueID)"
+table.aic [234, 6] <- AIC (model.lme.fxn.du9.s.all)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.all, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [234, 8] <- auc.temp@y.values[[1]]
+
+# 1to4
+model.lme.fxn.du9.s.1to4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                     std.distance_to_cut_1to4yo_E + 
+                                     std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                     (1 | uniqueID), 
+                                  data = dist.cut.data.du.9.s, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T,
+                                  control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                          optimizer = "nloptwrap", # these settings should provide results quicker
+                                                          optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [235, 1] <- "DU9"
+table.aic [235, 2] <- "Summer"
+table.aic [235, 3] <- "GLMM with Functional Response"
+table.aic [235, 4] <- "DC1to4, A_DC1to4, DC1to4*A_DC1to4"
+table.aic [235, 5] <- "(1 | UniqueID)"
+table.aic [235, 6] <- AIC (model.lme.fxn.du9.s.1to4)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [235, 8] <- auc.temp@y.values[[1]]
+
+# 5to9
+model.lme.fxn.du9.s.5to9 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                     std.distance_to_cut_5to9yo_E + 
+                                     std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                     (1 | uniqueID), 
+                                   data = dist.cut.data.du.9.s, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                           optimizer = "nloptwrap", # these settings should provide results quicker
+                                                           optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [236, 1] <- "DU9"
+table.aic [236, 2] <- "Summer"
+table.aic [236, 3] <- "GLMM with Functional Response"
+table.aic [236, 4] <- "DC5to9, A_DC5to9, DC5to9*A_DC5to9"
+table.aic [236, 5] <- "(1 | UniqueID)"
+table.aic [236, 6] <- AIC (model.lme.fxn.du9.s.5to9)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.5to9, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [236, 8] <- auc.temp@y.values[[1]]
+
+# 10to29
+model.lme.fxn.du9.s.10to29 <- glmer (pttype ~ std.distance_to_cut_10to29yo + 
+                                       std.distance_to_cut_10to29yo_E + 
+                                       std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                     (1 | uniqueID), 
+                                   data = dist.cut.data.du.9.s, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                           optimizer = "nloptwrap", # these settings should provide results quicker
+                                                           optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [237, 1] <- "DU9"
+table.aic [237, 2] <- "Summer"
+table.aic [237, 3] <- "GLMM with Functional Response"
+table.aic [237, 4] <- "DC10to29, A_DC10to29, DC10to29*A_DC10to29"
+table.aic [237, 5] <- "(1 | UniqueID)"
+table.aic [237, 6] <- AIC (model.lme.fxn.du9.s.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [237, 8] <- auc.temp@y.values[[1]]
+
+# over30
+model.lme.fxn.du9.s.over30 <- glmer (pttype ~ std.distance_to_cut_30orOveryo + 
+                                       std.distance_to_cut_30orOveryo_E + 
+                                       std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                       (1 | uniqueID), 
+                                     data = dist.cut.data.du.9.s, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T,
+                                     control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                             optimizer = "nloptwrap", # these settings should provide results quicker
+                                                             optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [238, 1] <- "DU9"
+table.aic [238, 2] <- "Summer"
+table.aic [238, 3] <- "GLMM with Functional Response"
+table.aic [238, 4] <- "DCover30, A_DCover30, DCover30*A_DCover30"
+table.aic [238, 5] <- "(1 | UniqueID)"
+table.aic [238, 6] <- AIC (model.lme.fxn.du9.s.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [238, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9
+model.lme.fxn.du9.s.1to4.5to9 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo + 
+                                                  std.distance_to_cut_1to4yo_E + 
+                                                  std.distance_to_cut_5to9yo_E + 
+                                          std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                          std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                          (1 | uniqueID), 
+                                     data = dist.cut.data.du.9.s, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T,
+                                     control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                             optimizer = "nloptwrap", # these settings should provide results quicker
+                                                             optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [239, 1] <- "DU9"
+table.aic [239, 2] <- "Summer"
+table.aic [239, 3] <- "GLMM with Functional Response"
+table.aic [238, 4] <- "DC1to4, DC5to9, A_DC1to4, A_DC5to9, DC1to4*A_DC1to4, DC5to9*A_DC5to9"
+table.aic [238, 5] <- "(1 | UniqueID)"
+table.aic [238, 6] <- AIC (model.lme.fxn.du9.s.1to4.5to9)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4.5to9, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [239, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 10to29
+model.lme.fxn.du9.s.1to4.10to29 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                            std.distance_to_cut_10to29yo + 
+                                            std.distance_to_cut_1to4yo_E + 
+                                            std.distance_to_cut_10to29yo_E + 
+                                            std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                            std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                          (1 | uniqueID), 
+                                        data = dist.cut.data.du.9.s, 
+                                        family = binomial (link = "logit"),
+                                        verbose = T,
+                                        control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [240, 1] <- "DU9"
+table.aic [240, 2] <- "Summer"
+table.aic [240, 3] <- "GLMM with Functional Response"
+table.aic [240, 4] <- "DC1to4, DC10to29, A_DC1to4, A_DC10to29, DC1to4*A_DC1to4, DC10to29*A_DC10to29"
+table.aic [240, 5] <- "(1 | UniqueID)"
+table.aic [240, 6] <- AIC (model.lme.fxn.du9.s.1to4.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [240, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, over30
+model.lme.fxn.du9.s.1to4.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                            std.distance_to_cut_30orOveryo + 
+                                            std.distance_to_cut_1to4yo_E + 
+                                            std.distance_to_cut_30orOveryo_E + 
+                                            std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                            std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                            (1 | uniqueID), 
+                                          data = dist.cut.data.du.9.s, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T,
+                                          control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                  optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                  optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [241, 1] <- "DU9"
+table.aic [241, 2] <- "Summer"
+table.aic [241, 3] <- "GLMM with Functional Response"
+table.aic [241, 4] <- "DC1to4, DCover30, A_DC1to4, A_DCover30, DC1to4*A_DC1to4, DCover30*A_DCover30"
+table.aic [241, 5] <- "(1 | UniqueID)"
+table.aic [241, 6] <- AIC (model.lme.fxn.du9.s.1to4.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [241, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, 10to29
+model.lme.fxn.du9.s.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                            std.distance_to_cut_10to29yo + 
+                                            std.distance_to_cut_5to9yo_E + 
+                                            std.distance_to_cut_10to29yo_E + 
+                                            std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                            std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                            (1 | uniqueID), 
+                                          data = dist.cut.data.du.9.s, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T,
+                                          control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                  optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                  optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [242, 1] <- "DU9"
+table.aic [242, 2] <- "Summer"
+table.aic [242, 3] <- "GLMM with Functional Response"
+table.aic [242, 4] <- "DC5to9, DC10to29, A_DC5to9, A_DC10to29, DC5to9*A_DC5to9, DC10to29*A_DC10to29"
+table.aic [242, 5] <- "(1 | UniqueID)"
+table.aic [242, 6] <- AIC (model.lme.fxn.du9.s.5to9.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.5to9.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [242, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, over30
+model.lme.fxn.du9.s.5to9.over30 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                            std.distance_to_cut_30orOveryo + 
+                                            std.distance_to_cut_5to9yo_E + 
+                                            std.distance_to_cut_30orOveryo_E + 
+                                            std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                            std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                            (1 | uniqueID), 
+                                          data = dist.cut.data.du.9.s, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T,
+                                          control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                  optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                  optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [243, 1] <- "DU9"
+table.aic [243, 2] <- "Summer"
+table.aic [243, 3] <- "GLMM with Functional Response"
+table.aic [243, 4] <- "DC5to9, DCover30, A_DC5to9, A_DCover30, DC5to9*A_DC5to9, DCover30*A_DCover30"
+table.aic [243, 5] <- "(1 | UniqueID)"
+table.aic [243, 6] <- AIC (model.lme.fxn.du9.s.5to9.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.5to9.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [243, 8] <- auc.temp@y.values[[1]]
+
+# 10to29, over30
+model.lme.fxn.du9.s.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_10to29yo + 
+                                              std.distance_to_cut_30orOveryo + 
+                                              std.distance_to_cut_10to29yo_E + 
+                                              std.distance_to_cut_30orOveryo_E + 
+                                              std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                              std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                            (1 | uniqueID), 
+                                          data = dist.cut.data.du.9.s, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T,
+                                          control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                  optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                  optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [244, 1] <- "DU9"
+table.aic [244, 2] <- "Summer"
+table.aic [244, 3] <- "GLMM with Functional Response"
+table.aic [244, 4] <- "DC10to29, DCover30, A_DC10to29, A_DCover30, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [244, 5] <- "(1 | UniqueID)"
+table.aic [244, 6] <- AIC (model.lme.fxn.du9.s.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.10to29.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [244, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9, 10to29
+model.lme.fxn.du9.s.1to4.5to9.10to29 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                 std.distance_to_cut_5to9yo + 
+                                                 std.distance_to_cut_10to29yo + 
+                                                 std.distance_to_cut_1to4yo_E + 
+                                                 std.distance_to_cut_5to9yo_E + 
+                                                 std.distance_to_cut_10to29yo_E + 
+                                                 std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                 std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                                 std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                              (1 | uniqueID), 
+                                            data = dist.cut.data.du.9.s, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T,
+                                            control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                    optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                    optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [245, 1] <- "DU9"
+table.aic [245, 2] <- "Summer"
+table.aic [245, 3] <- "GLMM with Functional Response"
+table.aic [245, 4] <- "DC1to4, DC5to9, DC10to29, A_DC1to4, A_DC5to9, A_DC10to29, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DC10to29*A_DC10to29"
+table.aic [245, 5] <- "(1 | UniqueID)"
+table.aic [245, 6] <- AIC (model.lme.fxn.du9.s.1to4.5to9.10to29)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4.5to9.10to29, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [245, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 5to9, over30
+model.lme.fxn.du9.s.1to4.5to9.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                 std.distance_to_cut_5to9yo + 
+                                                 std.distance_to_cut_30orOveryo + 
+                                                 std.distance_to_cut_1to4yo_E + 
+                                                 std.distance_to_cut_5to9yo_E + 
+                                                 std.distance_to_cut_30orOveryo_E + 
+                                                 std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                 std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                                 std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                                 (1 | uniqueID), 
+                                               data = dist.cut.data.du.9.s, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T,
+                                               control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                       optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                       optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [246, 1] <- "DU9"
+table.aic [246, 2] <- "Summer"
+table.aic [246, 3] <- "GLMM with Functional Response"
+table.aic [246, 4] <- "DC1to4, DC5to9, DCover30, A_DC1to4, A_DC5to9, A_DCover30, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover30*A_DCover30"
+table.aic [246, 5] <- "(1 | UniqueID)"
+table.aic [246, 6] <- AIC (model.lme.fxn.du9.s.1to4.5to9.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4.5to9.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [246, 8] <- auc.temp@y.values[[1]]
+
+# 1to4, 10to29, over30
+model.lme.fxn.du9.s.1to4.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                   std.distance_to_cut_10to29yo  + 
+                                                   std.distance_to_cut_30orOveryo + 
+                                                   std.distance_to_cut_1to4yo_E + 
+                                                   std.distance_to_cut_10to29yo_E + 
+                                                   std.distance_to_cut_30orOveryo_E + 
+                                                   std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                   std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                                   std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                                 (1 | uniqueID), 
+                                               data = dist.cut.data.du.9.s, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T,
+                                               control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                       optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                       optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [247, 1] <- "DU9"
+table.aic [247, 2] <- "Summer"
+table.aic [247, 3] <- "GLMM with Functional Response"
+table.aic [247, 4] <- "DC1to4, DC10to29, DCover30, A_DC1to4, A_DC10to29, A_DCover30, DC1to4*A_DC1to4, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [247, 5] <- "(1 | UniqueID)"
+table.aic [247, 6] <- AIC (model.lme.fxn.du9.s.1to4.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to4.10to29.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [247, 8] <- auc.temp@y.values[[1]]
+
+# 5to9, 10to29, over30
+model.lme.fxn.du9.s.5to9.10to29.over30 <- glmer (pttype ~ std.distance_to_cut_5to9yo + 
+                                                   std.distance_to_cut_10to29yo  + 
+                                                   std.distance_to_cut_30orOveryo + 
+                                                   std.distance_to_cut_5to9yo_E + 
+                                                   std.distance_to_cut_10to29yo_E + 
+                                                   std.distance_to_cut_30orOveryo_E + 
+                                                   std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E +
+                                                   std.distance_to_cut_10to29yo:std.distance_to_cut_10to29yo_E +
+                                                   std.distance_to_cut_30orOveryo:std.distance_to_cut_30orOveryo_E +
+                                                   (1 | uniqueID), 
+                                                 data = dist.cut.data.du.9.s, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T,
+                                                 control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                                         optimizer = "nloptwrap", # these settings should provide results quicker
+                                                                         optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [248, 1] <- "DU9"
+table.aic [248, 2] <- "Summer"
+table.aic [248, 3] <- "GLMM with Functional Response"
+table.aic [248, 4] <- "DC5to9, DC10to29, DCover30, A_DC5to9, A_DC10to29, A_DCover30, DC5to9*A_DC5to9, DC10to29*A_DC10to29, DCover30*A_DCover30"
+table.aic [248, 5] <- "(1 | UniqueID)"
+table.aic [248, 6] <- AIC (model.lme.fxn.du9.s.5to9.10to29.over30)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.5to9.10to29.over30, type = 'response'), dist.cut.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [248, 8] <- auc.temp@y.values[[1]]
+
+# AIC comparison 
+list.aic.like <- c ((exp (-0.5 * (table.aic [219, 6] - min (table.aic [219:248, 6])))), 
+                    (exp (-0.5 * (table.aic [220, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [221, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [222, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [223, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [224, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [225, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [226, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [227, 6] - min (table.aic [219:248, 6])))), 
+                    (exp (-0.5 * (table.aic [228, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [229, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [230, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [231, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [232, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [233, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [234, 6] - min (table.aic [219:248, 6])))), 
+                    (exp (-0.5 * (table.aic [235, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [236, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [237, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [238, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [239, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [240, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [241, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [242, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [243, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [244, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [245, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [246, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [247, 6] - min (table.aic [219:248, 6])))),
+                    (exp (-0.5 * (table.aic [248, 6] - min (table.aic [219:248, 6])))))
+table.aic [219, 7] <- round ((exp (-0.5 * (table.aic [219, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [220, 7] <- round ((exp (-0.5 * (table.aic [220, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [221, 7] <- round ((exp (-0.5 * (table.aic [221, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [222, 7] <- round ((exp (-0.5 * (table.aic [222, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [223, 7] <- round ((exp (-0.5 * (table.aic [223, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [224, 7] <- round ((exp (-0.5 * (table.aic [224, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [225, 7] <- round ((exp (-0.5 * (table.aic [225, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [226, 7] <- round ((exp (-0.5 * (table.aic [226, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [227, 7] <- round ((exp (-0.5 * (table.aic [227, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [228, 7] <- round ((exp (-0.5 * (table.aic [228, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [229, 7] <- round ((exp (-0.5 * (table.aic [229, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [230, 7] <- round ((exp (-0.5 * (table.aic [230, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [231, 7] <- round ((exp (-0.5 * (table.aic [231, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [232, 7] <- round ((exp (-0.5 * (table.aic [232, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [233, 7] <- round ((exp (-0.5 * (table.aic [233, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [234, 7] <- round ((exp (-0.5 * (table.aic [234, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [235, 7] <- round ((exp (-0.5 * (table.aic [235, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [236, 7] <- round ((exp (-0.5 * (table.aic [236, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [237, 7] <- round ((exp (-0.5 * (table.aic [237, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [238, 7] <- round ((exp (-0.5 * (table.aic [238, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [239, 7] <- round ((exp (-0.5 * (table.aic [239, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [240, 7] <- round ((exp (-0.5 * (table.aic [240, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [241, 7] <- round ((exp (-0.5 * (table.aic [241, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [242, 7] <- round ((exp (-0.5 * (table.aic [242, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [243, 7] <- round ((exp (-0.5 * (table.aic [243, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [244, 7] <- round ((exp (-0.5 * (table.aic [244, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [245, 7] <- round ((exp (-0.5 * (table.aic [245, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [246, 7] <- round ((exp (-0.5 * (table.aic [246, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [247, 7] <- round ((exp (-0.5 * (table.aic [247, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+table.aic [248, 7] <- round ((exp (-0.5 * (table.aic [248, 6] - min (table.aic [219:248, 6])))) / sum (list.aic.like), 3)
+
+# save the table
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_forestry.csv", sep = ",")
+
+# save the top model
+save (model.lme.du9.lw.all, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_lme_fxn_du9_lw_top.rda")
+
+
+
+

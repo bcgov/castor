@@ -12,6 +12,8 @@ require (dplyr)
 require (ggplot2)
 require (ggcorrplot)
 require (gridExtra)
+require (kable)
+require (kableExtra)
 ```
 
 ## Introduction
@@ -137,10 +139,6 @@ model.lme.fxn.du6.ew <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distanc
 
 
 I calculated the AIC for both models and compared them to asses the most parsimonious model fit. I also calcaulated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curve for each model using teh ROCR package in R to test the accuracy of predcitons. The model with the highest AIC weight but also a reaasonaby high AUC score (i.e., teh abiliy of the model to accurately predict cariobu loations) was consdiered the best distance to cutblock model.
-
-
-
-
 
 ## Results
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 6
@@ -303,7 +301,6 @@ ggplot (data = table.glm.summary.du9,
   scale_y_continuous (limits = c (-0.025, 0.055), breaks = seq (-0.025, 0.055, by = 0.01))
 ```
 
-
 ### Resource Selection Function (RSF) Model Selection
 #### DU6
 ##### Early Winter
@@ -386,36 +383,59 @@ The correlation plot indicated that none of the distance to cutblock covariates 
 
 ![](plots/plot_dist_cut_corr_du_9_lw.png)
 
-The maximum VIF from the simple GLM covariate model was <3.5, indicating covariates were not highly correlated.
+The maximum VIF from the simple GLM covariate model was <3.5, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 0.986. It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.681) was better than all other models.
 
+##### Summer
+The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.64). Therefore, I did not group any of the age covariates together.
 
+![](plots/plot_dist_cut_corr_du_9_s.png)
 
+The maximum VIF from the simple GLM covariate model was <2.2, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
 
- The AIC*~w~* of the top model was 0.90. It included all temporal distance to cutblock covariates with a functional response in caribou selection for cutblocks for each covariate. The AUC of the top model (AUC = 0.636) was about average for the model set, and slightly less than the most predictive model (i.e., AUC = 0.648).
-
-
-
-
-
-
+Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to cutblock resoruce selection models for caribou. 
+```{r table of aic results, echo = F}
+table.aic <- read.csv ("data/table_aic_forestry.csv")
+table.aic %>%
+  kable () %>%
+  kable_styling (bootstrap_options = c ("striped", "condensed"))
+```
 
 ## Conclusions
-Based on the high correaltion of annual distacne to cutblock measures across years, there is a need to group into few categories to avoid correlation of covaraites in the RSF model. At a minimum it appears that disatnce to cutblock measures are correalted 2-5 years apart. Patterns in cariobu selciton of cutlbocks suggest that cariobu may avoid or have weak responses to cutblocks when they are realtively new (less than five years old), but selection of cutblocks from five up to 30 years old (dpending on teh DU and season) adn avoidance of cutblocks over 10 to 30 years old. Therefore, I reclassifed disatcne to cutblock into four classes: one to four years old, five to nine years old, ten to 29 years old and 30 and over. 
+Based on the high correlation of annual distance to cutblock measures across years, there was a need to group into few categories to avoid correlation of covaraites in the RSF model. At a minimum it appeared that disatnce to cutblock measures were correalted 2-5 years apart. In addtion, patterns in caribou selection of cutlbocks indicated that caribou may avoid or have weak responses to cutblocks when they are relatively new (less than five years old), but select for cutblocks five to 30 years old (depending on the DU and season) and avoid cutblocks over 10 to 30 years old. Therefore, I reclassifed distance to cutblock into four classes: one to four years old, five to nine years old, ten to 29 years old and 30 and over. 
 
+The effect of distance to cutblock on caribou habitat selection was relatively weak in DU6 (comapred to other DU's) across all seasons, and the models were relatively simple (i.e., distance to cutblock covariates were correlated and there was no functional repsonse) suggesting that distance to cutblock may not be an important habitat feature. However, forestry activity is relatively low in boreal British Columbia, and therefore likely has limited influence on caribou distribution.  
 
+In DU7, the effect of distance to cutblock on caribou habitat selection was relatively weak, but stronger in summer than other seasons. In general the models were relatively simple (i.e., distance to cutblock covariates were correlated and there was no functional repsonse), suggesting that distance to cutblock may not be important except in summer and when cutblocks are relatively new. 
 
-which covariates to inlcude
+In DU8, the effect of distance to cutblock on caribou habitat selection was relatively strong and generally consistent across seasons. However, the models did not include functional responses, suggesing a consistent response to cutblocks by cariobu across areas with different amounts of cutblocks.  
 
+In DU9, the effect of distance to cutblock on caribou habitat selection was similar to DU8 (relatively strong and generally consistent across seasons). The early winter model was the only model to include fucntional reponse covariates, indicating cariobuselction of cutblocks varies across areas with different amounts of cutblocks. However, this was not the case in late winter or summer. 
 
+This analysis helped identify how to temporally group distance to cutblock covariates from over a 50 year period in a RSF model based on statistical principles of minimizing correlation between covariates and identifying parsimonious but reasonably predictive RSF models. However, results here are also consistent with our ecological understanding of how cutblocks age and how caribou might respond to them differently as they age. Specifically, that new cutblocks (i.e., one to four year old) provide different habitat features than moderately aged (i.e., five to nine years old and 10 to 29 eyars old) and older (i.e., over 29 years old) cutblocks. This is likely a reflection of cariobu responses to vegetation development on cutblock sites, as young cutblocks may be sparsely vegetated, moderately aged cutblocks may provide early seral vegetation, particularly shrubds, forbs and herbs, and older cutblocks may provide more forested vegetation. However, the mechanism for how cariobu might repond to these differnt age classes is not clear. For example, caribou may avoid new and moderately aged cutblcoks becuase of lack of lichen (Fisher and Wilkinson 2005). Alterantively, they may select moderately aged cutblocks because they provide preffered non-lichen summer food sources, such as shrubs (Denryter et al. 2017). The may also select for cutblock edges that provide access to lichen via litterfall adn windthrow (Serrouya et al. 2007). However, in general caribou population parameters such as adult feamle survival (Wittmer et al. 2007) and calf recruitment (Environment Canada 2008) has been negateively correlated with early seral forests. Cariobu may not select cutblcoks if they are associated with or they are unable to survive there becuase of higher predation risk. Moose density and distribtuion are generally postively associated with early seral forest (Fisher and Wilkinson 2005; Anderson et al. 2018), which may also increase wolf density there (Messier 1994; Fuller et al. 2003; Kuzyk and Hatter 2014) and wolves might select these features to maximize their probabiltiy of encountering prey (Houle et al. 2010).     
 
-Cutblocks not all that improant in DU6 early winter; eefct was nto that strong when look at fit plots adn AUC, but stogner in summer than witner seasons; probably generally slectect younger cutblocks 1 to 9, esp. 5 to 9 and aovid older
-
-
-DU7, cublcoks storner, more improatn efefct
-
+The covariates from the top models for each season will be compared to and combined with RSF models including other habitat covariates using the same statsical principles and undersatdning of ecological mechanisms to identify a robust and useful RSF model of caribou habitat across seasons and DUs in BC.
 
 ## Literature Cited
+Anderson, M., McLellan, B. N., & Serrouya, R. (2018). Moose response to high‐elevation forestry: Implications for apparent competition with endangered caribou. The Journal of Wildlife Management, 82(2), 299-309.
+
 DeCesare, N. J., Hebblewhite, M., Schmiegelow, F., Hervieux, D., McDermid, G. J., Neufeld, L., ... & Wheatley, M. (2012). Transcending scale dependence in identifying habitat with resource selection functions. Ecological Applications, 22(4), 1068-1083.
 
+Denryter, K. A., Cook, R. C., Cook, J. G., & Parker, K. L. (2017). Straight from the caribou’s (Rangifer tarandus) mouth: detailed observations of tame caribou reveal new insights into summer–autumn diets. Canadian Journal of Zoology, 95(2), 81-94.
+Available from: http://www.nrcresearchpress.com/doi/pdf/10.1139/cjz-2016-0114
+
+Environment Canada. 2008. Scientific Review for the Identification of Critical Habitat for Woodland Caribou (Rangifer tarandus caribou), Boreal Population, in Canada. August 2008. Ottawa: Environment Canada. 75 pp. plus 179 pp Appendices.
+
+Fuller, T. K., Mech, L. D., & Cochrane, J. F. (2010). Wolf population dynamics. In: Mech, L. D., & Boitani, L. (Eds.). Wolves: behavior, ecology, and conservation. University of Chicago Press.
+
+Houle, M., Fortin, D., Dussault, C., Courtois, R., & Ouellet, J. P. (2010). Cumulative effects of forestry on habitat use by gray wolf (Canis lupus) in the boreal forest. Landscape ecology, 25(3), 419-433.
+
+Kuzyk, G. W., & Hatter, I. W. (2014). Using ungulate biomass to estimate abundance of wolves in British Columbia. Wildlife Society Bulletin, 38(4), 878-883.
+
+Messier, F. (1994). Ungulate population models with predation: a case study with the North American moose. Ecology, 75(2), 478-488.
+
 Montgomery, D. C., and E. A. Peck. 1992. Introduction to linear regression analysis. Wiley, New York, New York, USA
+
+Serrouya, R., Lewis, D., McLellan, B. and Pavan, G. (2007). The selection of movement paths by mountain caribou , during winter within managed: landscapes: 4-year results of snow trailing. Final Technical Report, FSP Project #Y071312. Available from: https://www.researchgate.net/profile/Bruce_Mclellan/publication/255635833_The_selection_of_movement_paths_by_mountain_caribou_during_winter_within_managed_landscapes_4-year_results_of_snow_trailing/links/552d343e0cf29b22c9c4c3b4/The-selection-of-movement-paths-by-mountain-caribou-during-winter-within-managed-landscapes-4-year-results-of-snow-trailing.pdf
+
+Wittmer, H. U., McLellan, B. N., Serrouya, R., & Apps, C. D. (2007). Changes in landscape composition influence the decline of a threatened woodland caribou population. Journal of animal ecology, 76(3), 568-579.
 
