@@ -24,7 +24,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
-                        dbName = 'clus', nameBoundary ='Telkwa', nameBoundaryGeom = 'geom'),
+                        dbName = 'clus', nameBoundary ='Muskwa', nameBoundaryGeom = 'geom'),
   blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003', useLandingsArea = TRUE, useSpreadProbRas = TRUE),
   cutblockSeqPrepCLUS = list(queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
                              getArea =TRUE),
@@ -44,7 +44,6 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 
 
 mysimout<-spades(mySim) 
-eventDiagram(mysimout)
 ```
 
 

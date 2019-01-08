@@ -52,7 +52,7 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
       sim$distInfo <- list() #instantiate a new list
       sim <- scheduleEvent(sim, P(sim, "roadCLUS", "roadSeqInterval"), "disturbanceCalcCLUS", "roads")
       sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
-      sim <- scheduleEvent(sim, end(sim), "disturbanceCalcCLUS", "analysis")
+      sim <- scheduleEvent(sim, end(sim), "disturbanceCalcCLUS", "analysis", 50)
     },
     roads = {
       sim<- disturbanceCalcCLUS.roads(sim)
@@ -77,8 +77,6 @@ Init <- function(sim) {
 }
 
 disturbanceCalcCLUS.roads <- function(sim) {
-  print('calc roads')
-  
   if(!is.null(sim$roads)){
     x<-sim$roads
     x[x[] > 0] <-1
@@ -88,7 +86,6 @@ disturbanceCalcCLUS.roads <- function(sim) {
 }
 
 disturbanceCalcCLUS.cutblocks <- function(sim) {
-  print('calc cutblocks')
   if(!is.null(sim$harvestUnits)){
     x<-sim$harvestUnits
     x[x[] > 0] <-1
