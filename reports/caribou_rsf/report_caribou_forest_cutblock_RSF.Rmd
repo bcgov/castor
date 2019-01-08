@@ -1,7 +1,8 @@
 ---
-title: "Caribou Forest Cutblock Resoruce Selection Function Report"
+title: "Caribou Forestry Cutblock Resource Selection Function Report"
 output: 
-    html_document:
+  # pdf_document:
+  html_document:
       keep_md: TRUE
       self_contained: FALSE
 ---
@@ -17,17 +18,17 @@ require (kableExtra)
 ```
 
 ## Introduction
-Here I summarize the data exploration and model selection process done to identify how to parsimoniously include distance to cutblock covariates in caribou resource selection function (RSF) models (Boyce et al. 1999; Manly et al. 2007). RSF models will be calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)
+Here I describe a data exploration and model selection process completed to identify distance to cutblock covariates to include in caribou resource selection function (RSF) models. RSF models are a form of binomial logistic regression models that are used to statistically estimate habitat selection by animals (Boyce et al. 1999; Manly et al. 2007). RSFs were calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations, of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)
 
-I had data that estimated the distance of each caribou telemetry location, or randomly sampled location within caribou home ranges (i.e., 'available' locations), to the nearest cutblock, by cutblock age, from one year old cutblocks up to greater than 50 year old cutblocks. The hypothesis was that distance to cutblock would be more correlated in proximate years (e.g., within 5 years) than years further apart. Also, I likely could not properly fit a RSF model with 51 distance to cutblock covariates, therefore I did these preliminary analyses to identify a parsimonious number of distance to cutblock covariates to inlude in a RSF model. These analyses included testing for correlation between distance to cutblock measures across years and fitting single covariate generalized linear models to look at changes in caribou selection of distance to cutblock acorss years. I use this information to group the distance to cutblock measures across years in a way that reduces the number of covariates, but still captures variability in how caribou respond to cutblocks as they age. 
+I had data that estimated the distance of approximately 500,000 caribou telemetry locations collected across Brtisish Columbia, and approximately two million randomly sampled locations within caribou home ranges (i.e., 'available' locations), to the nearest cutblock, by cutblock age, from one year old cutblocks up to greater than 50 year old cutblocks. I hypothesized that caribou selection for cutblocks would change as cutblocks age. Specifically, I predicted that caribou would be less likely to select younger cutblocks than older cutblocks, as younger cutblocks are typically associated with forage for other ungulates (i.e., moose and deer) and thus higher ungulate and predator (e.g., wolf) densities, resulting in higher mortality and predation risk for caribou (Wittmer et al. 2005; DeCesare et al. 2010).  
 
-After temporally grouping the distance to cutblock data, I did further data exploration and correlation analyses of tehse covariates by season and DU. I then fit distance to cutblock RSF models using functional responses (Matthiopolous et al. 2010) and generalized additive models (GAMs). In the former case, I am testing whether caribou selection of cutblocks is a function of the available distance to cutblocks within the caribou's home range. Specifically, I am testing the hypothesis whether caribou are more likely to avoid cutblocks in home ranges located closer to cutblocks. In the latter case I am testing for non-linear relationships between caribou selection and distance to cutblock. These models were comapred using Akaike Information Criterion (AIC)  
+In addition, I hypothesized that distance to cutblock covariates would be correlated across years (e.g., distance to one year old cutblocks would be correlated with distance to two year old cutblocks). RSF models with highly correlated covariates (i.e., multicollinearity) can inflate  standard error coefficients of regression model covariates and make it difficult to interpret the contribution of covariates to estimating caribou resource selection. Therefore it would be necessary to simplify the number of covariates. I predicted that annual distance to cutblock covariates would need to be grouped to avoid multicollinearity. 
+
+After temporally grouping the distance to cutblock data, I did further data exploration and correlation analyses of covariates by season and DU. I then fit distance to cutblock RSF models using functional responses (Matthiopolous et al. 2010) to test whether caribou selection of cutblocks is a function of the available distance to cutblocks within the caribou's home range. Specifically, I tested the hypothesis that caribou are more likely to avoid cutblocks in home ranges located closer to cutblocks. 
 
 ## Methods
 ### Correlation of Distance to Cutblock Across Years
-Here I tested whether distance to cutblocks of different ages, from one year old to greater than 50 years old, at locations in caribou home ranges, were correlated. If distance to cutblock was highly correlated across proximate years, then it would be possible (and indeed necessary) to reduce the number of distance to cutblock covariates in an RSF model by grouping cutblock ages together.   
-
-I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
+Here I tested whether distance to cutblocks of different ages, from one year old to greater than 50 years old were correlated. I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
 ```{r, correlation plot code, eval = F, echo = T}
 # data
 rsf.data.cut.age <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv")
@@ -44,7 +45,7 @@ ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 ### Generalized Linear Models (GLMs) of Distance to Cutblock across Years
 Here I tested whether caribou selection of distance to cutblock changed as cublocks aged. This helped with temporally grouping distance to cutblock data by age, by illustrating if and when caribou consistently selected or avoided cutblocks of similar ages. 
 
-I compared how caribou selected distance to cutblock across years by fitting seperate caribou RSFs, where each RSF had a single covariate for distance to cublock for each cutblock age. For example, a RSF was fit with a single covariate for distance to one year old cutblock. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations, where used locations are caribou telmetry locations and available locations are randomly sampled locations within the extent of estimated caribou home ranges). RSFs were fit for each season and DU. The following is an example of the R code used to calculate RSFs:
+I compared how caribou selected distance to cutblock across years by fitting seperate caribou RSFs, where each RSF had a single covariate for distance to cublock for each cutblock age. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations, where used locations are caribou telmetry locations and available locations are randomly sampled locations within the extent of estimated caribou home ranges). RSFs were fit for each season and DU. The following is an example of the R code used to calculate these RSFs:
 ```{r, single covariate RSF model code, eval = F, echo = T}
 dist.cut.data.du.6.ew <- dist.cut.data %>% # sub-sample the data by season and DU
   dplyr::filter (du == "du6") %>% 
@@ -63,12 +64,11 @@ glm.du.6.ew.51yo <- glm (pttype ~ distance_to_cut_pre50yo,
                          family = binomial (link = 'logit'))
 ```
 
-The beta coefficients of the distance to cutblock covariate were outputted from each model and plotted against the age of the cutblock to illustrate how selection changed as the cutblock aged.  
+The beta coefficients of distance to cutblock covariates were outputted from each model and plotted against  cutblock age to illustrate how caribou selection changed as the cutblock aged.  
 
-### Resource Selection Function (RSF) Model Secltion of Distance to Cutblock Covariates by Cutblock Age
-Based on the results of the analysis described above, I grouped distance to cutblock into four age categories: one to four years old, five to nine years old, 10 to 29 years old and over 29 years old (see Results and Conclusion, below, for rational). I then tested for correaltion between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; manly et al. 2007; DeCesare et al. 2012), then one fo the covariates was removed from analysis, or distance to cutblock was further grouped into larger age classes. 
+### Resource Selection Function (RSF) Model Selection of Distance to Cutblock Covariates by Cutblock Age
+Based on the results of the analysis described above, I grouped distance to cutblock into four age categories: one to four years old, five to nine years old, 10 to 29 years old and over 29 years old (see Results and Conclusion, below, for details). I then tested for correlation between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; Manly et al. 2007; DeCesare et al. 2012), then distance to cutblock covariates were further grouped into larger age classes. VIFs were calculated using the vif() function from the 'car' package in R. 
 
-I a GLM and calculated VIFs using the vif() function from the 'car' package in R. The VIF scores for each covairate were less than 1.7, incidating they were not highly correlated. 
 ```{r, example of GLM and VIF code, eval = F, echo = T}
 model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
                           distance_to_cut_10yoorOver, 
@@ -77,9 +77,7 @@ model.glm.du6.ew <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9y
 vif (model.glm.du6.ew) 
 ```
 
-Next, I tested whether models with a fucntional repsonse (*sensu* Matthiplolus et al. 2010) improved model fit by comaprign models with adn without interaction terms for available disatnce to buclobk, by age class. 
-
-I fit a mixed effects regression models usign the glmer() fucntion in the lme4 package of R. I fit models with correlated random effect intercepts and slopes for each distacne to cutblock covariate by each unique indivdual cariobu and year in the model (i.e., a unique identifier). I fit models with all combinations of distance to cutblock covariates and comapred them using AIC. To faciliate model converngence, I standardized the distance to cutblock covaraites by subtracting the mean and dividing by the standard deviation of the covariate.
+I fit RSF models as mixed effect regressions using the glmer() function in the lme4 package of R. I fit models with correlated random effect intercepts and slopes for each distance to cutblock covariate by each unique indivdual cariobu and year in the model (i.e., a unique identifier). I fit models with all combinations of distance to cutblock covariates and compared them using Akaike Information Criterion (AIC). To faciliate model convergence, I standardized the distance to cutblock covaraites by subtracting the mean and dividing by the standard deviation of the covariate.
 
 ```{r, example of GLMM code, eval = F, echo = T}
 # Generalized Linear Mixed Models (GLMMs)
@@ -107,7 +105,7 @@ auc <- performance (pr.temp, measure = "auc")
 auc <- auc@y.values[[1]]
 ```
 
-Next I fit functional response models where I included covariates representign teh mean diatsance to cutblcok (for each age class) within each individual cariobu's annual seasoanal hoem rnage as interactions with disatnce to cutblcok at each lcoation. 
+Next, I tested whether models with a functional repsonse (*sensu* Matthiplolus et al. 2010) improved model fit by comparing the above models to models that included interaction terms for available distance to cutblock, by age class. Available distance to cublock was calculated as the mean distance to cutblock (for each age class) sampled at all available locations within each individual caribou's seasonal home range. 
 
 ```{r, example of GLMM fxn response code, eval = F, echo = T}
 ### Fit model with functional responses
@@ -138,13 +136,13 @@ model.lme.fxn.du6.ew <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distanc
 ```
 
 
-I calculated the AIC for both models and compared them to asses the most parsimonious model fit. I also calcaulated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curve for each model using teh ROCR package in R to test the accuracy of predcitons. The model with the highest AIC weight but also a reaasonaby high AUC score (i.e., teh abiliy of the model to accurately predict cariobu loations) was consdiered the best distance to cutblock model.
+I calculated the AIC for each model and compared them to asses the most parsimonious model fit. I also calculated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curves for each model using the ROCR package in R to test the accuracy of predictions. The model with the highest AIC weight and a reasonably high AUC score (i.e., the abiliy of the accurately predict caribou locations) was considered the best distance to cutblock model for a particular season and DU combination. This model, and covaraites from this model will be included in a broader RSF model fittign adn selction porcess to identify a comprehensive, parsimonious and robust caribou habitat model for each season and DU. 
 
 ## Results
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 6
-In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 years old), distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were particularly strong within two to three years ($\rho$ > 0.45). Correlations generally became weaker ($\rho$ < 0.4) after three to four years. Correlation between distance to cutblock 11 to 20, 21 to 30 and 31 to 40 years old were highly correlated across all 10 years ($\rho$ > 0.45). However, correlation between distance to cutblock in years 41 to 50 were gnerally not as strong, but also highly variable ($\rho$ = -0.07 to 0.86). 
+In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 years old), distance to cublock at locations in caribou home ranges were generally correlated. Correlations were relatively strong within two to three years ($\rho$ > 0.45). Correlations generally became weaker ($\rho$ < 0.4) after three to four years. Correlation between distance to cutblock 11 to 20, 21 to 30 and 31 to 40 years old were correlated across all 10 years ($\rho$ > 0.45). Correlation between distance to cutblock in years 41 to 50 were generally weaker, but also highly variable ($\rho$ = -0.07 to 0.86). 
 
-![](R/caribou_habitat/plots/plot_dist_cut_corr_1_10_du6.png)
+![](plots/plot_dist_cut_corr_1_10_du6.png)
 
 ![](plots/plot_dist_cut_corr_1_10_du6.png)
 
@@ -157,7 +155,7 @@ In the first 10 years (i.e., correlations between distance to cutblocks 1 to 10 
 ![](plots/plot_dist_cut_corr_41_50_du6.png)
 
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 7
-Distance to cutblock was highly correlated across years within all the 10 years periods (\rho > 0.5). 
+Distance to cutblock was consistently correlated across years within all the 10 years periods ($\rho$ > 0.5), and generally highly correlated ($\rho$ > 0.7) across ten year periods for older cutblocks (older than ten years). In general, proximate years (i.e., three to four years apart) tended to be highly correlated ($\rho$ > 0.7) for newer cutblocks (one to ten yeas old).
 
 ![](plots/plot_dist_cut_corr_1_10_du7.png)
 
@@ -170,7 +168,7 @@ Distance to cutblock was highly correlated across years within all the 10 years 
 ![](plots/plot_dist_cut_corr_41_50_du7.png)
 
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 8
-In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated. Correlations were typically stronger within two to three years ($\rho$ > 0.35) and weaker after three to four years. In years 11 to 20, 21 to 30 and 31 to 40, distance to cutblock was highly correlated within one year ($\rho$ > 0.41), but less correlated when greater than one year apart. In years 41 to greater than 50 years, correlations were generally weak between years
+In the first 10 years, distance to cublock at locations in caribou home ranges were generally correlated. Correlations were typically stronger within two to three years ($\rho$ > 0.35) and weaker after three to four years. In years 11 to 20, 21 to 30 and 31 to 40, distance to cutblock was correlated within one year ($\rho$ > 0.41), but less correlated when greater than one year apart. In years 41 to greater than 50 years, correlations were generally weak between years.
 
 ![](plots/plot_dist_cut_corr_1_10_du8.png)
 
@@ -183,7 +181,7 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 ![](plots/plot_dist_cut_corr_41_50_du8.png)
 
 ### Correlation Plots of Distance to Cutblock by Year for Designatable Unit (DU) 9
-In the first 10 years, distance to cublock at locations in caribou home ranges were generally highly correlated within one year ($\rho$ > 0.44), and generally weaker thereafter. Correlation between distance to cutblock 11 to 20, 21 to 30, 31 to 40 adn 41 to greater than 50 years old were generally highly correlated across all 10 years, with few exceptions.
+In the first 10 years, distance to cublock at locations in caribou home ranges were generally correlated within one year ($\rho$ > 0.44), but less correlated when over one year apart. Correlation between distance to cutblock 11 to 20, 21 to 30, 31 to 40 and 41 to greater than 50 years old were generally highly correlated across all 10 years ($\rho$ > 0.7), but with some exceptions.
 
 ![](plots/plot_dist_cut_corr_1_10_du9.png)
 
@@ -196,7 +194,7 @@ In the first 10 years, distance to cublock at locations in caribou home ranges w
 ![](plots/plot_dist_cut_corr_41_50_du9.png)
 
 ### Resource Selection Function (RSF) Distance to Cutblock Beta Coefficients by Year, Season and Designatable Unit (DU)
-In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, and this lack of  pattern was consistent across seasons. In general, it appears that caribou in DU6, across all seasons, appear to avoid cutblocks less than three years old, select cutblocks four to ten years old and then avoid cutblocks over seven to ten years old.  
+In DU6, distance to cutblock generally had a weak effect on caribou resource selection across years. There was not a clear pattern in selection of cutblocks across years, and this lack of  pattern was consistent across seasons. In general, caribou in DU6, across all seasons, appeared to avoid cutblocks less than three years old, select cutblocks four to ten years old and then avoid cutblocks over seven to ten years old.  
 ```{r, DU6 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
@@ -223,7 +221,7 @@ print (ggplot (data = table.glm.summary.du6,
 
 ```
 
-In DU7, there was a more distinct pattern in caribou selection of cutblocks, and this pattern was different among the winter adn summer seasons. The early witner and late winter seasons were generally consistent. The  efefct of disatcne to cutblcoks was realtively weak across years, but the effect shifted from little or no selection of more recent cutlbocks (cutblocks less than 25 years old), to greater avoidance of older cutblocks (greater than 25 years old). In the summer, cutblocks less than four years old appeared to have little effect on caribou. However, there was realtively stong slection fo cutblcoks five to 30 years old adn then general avoidance of cutblocks older than 30 to 35 years old. 
+In DU7, there was a more distinct pattern in caribou selection of cutblocks, and this pattern was different among seasons. The early and late winter seasons were generally consistent. The effect of distacne to cutblock was relatively weak across years, but the effect shifted from little or no selection of more recent cutblocks (cutblocks less than 25 years old), to avoidance of older cutblocks (greater than 25 years old). In the summer, cutblocks less than four years old appeared to have little effect on caribou. However, there was relatively strong selection of cutblcoks five to 30 years old and general avoidance of cutblocks older than 30 to 35 years old. 
 ```{r, DU7 single covariate RSF model output, echo = F,  fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
@@ -249,7 +247,7 @@ ggplot (data = table.glm.summary.du7,
   scale_y_continuous (limits = c (-0.012, 0.012), breaks = seq (-0.012, 0.012, by = 0.003))
 ```
 
-In DU8, selection of cutblocks was realtively strong and consistent across all saeosns, btu the apptern of selction was highly variable. However, in general, caribou selected younger cutblocks (approximately one to 20 years old) and avoided older cutblocks(greater than 20 years old). 
+In DU8, selection of cutblocks was relatively strong and consistent across all seasons, but the pattern of selction was highly variable. However, in general, caribou selected younger cutblocks (approximately one to 20 years old) and avoided older cutblocks (greater than 20 years old). 
 ```{r, DU8 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
@@ -275,7 +273,7 @@ ggplot (data = table.glm.summary.du8,
   scale_y_continuous (limits = c (-0.025, 0.025), breaks = seq (-0.025, 0.025, by = 0.005))
 ```
   
-In DU9, teh efefct of cutblocks was realtively strong and consistent acorss saesons. In egenral, cariobu qavoidd cutblocks, although avoidacne of younger (less than 10 year old) cutblocks was weaker than older (greater htan 10 years old) cutlbocks. 
+In DU9, the effect of cutblocks was relatively strong and consistent across seasons. In general, caribou avoided cutblocks, although avoidance of younger (less than 10 year old) cutblocks was weaker than older cutlbocks. 
 ```{r, DU9 single covariate RSF model output, echo = F, fig.width = 7, fig.height = 5}
 table.glm.summary <- read.csv ("data/table_glm_summary_forestry.csv")
 table.glm.summary$DU <- as.factor (table.glm.summary$DU )
@@ -304,49 +302,49 @@ ggplot (data = table.glm.summary.du9,
 ### Resource Selection Function (RSF) Model Selection
 #### DU6
 ##### Early Winter
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.85), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 years old or over were highly correlated ($\rho$ = 0.85), therefore, I grouped these two age categories together (i.e., distance to cutblocks greater than 10 years old).
 
 ![](plots/plot_dist_cut_corr_du_6_ew.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <1.7, indicating covariates were not highly correalted. 
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <1.7, indicating these covariates were not highly correlated. 
 
-The top-ranked model included covariates of distance to cutblock ages five to nine years old and over nine years, but no functional response, and had an AIC weight (AIC*~w~*) of 1.00. In addition, the top model had the second highest AUC (AUC = 0.604), which was very close to the highest AUC value in teh model set (AUC = 0.607).
+The top-ranked model included covariates of distance to cutblock ages five to nine years old and over nine years, but no functional response, and had an AIC weight (AIC*~w~*) of 1.00 (Table 1). In addition, the top model had the second highest AUC (AUC = 0.604), which was very close to the highest AUC value in the model set (AUC = 0.607).
 
 ##### Late Winter
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.79), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 years old or over were highly correlated ($\rho$ = 0.79), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
 
 ![](plots/plot_dist_cut_corr_du_6_lw.png)
 
-The maximum VIF from the simple GLM covariate model was <1.6, indicating covariates were not highly correlated. The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response,and had an AIC*~w~* of 1.00. In addition, the top model had the highest AUC (AUC = 0.665).
+The maximum VIF from the simple GLM covariate model was <1.6, indicating these covariates were not highly correlated. The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response, and had an AIC*~w~* of 1.00 (Table 1). In addition, the top model had the highest AUC (AUC = 0.665).
 
 ##### Summer
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.82), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 years old or over were highly correlated ($\rho$ = 0.82), therefore, I grouped these two age categories together (i.e., disatnce to cutblcoks greater than 10 years old).
 
 ![](plots/plot_dist_cut_corr_du_6_s.png)
 
-The maximum VIF from the simple GLM covariate model was <1.7, indicating covariates were not highly correlated. The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response, and had an AIC*~w~* of 1.00. In addition, the top model had the highest AUC (AUC = 0.698).
+The maximum VIF from the simple GLM covariate model was <1.7, indicating these covariates were not highly correlated. The top-ranked model included covariates of distance to cutblock for each cutblock age class, but no functional response, and had an AIC*~w~* of 1.00 (Table 1). In addition, the top model had the highest AUC (AUC = 0.698).
 
 #### DU7
 ##### Early Winter
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.81), therefore, I grouped these two age categories together (i.e., distance to cutblocks greater than 10 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 years old or over were highly correlated ($\rho$ = 0.81), therefore, I grouped these two age categories together (i.e., distance to cutblocks greater than 10 years old).
 
 ![](plots/plot_dist_cut_corr_du_7_ew.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <4.1, indicating covaraites were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.679) was better than all other models.
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, 5 to 9 and over 10 years old) was <4.1, indicating these covaraites were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.679) was better than all other models.
 
 ##### Late Winter
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.82) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.71) therefore, I grouped these three age categories together (i.e., distance to cutblocks greater than 5 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 years old or over were highly correlated ($\rho$ = 0.82) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.71) therefore, I grouped these three age categories together (i.e., distance to cutblocks greater than 5 years old).
 
 ![](plots/plot_dist_cut_corr_du_7_lw.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.8, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.690) was better than all other models.
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.8, indicating these covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.690) was better than all other models.
 
 ##### Summer
-The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 or over years old were highly correlated ($\rho$ = 0.80) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.87) therefore, I grouped these three age category covariates together (i.e., distance to cutblocks greater than 5 years old).
+The correlation plot indicated that distance to cutblocks 10 to 29 years old and 30 years old or over were highly correlated ($\rho$ = 0.80) and distance to cutblocks 5 to 9 years old and 10 to 29 years old were highly correlated ($\rho$ = 0.87) therefore, I grouped these three age category covariates together (i.e., distance to cutblocks greater than 5 years old).
 
 ![](plots/plot_dist_cut_corr_du_7_s.png)
 
-The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.6, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
+The maximum VIF from the simple GLM covariate model (i.e., including distance to cutblock 1 to 4, over 5 years old) was <1.6, indicating these covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
 
 #### DU8
 ##### Early Winter
@@ -354,21 +352,21 @@ The correlation plot indicated that none of the distance to cutblock covariates 
 
 ![](plots/plot_dist_cut_corr_du_8_ew.png)
 
-The maximum VIF from the simple GLM covariate model was <1.9, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.698) was better than all other models.
+The maximum VIF from the simple GLM covariate model was <1.9, indicating the covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.698) was better than all other models.
 
 ##### Late Winter
 The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.57). Therefore, I did not group any of the age covariates together.
 
 ![](plots/plot_dist_cut_corr_du_8_lw.png)
 
-The maximum VIF from the simple GLM covariate model was <1.7, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.715) was better than all other models.
+The maximum VIF from the simple GLM covariate model was <1.7, indicating the covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.715) was better than all other models.
 
 ##### Summer
 The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.54). Therefore, I did not group any of the age covariates together.
 
 ![](plots/plot_dist_cut_corr_du_8_s.png)
 
-The maximum VIF from the simple GLM covariate model was <1.8, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.701) was better than all other models.
+The maximum VIF from the simple GLM covariate model was <1.8, indicating the covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all distance to cutblock covariates, but not a functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.701) was better than all other models.
 
 #### DU9
 ##### Early Winter
@@ -376,47 +374,56 @@ The correlation plot indicated that none of the distance to cutblock covariates 
 
 ![](plots/plot_dist_cut_corr_du_9_ew.png)
 
-The maximum VIF from the simple GLM covariate model was <6.6, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 0.90. It included all temporal distance to cutblock covariates with a functional response in caribou selection for cutblocks for each covariate. The AUC of the top model (AUC = 0.636) was about average for the model set, and slightly less than the most predictive model (i.e., AUC = 0.648).
+The maximum VIF from the simple GLM covariate model was <6.6, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 0.90 (Table 1). It included all temporal distance to cutblock covariates with a functional response in caribou selection for cutblocks for each covariate. The AUC of the top model (AUC = 0.636) was about average for the model set, and slightly less than the most predictive model (i.e., AUC = 0.648).
 
 ##### Late Winter
 The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.57). Therefore, I did not group any of the age covariates together.
 
 ![](plots/plot_dist_cut_corr_du_9_lw.png)
 
-The maximum VIF from the simple GLM covariate model was <3.5, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 0.986. It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.681) was better than all other models.
+The maximum VIF from the simple GLM covariate model was <3.5, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 0.986 (Table 1). It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.681) was better than all other models.
 
 ##### Summer
 The correlation plot indicated that none of the distance to cutblock covariates were highly correlated ($\rho$ < 0.64). Therefore, I did not group any of the age covariates together.
 
 ![](plots/plot_dist_cut_corr_du_9_s.png)
 
-The maximum VIF from the simple GLM covariate model was <2.2, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00. It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
+The maximum VIF from the simple GLM covariate model was <2.2, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
 
 Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to cutblock resoruce selection models for caribou. 
 ```{r table of aic results, echo = F}
 table.aic <- read.csv ("data/table_aic_forestry.csv")
+table.aic$AIC <- round (table.aic$AIC, 0)
+table.aic$AICw <- round (table.aic$AICw, 3)
+table.aic$AUC <- round (table.aic$AUC, 3)
 table.aic %>%
-  kable () %>%
-  kable_styling (bootstrap_options = c ("striped", "condensed"))
+  kable (longtable = T, booktabs = T) %>%
+  kable_styling (bootstrap_options = c ("striped", "condensed"),
+                 latex_options = c ("repeat_header","HOLD_position","scale_down"),
+                 font_size = 10) %>%
+  landscape () %>%
+  column_spec (c (3:5), width = "15em")
 ```
 
 ## Conclusions
-Based on the high correlation of annual distance to cutblock measures across years, there was a need to group into few categories to avoid correlation of covaraites in the RSF model. At a minimum it appeared that disatnce to cutblock measures were correalted 2-5 years apart. In addtion, patterns in caribou selection of cutlbocks indicated that caribou may avoid or have weak responses to cutblocks when they are relatively new (less than five years old), but select for cutblocks five to 30 years old (depending on the DU and season) and avoid cutblocks over 10 to 30 years old. Therefore, I reclassifed distance to cutblock into four classes: one to four years old, five to nine years old, ten to 29 years old and 30 and over. 
+Based on the correlation of annual distance to cutblock measures across years, there was a need to group distance to cutblock covariates into fewer categories to avoid correlation of covariates in the RSF model. At a minimum (but varying among season and DU) it appeared that distance to cutblock measures were correlated 2-5 years apart. In addition, patterns in caribou selection of cutblocks (but again, varying slightly among season and DU) indicated that caribou may avoid or have weak responses to cutblocks when they are relatively new (less than five years old), but select for cutblocks five to 30 years old and avoid cutblocks over 10 to 30 years old. Therefore, I reclassifed distance to cutblock into four classes: one to four years old, five to nine years old, ten to 29 years old and 30 and over. 
 
-The effect of distance to cutblock on caribou habitat selection was relatively weak in DU6 (comapred to other DU's) across all seasons, and the models were relatively simple (i.e., distance to cutblock covariates were correlated and there was no functional repsonse) suggesting that distance to cutblock may not be an important habitat feature. However, forestry activity is relatively low in boreal British Columbia, and therefore likely has limited influence on caribou distribution.  
+The effect of distance to cutblock on caribou habitat selection was relatively weak in DU6 (compared to other DU's) across all seasons, and the models were relatively simple (i.e., some of the distance to cutblock age class covariates were highly correlated, which required further grouping, and there was no functional response) suggesting that distance to cutblock may not be an important habitat feature. However, forestry activity is relatively low in boreal British Columbia, and therefore likely has limited influence on caribou distribution there.  
 
-In DU7, the effect of distance to cutblock on caribou habitat selection was relatively weak, but stronger in summer than other seasons. In general the models were relatively simple (i.e., distance to cutblock covariates were correlated and there was no functional repsonse), suggesting that distance to cutblock may not be important except in summer and when cutblocks are relatively new. 
+In DU7, the effect of distance to cutblock on caribou habitat selection was relatively weak, but stronger in summer than other seasons. In general the models were relatively simple, suggesting that distance to cutblock may not be important except in summer and when cutblocks are relatively new. 
 
-In DU8, the effect of distance to cutblock on caribou habitat selection was relatively strong and generally consistent across seasons. However, the models did not include functional responses, suggesing a consistent response to cutblocks by cariobu across areas with different amounts of cutblocks.  
+In DU8, the effect of distance to cutblock on caribou habitat selection was relatively strong and generally consistent across seasons. However, the models did not include functional responses, suggesing a consistent response to cutblocks by caribou across areas regardless of the amount of cutblocks in those areas.  
 
-In DU9, the effect of distance to cutblock on caribou habitat selection was similar to DU8 (relatively strong and generally consistent across seasons). The early winter model was the only model to include fucntional reponse covariates, indicating cariobuselction of cutblocks varies across areas with different amounts of cutblocks. However, this was not the case in late winter or summer. 
+In DU9, the effect of distance to cutblock on caribou habitat selection was similar to DU8 (relatively strong and generally consistent across seasons). However, the early winter model included functional reponse covariates, indicating caribou selction of cutblocks varied across areas with different amounts of cutblocks at that time of the year. However, this was not the case in late winter or summer. 
 
-This analysis helped identify how to temporally group distance to cutblock covariates from over a 50 year period in a RSF model based on statistical principles of minimizing correlation between covariates and identifying parsimonious but reasonably predictive RSF models. However, results here are also consistent with our ecological understanding of how cutblocks age and how caribou might respond to them differently as they age. Specifically, that new cutblocks (i.e., one to four year old) provide different habitat features than moderately aged (i.e., five to nine years old and 10 to 29 eyars old) and older (i.e., over 29 years old) cutblocks. This is likely a reflection of cariobu responses to vegetation development on cutblock sites, as young cutblocks may be sparsely vegetated, moderately aged cutblocks may provide early seral vegetation, particularly shrubds, forbs and herbs, and older cutblocks may provide more forested vegetation. However, the mechanism for how cariobu might repond to these differnt age classes is not clear. For example, caribou may avoid new and moderately aged cutblcoks becuase of lack of lichen (Fisher and Wilkinson 2005). Alterantively, they may select moderately aged cutblocks because they provide preffered non-lichen summer food sources, such as shrubs (Denryter et al. 2017). The may also select for cutblock edges that provide access to lichen via litterfall adn windthrow (Serrouya et al. 2007). However, in general caribou population parameters such as adult feamle survival (Wittmer et al. 2007) and calf recruitment (Environment Canada 2008) has been negateively correlated with early seral forests. Cariobu may not select cutblcoks if they are associated with or they are unable to survive there becuase of higher predation risk. Moose density and distribtuion are generally postively associated with early seral forest (Fisher and Wilkinson 2005; Anderson et al. 2018), which may also increase wolf density there (Messier 1994; Fuller et al. 2003; Kuzyk and Hatter 2014) and wolves might select these features to maximize their probabiltiy of encountering prey (Houle et al. 2010).     
+This analysis helped identify how to temporally group distance to cutblock covariates measured annually over a 50 year period for use in fitting a RSF model. This temproal grouping by cutblock age was done based on statistical principles of minimizing correlation between covariates and identifying parsimonious but reasonably predictive RSF models. However, results here are also consistent with our ecological understanding of how cutblocks age and how caribou might respond to them differently as they age. Specifically, new cutblocks (i.e., one to four year old) provide different habitat features for caribou and their 'competitors' (i.e., other ungulate species) than moderately aged (i.e., five to nine years old and 10 to 29 eyars old) and older (i.e., over 29 years old) cutblocks. For example, caribou may be responding to vegetation development on cutblock sites, as young cutblocks may be sparsely vegetated, moderately aged cutblocks may provide early seral vegetation, particularly shrubs, forbs and herbs, and older cutblocks may provide more treed vegetation. However, the exact mechanism for how caribou are reponding to these different age classes of cutblocks is not clear. For example, caribou may avoid new and moderately aged cutblcoks because of lack of lichen (Fisher and Wilkinson 2005). Alternatively, they may select moderately aged cutblocks because they provide preffered non-lichen summer food sources, such as some shrub species (Denryter et al. 2017). Caribou may also select for cutblock edges that provide access to lichen via litterfall and windthrow (Serrouya et al. 2007). However, in general caribou population parameters such as adult female survival (Wittmer et al. 2007) and calf recruitment (Environment Canada 2008) have been negatively correlated with cutblocks. Therefore, cariobu may not select cutblocks if they are associated with or they are unable to survive there because of higher predation risk. Moose density and distribtuion is generally postively correlated with cutblocks (Fisher and Wilkinson 2005; Anderson et al. 2018), which may result in higher wolf density (Messier 1994; Fuller et al. 2003; Kuzyk and Hatter 2014) and wolves might also select cutblocks to maximize their probabiltiy of encountering prey (Houle et al. 2010).     
 
-The covariates from the top models for each season will be compared to and combined with RSF models including other habitat covariates using the same statsical principles and undersatdning of ecological mechanisms to identify a robust and useful RSF model of caribou habitat across seasons and DUs in BC.
+The distance to cutblock covariates from the top models for each season and DU will be compared to and combined with other RSF models that include other habitat covariates. Comparisons will be made using the same statsical principles and undertanding of ecological mechanisms described here. This will help identify a robust and useful RSF model of caribou habitat selection across seasons and DUs in BC.
 
 ## Literature Cited
 Anderson, M., McLellan, B. N., & Serrouya, R. (2018). Moose response to high‐elevation forestry: Implications for apparent competition with endangered caribou. The Journal of Wildlife Management, 82(2), 299-309.
+
+DeCesare, N. J., Hebblewhite, M., Robinson, H. S., & Musiani, M. (2010). Endangered, apparently: the role of apparent competition in endangered species conservation. Animal conservation, 13(4), 353-362.
 
 DeCesare, N. J., Hebblewhite, M., Schmiegelow, F., Hervieux, D., McDermid, G. J., Neufeld, L., ... & Wheatley, M. (2012). Transcending scale dependence in identifying habitat with resource selection functions. Ecological Applications, 22(4), 1068-1083.
 
@@ -436,6 +443,8 @@ Messier, F. (1994). Ungulate population models with predation: a case study with
 Montgomery, D. C., and E. A. Peck. 1992. Introduction to linear regression analysis. Wiley, New York, New York, USA
 
 Serrouya, R., Lewis, D., McLellan, B. and Pavan, G. (2007). The selection of movement paths by mountain caribou , during winter within managed: landscapes: 4-year results of snow trailing. Final Technical Report, FSP Project #Y071312. Available from: https://www.researchgate.net/profile/Bruce_Mclellan/publication/255635833_The_selection_of_movement_paths_by_mountain_caribou_during_winter_within_managed_landscapes_4-year_results_of_snow_trailing/links/552d343e0cf29b22c9c4c3b4/The-selection-of-movement-paths-by-mountain-caribou-during-winter-within-managed-landscapes-4-year-results-of-snow-trailing.pdf
+
+Wittmer, H. U., Sinclair, A. R., & McLellan, B. N. (2005). The role of predation in the decline and extirpation of woodland caribou. Oecologia, 144(2), 257-267.
 
 Wittmer, H. U., McLellan, B. N., Serrouya, R., & Apps, C. D. (2007). Changes in landscape composition influence the decline of a threatened woodland caribou population. Journal of animal ecology, 76(3), 568-579.
 
