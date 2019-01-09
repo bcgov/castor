@@ -56,10 +56,11 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-blockingCLUS.Init(sim)
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks" ,eventPriority=21)
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
       switch(P(sim)$blockMethod,
              pre= {
-               sim <- blockingCLUS.preBlock(sim)
+               sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
+               sim <- blockingCLUS.getBlocks(sim) #links the pre-blocks to landing locations. Could use a switch parameter to run this
              } ,
              dynamic ={
                sim <- blockingCLUS.setSpreadProb(sim)
@@ -85,6 +86,8 @@ blockingCLUS.Init <- function(sim) {
   
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
+  
+  #clip the boundary with the provincial similarity raster
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
   return(invisible(sim))
 }
@@ -99,10 +102,14 @@ blockingCLUS.getBounds<-function(sim){
 }
 
 blockingCLUS.setSpreadProb<- function(sim) {
-  sim$aoi<-sim$ras.similar
-  sim$aoi[aoi[]>0]<-1
-  sim$aoi[is.na(aoi[])]<-0
+  #Create a mask for the area of interst
+  sim$aoi <- sim$ras.similar #set the area of interest as the similarity raster
+  sim$aoi[aoi[] > 0] <- 1 # for those locations where the distance is greater than 0 assign a 1
+  sim$aoi[is.na(aoi[])] <- 0 # for those locations where there is no distance - they are NA, assign a 0
+  
   sim$harvestUnits<-NULL
+  
+  #scale the similarity raster so that the values are [0,1]
   sim$ras.similar<-1-(sim$ras.similar - minValue(sim$ras.similar))/(maxValue(sim$ras.similar)-minValue(sim$ras.similar))
   return(invisible(sim))
 }
@@ -151,20 +158,31 @@ blockingCLUS.preBlock <- function(sim) {
   to<-.jarray(as.matrix(paths.matrix[,1]))
   from<-.jarray(as.matrix(paths.matrix[,2]))
   weight<-.jarray(as.matrix(paths.matrix[,3]))
-  library(here) #Need this package to find the root directory
+  #library(here) #Need this package to find the root directory
 
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
   fhClass$blockEdges() # creates the blocks
-  test<-fhClass$getBlocks() # retrieves the result
+  result<-convertToR(fhClass$getBlocks()) # retrieves the result
+ 
+  #The number of pixels returned from the alorithum may be smaller than the number of pixels in the similarity
+  #raster. This happens when the last remaining pixels are NA and thus they are removed from the graph
+  if(!(length(result) == length(sim$ras.similar))){ # removes warning about merging vectors with different lengths
+    print("not equal")
+    add<-seq(-1, by =0, length.out = (length(sim$ras.similar)-length(result)))
+    result<-c(result, add) # add the remaining -1 harvest units to the result (a vector)
+  }
   
-  #print(convertToR(test))
   sim$harvestUnits<-sim$ras.similar
-  sim$harvestUnits[]<-convertToR(test)
+  sim$harvestUnits[]<-test
   rm(test, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
+}
+
+blockingCLUS.getBlocks<- function(sim){
+  return(invisible(sim)) 
 }
 
 blockingCLUS.spreadBlock<- function(sim) {
