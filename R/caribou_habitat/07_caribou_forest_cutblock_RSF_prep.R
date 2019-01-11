@@ -20,7 +20,7 @@
 #                 Report is located here: 
 #  Script Date: 16 November 2018
 #  R Version: 
-#  R Packages: sf, RPostgreSQL, rpostgis, fasterize, raster, dplyr
+#  R Packages: 
 #  Data: 
 #=================================
 options (scipen = 999)
@@ -6199,17 +6199,6 @@ ggplot (data = table.glm.summary.du9,
   scale_y_continuous (limits = c (-0.01, 0.08), breaks = seq (-0.01, 0.08, by = 0.01))
 
 
-
-
-
-
-
-
-
-
-
-
-
 #=================================================
 # Model selection Process by DU and Season 
 #================================================
@@ -6265,7 +6254,7 @@ dist.cut.data.du.9.s <- dist.cut.data %>%
 table.aic <- data.frame (matrix (ncol = 8, nrow = 0))
 colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw", "AUC")
 
-#============================
+#===============
 ## DU6 ##
 #==============
 ## Early Winter ##
