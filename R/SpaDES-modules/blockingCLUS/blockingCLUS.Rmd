@@ -38,7 +38,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(nameBoundaryFile = "gcbp_carib_polygon", nameBoundaryColumn = "herd_name",
   dbName = 'clus', nameBoundary ='Telkwa', nameBoundaryGeom = 'geom'),
-  blockingCLUS = list(blockMethod = 'dynamic', nameSimilarityRas = 'ras_similar_vri2003', useLandingsArea = TRUE, useSpreadProbRas = TRUE),
+  blockingCLUS = list(blockMethod = 'pre', nameSimilarityRas = 'ras_similar_vri2003', useLandingsArea = TRUE, useSpreadProbRas = TRUE),
   cutblockSeqPrepCLUS = list(queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
                              getArea =TRUE)
 )
