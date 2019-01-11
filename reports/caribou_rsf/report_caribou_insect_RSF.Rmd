@@ -1,5 +1,5 @@
 ---
-title: "Caribou Forest Fire Resource Selection Function Report"
+title: "Caribou Beetle Disturbance Resource Selection Function Report"
 output: 
   pdf_document:
   html_document:

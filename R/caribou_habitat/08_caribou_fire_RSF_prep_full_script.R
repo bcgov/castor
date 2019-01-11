@@ -9869,3 +9869,453 @@ prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
 plot (prf.temp)
 auc.temp <- performance (pr.temp, measure = "auc")
 table.aic [140, 8] <- auc.temp@y.values[[1]]
+
+# AIC comparison 
+list.aic.like <- c ((exp (-0.5 * (table.aic [127, 6] - min (table.aic [127:139, 6])))), 
+                    (exp (-0.5 * (table.aic [128, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [129, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [130, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [131, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [132, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [133, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [134, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [135, 6] - min (table.aic [127:139, 6])))), 
+                    (exp (-0.5 * (table.aic [136, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [137, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [138, 6] - min (table.aic [127:139, 6])))),
+                    (exp (-0.5 * (table.aic [139, 6] - min (table.aic [127:139, 6])))))
+                   # (exp (-0.5 * (table.aic [126, 6] - min (table.aic [127:139, 6])))))
+table.aic [127, 7] <- round ((exp (-0.5 * (table.aic [127, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [128, 7] <- round ((exp (-0.5 * (table.aic [128, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [129, 7] <- round ((exp (-0.5 * (table.aic [129, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [130, 7] <- round ((exp (-0.5 * (table.aic [130, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [131, 7] <- round ((exp (-0.5 * (table.aic [131, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [132, 7] <- round ((exp (-0.5 * (table.aic [132, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [133, 7] <- round ((exp (-0.5 * (table.aic [133, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [134, 7] <- round ((exp (-0.5 * (table.aic [134, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [135, 7] <- round ((exp (-0.5 * (table.aic [135, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [136, 7] <- round ((exp (-0.5 * (table.aic [136, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [137, 7] <- round ((exp (-0.5 * (table.aic [137, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [138, 7] <- round ((exp (-0.5 * (table.aic [138, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [139, 7] <- round ((exp (-0.5 * (table.aic [139, 6] - min (table.aic [127:139, 6])))) / sum (list.aic.like), 3)
+table.aic [140, 7] <- NA
+
+# save the table
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_fire.csv", sep = ",")
+
+# save the top model
+save (model.lme.du8.s.6to25.over25, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\fire\\model_lme_du8_s_top.rda")
+
+
+
+## Late Winter
+### Correlation
+corr.fire.du.9.lw <- round (cor (fire.data.du.9.lw [10:12], method = "spearman"), 3)
+ggcorrplot (corr.fire.du.9.lw, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Fire Age Correlation DU9 Late Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_fire_corr_du_9_lw.png")
+
+
+fire.data.du.9.lw$fire_1to25yo <- fire.data.du.9.lw$fire_1to5yo + fire.data.du.9.lw$fire_6to25yo
+max (fire.data.du.9.lw$fire_1to25yo)
+
+### VIF
+model.glm.du9.lw <- glm (pttype ~ fire_1to25yo + fire_over25yo, 
+                         data = fire.data.du.9.lw,
+                         family = binomial (link = 'logit'))
+vif (model.glm.du9.lw) 
+
+# Generalized Linear Mixed Models (GLMMs)
+# ALL COVARS
+model.lme.du9.lw <- glmer (pttype ~ fire_1to25yo +fire_over25yo + 
+                                     (fire_1to25yo | uniqueID) +
+                                     (fire_over25yo | uniqueID), 
+                           data = fire.data.du.9.lw, 
+                           family = binomial (link = "logit"),
+                           verbose = T,
+                           control = glmerControl (calc.derivs = FALSE, 
+                                                   optimizer = "nloptwrap", 
+                                                   optCtrl = list (maxfun = 2e5)))
+
+# AIC
+table.aic [141, 1] <- "DU9"
+table.aic [141, 2] <- "Late Winter"
+table.aic [141, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [141, 4] <- "Burn1to25, Burnover25"
+table.aic [141, 5] <- "(Burn1to25 | UniqueID), (Burnover25 | UniqueID)"
+table.aic [141, 6] <- AIC (model.lme.du9.lw)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.lw, type = 'response'), fire.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [141, 8] <- auc.temp@y.values[[1]]
+
+# 1to25
+model.lme.du9.lw.1to25 <- glmer (pttype ~ fire_1to25yo +
+                                          (fire_1to25yo | uniqueID), 
+                           data = fire.data.du.9.lw, 
+                           family = binomial (link = "logit"),
+                           verbose = T,
+                           control = glmerControl (calc.derivs = FALSE, 
+                                                   optimizer = "nloptwrap", 
+                                                   optCtrl = list (maxfun = 2e5)))
+
+# AIC
+table.aic [142, 1] <- "DU9"
+table.aic [142, 2] <- "Late Winter"
+table.aic [142, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [142, 4] <- "Burn1to25"
+table.aic [142, 5] <- "(Burn1to25 | UniqueID)"
+table.aic [142, 6] <- AIC (model.lme.du9.lw.1to25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.lw.1to25, type = 'response'), fire.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [142, 8] <- auc.temp@y.values[[1]]
+
+# over25
+model.lme.du9.lw.over25 <- glmer (pttype ~ fire_over25yo +
+                                          (fire_over25yo | uniqueID), 
+                                 data = fire.data.du.9.lw, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T,
+                                 control = glmerControl (calc.derivs = FALSE, 
+                                                         optimizer = "nloptwrap", 
+                                                         optCtrl = list (maxfun = 2e5)))
+
+# AIC
+table.aic [143, 1] <- "DU9"
+table.aic [143, 2] <- "Late Winter"
+table.aic [143, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [143, 4] <- "Burnover25"
+table.aic [143, 5] <- "(Burnover25 | UniqueID)"
+table.aic [143, 6] <- AIC (model.lme.du9.lw.over25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.lw.over25, type = 'response'), fire.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [143, 8] <- auc.temp@y.values[[1]]
+
+
+# FUNCTIONAL RESPONSE
+# All Covariates
+sub <- subset (fire.data.du.9.lw, pttype == 0)
+fire_1to25yo_E <- tapply (sub$fire_1to25yo, sub$uniqueID, sum)
+fire_over25yo_E <- tapply (sub$fire_over25yo, sub$uniqueID, sum)
+inds <- as.character (fire.data.du.9.lw$uniqueID)
+fire.data.du.9.lw <- cbind (fire.data.du.9.lw, 
+                            "fire_1to25yo_E" = fire_1to25yo_E [inds],
+                            "fire_over25yo_E" = fire_over25yo_E [inds])
+
+# Functional Responses
+# All COVARS
+model.lme.fxn.du9.lw.all <- glmer (pttype ~ fire_1to25yo + fire_over25yo +
+                                            fire_1to25yo_E + fire_over25yo_E + 
+                                             fire_1to25yo:fire_1to25yo_E +
+                                             fire_over25yo:fire_over25yo_E +
+                                             (1 | uniqueID), 
+                                   data = fire.data.du.9.lw, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, 
+                                                           optimizer = "nloptwrap", 
+                                                           optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [144, 1] <- "DU9"
+table.aic [144, 2] <- "Late Winter"
+table.aic [144, 3] <- "GLMM with Functional Response"
+table.aic [144, 4] <- "Burn1to25, Burnover25, A_Burn1to25, A_Burnover25, Burn1to25*A_Burn1to25, Burnover25*A_Burnover25"
+table.aic [144, 5] <- "(1 | UniqueID)"
+table.aic [144, 6] <- AIC (model.lme.fxn.du9.lw.all)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.all, type = 'response'), fire.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [144, 8] <- auc.temp@y.values[[1]]
+
+# 1to25
+model.lme.fxn.du9.lw.1to25 <- glmer (pttype ~ fire_1to25yo + 
+                                              fire_1to25yo_E + 
+                                              fire_1to25yo:fire_1to25yo_E +
+                                              (1 | uniqueID), 
+                                   data = fire.data.du.9.lw, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, 
+                                                           optimizer = "nloptwrap", 
+                                                           optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [145, 1] <- "DU9"
+table.aic [145, 2] <- "Late Winter"
+table.aic [145, 3] <- "GLMM with Functional Response"
+table.aic [145, 4] <- "Burn1to25, A_Burn1to25, Burn1to25*A_Burn1to25"
+table.aic [145, 5] <- "(1 | UniqueID)"
+table.aic [145, 6] <- AIC (model.lme.fxn.du9.lw.1to25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.1to25, type = 'response'), fire.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [145, 8] <- auc.temp@y.values[[1]]
+
+# over25
+model.lme.fxn.du9.lw.over25 <- glmer (pttype ~ fire_over25yo + 
+                                                fire_over25yo_E + 
+                                                fire_over25yo:fire_over25yo_E +
+                                                (1 | uniqueID), 
+                                     data = fire.data.du.9.lw, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T,
+                                     control = glmerControl (calc.derivs = FALSE, 
+                                                             optimizer = "nloptwrap", 
+                                                             optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [146, 1] <- "DU9"
+table.aic [146, 2] <- "Late Winter"
+table.aic [146, 3] <- "GLMM with Functional Response"
+table.aic [146, 4] <- "Burnover25, A_Burnover25, Burnover25*A_Burnover25"
+table.aic [146, 5] <- "(1 | UniqueID)"
+table.aic [146, 6] <- AIC (model.lme.fxn.du9.lw.over25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.lw.over25, type = 'response'), fire.data.du.9.lw$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [146, 8] <- auc.temp@y.values[[1]]
+
+# AIC comparison 
+list.aic.like <- c ((exp (-0.5 * (table.aic [141, 6] - min (table.aic [141:146, 6])))), 
+                    (exp (-0.5 * (table.aic [142, 6] - min (table.aic [141:146, 6])))),
+                    (exp (-0.5 * (table.aic [143, 6] - min (table.aic [141:146, 6])))),
+                    (exp (-0.5 * (table.aic [144, 6] - min (table.aic [141:146, 6])))),
+                    (exp (-0.5 * (table.aic [145, 6] - min (table.aic [141:146, 6])))),
+                    (exp (-0.5 * (table.aic [146, 6] - min (table.aic [141:146, 6])))))
+table.aic [141, 7] <- round ((exp (-0.5 * (table.aic [141, 6] - min (table.aic [141:146, 6])))) / sum (list.aic.like), 3)
+table.aic [142, 7] <- round ((exp (-0.5 * (table.aic [142, 6] - min (table.aic [141:146, 6])))) / sum (list.aic.like), 3)
+table.aic [143, 7] <- round ((exp (-0.5 * (table.aic [143, 6] - min (table.aic [141:146, 6])))) / sum (list.aic.like), 3)
+table.aic [144, 7] <- round ((exp (-0.5 * (table.aic [144, 6] - min (table.aic [141:146, 6])))) / sum (list.aic.like), 3)
+table.aic [145, 7] <- round ((exp (-0.5 * (table.aic [145, 6] - min (table.aic [141:146, 6])))) / sum (list.aic.like), 3)
+table.aic [146, 7] <- round ((exp (-0.5 * (table.aic [146, 6] - min (table.aic [141:146, 6])))) / sum (list.aic.like), 3)
+
+# save the table
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_fire.csv", sep = ",")
+
+# save the top model
+save (model.lme.du8.s.6to25.over25, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\fire\\model_lme_du8_s_top.rda")
+
+
+## Summer
+### Correlation
+corr.fire.du.9.s <- round (cor (fire.data.du.9.s [10:12], method = "spearman"), 3)
+ggcorrplot (corr.fire.du.9.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Fire Age Correlation DU9 Summer")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\plot_fire_corr_du_9_s.png")
+
+fire.data.du.9.s$fire_1to25yo <- fire.data.du.9.s$fire_1to5yo + fire.data.du.9.s$fire_6to25yo
+max (fire.data.du.9.s$fire_1to25yo)
+
+### VIF
+model.glm.du9.s <- glm (pttype ~ fire_1to25yo + fire_over25yo, 
+                         data = fire.data.du.9.s,
+                         family = binomial (link = 'logit'))
+vif (model.glm.du9.s) 
+
+# Generalized Linear Mixed Models (GLMMs)
+# ALL COVARS
+model.lme.du9.s <- glmer (pttype ~ fire_1to25yo +fire_over25yo + 
+                                   (fire_1to25yo | uniqueID) +
+                                   (fire_over25yo | uniqueID), 
+                           data = fire.data.du.9.s, 
+                           family = binomial (link = "logit"),
+                           verbose = T,
+                           control = glmerControl (calc.derivs = FALSE, 
+                                                   optimizer = "nloptwrap", 
+                                                   optCtrl = list (maxfun = 2e5)))
+
+# AIC
+table.aic [147, 1] <- "DU9"
+table.aic [147, 2] <- "Summer"
+table.aic [147, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [147, 4] <- "Burn1to25, Burnover25"
+table.aic [147, 5] <- "(Burn1to25 | UniqueID), (Burnover25 | UniqueID)"
+table.aic [147, 6] <- AIC (model.lme.du9.s)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s, type = 'response'), fire.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [147, 8] <- auc.temp@y.values[[1]]
+
+# 1to25
+model.lme.du9.s.1to25 <- glmer (pttype ~ fire_1to25yo + 
+                                         (fire_1to25yo | uniqueID), 
+                          data = fire.data.du.9.s, 
+                          family = binomial (link = "logit"),
+                          verbose = T,
+                          control = glmerControl (calc.derivs = FALSE, 
+                                                  optimizer = "nloptwrap", 
+                                                  optCtrl = list (maxfun = 2e5)))
+
+# AIC
+table.aic [148, 1] <- "DU9"
+table.aic [148, 2] <- "Summer"
+table.aic [148, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [148, 4] <- "Burn1to25"
+table.aic [148, 5] <- "(Burn1to25 | UniqueID)"
+table.aic [148, 6] <- AIC (model.lme.du9.s.1to25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.1to25, type = 'response'), fire.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [148, 8] <- auc.temp@y.values[[1]]
+
+# over25
+model.lme.du9.s.over25 <- glmer (pttype ~ fire_over25yo + 
+                                          (fire_over25yo | uniqueID), 
+                                data = fire.data.du.9.s, 
+                                family = binomial (link = "logit"),
+                                verbose = T,
+                                control = glmerControl (calc.derivs = FALSE, 
+                                                        optimizer = "nloptwrap", 
+                                                        optCtrl = list (maxfun = 2e5)))
+
+# AIC
+table.aic [149, 1] <- "DU9"
+table.aic [149, 2] <- "Summer"
+table.aic [149, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [149, 4] <- "Burnover25"
+table.aic [149, 5] <- "(Burnover25 | UniqueID)"
+table.aic [149, 6] <- AIC (model.lme.du9.s.over25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.du9.s.over25, type = 'response'), fire.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [149, 8] <- auc.temp@y.values[[1]]
+
+# FUNCTIONAL RESPONSE
+# All Covariates
+sub <- subset (fire.data.du.9.s, pttype == 0)
+fire_1to25yo_E <- tapply (sub$fire_1to25yo, sub$uniqueID, sum)
+fire_over25yo_E <- tapply (sub$fire_over25yo, sub$uniqueID, sum)
+inds <- as.character (fire.data.du.9.s$uniqueID)
+fire.data.du.9.s <- cbind (fire.data.du.9.s, 
+                            "fire_1to25yo_E" = fire_1to25yo_E [inds],
+                            "fire_over25yo_E" = fire_over25yo_E [inds])
+
+# Functional Responses
+# All COVARS
+model.lme.fxn.du9.s.all <- glmer (pttype ~ fire_1to25yo + fire_over25yo +
+                                     fire_1to25yo_E + fire_over25yo_E + 
+                                     fire_1to25yo:fire_1to25yo_E +
+                                     fire_over25yo:fire_over25yo_E +
+                                     (1 | uniqueID), 
+                                   data = fire.data.du.9.s, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T,
+                                   control = glmerControl (calc.derivs = FALSE, 
+                                                           optimizer = "nloptwrap", 
+                                                           optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [150, 1] <- "DU9"
+table.aic [150, 2] <- "Summer"
+table.aic [150, 3] <- "GLMM with Functional Response"
+table.aic [150, 4] <- "Burn1to25, Burnover25, A_Burn1to25, A_Burnover25, Burn1to25*A_Burn1to25, Burnover25*A_Burnover25"
+table.aic [150, 5] <- "(1 | UniqueID)"
+table.aic [150, 6] <- AIC (model.lme.fxn.du9.s.all)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.all, type = 'response'), fire.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [150, 8] <- auc.temp@y.values[[1]]
+
+# 1to25
+model.lme.fxn.du9.s.1to25 <- glmer (pttype ~ fire_1to25yo + 
+                                             fire_1to25yo_E + 
+                                             fire_1to25yo:fire_1to25yo_E +
+                                             (1 | uniqueID), 
+                                  data = fire.data.du.9.s, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T,
+                                  control = glmerControl (calc.derivs = FALSE, 
+                                                          optimizer = "nloptwrap", 
+                                                          optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [151, 1] <- "DU9"
+table.aic [151, 2] <- "Summer"
+table.aic [151, 3] <- "GLMM with Functional Response"
+table.aic [151, 4] <- "Burn1to25, A_Burn1to25, Burn1to25*A_Burn1to25"
+table.aic [151, 5] <- "(1 | UniqueID)"
+table.aic [151, 6] <- AIC (model.lme.fxn.du9.s.1to25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.1to25, type = 'response'), fire.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [151, 8] <- auc.temp@y.values[[1]]
+
+# over25
+model.lme.fxn.du9.s.over25 <- glmer (pttype ~ fire_over25yo + 
+                                               fire_over25yo_E + 
+                                               fire_over25yo:fire_over25yo_E +
+                                               (1 | uniqueID), 
+                                    data = fire.data.du.9.s, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T,
+                                    control = glmerControl (calc.derivs = FALSE, 
+                                                            optimizer = "nloptwrap", 
+                                                            optCtrl = list (maxfun = 2e5)))
+# AIC
+table.aic [152, 1] <- "DU9"
+table.aic [152, 2] <- "Summer"
+table.aic [152, 3] <- "GLMM with Functional Response"
+table.aic [152, 4] <- "Burnover25, A_Burnover25, Burnover25*A_Burnover25"
+table.aic [152, 5] <- "(1 | UniqueID)"
+table.aic [152, 6] <- AIC (model.lme.fxn.du9.s.over25)
+
+# AUC 
+pr.temp <- prediction (predict (model.lme.fxn.du9.s.over25, type = 'response'), fire.data.du.9.s$pttype)
+prf.temp <- performance (pr.temp, measure = "tpr", x.measure = "fpr")
+plot (prf.temp)
+auc.temp <- performance (pr.temp, measure = "auc")
+table.aic [152, 8] <- auc.temp@y.values[[1]]
+
+# AIC comparison 
+list.aic.like <- c ((exp (-0.5 * (table.aic [147, 6] - min (table.aic [147:152, 6])))), 
+                    (exp (-0.5 * (table.aic [148, 6] - min (table.aic [147:152, 6])))),
+                    (exp (-0.5 * (table.aic [149, 6] - min (table.aic [147:152, 6])))),
+                    (exp (-0.5 * (table.aic [150, 6] - min (table.aic [147:152, 6])))),
+                    (exp (-0.5 * (table.aic [151, 6] - min (table.aic [147:152, 6])))),
+                    (exp (-0.5 * (table.aic [152, 6] - min (table.aic [147:152, 6])))))
+table.aic [147, 7] <- round ((exp (-0.5 * (table.aic [147, 6] - min (table.aic [147:152, 6])))) / sum (list.aic.like), 3)
+table.aic [148, 7] <- round ((exp (-0.5 * (table.aic [148, 6] - min (table.aic [147:152, 6])))) / sum (list.aic.like), 3)
+table.aic [149, 7] <- round ((exp (-0.5 * (table.aic [149, 6] - min (table.aic [147:152, 6])))) / sum (list.aic.like), 3)
+table.aic [150, 7] <- round ((exp (-0.5 * (table.aic [150, 6] - min (table.aic [147:152, 6])))) / sum (list.aic.like), 3)
+table.aic [151, 7] <- round ((exp (-0.5 * (table.aic [151, 6] - min (table.aic [147:152, 6])))) / sum (list.aic.like), 3)
+table.aic [152, 7] <- round ((exp (-0.5 * (table.aic [152, 6] - min (table.aic [147:152, 6])))) / sum (list.aic.like), 3)
+
+# save the table
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_fire.csv", sep = ",")
+
+# save the top model
+save (model.lme.du8.s.6to25.over25, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\fire\\model_lme_du8_s_top.rda")
