@@ -18,26 +18,34 @@ require (kableExtra)
 ```
 
 ## Introduction
-Here I describe a data exploration and model selection process completed to identify forest fire covariates to include in caribou resource selection function (RSF) models. RSF models are a form of binomial logistic regression models that are used to statistically estimate habitat selection by animals (Boyce et al. 1999; Manly et al. 2007). RSFs were calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations, of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)
+Here I describe a data exploration and model selection process completed to identify forest beetle infestation covariates to include in caribou resource selection function (RSF) models. RSF models are a form of binomial logistic regression models that are used to statistically estimate habitat selection by animals (Boyce et al. 1999; Manly et al. 2007). RSFs were calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations, of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)
 
-I had data that estimated use of burned areas, by burn age, at approximately 500,000 caribou telemetry locations collected across Brtisish Columbia, and approximately two million randomly sampled locations within caribou home ranges (i.e., 'available' locations). I hypothesized that caribou selection for burned areas would change as burns aged. Specifically, I predicted that caribou would be less likely to select younger burns than older burns, as younger burns are typically associated with forage for other ungulates (i.e., moose and deer) and thus higher ungulate and predator (e.g., wolf) densities, resulting in higher mortality and predation risk for caribou (Wittmer et al. 2005; DeCesare et al. 2010). I wanted to reduce the number of fire covariates by temporally grouping burns based on similarity in caribou selection. 
+I had data that estimated use of beetle infested forest stands, by age (one to nine years old) and severity (moderate, severe and very severe), at approximately 500,000 caribou telemetry locations collected across Brtisish Columbia, and approximately two million randomly sampled locations within caribou home ranges (i.e., 'available' locations). I hypothesized that caribou selection for infested forest stands would change as stands aged and had been more severely infested. Specifically, I predicted that caribou would be more likely to select more older infested stands than recently infested stands, and moderately infested stands than more severely infested stands.Recent and more severely infested stands might be associated with forage for other ungulates (i.e., moose and deer) and thus higher ungulate and predator (e.g., wolf) densities, resulting in higher mortality and predation risk for caribou (Wittmer et al. 2005; DeCesare et al. 2010). I wanted to reduce the number of beetle infestation covariates by temporally grouping infestations based on similarity in caribou selection. 
 
-After temporall groupign burn covariates, I did further data exploration and correlation analyses of covariates by season and DU. I then fit fire RSF models using functional responses (Matthiopolous et al. 2010) to test whether caribou selection of burns is a function of the amount of burns within the caribou's home range. Specifically, I tested the hypothesis that caribou are more likely to avoid burns in home ranges with a higher density of burns. 
+After grouping beetle infestation covariates by age and severity, I did further data exploration and correlation analyses of covariates by season and DU. I then fit beetle infestation RSF models using functional responses (Matthiopolous et al. 2010) to test whether caribou selection of beetle infested forest stands is a function of the amount of infestation within the caribou's home range. Specifically, I tested the hypothesis that caribou are more likely to avoid nfested forest stands in home ranges with a higher density of infested stands.
 
 ## Methods
 ### Correlation of Distance to Cutblock Across Years
-Here I tested whether burns of different ages, from one year old to 50 years old were correlated. I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
+Here I tested whether beetle infested forest stands of different ages and severity, using a Spearman ($\rho$) correlation. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
 ```{r, correlation plot code, eval = F, echo = T}
 # Correlations
-# Example code for first 10 years
-fire.1.10.corr.du.8 <- fire.data.du.8 [c (4:13)]
-corr.1.10.du8 <- round (cor (fire.1.10.corr.du.8, method = "spearman"), 3)
-p.mat <- round (cor_pmat (corr.1.10.du8), 2)
-ggcorrplot (corr.1.10.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
-            title = "DU8 Fire Correlation Years 1 to 10")
+corr.beetle.du6 <- round (cor (beetle.data.du.6 [c (10:32)], method = "spearman"), 3)
+ggcorrplot (corr.beetle.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
+            title = "DU6 Beetle Infestation Correlation")
 ```
 
 ### Generalized Linear Models (GLMs) of Distance to Cutblock across Years
+
+
+
+
+
+
+
+
+
+
+
 Here I tested whether caribou selection of burns changed as they aged. This helped with temporally grouping burn data by age, by illustrating if and when caribou consistently selected or avoided burns of similar ages. 
 
 I compared how caribou selected burns across years by fitting seperate caribou RSFs, where each RSF had a single covariate for burn for each burn age. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations, where used locations are caribou telemetry locations and available locations are randomly sampled locations within the extent of estimated caribou home ranges). RSFs were fit for each season and DU. The following is an example of the R code used to calculate these RSFs:
@@ -130,11 +138,30 @@ model.lme.fxn.du6.ew.all <- glmer (pttype ~ fire_1to5yo + fire_6to25yo + fire_ov
 I calculated the AIC for each model and compared them to asses the most parsimonious model fit. I also calculated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curves for each model using the ROCR package in R to test the accuracy of predictions. The model with the highest AIC weight and a reasonably high AUC score (i.e., the abiliy of the accurately predict caribou locations) was considered the best distance to cutblock model for a particular season and DU combination. This model, and covaraites from this model will be included in a broader RSF model fittign adn selction porcess to identify a comprehensive, parsimonious and robust caribou habitat model for each season and DU. 
 
 ## Results
-### Correlation Plots of Fire by Year 
-None of them are correalted. 
+### Correlation Plots of Beetle Infestation by Year and Severity
+Beetle infested forest stand age and severity covariates were not correlated in DU6 ($\rho$ < 0.09). Many covariate values were zero (i.e., no use of beetle infested stands in the sample), indicating covariates would need to be grouped by age or severity for them to be considered in the DU6 RSF models.
 
+![](plots/plot_beetle_corr_du6.png)
+
+Covariates were not highly correlated in DU7 ($\rho$ < 0.39) or DU8 ($\rho$ < 0.39).
+
+![](plots/plot_beetle_corr_du7.png)
+
+![](plots/plot_beetle_corr_du8.png)
+
+In DU9,covariates were not highly correlated($\rho$ < 0.55). Many covariate values were zero (i.e., no use of beetle infested stands in the sample), indicating covariates would need to be grouped by age or severity for them to be considered in the DU6 RSF models.
+
+![](plots/plot_beetle_corr_du9.png)
 
 ### Resource Selection Function (RSF) Distance to Cutblock Beta Coefficients by Year, Season and Designatable Unit (DU)
+
+
+
+
+
+
+
+
 I was unable to fit a model for some burn year, season and DU combinations because there was a lack of use of burned areas in those years. Thus, there was further reason to group data, as use of burned areas was in some cases a rare event. 
 
 In DU6, burn areas generally had a negative effect on caribou resource selection across seasons. In some cases, caribou appeared to strongly avoid burns between 5 and 25 years old, particularly in the late winter and summer.  
