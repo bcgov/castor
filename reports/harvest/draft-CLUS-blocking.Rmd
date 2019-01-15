@@ -8,6 +8,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction
+"When interpreting decisions support system output, as in all models, the major issue is whether the abstractions that the data and algorithms represent are sufficiently reliable to suffer the treatment of generalization from model output to practice in the real world" (Bunnell and Boyland 1999).
+
 The size of a harvest unit (ie. a cutblock) and its spatial boundaries have important implications for forest management. Economic feasiblity, patch size distribution objectives and metrics important to wildlife habitat (Ie. distance to a cutblock) are all influenced by cutblock size, shape and location. While forest attributes information is often represented as polygons or pixels (depending on the data structure) and can be assumed as a harvest unit there are many cases where polygons or pixels will require aggregation or disaggregation to meet management assumptions. For example, the aggregation of forest polygons or pixels is often required given operations can capture economies of scale resulting from harvesting a number of stands in a spatially contiguous manner. Conversely, forest cover polygons may require disaggragation when the size of the polygon is too large to meet size restrictions on harvest units. Aggregating or disaggregating polygons or pixels into operational units is one of the intital steps for making deciions in forest management planning. Largely, becuase forest mangement activites (i.e., harvseting, silvicuture) are often prescribed and implemented on a harvest unit. Thus, how do we simulate the formation of harvesting units (including the size, shape and location) into the future? 
 
 First, the size of a cutblock is generally predicated by law. The Forest Practices Code of British Columbia Act ["Operation and Site Planning Regulation"](http://www.bclaws.ca/civix/document/id/loo60/loo60/107_98) states (11(1)) - the maximum size of a harvest unit must not exceed 40 ha for coast forest region and some areas within the South interior region and 60 ha for the northern interior region and some areas within the south interior region. These maximal sizes can be increased further under a number of caveats including: objectives from a high level forest plan for the purposes of salvaging timber from natural disturbances; the cutblock retains 40% or more of the pre-harvest basal area; or at the discretion of the district manager. Given these spatial bounds, we need a block building alogirthum for segmenting information from forest cover polygons and other remote sensing products into harvest units or blocks that result in a shape that would emulate actual harvest units.
@@ -64,16 +66,18 @@ Note: two improvements to this algorithum are needed for future work: i) if a si
 
 ## Objectives
 
-Our goal for blockingCLUS is to be able to reproduce historical harvest units - including the size and shape that would impact the historical harvest disturbance for caribou. Note: this obejctive differs from trying to optimize the size, shape and location of harvest units, as described earler by an area restiction model. The location of harvest units commonly includes a temporal decision making process which is determined by the harvest scheduler. It is important to note that the number of cutblocks and their respective sizes are largely related, given if the size of a stand is artifically set too small, a greater footprint could result from the scheduler, as it looks to find more fibre for harvesting. Thus, we used historic harvest unit locations to test the ability of blocking methods to reproduce the historical harvest disturbance for caribou. As stated earlier, this disturbance metric is the total of area of harvest units with a buffer of 500 m. 
+Our goal for blockingCLUS is to be able to reproduce historical harvest units - including the size and shape that would impact the historical harvest disturbance for caribou. Note: this obejctive differs from trying to simultaneously optimize the size, shape and location of harvest units, as described earler by an area restiction model. The location of harvest units commonly includes a temporal decision making process which is determined by the harvest scheduler. It is important to note that the number of cutblocks and their respective sizes are largely related. If the size of a stand is artifically set too small, a greater footprint could result from the scheduler, as it looks to find more fibre for harvesting. Thus, we used historic harvest unit locations to test the ability of blocking methods to reproduce the historical harvest disturbance for caribou. As stated earlier, this disturbance metric is the total of area of harvest units with a buffer of 500 m. 
 
 1. What forest attributes information (i.e., crown closure, ) directs the formation of historic harvest unit shape? 
 
-2. Based on: 1, the historical harvest unit size distribution, and the centroid of historical harvest units which approach (i.e., dynamic or pre-blocking) best reproduces historical harvest disturbance for caribou and is computationally faster?
+2. Based on: 1, the historical harvest unit size distribution, and the centroid of historical harvest units which approach (i.e., dynamic or pre-blocking) best reproduces historical harvest disturbance for caribou.
+
+3. Which approach is computationally faster?
 
 ## Case Study
 ### Study Areas
 
-The study areas included various [caribou herd locations](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc) around the province. In the north-west, the herd locations are relatively large in area but with little forestry activity. Conversely the south-eastern herd locations are smaller in area but with a greater density of harvest units.
+The study areas included various [caribou herd locations](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc) around the province. In the north-west, the herd locations are relatively large in area but with little forestry activity. Conversely, the south-eastern herd locations are smaller in area but with a greater density of harvest units.
 
 ```{r, echo = FALSE, message=FALSE,warning=FALSE}
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
@@ -129,7 +133,7 @@ Create Table cutseq_Centroid as
   FROM cns_cut_bl_polygon where areaha >= 1) a 
 ```
 
-Below is a histogram of the historical (1908-2018) cutblock size which was used to randomly sample block size. The negative "J" shaped curve is often similar to natural distruabnce size and thus provides some empirical evidence of cutblock size emulating natural disturbances which has been argued as a foundation for achieving forest management objectives. This is useful because forests without a comprehensive historical cutblock dataset could use this natural disturbance size distribution.
+Below is a histogram of the historical (1908-2018) cutblock size. The negative "J" shaped curve is often similar to natural distrubance size - frequency which provides some empirical evidence of cutblock size emulating natural disturbances. This is useful because forested area lacking a comprehensive historical cutblock dataset could sample from this natural disturbance size distribution.
 
 ```{r}
 dist.cutblk.size<-getTableQuery("select width_bucket(areaha, 0, 100, 100) as sizebin, count(*)
@@ -142,9 +146,6 @@ ggplot(dist.cutblk.size, aes(x = sizebin,y =count)) +
   xlab("Cutblock Size (ha)") + 
   ylab("Frequency")
 ```
-
-
-
 
 
 
