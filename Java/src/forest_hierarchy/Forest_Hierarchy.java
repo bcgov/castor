@@ -38,7 +38,6 @@ public class Forest_Hierarchy {
 		double maxTargetSize = this.hist.bins.get(this.hist.getLastBin()-1).max_block_size;
 		boolean findBlocks=	!this.hist.bins.isEmpty(); //if there is a histogram with bins then findBlocks
 		this.degreeList = Arrays.asList(this.degree);
-		Integer [] idegree = degree;
 		Integer[] pixelBlock = new Integer[this.degree.length];
 		Arrays.fill(pixelBlock, EMPTY);	
 		this.edgeList.sort((o1, o2) -> Double.compare(o1.getWeight(), o2.getWeight()));		
