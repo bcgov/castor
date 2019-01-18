@@ -83,11 +83,10 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
 blockingCLUS.Init <- function(sim) {
   sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
-  
+ 
+   #clip the boundary with the provincial similarity raste
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-  
-  #clip the boundary with the provincial similarity raster
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
   return(invisible(sim))
 }
@@ -116,7 +115,6 @@ blockingCLUS.setSpreadProb<- function(sim) {
 
 
 blockingCLUS.preBlock <- function(sim) {
-  print("preBlock")
   ras.matrix<-raster::as.matrix(sim$ras.similar)
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
@@ -125,8 +123,8 @@ blockingCLUS.preBlock <- function(sim) {
   edges<-SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
              cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))
   edges<-data.table(edges)
-  #edges[from < to, c("from", "to") := .(to, from)]
-  #edges<-unique(edges)
+  edges[from < to, c("from", "to") := .(to, from)]
+  edges<-unique(edges)
   
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="id") #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1")) #reformat
@@ -136,15 +134,15 @@ blockingCLUS.preBlock <- function(sim) {
   
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
-  edges.weight[, id := seq_len(.N)] #set the ids of the edge list. Faster than using as.integer(row.names())
+  edges.weight<-as.matrix(edges.weight[, id := seq_len(.N)]) #set the ids of the edge list. Faster than using as.integer(row.names())
   
   
   #summary(edges.weight$weight)
   #------make the graph
   g<-graph.lattice()
-  g<-graph.edgelist(as.matrix(edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
+  g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
 
-  E(g)$weight<-as.matrix(edges.weight)[,3]#assign weights to the graph. Requires a matrix input
+  E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
 
   g.mst<-mst(g, weighted=TRUE)
   paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
@@ -175,8 +173,8 @@ blockingCLUS.preBlock <- function(sim) {
   }
   
   sim$harvestUnits<-sim$ras.similar
-  sim$harvestUnits[]<-test
-  rm(test, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
+  sim$harvestUnits[]<-result
+  rm(result, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
 }
