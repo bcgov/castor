@@ -390,7 +390,7 @@ The correlation plot indicated that none of the distance to cutblock covariates 
 
 The maximum VIF from the simple GLM covariate model was <2.2, indicating covariates were not highly correlated. The AIC*~w~* of the top model was 1.00 (Table 1). It included all temporal distance to cutblock covariates, but no functional response in caribou selection for cutblocks. The AUC of the top model (AUC = 0.694) was better than all other models.
 
-Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to cutblock resoruce selection models for caribou. 
+Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to cutblock resource selection models for caribou. 
 ```{r table of aic results, echo = F}
 table.aic <- read.csv ("data/table_aic_forestry.csv")
 table.aic$AIC <- round (table.aic$AIC, 0)
