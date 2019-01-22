@@ -10,11 +10,10 @@ public class main {
 	        	Forest_Hierarchy f = new Forest_Hierarchy();
 	        	f.createData();
 	        	
+	        	//System.out.println(f.getBlocks().length);
 	        	for(int i = 0; i < f.getBlocks().length; i++){
 	        		System.out.println(f.getBlocks()[i]);
 	        	}
-	        	
-	        	
 	        }else{
 	        	Forest_Hierarchy f = new Forest_Hierarchy();
 	        	f.createData();
