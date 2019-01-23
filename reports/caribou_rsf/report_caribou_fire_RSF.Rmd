@@ -22,11 +22,11 @@ Here I describe a data exploration and model selection process completed to iden
 
 I had data that estimated use of burned areas, by burn age, at approximately 500,000 caribou telemetry locations collected across Brtisish Columbia, and approximately two million randomly sampled locations within caribou home ranges (i.e., 'available' locations). I hypothesized that caribou selection for burned areas would change as burns aged. Specifically, I predicted that caribou would be less likely to select younger burns than older burns, as younger burns are typically associated with forage for other ungulates (i.e., moose and deer) and thus higher ungulate and predator (e.g., wolf) densities, resulting in higher mortality and predation risk for caribou (Wittmer et al. 2005; DeCesare et al. 2010). I wanted to reduce the number of fire covariates by temporally grouping burns based on similarity in caribou selection. 
 
-After temporall groupign burn covariates, I did further data exploration and correlation analyses of covariates by season and DU. I then fit fire RSF models using functional responses (Matthiopolous et al. 2010) to test whether caribou selection of burns is a function of the amount of burns within the caribou's home range. Specifically, I tested the hypothesis that caribou are more likely to avoid burns in home ranges with a higher density of burns. 
+After temporall grouping burn age covariates, I did further data exploration and correlation analyses of covariates by season and DU. I then fit fire RSF models using functional responses (Matthiopolous et al. 2010) to test whether caribou selection of burns is a function of the amount of burns within the caribou's home range. Specifically, I tested the hypothesis that caribou are more likely to avoid burns in home ranges with a higher density of burns. 
 
 ## Methods
-### Correlation of Distance to Cutblock Across Years
-Here I tested whether burns of different ages, from one year old to 50 years old were correlated. I used a Spearman ($\rho$) correlation and correlated distance to cutblock between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
+### Correlation of Burn Age Across Years
+Here I tested whether burns of different ages, from one year old to 50 years old were correlated. I used a Spearman ($\rho$) correlation and correlated burn age covariates between years in 10 year increments. Data were divided by designatable unit (DU). The following is an example of the R code used to calculate and display the correlation plots:
 ```{r, correlation plot code, eval = F, echo = T}
 # Correlations
 # Example code for first 10 years
@@ -37,7 +37,7 @@ ggcorrplot (corr.1.10.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 
             title = "DU8 Fire Correlation Years 1 to 10")
 ```
 
-### Generalized Linear Models (GLMs) of Distance to Cutblock across Years
+### Generalized Linear Models (GLMs) of Burn Age across Years
 Here I tested whether caribou selection of burns changed as they aged. This helped with temporally grouping burn data by age, by illustrating if and when caribou consistently selected or avoided burns of similar ages. 
 
 I compared how caribou selected burns across years by fitting seperate caribou RSFs, where each RSF had a single covariate for burn for each burn age. RSFs were fit using binomial generalized linear models (GLMs) with a logit link (i.e., comparing used to available caribou locations, where used locations are caribou telemetry locations and available locations are randomly sampled locations within the extent of estimated caribou home ranges). RSFs were fit for each season and DU. The following is an example of the R code used to calculate these RSFs:
@@ -61,8 +61,8 @@ glm.du.6.ew.50yo <- glm (pttype ~ fire_50yo,
 
 The beta coefficients of fire covariates were outputted from each model and plotted against burn age to illustrate how caribou selection changed as the burn aged.  
 
-### Resource Selection Function (RSF) Model Selection of Distance to Cutblock Covariates by Burn Age
-Based on the results of the analysis described above, I grouped distance burn age three categories: one to five years old, six to 25 years old, and greater than 25 years old (see Results and Conclusion, below, for details). I then tested for correlation between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; Manly et al. 2007; DeCesare et al. 2012), then distance to cutblock covariates were further grouped into larger age classes. VIFs were calculated using the vif() function from the 'car' package in R. 
+### Resource Selection Function (RSF) Model Selection of Burn Aga Covariates
+Based on the results of the analysis described above, I grouped distance burn age three categories: one to five years old, six to 25 years old, and greater than 25 years old (see Results and Conclusion, below, for details). I then tested for correlation between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; Manly et al. 2007; DeCesare et al. 2012), then covariates were further grouped into larger age classes. VIFs were calculated using the vif() function from the 'car' package in R. 
 
 
 ```{r, example of GLM and VIF code, eval = F, echo = T}
@@ -72,7 +72,7 @@ model.glm.du6.ew <- glm (pttype ~ fire_1to5yo + fire_6to25yo + fire_over25yo,
 vif (model.glm.du6.ew)  
 ```
 
-I fit RSF models as mixed effect regressions using the glmer() function in the lme4 package of R. I fit models with correlated random effect intercepts and slopes for each distance to cutblock covariate by each unique indivdual cariobu and year in the model (i.e., a unique identifier). I fit models with all combinations of distance to cutblock covariates and compared them using Akaike Information Criterion (AIC). 
+I fit RSF models as mixed effect regressions using the glmer() function in the lme4 package of R. I fit models with correlated random effect intercepts and slopes for each covariate by each unique individual cariobu and year in the model (i.e., a unique identifier). I fit models with all combinations of covariates and compared them using Akaike Information Criterion (AIC). 
 
 ```{r, example of GLMM code, eval = F, echo = T}
 # Generalized Linear Mixed Models (GLMMs)
@@ -127,14 +127,14 @@ model.lme.fxn.du6.ew.all <- glmer (pttype ~ fire_1to5yo + fire_6to25yo + fire_ov
 ```
 
 
-I calculated the AIC for each model and compared them to asses the most parsimonious model fit. I also calculated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curves for each model using the ROCR package in R to test the accuracy of predictions. The model with the highest AIC weight and a reasonably high AUC score (i.e., the abiliy of the accurately predict caribou locations) was considered the best distance to cutblock model for a particular season and DU combination. This model, and covaraites from this model will be included in a broader RSF model fittign adn selction porcess to identify a comprehensive, parsimonious and robust caribou habitat model for each season and DU. 
+I calculated the AIC for each model and compared them to asses the most parsimonious model fit. I also calculated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curves for each model using the ROCR package in R to test the accuracy of predictions. The model with the highest AIC weight and a reasonably high AUC score (i.e., the abiliy of the accurately predict caribou locations) was considered the best model for a particular season and DU combination. This model, and covaraites from this model will be included in a broader RSF model fittign adn selction porcess to identify a comprehensive, parsimonious and robust caribou habitat model for each season and DU. 
 
 ## Results
 ### Correlation Plots of Fire by Year 
 None of them are correalted. 
 
 
-### Resource Selection Function (RSF) Distance to Cutblock Beta Coefficients by Year, Season and Designatable Unit (DU)
+### Resource Selection Function (RSF) Burn Age Beta Coefficients by Year, Season and Designatable Unit (DU)
 I was unable to fit a model for some burn year, season and DU combinations because there was a lack of use of burned areas in those years. Thus, there was further reason to group data, as use of burned areas was in some cases a rare event. 
 
 In DU6, burn areas generally had a negative effect on caribou resource selection across seasons. In some cases, caribou appeared to strongly avoid burns between 5 and 25 years old, particularly in the late winter and summer.  
@@ -333,7 +333,7 @@ The 1 to 5 year old burn age class covariate was all 0's, and therefore correlat
 The maximum VIF from the simple GLM covariate model was <1.01, indicating these covariates were not correlated. The top-ranked model included the over 25 year old burn age class covariate, including a functional response, and had an AIC*~w~* of 0.719 (Table 1). The second-ranked model included the over 25 year old burn age class covariate, but no functional response, with an AIC*~w~* of 0.218 (Table 1). The top-ranked model had the fourth highest AUC (AUC = 0.663).
 
 
-Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of distance to cutblock resoruce selection models for caribou. 
+Table 1. AIC, AIC*~w~* and AUC values from DU and seasonal sets of burn age resource selection models for caribou. 
 ```{r table of aic results, echo = F}
 table.aic <- read.csv ("data/table_aic_fire.csv")
 table.aic$AIC <- round (table.aic$AIC, 0)
