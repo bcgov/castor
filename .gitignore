@@ -9,3 +9,5 @@
 .tmp
 list_clus_data.xlsx
 .pdf
+.html
+scrap.R
