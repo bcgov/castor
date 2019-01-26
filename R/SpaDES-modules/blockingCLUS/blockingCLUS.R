@@ -88,6 +88,13 @@ blockingCLUS.Init <- function(sim) {
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
+  conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+  sim$thlb<-RASTER_CLIP(srcRaster= 'ras_bc_thlb2018', clipper=geom, conn=conn) 
+  dbDisconnect(conn)
+  sim$thlb[sim$thlb>0]<-1
+  sim$thlb[sim$thlb<0]<-0
+  
+  sim$ras.similar<-sim$ras.similar*sim$thlb
   return(invisible(sim))
 }
 
@@ -115,6 +122,11 @@ blockingCLUS.setSpreadProb<- function(sim) {
 
 
 blockingCLUS.preBlock <- function(sim) {
+  ras_var<-sim$ras.similar
+  len<-length(sim$ras.similar[sim$ras.similar>0])
+  ras_var[ras_var>0]<-runif(as.integer(len), 0,0.001)
+  sim$ras.similar<-sim$ras.similar+ras_var
+  
   ras.matrix<-raster::as.matrix(sim$ras.similar)
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
@@ -141,7 +153,6 @@ blockingCLUS.preBlock <- function(sim) {
   #------make the graph
   g<-graph.lattice()
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
-
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
 
   g.mst<-mst(g, weighted=TRUE)

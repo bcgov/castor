@@ -37,19 +37,18 @@ public class Forest_Hierarchy {
 
 	public void blockEdges() {
 		int blockSize = 0, seed = 0, seedNew = -1, d = 0;
-		this.hist.setLastBin();
-		int nTarget =  this.hist.bins.get(this.hist.getLastBin()-1).n;
-		double maxTargetSize = this.hist.bins.get(this.hist.getLastBin()-1).max_block_size;
+		this.hist.setBin();
+		int nTarget =  this.hist.bins.get(this.hist.getBin()-1).n;
+		double maxTargetSize = this.hist.bins.get(this.hist.getBin()-1).max_block_size;
 		boolean findBlocks=	!this.hist.bins.isEmpty(); //if there is a histogram with bins then findBlocks
 		this.degreeList = Arrays.asList(this.degree);
 		
-		Integer[] pixelBlock = new Integer[this.degree.length]; 
-		Arrays.fill(pixelBlock, EMPTY);	//fill the pixelBlock array with -1
+		this.blockPixels = new Integer[this.degree.length]; 
+		Arrays.fill(this.blockPixels, EMPTY);	//fill the pixelBlock array with -1
 		this.edgeList.sort((o1, o2) -> Double.compare(o1.getWeight(), o2.getWeight()));	//sort the edgeList	
 		
-		
+		System.out.println("Blocking...");
 		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
-			
 			if(blockSize == 0){ //the first pixel in the block
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList));//get the largest degree?
 			}else{
@@ -82,22 +81,22 @@ public class Forest_Hierarchy {
 					//System.out.println("blockSize: " + blockSize);
 				}else{//can't find any more pixels to add
 					//TODO: check to see what the bin this will fit in. This way there remains larger target blocks
-					pixelBlock = setPixelBlocks(pixelBlock);
+					setPixelBlocks();
 					this.hist.setBinTargetNumber(blockSize);
 					if(!this.hist.bins.isEmpty()){
-						nTarget = this.hist.bins.get(this.hist.getLastBin()-1).n;
-						maxTargetSize = this.hist.bins.get(this.hist.getLastBin()-1).max_block_size;
+						nTarget = this.hist.bins.get(this.hist.getBin()-1).n;
+						maxTargetSize = this.hist.bins.get(this.hist.getBin()-1).max_block_size;
 					}
 					blockSize = 0; //reset the new blockSize to zero
 					d = 0;
 					seedNew = -1;
 				}
 			}else{ //Found all the pixels needed to meet the target block size
-				pixelBlock = setPixelBlocks(pixelBlock);
+				setPixelBlocks();
 		        this.hist.setBinTargetNumber(blockSize);//reduce the n in the bin by one
 		        if(!this.hist.bins.isEmpty()){
-					nTarget =  this.hist.bins.get(this.hist.getLastBin()-1).n;
-					maxTargetSize = this.hist.bins.get(this.hist.getLastBin()-1).max_block_size;
+					nTarget =  this.hist.bins.get(this.hist.getBin()-1).n;
+					maxTargetSize = this.hist.bins.get(this.hist.getBin()-1).max_block_size;
 		        }
 				blockSize = 0; //reset the new blockSize to zero
 				d = 0;
@@ -106,43 +105,42 @@ public class Forest_Hierarchy {
 					
 			if(this.edgeList.isEmpty() || this.hist.bins.isEmpty()){
 				// This will only enter when the remaining blockList can reach the target size but there are no more edges left
-				blockID ++; //assign a blockID to the temp list of vertices
+				this.blockID ++; //assign a blockID to the temp list of vertices
 				Iterator<Integer> itr = this.blockList.iterator(); 
 		        while (itr.hasNext()) { 
 		            int x = (Integer)itr.next(); 
-		            pixelBlock[x-1] = blockID;
+		            this.blockPixels[x-1] = this.blockID;
 		        } 
 				findBlocks = false; //Exit the while loop
 			}
 		}//End of the while loop
 		
-		for (int r = 0; r < pixelBlock.length ; r++){ //assign the remaining blocks their own blockID
+		for (int r = 0; r < blockPixels.length ; r++){ //assign the remaining blocks their own blockID
 			//System.out.println("idegree[" + r + "]:" + this.idegree[r]);
-			if(pixelBlock[r]==EMPTY && this.idegree[r] > 0){
-				blockID++;
-				pixelBlock[r] = blockID ;
+			if(this.blockPixels[r]==EMPTY && this.idegree[r] > 0){
+				this.blockID++;
+				this.blockPixels[r] = this.blockID ;
 			}
 		}
-		setFinalBlockPixels(pixelBlock); // assign the result to the pixelBlock object
+
 		d=0; //clean up
-		pixelBlock = null;//clean up
 		this.blockList.clear();//clean up
 		this.edgeList.clear();//clean up
 	}
 
 
-	private Integer[] setPixelBlocks(Integer[] pixelBlock) {
-		blockID ++;
+	private void setPixelBlocks() {
+		this.blockID ++;
 		Iterator<Integer> itr = this.blockList.iterator();   
         while (itr.hasNext()) { 
-            int x = (Integer)itr.next(); 
-            pixelBlock[x-1] = blockID;
+            int x = (Integer)itr.next();
+            this.blockPixels[x-1] = this.blockID;
             removeEdges(x); //remove all remaining edges in the edgeList. So that each block has a unique set of pixels
             itr.remove(); 
         } 
         
         this.blockList.clear();
-		return pixelBlock;
+		
 	}
 
 	private  int findPixelToAdd(int seed) {
@@ -285,7 +283,7 @@ public class Forest_Hierarchy {
      * Private class for tracking bins within a histogram of block size
      */
     private class histogram {
-		private int lastBin;
+		private int nextBin;
 		
         class areaBin {
             double max_block_size;
@@ -337,15 +335,20 @@ public class Forest_Hierarchy {
         		}
 
         	}
-        	setLastBin();
+        	setBin();
 		}
 
-		public void setLastBin(){
-			this.lastBin = this.bins.size() ;  
+		public void setBin(){
+			//TODO: pull a random integer from a uniform distribution?
+			//System.out.println("the bin size:" + this.bins.size());
+			//System.out.println("the random is:" + (1 + (int)(Math.random() * (this.bins.size()) )));
+			//this.nextBin = (int)(Math.random() * (this.bins.size() + 1));  
+			this.nextBin = (1 + (int)(Math.random() * (this.bins.size()) ));
+			
         }
         
-        public int getLastBin(){
-        	return this.lastBin;
+        public int getBin(){
+        	return this.nextBin;
         }
     }
     
@@ -354,10 +357,6 @@ public class Forest_Hierarchy {
 		
 	}
 	
-	private void setFinalBlockPixels(Integer[] pixelBlock) {
-		this.blockPixels = null;
-		this.blockPixels = pixelBlock;
-	}
 	
 	public Integer[] getBlocks(){
 		return this.blockPixels;

@@ -8,7 +8,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction
-"When interpreting decisions support system output, as in all models, the major issue is whether the abstractions that the data and algorithms represent are sufficiently reliable to suffer the treatment of generalization from model output to practice in the real world" (Bunnell and Boyland 1999).
 
 The size of a harvest unit (ie. a cutblock) and its spatial boundaries have important implications for forest management. Economic feasiblity, patch size distribution objectives and metrics important to wildlife habitat (Ie. distance to a cutblock) are all influenced by cutblock size, shape and location. While forest attributes information is often represented as polygons or pixels (depending on the data structure) and can be assumed as a harvest unit there are many cases where polygons or pixels will require aggregation or disaggregation to meet management assumptions. For example, the aggregation of forest polygons or pixels is often required given operations can capture economies of scale resulting from harvesting a number of stands in a spatially contiguous manner. Conversely, forest cover polygons may require disaggragation when the size of the polygon is too large to meet size restrictions on harvest units. Aggregating or disaggregating polygons or pixels into operational units is one of the intital steps for making deciions in forest management planning. Largely, becuase forest mangement activites (i.e., harvseting, silvicuture) are often prescribed and implemented on a harvest unit. Thus, how do we simulate the formation of harvesting units (including the size, shape and location) into the future? 
 
@@ -66,7 +65,9 @@ Note: two improvements to this algorithum are needed for future work: i) if a si
 
 ## Objectives
 
-Our goal for blockingCLUS is to be able to reproduce historical harvest units - including the size and shape that would impact the historical harvest disturbance for caribou. Note: this obejctive differs from trying to simultaneously optimize the size, shape and location of harvest units, as described earler by an area restiction model. The location of harvest units commonly includes a temporal decision making process which is determined by the harvest scheduler. It is important to note that the number of cutblocks and their respective sizes are largely related. If the size of a stand is artifically set too small, a greater footprint could result from the scheduler, as it looks to find more fibre for harvesting. Thus, we used historic harvest unit locations to test the ability of blocking methods to reproduce the historical harvest disturbance for caribou. As stated earlier, this disturbance metric is the total of area of harvest units with a buffer of 500 m. 
+"When interpreting decisions support system output, as in all models, the major issue is whether the abstractions that the data and algorithms represent are sufficiently reliable to suffer the treatment of generalization from model output to practice in the real world" (Bunnell and Boyland 1999).
+
+Our goal for blockingCLUS is to be able to reproduce historical harvest units - including the size and shape that would impact the historical harvest disturbance for caribou. Note: this obejctive differs from trying to simultaneously optimize the size, shape and location of harvest units, as described earler by an area restiction model. The location of harvest units commonly includes a temporal decision making process which is determined by the harvest scheduler. It is important to note that the number of cutblocks and their respective sizes are largely related. If the size of a harvest unit is artifically set too small, a greater footprint could result from the scheduler, as it looks to find more fibre for harvesting. Thus, we used historic harvest unit locations to test the ability of blocking methods to reproduce the historical harvest disturbance for caribou. As stated earlier, this disturbance metric is the total of area of harvest units with a buffer of 500 m. 
 
 1. What forest attributes information (i.e., crown closure, ) directs the formation of historic harvest unit shape? 
 
@@ -90,8 +91,10 @@ library(bcmaps)
 library(ggrepel)
 library(dplyr)
 library(purrr)
+library(here)
 
-data<-read.table("validated.csv", sep = ",", head = TRUE)
+print(paste0(here::here(),"/R/SpaDES-modules/roadCLUS/data/validated.csv"))
+data<-read.table(paste0(here::here(),"/R/SpaDES-modules/roadCLUS/data/validated.csv"), sep = ",", head = TRUE)
 data$METHOD <- factor(data$METHOD,levels=c('snap', 'lcp', 'mst'))
 data2<-data[data$METHOD == 'snap',]
 
