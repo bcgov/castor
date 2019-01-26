@@ -179,6 +179,9 @@ dbDisconnect (conn) # connKyle
 ###################################
 # Data downloadable from websites #
 ###################################
+# soil parent material (endurign feature)
+# available from Hectares BC: https://www.hectaresbc.org/app/habc/HaBC.html
+
 # bc boundary; downloaded 25 July 2018
 # available from federal government via https://open.canada.ca/data/dataset/bab06e04-e6d0-41f1-a595-6cff4d71bedf
 download ("http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/gpr_000b11a_e.zip", 

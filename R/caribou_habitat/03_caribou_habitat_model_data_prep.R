@@ -1390,6 +1390,9 @@ rm (fh.1999, bark.beetles.1999, bark.beetles.s.1999, bark.beetles.vs.1999, bark.
     ras.bark.beetles.m.1999, ras.bark.beetles.s.1999, ras.bark.beetles.vs.1999)
 gc ()
 
+
+
+
 #===========================================================
 # VRI - data rasterization scripted within Kyle's postgres
 #==========================================================

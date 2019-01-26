@@ -27,39 +27,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bec2020.rst <- raster ("bec\\BEC_zone_2020s\\BEC_zone_2020s.tif")
 bec2050.rst <- raster ("bec\\BEC_zone_2050s\\BEC_zone_2050s.tif")
 bec2080.rst <- raster ("bec\\BEC_zone_2080s\\BEC_zone_2080s.tif")
