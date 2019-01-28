@@ -22,6 +22,7 @@ output: word_document
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set (echo = TRUE)
+options (scipen=999)
 require (sf)
 require (lubridate)
 require (RPostgreSQL)
@@ -32,6 +33,7 @@ require (raster)
 require (rgdal)
 require (tidyr)
 require (snow)
+
 # require (adehabitatHR)
 # require (sp) 
 # require (raster) 
@@ -5218,32 +5220,47 @@ gc ()
 # DU wetlands
 du.wetland <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_du_wetland_bcalbers.tif")
 # du.wetland <- raster::projectRaster (du.wetland, methods = 'ngb', crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
-
-
-
-
-
-class.du.wetland <- read.csv ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\du_wetland_classes.csv",
-                              sep = ",")
-
-
-
-
-sample.pts.bec <- sp::over (rsf.locations, bec [8]) # column 8 is the BEC label
-sample.pts.bec$ptID <- 1:2671047 # create a ptID to join data on
-rsf.locations@data <- dplyr::full_join (rsf.locations@data, sample.pts.bec, 
-                                         by = c ("ptID" = "ptID")) 
-# I did some visual inspection in GIS to see where points fell relative to caribou range and 
-# confirmed that the point order is equivalent to ID. 
-names (rsf.locations) [10] <- "bec_label"
+rsf.locations <- raster::extract (du.wetland, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "wetland_class_du_boreal"
 rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 10)], 
-                              by = c ("ptID" = "ptID")) 
-rm (bec)
+                                  by = c ("ptID" = "ptID")) 
+rm (du.wetland)
 gc ()
 
+wetland_du_class <- read.csv  ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\du_wetland_classes.csv") # link the numeric clases to their descriptors 
+names (wetland_du_class) [2] <- "wetland_class_du_boreal"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, wetland_du_class [c (2, 4, 6, 8, 9, 11)], 
+                                   by = c ("wetland_class_du_boreal" = "wetland_class_du_boreal")) 
+names (rsf.data.veg) [12] <- "wetland_class_du_boreal_name"
+names (rsf.data.veg) [13] <- "wetland_du_boreal_mineral_peat"
+names (rsf.data.veg) [14] <- "wetland_du_boreal_major_class"
+names (rsf.data.veg) [15] <- "wetland_du_boreal_moisture"
+names (rsf.data.veg) [16] <- "wetland_du_boreal_nutrient_regime"
+
+# Soils
+raster.soil <- raster ("C:\\Work\\caribou\\clus_data\\soils\\Soil_Parent_Materials\\soilmaterials.parent.tif")
+
+# du.wetland <- raster::projectRaster (du.wetland, methods = 'ngb', crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+rsf.locations <- raster::extract (raster.soil, rsf.locations, method = 'simple',
+                                  factors = T, df = T, sp = T) 
+names (rsf.locations) [10] <- "soil_parent_material_class"
+rsf.data.terrain.water <- dplyr::full_join (rsf.data.terrain.water, rsf.locations@data [c (9, 10)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.soil)
+gc ()
+
+class_soil_parent <- read.csv  ("C:\\Work\\caribou\\clus_data\\soils\\Soil_Parent_Materials\\soil_parent_classes.csv") # link the numeric clases to their descriptors 
+names (class_soil_parent) [1] <- "soil_parent_material_class"
+names (class_soil_parent) [2] <- "soil_parent_material_name"
+rsf.data.terrain.water <- dplyr::full_join (rsf.data.terrain.water, class_soil_parent, 
+                                            by = c ("soil_parent_material_class" = 
+                                                      "soil_parent_material_class")) 
+write.table (rsf.data.terrain.water, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_terrain_water.csv", sep = ",")
+
+# VRI
 
 
-ogrListLayers("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\DUC_EWC_Deliverables\\Data\\DUC_NEBC_Enhanced_Wetland_Classification.gdb")
 
 
 
@@ -5253,17 +5270,10 @@ ogrListLayers("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\DUC_EWC_Deliverabl
 
 
 
-
 # rsf.data.climate <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv")
 
 
-# write.table (rsf.data.climate, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv", sep = ",")
 
-test <- rsf.data %>%
-          filter (ptID == 963805)
-
-test <- rsf.locations@data %>%
-          filter (ptID == 2374727)
 
 
 #===================================================
@@ -5301,34 +5311,1150 @@ rsf.data.climate <- rsf.data %>%
 dplyr::select (pttype, uniqueID, du, season, animal_id, year, ECOTYPE, HERD_NAME, ptID, frost_free_start_julian, growing_degree_days, frost_free_end_julian, frost_free_period, mean_annual_ppt, mean_annual_temp, mean_coldest_month_temp, mean_summer_ppt, mean_warmest_month_temp, number_frost_free_days, fall_growing_degree_days, summer_growing_degree_days, spring_growing_degree_days, winter_growing_degree_days, frost_free_days_autumn, frost_free_days_summer, frost_free_days_spring, ppt_as_snow_annual, frost_free_days_winter, ppt_as_snow_autumn, ppt_as_snow_summer, ppt_as_snow_spring, ppt_as_snow_winter, ppt_autumn, ppt_summer, ppt_spring, ppt_winter, temp_avg_autumn, temp_avg_summer, temp_avg_spring, temp_avg_winter, temp_max_winter, temp_max_autumn, temp_max_summer, temp_max_spring, temp_min_autumn, temp_min_summer, temp_min_spring, temp_min_winter)
 write.table (rsf.data.climate, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv", sep = ",")
 
-rsf.locations.data <- st_as_sf (rsf.locations)
+```
 
 
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-st_write (obj = rsf.locations.data, 
-          dsn = conn, 
-          layer = c ("caribou", "rsf_locations_caribou_bc_habitat_data"))
-dbDisconnect (conn)
+data frame is built; for the data that is time-stamped (i.e., cutblocks, fire and beetle infestation), 'time-since' covaraites need to be calculated. e.g., if a location occured in 2014, thand distacne to cutblock in 2013 becomes disatnce to cutblock 1 years ago, etc.
+
+```{r, calculate time-since covariates, warning = F, include = F, message = F}
+
+#===================================================
+# Cutblocks
+#===================================================
+rsf.data.cut <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock.csv")
+
+rsf.data.cut$distance_to_cut_1yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2017, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2016, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2015, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2014, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2013, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2012, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2008, rsf.data.cut$distance_to_cutblocks_2007))))))))))
+
+rsf.data.cut$distance_to_cut_2yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2016, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2015, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2014, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2013, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2012, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2007, rsf.data.cut$distance_to_cutblocks_2006))))))))))
+
+rsf.data.cut$distance_to_cut_3yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2015, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2014, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2013, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2012, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2006, rsf.data.cut$distance_to_cutblocks_2005))))))))))
+
+rsf.data.cut$distance_to_cut_4yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2014, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2013, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2012, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2005, rsf.data.cut$distance_to_cutblocks_2004))))))))))
+
+rsf.data.cut$distance_to_cut_5yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2013, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2012, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2004, rsf.data.cut$distance_to_cutblocks_2003))))))))))
+
+rsf.data.cut$distance_to_cut_6yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2012, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2003, rsf.data.cut$distance_to_cutblocks_2002))))))))))
+
+rsf.data.cut$distance_to_cut_7yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2011, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2002, rsf.data.cut$distance_to_cutblocks_2001))))))))))
+
+rsf.data.cut$distance_to_cut_8yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2010, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2001, rsf.data.cut$distance_to_cutblocks_2000))))))))))
+
+rsf.data.cut$distance_to_cut_9yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2009, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_2000, rsf.data.cut$distance_to_cutblocks_1999))))))))))
+
+rsf.data.cut$distance_to_cut_10yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2008, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1999, rsf.data.cut$distance_to_cutblocks_1998))))))))))
+
+rsf.data.cut$distance_to_cut_11yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2007, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1998, rsf.data.cut$distance_to_cutblocks_1997))))))))))
+
+rsf.data.cut$distance_to_cut_12yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2006, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1997, rsf.data.cut$distance_to_cutblocks_1996))))))))))
+
+rsf.data.cut$distance_to_cut_13yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2005, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1996, rsf.data.cut$distance_to_cutblocks_1995))))))))))
+
+rsf.data.cut$distance_to_cut_14yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2004, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1995, rsf.data.cut$distance_to_cutblocks_1994))))))))))
+
+rsf.data.cut$distance_to_cut_15yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2003, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1994, rsf.data.cut$distance_to_cutblocks_1993))))))))))
+
+rsf.data.cut$distance_to_cut_16yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2002, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1993, rsf.data.cut$distance_to_cutblocks_1992))))))))))
+
+rsf.data.cut$distance_to_cut_17yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2001, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1992, rsf.data.cut$distance_to_cutblocks_1991))))))))))
+
+rsf.data.cut$distance_to_cut_18yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_2000, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1991, rsf.data.cut$distance_to_cutblocks_1990))))))))))
+
+rsf.data.cut$distance_to_cut_19yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1999, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1990, rsf.data.cut$distance_to_cutblocks_1989))))))))))
+
+rsf.data.cut$distance_to_cut_20yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1998, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1989, rsf.data.cut$distance_to_cutblocks_1988))))))))))
+
+rsf.data.cut$distance_to_cut_21yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1997, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1988, rsf.data.cut$distance_to_cutblocks_1987))))))))))
+
+rsf.data.cut$distance_to_cut_22yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1996, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1987, rsf.data.cut$distance_to_cutblocks_1986))))))))))
+
+rsf.data.cut$distance_to_cut_23yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1995, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1986, rsf.data.cut$distance_to_cutblocks_1985))))))))))
+
+rsf.data.cut$distance_to_cut_24yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1994, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1985, rsf.data.cut$distance_to_cutblocks_1984))))))))))
+
+rsf.data.cut$distance_to_cut_25yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1993, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1984, rsf.data.cut$distance_to_cutblocks_1983))))))))))
+
+rsf.data.cut$distance_to_cut_26yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1992, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1983, rsf.data.cut$distance_to_cutblocks_1982))))))))))
+
+rsf.data.cut$distance_to_cut_27yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1991, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1982, rsf.data.cut$distance_to_cutblocks_1981))))))))))
+
+rsf.data.cut$distance_to_cut_28yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1990, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1981, rsf.data.cut$distance_to_cutblocks_1980))))))))))
+
+rsf.data.cut$distance_to_cut_29yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1989, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1980, rsf.data.cut$distance_to_cutblocks_1979))))))))))
+
+rsf.data.cut$distance_to_cut_30yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1988, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1979, rsf.data.cut$distance_to_cutblocks_1978))))))))))
+
+rsf.data.cut$distance_to_cut_31yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1987, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1978, rsf.data.cut$distance_to_cutblocks_1977))))))))))
+
+rsf.data.cut$distance_to_cut_32yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1986, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1977, rsf.data.cut$distance_to_cutblocks_1976))))))))))
+
+rsf.data.cut$distance_to_cut_33yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1985, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1976, rsf.data.cut$distance_to_cutblocks_1975))))))))))
+
+rsf.data.cut$distance_to_cut_34yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1984, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1975, rsf.data.cut$distance_to_cutblocks_1974))))))))))
+
+rsf.data.cut$distance_to_cut_35yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1983, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1974, rsf.data.cut$distance_to_cutblocks_1973))))))))))
+
+rsf.data.cut$distance_to_cut_36yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1982, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1973, rsf.data.cut$distance_to_cutblocks_1972))))))))))
+
+rsf.data.cut$distance_to_cut_37yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1981, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1972, rsf.data.cut$distance_to_cutblocks_1971))))))))))
+
+rsf.data.cut$distance_to_cut_38yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1980, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1971, rsf.data.cut$distance_to_cutblocks_1970))))))))))
+
+rsf.data.cut$distance_to_cut_39yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1979, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1970, rsf.data.cut$distance_to_cutblocks_1969))))))))))
+
+rsf.data.cut$distance_to_cut_40yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1978, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1969, rsf.data.cut$distance_to_cutblocks_1968))))))))))
+
+rsf.data.cut$distance_to_cut_41yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1977, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1968, rsf.data.cut$distance_to_cutblocks_1967))))))))))
+
+rsf.data.cut$distance_to_cut_42yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1976, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1967, rsf.data.cut$distance_to_cutblocks_1966))))))))))
+
+rsf.data.cut$distance_to_cut_43yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1975, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1966, rsf.data.cut$distance_to_cutblocks_1965))))))))))
+
+rsf.data.cut$distance_to_cut_44yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1974, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1965, rsf.data.cut$distance_to_cutblocks_1964))))))))))
+
+rsf.data.cut$distance_to_cut_45yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1973, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1964, rsf.data.cut$distance_to_cutblocks_1963))))))))))
+
+rsf.data.cut$distance_to_cut_46yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1972, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1964, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1963, rsf.data.cut$distance_to_cutblocks_1962))))))))))
+
+rsf.data.cut$distance_to_cut_47yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1971, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1964, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1963, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1962, rsf.data.cut$distance_to_cutblocks_1961))))))))))
+
+rsf.data.cut$distance_to_cut_48yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1970, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1964, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1963, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1962, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1961, rsf.data.cut$distance_to_cutblocks_1960))))))))))
+
+rsf.data.cut$distance_to_cut_49yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1969, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1964, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1963, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1962, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1961, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1960, rsf.data.cut$distance_to_cutblocks_1959))))))))))
+
+rsf.data.cut$distance_to_cut_50yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1968, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1964, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1963, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1962, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1961, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1960, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1959, rsf.data.cut$distance_to_cutblocks_1958))))))))))
+
+rsf.data.cut$distance_to_cut_pre50yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$distance_to_cutblocks_1967, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$distance_to_cutblocks_1966, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$distance_to_cutblocks_1965, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$distance_to_cutblocks_1964, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$distance_to_cutblocks_1963, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$distance_to_cutblocks_1962, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$distance_to_cutblocks_1961, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$distance_to_cutblocks_1960, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$distance_to_cutblocks_1959, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$distance_to_cutblocks_1958, rsf.data.cut$distance_to_cutblocks_pre1957))))))))))
+
+rsf.data.cut$cut_1yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2017, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2016, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2015, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2014, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2013, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2012, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2008, rsf.data.cut$cutblocks_2007))))))))))
+
+rsf.data.cut$cut_2yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2016, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2015, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2014, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2013, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2012, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2007, rsf.data.cut$cutblocks_2006))))))))))
+
+rsf.data.cut$cut_3yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2015, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2014, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2013, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2012, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2006, rsf.data.cut$cutblocks_2005))))))))))
+
+rsf.data.cut$cut_4yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2014, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2013, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2012, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2005, rsf.data.cut$cutblocks_2004))))))))))
+
+rsf.data.cut$cut_5yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2013, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2012, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2004, rsf.data.cut$cutblocks_2003))))))))))
+
+rsf.data.cut$cut_6yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2012, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2003, rsf.data.cut$cutblocks_2002))))))))))
+
+rsf.data.cut$cut_7yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2011, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2002, rsf.data.cut$cutblocks_2001))))))))))
+
+rsf.data.cut$cut_8yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2010, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2001, rsf.data.cut$cutblocks_2000))))))))))
+
+rsf.data.cut$cut_9yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2009, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_2000, rsf.data.cut$cutblocks_1999))))))))))
+
+rsf.data.cut$cut_10yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2008, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1999, rsf.data.cut$cutblocks_1998))))))))))
+
+rsf.data.cut$cut_11yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2007, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1998, rsf.data.cut$cutblocks_1997))))))))))
+
+rsf.data.cut$cut_12yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2006, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1997, rsf.data.cut$cutblocks_1996))))))))))
+
+rsf.data.cut$cut_13yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2005, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1996, rsf.data.cut$cutblocks_1995))))))))))
+
+rsf.data.cut$cut_14yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2004, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1995, rsf.data.cut$cutblocks_1994))))))))))
+
+rsf.data.cut$cut_15yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2003, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1994, rsf.data.cut$cutblocks_1993))))))))))
+
+rsf.data.cut$cut_16yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2002, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1993, rsf.data.cut$cutblocks_1992))))))))))
+
+rsf.data.cut$cut_17yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2001, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1992, rsf.data.cut$cutblocks_1991))))))))))
+
+rsf.data.cut$cut_18yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_2000, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1991, rsf.data.cut$cutblocks_1990))))))))))
+
+rsf.data.cut$cut_19yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1999, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1990, rsf.data.cut$cutblocks_1989))))))))))
+
+rsf.data.cut$cut_20yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1998, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1989, rsf.data.cut$cutblocks_1988))))))))))
+
+rsf.data.cut$cut_21yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1997, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1988, rsf.data.cut$cutblocks_1987))))))))))
+
+rsf.data.cut$cut_22yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1996, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1987, rsf.data.cut$cutblocks_1986))))))))))
+
+rsf.data.cut$cut_23yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1995, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1986, rsf.data.cut$cutblocks_1985))))))))))
+
+rsf.data.cut$cut_24yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1994, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1985, rsf.data.cut$cutblocks_1984))))))))))
+
+rsf.data.cut$cut_25yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1993, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1984, rsf.data.cut$cutblocks_1983))))))))))
+
+rsf.data.cut$cut_26yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1992, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1983, rsf.data.cut$cutblocks_1982))))))))))
+
+rsf.data.cut$cut_27yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1991, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1982, rsf.data.cut$cutblocks_1981))))))))))
+
+rsf.data.cut$cut_28yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1990, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1981, rsf.data.cut$cutblocks_1980))))))))))
+
+rsf.data.cut$cut_29yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1989, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1980, rsf.data.cut$cutblocks_1979))))))))))
+
+rsf.data.cut$cut_30yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1988, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1979, rsf.data.cut$cutblocks_1978))))))))))
+
+rsf.data.cut$cut_31yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1987, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1978, rsf.data.cut$cutblocks_1977))))))))))
+
+rsf.data.cut$cut_32yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1986, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1977, rsf.data.cut$cutblocks_1976))))))))))
+
+rsf.data.cut$cut_33yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1985, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1976, rsf.data.cut$cutblocks_1975))))))))))
+
+rsf.data.cut$cut_34yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1984, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1975, rsf.data.cut$cutblocks_1974))))))))))
+
+rsf.data.cut$cut_35yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1983, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1974, rsf.data.cut$cutblocks_1973))))))))))
+
+rsf.data.cut$cut_36yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1982, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1973, rsf.data.cut$cutblocks_1972))))))))))
+
+rsf.data.cut$cut_37yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1981, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1972, rsf.data.cut$cutblocks_1971))))))))))
+
+rsf.data.cut$cut_38yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1980, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1971, rsf.data.cut$cutblocks_1970))))))))))
+
+rsf.data.cut$cut_39yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1979, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1970, rsf.data.cut$cutblocks_1969))))))))))
+
+rsf.data.cut$cut_40yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1978, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1969, rsf.data.cut$cutblocks_1968))))))))))
+
+rsf.data.cut$cut_41yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1977, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1968, rsf.data.cut$cutblocks_1967))))))))))
+
+rsf.data.cut$cut_42yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1976, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1967, rsf.data.cut$cutblocks_1966))))))))))
+
+rsf.data.cut$cut_43yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1975, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1966, rsf.data.cut$cutblocks_1965))))))))))
+
+rsf.data.cut$cut_44yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1974, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1965, rsf.data.cut$cutblocks_1964))))))))))
+
+rsf.data.cut$cut_45yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1973, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1964, rsf.data.cut$cutblocks_1963))))))))))
+
+rsf.data.cut$cut_46yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1972, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1964, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1963, rsf.data.cut$cutblocks_1962))))))))))
+
+rsf.data.cut$cut_47yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1971, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1964, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1963, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1962, rsf.data.cut$cutblocks_1961))))))))))
+
+rsf.data.cut$cut_48yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1970, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1964, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1963, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1962, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1961, rsf.data.cut$cutblocks_1960))))))))))
+
+rsf.data.cut$cut_49yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1969, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1964, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1963, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1962, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1961, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1960, rsf.data.cut$cutblocks_1959))))))))))
+
+rsf.data.cut$cut_50yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1968, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1964, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1963, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1962, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1961, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1960, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1959, rsf.data.cut$cutblocks_1958))))))))))
+
+rsf.data.cut$cut_pre50yo <- ifelse (rsf.data.cut$year == 2018, rsf.data.cut$cutblocks_1967, ifelse (rsf.data.cut$year == 2017, rsf.data.cut$cutblocks_1966, ifelse (rsf.data.cut$year == 2016, rsf.data.cut$cutblocks_1965, ifelse (rsf.data.cut$year == 2015, rsf.data.cut$cutblocks_1964, ifelse (rsf.data.cut$year == 2014, rsf.data.cut$cutblocks_1963, ifelse (rsf.data.cut$year == 2013, rsf.data.cut$cutblocks_1962, ifelse (rsf.data.cut$year == 2012, rsf.data.cut$cutblocks_1961, ifelse (rsf.data.cut$year == 2011, rsf.data.cut$cutblocks_1960, ifelse (rsf.data.cut$year == 2010, rsf.data.cut$cutblocks_1959, ifelse (rsf.data.cut$year == 2009, rsf.data.cut$cutblocks_1958, rsf.data.cut$cutblocks_pre1957))))))))))
+
+rsf.data.cut.age <- rsf.data.cut [, c (1:9, 133:234)]
+
+write.table (rsf.data.cut.age, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_cutblock_age.csv", sep = ",")
+
+#===================================================
+# Fire
+#===================================================
+rsf.data.fire <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_fire.csv")
+# rsf.data.fire.test <- rsf.data.fire [sample (nrow (rsf.data.fire), 1000), ]
+# rsf.data.fire.test2 <- rsf.data.fire.test %>% dplyr::select (year, fire_1yo, fire_2017, fire_2016, fire_2015, fire_2014, fire_2013, fire_2012, fire_2011, fire_2010, fire_2009, fire_2008)
+
+rsf.data.fire$fire_1yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2017, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2016, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2015, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2014, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2013, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2012, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2008, 
+                                          rsf.data.fire$fire_2007))))))))))
+
+rsf.data.fire$fire_2yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2016, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2015, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2014, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2013, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2012, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2007, 
+                                          rsf.data.fire$fire_2006))))))))))
+
+rsf.data.fire$fire_3yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2015, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2014, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2013, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2012, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2006, 
+                                          rsf.data.fire$fire_2005))))))))))
+
+rsf.data.fire$fire_4yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2014, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2013, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2012, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2005, 
+                                          rsf.data.fire$fire_2004))))))))))
+
+rsf.data.fire$fire_5yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2013, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2012, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2004, 
+                                          rsf.data.fire$fire_2003))))))))))
+
+rsf.data.fire$fire_6yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2012, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2003, 
+                                          rsf.data.fire$fire_2002))))))))))
+
+rsf.data.fire$fire_7yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2011, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2002, 
+                                          rsf.data.fire$fire_2001))))))))))
+
+rsf.data.fire$fire_8yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2010, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2001, 
+                                          rsf.data.fire$fire_2000))))))))))
+
+rsf.data.fire$fire_9yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2009, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_2000, 
+                                          rsf.data.fire$fire_1999))))))))))
+
+rsf.data.fire$fire_10yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2008, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1999, 
+                                          rsf.data.fire$fire_1998))))))))))
+
+rsf.data.fire$fire_11yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2007, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1998, 
+                                          rsf.data.fire$fire_1997))))))))))
+
+rsf.data.fire$fire_12yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2006, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1997, 
+                                          rsf.data.fire$fire_1996))))))))))
+
+rsf.data.fire$fire_13yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2005, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1996, 
+                                          rsf.data.fire$fire_1995))))))))))
+
+rsf.data.fire$fire_14yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2004, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1995, 
+                                          rsf.data.fire$fire_1994))))))))))
+
+rsf.data.fire$fire_15yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2003, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1994, 
+                                          rsf.data.fire$fire_1993))))))))))
+
+rsf.data.fire$fire_16yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2002, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1993, 
+                                          rsf.data.fire$fire_1992))))))))))
+
+rsf.data.fire$fire_17yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2001, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1992, 
+                                          rsf.data.fire$fire_1991))))))))))
+
+rsf.data.fire$fire_18yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_2000, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1991, 
+                                          rsf.data.fire$fire_1990))))))))))
+
+rsf.data.fire$fire_19yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1999, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1990, 
+                                          rsf.data.fire$fire_1989))))))))))
+
+rsf.data.fire$fire_20yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1998, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1989, 
+                                          rsf.data.fire$fire_1988))))))))))
+
+rsf.data.fire$fire_21yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1997, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1988, 
+                                          rsf.data.fire$fire_1987))))))))))
+
+rsf.data.fire$fire_22yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1996, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1987, 
+                                          rsf.data.fire$fire_1986))))))))))
+
+rsf.data.fire$fire_23yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1995, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1986, 
+                                          rsf.data.fire$fire_1985))))))))))
+
+rsf.data.fire$fire_24yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1994, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1985, 
+                                          rsf.data.fire$fire_1984))))))))))
+
+rsf.data.fire$fire_25yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1993, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1984, 
+                                          rsf.data.fire$fire_1983))))))))))
+
+rsf.data.fire$fire_26yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1992, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1983, 
+                                          rsf.data.fire$fire_1982))))))))))
+
+rsf.data.fire$fire_27yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1991, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1982, 
+                                          rsf.data.fire$fire_1981))))))))))
+
+rsf.data.fire$fire_28yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1990, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1981, 
+                                          rsf.data.fire$fire_1980))))))))))
+
+rsf.data.fire$fire_29yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1989, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1980, 
+                                          rsf.data.fire$fire_1979))))))))))
+
+rsf.data.fire$fire_30yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1988, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1979, 
+                                          rsf.data.fire$fire_1978))))))))))
+
+rsf.data.fire$fire_31yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1987, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1978, 
+                                          rsf.data.fire$fire_1977))))))))))
+
+rsf.data.fire$fire_32yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1986, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1977, 
+                                          rsf.data.fire$fire_1976))))))))))
+
+rsf.data.fire$fire_33yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1985, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1976, 
+                                          rsf.data.fire$fire_1975))))))))))
+
+rsf.data.fire$fire_34yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1984, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1975, 
+                                          rsf.data.fire$fire_1974))))))))))
+
+rsf.data.fire$fire_35yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1983, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1974, 
+                                          rsf.data.fire$fire_1973))))))))))
+
+rsf.data.fire$fire_36yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1982, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1973, 
+                                          rsf.data.fire$fire_1972))))))))))
+
+rsf.data.fire$fire_37yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1981, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1972, 
+                                          rsf.data.fire$fire_1971))))))))))
+
+rsf.data.fire$fire_38yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1980, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1971, 
+                                          rsf.data.fire$fire_1970))))))))))
+
+rsf.data.fire$fire_39yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1979, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1970, 
+                                          rsf.data.fire$fire_1969))))))))))
+
+rsf.data.fire$fire_40yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1978, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1969, 
+                                          rsf.data.fire$fire_1968))))))))))
+
+rsf.data.fire$fire_41yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1977, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1968, 
+                                          rsf.data.fire$fire_1967))))))))))
+
+rsf.data.fire$fire_42yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1976, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1967, 
+                                          rsf.data.fire$fire_1966))))))))))
+
+rsf.data.fire$fire_43yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1975, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1966, 
+                                          rsf.data.fire$fire_1965))))))))))
+
+rsf.data.fire$fire_44yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1974, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1965, 
+                                          rsf.data.fire$fire_1964))))))))))
+
+rsf.data.fire$fire_45yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1973, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1964, 
+                                          rsf.data.fire$fire_1963))))))))))
+
+rsf.data.fire$fire_46yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1972, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1964, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1963, 
+                                          rsf.data.fire$fire_1962))))))))))
+
+rsf.data.fire$fire_47yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1971, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1964, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1963, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1962, 
+                                          rsf.data.fire$fire_1961))))))))))
+
+rsf.data.fire$fire_48yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1970, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1964, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1963, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1962, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1961, 
+                                          rsf.data.fire$fire_1960))))))))))
+
+rsf.data.fire$fire_49yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1969, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1964, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1963, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1962, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1961, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1960, 
+                                          rsf.data.fire$fire_1959))))))))))
+
+rsf.data.fire$fire_50yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1968, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1964, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1963, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1962, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1961, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1960, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1959, 
+                                          rsf.data.fire$fire_1958))))))))))
+
+rsf.data.fire$fire_51yo <- ifelse (rsf.data.fire$year == 2018, rsf.data.fire$fire_1967, 
+                                  ifelse (rsf.data.fire$year == 2017, rsf.data.fire$fire_1966, 
+                                  ifelse (rsf.data.fire$year == 2016, rsf.data.fire$fire_1965, 
+                                  ifelse (rsf.data.fire$year == 2015, rsf.data.fire$fire_1964, 
+                                  ifelse (rsf.data.fire$year == 2014, rsf.data.fire$fire_1963, 
+                                  ifelse (rsf.data.fire$year == 2013, rsf.data.fire$fire_1962, 
+                                  ifelse (rsf.data.fire$year == 2012, rsf.data.fire$fire_1961, 
+                                  ifelse (rsf.data.fire$year == 2011, rsf.data.fire$fire_1960, 
+                                  ifelse (rsf.data.fire$year == 2010, rsf.data.fire$fire_1959, 
+                                  ifelse (rsf.data.fire$year == 2009, rsf.data.fire$fire_1958, 
+                                          rsf.data.fire$fire_1957))))))))))
+
+rsf.data.fire.age <- rsf.data.fire [, c (1:9, 71:121)]
+
+write.table (rsf.data.fire.age, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_fire_age.csv", sep = ",")
+
+#===================================================
+# Beetle
+#===================================================
+rsf.data.beetle <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_beetle.csv")
+# rsf.data.fire.test <- rsf.data.fire [sample (nrow (rsf.data.fire), 1000), ]
+# rsf.data.fire.test2 <- rsf.data.fire.test %>% dplyr::select (year, fire_1yo, fire_2017, fire_2016, fire_2015, fire_2014, fire_2013, fire_2012, fire_2011, fire_2010, fire_2009, fire_2008)
+
+rsf.data.beetle$beetle_moderate_1yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2017, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2016, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2015, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2014, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2013, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2012, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2008, 
+                                          rsf.data.beetle$beetle_moderate_2007))))))))))
+
+rsf.data.beetle$beetle_moderate_2yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2016, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2015, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2014, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2013, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2012, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2007, 
+                                          rsf.data.beetle$beetle_moderate_2006))))))))))
+
+rsf.data.beetle$beetle_moderate_3yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2015, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2014, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2013, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2012, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2006, 
+                                          rsf.data.beetle$beetle_moderate_2005))))))))))
+
+rsf.data.beetle$beetle_moderate_4yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2014, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2013, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2012, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2006, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2005, 
+                                          rsf.data.beetle$beetle_moderate_2004))))))))))
+
+rsf.data.beetle$beetle_moderate_5yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2013, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2012, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2006, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2005, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2004, 
+                                          rsf.data.beetle$beetle_moderate_2003))))))))))
+
+rsf.data.beetle$beetle_moderate_6yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2012, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2006, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2005, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2004, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2003, 
+                                          rsf.data.beetle$beetle_moderate_2002))))))))))
+
+rsf.data.beetle$beetle_moderate_7yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2011, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2006, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2005, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2004, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2003, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2002, 
+                                          rsf.data.beetle$beetle_moderate_2001))))))))))
+
+rsf.data.beetle$beetle_moderate_8yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2010, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2006, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2005, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2004, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2003, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2002, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2001, 
+                                          rsf.data.beetle$beetle_moderate_2000))))))))))
+
+rsf.data.beetle$beetle_moderate_9yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_moderate_2009, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_moderate_2008, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_moderate_2007, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_moderate_2006, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_moderate_2005, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_moderate_2004, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_moderate_2003, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_moderate_2002, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_moderate_2001, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_moderate_2000, 
+                                          rsf.data.beetle$beetle_moderate_1999))))))))))
 
 
+rsf.data.beetle$beetle_severe_1yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2017, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2016, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2015, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2008, 
+                                          rsf.data.beetle$beetle_severe_2007))))))))))
 
+rsf.data.beetle$beetle_severe_2yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2016, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2015, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2007, 
+                                          rsf.data.beetle$beetle_severe_2006))))))))))
 
+rsf.data.beetle$beetle_severe_3yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2015, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2006, 
+                                          rsf.data.beetle$beetle_severe_2005))))))))))
 
+rsf.data.beetle$beetle_severe_4yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2005, 
+                                          rsf.data.beetle$beetle_severe_2004))))))))))
 
+rsf.data.beetle$beetle_severe_5yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2005, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2004, 
+                                          rsf.data.beetle$beetle_severe_2003))))))))))
 
+rsf.data.beetle$beetle_severe_6yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2005, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2004, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2003, 
+                                          rsf.data.beetle$beetle_severe_2002))))))))))
 
+rsf.data.beetle$beetle_severe_7yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2005, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2004, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2003, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2002, 
+                                          rsf.data.beetle$beetle_severe_2001))))))))))
 
+rsf.data.beetle$beetle_severe_8yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2005, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2004, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2003, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2002, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2001, 
+                                          rsf.data.beetle$beetle_severe_2000))))))))))
 
+rsf.data.beetle$beetle_severe_9yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_severe_2005, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_severe_2004, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_severe_2003, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_severe_2002, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_severe_2001, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_severe_2000, 
+                                          rsf.data.beetle$beetle_severe_1999))))))))))
 
+rsf.data.beetle$beetle_very_severe_1yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_very_severe_2017, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_very_severe_2016, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_very_severe_2015, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_very_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_very_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_very_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_very_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_very_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_very_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_very_severe_2008, 
+                                          rsf.data.beetle$beetle_very_severe_2007))))))))))
+
+rsf.data.beetle$beetle_very_severe_2yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_very_severe_2016, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_very_severe_2015, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_very_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_very_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_very_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_very_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_very_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_very_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_very_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_very_severe_2007, 
+                                          rsf.data.beetle$beetle_very_severe_2006))))))))))
+
+rsf.data.beetle$beetle_very_severe_3yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_very_severe_2015, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_very_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_very_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_very_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_very_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_very_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_very_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_very_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_very_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_very_severe_2006, 
+                                          rsf.data.beetle$beetle_very_severe_2005))))))))))
+
+rsf.data.beetle$beetle_very_severe_4yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_very_severe_2014, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_very_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_very_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_very_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_very_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_very_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_very_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_very_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_very_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_very_severe_2005, 
+                                          rsf.data.beetle$beetle_very_severe_2004))))))))))
+
+rsf.data.beetle$beetle_very_severe_5yo <- ifelse (rsf.data.beetle$year == 2018, rsf.data.beetle$beetle_very_severe_2013, 
+                                  ifelse (rsf.data.beetle$year == 2017, rsf.data.beetle$beetle_very_severe_2012, 
+                                  ifelse (rsf.data.beetle$year == 2016, rsf.data.beetle$beetle_very_severe_2011, 
+                                  ifelse (rsf.data.beetle$year == 2015, rsf.data.beetle$beetle_very_severe_2010, 
+                                  ifelse (rsf.data.beetle$year == 2014, rsf.data.beetle$beetle_very_severe_2009, 
+                                  ifelse (rsf.data.beetle$year == 2013, rsf.data.beetle$beetle_very_severe_2008, 
+                                  ifelse (rsf.data.beetle$year == 2012, rsf.data.beetle$beetle_very_severe_2007, 
+                                  ifelse (rsf.data.beetle$year == 2011, rsf.data.beetle$beetle_very_severe_2006, 
+                                  ifelse (rsf.data.beetle$year == 2010, rsf.data.beetle$beetle_very_severe_2005, 
+                                  ifelse (rsf.data.beetle$year == 2009, rsf.data.beetle$beetle_very_severe_2004, 
+                                          rsf.data.beetle$beetle_very_severe_2003))))))))))
+
+rsf.data.beetle.age <- rsf.data.beetle [, c (1:9, 63:85)]
+
+write.table (rsf.data.beetle.age, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_beetle_age.csv", sep = ",")
 
 ```
 
 
+now we need to filter out soem covaraiets in the interest of identifying parsimonius model.do this by bulding 'sub-models' by them
+
+Sub-divided data into similar themes:
+- terrain (elevation, aspect, slope)
+- forestry cutblock (distacne to cutblock across multipel years)
+- human footprint (non-cutblock)
+- beetle
+- fire
+- climate
+- vegetation
 
 
 

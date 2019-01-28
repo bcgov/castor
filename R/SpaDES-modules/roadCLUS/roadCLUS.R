@@ -77,6 +77,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads")
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "analysis.sim", eventPriority=19)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim",eventPriority=20)
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim",eventPriority=21)
       }
     },
     plot.sim = {
@@ -135,7 +136,7 @@ roadCLUS.Init <- function(sim) {
 }
 
 roadCLUS.roadsPlot<-function(sim){
-  #Plot(sim$roads, title = paste("Simulated Roads ", time(sim)))
+  Plot(sim$roads, title = paste("Simulated Roads ", time(sim)))
   return(invisible(sim))
 }
 
@@ -158,6 +159,8 @@ roadCLUS.getRoads <- function(sim) {
 roadCLUS.getCostSurface<- function(sim){
   rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
   sim$costSurface<-rds*(resample(getRasterQuery(P(sim)$nameCostSurfaceRas, sim$bbox), sim$roads, method = 'bilinear')*288 + 3243)#multiply the cost surface by the existing roads
+  rm(rds)
+  gc()
   return(invisible(sim))
 }
 
@@ -170,7 +173,7 @@ roadCLUS.getGraph<- function(sim){
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   #weight<-data.table(getValues(sim$costSurface)) #Try
-  weight$id<-as.integer(row.names(weight)) # get the id for ther verticies which is used to merge with the edge list from adj
+  weight[, id := seq_len(.N)] # get the id for ther verticies which is used to merge with the edge list from adj
   
   #------get the adjacency using SpaDES function adj
   edges<-adj(returnDT= TRUE, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix), directions =8, cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))
@@ -185,7 +188,7 @@ roadCLUS.getGraph<- function(sim){
   
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
-  edges.weight$id<-1:nrow(edges.weight) #set the ids of the edge list. Faster than using as.integer(row.names())
+  edges.weight[, id := seq_len(.N)] #set the ids of the edge list. Faster than using as.integer(row.names())
   
   #------make the graph
   sim$g<-graph.edgelist(as.matrix(edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
@@ -245,10 +248,7 @@ roadCLUS.shortestPaths<- function(sim){
     sim$paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), sim$paths.v))#save the verticies for mapping
     paths.e<-paths[grepl("epath",names(paths))]
     edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
-    
-    #reset landings and roads close to them
-    sim$landings<-NULL
-    sim$roads.close.XY<-NULL
+
     rm(paths.e)
     gc()
   }
@@ -299,7 +299,8 @@ roadCLUS.analysis <- function(sim){
     sim$bbox<-st_bbox(getSpatialQuery(paste0("SELECT * FROM ",  sim$boundaryInfo[1], " WHERE ",    sim$boundaryInfo[2], "= '",   sim$boundaryInfo[3],"';" )))
   }
   if(!suppliedElsewhere("landings", sim)){
-    sim$landings<-NULL
+    sim$roads<-getRasterQuery(P(sim)$nameRoads, sim$bbox)
+    sim$landings<-xyFromCell(sim$roads, sample(1:ncell(sim$roads), 5), Spatial = TRUE)
   }
   return(invisible(sim))
 }

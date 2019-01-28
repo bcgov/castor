@@ -23,9 +23,12 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list("rJava","jdx","igraph","data.table", "raster"),
+  reqdPkgs = list("here", "rJava","jdx","igraph","data.table", "raster", "SpaDES.tools"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
+    defineParameter("useSpreadProbRas", "logical", FALSE, NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
@@ -36,13 +39,15 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = NA, objectClass = NA, desc = NA),
-    createsOutput(objectName = "blocks", objectClass = "RasterLayer", desc = NA)
+    createsOutput(objectName = "ras.similar", objectClass = "RasterLayer", desc = NA),
+    createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA)
   )
 ))
 
@@ -51,11 +56,14 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-blockingCLUS.Init(sim)
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
       switch(P(sim)$blockMethod,
              pre= {
-               sim <- blockingCLUS.preBlock(sim)
+               sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
+               sim <- blockingCLUS.getBlocks(sim) #links the pre-blocks to landing locations. Could use a switch parameter to run this
              } ,
              dynamic ={
+               sim <- blockingCLUS.setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
              }
       )
@@ -64,47 +72,32 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- blockingCLUS.spreadBlock(sim)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
     },
+    writeBlocks = {
+      writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+    },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
   return(invisible(sim))
 }
 
-Save <- function(sim) {
-  sim <- saveFiles(sim)
-  return(invisible(sim))
-}
-
-Plot <- function(sim) {
-  return(invisible(sim))
-}
-
 blockingCLUS.Init <- function(sim) {
-  sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking
-  #Get the similarity matrix 
+  sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
+ 
+   #clip the boundary with the provincial similarity raste
+  conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+  geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
+  sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
+  conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+  sim$thlb<-RASTER_CLIP(srcRaster= 'ras_bc_thlb2018', clipper=geom, conn=conn) 
+  dbDisconnect(conn)
+  sim$thlb[sim$thlb>0]<-1
+  sim$thlb[sim$thlb<0]<-0
   
-  
+  sim$ras.similar<-sim$ras.similar*sim$thlb
   return(invisible(sim))
 }
 
-blockingCLUS.preBlock <- function(sim) {
-  print("preBlock")
-  .jinit(classpath= paste0(getwd(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
-  d<-convertToJava(degree)
-  h<-convertToJava(histogram)
-  h<-rJava::.jcast(histogram, getJavaClassName(h), convert.array = TRUE)
-  to<-.jarray(as.matrix(paths.matrix[,1]))
-  from<-.jarray(as.matrix(paths.matrix[,2]))
-  weight<-.jarray(as.matrix(paths.matrix[,3]))
-  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
-  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
-  fhClass$blockEdges() # creates the blocks
-  return(invisible(sim))
-}
-
-blockingCLUS.spreadBlock<- function(sim) {
-  return(invisible(sim))
-}
 blockingCLUS.getBounds<-function(sim){
   #The boundary may exist from previous modules?
   if(!suppliedElsewhere("bbox", sim)){
@@ -113,7 +106,135 @@ blockingCLUS.getBounds<-function(sim){
   }
   return(invisible(sim))
 }
+
+blockingCLUS.setSpreadProb<- function(sim) {
+  #Create a mask for the area of interst
+  sim$aoi <- sim$ras.similar #set the area of interest as the similarity raster
+  sim$aoi[aoi[] > 0] <- 1 # for those locations where the distance is greater than 0 assign a 1
+  sim$aoi[is.na(aoi[])] <- 0 # for those locations where there is no distance - they are NA, assign a 0
+  
+  sim$harvestUnits<-NULL
+  
+  #scale the similarity raster so that the values are [0,1]
+  sim$ras.similar<-1-(sim$ras.similar - minValue(sim$ras.similar))/(maxValue(sim$ras.similar)-minValue(sim$ras.similar))
+  return(invisible(sim))
+}
+
+
+blockingCLUS.preBlock <- function(sim) {
+  ras_var<-sim$ras.similar
+  len<-length(sim$ras.similar[sim$ras.similar>0])
+  ras_var[ras_var>0]<-runif(as.integer(len), 0,0.001)
+  sim$ras.similar<-sim$ras.similar+ras_var
+  
+  ras.matrix<-raster::as.matrix(sim$ras.similar)
+  weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
+  weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
+  weight[, id := seq_len(.N)] # set the id for ther verticies which is used to merge with the edge list from adj
+  
+  edges<-SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
+             cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))
+  edges<-data.table(edges)
+  edges[from < to, c("from", "to") := .(to, from)]
+  edges<-unique(edges)
+  
+  edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="id") #merge in the weights from a cost surface
+  setnames(edges.w1, c("from", "to", "w1")) #reformat
+  edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="id"))#merge in the weights to a cost surface
+  setnames(edges.w2, c("from", "to", "w1", "w2")) #reformat
+  edges.w2$weight<-abs(edges.w2$w2 - edges.w2$w1) #take the average cost between the two pixels
+  
+  #------get the edges list
+  edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
+  edges.weight<-as.matrix(edges.weight[, id := seq_len(.N)]) #set the ids of the edge list. Faster than using as.integer(row.names())
+  
+  
+  #summary(edges.weight$weight)
+  #------make the graph
+  g<-graph.lattice()
+  g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
+  E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
+
+  g.mst<-mst(g, weighted=TRUE)
+  paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
+  paths.matrix[, V1 := as.integer(V1)]
+  paths.matrix[, V2 := as.integer(V2)]
+  d<-convertToJava(as.integer(degree(g.mst)))
+  
+  h<-convertToJava(data.table(size= c(20,40,60,100), n = as.integer(c(1000000, 300000,10000,1000))))
+  h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
+  
+  to<-.jarray(as.matrix(paths.matrix[,1]))
+  from<-.jarray(as.matrix(paths.matrix[,2]))
+  weight<-.jarray(as.matrix(paths.matrix[,3]))
+  #library(here) #Need this package to find the root directory
+
+  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
+  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
+  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
+  fhClass$blockEdges() # creates the blocks
+  result<-convertToR(fhClass$getBlocks()) # retrieves the result
+ 
+  #The number of pixels returned from the alorithum may be smaller than the number of pixels in the similarity
+  #raster. This happens when the last remaining pixels are NA and thus they are removed from the graph
+  if(!(length(result) == length(sim$ras.similar))){ # removes warning about merging vectors with different lengths
+    print("not equal")
+    add<-seq(-1, by =0, length.out = (length(sim$ras.similar)-length(result)))
+    result<-c(result, add) # add the remaining -1 harvest units to the result (a vector)
+  }
+  
+  sim$harvestUnits<-sim$ras.similar
+  sim$harvestUnits[]<-result
+  rm(result, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
+  gc()
+  return(invisible(sim))
+}
+
+blockingCLUS.getBlocks<- function(sim){
+  return(invisible(sim)) 
+}
+
+blockingCLUS.spreadBlock<- function(sim) {
+  if (!is.null(sim$landings)) {
+    
+      if(P(sim)$useLandingsArea){
+        size<-sim$landingsArea
+      }else{
+        size<-as.integer(runif(length(landings), 20, 100))
+      }
+    
+      landings<-cellFromXY(sim$aoi, sim$landings)
+      landings<-as.data.frame(cbind(landings, size))
+      landings<-landings[!duplicated(landings$landings),]
+      
+      if(P(sim)$useSpreadProbRas){
+        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.similar, start = landings[,1], directions =4, 
+                                         maxSize= landings[,2], allowOverlap=FALSE)
+      }else{
+          simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings[,1], directions =4, 
+                     maxSize= landings[,2], allowOverlap=FALSE)
+      }
+      mV<-maxValue(simBlocks) 
+      #update the aoi to remove areas that have already been spread to...?
+      maskSimBlocks<-reclassify(simBlocks, matrix(cbind( NA, NA, 1, -1,0.5, 1, 0.5, mV + 1, 0), ncol =3, byrow =TRUE))
+      sim$aoi<- sim$aoi*maskSimBlocks
+      
+      if(is.null(sim$harvestUnits)){ 
+        simBlocks[is.na(simBlocks[])] <- 0
+        sim$harvestUnits <- simBlocks #the first spreading event
+
+      }else{
+        simBlocks <- simBlocks + maxValue(sim$harvestUnits)
+        simBlocks[is.na(simBlocks[])] <- 0
+        sim$harvestUnits <- sim$harvestUnits +  simBlocks
+      }
+      rm( simBlocks, maskSimBlocks, landings, mV, size)
+      gc()
+  }
+  return(invisible(sim))
+}
+
 ### additional functions
-source("R/functions/functions.R")
+
 
 
