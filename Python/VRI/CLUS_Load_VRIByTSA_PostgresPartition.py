@@ -380,7 +380,7 @@ if __name__ == '__main__':
     except Exception, e:
 ##        msg = 'Script for DB ({0}) has an error: \n {1}'.format(db, str(e))
 ##        print 'Sending Email'
-##        send_email('mfowler.bc@gmail.com', 'bruins26', 'Mike.Fowler@gov.bc.ca', '**Load Partition Script Error**', msg)
+##        send_email('mfowler.bc@gmail.com', '*****', 'Mike.Fowler@gov.bc.ca', '**Load Partition Script Error**', msg)
 
         WriteLog(kennyloggins, '-----------------------------------------------------------\n', True)
         WriteLog(kennyloggins, 'Error in the Script.\n', True)
