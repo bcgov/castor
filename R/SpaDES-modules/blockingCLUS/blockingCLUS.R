@@ -60,8 +60,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       switch(P(sim)$blockMethod,
              pre= {
                sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
-               sim <- blockingCLUS.getBlocks(sim) #links the pre-blocks to landing locations. Could use a switch parameter to run this
-             } ,
+             },
              dynamic ={
                sim <- blockingCLUS.setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
@@ -185,14 +184,14 @@ blockingCLUS.preBlock <- function(sim) {
   
   sim$harvestUnits<-sim$ras.similar
   sim$harvestUnits[]<-result
+  
+  #add to the clusdb
+  
   rm(result, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
 }
 
-blockingCLUS.getBlocks<- function(sim){
-  return(invisible(sim)) 
-}
 
 blockingCLUS.spreadBlock<- function(sim) {
   if (!is.null(sim$landings)) {

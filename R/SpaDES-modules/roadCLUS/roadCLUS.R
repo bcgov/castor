@@ -173,7 +173,7 @@ roadCLUS.getGraph<- function(sim){
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   #weight<-data.table(getValues(sim$costSurface)) #Try
-  weight[, id := seq_len(.N)] # get the id for ther verticies which is used to merge with the edge list from adj
+  Costweight[, id := seq_len(.N)] # get the id for ther verticies which is used to merge with the edge list from adj
   
   #------get the adjacency using SpaDES function adj
   edges<-adj(returnDT= TRUE, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix), directions =8, cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))

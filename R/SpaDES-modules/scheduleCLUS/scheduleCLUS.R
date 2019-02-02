@@ -7,7 +7,8 @@ defineModule(sim, list(
   name = "scheduleCLUS",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
-  authors = c(person(c("First", "Middle"), "Last", email = "email@example.com", role = c("aut", "cre"))),
+  authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
+              person("Tyler", "Muhley", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.2.3", scheduleCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -15,7 +16,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "scheduleCLUS.Rmd"),
-  reqdPkgs = list(),
+  reqdPkgs = list("DBI", "RSQLite"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -32,7 +33,8 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="clusdb", objectClass = "SQLiteConnection", desc = NA, sourceURL = NA)
   )
 ))
 
@@ -41,7 +43,7 @@ doEvent.scheduleCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim)
-      
+      print(dbListTables(sim$clusdb))
 
     },
    
@@ -52,6 +54,8 @@ doEvent.scheduleCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+
+
   return(invisible(sim))
 }
 
