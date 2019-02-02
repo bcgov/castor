@@ -330,7 +330,7 @@ dist.cut.data.du.9.s <- dist.cut.data %>%
   dplyr::filter (du == "du9") %>% 
   dplyr::filter (season == "Summer")
 
-# summry table
+# summary table
 table.glm.summary <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.summary) <- c ("DU", "Season", "Years Old", "Coefficient", "p-values")
 table.glm.summary [1:153, 1] <- "6"

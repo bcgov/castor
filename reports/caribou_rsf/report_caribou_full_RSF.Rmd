@@ -72,8 +72,35 @@ ggplot (rsf.data.terrain.water.du6.ew, aes (x = elevation, fill = pttype)) +
         scale_fill_discrete (name = "Location Type")
 ```
 
-Then looked for corraltion using spearman correaltion plots
+Then looked for corraltion using spearman correaltion analysis and plots
 
+```{r, correlation plot, eval = F, echo = T}
+corr.terrain.water.du6.ew <- rsf.data.terrain.water.du6.ew [c (10:15)]
+corr.terrain.water.du6.ew <- round (cor (corr.terrain.water.du6.ew, method = "spearman"), 3)
+ggcorrplot (corr.terrain.water.du6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Terrain and Water Resource Selection Function Model
+            Covariate Correlations for DU6, Early Winter")
+```
+
+
+and coreatlions  variance inflation factors (VIFs) from 'car' package based on a simple glm
+```{r, glm and vifs, eval = F, echo = T}
+glm.terrain.du6.ew <- glm (pttype ~ elevation + easting + northing + slope + distance_to_lake +
+                                     distance_to_watercourse + soil_parent_material_name, 
+                            data = rsf.data.terrain.water.du6.ew,
+                            family = binomial (link = 'logit'))
+car::vif (glm.terrain.du6.ew)
+```
+
+- covaraites tdandardized ((x-mean) / sd) to help with model convergence and simplify interepretation of relative effects of covariates
+
+
+- compared models using AIC
+
+- fit models with random efefcts (inercept adn slope) for continuous covariaets each unique indivudal and year, adn fixed efefcts for continouts and categoriacla covaraites, if model failed to converge with slope random effects, hten fir model with random efefct intercept only
+- random efefcts account for indivdual anaimal variability and a random sampel of the popautlion; fixed efefcts are the popautliomn efefct, estiametd with random invidail varaition in sample accounted for in the model
+
+- first fit terrain models, fit single covaraites, then combined, identified top model to combine with others
 
 
 ## Results
@@ -104,3 +131,7 @@ Then looked for corraltion using spearman correaltion plots
 - correaltions
 - not correalted, strongest was 0.18 between disatnce to lake and eleavtion
 ![](plots/corr_terrain_water.png)
+
+- highest vif value was 1.24
+
+
