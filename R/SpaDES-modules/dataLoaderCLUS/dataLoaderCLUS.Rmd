@@ -24,6 +24,20 @@ output: pdf_document
 
 The data loader preps the database connectivitiy and other objects required to run CLUS
 
+#Dependendices
+
+nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
+nameBoundary<-The specific area of interest
+nameBoundaryColumn<-The colume in the nameBoundaryFile that support the query for the area of interest
+nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
+
+nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
+nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
+nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Deflauts to 1 yeild table
+nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to a age of 120
+nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaluts to a 0 crown closure
+nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaluts to all of the area of interest being eligible for harvesting.
+
 # Usage
 
 ```{r module_usage}
