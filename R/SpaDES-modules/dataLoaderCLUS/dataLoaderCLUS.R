@@ -82,7 +82,6 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim$bbox<-st_bbox(sim$boundary)
       sim$boundaryInfo <- c(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
       #populate clusdb tables
-      print('... setting data tables')
       sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
       
       #disconnect the db once the sim is over?
@@ -118,6 +117,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
 }
 
 dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
+  print('...setting data tables')
   #-----------------------
   #Set the compartment IDS
   #-----------------------
