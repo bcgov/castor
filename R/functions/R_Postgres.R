@@ -182,7 +182,6 @@ RASTER_CLIP <- function(srcRaster, clipper, conn=NULL){
   }
   #--Build the query string to execute the function to generate temporary Raster
   qry = sprintf("select FAIB_RASTER_CLIP('%s', '%s', '%s');", tmpRast, srcRaster, clipper)
-  #print(qry)
   #--Execute the query
   r<-dbGetQuery(conn, qry)
   #--Get Raster Layer object of Raster result
