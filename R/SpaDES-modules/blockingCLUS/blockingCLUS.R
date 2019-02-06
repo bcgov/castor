@@ -87,13 +87,16 @@ blockingCLUS.Init <- function(sim) {
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
-  conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-  sim$thlb<-RASTER_CLIP(srcRaster= 'ras_bc_thlb2018', clipper=geom, conn=conn) 
-  dbDisconnect(conn)
-  sim$thlb[sim$thlb>0]<-1
-  sim$thlb[sim$thlb<0]<-0
+  # going to leave the similarity raster unattached to clusdb, rather use it to sample zones.
   
-  sim$ras.similar<-sim$ras.similar*sim$thlb
+  thlb<-sim$ras.similar #mask similarity raster
+  thlb[]<-as.matrix(dbGetQuery(sim$clusdb, "Select thlb from pixels"))
+  thlb[thlb[] > 0]<-1
+  sim$ras.similar<-sim$ras.similar*thlb
+  
+  rm(thlb)
+  gc()
+  
   return(invisible(sim))
 }
 
