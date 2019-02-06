@@ -775,15 +775,330 @@ table.aic [42, 2] <- "Early Winter"
 table.aic [42, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [42, 4] <- "Elev, East, North, Soil"
 table.aic [42, 5] <- "(Elev | UniqueID)"
-table.aic [42, 6] <- AIC (model.lme4.du6.ew.elev.asp.soil)
+table.aic [42, 6] <- "NA" # did not converge
 
-
-
-
-
+model.lme4.du6.ew.elev.asp.soil2 <- update (model.lme4.du6.ew.elev.asp2, 
+                                           . ~ . - (std.elevation | uniqueID) + 
+                                                  soil_parent_material_name +
+                                              (1 | uniqueID))
+# AIC
+table.aic [43, 1] <- "DU6"
+table.aic [43, 2] <- "Early Winter"
+table.aic [43, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [43, 4] <- "Elev, East, North, Soil"
+table.aic [43, 5] <- "(1 | UniqueID)"
+table.aic [43, 6] <- AIC (model.lme4.du6.ew.elev.asp.soil2)
 
 ## ELEVATION, SLOPE AND DISTANCE TO LAKE ##
+model.lme4.du6.ew.elev.slp.lake <- update (model.lme4.du6.ew.elev.slp2, 
+                                            . ~ . + std.distance_to_lake)
+# AIC
+table.aic [44, 1] <- "DU6"
+table.aic [44, 2] <- "Early Winter"
+table.aic [44, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [44, 4] <- "Elev, Slope, Dist. to Lake"
+table.aic [44, 5] <- "(Elev | UniqueID)"
+table.aic [44, 6] <- AIC (model.lme4.du6.ew.elev.slp.lake) 
 
+model.lme4.du6.ew.elev.slp.lake2 <- update (model.lme4.du6.ew.elev.slp2, 
+                                           . ~ . - (std.elevation | uniqueID) + 
+                                                  std.distance_to_lake +
+                                                  (std.distance_to_lake | uniqueID))
+# AIC
+table.aic [45, 1] <- "DU6"
+table.aic [45, 2] <- "Early Winter"
+table.aic [45, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [45, 4] <- "Elev, Slope, Dist. to Lake"
+table.aic [45, 5] <- "(Dist. to Lake | UniqueID)"
+table.aic [45, 6] <- AIC (model.lme4.du6.ew.elev.slp.lake2) 
+
+model.lme4.du6.ew.elev.slp.lake3 <- update (model.lme4.du6.ew.elev.slp2, 
+                                            . ~ . - (std.elevation | uniqueID) + 
+                                              std.distance_to_lake +
+                                              (std.slope | uniqueID))
+# AIC
+table.aic [46, 1] <- "DU6"
+table.aic [46, 2] <- "Early Winter"
+table.aic [46, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [46, 4] <- "Elev, Slope, Dist. to Lake"
+table.aic [46, 5] <- "(Slope | UniqueID)"
+table.aic [46, 6] <- AIC (model.lme4.du6.ew.elev.slp.lake3) 
+
+## ELEVATION, SLOPE AND DISTANCE TO WATERCOURSE ##
+model.lme4.du6.ew.elev.slp.water <- update (model.lme4.du6.ew.elev.slp2, 
+                                           . ~ . + std.distance_to_watercourse)
+# AIC
+table.aic [47, 1] <- "DU6"
+table.aic [47, 2] <- "Early Winter"
+table.aic [47, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [47, 4] <- "Elev, Slope, Dist. to Watercourse"
+table.aic [47, 5] <- "(Elev | UniqueID)"
+table.aic [47, 6] <- AIC (model.lme4.du6.ew.elev.slp.water) 
+
+model.lme4.du6.ew.elev.slp.water2 <- update (model.lme4.du6.ew.elev.slp2, 
+                                            . ~ . - (std.elevation | uniqueID) +
+                                              std.distance_to_watercourse +
+                                             (std.distance_to_watercourse | uniqueID))
+# AIC
+table.aic [48, 1] <- "DU6"
+table.aic [48, 2] <- "Early Winter"
+table.aic [48, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [48, 4] <- "Elev, Slope, Dist. to Watercourse"
+table.aic [48, 5] <- "(Dist. to Watercourse | UniqueID)"
+table.aic [48, 6] <- AIC (model.lme4.du6.ew.elev.slp.water2) 
+
+model.lme4.du6.ew.elev.slp.water3 <- update (model.lme4.du6.ew.elev.slp2, 
+                                             . ~ . - (std.elevation | uniqueID) +
+                                               std.distance_to_watercourse +
+                                               (std.slope | uniqueID))
+# AIC
+table.aic [49, 1] <- "DU6"
+table.aic [49, 2] <- "Early Winter"
+table.aic [49, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [49, 4] <- "Elev, Slope, Dist. to Watercourse"
+table.aic [49, 5] <- "(Slope | UniqueID)"
+table.aic [49, 6] <- AIC (model.lme4.d6.ew.elev.slp.water3) 
+
+## ELEVATION, SLOPE AND SOIL ##
+model.lme4.du6.ew.elev.slp.soil <- update (model.lme4.du6.ew.elev.slp2, 
+                                             . ~ . + soil_parent_material_name)
+# AIC
+table.aic [50, 1] <- "DU6"
+table.aic [50, 2] <- "Early Winter"
+table.aic [50, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [50, 4] <- "Elev, Slope, Soil"
+table.aic [50, 5] <- "(Elev | UniqueID)"
+table.aic [50, 6] <- AIC (model.lme4.du6.ew.elev.slp.soil) 
+
+## ELEVATION, DISTANCE TO LAKE AND DISTANCE TO WATERCOURSE ##
+model.lme4.du6.ew.elev.lake.water <- update (model.lme4.du6.ew.elev.lake1, 
+                                        . ~ . + std.distance_to_watercourse)
+# AIC
+table.aic [51, 1] <- "DU6"
+table.aic [51, 2] <- "Early Winter"
+table.aic [51, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [51, 4] <- "Elev, Dist. to Lake, Dist. to Watercourse"
+table.aic [51, 5] <- "(Elev | UniqueID)"
+table.aic [51, 6] <- AIC (model.lme4.du6.ew.elev.lake.water) 
+
+model.lme4.du6.ew.elev.lake.water2 <- update (model.lme4.du6.ew.elev.lake1, 
+                                             . ~ . - (std.elevation | uniqueID) +
+                                               std.distance_to_watercourse +
+                                               (std.distance_to_watercourse | uniqueID))
+# AIC
+table.aic [52, 1] <- "DU6"
+table.aic [52, 2] <- "Early Winter"
+table.aic [52, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [52, 4] <- "Elev, Dist. to Lake, Dist. to Watercourse"
+table.aic [52, 5] <- "(Dist. to Watercourse | UniqueID)"
+table.aic [52, 6] <- AIC (model.lme4.du6.ew.elev.lake.water2) 
+
+model.lme4.du6.ew.elev.lake.water3 <- update (model.lme4.du6.ew.elev.lake1, 
+                                              . ~ . - (std.elevation | uniqueID) +
+                                                std.distance_to_watercourse +
+                                                (std.distance_to_lake | uniqueID))
+# AIC
+table.aic [53, 1] <- "DU6"
+table.aic [53, 2] <- "Early Winter"
+table.aic [53, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [53, 4] <- "Elev, Dist. to Lake, Dist. to Watercourse"
+table.aic [53, 5] <- "(Dist. to Lake | UniqueID)"
+table.aic [53, 6] <- AIC (model.lme4.du6.ew.elev.lake.water3) 
+
+## ELEVATION, DISTANCE TO LAKE AND SLOPE ##
+model.lme4.du6.ew.elev.lake.soil <- update (model.lme4.du6.ew.elev.lake1, 
+                                             . ~ . + soil_parent_material_name)
+# AIC
+table.aic [54, 1] <- "DU6"
+table.aic [54, 2] <- "Early Winter"
+table.aic [54, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [54, 4] <- "Elev, Dist. to Lake, Soil"
+table.aic [54, 5] <- "(Elev | UniqueID)"
+table.aic [54, 6] <- AIC (model.lme4.du6.ew.elev.lake.soil) 
+
+model.lme4.du6.ew.elev.lake.soil2 <- update (model.lme4.du6.ew.elev.lake1, 
+                                            . ~ . - (std.elevation | uniqueID) 
+                                            + soil_parent_material_name +
+                                              (std.distance_to_lake | uniqueID))
+# AIC
+table.aic [55, 1] <- "DU6"
+table.aic [55, 2] <- "Early Winter"
+table.aic [55, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [55, 4] <- "Elev, Dist. to Lake, Soil"
+table.aic [55, 5] <- "(Dist. to Lake | UniqueID)"
+table.aic [55, 6] <- "NA" # failed to converge
+
+## ELEVATION, DISTANCE TO WATERCOURSE AND SOIL ##
+model.lme4.du6.ew.elev.wc.slope <- update (model.lme4.du6.ew.elev.wc1, 
+                                      . ~ . + soil_parent_material_name)
+# AIC
+table.aic [56, 1] <- "DU6"
+table.aic [56, 2] <- "Early Winter"
+table.aic [56, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [56, 4] <- "Elev, Dist. to Watercourse, Soil"
+table.aic [56, 5] <- "(Elev | UniqueID)"
+table.aic [56, 6] <- AIC (model.lme4.du6.ew.elev.wc.slope) 
+
+model.lme4.du6.ew.elev.wc.slope2 <- update (model.lme4.du6.ew.elev.wc1, 
+                                           . ~ . - (std.elevation | uniqueID) + 
+                                             soil_parent_material_name +
+                                             (std.distance_to_watercourse | uniqueID))
+# AIC
+table.aic [57, 1] <- "DU6"
+table.aic [57, 2] <- "Early Winter"
+table.aic [57, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [57, 4] <- "Elev, Dist. to Watercourse, Soil"
+table.aic [57, 5] <- "(Dist. to Watercourse | UniqueID)"
+table.aic [57, 6] <- AIC (model.lme4.du6.ew.elev.wc.slope2) 
+
+## ASPECT, SLOPE AND DISTANCE TO LAKE ##
+model.lme4.du6.ew.aspect.slope.lake <- update (model.lme4.du6.ew.aspect.slope2, 
+                                                . ~ . + std.distance_to_lake)
+# AIC
+table.aic [58, 1] <- "DU6"
+table.aic [58, 2] <- "Early Winter"
+table.aic [58, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [58, 4] <- "East, North, Slope, Dist. to Lake"
+table.aic [58, 5] <- "(Slope | UniqueID)"
+table.aic [58, 6] <-  "NA" # failed to converge
+
+model.lme4.du6.ew.aspect.slope.lake2 <- update (model.lme4.du6.ew.aspect.slope2, 
+                                               . ~ . - (std.slope | uniqueID) + 
+                                                 std.distance_to_lake + 
+                                                 (std.distance_to_lake | uniqueID))
+# AIC
+table.aic [59, 1] <- "DU6"
+table.aic [59, 2] <- "Early Winter"
+table.aic [59, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [59, 4] <- "East, North, Slope, Dist. to Lake"
+table.aic [59, 5] <- "(Dist. to Lake | UniqueID)"
+table.aic [59, 6] <-  AIC (model.lme4.du6.ew.aspect.slope.lake2) 
+
+## ASPECT, SLOPE AND DISTANCE TO WATERCOURSE ##
+model.lme4.du6.ew.aspect.slope.wc <- update (model.lme4.du6.ew.aspect.slope2, 
+                                               . ~ . + std.distance_to_watercourse)
+# AIC
+table.aic [60, 1] <- "DU6"
+table.aic [60, 2] <- "Early Winter"
+table.aic [60, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [60, 4] <- "East, North, Slope, Dist. to Watercourse"
+table.aic [60, 5] <- "(Slope | UniqueID)"
+table.aic [60, 6] <-  AIC (model.lme4.du6.ew.aspect.slope.wc) 
+
+model.lme4.du6.ew.aspect.slope.wc2 <- update (model.lme4.du6.ew.aspect.slope2, 
+                                             . ~ . - (std.slope | uniqueID) +
+                                               std.distance_to_watercourse +
+                                               (std.distance_to_watercourse | uniqueID) )
+# AIC
+table.aic [61, 1] <- "DU6"
+table.aic [61, 2] <- "Early Winter"
+table.aic [61, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [61, 4] <- "East, North, Slope, Dist. to Watercourse"
+table.aic [61, 5] <- "(Dist. to Watercourse | UniqueID)"
+table.aic [61, 6] <-  AIC (model.lme4.du6.ew.aspect.slope.wc) 
+
+## ASPECT, SLOPE AND SOIL ##
+model.lme4.du6.ew.aspect.slope.soil <- update (model.lme4.du6.ew.aspect.slope2, 
+                                             . ~ . + soil_parent_material_name)
+# AIC
+table.aic [62, 1] <- "DU6"
+table.aic [62, 2] <- "Early Winter"
+table.aic [62, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [62, 4] <- "East, North, Slope, Soil"
+table.aic [62, 5] <- "(Slope | UniqueID)"
+table.aic [62, 6] <-  AIC (model.lme4.du6.ew.aspect.slope.soil) 
+
+model.lme4.du6.ew.aspect.slope.soil <- update (model.lme4.du6.ew.aspect.slope2, 
+                                               . ~ . - (std.slope | uniqueID) + 
+                                                 soil_parent_material_name +
+                                                 (1 | uniqueID))
+# AIC
+table.aic [63, 1] <- "DU6"
+table.aic [63, 2] <- "Early Winter"
+table.aic [63, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [63, 4] <- "East, North, Slope, Soil"
+table.aic [63, 5] <- "(1 | UniqueID)"
+table.aic [63, 6] <-  AIC (model.lme4.du6.ew.aspect.slope.soil) 
+
+## ASPECT, DISTANCE TO LAKE AND DISTANCE TO WATERCOURSE ##
+model.lme4.du6.ew.aspect.lake.wc <- update (model.lme4.du6.ew.aspect.lake2, 
+                                          . ~ .  + std.distance_to_watercourse)
+# AIC
+table.aic [64, 1] <- "DU6"
+table.aic [64, 2] <- "Early Winter"
+table.aic [64, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [64, 4] <- "East, North, Dist. to Lake, Dist. to Watercourse"
+table.aic [64, 5] <- "(Dist. to Lake | UniqueID)"
+table.aic [64, 6] <-  AIC (model.lme4.du6.ew.aspect.lake.wc) 
+
+model.lme4.du6.ew.aspect.lake.wc2 <- update (model.lme4.du6.ew.aspect.lake2, 
+                                            . ~ .  - (std.distance_to_lake | uniqueID) +
+                                              std.distance_to_watercourse +
+                                              (std.distance_to_watercourse | uniqueID))
+# AIC
+table.aic [65, 1] <- "DU6"
+table.aic [65, 2] <- "Early Winter"
+table.aic [65, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [65, 4] <- "East, North, Dist. to Lake, Dist. to Watercourse"
+table.aic [65, 5] <- "(Dist. to Watercourse | UniqueID)"
+table.aic [65, 6] <-  AIC (model.lme4.du6.ew.aspect.lake.wc) 
+
+## ASPECT, DISTANCE TO LAKE AND SOIL ##
+model.lme4.du6.ew.aspect.lake.soil <- update (model.lme4.du6.ew.aspect.lake2, 
+                                            . ~ .  + soil_parent_material_name)
+# AIC
+table.aic [66, 1] <- "DU6"
+table.aic [66, 2] <- "Early Winter"
+table.aic [66, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [66, 4] <- "East, North, Dist. to Lake, Soil"
+table.aic [66, 5] <- "(Dist. to Lake | UniqueID)"
+table.aic [66, 6] <-  "NA" # failed to converge
+
+model.lme4.du6.ew.aspect.lake.soil2 <- update (model.lme4.du6.ew.aspect.lake2, 
+                                              . ~ .  - (std.distance_to_lake | uniqueID) + 
+                                                soil_parent_material_name + 
+                                                (1 | uniqueID))
+# AIC
+table.aic [67, 1] <- "DU6"
+table.aic [67, 2] <- "Early Winter"
+table.aic [67, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [67, 4] <- "East, North, Dist. to Lake, Soil"
+table.aic [67, 5] <- "(1 | UniqueID)"
+table.aic [67, 6] <-  AIC (model.lme4.du6.ew.aspect.lake.soil2) 
+
+## ASPECT, DISTANCE TO WATERCOURSE AND SOIL ##
+model.lme4.du6.ew.aspect.water.soil <- update (model.lme4.du6.ew.aspect.water2, 
+                                           . ~ .  + soil_parent_material_name)
+# AIC
+table.aic [68, 1] <- "DU6"
+table.aic [68, 2] <- "Early Winter"
+table.aic [68, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [68, 4] <- "East, North, Dist. to Watercourse, Soil"
+table.aic [68, 5] <- "(Dist. to Watercourse | UniqueID)"
+table.aic [68, 6] <- "NA" # failed to converge
+
+model.lme4.du6.ew.aspect.water.soil2 <- update (model.lme4.du6.ew.aspect.water2, 
+                                               . ~ .  - (std.distance_to_lake | uniqueID) + 
+                                                 soil_parent_material_name + 
+                                                 (1 | uniqueID))
+# AIC
+table.aic [69, 1] <- "DU6"
+table.aic [69, 2] <- "Early Winter"
+table.aic [69, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [69, 4] <- "East, North, Dist. to Watercourse, Soil"
+table.aic [69, 5] <- "(1 | UniqueID)"
+table.aic [69, 6] <- "NA" # failed to converge 
+
+## SLOPE, DISTANCE TO LAKE AND DISTANCE TO WATERCOURSE ##
+model.lme4.du6.ew.slope.lake.wc1 <- update (model.lme4.du6.ew.slope.lake1,
+                                            . ~ . + std.distance_to_watercourse) 
+# AIC
+table.aic [70, 1] <- "DU6"
+table.aic [70, 2] <- "Early Winter"
+table.aic [70, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [70, 4] <- "Slope, Dist. to Lake, Dist. to Watercourse"
+table.aic [70, 5] <- "(Slope | UniqueID)"
+table.aic [70, 6] <-  AIC (model.lme4.du6.ew.slope.lake.wc1) 
 
 
 
