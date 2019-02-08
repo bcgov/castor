@@ -51,6 +51,7 @@ public class Forest_Hierarchy {
 		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 			if(blockSize == 0){ //the first pixel in the block
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList));//get the largest degree?
+				//System.out.println("seed: " + seed);
 			}else{
 				if(this.degreeList.get(seed) > 0) { //if there are still edges from the seed to spawn
 					seedNew = findPixelToAdd(seed); //get the lowest weighted edge. Note the first edge to be added will have the lowest weight because it is sorted 
@@ -72,14 +73,17 @@ public class Forest_Hierarchy {
 			if(blockSize < maxTargetSize){//Haven't found all the pixels to meet the target block size
 				if(seedNew >= -1){
 					if(seedNew == -1) {
+						//System.out.println("adding to blocklist1: " + (seed + 1));
 						this.blockList.add(seed + 1);
 					}else {
+						//System.out.println("adding to blocklist2: " + (seedNew + 1));
 						this.blockList.add(seedNew + 1);
 						seedNew = -1;
 					}
 					blockSize ++;
 					//System.out.println("blockSize: " + blockSize);
 				}else{//can't find any more pixels to add
+					//System.out.println("can't find any more pixels");
 					//TODO: check to see what the bin this will fit in. This way there remains larger target blocks
 					setPixelBlocks();
 					this.hist.setBinTargetNumber(blockSize);
@@ -199,7 +203,7 @@ public class Forest_Hierarchy {
 		System.out.println(this.hist.bins.size() + " target bins have been added");
 		
 		dg = null;
-		histTable.clear();
+		//histTable.clear();
 		to = null;
 		from =null;
 		weight = null;
@@ -255,6 +259,7 @@ public class Forest_Hierarchy {
 		degree[10] = 3;degree[11] = 2;degree[12] = 2;degree[13] = 2;degree[14] = 1;
 		degree[15] = 1;degree[16] = 2;degree[17] = 3;degree[18] = 2;degree[19] = 2;
 		degree[20] = 2;degree[21] = 2;degree[22] = 1;degree[23] = 3;degree[24] = 1;
+
 		return degree;
 	}
 	
@@ -301,8 +306,8 @@ public class Forest_Hierarchy {
                 this.bins.add(bin0);
                 
                 areaBin bin  = new areaBin();
-                bin.max_block_size = 6; //changed this from 5, needed a large block that is more than the degrees
-                bin.n = 2;
+                bin.max_block_size = 2; //changed this from 5, needed a large block that is more than the degrees
+                bin.n = 3;
                 this.bins.add(bin);
             }else{
         		for(int i =0;  i < histTable.size(); i++){
