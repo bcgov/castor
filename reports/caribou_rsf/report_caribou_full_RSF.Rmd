@@ -44,10 +44,11 @@ RSF models are a form of binomial logistic regression models that are used to st
 AIC is a model selction method, where models are ranked based on their fit to the data (log-likelihood) and the numebr of covaraites in teh model (Bunrham adn Anderson 2002). Models are penalzied for having more covaraites (i.e., are more complex).  
 
 
+### GIS data
+- CE data
+  - roads: paved adn 'resoruce road' types
 
- I also calculated area under the curve (AUC) of Receiver Operating Characteristic (ROC) curves for each model using the ROCR package in R to test the accuracy of predictions. The model with the highest AIC weight and a reasonably high AUC score (i.e., the abiliy of the accurately predict caribou locations) was considered the best distance to cutblock model for a particular season and DU combination.
- 
- 
+
 ### Data Exploration
 Did series of data visualtizatiosn to explore data for anamolies, potential issues with aplying regression mdoel and also better undersatdn potantil realtionships between covariates (Zuur et al. 2010)
  
@@ -72,7 +73,10 @@ ggplot (rsf.data.terrain.water.du6.ew, aes (x = elevation, fill = pttype)) +
         scale_fill_discrete (name = "Location Type")
 ```
 
-Then looked for corraltion using spearman correaltion analysis and plots
+Then looked for corraltion using spearman correaltion analysis and plots 
+
+I then tested for correlation between these covariates using a Spearman-rank ($\rho$) correlation and by calculating variance inflation factors (VIFs) from GLMs. If covariates had a $\rho$ > 0.7 or VIF > 10 (Montgomery and Peck 1992; Manly et al. 2007; DeCesare et al. 2012), then a covariate was removed from analysis. VIFs were calculated using the vif() function from the 'car' package in R. 
+
 
 ```{r, correlation plot, eval = F, echo = T}
 corr.terrain.water.du6.ew <- rsf.data.terrain.water.du6.ew [c (10:15)]
@@ -92,15 +96,38 @@ glm.terrain.du6.ew <- glm (pttype ~ elevation + easting + northing + slope + dis
 car::vif (glm.terrain.du6.ew)
 ```
 
+
+
+### Fitting Models
+
+- first, reviewed recent literature, herd plans, talked to regioanl biolgoists to get an undrstading of cariobu ecology in a DU
+
+- used this to subset soem fo teh potential GIS covaiatres based on DU ecology
+
+#### DU6
+- select wetlands, avoid uplands; swamps, treed bogs and fens (Mumma and Gillinham 2017; http://www.bcogris.ca/sites/default/files/bcip-2015-09-final-report-may17.pdf)
+- new (0-15) and old (16-40) cutblocks and burns, elevation, slope, disatcne to water, veg richness and raod density and sesimic density w (Mumma et al. 2018; https://reader.elsevier.com/reader/sd/pii/S0006320718307225?token=10CAC422DF6B2AE064234F05EE679D6B3C6D1FDC138746FA05D2E85C1D260B16F8B4392DBE5B0426F99BAFE911924D31)
+- land cover, ndvi, slope, lakes, rivers, fires adn disturabnce (Demars 2018)
+-  black spruce (Picea mariana) and tamarack (Larix laricina) (boreal herd plans)
+- crandom efefct for idnvidual cariobu/year (Mumma et al. 2018; Demars 2018)
+
+- endurign features tested:
+  -  slope, disatcne to lake, distane to river, soil parnet maetiral 
+
+- human features
+  - raods, wells, piepline, seismic, agriculture, mine adn forestry
+  
+
 - covaraites tdandardized ((x-mean) / sd) to help with model convergence and simplify interepretation of relative effects of covariates
 
 
 - compared models using AIC
 
-- fit models with random efefcts (inercept adn slope) for continuous covariaets each unique indivudal and year, adn fixed efefcts for continouts and categoriacla covaraites, if model failed to converge with slope random effects, hten fir model with random efefct intercept only
-- random efefcts account for indivdual anaimal variability and a random sampel of the popautlion; fixed efefcts are the popautliomn efefct, estiametd with random invidail varaition in sample accounted for in the model
+- fit models with random efefcts (inercept for each unique indivudal and year, adn fixed efefcts for continouts and categoriacla covaraites, random efefcts account for indivdual anaimal variability and a random sampel of the popautlion; fixed efefcts are the popautliomn efefct, estiametd with random invidail varaition in sample accounted for in the model
 
 - first fit terrain models, fit single covaraites, then combined, identified top model to combine with others
+
+- for human disturabnce covariates, fit set of single covaraites models with and without itneraction terms for avauilable habtia in hoem range (Matthipolois)
 
 
 ## Results
@@ -108,30 +135,108 @@ car::vif (glm.terrain.du6.ew)
 ### DU 6
 #### Early Winter
 ##### Data Exploration
+###### Enduring Features
 - boxplots
 - genrally didn;t appear to be signfiant outliers
 - removed one location at 86 degree slope as outlier, unlikely to ever be eslected by cariobu even if in home range; very well coudl be a data error
 
-![](plots/boxplot_terrain_water_du6_ew_elevation.png)
-![](plots/boxplot_terrain_water_du6_ew_east.png)
-![](plots/boxplot_terrain_water_du6_ew_north.png)
 ![](plots/boxplot_terrain_water_du6_ew_slope.png)
+
 ![](plots/boxplot_terrain_water_du6_ew_dist_lake.png)
 
-- hisotragms
-- shows maybe soem avoidance of lakes adn watercoruses
+![](plots/boxplot_terrain_water_du6_ew_dist_watercourse.png)
 
-![](plots/hist_terrain_water_du6_ew_elevation.png)
-![](plots/hist_terrain_water_du6_ew_eastness.png)
-![](plots/hist_terrain_water_du6_ew_northness.png)
+- hisotragms
 ![](plots/hist_terrain_water_du6_ew_slope.png)
 ![](plots/hist_terrain_water_du6_ew_dist_lake.png)
 ![](plots/hist_terrain_water_du6_ew_dist_watercourse.png)
 
 - correaltions
-- not correalted, strongest was 0.18 between disatnce to lake and eleavtion
+- not correalted, strongest was 0.07 between disatnce to lake and slope
+
 ![](plots/corr_terrain_water.png)
 
-- highest vif value was 1.24
+- highest vif value was 1.13
+
+  - Endurign features top-ranked model included slope, disatnce to lake, and soil type and had an AIC weight (AIC*~w~*) of 0.511. The second ranked model included all covariates (elevation, slope, disatnce to lake, disatnce to watercourse, soil type) and had an AIC weight (AIC*~w~*) of 0.489 ; thus all covariates borught into next model. coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, kept model with all covaraites for next 
+  
+  
+###### Human Disturbance
+- boxplots
+- generally didn't appear to be signfiant outliers
+
+![](plots/boxplot_terrain_water_du6_ew_distcut1to4.png)
+
+![](plots/boxplot_terrain_water_du6_ew_distcut5to9.png)
+
+![](plots/boxplot_terrain_water_du6_ew_distcut_over10.png)
+
+![](plots/boxplot_terrain_water_du6_ew_dist_pvd_rd.png)
+
+![](plots/boxplot_terrain_water_du6_ew_dist_resource_rd.png)
+
+![](plots/boxplot_terrain_water_du6_ew_dist_ag.png)
+
+![](plots/boxplot_terrain_water_du6_ew_dist_mine.png)
+
+![](plots/boxplot_terrain_water_du6_ew_dist_pipe.png)
+
+![](plots/boxplot_terrain_water_du6_ew_dist_well.png)
+
+- hisotragms
+
+![](plots/hist_terrain_water_du6_ew_dist_cut_1to4.png)
+![](plots/hist_terrain_water_du6_ew_dist_cut_5to9.png)
+![](plots/hist_terrain_water_du6_ew_dist_cut_over10.png)
+
+![](plots/hist_terrain_water_du6_ew_dist_pvd_rd.png)
+
+![](plots/hist_terrain_water_du6_ew_dist_res_rd.png)
+
+![](plots/hist_terrain_water_du6_ew_dist_ag.png)
+
+![](plots/hist_terrain_water_du6_ew_dist_mine.png)
+
+![](plots/hist_terrain_water_du6_ew_dist_pipe.png)
+
+
+![](plots/hist_terrain_water_du6_ew_dist_well.png)
+
+- correlations
+  - disatcne to agriculure highly correalted with disatnce to paved raoads ($\rho$ = 0.70) and some       cutblock ages ($\rho$ > 0.73), thus dropped that covariate
+  - disatnce to pipeline adn distance to well highly correlated ($\rho$ = 0.74); dropped well because     mecahims of predation is via linear features; likely larger imapct than wells on cariobu 
+
+![](plots/corr_human_dist.png)
+
+- highest vif value was 3.56
+
+  
+  
+  
+  - Human disturbance features top-ranked model included slope, disatnce to lake, and soil type and had an AIC weight (AIC*~w~*) of 0.511. The second ranked model included all covariates (elevation, slope, disatnce to lake, disatnce to watercourse, soil type) and had an AIC weight (AIC*~w~*) of 0.489 ; thus all covariates borught into next model. coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, kept model with all covaraites for next 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
