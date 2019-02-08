@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list("here", "rJava","jdx","igraph","data.table", "raster", "SpaDES.tools"),
+  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
@@ -122,10 +122,11 @@ blockingCLUS.setSpreadProb<- function(sim) {
   return(invisible(sim))
 }
 
-
 blockingCLUS.preBlock <- function(sim) {
+  
+  #fuzzy the precision to prevent "line" shapes
   ras_var<-sim$ras.similar
-  len<-length(sim$ras.similar[sim$ras.similar>0])
+  len<-length(sim$ras.similar[sim$ras.similar > 0])
   ras_var[ras_var>0]<-runif(as.integer(len), 0,0.001)
   sim$ras.similar<-sim$ras.similar+ras_var
   
@@ -150,33 +151,45 @@ blockingCLUS.preBlock <- function(sim) {
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
   edges.weight<-as.matrix(edges.weight[, id := seq_len(.N)]) #set the ids of the edge list. Faster than using as.integer(row.names())
   
-  
   #summary(edges.weight$weight)
   #------make the graph
   g<-graph.lattice()
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
-
-  g.mst<-mst(g, weighted=TRUE)
-  paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
-  paths.matrix[, V1 := as.integer(V1)]
-  paths.matrix[, V2 := as.integer(V2)]
-  d<-convertToJava(as.integer(degree(g.mst)))
+  V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
-  h<-convertToJava(data.table(size= c(20,40,60,100), n = as.integer(c(1000000, 300000,10000,1000))))
-  h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
+  if(exists(sim$clusdb)){
+    zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels')))
+  }else{
+    zones<-1
+  }
   
-  to<-.jarray(as.matrix(paths.matrix[,1]))
-  from<-.jarray(as.matrix(paths.matrix[,2]))
-  weight<-.jarray(as.matrix(paths.matrix[,3]))
-  #library(here) #Need this package to find the root directory
+  resultset<-lapply(zones, function (x){
+    vert<-dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x)))
+    g.mst<-mst(induced_subgraph(g, v = as.matrix(vert)) , weighted=TRUE)
+    #TODO: remove this dependancy in java where the index refers to the pixelid.
+    dg<-as.matrix(degree(g.mst))
+    paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
+    paths.matrix[, V1 := as.integer(V1)]
+    paths.matrix[, V2 := as.integer(V2)]
+    
+    list(dg, paths.matrix)
+  })
+  
+  #run the java code in parallel?
+  if(length(zones) > 1 && object.size(g) > 100000000){ #0.1 GB
+    noCores<-min(parallel::detectCores()-1, length(zones))
+    cl<-makeCluster(noCores, type = "SOCK")
+    clusterCall(cl, worker.init, c('data.table','rJava', 'jdx'))
+    test<-parLapply(cl, resultset, getBlocksIDs)
+    stopCluster.default(cl)
+  }else{
+    library(rJava)
+    library(jdx)
+    test<-lapply(resultset, getBlocksIDs)
+  }
 
-  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
-  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
-  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
-  fhClass$blockEdges() # creates the blocks
   result<-convertToR(fhClass$getBlocks()) # retrieves the result
- 
   #The number of pixels returned from the alorithum may be smaller than the number of pixels in the similarity
   #raster. This happens when the last remaining pixels are NA and thus they are removed from the graph
   if(!(length(result) == length(sim$ras.similar))){ # removes warning about merging vectors with different lengths
@@ -237,6 +250,32 @@ blockingCLUS.spreadBlock<- function(sim) {
 }
 
 ### additional functions
+getBlocksIDs<- function(x){
+  print('test')
+  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
+  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
+  dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]])))
+  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(0))))
+  
+  d<-convertToJava(as.integer(unlist(dg[,"V2"])))
+  vertids<-as.integer(unlist(dg[,1]))
+  
+  h<-convertToJava(data.frame(size= c(20,40,60,100), n = as.integer(c(1000000, 300000,10000,1000))), array.order = "column-major", data.frame.row.major = TRUE)
+  h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
+  
+  to<-.jarray(as.matrix(x[][[2]][,1]))
+  from<-.jarray(as.matrix(x[][[2]][,2]))
+  weight<-.jarray(as.matrix(x[][[2]][,3]))
+  
+  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
+  fhClass$blockEdges() # creates the blocks
+  test<-cbind(convertToR(fhClass$getBlocks()), vertids) #creates a link between pixelid and blockid
+  list(test)
+}
 
-
-
+worker.init <- function(packages) {
+  for (p in packages) {
+    library(p, character.only=TRUE) #need character.only=TRUE to evaluate p as a character
+  }
+  NULL #return NULL to avoid sending unnecessary data back to the master process
+}
