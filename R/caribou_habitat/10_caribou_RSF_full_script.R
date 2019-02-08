@@ -467,8 +467,6 @@ rsf.data.human.dist.du6.ew <- rsf.data.human.dist %>%
 rsf.data.human.dist.du6.ew <- dplyr::mutate (rsf.data.human.dist.du6.ew, distance_to_cut_10yoorOver = pmin (distance_to_cut_10to29yo, distance_to_cut_30orOveryo))
 
 
-
-
 ### OUTLIERS ###
 ggplot (rsf.data.human.dist.du6.ew, aes (x = pttype, y = distance_to_cut_1to4yo)) +
         geom_boxplot (outlier.colour = "red") +
@@ -649,6 +647,7 @@ std.distance_to_paved_road_E <- tapply (sub$std.distance_to_paved_road, sub$uniq
 std.distance_to_mines_E <- tapply (sub$std.distance_to_mines, sub$uniqueID, mean)
 std.distance_to_pipeline_E <- tapply (sub$std.distance_to_pipeline, sub$uniqueID, mean)
 std.distance_to_resource_road_E <- tapply (sub$std.distance_to_resource_road, sub$uniqueID, mean)
+seismic_E <- tapply (sub$seismic, sub$uniqueID, sum)
 
 inds <- as.character (rsf.data.human.dist.du6.ew$uniqueID)
 rsf.data.human.dist.du6.ew <- cbind (rsf.data.human.dist.du6.ew, 
@@ -658,7 +657,10 @@ rsf.data.human.dist.du6.ew <- cbind (rsf.data.human.dist.du6.ew,
                                       "std.distance_to_paved_road_E" = std.distance_to_paved_road_E [inds],
                                       "std.distance_to_mines_E" = std.distance_to_mines_E [inds],
                                       "std.distance_to_pipeline_E" = std.distance_to_pipeline_E [inds],
-                                      "std.distance_to_resource_road_E" = std.distance_to_resource_road_E [inds])
+                                      "std.distance_to_resource_road_E" = std.distance_to_resource_road_E [inds],
+                                      "seismic_E" = seismic_E [inds])
+
+rsf.data.human.dist.du6.ew$std.seismic_E <- (rsf.data.human.dist.du6.ew$seismic_E - mean (rsf.data.human.dist.du6.ew$seismic_E)) / sd (rsf.data.human.dist.du6.ew$seismic_E)
 
 ## DISTANCE TO CUTBLOCK ##
 model.lme4.du6.ew.cutblock <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
@@ -784,16 +786,1150 @@ table.aic [8, 6] <-  AIC (model.lme4.fxn.du6.ew.pipe)
 
 ## SEISMIC ##
 model.lme4.du6.ew.seismic <- glmer (pttype ~ seismic + (1 | uniqueID), 
-                                 data = rsf.data.human.dist.du6.ew, 
-                                 family = binomial (link = "logit"),
-                                 verbose = T) 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
 # AIC
 table.aic [9, 1] <- "DU6"
 table.aic [9, 2] <- "Early Winter"
 table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [9, 4] <- "Seismic"
 table.aic [9, 5] <- "(1 | UniqueID)"
-table.aic [9, 6] <-  AIC (model.lme4.du6.ew.pipe)
+table.aic [9, 6] <-  AIC (model.lme4.du6.ew.seismic)
+
+model.lme4.fxn.du6.ew.seismic <- glmer (pttype ~ seismic + 
+                                                 seismic_E +
+                                                 seismic:seismic_E +
+                                                 (1 | uniqueID), 
+                                         data = rsf.data.human.dist.du6.ew, 
+                                         family = binomial (link = "logit"),
+                                         verbose = T) 
+# AIC
+table.aic [10, 1] <- "DU6"
+table.aic [10, 2] <- "Early Winter"
+table.aic [10, 3] <- "GLMM with Functional Response"
+table.aic [10, 4] <- "Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [10, 5] <- "(1 | UniqueID)"
+table.aic [10, 6] <-  AIC (model.lme4.fxn.du6.ew.seismic)
+
+## DISTANCE TO CUTBLOCK and DISTANCE TO ROAD ##
+model.lme4.du6.ew.cut.road <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                              std.distance_to_cut_5to9yo + 
+                                              std.distance_to_cut_10yoorOver + 
+                                              std.distance_to_paved_road +
+                                              std.distance_to_resource_road +
+                                              (1 | uniqueID), 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [11, 1] <- "DU6"
+table.aic [11, 2] <- "Early Winter"
+table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [11, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR"
+table.aic [11, 5] <- "(1 | UniqueID)"
+table.aic [11, 6] <-  AIC (model.lme4.du6.ew.cut.road)
+
+model.lme4.fxn.du6.ew.cut.road1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo + 
+                                                  std.distance_to_cut_10yoorOver + 
+                                                  std.distance_to_paved_road +
+                                                  std.distance_to_resource_road +
+                                                  std.distance_to_cut_1to4yo_E + 
+                                                  std.distance_to_cut_5to9yo_E + 
+                                                  std.distance_to_cut_10yoorOver_E + 
+                                                  std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                  std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                  std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                  (1 | uniqueID), 
+                                         data = rsf.data.human.dist.du6.ew, 
+                                         family = binomial (link = "logit"),
+                                         verbose = T) 
+# AIC
+table.aic [12, 1] <- "DU6"
+table.aic [12, 2] <- "Early Winter"
+table.aic [12, 3] <- "GLMM with Functional Response"
+table.aic [12, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [12, 5] <- "(1 | UniqueID)"
+table.aic [12, 6] <-  AIC (model.lme4.fxn.du6.ew.cut.road1)
+
+model.lme4.fxn.du6.ew.cut.road2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                            std.distance_to_cut_5to9yo + 
+                                            std.distance_to_cut_10yoorOver + 
+                                            std.distance_to_paved_road +
+                                            std.distance_to_resource_road +
+                                            std.distance_to_paved_road_E +
+                                            std.distance_to_resource_road_E +
+                                            std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                            std.distance_to_resource_road:std.distance_to_resource_road_E +
+                                            (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [13, 1] <- "DU6"
+table.aic [13, 2] <- "Early Winter"
+table.aic [13, 3] <- "GLMM with Functional Response"
+table.aic [13, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [13, 5] <- "(1 | UniqueID)"
+table.aic [13, 6] <-  AIC (model.lme4.fxn.du6.ew.cut.road2)
+
+
+## DISTANCE TO CUTBLOCK and DISTANCE TO MINE ##
+model.lme4.du6.ew.cut.mine <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                               std.distance_to_cut_5to9yo + 
+                                               std.distance_to_cut_10yoorOver + 
+                                               std.distance_to_mines +
+                                               (1 | uniqueID), 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [14, 1] <- "DU6"
+table.aic [14, 2] <- "Early Winter"
+table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [14, 4] <- "DC1to4, DC5to9, DCover9, DMine"
+table.aic [14, 5] <- "(1 | UniqueID)"
+table.aic [14, 6] <-  AIC (model.lme4.du6.ew.cut.mine)
+
+model.lme4.fxn.du6.ew.cut.mine1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                            std.distance_to_cut_5to9yo + 
+                                            std.distance_to_cut_10yoorOver + 
+                                            std.distance_to_mines +
+                                            std.distance_to_cut_1to4yo_E + 
+                                            std.distance_to_cut_5to9yo_E + 
+                                            std.distance_to_cut_10yoorOver_E + 
+                                            std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                            std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                            std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                            (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [15, 1] <- "DU6"
+table.aic [15, 2] <- "Early Winter"
+table.aic [15, 3] <- "GLMM with Functional Response"
+table.aic [15, 4] <- "DC1to4, DC5to9, DCover9, DMine, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [15, 5] <- "(1 | UniqueID)"
+table.aic [15, 6] <- "NA" # failed to converge
+
+model.lme4.fxn.du6.ew.cut.mine2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                            std.distance_to_cut_5to9yo + 
+                                            std.distance_to_cut_10yoorOver + 
+                                            std.distance_to_mines +
+                                            std.distance_to_mines_E +
+                                            std.distance_to_mines:std.distance_to_mines_E +
+                                            (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [16, 1] <- "DU6"
+table.aic [16, 2] <- "Early Winter"
+table.aic [16, 3] <- "GLMM with Functional Response"
+table.aic [16, 4] <- "DC1to4, DC5to9, DCover9, DMine, A_DMine, DMine*A_DMine"
+table.aic [16, 5] <- "(1 | UniqueID)"
+table.aic [16, 6] <-  AIC (model.lme4.fxn.du6.ew.cut.mine2)
+
+## DISTANCE TO CUTBLOCK and DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.cut.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                               std.distance_to_cut_5to9yo + 
+                                               std.distance_to_cut_10yoorOver + 
+                                               std.distance_to_pipeline +
+                                               (1 | uniqueID), 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [17, 1] <- "DU6"
+table.aic [17, 2] <- "Early Winter"
+table.aic [17, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [17, 4] <- "DC1to4, DC5to9, DCover9, DPipeline"
+table.aic [17, 5] <- "(1 | UniqueID)"
+table.aic [17, 6] <-  AIC (model.lme4.du6.ew.cut.pipe)
+
+model.lme4.du6.ew.cut.pipe1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                          std.distance_to_cut_5to9yo + 
+                                          std.distance_to_cut_10yoorOver + 
+                                          std.distance_to_pipeline +
+                                          std.distance_to_cut_1to4yo_E + 
+                                          std.distance_to_cut_5to9yo_E + 
+                                          std.distance_to_cut_10yoorOver_E + 
+                                          std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                          std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                          std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                          (1 | uniqueID), 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [18, 1] <- "DU6"
+table.aic [18, 2] <- "Early Winter"
+table.aic [18, 3] <- "GLMM with Functional Response"
+table.aic [18, 4] <- "DC1to4, DC5to9, DCover9, DPipeline, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [18, 5] <- "(1 | UniqueID)"
+table.aic [18, 6] <-  AIC (model.lme4.du6.ew.cut.pipe1)
+
+model.lme4.du6.ew.cut.pipe2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                        std.distance_to_cut_5to9yo + 
+                                        std.distance_to_cut_10yoorOver + 
+                                        std.distance_to_pipeline +
+                                        std.distance_to_pipeline_E + 
+                                        std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                        (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [19, 1] <- "DU6"
+table.aic [19, 2] <- "Early Winter"
+table.aic [19, 3] <- "GLMM with Functional Response"
+table.aic [19, 4] <- "DC1to4, DC5to9, DCover9, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [19, 5] <- "(1 | UniqueID)"
+table.aic [19, 6] <-  AIC (model.lme4.du6.ew.cut.pipe2)
+
+## DISTANCE TO CUTBLOCK and SEISMIC ##
+model.lme4.du6.ew.cut.seis <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                       std.distance_to_cut_5to9yo + 
+                                       std.distance_to_cut_10yoorOver + 
+                                       seismic +
+                                       (1 | uniqueID), 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [20, 1] <- "DU6"
+table.aic [20, 2] <- "Early Winter"
+table.aic [20, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [20, 4] <- "DC1to4, DC5to9, DCover9, Seismic"
+table.aic [20, 5] <- "(1 | UniqueID)"
+table.aic [20, 6] <-  AIC (model.lme4.du6.ew.cut.seis)
+
+model.lme4.du6.ew.cut.seis1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                        std.distance_to_cut_5to9yo + 
+                                        std.distance_to_cut_10yoorOver + 
+                                        seismic +
+                                        std.distance_to_cut_1to4yo_E + 
+                                        std.distance_to_cut_5to9yo_E + 
+                                        std.distance_to_cut_10yoorOver_E + 
+                                        std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                        std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                        std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                        (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [21, 1] <- "DU6"
+table.aic [21, 2] <- "Early Winter"
+table.aic [21, 3] <- "GLMM with Functional Response"
+table.aic [21, 4] <- "DC1to4, DC5to9, DCover9, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [21, 5] <- "(1 | UniqueID)"
+table.aic [21, 6] <-  AIC (model.lme4.du6.ew.cut.seis1)
+
+model.lme4.du6.ew.cut.seis2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                        std.distance_to_cut_5to9yo + 
+                                        std.distance_to_cut_10yoorOver + 
+                                        seismic +
+                                        seismic_E + 
+                                        seismic:seismic_E +
+                                        (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [22, 1] <- "DU6"
+table.aic [22, 2] <- "Early Winter"
+table.aic [22, 3] <- "GLMM with Functional Response"
+table.aic [22, 4] <- "DC1to4, DC5to9, DCover9, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [22, 5] <- "(1 | UniqueID)"
+table.aic [22, 6] <-  AIC (model.lme4.du6.ew.cut.seis2)
+
+## DISTANCE TO ROAD AND DISTANCE TO MINE ##
+model.lme4.du6.ew.road.mine <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                std.distance_to_resource_road + 
+                                                std.distance_to_mines +
+                                                (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [23, 1] <- "DU6"
+table.aic [23, 2] <- "Early Winter"
+table.aic [23, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [23, 4] <- "DPR, DRR, DMine"
+table.aic [23, 5] <- "(1 | UniqueID)"
+table.aic [23, 6] <-  AIC (model.lme4.du6.ew.road.mine)
+
+model.lme4.du6.ew.road.mine1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                std.distance_to_resource_road + 
+                                                std.distance_to_mines +
+                                                std.distance_to_paved_road_E + 
+                                                std.distance_to_resource_road_E + 
+                                                std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [24, 1] <- "DU6"
+table.aic [24, 2] <- "Early Winter"
+table.aic [24, 3] <- "GLMM with Functional Response"
+table.aic [24, 4] <- "DPR, DRR, DMine, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [24, 5] <- "(1 | UniqueID)"
+table.aic [24, 6] <-  AIC (model.lme4.du6.ew.road.mine1)
+
+model.lme4.du6.ew.road.mine2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                         std.distance_to_resource_road + 
+                                         std.distance_to_mines +
+                                         std.distance_to_mines_E + 
+                                         std.distance_to_mines:std.distance_to_mines_E +
+                                         (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [25, 1] <- "DU6"
+table.aic [25, 2] <- "Early Winter"
+table.aic [25, 3] <- "GLMM with Functional Response"
+table.aic [25, 4] <- "DPR, DRR, DMine, A_DMine, DMine*A_DMine"
+table.aic [25, 5] <- "(1 | UniqueID)"
+table.aic [25, 6] <-  AIC (model.lme4.du6.ew.road.mine2)
+
+## DISTANCE TO ROAD AND DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.road.pipe <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                std.distance_to_resource_road + 
+                                                std.distance_to_pipeline +
+                                                (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [26, 1] <- "DU6"
+table.aic [26, 2] <- "Early Winter"
+table.aic [26, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [26, 4] <- "DPR, DRR, DPipeline"
+table.aic [26, 5] <- "(1 | UniqueID)"
+table.aic [26, 6] <-  AIC (model.lme4.du6.ew.road.pipe)
+
+model.lme4.du6.ew.road.pipe1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                 std.distance_to_resource_road + 
+                                                 std.distance_to_pipeline +
+                                                 std.distance_to_paved_road_E + 
+                                                 std.distance_to_resource_road_E + 
+                                                 std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                 std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                 (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [27, 1] <- "DU6"
+table.aic [27, 2] <- "Early Winter"
+table.aic [27, 3] <- "GLMM with Functional Response"
+table.aic [27, 4] <- "DPR, DRR, DPipeline, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [27, 5] <- "(1 | UniqueID)"
+table.aic [27, 6] <-  AIC (model.lme4.du6.ew.road.pipe1)
+
+model.lme4.du6.ew.road.pipe2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                         std.distance_to_resource_road + 
+                                         std.distance_to_pipeline +
+                                         std.distance_to_pipeline_E + 
+                                         std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                         (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [28, 1] <- "DU6"
+table.aic [28, 2] <- "Early Winter"
+table.aic [28, 3] <- "GLMM with Functional Response"
+table.aic [28, 4] <- "DPR, DRR, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [28, 5] <- "(1 | UniqueID)"
+table.aic [28, 6] <-  AIC (model.lme4.du6.ew.road.pipe2)
+
+## DISTANCE TO ROAD AND SEISMIC ##
+model.lme4.du6.ew.road.seis <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                std.distance_to_resource_road + 
+                                                seismic +
+                                                (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [29, 1] <- "DU6"
+table.aic [29, 2] <- "Early Winter"
+table.aic [29, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [29, 4] <- "DPR, DRR, Seismic"
+table.aic [29, 5] <- "(1 | UniqueID)"
+table.aic [29, 6] <-  AIC (model.lme4.du6.ew.road.seis)
+
+model.lme4.du6.ew.road.seis1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                 std.distance_to_resource_road + 
+                                                 seismic +
+                                                 std.distance_to_paved_road_E + 
+                                                 std.distance_to_resource_road_E + 
+                                                 std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                 std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                 (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [30, 1] <- "DU6"
+table.aic [30, 2] <- "Early Winter"
+table.aic [30, 3] <- "GLMM with Functional Response"
+table.aic [30, 4] <- "DPR, DRR, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [30, 5] <- "(1 | UniqueID)"
+table.aic [30, 6] <-  AIC (model.lme4.du6.ew.road.seis1)
+
+model.lme4.du6.ew.road.seis2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                   std.distance_to_resource_road + 
+                                                   seismic +
+                                                   seismic_E + 
+                                                   seismic:seismic_E +
+                                                   (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [31, 1] <- "DU6"
+table.aic [31, 2] <- "Early Winter"
+table.aic [31, 3] <- "GLMM with Functional Response"
+table.aic [31, 4] <- "DPR, DRR, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [31, 5] <- "(1 | UniqueID)"
+table.aic [31, 6] <-  AIC (model.lme4.du6.ew.road.seis2)
+
+## DISTANCE TO MINE AND DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.mine.pipe <- glmer (pttype ~ std.distance_to_mines + 
+                                               std.distance_to_pipeline +
+                                               (1 | uniqueID), 
+                                     data = rsf.data.human.dist.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [32, 1] <- "DU6"
+table.aic [32, 2] <- "Early Winter"
+table.aic [32, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [32, 4] <- "DMine, DPipeline"
+table.aic [32, 5] <- "(1 | UniqueID)"
+table.aic [32, 6] <-  AIC (model.lme4.du6.ew.mine.pipe)
+
+model.lme4.du6.ew.mine.pipe1 <- glmer (pttype ~ std.distance_to_mines + 
+                                                std.distance_to_pipeline +
+                                                std.distance_to_mines_E + 
+                                                std.distance_to_mines:std.distance_to_mines_E +
+                                                (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [33, 1] <- "DU6"
+table.aic [33, 2] <- "Early Winter"
+table.aic [33, 3] <- "GLMM with Functional Response"
+table.aic [33, 4] <- "DMine, DPipeline, A_DMine, DMine*A_DMine"
+table.aic [33, 5] <- "(1 | UniqueID)"
+table.aic [33, 6] <-  AIC (model.lme4.du6.ew.mine.pipe1)
+
+model.lme4.du6.ew.mine.pipe2 <- glmer (pttype ~ std.distance_to_mines + 
+                                         std.distance_to_pipeline +
+                                         std.distance_to_pipeline_E + 
+                                         std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                         (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [34, 1] <- "DU6"
+table.aic [34, 2] <- "Early Winter"
+table.aic [34, 3] <- "GLMM with Functional Response"
+table.aic [34, 4] <- "DMine, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [34, 5] <- "(1 | UniqueID)"
+table.aic [34, 6] <-  AIC (model.lme4.du6.ew.mine.pipe2)
+
+## DISTANCE TO MINE AND SEISMIC ##
+model.lme4.du6.ew.mine.seis <- glmer (pttype ~ std.distance_to_mines + 
+                                                seismic +
+                                                (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [35, 1] <- "DU6"
+table.aic [35, 2] <- "Early Winter"
+table.aic [35, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [35, 4] <- "DMine, Seismic"
+table.aic [35, 5] <- "(1 | UniqueID)"
+table.aic [35, 6] <-  AIC (model.lme4.du6.ew.mine.seis)
+
+model.lme4.du6.ew.mine.seis1 <- glmer (pttype ~ std.distance_to_mines + 
+                                                 seismic +
+                                                 std.distance_to_mines_E + 
+                                                 std.distance_to_mines:std.distance_to_mines_E +
+                                                 (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [36, 1] <- "DU6"
+table.aic [36, 2] <- "Early Winter"
+table.aic [36, 3] <- "GLMM with Functional Response"
+table.aic [36, 4] <- "DMine, Seismic, A_DMine, DMine*A_DMine"
+table.aic [36, 5] <- "(1 | UniqueID)"
+table.aic [36, 6] <-  AIC (model.lme4.du6.ew.mine.seis1)
+
+model.lme4.du6.ew.mine.seis2 <- glmer (pttype ~ std.distance_to_mines + 
+                                                 seismic +
+                                                 seismic_E + 
+                                                 seismic:seismic_E +
+                                                 (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [37, 1] <- "DU6"
+table.aic [37, 2] <- "Early Winter"
+table.aic [37, 3] <- "GLMM with Functional Response"
+table.aic [37, 4] <- "DMine, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [37, 5] <- "(1 | UniqueID)"
+table.aic [37, 6] <-  AIC (model.lme4.du6.ew.mine.seis2)
+
+## DISTANCE TO PIPELINE AND SEISMIC ##
+model.lme4.du6.ew.pipe.seis <- glmer (pttype ~ std.distance_to_pipeline + 
+                                               seismic +
+                                               (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [38, 1] <- "DU6"
+table.aic [38, 2] <- "Early Winter"
+table.aic [38, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [38, 4] <- "DPipeline, Seismic"
+table.aic [38, 5] <- "(1 | UniqueID)"
+table.aic [38, 6] <-  AIC (model.lme4.du6.ew.pipe.seis)
+
+model.lme4.du6.ew.pipe.seis1 <- glmer (pttype ~ std.distance_to_pipeline + 
+                                                 seismic +
+                                                 std.distance_to_pipeline_E + 
+                                                 std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                 (1 | uniqueID), 
+                                      data = rsf.data.human.dist.du6.ew, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+# AIC
+table.aic [39, 1] <- "DU6"
+table.aic [39, 2] <- "Early Winter"
+table.aic [39, 3] <- "GLMM with Functional Response"
+table.aic [39, 4] <- "DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [39, 5] <- "(1 | UniqueID)"
+table.aic [39, 6] <-  AIC (model.lme4.du6.ew.pipe.seis)
+
+model.lme4.du6.ew.pipe.seis2 <- glmer (pttype ~ std.distance_to_pipeline + 
+                                                 seismic +
+                                                 seismic_E + 
+                                                 seismic:seismic_E +
+                                                 (1 | uniqueID), 
+                                       data = rsf.data.human.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [40, 1] <- "DU6"
+table.aic [40, 2] <- "Early Winter"
+table.aic [40, 3] <- "GLMM with Functional Response"
+table.aic [40, 4] <- "DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [40, 5] <- "(1 | UniqueID)"
+table.aic [40, 6] <-  AIC (model.lme4.du6.ew.pipe.seis2)
+
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO ROAD, DISTANCE TO MINE ##
+model.lme4.du6.ew.cut.road.mine <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                   std.distance_to_cut_5to9yo + 
+                                                   std.distance_to_cut_10yoorOver + 
+                                                   std.distance_to_paved_road +
+                                                   std.distance_to_resource_road +
+                                                   std.distance_to_mines +
+                                                   (1 | uniqueID), 
+                                         data = rsf.data.human.dist.du6.ew, 
+                                         family = binomial (link = "logit"),
+                                         verbose = T) 
+# AIC
+table.aic [41, 1] <- "DU6"
+table.aic [41, 2] <- "Early Winter"
+table.aic [41, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [41, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine"
+table.aic [41, 5] <- "(1 | UniqueID)"
+table.aic [41, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine)
+
+model.lme4.du6.ew.cut.road.mine1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_5to9yo + 
+                                                    std.distance_to_cut_10yoorOver + 
+                                                    std.distance_to_paved_road +
+                                                    std.distance_to_resource_road +
+                                                    std.distance_to_mines +
+                                                    std.distance_to_cut_1to4yo_E + 
+                                                    std.distance_to_cut_5to9yo_E + 
+                                                    std.distance_to_cut_10yoorOver_E + 
+                                                    std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                    std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                    std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                    (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [42, 1] <- "DU6"
+table.aic [42, 2] <- "Early Winter"
+table.aic [42, 3] <- "GLMM with Functional Response"
+table.aic [42, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [42, 5] <- "(1 | UniqueID)"
+table.aic [42, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine1)
+
+model.lme4.du6.ew.cut.road.mine2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_10yoorOver + 
+                                             std.distance_to_paved_road +
+                                             std.distance_to_resource_road +
+                                             std.distance_to_mines +
+                                             std.distance_to_paved_road_E + 
+                                             std.distance_to_resource_road_E + 
+                                             std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                             std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                             (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [43, 1] <- "DU6"
+table.aic [43, 2] <- "Early Winter"
+table.aic [43, 3] <- "GLMM with Functional Response"
+table.aic [43, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [43, 5] <- "(1 | UniqueID)"
+table.aic [43, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine2)
+
+model.lme4.du6.ew.cut.road.mine3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     std.distance_to_mines +
+                                                     std.distance_to_mines_E + 
+                                                     std.distance_to_mines:std.distance_to_mines_E +
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [44, 1] <- "DU6"
+table.aic [44, 2] <- "Early Winter"
+table.aic [44, 3] <- "GLMM with Functional Response"
+table.aic [44, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, A_DMine, DMine*A_DMine"
+table.aic [44, 5] <- "(1 | UniqueID)"
+table.aic [44, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine3)
+
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO ROAD, DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.cut.road.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_5to9yo + 
+                                                    std.distance_to_cut_10yoorOver + 
+                                                    std.distance_to_paved_road +
+                                                    std.distance_to_resource_road +
+                                                    std.distance_to_pipeline +
+                                                    (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [45, 1] <- "DU6"
+table.aic [45, 2] <- "Early Winter"
+table.aic [45, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [45, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline"
+table.aic [45, 5] <- "(1 | UniqueID)"
+table.aic [45, 6] <-  AIC (model.lme4.du6.ew.cut.road.pipe)
+
+model.lme4.du6.ew.cut.road.pipe1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     std.distance_to_pipeline +
+                                                     std.distance_to_cut_1to4yo_E + 
+                                                     std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver_E + 
+                                                     std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                     std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                     (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [46, 1] <- "DU6"
+table.aic [46, 2] <- "Early Winter"
+table.aic [46, 3] <- "GLMM with Functional Response"
+table.aic [46, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [46, 5] <- "(1 | UniqueID)"
+table.aic [46, 6] <-  "NA" # failed to converge
+
+model.lme4.du6.ew.cut.road.pipe2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     std.distance_to_pipeline +
+                                                     std.distance_to_paved_road_E + 
+                                                     std.distance_to_resource_road_E + 
+                                                     std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                     std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [47, 1] <- "DU6"
+table.aic [47, 2] <- "Early Winter"
+table.aic [47, 3] <- "GLMM with Functional Response"
+table.aic [47, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, A_DPR, DPR*A_DPR, A_DRR, DRR*A_DRR"
+table.aic [47, 5] <- "(1 | UniqueID)"
+table.aic [47, 6] <-  AIC (model.lme4.du6.ew.cut.road.pipe2)
+
+model.lme4.du6.ew.cut.road.pipe3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_10yoorOver + 
+                                             std.distance_to_paved_road +
+                                             std.distance_to_resource_road +
+                                             std.distance_to_pipeline +
+                                             std.distance_to_pipeline_E + 
+                                             std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                             (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [48, 1] <- "DU6"
+table.aic [48, 2] <- "Early Winter"
+table.aic [48, 3] <- "GLMM with Functional Response"
+table.aic [48, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [48, 5] <- "(1 | UniqueID)"
+table.aic [48, 6] <-  AIC (model.lme4.du6.ew.cut.road.pipe3)
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO ROAD, SEISMIC ##
+model.lme4.du6.ew.cut.road.seis <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_5to9yo + 
+                                                    std.distance_to_cut_10yoorOver + 
+                                                    std.distance_to_paved_road +
+                                                    std.distance_to_resource_road +
+                                                    seismic +
+                                                    (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [49, 1] <- "DU6"
+table.aic [49, 2] <- "Early Winter"
+table.aic [49, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [49, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, Seismic"
+table.aic [49, 5] <- "(1 | UniqueID)"
+table.aic [49, 6] <-  AIC (model.lme4.du6.ew.cut.road.seis)
+
+model.lme4.du6.ew.cut.road.seis1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     seismic +
+                                                     std.distance_to_cut_1to4yo_E + 
+                                                     std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver_E + 
+                                                     std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                     std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                     (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [50, 1] <- "DU6"
+table.aic [50, 2] <- "Early Winter"
+table.aic [50, 3] <- "GLMM with Functional Response"
+table.aic [50, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [50, 5] <- "(1 | UniqueID)"
+table.aic [50, 6] <-  "NA" #failed to converge
+
+model.lme4.du6.ew.cut.road.seis2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     seismic +
+                                                     std.distance_to_paved_road_E + 
+                                                     std.distance_to_resource_road_E +
+                                                     std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                     std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [51, 1] <- "DU6"
+table.aic [51, 2] <- "Early Winter"
+table.aic [51, 3] <- "GLMM with Functional Response"
+table.aic [51, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [51, 5] <- "(1 | UniqueID)"
+table.aic [51, 6] <-  AIC (model.lme4.du6.ew.cut.road.seis2)
+
+model.lme4.du6.ew.cut.road.seis3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_10yoorOver + 
+                                             std.distance_to_paved_road +
+                                             std.distance_to_resource_road +
+                                             seismic +
+                                             seismic_E +
+                                             seismic:std.seismic_E +
+                                             (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [52, 1] <- "DU6"
+table.aic [52, 2] <- "Early Winter"
+table.aic [52, 3] <- "GLMM with Functional Response"
+table.aic [52, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [52, 5] <- "(1 | UniqueID)"
+table.aic [52, 6] <-  AIC (model.lme4.du6.ew.cut.road.seis3)
+
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO MINE, DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.cut.mine.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                   std.distance_to_cut_5to9yo + 
+                                                   std.distance_to_cut_10yoorOver + 
+                                                   std.distance_to_mines +
+                                                   std.distance_to_pipeline +
+                                                   (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [53, 1] <- "DU6"
+table.aic [53, 2] <- "Early Winter"
+table.aic [53, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [53, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline"
+table.aic [53, 5] <- "(1 | UniqueID)"
+table.aic [53, 6] <-  AIC (model.lme4.du6.ew.cut.mine.pipe)
+
+model.lme4.du6.ew.cut.mine.pipe1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_5to9yo + 
+                                                    std.distance_to_cut_10yoorOver + 
+                                                    std.distance_to_mines +
+                                                    std.distance_to_pipeline +
+                                                    std.distance_to_cut_1to4yo_E + 
+                                                    std.distance_to_cut_5to9yo_E + 
+                                                    std.distance_to_cut_10yoorOver_E + 
+                                                    std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                    std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                    std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                    (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [54, 1] <- "DU6"
+table.aic [54, 2] <- "Early Winter"
+table.aic [54, 3] <- "GLMM with Functional Response"
+table.aic [54, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [54, 5] <- "(1 | UniqueID)"
+table.aic [54, 6] <-  AIC (model.lme4.du6.ew.cut.mine.pipe1)
+
+model.lme4.du6.ew.cut.mine.pipe2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_mines +
+                                                     std.distance_to_pipeline +
+                                                     std.distance_to_mines_E + 
+                                                     std.distance_to_mines:std.distance_to_mines_E +
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [55, 1] <- "DU6"
+table.aic [55, 2] <- "Early Winter"
+table.aic [55, 3] <- "GLMM with Functional Response"
+table.aic [55, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, A_DMine, DMine*A_DMine"
+table.aic [55, 5] <- "(1 | UniqueID)"
+table.aic [55, 6] <-  AIC (model.lme4.du6.ew.cut.mine.pipe2)
+
+model.lme4.du6.ew.cut.mine.pipe3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_mines +
+                                                     std.distance_to_pipeline +
+                                                     std.distance_to_pipeline_E + 
+                                                     std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [56, 1] <- "DU6"
+table.aic [56, 2] <- "Early Winter"
+table.aic [56, 3] <- "GLMM with Functional Response"
+table.aic [56, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [56, 5] <- "(1 | UniqueID)"
+table.aic [56, 6] <-  AIC (model.lme4.du6.ew.cut.mine.pipe3)
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO MINE, SEISMIC ##
+model.lme4.du6.ew.cut.mine.seis <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_5to9yo + 
+                                                    std.distance_to_cut_10yoorOver + 
+                                                    std.distance_to_mines +
+                                                    seismic +
+                                                    (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [57, 1] <- "DU6"
+table.aic [57, 2] <- "Early Winter"
+table.aic [57, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [57, 4] <- "DC1to4, DC5to9, DCover9, DMine, Seismic"
+table.aic [57, 5] <- "(1 | UniqueID)"
+table.aic [57, 6] <-  AIC (model.lme4.du6.ew.cut.mine.seis)
+
+model.lme4.du6.ew.cut.mine.seis1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_mines +
+                                                     seismic +
+                                                     std.distance_to_cut_1to4yo_E + 
+                                                     std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver_E + 
+                                                     std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                     std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                     (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [58, 1] <- "DU6"
+table.aic [58, 2] <- "Early Winter"
+table.aic [58, 3] <- "GLMM with Functional Response"
+table.aic [58, 4] <- "DC1to4, DC5to9, DCover9, DMine, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [58, 5] <- "(1 | UniqueID)"
+table.aic [58, 6] <- "NA" # failed to converge
+
+model.lme4.du6.ew.cut.mine.seis2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo + 
+                                             std.distance_to_cut_10yoorOver + 
+                                             std.distance_to_mines +
+                                             seismic +
+                                             std.distance_to_mines_E +
+                                             std.distance_to_mines:std.distance_to_mines_E +
+                                             (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [59, 1] <- "DU6"
+table.aic [59, 2] <- "Early Winter"
+table.aic [59, 3] <- "GLMM with Functional Response"
+table.aic [59, 4] <- "DC1to4, DC5to9, DCover9, DMine, Seismic, A_DMine, DMine*A_DMine"
+table.aic [59, 5] <- "(1 | UniqueID)"
+table.aic [59, 6] <- AIC (model.lme4.du6.ew.cut.mine.seis2)
+
+model.lme4.du6.ew.cut.mine.seis3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_mines +
+                                                     seismic +
+                                                     seismic_E +
+                                                     seismic:seismic_E +
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [60, 1] <- "DU6"
+table.aic [60, 2] <- "Early Winter"
+table.aic [60, 3] <- "GLMM with Functional Response"
+table.aic [60, 4] <- "DC1to4, DC5to9, DCover9, DMine, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [60, 5] <- "(1 | UniqueID)"
+table.aic [60, 6] <- AIC (model.lme4.du6.ew.cut.mine.seis3)
+
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO PIPELINE, SEISMIC ##
+model.lme4.du6.ew.cut.pipe.seis <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                   std.distance_to_cut_5to9yo + 
+                                                   std.distance_to_cut_10yoorOver + 
+                                                   std.distance_to_pipeline +
+                                                   seismic +
+                                                   (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [61, 1] <- "DU6"
+table.aic [61, 2] <- "Early Winter"
+table.aic [61, 3] <- "GLMM with Functional Response"
+table.aic [61, 4] <- "DC1to4, DC5to9, DCover9, DPipeline, Seismic"
+table.aic [61, 5] <- "(1 | UniqueID)"
+table.aic [61, 6] <-  AIC (model.lme4.du6.ew.cut.pipe.seis)
+
+model.lme4.du6.ew.cut.pipe.seis1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_pipeline +
+                                                     seismic +
+                                                     std.distance_to_cut_1to4yo_E + 
+                                                     std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver_E + 
+                                                     std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                     std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                     std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                     (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [62, 1] <- "DU6"
+table.aic [62, 2] <- "Early Winter"
+table.aic [62, 3] <- "GLMM with Functional Response"
+table.aic [62, 4] <- "DC1to4, DC5to9, DCover9, DPipeline, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [62, 5] <- "(1 | UniqueID)"
+table.aic [62, 6] <-  AIC (model.lme4.du6.ew.cut.pipe.seis1)
+
+model.lme4.du6.ew.cut.pipe.seis2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_pipeline +
+                                                     seismic +
+                                                     std.distance_to_pipeline_E + 
+                                                     std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [63, 1] <- "DU6"
+table.aic [63, 2] <- "Early Winter"
+table.aic [63, 3] <- "GLMM with Functional Response"
+table.aic [63, 4] <- "DC1to4, DC5to9, DCover9, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [63, 5] <- "(1 | UniqueID)"
+table.aic [63, 6] <-  AIC (model.lme4.du6.ew.cut.pipe.seis2)
+
+model.lme4.du6.ew.cut.pipe.seis3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_pipeline +
+                                                     seismic +
+                                                     seismic_E + 
+                                                     seismic:seismic_E +
+                                                     (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [64, 1] <- "DU6"
+table.aic [64, 2] <- "Early Winter"
+table.aic [64, 3] <- "GLMM with Functional Response"
+table.aic [64, 4] <- "DC1to4, DC5to9, DCover9, DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [64, 5] <- "(1 | UniqueID)"
+table.aic [64, 6] <-  AIC (model.lme4.du6.ew.cut.pipe.seis3)
+
+## DISTANCE TO ROAD, DISTANCE TO MINE, DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.road.mine.pipe <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                    std.distance_to_resource_road + 
+                                                    std.distance_to_mines +
+                                                    std.distance_to_pipeline +
+                                                    (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [65, 1] <- "DU6"
+table.aic [65, 2] <- "Early Winter"
+table.aic [65, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [65, 4] <- "DPR, DRR, DMine, DPipeline"
+table.aic [65, 5] <- "(1 | UniqueID)"
+table.aic [65, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe)
+
+model.lme4.du6.ew.road.mine.pipe1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                      std.distance_to_resource_road + 
+                                                      std.distance_to_mines +
+                                                      std.distance_to_pipeline +
+                                                      std.distance_to_paved_road_E + 
+                                                      std.distance_to_resource_road_E +
+                                                      std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                      std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                      (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [66, 1] <- "DU6"
+table.aic [66, 2] <- "Early Winter"
+table.aic [66, 3] <- "GLMM with Functional Response"
+table.aic [66, 4] <- "DPR, DRR, DMine, DPipeline, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [66, 5] <- "(1 | UniqueID)"
+table.aic [66, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe1)
+
+model.lme4.du6.ew.road.mine.pipe2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                      std.distance_to_resource_road + 
+                                                      std.distance_to_mines +
+                                                      std.distance_to_pipeline +
+                                                      std.distance_to_mines_E + 
+                                                      std.distance_to_mines:std.distance_to_mines_E +
+                                                      (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [67, 1] <- "DU6"
+table.aic [67, 2] <- "Early Winter"
+table.aic [67, 3] <- "GLMM with Functional Response"
+table.aic [67, 4] <- "DPR, DRR, DMine, DPipeline, A_DMine, DMine*A_DMine"
+table.aic [67, 5] <- "(1 | UniqueID)"
+table.aic [67, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe2)
+
+model.lme4.du6.ew.road.mine.pipe3 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                      std.distance_to_resource_road + 
+                                                      std.distance_to_mines +
+                                                      std.distance_to_pipeline +
+                                                      std.distance_to_pipeline_E + 
+                                                      std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                      (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [68, 1] <- "DU6"
+table.aic [68, 2] <- "Early Winter"
+table.aic [68, 3] <- "GLMM with Functional Response"
+table.aic [68, 4] <- "DPR, DRR, DMine, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [68, 5] <- "(1 | UniqueID)"
+table.aic [68, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe3)
+
+## DISTANCE TO ROAD, DISTANCE TO MINE, SEISMIC ##
+model.lme4.du6.ew.road.mine.seismic <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                        std.distance_to_resource_road + 
+                                                        std.distance_to_mines +
+                                                        seismic +
+                                                        (1 | uniqueID), 
+                                              data = rsf.data.human.dist.du6.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+# AIC
+table.aic [69, 1] <- "DU6"
+table.aic [69, 2] <- "Early Winter"
+table.aic [69, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [69, 4] <- "DPR, DRR, DMine, Seismic"
+table.aic [69, 5] <- "(1 | UniqueID)"
+table.aic [69, 6] <-  AIC (model.lme4.du6.ew.road.mine.seismic)
+
+
 
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_human_disturb.csv", sep = ",")
