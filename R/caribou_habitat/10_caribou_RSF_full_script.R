@@ -111,8 +111,7 @@ dbDisconnect (connKyle)
 ### A BIT OF CLEAN-UP ###
 ########################
 # look for and remove NA data #
-test <- rsf.data.human.dist %>% filter (is.na (distance_to_ski_hill))
-
+test <- rsf.data.terrain.water %>% filter (is.na (soil_parent_material_name))
 rsf.data.terrain.water <- rsf.data.terrain.water %>% 
                             filter (!is.na (soil_parent_material_name))
 rsf.data.terrain.water <- rsf.data.terrain.water %>% 
@@ -123,6 +122,12 @@ rsf.data.terrain.water <- rsf.data.terrain.water %>%
                             filter (!is.na (elevation))
 rsf.data.terrain.water$pttype <- as.factor (rsf.data.terrain.water$pttype)
 rsf.data.human.dist$pttype <- as.factor (rsf.data.human.dist$pttype)
+
+
+test <- rsf.data.climate.annual %>% filter (is.na (frost_free_start_julian))
+rsf.data.climate.annual <- rsf.data.climate.annual %>% 
+                            filter (!is.na (frost_free_start_julian))
+
 
 # noticed issue with eastness/northness data, need to make value = 0 if slope = 0
 rsf.data.terrain.water$easting <- ifelse (rsf.data.terrain.water$slope == 0, 0, rsf.data.terrain.water$easting) 
@@ -454,6 +459,8 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ta
 # save the top endurign features model
 save (model.lme4.du6.ew.slope.lake.wc.soil, 
       file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_ef_top.rda")
+
+
 
 #=================================
 # Human Disturbance Models
@@ -1929,7 +1936,1524 @@ table.aic [69, 4] <- "DPR, DRR, DMine, Seismic"
 table.aic [69, 5] <- "(1 | UniqueID)"
 table.aic [69, 6] <-  AIC (model.lme4.du6.ew.road.mine.seismic)
 
+model.lme4.du6.ew.road.mine.seismic1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                        std.distance_to_resource_road + 
+                                                        std.distance_to_mines +
+                                                        seismic +
+                                                        std.distance_to_paved_road_E + 
+                                                        std.distance_to_resource_road_E +
+                                                        std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                        std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                        (1 | uniqueID), 
+                                              data = rsf.data.human.dist.du6.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+# AIC
+table.aic [70, 1] <- "DU6"
+table.aic [70, 2] <- "Early Winter"
+table.aic [70, 3] <- "GLMM with Functional Response"
+table.aic [70, 4] <- "DPR, DRR, DMine, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [70, 5] <- "(1 | UniqueID)"
+table.aic [70, 6] <-  AIC (model.lme4.du6.ew.road.mine.seismic1)
 
 
+model.lme4.du6.ew.road.mine.seismic2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                 std.distance_to_resource_road + 
+                                                 std.distance_to_mines +
+                                                 seismic +
+                                                 std.distance_to_mines_E + 
+                                                 std.distance_to_mines:std.distance_to_mines_E +
+                                                 (1 | uniqueID), 
+                                               data = rsf.data.human.dist.du6.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [71, 1] <- "DU6"
+table.aic [71, 2] <- "Early Winter"
+table.aic [71, 3] <- "GLMM with Functional Response"
+table.aic [71, 4] <- "DPR, DRR, DMine, Seismic, A_DMine, DMine*A_DMine"
+table.aic [71, 5] <- "(1 | UniqueID)"
+table.aic [71, 6] <-  AIC (model.lme4.du6.ew.road.mine.seismic2)
+
+model.lme4.du6.ew.road.mine.seismic3 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                 std.distance_to_resource_road + 
+                                                 std.distance_to_mines +
+                                                 seismic +
+                                                 seismic_E + 
+                                                 seismic:seismic_E +
+                                                 (1 | uniqueID), 
+                                               data = rsf.data.human.dist.du6.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [72, 1] <- "DU6"
+table.aic [72, 2] <- "Early Winter"
+table.aic [72, 3] <- "GLMM with Functional Response"
+table.aic [72, 4] <- "DPR, DRR, DMine, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [72, 5] <- "(1 | UniqueID)"
+table.aic [72, 6] <-  AIC (model.lme4.du6.ew.road.mine.seismic3)
+
+## DISTANCE TO ROAD,  DISTANCE TO PIPELINE, SEISMIC ##
+model.lme4.du6.ew.road.pipe.seis <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                    std.distance_to_resource_road + 
+                                                    std.distance_to_pipeline +
+                                                    seismic +
+                                                    (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [73, 1] <- "DU6"
+table.aic [73, 2] <- "Early Winter"
+table.aic [73, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [73, 4] <- "DPR, DRR, DPipeline, Seismic"
+table.aic [73, 5] <- "(1 | UniqueID)"
+table.aic [73, 6] <-  AIC (model.lme4.du6.ew.road.pipe.seis)
+
+model.lme4.du6.ew.road.pipe.seis1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                      std.distance_to_resource_road + 
+                                                      std.distance_to_pipeline +
+                                                      seismic +
+                                                      std.distance_to_paved_road_E + 
+                                                      std.distance_to_resource_road_E + 
+                                                      std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                      std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                      (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+
+# AIC
+table.aic [74, 1] <- "DU6"
+table.aic [74, 2] <- "Early Winter"
+table.aic [74, 3] <- "GLMM with Functional Response"
+table.aic [74, 4] <- "DPR, DRR, DPipeline, Seismic, A_DPR, DPR*A_DPR, A_DRR, DRR*A_DRR"
+table.aic [74, 5] <- "(1 | UniqueID)"
+table.aic [74, 6] <-  AIC (model.lme4.du6.ew.road.pipe.seis1)
+
+model.lme4.du6.ew.road.pipe.seis2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                              std.distance_to_resource_road + 
+                                              std.distance_to_pipeline +
+                                              seismic +
+                                              std.distance_to_pipeline_E +
+                                              std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                              (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+
+# AIC
+table.aic [75, 1] <- "DU6"
+table.aic [75, 2] <- "Early Winter"
+table.aic [75, 3] <- "GLMM with Functional Response"
+table.aic [75, 4] <- "DPR, DRR, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [75, 5] <- "(1 | UniqueID)"
+table.aic [75, 6] <-  AIC (model.lme4.du6.ew.road.pipe.seis2)
+
+model.lme4.du6.ew.road.pipe.seis3 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                      std.distance_to_resource_road + 
+                                                      std.distance_to_pipeline +
+                                                      seismic +
+                                                      seismic_E +
+                                                      seismic:seismic_E +
+                                                      (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+
+# AIC
+table.aic [76, 1] <- "DU6"
+table.aic [76, 2] <- "Early Winter"
+table.aic [76, 3] <- "GLMM with Functional Response"
+table.aic [76, 4] <- "DPR, DRR, DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [76, 5] <- "(1 | UniqueID)"
+table.aic [76, 6] <-  AIC (model.lme4.du6.ew.road.pipe.seis3)
+
+## DISTANCE TO MINE, DISTANCE TO PIPELINE, SEISMIC ##
+model.lme4.du6.ew.mine.pipe.seismic <- glmer (pttype ~ std.distance_to_mines + 
+                                                        std.distance_to_pipeline +
+                                                        seismic +
+                                                        (1 | uniqueID), 
+                                              data = rsf.data.human.dist.du6.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+# AIC
+table.aic [77, 1] <- "DU6"
+table.aic [77, 2] <- "Early Winter"
+table.aic [77, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [77, 4] <- "DMine, DPipeline, Seismic"
+table.aic [77, 5] <- "(1 | UniqueID)"
+table.aic [77, 6] <-  AIC (model.lme4.du6.ew.mine.pipe.seismic)
+
+model.lme4.du6.ew.mine.pipe.seismic1 <- glmer (pttype ~ std.distance_to_mines + 
+                                                         std.distance_to_pipeline +
+                                                         seismic +
+                                                         std.distance_to_mines_E + 
+                                                         std.distance_to_mines:std.distance_to_mines_E +
+                                                         (1 | uniqueID), 
+                                               data = rsf.data.human.dist.du6.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [78, 1] <- "DU6"
+table.aic [78, 2] <- "Early Winter"
+table.aic [78, 3] <- "GLMM with Functional Response"
+table.aic [78, 4] <- "DMine, DPipeline, Seismic, A_DMine, DMine*A_DMine"
+table.aic [78, 5] <- "(1 | UniqueID)"
+table.aic [78, 6] <-  AIC (model.lme4.du6.ew.mine.pipe.seismic1)
+
+model.lme4.du6.ew.mine.pipe.seismic2 <- glmer (pttype ~ std.distance_to_mines + 
+                                                         std.distance_to_pipeline +
+                                                         seismic +
+                                                         std.distance_to_pipeline_E + 
+                                                         std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                         (1 | uniqueID), 
+                                               data = rsf.data.human.dist.du6.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [79, 1] <- "DU6"
+table.aic [79, 2] <- "Early Winter"
+table.aic [79, 3] <- "GLMM with Functional Response"
+table.aic [79, 4] <- "DMine, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [79, 5] <- "(1 | UniqueID)"
+table.aic [79, 6] <-  AIC (model.lme4.du6.ew.mine.pipe.seismic2)
+
+model.lme4.du6.ew.mine.pipe.seismic3 <- glmer (pttype ~ std.distance_to_mines + 
+                                                         std.distance_to_pipeline +
+                                                         seismic +
+                                                         seismic_E + 
+                                                         seismic:seismic_E +
+                                                         (1 | uniqueID), 
+                                               data = rsf.data.human.dist.du6.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [80, 1] <- "DU6"
+table.aic [80, 2] <- "Early Winter"
+table.aic [80, 3] <- "GLMM with Functional Response"
+table.aic [80, 4] <- "DMine, DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [80, 5] <- "(1 | UniqueID)"
+table.aic [80, 6] <-  AIC (model.lme4.du6.ew.mine.pipe.seismic3)
+
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO ROAD, DISTANCE TO MINE, DISTANCE TO PIPELINE ##
+model.lme4.du6.ew.cut.road.mine.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                        std.distance_to_cut_5to9yo + 
+                                                        std.distance_to_cut_10yoorOver + 
+                                                        std.distance_to_paved_road +
+                                                        std.distance_to_resource_road +
+                                                        std.distance_to_mines +
+                                                        std.distance_to_pipeline +
+                                                        (1 | uniqueID), 
+                                              data = rsf.data.human.dist.du6.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+# AIC
+table.aic [81, 1] <- "DU6"
+table.aic [81, 2] <- "Early Winter"
+table.aic [81, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [81, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline"
+table.aic [81, 5] <- "(1 | UniqueID)"
+table.aic [81, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.pipe)
+
+model.lme4.du6.ew.cut.road.mine.pipe1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                         std.distance_to_cut_5to9yo + 
+                                                         std.distance_to_cut_10yoorOver + 
+                                                         std.distance_to_paved_road +
+                                                         std.distance_to_resource_road +
+                                                         std.distance_to_mines +
+                                                         std.distance_to_pipeline +
+                                                         std.distance_to_cut_1to4yo_E + 
+                                                         std.distance_to_cut_5to9yo_E + 
+                                                         std.distance_to_cut_10yoorOver_E + 
+                                                         std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                         std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                         std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                         (1 | uniqueID), 
+                                                 data = rsf.data.human.dist.du6.ew, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T) 
+# AIC
+table.aic [82, 1] <- "DU6"
+table.aic [82, 2] <- "Early Winter"
+table.aic [82, 3] <- "GLMM with Functional Response"
+table.aic [82, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [82, 5] <- "(1 | UniqueID)"
+table.aic [82, 6] <-  "NA" # failed to converge
+
+
+model.lme4.du6.ew.cut.road.mine.pipe2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo + 
+                                                  std.distance_to_cut_10yoorOver + 
+                                                  std.distance_to_paved_road +
+                                                  std.distance_to_resource_road +
+                                                  std.distance_to_mines +
+                                                  std.distance_to_pipeline +
+                                                  std.distance_to_paved_road_E + 
+                                                  std.distance_to_resource_road_E +
+                                                  std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                  std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                  (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [83, 1] <- "DU6"
+table.aic [83, 2] <- "Early Winter"
+table.aic [83, 3] <- "GLMM with Functional Response"
+table.aic [83, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [83, 5] <- "(1 | UniqueID)"
+table.aic [83, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.pipe2)
+
+model.lme4.du6.ew.cut.road.mine.pipe3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_paved_road +
+                                                          std.distance_to_resource_road +
+                                                          std.distance_to_mines +
+                                                          std.distance_to_pipeline +
+                                                          std.distance_to_mines_E + 
+                                                          std.distance_to_mines:std.distance_to_mines_E +
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [84, 1] <- "DU6"
+table.aic [84, 2] <- "Early Winter"
+table.aic [84, 3] <- "GLMM with Functional Response"
+table.aic [84, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, A_DMine, DMine*A_DMine"
+table.aic [84, 5] <- "(1 | UniqueID)"
+table.aic [84, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.pipe3)
+
+model.lme4.du6.ew.cut.road.mine.pipe4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo + 
+                                                  std.distance_to_cut_10yoorOver + 
+                                                  std.distance_to_paved_road +
+                                                  std.distance_to_resource_road +
+                                                  std.distance_to_mines +
+                                                  std.distance_to_pipeline +
+                                                  std.distance_to_pipeline_E + 
+                                                  std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                  (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [85, 1] <- "DU6"
+table.aic [85, 2] <- "Early Winter"
+table.aic [85, 3] <- "GLMM with Functional Response"
+table.aic [85, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [85, 5] <- "(1 | UniqueID)"
+table.aic [85, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.pipe4)
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO ROAD, DISTANCE TO MINE, SEISMIC ##
+model.lme4.du6.ew.cut.road.mine.seis <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                         std.distance_to_cut_5to9yo + 
+                                                         std.distance_to_cut_10yoorOver + 
+                                                         std.distance_to_paved_road +
+                                                         std.distance_to_resource_road +
+                                                         std.distance_to_mines +
+                                                         seismic +
+                                                         (1 | uniqueID), 
+                                               data = rsf.data.human.dist.du6.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [86, 1] <- "DU6"
+table.aic [86, 2] <- "Early Winter"
+table.aic [86, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [86, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, Seismic"
+table.aic [86, 5] <- "(1 | UniqueID)"
+table.aic [86, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.seis)
+
+model.lme4.du6.ew.cut.road.mine.seis1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_paved_road +
+                                                          std.distance_to_resource_road +
+                                                          std.distance_to_mines +
+                                                          seismic +
+                                                          std.distance_to_cut_1to4yo_E + 
+                                                          std.distance_to_cut_5to9yo_E + 
+                                                          std.distance_to_cut_10yoorOver_E + 
+                                                          std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                          std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                          std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [87, 1] <- "DU6"
+table.aic [87, 2] <- "Early Winter"
+table.aic [87, 3] <- "GLMM with Functional Response"
+table.aic [87, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [87, 5] <- "(1 | UniqueID)"
+table.aic [87, 6] <-  "NA" # failed to converge
+
+model.lme4.du6.ew.cut.road.mine.seis2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_paved_road +
+                                                          std.distance_to_resource_road +
+                                                          std.distance_to_mines +
+                                                          seismic +
+                                                          std.distance_to_paved_road_E + 
+                                                          std.distance_to_resource_road_E + 
+                                                          std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                          std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [88, 1] <- "DU6"
+table.aic [88, 2] <- "Early Winter"
+table.aic [88, 3] <- "GLMM with Functional Response"
+table.aic [88, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [88, 5] <- "(1 | UniqueID)"
+table.aic [88, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.seis2)
+
+model.lme4.du6.ew.cut.road.mine.seis3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_paved_road +
+                                                          std.distance_to_resource_road +
+                                                          std.distance_to_mines +
+                                                          seismic +
+                                                          std.distance_to_mines_E + 
+                                                          std.distance_to_mines:std.distance_to_mines_E + 
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [89, 1] <- "DU6"
+table.aic [89, 2] <- "Early Winter"
+table.aic [89, 3] <- "GLMM with Functional Response"
+table.aic [89, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, Seismic, A_DMine, DMine*A_DMine"
+table.aic [89, 5] <- "(1 | UniqueID)"
+table.aic [89, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.seis3)
+
+model.lme4.du6.ew.cut.road.mine.seis4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                  std.distance_to_cut_5to9yo + 
+                                                  std.distance_to_cut_10yoorOver + 
+                                                  std.distance_to_paved_road +
+                                                  std.distance_to_resource_road +
+                                                  std.distance_to_mines +
+                                                  seismic +
+                                                  seismic_E + 
+                                                  seismic:seismic_E + 
+                                                  (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [90, 1] <- "DU6"
+table.aic [90, 2] <- "Early Winter"
+table.aic [90, 3] <- "GLMM with Functional Response"
+table.aic [90, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [90, 5] <- "(1 | UniqueID)"
+table.aic [90, 6] <-  AIC (model.lme4.du6.ew.cut.road.mine.seis4)
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO ROAD, DISTANCE TO PIPELINE, SEISMIC ##
+model.lme4.du6.ew.cut.road.pipe.seismic <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                    std.distance_to_cut_5to9yo + 
+                                                    std.distance_to_cut_10yoorOver + 
+                                                    std.distance_to_paved_road +
+                                                    std.distance_to_resource_road +
+                                                    std.distance_to_pipeline +
+                                                    seismic + 
+                                                    (1 | uniqueID), 
+                                                  data = rsf.data.human.dist.du6.ew, 
+                                                  family = binomial (link = "logit"),
+                                                  verbose = T) 
+# AIC
+table.aic [91, 1] <- "DU6"
+table.aic [91, 2] <- "Early Winter"
+table.aic [91, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [91, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, Seismic"
+table.aic [91, 5] <- "(1 | UniqueID)"
+table.aic [91, 6] <-  AIC (model.lme4.du6.ew.cut.road.pipe.seismic)
+
+model.lme4.du6.ew.cut.road.pipe.seismic1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                           std.distance_to_cut_5to9yo + 
+                                                           std.distance_to_cut_10yoorOver + 
+                                                           std.distance_to_paved_road +
+                                                           std.distance_to_resource_road +
+                                                           std.distance_to_pipeline +
+                                                           seismic +
+                                                           std.distance_to_cut_1to4yo_E + 
+                                                           std.distance_to_cut_5to9yo_E + 
+                                                           std.distance_to_cut_10yoorOver_E + 
+                                                           std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                           std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                           std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                           (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [92, 1] <- "DU6"
+table.aic [92, 2] <- "Early Winter"
+table.aic [92, 3] <- "GLMM with Functional Response"
+table.aic [92, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DC5to9"
+table.aic [92, 5] <- "(1 | UniqueID)"
+table.aic [92, 6] <- "NA" # failed to converge 
+
+model.lme4.du6.ew.cut.road.pipe.seismic2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     std.distance_to_pipeline +
+                                                     seismic +
+                                                     std.distance_to_paved_road_E + 
+                                                     std.distance_to_resource_road_E + 
+                                                     std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                     std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                     (1 | uniqueID), 
+                                                   data = rsf.data.human.dist.du6.ew, 
+                                                   family = binomial (link = "logit"),
+                                                   verbose = T) 
+# AIC
+table.aic [93, 1] <- "DU6"
+table.aic [93, 2] <- "Early Winter"
+table.aic [93, 3] <- "GLMM with Functional Response"
+table.aic [93, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [93, 5] <- "(1 | UniqueID)"
+table.aic [93, 6] <- AIC (model.lme4.du6.ew.cut.road.pipe.seismic2) 
+
+model.lme4.du6.ew.cut.road.pipe.seismic3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                     std.distance_to_cut_5to9yo + 
+                                                     std.distance_to_cut_10yoorOver + 
+                                                     std.distance_to_paved_road +
+                                                     std.distance_to_resource_road +
+                                                     std.distance_to_pipeline +
+                                                     seismic +
+                                                     std.distance_to_pipeline_E + 
+                                                     std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                     (1 | uniqueID), 
+                                                   data = rsf.data.human.dist.du6.ew, 
+                                                   family = binomial (link = "logit"),
+                                                   verbose = T) 
+# AIC
+table.aic [94, 1] <- "DU6"
+table.aic [94, 2] <- "Early Winter"
+table.aic [94, 3] <- "GLMM with Functional Response"
+table.aic [94, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [94, 5] <- "(1 | UniqueID)"
+table.aic [94, 6] <- AIC (model.lme4.du6.ew.cut.road.pipe.seismic3) 
+
+model.lme4.du6.ew.cut.road.pipe.seismic4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                             std.distance_to_cut_5to9yo + 
+                                                             std.distance_to_cut_10yoorOver + 
+                                                             std.distance_to_paved_road +
+                                                             std.distance_to_resource_road +
+                                                             std.distance_to_pipeline +
+                                                             seismic +
+                                                             seismic_E + 
+                                                             seismic:seismic_E +
+                                                             (1 | uniqueID), 
+                                                   data = rsf.data.human.dist.du6.ew, 
+                                                   family = binomial (link = "logit"),
+                                                   verbose = T) 
+# AIC
+table.aic [95, 1] <- "DU6"
+table.aic [95, 2] <- "Early Winter"
+table.aic [95, 3] <- "GLMM with Functional Response"
+table.aic [95, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [95, 5] <- "(1 | UniqueID)"
+table.aic [95, 6] <- AIC (model.lme4.du6.ew.cut.road.pipe.seismic4) 
+
+## DISTANCE TO CUTBLOCK, DISTANCE TO MINE, DISTANCE TO PIPELINE, SEISMIC ##
+model.lme4.du6.ew.cut.mine.pipe.seis <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                        std.distance_to_cut_5to9yo + 
+                                                        std.distance_to_cut_10yoorOver + 
+                                                        std.distance_to_mines +
+                                                        std.distance_to_pipeline +
+                                                        seismic +
+                                                        (1 | uniqueID), 
+                                          data = rsf.data.human.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [96, 1] <- "DU6"
+table.aic [96, 2] <- "Early Winter"
+table.aic [96, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [96, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, Seismic"
+table.aic [96, 5] <- "(1 | UniqueID)"
+table.aic [96, 6] <-  AIC (model.lme4.du6.ew.cut.mine.pipe.seis)
+
+model.lme4.du6.ew.cut.mine.pipe.seis1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                           std.distance_to_cut_5to9yo + 
+                                                           std.distance_to_cut_10yoorOver + 
+                                                           std.distance_to_mines +
+                                                           std.distance_to_pipeline +
+                                                           seismic +
+                                                           std.distance_to_cut_1to4yo_E + 
+                                                           std.distance_to_cut_5to9yo_E + 
+                                                           std.distance_to_cut_10yoorOver_E + 
+                                                           std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                                           std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                                           std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                                           (1 | uniqueID), 
+                                           data = rsf.data.human.dist.du6.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [97, 1] <- "DU6"
+table.aic [97, 2] <- "Early Winter"
+table.aic [97, 3] <- "GLMM with Functional Response"
+table.aic [97, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9"
+table.aic [97, 5] <- "(1 | UniqueID)"
+table.aic [97, 6] <- "NA" # failed to converge
+
+model.lme4.du6.ew.cut.mine.pipe.seis2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_mines +
+                                                          std.distance_to_pipeline +
+                                                          seismic +
+                                                          std.distance_to_mines_E +
+                                                          std.distance_to_mines:std.distance_to_mines_E +
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [98, 1] <- "DU6"
+table.aic [98, 2] <- "Early Winter"
+table.aic [98, 3] <- "GLMM with Functional Response"
+table.aic [98, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, Seismic, A_DMine, DMine*A_DMine"
+table.aic [98, 5] <- "(1 | UniqueID)"
+table.aic [98, 6] <- AIC (model.lme4.du6.ew.cut.mine.pipe.seis2)
+
+model.lme4.du6.ew.cut.mine.pipe.seis3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_mines +
+                                                          std.distance_to_pipeline +
+                                                          seismic +
+                                                          std.distance_to_pipeline_E +
+                                                          std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [99, 1] <- "DU6"
+table.aic [99, 2] <- "Early Winter"
+table.aic [99, 3] <- "GLMM with Functional Response"
+table.aic [99, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [99, 5] <- "(1 | UniqueID)"
+table.aic [99, 6] <- AIC (model.lme4.du6.ew.cut.mine.pipe.seis3)
+
+model.lme4.du6.ew.cut.mine.pipe.seis4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                                          std.distance_to_cut_5to9yo + 
+                                                          std.distance_to_cut_10yoorOver + 
+                                                          std.distance_to_mines +
+                                                          std.distance_to_pipeline +
+                                                          seismic +
+                                                          seismic_E +
+                                                          seismic:seismic_E +
+                                                          (1 | uniqueID), 
+                                                data = rsf.data.human.dist.du6.ew, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [100, 1] <- "DU6"
+table.aic [100, 2] <- "Early Winter"
+table.aic [100, 3] <- "GLMM with Functional Response"
+table.aic [100, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [100, 5] <- "(1 | UniqueID)"
+table.aic [100, 6] <- AIC (model.lme4.du6.ew.cut.mine.pipe.seis4)
+
+## DISTANCE TO ROAD, DISTANCE TO MINE, DISTANCE TO PIPELINE, SEISMIC ##
+model.lme4.du6.ew.road.mine.pipe.seis <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                         std.distance_to_resource_road + 
+                                                         std.distance_to_mines +
+                                                         std.distance_to_pipeline +
+                                                         seismic +
+                                                         (1 | uniqueID), 
+                                                 data = rsf.data.human.dist.du6.ew, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T) 
+# AIC
+table.aic [101, 1] <- "DU6"
+table.aic [101, 2] <- "Early Winter"
+table.aic [101, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [101, 4] <- "DPR, DRR, DMine, DPipeline, Seismic"
+table.aic [101, 5] <- "(1 | UniqueID)"
+table.aic [101, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe.seis)
+
+model.lme4.du6.ew.road.mine.pipe.seis1 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                            std.distance_to_resource_road + 
+                                                            std.distance_to_mines +
+                                                            seismic +
+                                                            std.distance_to_pipeline +
+                                                            std.distance_to_paved_road_E + 
+                                                            std.distance_to_resource_road_E +
+                                                            std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                                            std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                                            (1 | uniqueID), 
+                                            data = rsf.data.human.dist.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [102, 1] <- "DU6"
+table.aic [102, 2] <- "Early Winter"
+table.aic [102, 3] <- "GLMM with Functional Response"
+table.aic [102, 4] <- "DPR, DRR, DMine, DPipeline, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [102, 5] <- "(1 | UniqueID)"
+table.aic [102, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe.seis1)
+
+model.lme4.du6.ew.road.mine.pipe.seis2 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                             std.distance_to_resource_road + 
+                                                             std.distance_to_mines +
+                                                             seismic +
+                                                             std.distance_to_pipeline +
+                                                             std.distance_to_mines_E + 
+                                                             std.distance_to_mines:std.distance_to_mines_E +
+                                                             (1 | uniqueID), 
+                                                 data = rsf.data.human.dist.du6.ew, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T) 
+# AIC
+table.aic [103, 1] <- "DU6"
+table.aic [103, 2] <- "Early Winter"
+table.aic [103, 3] <- "GLMM with Functional Response"
+table.aic [103, 4] <- "DPR, DRR, DMine, DPipeline, Seismic, A_DMine, DMine*A_DMine"
+table.aic [103, 5] <- "(1 | UniqueID)"
+table.aic [103, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe.seis2)
+
+model.lme4.du6.ew.road.mine.pipe.seis3 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                           std.distance_to_resource_road + 
+                                                           std.distance_to_mines +
+                                                           seismic +
+                                                           std.distance_to_pipeline +
+                                                           std.distance_to_pipeline_E + 
+                                                           std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                                           (1 | uniqueID), 
+                                                 data = rsf.data.human.dist.du6.ew, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T) 
+# AIC
+table.aic [104, 1] <- "DU6"
+table.aic [104, 2] <- "Early Winter"
+table.aic [104, 3] <- "GLMM with Functional Response"
+table.aic [104, 4] <- "DPR, DRR, DMine, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [104, 5] <- "(1 | UniqueID)"
+table.aic [104, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe.seis3)
+
+model.lme4.du6.ew.road.mine.pipe.seis4 <- glmer (pttype ~ std.distance_to_paved_road + 
+                                                           std.distance_to_resource_road + 
+                                                           std.distance_to_mines +
+                                                           seismic +
+                                                           std.distance_to_pipeline +
+                                                           seismic_E + 
+                                                           seismic:seismic_E +
+                                                           (1 | uniqueID), 
+                                                 data = rsf.data.human.dist.du6.ew, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T) 
+# AIC
+table.aic [105, 1] <- "DU6"
+table.aic [105, 2] <- "Early Winter"
+table.aic [105, 3] <- "GLMM with Functional Response"
+table.aic [105, 4] <- "DPR, DRR, DMine, DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [105, 5] <- "(1 | UniqueID)"
+table.aic [105, 6] <-  AIC (model.lme4.du6.ew.road.mine.pipe.seis4)
+
+## ALL ##
+model.lme4.du6.ew.all <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                          std.distance_to_cut_5to9yo + 
+                                          std.distance_to_cut_10yoorOver + 
+                                          std.distance_to_paved_road + 
+                                          std.distance_to_resource_road + 
+                                          std.distance_to_mines +
+                                          std.distance_to_pipeline +
+                                          seismic +
+                                          (1 | uniqueID), 
+                                 data = rsf.data.human.dist.du6.ew, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [106, 1] <- "DU6"
+table.aic [106, 2] <- "Early Winter"
+table.aic [106, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [106, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, Seismic"
+table.aic [106, 5] <- "(1 | UniqueID)"
+table.aic [106, 6] <-  AIC (model.lme4.du6.ew.all)
+
+model.lme4.du6.ew.all1 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                          std.distance_to_cut_5to9yo + 
+                                          std.distance_to_cut_10yoorOver + 
+                                          std.distance_to_paved_road + 
+                                          std.distance_to_resource_road + 
+                                          std.distance_to_mines +
+                                          std.distance_to_pipeline +
+                                          seismic +
+                                           std.distance_to_cut_1to4yo_E + 
+                                           std.distance_to_cut_5to9yo_E + 
+                                           std.distance_to_cut_10yoorOver_E + 
+                                           std.distance_to_cut_1to4yo:std.distance_to_cut_1to4yo_E +
+                                           std.distance_to_cut_5to9yo:std.distance_to_cut_5to9yo_E + 
+                                           std.distance_to_cut_10yoorOver:std.distance_to_cut_10yoorOver_E +
+                                           (1 | uniqueID), 
+                                data = rsf.data.human.dist.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [107, 1] <- "DU6"
+table.aic [107, 2] <- "Early Winter"
+table.aic [107, 3] <- "GLMM with Functional Response"
+table.aic [107, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, Seismic, A_DC1to4, A_DC5to9, A_DCover9, DC1to4*A_DC1to4, DC5to9*A_DC5to9, DCover9*A_DCover9"
+table.aic [107, 5] <- "(1 | UniqueID)"
+table.aic [107, 6] <-  "NA" # failed to converge
+
+model.lme4.du6.ew.all2 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                           std.distance_to_cut_5to9yo + 
+                                           std.distance_to_cut_10yoorOver + 
+                                           std.distance_to_paved_road + 
+                                           std.distance_to_resource_road + 
+                                           std.distance_to_mines +
+                                           std.distance_to_pipeline +
+                                           seismic +
+                                           std.distance_to_paved_road_E + 
+                                           std.distance_to_resource_road_E + 
+                                           std.distance_to_paved_road:std.distance_to_paved_road_E +
+                                           std.distance_to_resource_road:std.distance_to_resource_road_E + 
+                                           (1 | uniqueID), 
+                                 data = rsf.data.human.dist.du6.ew, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [108, 1] <- "DU6"
+table.aic [108, 2] <- "Early Winter"
+table.aic [108, 3] <- "GLMM with Functional Response"
+table.aic [108, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, Seismic, A_DPR, A_DRR, DPR*A_DPR, DRR*A_DRR"
+table.aic [108, 5] <- "(1 | UniqueID)"
+table.aic [108, 6] <-   AIC (model.lme4.du6.ew.all2)
+
+model.lme4.du6.ew.all3 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                           std.distance_to_cut_5to9yo + 
+                                           std.distance_to_cut_10yoorOver + 
+                                           std.distance_to_paved_road + 
+                                           std.distance_to_resource_road + 
+                                           std.distance_to_mines +
+                                           std.distance_to_pipeline +
+                                           seismic +
+                                           std.distance_to_mines_E + 
+                                           std.distance_to_mines:std.distance_to_mines_E +
+                                           (1 | uniqueID), 
+                                 data = rsf.data.human.dist.du6.ew, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [109, 1] <- "DU6"
+table.aic [109, 2] <- "Early Winter"
+table.aic [109, 3] <- "GLMM with Functional Response"
+table.aic [109, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, Seismic, A_DMine, DMine*A_DMine"
+table.aic [109, 5] <- "(1 | UniqueID)"
+table.aic [109, 6] <-   AIC (model.lme4.du6.ew.all3)
+
+model.lme4.du6.ew.all4 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                   std.distance_to_cut_5to9yo + 
+                                   std.distance_to_cut_10yoorOver + 
+                                   std.distance_to_paved_road + 
+                                   std.distance_to_resource_road + 
+                                   std.distance_to_mines +
+                                   std.distance_to_pipeline +
+                                   seismic +
+                                   std.distance_to_pipeline_E + 
+                                   std.distance_to_pipeline:std.distance_to_pipeline_E +
+                                   (1 | uniqueID), 
+                                 data = rsf.data.human.dist.du6.ew, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [110, 1] <- "DU6"
+table.aic [110, 2] <- "Early Winter"
+table.aic [110, 3] <- "GLMM with Functional Response"
+table.aic [110, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, Seismic, A_DPipeline, DPipeline*A_DPipeline"
+table.aic [110, 5] <- "(1 | UniqueID)"
+table.aic [110, 6] <-   AIC (model.lme4.du6.ew.all4)
+
+model.lme4.du6.ew.all5 <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                           std.distance_to_cut_5to9yo + 
+                                           std.distance_to_cut_10yoorOver + 
+                                           std.distance_to_paved_road + 
+                                           std.distance_to_resource_road + 
+                                           std.distance_to_mines +
+                                           std.distance_to_pipeline +
+                                           seismic +
+                                           seismic_E + 
+                                           seismic:seismic_E +
+                                           (1 | uniqueID), 
+                                 data = rsf.data.human.dist.du6.ew, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T)
+# AIC
+table.aic [111, 1] <- "DU6"
+table.aic [111, 2] <- "Early Winter"
+table.aic [111, 3] <- "GLMM with Functional Response"
+table.aic [111, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline, Seismic, A_Seismic, Seismic*A_Seismic"
+table.aic [111, 5] <- "(1 | UniqueID)"
+table.aic [111, 6] <-   AIC (model.lme4.du6.ew.all5)
+
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC )
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))), 
+                    (exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [8, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [9, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))), 
+                    (exp (-0.5 * (table.aic [10, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [11, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [12, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [13, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [14, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [16, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [17, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [18, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [19, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [20, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [21, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [22, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [23, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [24, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [25, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [26, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [27, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [28, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [29, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [30, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [31, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [32, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [33, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [34, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [35, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [36, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [37, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [38, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [39, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [40, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [41, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [42, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [43, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [44, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [45, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [47, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [48, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [49, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [51, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [52, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [53, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [54, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [55, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [56, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [57, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [59, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [60, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [61, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [62, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [63, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [64, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [65, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [66, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [67, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [68, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [69, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [70, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [71, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [72, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [73, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [74, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [75, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [76, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [77, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [78, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [79, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [80, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [81, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [83, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [84, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [85, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [86, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [88, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [89, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [90, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [91, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [93, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [94, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [95, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [96, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [98, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [99, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [100, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [101, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [102, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [103, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [104, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [105, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [106, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [108, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [109, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [110, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))),
+                    (exp (-0.5 * (table.aic [111, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [2, 7] <- round ((exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [4, 7] <- round ((exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [6, 7] <- round ((exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [8, 7] <- round ((exp (-0.5 * (table.aic [8, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [9, 7] <- round ((exp (-0.5 * (table.aic [9, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [10, 7] <- round ((exp (-0.5 * (table.aic [10, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [11, 7] <- round ((exp (-0.5 * (table.aic [11, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [12, 7] <- round ((exp (-0.5 * (table.aic [12, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [13, 7] <- round ((exp (-0.5 * (table.aic [13, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [14, 7] <- round ((exp (-0.5 * (table.aic [14, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [15, 7] <- round ((exp (-0.5 * (table.aic [15, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [16, 7] <- round ((exp (-0.5 * (table.aic [16, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [17, 7] <- round ((exp (-0.5 * (table.aic [17, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [18, 7] <- round ((exp (-0.5 * (table.aic [18, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [19, 7] <- round ((exp (-0.5 * (table.aic [19, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [20, 7] <- round ((exp (-0.5 * (table.aic [20, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [21, 7] <- round ((exp (-0.5 * (table.aic [21, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [22, 7] <- round ((exp (-0.5 * (table.aic [22, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [23, 7] <- round ((exp (-0.5 * (table.aic [23, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [24, 7] <- round ((exp (-0.5 * (table.aic [24, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [25, 7] <- round ((exp (-0.5 * (table.aic [25, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [26, 7] <- round ((exp (-0.5 * (table.aic [26, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [27, 7] <- round ((exp (-0.5 * (table.aic [27, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [28, 7] <- round ((exp (-0.5 * (table.aic [28, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [29, 7] <- round ((exp (-0.5 * (table.aic [29, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [30, 7] <- round ((exp (-0.5 * (table.aic [30, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [31, 7] <- round ((exp (-0.5 * (table.aic [31, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [32, 7] <- round ((exp (-0.5 * (table.aic [32, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [33, 7] <- round ((exp (-0.5 * (table.aic [33, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [34, 7] <- round ((exp (-0.5 * (table.aic [34, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [35, 7] <- round ((exp (-0.5 * (table.aic [35, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [36, 7] <- round ((exp (-0.5 * (table.aic [36, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [37, 7] <- round ((exp (-0.5 * (table.aic [37, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [38, 7] <- round ((exp (-0.5 * (table.aic [38, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [39, 7] <- round ((exp (-0.5 * (table.aic [39, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [40, 7] <- round ((exp (-0.5 * (table.aic [40, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [41, 7] <- round ((exp (-0.5 * (table.aic [41, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [42, 7] <- round ((exp (-0.5 * (table.aic [42, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [43, 7] <- round ((exp (-0.5 * (table.aic [43, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [44, 7] <- round ((exp (-0.5 * (table.aic [44, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [45, 7] <- round ((exp (-0.5 * (table.aic [45, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [46, 7] <- round ((exp (-0.5 * (table.aic [46, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [47, 7] <- round ((exp (-0.5 * (table.aic [47, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [48, 7] <- round ((exp (-0.5 * (table.aic [48, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [49, 7] <- round ((exp (-0.5 * (table.aic [49, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [50, 7] <- round ((exp (-0.5 * (table.aic [50, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [51, 7] <- round ((exp (-0.5 * (table.aic [51, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [52, 7] <- round ((exp (-0.5 * (table.aic [52, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [53, 7] <- round ((exp (-0.5 * (table.aic [53, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [54, 7] <- round ((exp (-0.5 * (table.aic [54, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [55, 7] <- round ((exp (-0.5 * (table.aic [55, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [56, 7] <- round ((exp (-0.5 * (table.aic [56, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [57, 7] <- round ((exp (-0.5 * (table.aic [57, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [58, 7] <- round ((exp (-0.5 * (table.aic [58, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [59, 7] <- round ((exp (-0.5 * (table.aic [59, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [60, 7] <- round ((exp (-0.5 * (table.aic [60, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [61, 7] <- round ((exp (-0.5 * (table.aic [61, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [62, 7] <- round ((exp (-0.5 * (table.aic [62, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [63, 7] <- round ((exp (-0.5 * (table.aic [63, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [64, 7] <- round ((exp (-0.5 * (table.aic [64, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [65, 7] <- round ((exp (-0.5 * (table.aic [65, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [66, 7] <- round ((exp (-0.5 * (table.aic [66, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [67, 7] <- round ((exp (-0.5 * (table.aic [67, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [68, 7] <- round ((exp (-0.5 * (table.aic [68, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [69, 7] <- round ((exp (-0.5 * (table.aic [69, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [70, 7] <- round ((exp (-0.5 * (table.aic [70, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [71, 7] <- round ((exp (-0.5 * (table.aic [71, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [72, 7] <- round ((exp (-0.5 * (table.aic [72, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [73, 7] <- round ((exp (-0.5 * (table.aic [73, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [74, 7] <- round ((exp (-0.5 * (table.aic [74, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [75, 7] <- round ((exp (-0.5 * (table.aic [75, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [76, 7] <- round ((exp (-0.5 * (table.aic [76, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [77, 7] <- round ((exp (-0.5 * (table.aic [77, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [78, 7] <- round ((exp (-0.5 * (table.aic [78, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [79, 7] <- round ((exp (-0.5 * (table.aic [79, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [80, 7] <- round ((exp (-0.5 * (table.aic [80, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [81, 7] <- round ((exp (-0.5 * (table.aic [81, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [82, 7] <- round ((exp (-0.5 * (table.aic [82, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [83, 7] <- round ((exp (-0.5 * (table.aic [83, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [84, 7] <- round ((exp (-0.5 * (table.aic [84, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [85, 7] <- round ((exp (-0.5 * (table.aic [85, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [86, 7] <- round ((exp (-0.5 * (table.aic [86, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [87, 7] <- round ((exp (-0.5 * (table.aic [87, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [88, 7] <- round ((exp (-0.5 * (table.aic [88, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [89, 7] <- round ((exp (-0.5 * (table.aic [89, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [90, 7] <- round ((exp (-0.5 * (table.aic [90, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [91, 7] <- round ((exp (-0.5 * (table.aic [91, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [92, 7] <- round ((exp (-0.5 * (table.aic [92, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [93, 7] <- round ((exp (-0.5 * (table.aic [93, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [94, 7] <- round ((exp (-0.5 * (table.aic [94, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [95, 7] <- round ((exp (-0.5 * (table.aic [95, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [96, 7] <- round ((exp (-0.5 * (table.aic [96, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [97, 7] <- round ((exp (-0.5 * (table.aic [97, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [98, 7] <- round ((exp (-0.5 * (table.aic [98, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [99, 7] <- round ((exp (-0.5 * (table.aic [99, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [100, 7] <- round ((exp (-0.5 * (table.aic [100, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [101, 7] <- round ((exp (-0.5 * (table.aic [101, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [102, 7] <- round ((exp (-0.5 * (table.aic [102, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [103, 7] <- round ((exp (-0.5 * (table.aic [103, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [104, 7] <- round ((exp (-0.5 * (table.aic [104, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [105, 7] <- round ((exp (-0.5 * (table.aic [105, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [106, 7] <- round ((exp (-0.5 * (table.aic [106, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [107, 7] <- round ((exp (-0.5 * (table.aic [107, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [108, 7] <- round ((exp (-0.5 * (table.aic [108, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [109, 7] <- round ((exp (-0.5 * (table.aic [109, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [110, 7] <- round ((exp (-0.5 * (table.aic [110, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
+table.aic [111, 7] <- round ((exp (-0.5 * (table.aic [111, 6] - min (table.aic [c (1:14, 16:45, 47:49, 51:57, 59:81, 83:86, 88:91, 93:96, 98:106, 108:111), 6])))) / sum (list.aic.like), 3)
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_human_disturb.csv", sep = ",")
+
+save (model.lme4.du6.ew.cut.road.mine.pipe4, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_human_top1.rda")
+save (model.lme4.du6.ew.all4, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_human_top2.rda")
+
+rsf.data.human.dist.du6.ew$preds.top.model <- predict (model.lme4.du6.ew.all4, re.form = NA, type = "response")
+ggplot (rsf.data.human.dist.du6.ew, aes (x = distance_to_cut_10yoorOver, y = preds.top.model)) +
+  geom_smooth ()
+preds.pipe <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\preds_du6_ew_pipeline.csv", sep = ",")
+preds.pipe$preds.top.model <- predict (model.lme4.du6.ew.all4, re.form = NA, newdata = preds.pipe, allow.new.levels = T)
+preds.pipe$std.distance_to_pipeline_E <- as.factor (preds.pipe$std.distance_to_pipeline_E)
+ggplot (preds.pipe, aes (x = std.distance_to_pipeline, y = preds.top.model, linetype = std.distance_to_pipeline_E)) +
+  geom_smooth ()
+
+#=================================
+# Natural Disturbance Models
+#=================================
+rsf.data.natural.dist.du6.ew <- rsf.data.natural.dist %>%
+                                    dplyr::filter (du == "du6") %>%
+                                    dplyr::filter (season == "EarlyWinter")
+
+### CORRELATION ###
+corr.rsf.data.natural.dist.du6.ew <- rsf.data.natural.dist.du6.ew [c (10:14)]
+corr.rsf.data.natural.dist.du6.ew <- round (cor (corr.rsf.data.natural.dist.du6.ew, method = "spearman"), 3)
+ggcorrplot (corr.rsf.data.natural.dist.du6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Fire and Beetle Disturbance Selection Function Model
+            Covariate Correlations for DU6, Early Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_natrual_disturb_du6_ew.png")
+
+### VIF ###
+glm.nat.disturb.du6.ew <- glm (pttype ~ beetle_1to5yo + beetle_6to9yo + 
+                                        fire_1to5yo + fire_6to25yo + fire_over25yo, 
+                               data = rsf.data.natural.dist.du6.ew,
+                               family = binomial (link = 'logit'))
+car::vif (glm.nat.disturb.du6.ew)
+
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+# FUNCTIONAL RESPONSE Covariates
+sub <- subset (rsf.data.natural.dist.du6.ew, pttype == 0)
+beetle_1to5yo_E <- tapply (sub$beetle_1to5yo, sub$uniqueID, sum)
+beetle_6to9yo_E <- tapply (sub$beetle_6to9yo, sub$uniqueID, sum)
+fire_1to5yo_E <- tapply (sub$fire_1to5yo, sub$uniqueID, sum)
+fire_6to25yo_E <- tapply (sub$fire_6to25yo, sub$uniqueID, sum)
+fire_over25yo_E <- tapply (sub$fire_over25yo, sub$uniqueID, sum)
+inds <- as.character (rsf.data.natural.dist.du6.ew$uniqueID)
+rsf.data.natural.dist.du6.ew <- cbind (rsf.data.natural.dist.du6.ew, 
+                                     "beetle_1to5yo_E" = beetle_1to5yo_E [inds],
+                                     "beetle_6to9yo_E" = beetle_6to9yo_E [inds],
+                                     "fire_1to5yo_E" = fire_1to5yo_E [inds],
+                                     "fire_6to25yo_E" = fire_6to25yo_E [inds],
+                                     "fire_over25yo_E" = fire_over25yo_E [inds])
+## FIRE ##
+model.lme4.du6.ew.fire <- glmer (pttype ~ fire_1to5yo + fire_6to25yo +
+                                          fire_over25yo + (1 | uniqueID), 
+                                 data = rsf.data.natural.dist.du6.ew, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [1, 1] <- "DU6"
+table.aic [1, 2] <- "Early Winter"
+table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [1, 4] <- "Fire1to5, Fire6to25, Fireover25"
+table.aic [1, 5] <- "(1 | UniqueID)"
+table.aic [1, 6] <-  AIC (model.lme4.du6.ew.fire)
+
+model.lme4.du6.ew.fire1 <- glmer (pttype ~ fire_1to5yo + fire_6to25yo +
+                                           fire_over25yo + 
+                                           fire_1to5yo_E + fire_6to25yo_E + fire_over25yo_E + 
+                                           fire_1to5yo:fire_1to5yo_E + 
+                                           fire_6to25yo:fire_6to25yo_E + 
+                                           fire_over25yo:fire_over25yo_E + 
+                                           (1 | uniqueID), 
+                                  data = rsf.data.natural.dist.du6.ew, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+# AIC
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Early Winter"
+table.aic [2, 3] <- "GLMM with Functional Response"
+table.aic [2, 4] <- "Fire1to5, Fire6to25, Fireover25, A_Fire1to5, A_Fire6to25, A_Fireover25, Fire1to5*A_Fire1to5, Fire6to25*A_Fire6to25, Fireover25*A_Fireover25"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  "NA" # failed to converge
+
+
+## BEETLE ##
+model.lme4.du6.ew.beetle <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo +
+                                            (1 | uniqueID), 
+                                   data = rsf.data.natural.dist.du6.ew, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+# AIC
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Early Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "Beetle1to5, Beetle6to9"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.ew.beetle)
+
+model.lme4.du6.ew.beetle1 <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo +
+                                            beetle_1to5yo_E + beetle_6to9yo_E +
+                                            beetle_1to5yo:beetle_1to5yo_E + 
+                                            beetle_6to9yo:beetle_6to9yo_E + 
+                                            (1 | uniqueID), 
+                                   data = rsf.data.natural.dist.du6.ew, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+# AIC
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Early Winter"
+table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 4] <- "Beetle1to5, Beetle6to9, A_Beetle1to5, A_Beetle6to9, Beetle1to5*A_Beetle1to5, Beetle6to9*A_Beetle6to9"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <- "NA" # failed to converge
+
+
+## FIRE AND BEETLE ##
+model.lme4.du6.ew.fire.beetle <- glmer (pttype ~ fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                                 beetle_1to5yo + beetle_6to9yo +
+                                                 (1 | uniqueID), 
+                                       data = rsf.data.natural.dist.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [5, 1] <- "DU6"
+table.aic [5, 2] <- "Early Winter"
+table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [5, 4] <- "Fire1to5, Fire6to25, Fireover25, Beetle1to5, Beetle6to9"
+table.aic [5, 5] <- "(1 | UniqueID)"
+table.aic [5, 6] <-  AIC (model.lme4.du6.ew.fire.beetle)
+
+model.lme4.du6.ew.fire.beetle1 <- glmer (pttype ~ fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                                   beetle_1to5yo + beetle_6to9yo +
+                                                   fire_1to5yo_E + fire_6to25yo_E + fire_over25yo_E + 
+                                                   fire_1to5yo:fire_1to5yo_E + 
+                                                   fire_6to25yo:fire_6to25yo_E + 
+                                                   fire_over25yo:fire_over25yo_E + 
+                                                   (1 | uniqueID), 
+                                          data = rsf.data.natural.dist.du6.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [6, 1] <- "DU6"
+table.aic [6, 2] <- "Early Winter"
+table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [6, 4] <- "Fire1to5, Fire6to25, Fireover25, Beetle1to5, Beetle6to9, A_Fire1to5, A_Fire6to25, A_Fireover25, Fire1to5*A_Fire1to5, Fire6to25*A_Fire6to25, Fireover25*A_Fireover25"
+table.aic [6, 5] <- "(1 | UniqueID)"
+table.aic [6, 6] <-  "NA" # failed to converge
+
+model.lme4.du6.ew.fire.beetle2 <- glmer (pttype ~ fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                           beetle_1to5yo + beetle_6to9yo +
+                                           beetle_1to5yo_E + beetle_6to9yo_E +
+                                           beetle_1to5yo:beetle_1to5yo_E + 
+                                           beetle_6to9yo:beetle_6to9yo_E + 
+                                           (1 | uniqueID), 
+                                         data = rsf.data.natural.dist.du6.ew, 
+                                         family = binomial (link = "logit"),
+                                         verbose = T) 
+# AIC
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Early Winter"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "Fire1to5, Fire6to25, Fireover25, Beetle1to5, Beetle6to9, A_Beetle1to5, A_Beetle6to9, Beetle1to5*A_Beetle1to5, Beetle6to9*A_Beetle6to9"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  "NA" # failed to converge
+
+
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5), 6])))), 
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5), 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5), 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_natural_disturb.csv", sep = ",")
+
+save (model.lme4.du6.ew.fire.beetle, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_natural_distub_top.rda")
+
+#=================================
+# ANNUAL CLIMATE Models
+#=================================
+rsf.data.climate.annual.du6.ew <- rsf.data.climate.annual %>%
+                                  dplyr::filter (du == "du6") %>%
+                                  dplyr::filter (season == "EarlyWinter")
+rsf.data.climate.annual.du6.ew$pttype <- as.factor (rsf.data.climate.annual.du6.ew$pttype)
+
+### OUTLIERS ###
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = frost_free_start_julian)) +
+            geom_boxplot (outlier.colour = "red") +
+            labs (title = "Boxplot DU6, Early Winter, Annual Frost Free Period Julian Start Day\ 
+                  at Available (0) and Used (1) Locations",
+                  x = "Available (0) and Used (1) Locations",
+                  y = "Julian Day")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_frost_free_start.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = growing_degree_days)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Annual Growing Degree Days \
+              at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Number of Days")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_grow_deg_day.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = frost_free_end_julian)) +
+          geom_boxplot (outlier.colour = "red") +
+          labs (title = "Boxplot DU6, Early Winter, Annual Frost Free End Julian Day \
+                at Available (0) and Used (1) Locations",
+                x = "Available (0) and Used (1) Locations",
+                y = "Julian Day")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_frost_free_end.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = frost_free_period)) +
+          geom_boxplot (outlier.colour = "red") +
+          labs (title = "Boxplot DU6, Early Winter, Annual Frost Free Period \
+                        at Available (0) and Used (1) Locations",
+                x = "Available (0) and Used (1) Locations",
+                y = "Number of Days")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_frost_free_period.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = mean_annual_ppt)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Mean Annual Precipitation \
+                              at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Precipitation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_mean_annual_ppt.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = mean_annual_temp)) +
+          geom_boxplot (outlier.colour = "red") +
+          labs (title = "Boxplot DU6, Early Winter, Mean Annual Temperature \
+                                      at Available (0) and Used (1) Locations",
+                x = "Available (0) and Used (1) Locations",
+                y = "Temperature")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_mean_annual_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = mean_coldest_month_temp)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Mean Annual Coldest Month Temperature \
+                                            at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Temperature")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_mean_cold_mth_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = mean_warmest_month_temp)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Mean Annual Warmest Month Temperature \
+                                                  at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Temperature")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_mean_warm_mth_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = number_frost_free_days)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Mean Annual Warmest Month Temperature \
+              at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Number of Days")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_mean_warm_mth_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = pttype, y = ppt_as_snow_annual)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Mean Annual Precipitation as Snow \
+                    at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Precipitation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_annual_climate_du6_ew_mean_annual_pas.png")
+
+### HISTOGRAMS ###
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = frost_free_start_julian, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Frost Free Start Julian Day\
+              at Available (0) and Used (1) Locations",
+              x = "Julian Day",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_frost_free_start.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = growing_degree_days, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Annual Growing Degree Days\
+                    at Available (0) and Used (1) Locations",
+              x = "Number of Days",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_grow_deg_days.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = frost_free_end_julian, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Frost Free End Julian Day\
+              at Available (0) and Used (1) Locations",
+              x = "Julian Day",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_frost_free_end.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = frost_free_period, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Frost Free Period\
+                    at Available (0) and Used (1) Locations",
+              x = "Number of Days",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_frost_free_period.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = mean_annual_ppt, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Mean Annual Precipitation\
+                          at Available (0) and Used (1) Locations",
+              x = "Precipitation",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_mean_annual_ppt.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = mean_annual_temp, fill = pttype)) + 
+        geom_histogram (position = "dodge") +
+        labs (title = "Histogram DU6, Early Winter, Mean Annual Temperature\
+                                at Available (0) and Used (1) Locations",
+              x = "Temperature",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_mean_annual_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = mean_coldest_month_temp, fill = pttype)) + 
+        geom_histogram (position = "dodge") +
+        labs (title = "Histogram DU6, Early Winter, Mean Annual Coldest Month Temperature\
+                       at Available (0) and Used (1) Locations",
+              x = "Temperature",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_mean_annual_cold_mth_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = mean_warmest_month_temp, fill = pttype)) + 
+        geom_histogram (position = "dodge") +
+        labs (title = "Histogram DU6, Early Winter, Mean Annual Warmest Month Temperature\
+                             at Available (0) and Used (1) Locations",
+              x = "Temperature",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_mean_annual_warm_mth_temp.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = number_frost_free_days, fill = pttype)) + 
+          geom_histogram (position = "dodge") +
+          labs (title = "Histogram DU6, Early Winter, Annual Number of Frost Free Days\
+                                     at Available (0) and Used (1) Locations",
+                x = "Number of Days",
+                y = "Count") +
+          scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_mean_frost_free_days.png")
+ggplot (rsf.data.climate.annual.du6.ew, aes (x = ppt_as_snow_annual, fill = pttype)) + 
+        geom_histogram (position = "dodge") +
+        labs (title = "Histogram DU6, Early Winter, Annual Precipitation as Snow\
+              at Available (0) and Used (1) Locations",
+              x = "Precipitation",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_mean_pas.png")
+
+### CORRELATION ###
+corr.rsf.data.climate.annual.du6.ew <- rsf.data.climate.annual.du6.ew [c (11, 15, 19)]
+corr.rsf.data.climate.annual.du6.ew <- round (cor (corr.rsf.data.climate.annual.du6.ew, method = "spearman"), 3)
+ggcorrplot (corr.rsf.data.climate.annual.du6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Annual Climate Resource Selection Function Model
+            Covariate Correlations for DU6, Early Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_annual_climate_du6_ew.png")
+
+### VIF ###
+glm.annual.climate.du6.ew <- glm (pttype ~ ppt_as_snow_annual + growing_degree_days + mean_annual_temp, 
+                                   data = rsf.data.climate.annual.du6.ew,
+                                   family = binomial (link = 'logit'))
+car::vif (glm.annual.climate.du6.ew)
+
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+# standardize covariates  (helps with model convergence)
+rsf.data.climate.annual.du6.ew$std.ppt_as_snow_annual <- (rsf.data.climate.annual.du6.ew$ppt_as_snow_annual - mean (rsf.data.climate.annual.du6.ew$ppt_as_snow_annual)) / sd (rsf.data.climate.annual.du6.ew$ppt_as_snow_annual)
+rsf.data.climate.annual.du6.ew$std.growing_degree_days <- (rsf.data.climate.annual.du6.ew$growing_degree_days - mean (rsf.data.climate.annual.du6.ew$growing_degree_days)) / sd (rsf.data.climate.annual.du6.ew$growing_degree_days)
+rsf.data.climate.annual.du6.ew$std.mean_annual_temp <- (rsf.data.climate.annual.du6.ew$mean_annual_temp - mean (rsf.data.climate.annual.du6.ew$mean_annual_temp)) / sd (rsf.data.climate.annual.du6.ew$mean_annual_temp)
+
+# FUNCTIONAL RESPONSE Covariates
+sub <- subset (rsf.data.climate.annual.du6.ew, pttype == 0)
+ppt_as_snow_annual_E <- tapply (sub$std.ppt_as_snow_annual, sub$uniqueID, sum)
+growing_degree_days_E <- tapply (sub$std.growing_degree_days, sub$uniqueID, sum)
+mean_annual_temp_E <- tapply (sub$std.mean_annual_temp, sub$uniqueID, sum)
+inds <- as.character (rsf.data.climate.annual.du6.ew$uniqueID)
+rsf.data.climate.annual.du6.ew <- cbind (rsf.data.climate.annual.du6.ew, 
+                                       "ppt_as_snow_annual_E" = ppt_as_snow_annual_E [inds],
+                                       "growing_degree_days_E" = growing_degree_days_E [inds],
+                                       "mean_annual_temp_E" = mean_annual_temp_E [inds])
+
+## PRECIPITATION AS SNOW ##
+model.lme4.du6.ew.pas <- glmer (pttype ~ std.ppt_as_snow_annual + (1 | uniqueID), 
+                                     data = rsf.data.climate.annual.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [1, 1] <- "DU6"
+table.aic [1, 2] <- "Early Winter"
+table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [1, 4] <- "PaS"
+table.aic [1, 5] <- "(1 | UniqueID)"
+table.aic [1, 6] <-  AIC (model.lme4.du6.ew.pas)
+
+model.lme4.du6.ew.pas1 <- glmer (pttype ~ std.ppt_as_snow_annual + 
+                                           ppt_as_snow_annual_E +
+                                           std.ppt_as_snow_annual:ppt_as_snow_annual_E +
+                                           (1 | uniqueID), 
+                                data = rsf.data.climate.annual.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Early Winter"
+table.aic [2, 3] <- "GLMM with Functional Response"
+table.aic [2, 4] <- "PaS, A_PaS, PaS*A_PaS"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  "NA" # failed to converge
+
+## GROWING DEGREE DAYS ##
+model.lme4.du6.ew.ggd <- glmer (pttype ~ std.growing_degree_days + (1 | uniqueID), 
+                                data = rsf.data.climate.annual.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Early Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "GDD"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.ew.ggd)
+
+model.lme4.du6.ew.ggd1 <- glmer (pttype ~ std.growing_degree_days + 
+                                           growing_degree_days_E +
+                                           std.growing_degree_days:growing_degree_days_E +
+                                           (1 | uniqueID), 
+                                data = rsf.data.climate.annual.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Early Winter"
+table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 4] <- "GDD, A_GDD, GDD*A_GDD"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <-  AIC (model.lme4.du6.ew.ggd1)
+

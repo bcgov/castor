@@ -209,34 +209,86 @@ car::vif (glm.terrain.du6.ew)
 ![](plots/corr_human_dist.png)
 
 - highest vif value was 3.56
+ 
+  - Human disturbance features top-ranked model (AIC*~w~* 0.684) included the distance to cutblock covaraites, distance to road covariates distance to mine and distance to piepline and included an itneraction term  for distacne to pipeline. The second ranked model included the same covariates, and a covariate for sesimic lines,  and had an AIC*~w~* = 0.279.  Coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, I used the model that included the seismic line covaraite rather tahn average models
+
+
 
   
+###### Natural Disturbance
   
-  
-  - Human disturbance features top-ranked model included slope, disatnce to lake, and soil type and had an AIC weight (AIC*~w~*) of 0.511. The second ranked model included all covariates (elevation, slope, disatnce to lake, disatnce to watercourse, soil type) and had an AIC weight (AIC*~w~*) of 0.489 ; thus all covariates borught into next model. coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, kept model with all covaraites for next 
+  - correlations
+  - nor correalted
+
+![](plots/corr_natrual_disturb_du6_ew.png)
+
+-  vif values were less than 1.01
+
+- the top model include burn age  (burns 1 to 5 years old, 6 to 25 years old and over 25 years old) adn beetle kill age (stands 1 to 5 years old and 6 to 9 years old) covaraites adn had an AIC*~w~* = 0.966; none of the models with functional responses converged
+
+###### Annual Climate
+
+- boxplots
+- generally didn't appear to be signfiant outliers
+
+![](plots/boxplot_annual_climate_du6_ew_frost_free_start.png)
+
+![](plots/boxplot_annual_climate_du6_ew_grow_deg_day.png)
+
+![](plots/boxplot_annual_climate_du6_ew_frost_free_end.png)
+
+![](plots/boxplot_annual_climate_du6_ew_frost_free_period.png)
+
+![](plots/boxplot_annual_climate_du6_ew_mean_annual_ppt.png)
+
+![](plots/boxplot_annual_climate_du6_ew_mean_annual_temp.png)
+
+![](plots/boxplot_annual_climate_du6_ew_mean_cold_mth_temp.png)
+
+![](plots/boxplot_annual_climate_du6_ew_mean_warm_mth_temp.png)
+
+![](plots/boxplot_annual_climate_du6_ew_mean_annual_pas.png)
+
+- histograms
+
+![](plots/hist_annual_climate_du6_ew_frost_free_start.png)
+
+![](plots/hist_annual_climate_du6_ew_grow_deg_days.png)
+
+![](plots/hist_annual_climate_du6_ew_frost_free_end.png)
+
+![](plots/hist_annual_climate_du6_ew_frost_free_period.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_annual_ppt.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_annual_ppt.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_annual_temp.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_annual_cold_mth_temp.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_annual_warm_mth_temp.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_frost_free_days.png)
+
+![](plots/hist_annual_climate_du6_ew_mean_pas.png)
 
 
 
+ - correlations
+    - frost free end day correalted with growing dregree days ($\rho$ = 0.79)
+    - frost free period highly correlated with frost free start day ($\rho$ = -0.93), growing degree      days ($\rho$ = 0.75), frost free end day ($\rho$ = 0.70), and number of frost free days ($\rho$ =     0.85)
+    - mean warmest month temperature highly correlated with growing degree days ($\rho$ = 0.87) and         mean coldest month temperature ($\rho$ = -0.73) 
+    - number of frost free days highly correlated with frost free start day ($\rho$ = -0.76), growing       degree days ($\rho$ = 0.74), frost free end day ($\rho$ = 0.74), frost free period ($\rho$ =          0.85), and mean annual temperature ($\rho$ = 0.76)
+    - precipitation as snow correlated with mean annual precipitation ($\rho$ = 0.81)
 
+    - ended up using preceiptiation as snow, growing degree days and mean annual temprature
+      - snow, indicator of winter conditions, mean annual temp indicator of larger climate                    conditions adn growing degree days indicator of foage production potential
 
+![](plots/corr_annual_climate_du6_ew.png)
 
+-  vif values were less than 2.47
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- the top model include burn age  (burns 1 to 5 years old, 6 to 25 years old and over 25 years old) adn beetle kill age (stands 1 to 5 years old and 6 to 9 years old) covaraites adn had an AIC*~w~* = 0.966; none of the models with functional responses convereged
 
 
