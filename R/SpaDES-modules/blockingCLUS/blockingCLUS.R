@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow"),
+  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
@@ -130,16 +130,15 @@ blockingCLUS.preBlock <- function(sim) {
   ras_var[ras_var>0]<-runif(as.integer(len), 0,0.001)
   sim$ras.similar<-sim$ras.similar+ras_var
   
-  ras.matrix<-raster::as.matrix(sim$ras.similar)
+  ras.matrix<-raster::as.matrix(sim$ras.similar)#convert the raster to a matrix
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   weight[, id := seq_len(.N)] # set the id for ther verticies which is used to merge with the edge list from adj
   
-  edges<-SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
-             cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))
-  edges<-data.table(edges)
-  edges[from < to, c("from", "to") := .(to, from)]
-  edges<-unique(edges)
+  edges<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
+             cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))) #hard-coded the "rooks" case
+  edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
+  edges<-unique(edges)#remove the duplicates
   
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="id") #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1")) #reformat
@@ -153,57 +152,55 @@ blockingCLUS.preBlock <- function(sim) {
   
   #summary(edges.weight$weight)
   #------make the graph
-  g<-graph.lattice()
+  g<-graph.lattice()#instantiate the igraph object
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
-  if(exists(sim$clusdb)){
-    zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels')))
-  }else{
-    zones<-1
-  }
-  
-  resultset<-lapply(zones, function (x){
-    vert<-dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x)))
-    g.mst<-mst(induced_subgraph(g, v = as.matrix(vert)) , weighted=TRUE)
-    #TODO: remove this dependancy in java where the index refers to the pixelid.
-    dg<-as.matrix(degree(g.mst))
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels')))#get the zone names - strict use of integers for these
+
+  resultset<-lapply(zones, function (x){ #get the inputs for the forest_hierarchy java object as a list  
+    g.mst<-mst(induced_subgraph(g, v = as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x))))) , weighted=TRUE)
     paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
     paths.matrix[, V1 := as.integer(V1)]
     paths.matrix[, V2 := as.integer(V2)]
-    
-    list(dg, paths.matrix)
+    degreeList<-as.matrix(degree(g.mst))
+    list(degreeList, paths.matrix) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
   })
   
-  #run the java code in parallel?
+  #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 100000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
     cl<-makeCluster(noCores, type = "SOCK")
-    clusterCall(cl, worker.init, c('data.table','rJava', 'jdx'))
-    test<-parLapply(cl, resultset, getBlocksIDs)
+    clusterCall(cl, worker.init, c('data.table','rJava', 'jdx')) #instantiates a JVM on each core
+    blockids<-parLapply(cl, resultset, getBlocksIDs)#runs in parallel using load balancing
     stopCluster.default(cl)
   }else{
-    library(rJava)
+    library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the JVM on both the cores and the main. 
     library(jdx)
-    test<-lapply(resultset, getBlocksIDs)
-  }
-
-  result<-convertToR(fhClass$getBlocks()) # retrieves the result
-  #The number of pixels returned from the alorithum may be smaller than the number of pixels in the similarity
-  #raster. This happens when the last remaining pixels are NA and thus they are removed from the graph
-  if(!(length(result) == length(sim$ras.similar))){ # removes warning about merging vectors with different lengths
-    print("not equal")
-    add<-seq(-1, by =0, length.out = (length(sim$ras.similar)-length(result)))
-    result<-c(result, add) # add the remaining -1 harvest units to the result (a vector)
-  }
+    blockids<-lapply(resultset, getBlocksIDs)
+  }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
+  
+  #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
+  lastBlockID <<- 0
+  result<-lapply(blockids, function(x){
+    test2<-x[][[1]][x[][[1]][,1]>-1,]
+    if(lastBlockID > 0){
+      test2[,1]<-test2[,1] + lastBlockID
+    } 
+    lastBlockID<<-max(test2[,1])
+    list(test2)
+  })
+  blockids = Reduce(function(...) merge(..., all=T), result)#join the list components
+  blockids[with(blockids, order(vertids)), ] #sort the table
+  blockids<- data.table(tidyr::complete(blockids, vertids= seq(1:as.integer(length(sim$ras.similar))),fill = list(V1 = as.integer(-1))))
   
   sim$harvestUnits<-sim$ras.similar
-  sim$harvestUnits[]<-result
+  sim$harvestUnits[]<-blockids
   
   #add to the clusdb
   
-  rm(result, weight, to, from, d, fhClass, g.mst, g, edges.weight, edges, ras.matrix)
+  rm(result, weight, g.mst, g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
 }
@@ -255,10 +252,9 @@ getBlocksIDs<- function(x){
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]])))
-  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(0))))
+  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(0)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
   
   d<-convertToJava(as.integer(unlist(dg[,"V2"])))
-  vertids<-as.integer(unlist(dg[,1]))
   
   h<-convertToJava(data.frame(size= c(20,40,60,100), n = as.integer(c(1000000, 300000,10000,1000))), array.order = "column-major", data.frame.row.major = TRUE)
   h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
@@ -269,11 +265,11 @@ getBlocksIDs<- function(x){
   
   fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
   fhClass$blockEdges() # creates the blocks
-  test<-cbind(convertToR(fhClass$getBlocks()), vertids) #creates a link between pixelid and blockid
-  list(test)
+  blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
+  list(blockids)
 }
 
-worker.init <- function(packages) {
+worker.init <- function(packages) { #used for setting up the environments of the cores
   for (p in packages) {
     library(p, character.only=TRUE) #need character.only=TRUE to evaluate p as a character
   }
