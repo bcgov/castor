@@ -21,10 +21,10 @@ getTableQuery<-function(sql){
   dbGetQuery(conn, sql)
 }
 
-getRasterQuery<-function(name, bb){
+getRasterQuery<-function(srcRaster, bb){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
   on.exit(dbDisconnect(conn))
-  pgGetRast(conn, name, boundary = c(bb[4],bb[2],bb[3],bb[1]))
+  pgGetRast(conn, name = unlist(strsplit(srcRaster, "[.]")), boundary = c(bb[4],bb[2],bb[3],bb[1]))
 }
 
 setCSVPostgresTable<-function(name, table){
