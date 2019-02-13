@@ -26,7 +26,7 @@ defineModule(sim, list(
   reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel", "tidyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("nameSimilarityRas", "character", "rast.similarity_vri2003", NA, NA, desc = "Name of the cost surface raster"),
     defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
     defineParameter("useSpreadProbRas", "logical", FALSE, NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
@@ -175,6 +175,7 @@ blockingCLUS.preBlock <- function(sim) {
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 100000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
+    print(paste0("make cluster on:", noCores, " cores"))
     cl<-makeCluster(noCores, type = "SOCK")
     clusterCall(cl, worker.init, c('data.table','rJava', 'jdx')) #instantiates a JVM on each core
     blockids<-parLapply(cl, resultset, getBlocksIDs)#runs in parallel using load balancing
@@ -258,7 +259,7 @@ blockingCLUS.spreadBlock<- function(sim) {
 
 ### additional functions
 getBlocksIDs<- function(x){
-  print("getBlocksIDs")
+  #print("getBlocksIDs")
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   
