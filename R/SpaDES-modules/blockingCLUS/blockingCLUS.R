@@ -23,7 +23,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel"),
+  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel", "tidyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
@@ -38,6 +38,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
@@ -123,7 +124,6 @@ blockingCLUS.setSpreadProb<- function(sim) {
 }
 
 blockingCLUS.preBlock <- function(sim) {
-  
   #fuzzy the precision to prevent "line" shapes
   ras_var<-sim$ras.similar
   len<-length(sim$ras.similar[sim$ras.similar > 0])
@@ -132,6 +132,7 @@ blockingCLUS.preBlock <- function(sim) {
   
   ras.matrix<-raster::as.matrix(sim$ras.similar)#convert the raster to a matrix
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
+  size_ras<-length(weight)
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   weight[, id := seq_len(.N)] # set the id for ther verticies which is used to merge with the edge list from adj
   
@@ -157,14 +158,17 @@ blockingCLUS.preBlock <- function(sim) {
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels')))#get the zone names - strict use of integers for these
-
-  resultset<-lapply(zones, function (x){ #get the inputs for the forest_hierarchy java object as a list  
-    g.mst<-mst(induced_subgraph(g, v = as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x))))) , weighted=TRUE)
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0')))#get the zone names - strict use of integers for these
+  print(zones)
+ 
+  #get the inputs for the forest_hierarchy java object as a list  
+  resultset<-lapply(zones, function (x){ 
+    g.mst<-mst(induced_subgraph(g, v = as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x), ' AND thlb > 0')))) , weighted=TRUE)
     paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
     paths.matrix[, V1 := as.integer(V1)]
     paths.matrix[, V2 := as.integer(V2)]
     degreeList<-as.matrix(degree(g.mst))
+    
     list(degreeList, paths.matrix) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
   })
   
@@ -191,16 +195,22 @@ blockingCLUS.preBlock <- function(sim) {
     lastBlockID<<-max(test2[,1])
     list(test2)
   })
-  blockids = Reduce(function(...) merge(..., all=T), result)#join the list components
-  blockids[with(blockids, order(vertids)), ] #sort the table
-  blockids<- data.table(tidyr::complete(blockids, vertids= seq(1:as.integer(length(sim$ras.similar))),fill = list(V1 = as.integer(-1))))
   
-  sim$harvestUnits<-sim$ras.similar
-  sim$harvestUnits[]<-blockids
+  blockids = Reduce(function(...) merge(..., all=T), result)#join the list components
+  blockids[with(blockids, order(X2)), ] #sort the table
+  blockids<-data.table(tidyr::complete(blockids, X2= seq(1:as.integer(length(sim$ras.similar))),fill = list(X1 = as.integer(-1))))
   
   #add to the clusdb
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :X1 where pixelid = :X2", blockids)
+    dbClearResult(rs)
+  dbCommit(sim$clusdb)
   
-  rm(result, weight, g.mst, g, edges.weight, edges, ras.matrix)
+  #store the block pixel raster
+  #sim$harvestUnits<-raster(extent(sim$ras.similar),crs= crs(sim$ras.similar), res =100, vals = c(dbGetQuery(sim$clusdb, "Select blockid from pixels")))
+  sim$harvestUnits<-sim$ras.similar
+  sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
+  rm(result, weight,  g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
 }
@@ -248,11 +258,12 @@ blockingCLUS.spreadBlock<- function(sim) {
 
 ### additional functions
 getBlocksIDs<- function(x){
-  print('test')
+  print("getBlocksIDs")
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
+  
   dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]])))
-  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(0)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
+  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(-1)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
   
   d<-convertToJava(as.integer(unlist(dg[,"V2"])))
   
