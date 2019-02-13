@@ -26,7 +26,7 @@ inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = 
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 1)
-parameters <- list(nameRoads =  'pre_roads_ras')
+parameters <- list(nameRoads =  'rast.pre_roads')
 modules <- list("roadCLUS")
 objects <- list()
 paths <- list(
