@@ -124,7 +124,7 @@ snow.time(
 )
 ```
 ### parLApply()
-This function wraps an invocation of clusterApply(). It splits x into a list of subvectors and processes those subvectors on the cluster workers using lappy. It preschedules the work by dividing the tasks into as many chunks as workers. This is important as it reduces the number of sends and recieves between the master and workers. In the case below with clusterApply() -- this means that the master is sending not only the task, but also the matrix with every task.
+This function wraps an invocation of clusterApply(). It splits x into a list of subvectors and processes those subvectors on the cluster workers using lapply. It preschedules the work by dividing the tasks into as many chunks as workers. This is important because it reduces the number of sends and recieves between the master and workers. In the case below with clusterApply() -- this means that the master is  not only sending the task, but also the matrix with every task.
 
 ```{r parLapply}
 #example sys.sleep function

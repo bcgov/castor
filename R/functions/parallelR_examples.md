@@ -135,7 +135,7 @@ snow.time(
 
 ```
 ## $elapsed
-## [1] 63.08
+## [1] 63.07
 ## 
 ## $send
 ## [1] 0
@@ -165,7 +165,7 @@ snow.time(
 ## [1] 0
 ```
 ### parLApply()
-This function wraps an invocation of clusterApply(). It splits x into a list of subvectors and processes those subvectors on the cluster workers using lappy. It preschedules the work by dividing the tasks into as many chunks as workers. This is important as it reduces the number of sends and recieves between the master and workers. In the case below with clusterApply() -- this means that the master is sending not only the task, but also the matrix with every task.
+This function wraps an invocation of clusterApply(). It splits x into a list of subvectors and processes those subvectors on the cluster workers using lapply. It preschedules the work by dividing the tasks into as many chunks as workers. This is important because it reduces the number of sends and recieves between the master and workers. In the case below with clusterApply() -- this means that the master is  not only sending the task, but also the matrix with every task.
 
 
 ```r
@@ -181,7 +181,7 @@ snow.time(
 
 ```
 ## $elapsed
-## [1] 73.26
+## [1] 72.8
 ## 
 ## $send
 ## [1] 0
@@ -198,7 +198,7 @@ snow.time(
 
 ```
 ## $elapsed
-## [1] 50.65
+## [1] 50.59
 ## 
 ## $send
 ## [1] 0
@@ -239,7 +239,7 @@ foreach (i=1:length(sleeptime)) %dopar%
 
 ```
 ## $elapsed
-## [1] 52.68
+## [1] 52.64
 ## 
 ## $send
 ## [1] 0
