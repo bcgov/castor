@@ -158,7 +158,7 @@ blockingCLUS.preBlock <- function(sim) {
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0')))#get the zone names - strict use of integers for these
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0 and zoneid > 0 and zoneid in (598, 208)  order by zoneid')))#get the zone names - strict use of integers for these
   print(zones)
  
   #get the inputs for the forest_hierarchy java object as a list  
@@ -167,8 +167,8 @@ blockingCLUS.preBlock <- function(sim) {
     paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
     paths.matrix[, V1 := as.integer(V1)]
     paths.matrix[, V2 := as.integer(V2)]
+    print(head(get.edgelist(g.mst)))
     degreeList<-as.matrix(degree(g.mst))
-    
     list(degreeList, paths.matrix) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
   })
   
@@ -183,6 +183,7 @@ blockingCLUS.preBlock <- function(sim) {
   }else{
     library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the JVM on both the cores and the main. 
     library(jdx)
+    print("running java on one cluster")
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
@@ -194,16 +195,17 @@ blockingCLUS.preBlock <- function(sim) {
       test2[,1]<-test2[,1] + lastBlockID
     } 
     lastBlockID<<-max(test2[,1])
-    list(test2)
+    test2
   })
   
-  blockids = Reduce(function(...) merge(..., all=T), result)#join the list components
-  blockids[with(blockids, order(X2)), ] #sort the table
-  blockids<-data.table(tidyr::complete(blockids, X2= seq(1:as.integer(length(sim$ras.similar))),fill = list(X1 = as.integer(-1))))
+  blockids <- Reduce(function(...) merge(..., all=T), result)#join the list components
+  blockids<-data.table(blockids)
+  blockids[with(blockids, order(V2)), ] #sort the table
+  blockids<-data.table(tidyr::complete(blockids, V2= seq(1:as.integer(length(sim$ras.similar))),fill = list(V1 = as.integer(-1))))
   
   #add to the clusdb
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :X1 where pixelid = :X2", blockids)
+    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :V1 where pixelid = :V2", blockids)
     dbClearResult(rs)
   dbCommit(sim$clusdb)
   
@@ -275,6 +277,8 @@ getBlocksIDs<- function(x){
   from<-.jarray(as.matrix(x[][[2]][,2]))
   weight<-.jarray(as.matrix(x[][[2]][,3]))
   
+  print(paste0("to: ", getJavaClassName(to), " from: ", getJavaClassName(from), " weight: ", getJavaClassName(weight), " d: ", getJavaClassName(d)))
+  print(head(as.matrix(x[][[2]][,1])))
   fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
   fhClass$blockEdges() # creates the blocks
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
