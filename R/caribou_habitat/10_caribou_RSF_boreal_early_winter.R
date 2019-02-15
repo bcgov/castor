@@ -25,9 +25,9 @@
 
 #==========================================
 # TO TURN SCRIPT FOR DIFFERENT DUs and SEASONS:
-# Find and Repalce:
-# 1. .ew .lw .s
-# dy6, du7, du8, du9
+# Find and Replace:
+# 1. ew .lw .s
+# 2. du6, du7, du8, du9
 
 options (scipen = 999)
 require (dplyr)
@@ -123,10 +123,18 @@ rsf.data.terrain.water <- rsf.data.terrain.water %>%
 rsf.data.terrain.water$pttype <- as.factor (rsf.data.terrain.water$pttype)
 rsf.data.human.dist$pttype <- as.factor (rsf.data.human.dist$pttype)
 
-
 test <- rsf.data.climate.annual %>% filter (is.na (frost_free_start_julian))
 rsf.data.climate.annual <- rsf.data.climate.annual %>% 
                             filter (!is.na (frost_free_start_julian))
+
+test <- rsf.data.climate.winter %>% filter (is.na (winter_growing_degree_days))
+rsf.data.climate.winter <- rsf.data.climate.winter %>% 
+                               filter (!is.na (winter_growing_degree_days))
+
+
+test <- rsf.data.veg %>% filter (is.na (bec_label))
+rsf.data.veg <- rsf.data.veg %>% 
+                  filter (!is.na (bec_label))
 
 
 # noticed issue with eastness/northness data, need to make value = 0 if slope = 0
@@ -140,17 +148,79 @@ rsf.data.human.dist <- dplyr::mutate (rsf.data.human.dist, distance_to_resource_
                                                                                              distance_to_rough_road,
                                                                                              distance_to_trim_transport_road,
                                                                                              distance_to_unknown_road))
+
+# collapse wetland classes for caribou as defined by Demars (2018)
+rsf.data.veg$wetland_demars <- rsf.data.veg$wetland_class_du_boreal_name
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c('Treed Bog', 'Open Bog', 'Shrubby Bog') = 'Treed Bog'")
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c ('Graminoid Poor Fen', 'Shrubby Poor Fen', 'Treed Poor Fen') = 'Nutrient Poor Fen'")
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c ('Graminoid Rich Fen', 'Shrubby Rich Fen', 'Treed Rich Fen') = 'Nutrient Rich Fen'")
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c ('Shrub Swamp', 'Hardwood Swamp', 'Mixedwood Swamp') = 'Deciduous Swamp'")
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c ('Upland Other', 'Cloud Shadow', 'Anthropogenic', 'Burn', 'Aquatic Bed', 'Cloud', 'Mountain', 'Agriculture', 'Mudflats', 'Open Water', 'Meadow Marsh', 'Emergent Marsh', 'Cutblock') = 'Other'")
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c ('Upland Deciduous', 'Upland Mixedwood') = 'Upland Deciduous'")
+rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
+                                       "c ('Upland Deciduous', 'Upland Mixedwood') = 'Upland Deciduous'")
+
+########################################
+### BUILD COMBO MODEL RSF DATASETS  ###
+######################################
+
+rsf.data.combo <- rsf.data.terrain.water [, c (1:9, 10, 13:15, 17)]
+rm (rsf.data.terrain.water)
+gc ()
+rsf.data.combo$soil_parent_material_name <- relevel (rsf.data.combo$soil_parent_material_name,
+                                                            ref = "Till")
+rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
+                                    rsf.data.human.dist [, c (9:14, 26, 21:23)],
+                                    by = "ptID")
+rm (rsf.data.human.dist)
+gc ()
+rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
+                                    rsf.data.natural.dist [, c (9:14)],
+                                    by = "ptID")
+rm (rsf.data.natural.dist)
+gc ()
+rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
+                                    rsf.data.climate.annual [, c (9, 19, 11, 15)],
+                                    by = "ptID")
+rm (rsf.data.climate.annual)
+gc ()
+rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
+                                    rsf.data.climate.winter [, c (9, 12, 14)],
+                                    by = "ptID")
+rm (rsf.data.climate.winter)
+gc ()
+rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
+                                    rsf.data.veg [, c (9, 10, 17)],
+                                    by = "ptID")
+rm (rsf.data.veg)
+gc ()
+
+rsf.data.combo.du6.ew <- rsf.data.combo %>%
+                          dplyr::filter (du == "du6") %>%
+                          dplyr::filter (season == "EarlyWinter")
+
+# group cutblock ages together, as per forest cutblcok model results
+rsf.data.combo.du6.ew <- dplyr::mutate (rsf.data.combo.du6.ew, distance_to_cut_10yoorOver = pmin (distance_to_cut_10to29yo, distance_to_cut_30orOveryo))
+rsf.data.combo.du6.ew <- rsf.data.combo.du6.ew %>% 
+                          filter (!is.na (wetland_demars))
+rsf.data.combo.du6.ew$bec_label <- relevel (rsf.data.combo.du6.ew$bec_label,
+                                            ref = "BWBSmk")
+rsf.data.combo.du6.ew$wetland_demars <- relevel (rsf.data.combo.du6.ew$wetland_demars,
+                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
+write.csv (rsf.data.combo.du6.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv")
+
+
+
 #######################
 ### FITTING MODELS ###
 #####################
 
-
-
-
-############
-### DU6 ###
-#### Early Winter ####
-#####################
 #=================================
 # Terrain and Water Models
 #=================================
@@ -3205,6 +3275,10 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ta
 save (model.lme4.du6.ew.fire.beetle, 
       file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_natural_distub_top.rda")
 
+
+
+
+
 #=================================
 # ANNUAL CLIMATE Models
 #=================================
@@ -3403,9 +3477,9 @@ rsf.data.climate.annual.du6.ew <- cbind (rsf.data.climate.annual.du6.ew,
 
 ## PRECIPITATION AS SNOW ##
 model.lme4.du6.ew.pas <- glmer (pttype ~ std.ppt_as_snow_annual + (1 | uniqueID), 
-                                     data = rsf.data.climate.annual.du6.ew, 
-                                     family = binomial (link = "logit"),
-                                     verbose = T) 
+                                data = rsf.data.climate.annual.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
 # AIC
 table.aic [1, 1] <- "DU6"
 table.aic [1, 2] <- "Early Winter"
@@ -3452,8 +3526,689 @@ model.lme4.du6.ew.ggd1 <- glmer (pttype ~ std.growing_degree_days +
 # AIC
 table.aic [4, 1] <- "DU6"
 table.aic [4, 2] <- "Early Winter"
-table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 3] <- "GLMM with Functional Response"
 table.aic [4, 4] <- "GDD, A_GDD, GDD*A_GDD"
 table.aic [4, 5] <- "(1 | UniqueID)"
-table.aic [4, 6] <-  AIC (model.lme4.du6.ew.ggd1)
+table.aic [4, 6] <-  "NA" # failed to converge
 
+## MEAN ANNUAL TEMPERATURE ##
+model.lme4.du6.ew.mat <- glmer (pttype ~ std.mean_annual_temp + (1 | uniqueID), 
+                                data = rsf.data.climate.annual.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [5, 1] <- "DU6"
+table.aic [5, 2] <- "Early Winter"
+table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [5, 4] <- "MAT"
+table.aic [5, 5] <- "(1 | UniqueID)"
+table.aic [5, 6] <-  AIC (model.lme4.du6.ew.mat)
+
+model.lme4.du6.ew.mat1 <- glmer (pttype ~ std.mean_annual_temp + 
+                                           mean_annual_temp_E +
+                                           std.mean_annual_temp:mean_annual_temp_E +
+                                           (1 | uniqueID), 
+                                data = rsf.data.climate.annual.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [6, 1] <- "DU6"
+table.aic [6, 2] <- "Early Winter"
+table.aic [6, 3] <- "GLMM with Functional Response"
+table.aic [6, 4] <- "MAT, A_MAT, MAT*A_MAT"
+table.aic [6, 5] <- "(1 | UniqueID)"
+table.aic [6, 6] <-  "NA" # failed to converge
+
+## PRECIPITATION AS SNOW and GROWING DEGREE DAYS ##
+model.lme4.du6.ew.pas.gdd <- glmer (pttype ~ std.ppt_as_snow_annual + std.growing_degree_days +
+                                              (1 | uniqueID), 
+                                    data = rsf.data.climate.annual.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Early Winter"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "PaS, GDD"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  AIC (model.lme4.du6.ew.pas.gdd)
+
+## PRECIPITATION AS SNOW and MEAN ANNUAL TEMP ##
+model.lme4.du6.ew.pas.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.mean_annual_temp +
+                                      (1 | uniqueID), 
+                                    data = rsf.data.climate.annual.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [8, 1] <- "DU6"
+table.aic [8, 2] <- "Early Winter"
+table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [8, 4] <- "PaS, MAT"
+table.aic [8, 5] <- "(1 | UniqueID)"
+table.aic [8, 6] <-  AIC (model.lme4.du6.ew.pas.mat)
+
+## GROWING DEGREE DAYS and MEAN ANNUAL TEMP ##
+model.lme4.du6.ew.ggd.mat <- glmer (pttype ~ std.growing_degree_days + std.mean_annual_temp +
+                                             (1 | uniqueID), 
+                                    data = rsf.data.climate.annual.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [9, 1] <- "DU6"
+table.aic [9, 2] <- "Early Winter"
+table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [9, 4] <- "GDD, MAT"
+table.aic [9, 5] <- "(1 | UniqueID)"
+table.aic [9, 6] <-  AIC (model.lme4.du6.ew.ggd.mat)
+
+## PRECIPITATION AS SNOW, GROWING DEGREE DAYS, MEAN ANNUAL TEMP ##
+model.lme4.du6.ew.pas.gdd.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.growing_degree_days +
+                                                 std.mean_annual_temp +
+                                                 (1 | uniqueID), 
+                                        data = rsf.data.climate.annual.du6.ew, 
+                                        family = binomial (link = "logit"),
+                                        verbose = T) 
+# AIC
+table.aic [10, 1] <- "DU6"
+table.aic [10, 2] <- "Early Winter"
+table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [10, 4] <- "PaS, GDD, MAT"
+table.aic [10, 5] <- "(1 | UniqueID)"
+table.aic [10, 6] <-  AIC (model.lme4.du6.ew.pas.gdd.mat)
+
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5,7:10), 6])))), 
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
+                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
+                    (exp (-0.5 * (table.aic [8, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
+                    (exp (-0.5 * (table.aic [9, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
+                    (exp (-0.5 * (table.aic [10, 6] - min (table.aic [c (1,3,5,7:10), 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+table.aic [8, 7] <- round ((exp (-0.5 * (table.aic [8, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+table.aic [9, 7] <- round ((exp (-0.5 * (table.aic [9, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+table.aic [10, 7] <- round ((exp (-0.5 * (table.aic [10, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_annual_climate.csv", sep = ",")
+
+save (model.lme4.du6.ew.pas.gdd.mat, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_annual_climate_top.rda")
+
+
+#=================================
+# WINTER CLIMATE Models
+#=================================
+rsf.data.climate.winter.du6.ew <- rsf.data.climate.winter %>%
+                                    dplyr::filter (du == "du6") %>%
+                                    dplyr::filter (season == "EarlyWinter")
+rsf.data.climate.winter.du6.ew$pttype <- as.factor (rsf.data.climate.winter.du6.ew$pttype)
+
+### OUTLIERS ###
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = pttype, y = ppt_as_snow_winter)) +
+            geom_boxplot (outlier.colour = "red") +
+            labs (title = "Boxplot DU6, Early Winter, Precipitation as Snow\ 
+                            at Available (0) and Used (1) Locations",
+                  x = "Available (0) and Used (1) Locations",
+                  y = "Precipitation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_winter_climate_du6_ew_ppt_as_snow.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = pttype, y = ppt_winter)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Precipitation\ 
+              at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Precipitation")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_winter_climate_du6_ew_ppt.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = pttype, y = temp_avg_winter)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Average Temperature\ 
+              at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Temperature")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_winter_climate_du6_ew_temp_avg.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = pttype, y = temp_max_winter)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU6, Early Winter, Maximum Temperature\ 
+                    at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Temperature")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_winter_climate_du6_ew_temp_max.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = pttype, y = temp_min_winter)) +
+          geom_boxplot (outlier.colour = "red") +
+          labs (title = "Boxplot DU6, Early Winter, Minimum Temperature\ 
+                            at Available (0) and Used (1) Locations",
+                x = "Available (0) and Used (1) Locations",
+                y = "Temperature")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_winter_climate_du6_ew_temp_min.png")
+
+### HISTOGRAMS ###
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = ppt_as_snow_winter, fill = pttype)) + 
+          geom_histogram (position = "dodge", binwidth = 5) +
+          labs (title = "Histogram DU6, Early Winter, Precipitation as Snow\
+                at Available (0) and Used (1) Locations",
+                x = "Precipitation",
+                y = "Count") +
+          scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_pas.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = ppt_winter, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Precipitation\
+                      at Available (0) and Used (1) Locations",
+              x = "Precipitation",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_ppt.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = temp_avg_winter, fill = pttype)) + 
+        geom_histogram (position = "dodge", binwidth = 5) +
+        labs (title = "Histogram DU6, Early Winter, Average Temperature\
+                            at Available (0) and Used (1) Locations",
+              x = "Temperature",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_temp_avg.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = temp_max_winter, fill = pttype)) + 
+          geom_histogram (position = "dodge") +
+          labs (title = "Histogram DU6, Early Winter, Maximum Temperature\
+                         at Available (0) and Used (1) Locations",
+                x = "Temperature",
+                y = "Count") +
+          scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_temp_max.png")
+ggplot (rsf.data.climate.winter.du6.ew, aes (x = temp_min_winter, fill = pttype)) + 
+        geom_histogram (position = "dodge") +
+        labs (title = "Histogram DU6, Early Winter, Minimum Temperature\
+                               at Available (0) and Used (1) Locations",
+              x = "Temperature",
+              y = "Count") +
+        scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_ew_temp_min.png")
+
+### CORRELATION ###
+corr.climate.winter.du6.ew <- rsf.data.climate.winter.du6.ew [c (12:16)]
+corr.climate.winter.du6.ew <- round (cor (corr.climate.winter.du6.ew, method = "spearman"), 3)
+ggcorrplot (corr.climate.winter.du6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Winter Climate Resource Selection Function Model
+            Covariate Correlations for DU6, Early Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_winter_climate_du6_ew.png")
+
+### VIF ###
+glm.winter.climate.du6.ew <- glm (pttype ~ ppt_as_snow_winter + temp_avg_winter, 
+                                  data = rsf.data.climate.winter.du6.ew,
+                                  family = binomial (link = 'logit'))
+car::vif (glm.winter.climate.du6.ew)
+
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+# standardize covariates  (helps with model convergence)
+rsf.data.climate.winter.du6.ew$std.ppt_as_snow_winter <- (rsf.data.climate.winter.du6.ew$ppt_as_snow_winter - mean (rsf.data.climate.winter.du6.ew$ppt_as_snow_winter)) / sd (rsf.data.climate.winter.du6.ew$ppt_as_snow_winter)
+rsf.data.climate.winter.du6.ew$std.temp_avg_winter <- (rsf.data.climate.winter.du6.ew$temp_avg_winter - mean (rsf.data.climate.winter.du6.ew$temp_avg_winter)) / sd (rsf.data.climate.winter.du6.ew$temp_avg_winter)
+
+# FUNCTIONAL RESPONSE Covariates
+sub <- subset (rsf.data.climate.winter.du6.ew, pttype == 0)
+ppt_as_snow_winter_E <- tapply (sub$std.ppt_as_snow_winter, sub$uniqueID, sum)
+temp_avg_winter_E <- tapply (sub$std.temp_avg_winter, sub$uniqueID, sum)
+inds <- as.character (rsf.data.climate.winter.du6.ew$uniqueID)
+rsf.data.climate.winter.du6.ew <- cbind (rsf.data.climate.winter.du6.ew, 
+                                         "ppt_as_snow_winter_E" = ppt_as_snow_winter_E [inds],
+                                         "temp_avg_winter_E" = temp_avg_winter_E [inds])
+
+## PRECIPITATION AS SNOW ##
+model.lme4.du6.ew.winter.pas <- glmer (pttype ~ std.ppt_as_snow_winter + (1 | uniqueID), 
+                                data = rsf.data.climate.winter.du6.ew, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [1, 1] <- "DU6"
+table.aic [1, 2] <- "Early Winter"
+table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [1, 4] <- "WPaS"
+table.aic [1, 5] <- "(1 | UniqueID)"
+table.aic [1, 6] <-  AIC (model.lme4.du6.ew.winter.pas)
+
+model.lme4.du6.ew.winter.pas1 <- glmer (pttype ~ std.ppt_as_snow_winter + 
+                                                 ppt_as_snow_winter_E + 
+                                                 std.ppt_as_snow_winter:ppt_as_snow_winter_E +
+                                                 (1 | uniqueID), 
+                                       data = rsf.data.climate.winter.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Early Winter"
+table.aic [2, 3] <- "GLMM with Functional Response"
+table.aic [2, 4] <- "WPaS, A_WPaS, WPaS*A_WPaS"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  "NA" # failed to converge
+
+## AVERAGE TEMPERATURE ##
+model.lme4.du6.ew.winter.temp <- glmer (pttype ~ std.temp_avg_winter + (1 | uniqueID), 
+                                       data = rsf.data.climate.winter.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Early Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "WTemp"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.ew.winter.temp)
+
+model.lme4.du6.ew.winter.temp1 <- glmer (pttype ~ std.temp_avg_winter + 
+                                                   temp_avg_winter_E +
+                                                   std.temp_avg_winter:temp_avg_winter_E +
+                                                   (1 | uniqueID), 
+                                        data = rsf.data.climate.winter.du6.ew, 
+                                        family = binomial (link = "logit"),
+                                        verbose = T) 
+# AIC
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Early Winter"
+table.aic [4, 3] <- "GLMM with Functional Response"
+table.aic [4, 4] <- "WTemp, A_WTemp, WTemp*A_WTemp"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <-  "NA" #failed to converge
+
+## PRECIPITATION AS SNOW and AVERAGE TEMPERATURE ##
+model.lme4.du6.ew.winter.pas.temp <- glmer (pttype ~ std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                      (1 | uniqueID), 
+                                       data = rsf.data.climate.winter.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [5, 1] <- "DU6"
+table.aic [5, 2] <- "Early Winter"
+table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [5, 4] <- "WPaS, WTemp"
+table.aic [5, 5] <- "(1 | UniqueID)"
+table.aic [5, 6] <-  AIC (model.lme4.du6.ew.winter.pas.temp)
+
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5), 6])))), 
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5), 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5), 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_winter_climate.csv", sep = ",")
+
+save (model.lme4.du6.ew.winter.pas.temp, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_ew_winter_climate_top.rda")
+
+
+#=================================
+# VEGETATION/FOREST Models
+#=================================
+rsf.data.veg.du6.ew <- rsf.data.veg %>%
+                         dplyr::filter (du == "du6") %>%
+                         dplyr::filter (season == "EarlyWinter")
+rsf.data.veg.du6.ew$pttype <- as.factor (rsf.data.veg.du6.ew$pttype)
+
+test <- rsf.data.veg.du6.ew %>% filter (is.na (wetland_class_du_boreal_name))
+rsf.data.veg.du6.ew <- rsf.data.veg.du6.ew %>% 
+                        filter (!is.na (wetland_class_du_boreal_name))
+
+rsf.data.veg.du6.ew$bec_label <- relevel (rsf.data.veg.du6.ew$bec_label,
+                                          ref = "BWBSmk")
+rsf.data.veg.du6.ew$wetland_demars <- relevel (rsf.data.veg.du6.ew$wetland_demars,
+                                                ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
+
+
+### OUTLIERS ###
+
+
+### HISTOGRAMS ###
+ggplot (rsf.data.veg.du6.ew, aes (x = bec_label, fill = pttype)) + 
+            geom_histogram (position = "dodge", stat = "count") +
+            labs (title = "Histogram DU6, Early Winter, BEC Type\
+                          at Available (0) and Used (1) Locations",
+                  x = "Biogeclimatic Unit",
+                  y = "Count") +
+            scale_fill_discrete (name = "Location Type")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du6_ew_bec.png")
+ggplot (rsf.data.veg.du6.ew, aes (x = wetland_demars, fill = pttype)) + 
+          geom_histogram (position = "dodge", stat = "count") +
+          labs (title = "Histogram DU6, Early Winter, Wetland Type\
+                                  at Available (0) and Used (1) Locations",
+                x = "Wetland Type",
+                y = "Count") +
+          scale_fill_discrete (name = "Location Type") +
+          theme (axis.text.x = element_text (angle = -90, hjust = 0))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du6_ew_wetland.png")
+
+
+### CORRELATION ###
+corr.veg.du6.ew <- rsf.data.veg.du6.ew [c (12:16)]
+corr.veg.du6.ew <- round (cor (corr.veg.du6.ew, method = "spearman"), 3)
+ggcorrplot (corr.veg.du6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Vegeation Resource Selection Function Model
+            Covariate Correlations for DU6, Early Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_veg_du6_ew.png")
+
+### VIF ###
+glm.veg.du6.ew <- glm (pttype ~ bec_label + wetland_demars, 
+                                  data = rsf.data.veg.du6.ew,
+                                  family = binomial (link = 'logit'))
+car::vif (glm.veg.du6.ew)
+
+
+
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+# standardize covariates  (helps with model convergence)
+rsf.data.veg.du6.ew$std.ppt_as_snow_winter <- (rsf.data.veg.du6.ew$ppt_as_snow_winter - mean (rsf.data.veg.du6.ew$ppt_as_snow_winter)) / sd (rsf.data.veg.du6.ew$ppt_as_snow_winter)
+rsf.data.veg.du6.ew$std.temp_avg_winter <- (rsf.data.veg.du6.ew$temp_avg_winter - mean (rsf.data.veg.du6.ew$temp_avg_winter)) / sd (rsf.data.veg.du6.ew$temp_avg_winter)
+
+# FUNCTIONAL RESPONSE Covariates
+sub <- subset (rsf.data.veg.du6.ew, pttype == 0)
+ppt_as_snow_winter_E <- tapply (sub$std.ppt_as_snow_winter, sub$uniqueID, sum)
+temp_avg_winter_E <- tapply (sub$std.temp_avg_winter, sub$uniqueID, sum)
+inds <- as.character (rsf.data.climate.winter.du6.ew$uniqueID)
+rsf.data.veg.du6.ew <- cbind (rsf.data.veg.du6.ew, 
+                                         "ppt_as_snow_winter_E" = ppt_as_snow_winter_E [inds],
+                                         "temp_avg_winter_E" = temp_avg_winter_E [inds])
+
+## BEC ##
+model.lme4.du6.ew.veg.bec <- glmer (pttype ~ bec_label + (1 | uniqueID), 
+                                    data = rsf.data.veg.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [1, 1] <- "DU6"
+table.aic [1, 2] <- "Early Winter"
+table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [1, 4] <- "BEC"
+table.aic [1, 5] <- "(1 | UniqueID)"
+table.aic [1, 6] <-  AIC (model.lme4.du6.ew.veg.bec)
+
+## WETLAND CLASS ##
+model.lme4.du6.ew.veg.wetland <- glmer (pttype ~ wetland_demars + (1 | uniqueID), 
+                                        data = rsf.data.veg.du6.ew, 
+                                        family = binomial (link = "logit"),
+                                        verbose = T) 
+# AIC
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Early Winter"
+table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [2, 4] <- "Wetland"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  AIC (model.lme4.du6.ew.veg.wetland)
+
+## WETLAND CLASS and BEC ##
+model.lme4.du6.ew.veg.wetland.bec <- glmer (pttype ~ wetland_demars + bec_label + (1 | uniqueID), 
+                                            data = rsf.data.veg.du6.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Early Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "Wetland, BEC"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec)
+
+
+
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_veg.csv", sep = ",")
+
+#=================================
+# COMBINATION Models
+#=================================
+
+### compile AIC table of top models form each group
+table.aic.annual.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_annual_climate.csv", header = T, sep = ",")
+table.aic <- table.aic.annual.clim [10, ]
+rm (table.aic.annual.clim)
+table.aic.human <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_human_disturb.csv", header = T, sep = ",")
+table.aic <- bind_rows (table.aic, table.aic.human [110, ])
+rm (table.aic.human)
+table.aic.nat.disturb <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_natural_disturb.csv", header = T, sep = ",")
+table.aic <- bind_rows (table.aic, table.aic.nat.disturb [5, ])
+rm (table.aic.nat.disturb)
+table.aic.enduring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_terrain_water_v3.csv", header = T, sep = ",")
+table.aic <- bind_rows (table.aic, table.aic.enduring [15, ])
+rm (table.aic.enduring)
+table.aic.winter.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_winter_climate.csv", header = T, sep = ",")
+table.aic <- bind_rows (table.aic, table.aic.winter.clim [5, ])
+rm (table.aic.winter.clim)
+
+# table.aic.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_veg.csv", header = T, sep = ",")
+# table.aic <- bind_rows (table.aic, table.aic.veg [5, ])
+# rm (table.aic.winter.clim)
+
+
+# Load and tidy the data 
+rsf.data.combo.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv", header = T, sep = ",")
+rsf.data.combo.du6.ew$pttype <- as.factor (rsf.data.combo.du6.ew$pttype)
+rsf.data.combo.du6.ew <- rsf.data.combo.du6.ew %>% 
+                         filter (!is.na (ppt_as_snow_annual))
+rsf.data.combo.du6.ew$soil_parent_material_name <- relevel (rsf.data.combo.du6.ew$soil_parent_material_name,
+                                                            ref = "Till")
+rsf.data.combo.du6.ew$bec_label <- relevel (rsf.data.combo.du6.ew$bec_label,
+                                            ref = "BWBSmk")
+rsf.data.combo.du6.ew$wetland_demars <- relevel (rsf.data.combo.du6.ew$wetland_demars,
+                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
+
+### CORRELATION ###
+corr.data.du6.ew <- rsf.data.combo.du6.ew [c (11:14, 16:17, 37, 20:34)]
+corr.du6.ew <- round (cor (corr.data.du6.ew, method = "spearman"), 3)
+ggcorrplot (corr.du6.ew, type = "lower", lab = TRUE, tl.cex = 9,  lab_size = 2,
+            title = "Resource Selection Function Model Covariate Correlations \
+                     for DU6, Early Winter")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_winter_climate_du6_ew.png")
+
+### VIF ###
+glm.all.du6.ew <- glm (pttype ~ slope + distance_to_lake + distance_to_watercourse +
+                                soil_parent_material_name + distance_to_cut_1to4yo + 
+                                distance_to_cut_5to9yo + distance_to_cut_10yoorOver + distance_to_paved_road +
+                                distance_to_resource_road + distance_to_mines + distance_to_pipeline +
+                                seismic + beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
+                                fire_over25yo + growing_degree_days + ppt_as_snow_winter +
+                                temp_avg_winter + bec_label + wetland_demars,  
+                       data = rsf.data.combo.du6.ew,
+                       family = binomial (link = 'logit'))
+car::vif (glm.all.du6.ew)
+
+# standardize covariates  (helps with model convergence)
+rsf.data.combo.du6.ew$std.slope <- (rsf.data.combo.du6.ew$slope - 
+                                    mean (rsf.data.combo.du6.ew$slope)) / 
+                                    sd (rsf.data.combo.du6.ew$slope)
+rsf.data.combo.du6.ew$std.distance_to_lake <- (rsf.data.combo.du6.ew$distance_to_lake - 
+                                                mean (rsf.data.combo.du6.ew$distance_to_lake)) / 
+                                                sd (rsf.data.combo.du6.ew$distance_to_lake)
+rsf.data.combo.du6.ew$std.distance_to_watercourse <- (rsf.data.combo.du6.ew$distance_to_watercourse - 
+                                                      mean (rsf.data.combo.du6.ew$distance_to_watercourse)) / 
+                                                      sd (rsf.data.combo.du6.ew$distance_to_watercourse)
+rsf.data.combo.du6.ew$std.distance_to_cut_1to4yo <- (rsf.data.combo.du6.ew$distance_to_cut_1to4yo - 
+                                                      mean (rsf.data.combo.du6.ew$distance_to_cut_1to4yo)) / 
+                                                      sd (rsf.data.combo.du6.ew$distance_to_cut_1to4yo)
+rsf.data.combo.du6.ew$std.distance_to_cut_5to9yo <- (rsf.data.combo.du6.ew$distance_to_cut_5to9yo - 
+                                                      mean (rsf.data.combo.du6.ew$distance_to_cut_5to9yo)) / 
+                                                      sd (rsf.data.combo.du6.ew$distance_to_cut_5to9yo)
+rsf.data.combo.du6.ew$std.distance_to_cut_10yoorOver <- (rsf.data.combo.du6.ew$distance_to_cut_10yoorOver - 
+                                                          mean (rsf.data.combo.du6.ew$distance_to_cut_10yoorOver)) / 
+                                                          sd (rsf.data.combo.du6.ew$distance_to_cut_10yoorOver)
+rsf.data.combo.du6.ew$std.distance_to_paved_road <- (rsf.data.combo.du6.ew$distance_to_paved_road - 
+                                                           mean (rsf.data.combo.du6.ew$distance_to_paved_road)) / 
+                                                           sd (rsf.data.combo.du6.ew$distance_to_paved_road)
+rsf.data.combo.du6.ew$std.distance_to_resource_road <- (rsf.data.combo.du6.ew$distance_to_resource_road - 
+                                                        mean (rsf.data.combo.du6.ew$distance_to_resource_road)) / 
+                                                        sd (rsf.data.combo.du6.ew$distance_to_resource_road)
+rsf.data.combo.du6.ew$std.distance_to_mines <- (rsf.data.combo.du6.ew$distance_to_mines - 
+                                                mean (rsf.data.combo.du6.ew$distance_to_mines)) / 
+                                                sd (rsf.data.combo.du6.ew$distance_to_mines)
+rsf.data.combo.du6.ew$std.distance_to_pipeline <- (rsf.data.combo.du6.ew$distance_to_pipeline - 
+                                                    mean (rsf.data.combo.du6.ew$distance_to_pipeline)) / 
+                                                    sd (rsf.data.combo.du6.ew$distance_to_pipeline)
+rsf.data.combo.du6.ew$std.growing_degree_days <- (rsf.data.combo.du6.ew$growing_degree_days - 
+                                                  mean (rsf.data.combo.du6.ew$growing_degree_days)) / 
+                                                  sd (rsf.data.combo.du6.ew$growing_degree_days)
+rsf.data.combo.du6.ew$std.ppt_as_snow_winter <- (rsf.data.combo.du6.ew$ppt_as_snow_winter - 
+                                                  mean (rsf.data.combo.du6.ew$ppt_as_snow_winter)) / 
+                                                  sd (rsf.data.combo.du6.ew$ppt_as_snow_winter)
+rsf.data.combo.du6.ew$std.temp_avg_winter <- (rsf.data.combo.du6.ew$temp_avg_winter - 
+                                                   mean (rsf.data.combo.du6.ew$temp_avg_winter)) / 
+                                                   sd (rsf.data.combo.du6.ew$temp_avg_winter)
+
+# FUNCTIONAL RESPONSE Covariates
+sub <- subset (rsf.data.combo.du6.ew, pttype == 0)
+slope_E <- tapply (sub$std.slope, sub$uniqueID, sum)
+distance_to_lake_E <- tapply (sub$std.distance_to_lake, sub$uniqueID, sum)
+distance_to_watercourse_E <- tapply (sub$std.distance_to_watercourse, sub$uniqueID, sum)
+distance_to_cut_1to4yo_E <- tapply (sub$std.distance_to_cut_1to4yo, sub$uniqueID, sum)
+distance_to_cut_5to9yo_E <- tapply (sub$std.distance_to_cut_5to9yo, sub$uniqueID, sum)
+distance_to_cut_10yoorOver_E <- tapply (sub$std.distance_to_cut_10yoorOver, sub$uniqueID, sum)
+distance_to_paved_road_E <- tapply (sub$std.distance_to_paved_road, sub$uniqueID, sum)
+distance_to_resource_road_E <- tapply (sub$std.distance_to_resource_road, sub$uniqueID, sum)
+distance_to_mines_E <- tapply (sub$std.distance_to_mines, sub$uniqueID, sum)
+distance_to_pipeline_E <- tapply (sub$std.distance_to_pipeline, sub$uniqueID, sum)
+growing_degree_days_E <- tapply (sub$std.growing_degree_days, sub$uniqueID, sum)
+ppt_as_snow_winter_E <- tapply (sub$std.ppt_as_snow_winter, sub$uniqueID, sum)
+inds <- as.character (rsf.data.combo.du6.ew$uniqueID)
+rsf.data.combo.du6.ew <- cbind (rsf.data.combo.du6.ew, 
+                              "slope_E" = slope_E [inds],
+                              "distance_to_lake_E" = distance_to_lake_E [inds],
+                              "distance_to_watercourse_E" = distance_to_watercourse_E [inds],
+                              "distance_to_cut_1to4yo_E" = distance_to_cut_1to4yo_E [inds],
+                              "distance_to_cut_5to9yo_E" = distance_to_cut_5to9yo_E [inds],
+                              "distance_to_cut_10yoorOver_E" = distance_to_cut_10yoorOver_E [inds],
+                              "distance_to_paved_road_E" = distance_to_paved_road_E [inds],
+                              "distance_to_resource_road_E" = distance_to_resource_road_E [inds],
+                              "distance_to_mines_E" = distance_to_mines_E [inds],
+                              "distance_to_pipeline_E" = distance_to_pipeline_E [inds],
+                              "growing_degree_days_E" = growing_degree_days_E [inds],
+                              "ppt_as_snow_winter_E" = ppt_as_snow_winter_E [inds])
+
+### ENDURING FEATURES AND HUMAN DISTURBANCE ###
+model.lme4.du6.ew.ef.hd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                           std.distance_to_watercourse + soil_parent_material_name +
+                                           std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                           std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
+                                           std.distance_to_resource_road + std.distance_to_mines +
+                                           std.distance_to_pipeline + seismic +
+                                           (1 | uniqueID), 
+                                    data = rsf.data.combo.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+ss <- getME (model.lme4.du6.ew.ef.hd, c ("theta","fixef"))
+model.lme4.du6.ew.ef.hd2 <- update (model.lme4.du6.ew.ef.hd, start = ss) # failed to converge, restart with parameter estimates
+model.lme4.du6.ew.ef.hd3 <- update (model.lme4.du6.ew.ef.hd, 
+                                    . ~ . - seismic) # drop seismic lines
+model.lme4.du6.ew.ef.hd4 <- update (model.lme4.du6.ew.ef.hd, 
+                                    . ~ . - soil_parent_material_name) # drop soil
+# AIC
+table.aic [6, 1] <- "DU6"
+table.aic [6, 2] <- "Early Winter"
+table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [6, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Seismic"
+table.aic [6, 5] <- "(1 | UniqueID)"
+table.aic [6, 6] <-  AIC (model.lme4.du6.ew.ef.hd4)
+
+### ENDURING FEATURES AND NATURAL DISTURBANCE ###
+model.lme4.du6.ew.ef.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                            std.distance_to_watercourse + soil_parent_material_name +
+                                            beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
+                                            fire_over25yo +
+                                            (1 | uniqueID), 
+                                  data = rsf.data.combo.du6.ew, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+model.lme4.du6.ew.ef.nd2 <- update (model.lme4.du6.ew.ef.nd, 
+                                    . ~ . - soil_parent_material_name) # drop soils
+# AIC
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Early Winter"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  AIC (model.lme4.du6.ew.ef.nd2)
+
+### ENDURING FEATURES AND CLIMATE ###
+model.lme4.du6.ew.ef.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                              std.distance_to_watercourse + std.growing_degree_days +
+                                              std.ppt_as_snow_winter + std.temp_avg_winter + 
+                                              (1 | uniqueID), 
+                                  data = rsf.data.combo.du6.ew, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+# AIC
+table.aic [8, 1] <- "DU6"
+table.aic [8, 2] <- "Early Winter"
+table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [8, 4] <- "Slope, DLake, DWat, GDD, PAS, WTemp"
+table.aic [8, 5] <- "(1 | UniqueID)"
+table.aic [8, 6] <-  AIC (model.lme4.du6.ew.ef.clim)
+
+### HUMAN DISTURBANCE AND NATURAL DISTURBANCE ###
+model.lme4.du6.ew.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                            std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
+                                            std.distance_to_resource_road + std.distance_to_mines +
+                                            std.distance_to_pipeline + beetle_1to5yo + beetle_6to9yo + 
+                                            fire_1to5yo + fire_6to25yo + fire_over25yo +
+                                            (1 | uniqueID), 
+                                  data = rsf.data.combo.du6.ew, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+# AIC
+table.aic [9, 1] <- "DU6"
+table.aic [9, 2] <- "Early Winter"
+table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [9, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [9, 5] <- "(1 | UniqueID)"
+table.aic [9, 6] <-  AIC (model.lme4.du6.ew.hd.nd)
+
+### HUMAN DISTURBANCE AND CLIMATE ###
+model.lme4.du6.ew.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                            std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
+                                            std.distance_to_resource_road + std.distance_to_mines +
+                                            std.distance_to_pipeline + std.growing_degree_days +
+                                            std.ppt_as_snow_winter + std.temp_avg_winter +
+                                            (1 | uniqueID), 
+                                  data = rsf.data.combo.du6.ew, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+# AIC
+table.aic [10, 1] <- "DU6"
+table.aic [10, 2] <- "Early Winter"
+table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [10, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [10, 5] <- "(1 | UniqueID)"
+table.aic [10, 6] <-  AIC (model.lme4.du6.ew.hd.clim)
+
+### NATURAL DISTURBANCE AND CLIMATE ###
+model.lme4.du6.ew.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
+                                      fire_over25yo + std.growing_degree_days +
+                                      std.ppt_as_snow_winter + std.temp_avg_winter +
+                                      (1 | uniqueID), 
+                                    data = rsf.data.combo.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [11, 1] <- "DU6"
+table.aic [11, 2] <- "Early Winter"
+table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [11, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [11, 5] <- "(1 | UniqueID)"
+table.aic [11, 6] <-  AIC (model.lme4.du6.ew.nd.clim)
+
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_all_top.csv", sep = ",")
+
+
+
+# enduring features: elevation, slope, disatnce to lake, disatnce to watercourse, soil type
+# human disturbance: distance to cutblock covaraites, distance to road covariates distance to mine,  distance to piepline and included an itneraction term  for distacne to pipeline,  sesimic lines
+# natural disturbance: burn age  (burns 1 to 5 years old, 6 to 25 years old and over 25 years old) adn beetle kill age (stands 1 to 5 years old and 6 to 9 years old)
+# annual climate: precipitation as snow, growing degree days and mean annual temperature
+# winter climate: precipitation as snow and average winter temp
+# VEG
+ 
