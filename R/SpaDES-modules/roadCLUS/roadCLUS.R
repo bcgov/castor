@@ -29,13 +29,13 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "roadCLUS.Rmd"),
-  reqdPkgs = list("raster","gdistance", "sp", "latticeExtra", "sf", "rgeos"),
+  reqdPkgs = list("raster", "sp", "latticeExtra", "sf", "rgeos"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
-    defineParameter("nameCostSurfaceRas", "character", "rd_cost_surface", NA, NA, desc = "Name of the cost surface raster"),
-    defineParameter("nameRoads", "character", "pre_roads_ras", NA, NA, desc = "Name of the pre-roads raster and schema"),
+    defineParameter("nameCostSurfaceRas", "character", "rast.rd_cost_surface", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("nameRoads", "character", "rast.pre_roads", NA, NA, desc = "Name of the pre-roads raster and schema"),
     defineParameter("roadSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which roads should be build"),
     defineParameter(".plotInitialTime", "numeric", 1, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
@@ -79,6 +79,10 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim",eventPriority=20)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim",eventPriority=21)
       }
+      
+      if(!suppliedElsewhere("landings", sim)){
+        sim <- scheduleEvent(sim, eventTime = start(sim),  "roadCLUS", "simLandings")
+      }
     },
     plot.sim = {
       # do stuff for this event
@@ -118,6 +122,10 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       }else{
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
       }
+    },
+    simLandings = {
+      sim<-roadCLUS.randomLandings(sim)
+      sim$landings<-NULL
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -285,39 +293,24 @@ roadCLUS.analysis <- function(sim){
     ras.out<-sim$costSurface
     ras.out[]<-1:ncell(ras.out)
     ras.out[!(ras.out[] %in% as.matrix(sim$paths.v))] <- NA
-    #ras.out<-raster::reclassify(ras.out, c(0.000000000001, maxValue(ras.out),0))
     sim$roads<-raster::merge(ras.out, sim$roads)
   } 
   return(invisible(sim))
 }
 
+roadCLUS.randomLandings<-function(sim){
+  sim$landings<-xyFromCell(sim$roads, sample(1:ncell(sim$roads), 5), Spatial = TRUE)
+  return(invisible(sim))
+}
+
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
-    sim$boundaryInfo<-c("gcbp_carib_polygon","herd_name","Muskwa","geom")
+    sim$boundaryInfo<-c("public.gcbp_carib_polygon","herd_name","Telkwa","geom")
   }
   if(!suppliedElsewhere("bbox", sim)){
     sim$bbox<-st_bbox(getSpatialQuery(paste0("SELECT * FROM ",  sim$boundaryInfo[1], " WHERE ",    sim$boundaryInfo[2], "= '",   sim$boundaryInfo[3],"';" )))
   }
-  if(!suppliedElsewhere("landings", sim)){
-    sim$roads<-getRasterQuery(P(sim)$nameRoads, sim$bbox)
-    sim$landings<-xyFromCell(sim$roads, sample(1:ncell(sim$roads), 5), Spatial = TRUE)
-  }
+
   return(invisible(sim))
 }
-getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  st_read(conn, query = sql)
-}
 
-getTableQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  dbGetQuery(conn, sql)
-}
-
-getRasterQuery<-function(name, bb){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  pgGetRast(conn, name, boundary = c(bb[4],bb[2],bb[3],bb[1]))
-}

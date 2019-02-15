@@ -138,8 +138,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print('.....compartment ids: default 1')
     #Set the empty table for values not supplied in the parmaters
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.compartment<-RASTER_CLIP(srcRaster="ras_similar_vri2003", clipper=geom, conn=conn) #Need to change this - hard coded
+    geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
+    ras.compartment<-RASTER_CLIP(srcRaster="rast.similarity_vri2003", clipper=geom, conn=conn) #Need to change this - hard coded
     
     pixels<-data.table(c(t(raster::as.matrix(ras.compartment)))) #transpose then vectorize which matches the same order as adj
     pixels[, pixelid := seq_len(.N)]

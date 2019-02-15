@@ -23,10 +23,10 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "blockingCLUS.Rmd"),
-  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel"),
+  reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel", "tidyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter("nameSimilarityRas", "character", "ras_similar_vri2003", NA, NA, desc = "Name of the cost surface raster"),
+    defineParameter("nameSimilarityRas", "character", "rast.similarity_vri2003", NA, NA, desc = "Name of the cost surface raster"),
     defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
     defineParameter("useSpreadProbRas", "logical", FALSE, NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
@@ -38,6 +38,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
+    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
@@ -123,7 +124,6 @@ blockingCLUS.setSpreadProb<- function(sim) {
 }
 
 blockingCLUS.preBlock <- function(sim) {
-  
   #fuzzy the precision to prevent "line" shapes
   ras_var<-sim$ras.similar
   len<-length(sim$ras.similar[sim$ras.similar > 0])
@@ -132,6 +132,7 @@ blockingCLUS.preBlock <- function(sim) {
   
   ras.matrix<-raster::as.matrix(sim$ras.similar)#convert the raster to a matrix
   weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
+  size_ras<-length(weight)
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   weight[, id := seq_len(.N)] # set the id for ther verticies which is used to merge with the edge list from adj
   
@@ -157,13 +158,16 @@ blockingCLUS.preBlock <- function(sim) {
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels')))#get the zone names - strict use of integers for these
-
-  resultset<-lapply(zones, function (x){ #get the inputs for the forest_hierarchy java object as a list  
-    g.mst<-mst(induced_subgraph(g, v = as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x))))) , weighted=TRUE)
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0 and zoneid > 0 and zoneid in (598, 208)  order by zoneid')))#get the zone names - strict use of integers for these
+  print(zones)
+ 
+  #get the inputs for the forest_hierarchy java object as a list  
+  resultset<-lapply(zones, function (x){ 
+    g.mst<-mst(induced_subgraph(g, v = as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x), ' AND thlb > 0')))) , weighted=TRUE)
     paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
     paths.matrix[, V1 := as.integer(V1)]
     paths.matrix[, V2 := as.integer(V2)]
+    print(head(get.edgelist(g.mst)))
     degreeList<-as.matrix(degree(g.mst))
     list(degreeList, paths.matrix) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
   })
@@ -171,6 +175,7 @@ blockingCLUS.preBlock <- function(sim) {
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 100000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
+    print(paste0("make cluster on:", noCores, " cores"))
     cl<-makeCluster(noCores, type = "SOCK")
     clusterCall(cl, worker.init, c('data.table','rJava', 'jdx')) #instantiates a JVM on each core
     blockids<-parLapply(cl, resultset, getBlocksIDs)#runs in parallel using load balancing
@@ -178,6 +183,7 @@ blockingCLUS.preBlock <- function(sim) {
   }else{
     library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the JVM on both the cores and the main. 
     library(jdx)
+    print("running java on one cluster")
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
@@ -189,18 +195,25 @@ blockingCLUS.preBlock <- function(sim) {
       test2[,1]<-test2[,1] + lastBlockID
     } 
     lastBlockID<<-max(test2[,1])
-    list(test2)
+    test2
   })
-  blockids = Reduce(function(...) merge(..., all=T), result)#join the list components
-  blockids[with(blockids, order(vertids)), ] #sort the table
-  blockids<- data.table(tidyr::complete(blockids, vertids= seq(1:as.integer(length(sim$ras.similar))),fill = list(V1 = as.integer(-1))))
   
-  sim$harvestUnits<-sim$ras.similar
-  sim$harvestUnits[]<-blockids
+  blockids <- Reduce(function(...) merge(..., all=T), result)#join the list components
+  blockids<-data.table(blockids)
+  blockids[with(blockids, order(V2)), ] #sort the table
+  blockids<-data.table(tidyr::complete(blockids, V2= seq(1:as.integer(length(sim$ras.similar))),fill = list(V1 = as.integer(-1))))
   
   #add to the clusdb
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :V1 where pixelid = :V2", blockids)
+    dbClearResult(rs)
+  dbCommit(sim$clusdb)
   
-  rm(result, weight, g.mst, g, edges.weight, edges, ras.matrix)
+  #store the block pixel raster
+  #sim$harvestUnits<-raster(extent(sim$ras.similar),crs= crs(sim$ras.similar), res =100, vals = c(dbGetQuery(sim$clusdb, "Select blockid from pixels")))
+  sim$harvestUnits<-sim$ras.similar
+  sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
+  rm(result, weight,  g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
 }
@@ -248,11 +261,12 @@ blockingCLUS.spreadBlock<- function(sim) {
 
 ### additional functions
 getBlocksIDs<- function(x){
-  print('test')
+  #print("getBlocksIDs")
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx5g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
+  
   dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]])))
-  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(0)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
+  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(-1)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
   
   d<-convertToJava(as.integer(unlist(dg[,"V2"])))
   
@@ -263,6 +277,8 @@ getBlocksIDs<- function(x){
   from<-.jarray(as.matrix(x[][[2]][,2]))
   weight<-.jarray(as.matrix(x[][[2]][,3]))
   
+  print(paste0("to: ", getJavaClassName(to), " from: ", getJavaClassName(from), " weight: ", getJavaClassName(weight), " d: ", getJavaClassName(d)))
+  print(head(as.matrix(x[][[2]][,1])))
   fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
   fhClass$blockEdges() # creates the blocks
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
