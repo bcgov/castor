@@ -11,9 +11,9 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 #=================================
-#  Script Name: 10_caribou_RSF_full_script.R
+#  Script Name: 10_caribou_RSF_boreal_early_winter.R
 #  Script Version: 1.0
-#  Script Purpose: Script to develop provincical caribou RSF model.
+#  Script Purpose: Script to develop caribou RSF model for DU6 and early winter.
 #  Script Author: Tyler Muhly, Natural Resource Modeling Specialist, Forest Analysis and 
 #                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #                 Report is located here: 
@@ -4094,7 +4094,7 @@ model.lme4.du6.ew.ef.hd <- glmer (pttype ~ std.slope + std.distance_to_lake +
                                            std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                            std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
                                            std.distance_to_resource_road + std.distance_to_mines +
-                                           std.distance_to_pipeline + seismic +
+                                           std.distance_to_pipeline +
                                            (1 | uniqueID), 
                                     data = rsf.data.combo.du6.ew, 
                                     family = binomial (link = "logit"),
@@ -4109,9 +4109,9 @@ model.lme4.du6.ew.ef.hd4 <- update (model.lme4.du6.ew.ef.hd,
 table.aic [6, 1] <- "DU6"
 table.aic [6, 2] <- "Early Winter"
 table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [6, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Seismic"
+table.aic [6, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe"
 table.aic [6, 5] <- "(1 | UniqueID)"
-table.aic [6, 6] <-  AIC (model.lme4.du6.ew.ef.hd4)
+table.aic [6, 6] <-  AIC (model.lme4.du6.ew.ef.hd)
 
 ### ENDURING FEATURES AND NATURAL DISTURBANCE ###
 model.lme4.du6.ew.ef.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
@@ -4151,7 +4151,7 @@ table.aic [8, 6] <-  AIC (model.lme4.du6.ew.ef.clim)
 ### HUMAN DISTURBANCE AND NATURAL DISTURBANCE ###
 model.lme4.du6.ew.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                             std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
-                                            std.distance_to_resource_road + std.distance_to_mines +
+                                            std.distance_to_resource_road + std.distance_to_mines + 
                                             std.distance_to_pipeline + beetle_1to5yo + beetle_6to9yo + 
                                             fire_1to5yo + fire_6to25yo + fire_over25yo +
                                             (1 | uniqueID), 
@@ -4196,9 +4196,163 @@ model.lme4.du6.ew.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fir
 table.aic [11, 1] <- "DU6"
 table.aic [11, 2] <- "Early Winter"
 table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [11, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [11, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS, WTemp"
 table.aic [11, 5] <- "(1 | UniqueID)"
 table.aic [11, 6] <-  AIC (model.lme4.du6.ew.nd.clim)
+
+
+### ENDURING FEATURES AND VEGETATION ###
+model.lme4.du6.ew.ef.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                            std.distance_to_watercourse + bec_label + wetland_demars +
+                                            (1 | uniqueID), 
+                                  data = rsf.data.combo.du6.ew, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+# AIC
+table.aic [12, 1] <- "DU6"
+table.aic [12, 2] <- "Early Winter"
+table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [12, 4] <- "Slope, DLake, DWat, BEC, Wetland"
+table.aic [12, 5] <- "(1 | UniqueID)"
+table.aic [12, 6] <-  AIC (model.lme4.du6.ew.ef.veg)
+
+### ENDURING FEATURES **NEW** ### UPDATED TO REMOVE SOIL
+model.lme4.du6.ew.ef.new <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                             std.distance_to_watercourse +
+                                             (1 | uniqueID), 
+                                     data = rsf.data.combo.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+
+# AIC
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Early Winter"
+table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 4] <- "Slope, DLake, DWat"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <-  AIC (model.lme4.du6.ew.ef.new)
+
+### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE ###
+model.lme4.du6.ew.ef.hd.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                               std.distance_to_watercourse + std.distance_to_cut_1to4yo + 
+                                               std.distance_to_cut_5to9yo + std.distance_to_cut_10yoorOver + 
+                                               std.distance_to_paved_road + std.distance_to_resource_road + 
+                                               std.distance_to_mines + std.distance_to_pipeline +
+                                               beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
+                                               fire_over25yo +
+                                               (1 | uniqueID), 
+                                     data = rsf.data.combo.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [13, 1] <- "DU6"
+table.aic [13, 2] <- "Early Winter"
+table.aic [13, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [13, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [13, 5] <- "(1 | UniqueID)"
+table.aic [13, 6] <-  AIC (model.lme4.du6.ew.ef.hd.nd)
+
+### ENDURING FEATURES, HUMAN DISTURBANCE, CLIMATE ###
+model.lme4.du6.ew.ef.hd.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                                 std.distance_to_watercourse + std.distance_to_cut_1to4yo + 
+                                                 std.distance_to_cut_5to9yo + std.distance_to_cut_10yoorOver + 
+                                                 std.distance_to_paved_road + std.distance_to_resource_road + 
+                                                 std.distance_to_mines + std.distance_to_pipeline + seismic +
+                                                 std.growing_degree_days +
+                                                 std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                 (1 | uniqueID), 
+                                     data = rsf.data.combo.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+model.lme4.du6.ew.ef.hd.clim2 <- update (model.lme4.du6.ew.ef.hd.clim, 
+                                    . ~ . - seismic) # drop seismic lines
+# AIC
+table.aic [14, 1] <- "DU6"
+table.aic [14, 2] <- "Early Winter"
+table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [14, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, GDD, PAS, WTemp"
+table.aic [14, 5] <- "(1 | UniqueID)"
+table.aic [14, 6] <-  AIC (model.lme4.du6.ew.ef.hd.clim2)
+
+### HUMAN DISTURBANCE *** NEW - UPDATED WITHOUT SEISMIC *** ###
+model.lme4.du6.ew.hd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                                         std.distance_to_cut_10yoorOver + 
+                                         std.distance_to_paved_road + std.distance_to_resource_road + 
+                                         std.distance_to_mines + std.distance_to_pipeline +
+                                         (1 | uniqueID), 
+                                       data = rsf.data.combo.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Early Winter"
+table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [2, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  AIC (model.lme4.du6.ew.hd)
+
+### HUMAN DISTURBANCE, NATURAL DISTURBANCE, CLIMATE ###
+model.lme4.du6.ew.hd.nd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                                                 std.distance_to_cut_10yoorOver + 
+                                                 std.distance_to_paved_road + std.distance_to_resource_road + 
+                                                 std.distance_to_mines + std.distance_to_pipeline +
+                                                 std.growing_degree_days +
+                                                 std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                 beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                 fire_6to25yo + fire_over25yo +
+                                                 (1 | uniqueID), 
+                                       data = rsf.data.combo.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+ss <- getME (model.lme4.du6.ew.hd.nd.clim, c ("theta","fixef"))
+model.lme4.du6.ew.hd.nd.clim2 <- update (model.lme4.du6.ew.hd.nd.clim, start = ss) # initial model failed to converge, restart with parameter estimates
+
+# AIC
+table.aic [15, 1] <- "DU6"
+table.aic [15, 2] <- "Early Winter"
+table.aic [15, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [15, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, GDD, PAS, WTemp, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [15, 5] <- "(1 | UniqueID)"
+table.aic [15, 6] <-  AIC (model.lme4.du6.ew.hd.nd.clim2)
+
+### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE, CLIMATE ###
+model.lme4.du6.ew.ed.hd.nd.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                                   std.distance_to_watercourse +
+                                                   std.distance_to_cut_1to4yo + 
+                                                   std.distance_to_cut_5to9yo + 
+                                                   std.distance_to_cut_10yoorOver + 
+                                                   std.distance_to_paved_road + 
+                                                   std.distance_to_resource_road + 
+                                                   std.distance_to_mines + std.distance_to_pipeline +
+                                                   std.growing_degree_days +
+                                                   std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                   beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                   fire_6to25yo + fire_over25yo +
+                                                   (1 | uniqueID), 
+                                       data = rsf.data.combo.du6.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+ss <- getME (model.lme4.du6.ew.ed.hd.nd.clim, c ("theta","fixef"))
+model.lme4.du6.ew.ed.hd.nd.clim2 <- update (model.lme4.du6.ew.ed.hd.nd.clim, start = ss) # initial model failed to converge, restart with parameter estimates
+
+# AIC
+table.aic [16, 1] <- "DU6"
+table.aic [16, 2] <- "Early Winter"
+table.aic [16, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [16, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, GDD, PAS, WTemp, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [16, 5] <- "(1 | UniqueID)"
+table.aic [16, 6] <-  AIC (model.lme4.du6.ew.ed.hd.nd.clim)
+
+
+
+
+
+
+### VEGETATION COMBOS ###
+
+
+
+
 
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_all_top.csv", sep = ",")
