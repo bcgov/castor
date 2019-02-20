@@ -127,7 +127,6 @@ car::vif (glm.terrain.du6.ew)
 
 - first fit terrain models, fit single covaraites, then combined, identified top model to combine with others
 
-- for human disturabnce covariates, fit set of single covaraites models with and without itneraction terms for avauilable habtia in hoem range (Matthipolois)
 
 #### DU7
 
@@ -213,7 +212,7 @@ car::vif (glm.terrain.du6.ew)
 
 - highest vif value was 3.56
  
-  - Human disturbance features top-ranked model (AIC*~w~* 0.684) included the distance to cutblock covaraites, distance to road covariates distance to mine and distance to piepline and included an itneraction term  for distacne to pipeline. The second ranked model included the same covariates, and a covariate for sesimic lines,  and had an AIC*~w~* = 0.279.  Coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, I used the model that included the seismic line covaraite rather tahn average models
+  - Human disturbance features top-ranked model (AIC*~w~* 0.708) included the distance to cutblock covaraites, distance to road covariates and distance to mine. The second ranked model included the same covariates, and a covariate for distance to pipeline,  and had an AIC*~w~* = 0.270.  Coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, I used the model that included the seismic line covaraite rather tahn average models
 
 
 
@@ -221,7 +220,7 @@ car::vif (glm.terrain.du6.ew)
 ###### Natural Disturbance
   
   - correlations
-  - nor correalted
+  - not correalted
 
 ![](plots/corr_natrual_disturb_du6_ew.png)
 
@@ -349,9 +348,6 @@ car::vif (glm.terrain.du6.ew)
 ![](plots/hist_veg_du6_ew_wetland.png)
 
 
-
-
-
 ###### Combination Models
 
 - correlations
@@ -367,20 +363,130 @@ car::vif (glm.terrain.du6.ew)
 
 - average witner temperature had a VIF = 10.6, therefore removed
 
+
 - model with enduring features (slope, distance_to_lake, distance_to_watercourse, soil_parent_material_name, ) and human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic)
   - model failed to converge
   - fit simpler model without seismic and model converged
   - fit simpler model without soils and model converged 
 
-- model with endruing features (slope, distance_to_lake, distance_to_watercourse, soil_parent_material_name, ) and natural disturbance features (beetle adn fire)
+- model with endruing features (slope, distance_to_lake, distance_to_watercourse, soil_parent_material_name, ) and natural disturbance features (beetle and fire)
   - model failed to converge
   - fit simpler model without soil parent material and model converged
   
 - DROPPED SOIL becuase was problematic for fitting models
   
+- model with enduring features (slope, distance_to_lake, distance_to_watercourse) and climate (growing_degree_days, ppt_as_snow_winter, temp_avg_winter)
+
+- model with enduring features (slope, distance_to_lake, distance_to_watercourse) human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic), natural disturbance features (beetle and fire) 
+
+- model with enduring features (slope, distance_to_lake, distance_to_watercourse) human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic), and climate (growing_degree_days, ppt_as_snow_winter, temp_avg_winter)
+  - failed to converge
+  - fit simpler model without seismic and model converged
+
+
+
+
+
+
+
+
+
+#### Late Winter
+###### Enduring Features
+- boxplots
+- soem outliers in slope; removed >75 degree slopes
+![](plots/boxplot_terrain_water_du6_lw_slope.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_lake.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_watercourse.png)
+
+ - histograms
+![](plots/hist_terrain_water_du6_lw_slope.png)
+![](plots/hist_terrain_water_du6_lw_dist_lake.png)
+![](plots/hist_terrain_water_du6_lw_dist_watercourse.png)
+
+- correlations
+![](plots/corr_terrain_water_du6_lw.png)
+
+- vif
+- all had a VIF < 1.2
+
+- the top model included slope and distance to watercourse covariates and had an AIC*~w~* = 0.636; the second ranked model included slope, distance to watercourse and distance to lake (AIC*~w~* = 0.258) and the third ranked model included slope only (AIC*~w~* = 0.076)
+- coefficients of the top models were similar, and therefore all covraites were retained for further consideration
+
+
+###### Human Disturbance
+- boxplots
+- generally didn't appear to be signfiant outliers
+
+![](plots/boxplot_terrain_water_du6_lw_distcut1to4.png)
+![](plots/boxplot_terrain_water_du6_lw_distcut5to9.png)
+![](plots/boxplot_terrain_water_du6_lw_distcut_over10.png)
+
+![](plots/boxplot_terrain_water_du6_lw_dist_pvd_rd.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_resource_rd.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_ag.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_mine.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_pipe.png)
+![](plots/boxplot_terrain_water_du6_lw_dist_well.png)
+
+
+- histograms
+![](plots/hist_terrain_water_du6_lw_dist_cut_1to4.png) 
+![](plots/hist_terrain_water_du6_lw_dist_cut_5to9.png) 
+![](plots/hist_terrain_water_du6_lw_dist_cut_over10.png) 
+![](plots/hist_terrain_water_du6_lw_dist_pvd_rd.png) 
+![](plots/hist_du6_lw_dist_res_rd.png) 
+![](plots/hist_du6_lw_dist_ag.png) 
+![](plots/hist_du6_lw_dist_mine.png) 
+![](plots/hist_du6_lw_dist_pipe.png) 
+![](plots/hist_du6_lw_dist_well.png) 
+
+- correlations
+
+
+  - disatcne to agriculure highly correalted with disatnce to paved raoads ($\rho$ = 0.73) and some       cutblock ages ($\rho$ > 0.71), thus dropped that covariate
+  - disatnce to pipeline adn distance to well highly correlated ($\rho$ = 0.72); dropped well because     mechanism of predation is via linear features
   
-- -model with enduring features (slope, distance_to_lake, distance_to_watercourse) and climate (growing_degree_days, ppt_as_snow_winter, temp_avg_winter)
+![](plots/corr_human_dist_du6_lw.png) 
+
+- highest vif value was 3.12
+ 
+- Human disturbance features top-ranked model (AIC*~w~* 0.974) included all covaraites (distance to cutblock, distance to paved and resource roads, distance to mine and distance to piepline. 
 
 
-                                        
+###### Natural Disturbance
+  
+correlations
+  - not correlated
+
+![](plots/corr_natrual_disturb_du6_lw.png)
+
+- highest vif value was 1.00
+- natural disturbance features top-ranked model (AIC*~w~* 0.996) included all covaraites (fire and beetle). 
+
+###### Annual Climate
+
+- boxplots
+- generally didn't appear to be significant outliers
+
+![](plots/boxplot_annual_climate_du6_lw_grow_deg_day.png)
+![](plots/boxplot_annual_climate_du6_lw_grow_deg_day.png)
+![](plots/boxplot_annual_climate_du6_lw_frost_free_end.png)
+![](plots/boxplot_annual_climate_du6_lw_frost_free_period.png)
+![](plots/boxplot_annual_climate_du6_lw_mean_annual_ppt.png)
+![](plots/boxplot_annual_climate_du6_lw_mean_annual_temp.png)
+![](plots/boxplot_annual_climate_du6_lw_mean_cold_mth_temp.png)
+![](plots/boxplot_annual_climate_du6_lw_mean_warm_mth_temp.png)
+![](plots/boxplot_annual_climate_du6_lw_mean_annual_pas.png)
+
+
+- histograms
+![](plots/boxplot_annual_climate_du6_lw_mean_annual_pas.png)
+
+
+
+
+
+
+
 
