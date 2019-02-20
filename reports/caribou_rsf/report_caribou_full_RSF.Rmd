@@ -289,6 +289,7 @@ car::vif (glm.terrain.du6.ew)
 
 ![](plots/corr_annual_climate_du6_ew.png)
 
+
 -  vif values were less than 2.47
 
 - the top model included all covariates (precipitation as snow, growing degree days and mean annual temperature) and had an AIC*~w~* = 0.390; the second ranked model included growing degree days (AIC*~w~* = 0.244) adn the third ranked model included precipitation as snow and growing degree days (AIC*~w~* = 0.233); none of the models with functional responses converged
@@ -481,11 +482,66 @@ correlations
 
 
 - histograms
-![](plots/boxplot_annual_climate_du6_lw_mean_annual_pas.png)
+![](plots/hist_annual_climate_du6_lw_frost_free_start.png)
+![](plots/hist_annual_climate_du6_lw_grow_deg_days.png)
+![](plots/hist_annual_climate_du6_lw_frost_free_end.png)
+![](plots/hist_annual_climate_du6_lw_frost_free_period.png)
+![](plots/hist_annual_climate_du6_lw_mean_annual_ppt.png)
+![](plots/hist_annual_climate_du6_lw_mean_annual_temp.png)
+![](plots/hist_annual_climate_du6_lw_mean_annual_cold_mth_temp.png)
+![](plots/hist_annual_climate_du6_lw_mean_annual_warm_mth_temp.png)
+![](plots/hist_annual_climate_du6_lw_mean_frost_free_days.png)
+![](plots/hist_annual_climate_du6_lw_mean_pas.png)
 
 
+- correlation
+  - frost free end day correalted with growing dregree days ($\rho$ = 0.78)
+  - frost free period highly correlated with number of frost free days ($\rho$ = 0.89)
+  - mean warmest month temperature highly correlated with growing degree days ($\rho$ = 0.87) and         mean coldest month temperature ($\rho$ = -0.72)
+  - number of frost free days highly correlated with growing degree days ($\rho$ = 0.74), frost free      end day ($\rho$ = 0.71), frost free period ($\rho$ = 0.89), and mean annual temperature ($\rho$ =     0.75)
+  - precipitation as snow correlated with mean annual precipitation ($\rho$ = 0.80)
+  - ended up using precipitation as snow, growing degree days and mean annual temperature
+   - snow, indicator of winter conditions, mean annual temp indicator of larger climate                    conditions adn growing degree days indicator of foage production potential
+
+![](plots/corr_annual_climate_du6_lw.png)
+
+-  vif values were less than 2.43
+
+- the top model included only the mean annual temprature covariate (AIC*~w~* = 0.471); the second ranked model included growing degree days and mean annual temperature (AIC*~w~* = 0.244); the third ranked model included precipitation as snow and mean annual temperature (AIC*~w~* = 0.186) and the fourth ranked model included all three covaraites (AIC*~w~* = 0.09) 
+- coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
 
+###### Winter Climate
+
+- boxplots
+- generally didn't appear to be significant outliers
+
+![](plots/boxplot_winter_climate_du6_lw_ppt_as_snow.png)
+![](plots/boxplot_winter_climate_du6_lw_ppt.png)
+![](plots/boxplot_winter_climate_du6_lw_temp_avg.png)
+![](plots/boxplot_winter_climate_du6_lw_temp_max.png)
+![](plots/boxplot_winter_climate_du6_lw_temp_min.png)
+
+
+- histograms
+![](plots/hist_annual_climate_du6_lw_pas.png)
+![](plots/hist_annual_climate_du6_lw_ppt.png)
+![](plots/hist_annual_climate_du6_lw_temp_avg.png)
+![](plots/hist_annual_climate_du6_lw_temp_max.png)
+![](plots/hist_annual_climate_du6_lw_temp_min.png)
+
+- correlations
+  - precipitation as snow and precipitation were highly correlated ($\rho$ = 1.00)
+  - maximum and average temperature were highly correlated ($\rho$ = 0.98)
+  - minimum and average temperature were highly correlated ($\rho$ = 0.72)
+  - kept precipitation as snow and average winter temperature
+    
+![](plots/corr_winter_climate_du6_lw.png)
+
+- vif values were less than 1.48
+
+- the top model included winter preciptation as snow and average winter temperature (AIC*~w~* = 0.555); the second ranked model included average winter temperature (AIC*~w~* = 0.414)
+- coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
 
 

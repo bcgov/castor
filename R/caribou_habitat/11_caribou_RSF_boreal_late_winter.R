@@ -217,9 +217,13 @@ write.csv (rsf.data.combo.du6.lw, file = "C:\\Work\\caribou\\clus_data\\caribou_
 
 
 
+
+
+
 #######################
 ### FITTING MODELS ###
 #####################
+
 
 #=================================
 # Terrain and Water Models
@@ -1118,7 +1122,7 @@ ggplot (rsf.data.climate.annual.du6.lw, aes (x = ppt_as_snow_annual, fill = ptty
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_lw_mean_pas.png")
 
 ### CORRELATION ###
-corr.rsf.data.climate.annual.du6.lw <- rsf.data.climate.annual.du6.lw [c (11, 15, 19)]
+corr.rsf.data.climate.annual.du6.lw <- rsf.data.climate.annual.du6.lw [c (11:20)]
 corr.rsf.data.climate.annual.du6.lw <- round (cor (corr.rsf.data.climate.annual.du6.lw, method = "spearman"), 3)
 ggcorrplot (corr.rsf.data.climate.annual.du6.lw, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Annual Climate Resource Selection Function Model
@@ -1153,48 +1157,18 @@ table.aic [1, 4] <- "PaS"
 table.aic [1, 5] <- "(1 | UniqueID)"
 table.aic [1, 6] <-  AIC (model.lme4.du6.lw.pas)
 
-model.lme4.du6.lw.pas1 <- glmer (pttype ~ std.ppt_as_snow_annual + 
-                                           ppt_as_snow_annual_E +
-                                           std.ppt_as_snow_annual:ppt_as_snow_annual_E +
-                                           (1 | uniqueID), 
-                                data = rsf.data.climate.annual.du6.lw, 
-                                family = binomial (link = "logit"),
-                                verbose = T) 
-# AIC
-table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
-table.aic [2, 3] <- "GLMM with Functional Response"
-table.aic [2, 4] <- "PaS, A_PaS, PaS*A_PaS"
-table.aic [2, 5] <- "(1 | UniqueID)"
-table.aic [2, 6] <-  "NA" # failed to converge
-
 ## GROWING DEGREE DAYS ##
 model.lme4.du6.lw.ggd <- glmer (pttype ~ std.growing_degree_days + (1 | uniqueID), 
                                 data = rsf.data.climate.annual.du6.lw, 
                                 family = binomial (link = "logit"),
                                 verbose = T) 
 # AIC
-table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
-table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [3, 4] <- "GDD"
-table.aic [3, 5] <- "(1 | UniqueID)"
-table.aic [3, 6] <-  AIC (model.lme4.du6.lw.ggd)
-
-model.lme4.du6.lw.ggd1 <- glmer (pttype ~ std.growing_degree_days + 
-                                           growing_degree_days_E +
-                                           std.growing_degree_days:growing_degree_days_E +
-                                           (1 | uniqueID), 
-                                data = rsf.data.climate.annual.du6.lw, 
-                                family = binomial (link = "logit"),
-                                verbose = T) 
-# AIC
-table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Late Winter"
-table.aic [4, 3] <- "GLMM with Functional Response"
-table.aic [4, 4] <- "GDD, A_GDD, GDD*A_GDD"
-table.aic [4, 5] <- "(1 | UniqueID)"
-table.aic [4, 6] <-  "NA" # failed to converge
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Late Winter"
+table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [2, 4] <- "GDD"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  AIC (model.lme4.du6.lw.ggd)
 
 ## MEAN ANNUAL TEMPERATURE ##
 model.lme4.du6.lw.mat <- glmer (pttype ~ std.mean_annual_temp + (1 | uniqueID), 
@@ -1202,27 +1176,12 @@ model.lme4.du6.lw.mat <- glmer (pttype ~ std.mean_annual_temp + (1 | uniqueID),
                                 family = binomial (link = "logit"),
                                 verbose = T) 
 # AIC
-table.aic [5, 1] <- "DU6"
-table.aic [5, 2] <- "Late Winter"
-table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [5, 4] <- "MAT"
-table.aic [5, 5] <- "(1 | UniqueID)"
-table.aic [5, 6] <-  AIC (model.lme4.du6.lw.mat)
-
-model.lme4.du6.lw.mat1 <- glmer (pttype ~ std.mean_annual_temp + 
-                                           mean_annual_temp_E +
-                                           std.mean_annual_temp:mean_annual_temp_E +
-                                           (1 | uniqueID), 
-                                data = rsf.data.climate.annual.du6.lw, 
-                                family = binomial (link = "logit"),
-                                verbose = T) 
-# AIC
-table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Late Winter"
-table.aic [6, 3] <- "GLMM with Functional Response"
-table.aic [6, 4] <- "MAT, A_MAT, MAT*A_MAT"
-table.aic [6, 5] <- "(1 | UniqueID)"
-table.aic [6, 6] <-  "NA" # failed to converge
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Late Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "MAT"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.lw.mat)
 
 ## PRECIPITATION AS SNOW and GROWING DEGREE DAYS ##
 model.lme4.du6.lw.pas.gdd <- glmer (pttype ~ std.ppt_as_snow_annual + std.growing_degree_days +
@@ -1231,12 +1190,12 @@ model.lme4.du6.lw.pas.gdd <- glmer (pttype ~ std.ppt_as_snow_annual + std.growin
                                     family = binomial (link = "logit"),
                                     verbose = T) 
 # AIC
-table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Late Winter"
-table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [7, 4] <- "PaS, GDD"
-table.aic [7, 5] <- "(1 | UniqueID)"
-table.aic [7, 6] <-  AIC (model.lme4.du6.lw.pas.gdd)
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Late Winter"
+table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 4] <- "PaS, GDD"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <-  AIC (model.lme4.du6.lw.pas.gdd)
 
 ## PRECIPITATION AS SNOW and MEAN ANNUAL TEMP ##
 model.lme4.du6.lw.pas.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.mean_annual_temp +
@@ -1245,12 +1204,12 @@ model.lme4.du6.lw.pas.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.mean_a
                                     family = binomial (link = "logit"),
                                     verbose = T) 
 # AIC
-table.aic [8, 1] <- "DU6"
-table.aic [8, 2] <- "Late Winter"
-table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [8, 4] <- "PaS, MAT"
-table.aic [8, 5] <- "(1 | UniqueID)"
-table.aic [8, 6] <-  AIC (model.lme4.du6.lw.pas.mat)
+table.aic [5, 1] <- "DU6"
+table.aic [5, 2] <- "Late Winter"
+table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [5, 4] <- "PaS, MAT"
+table.aic [5, 5] <- "(1 | UniqueID)"
+table.aic [5, 6] <-  AIC (model.lme4.du6.lw.pas.mat)
 
 ## GROWING DEGREE DAYS and MEAN ANNUAL TEMP ##
 model.lme4.du6.lw.ggd.mat <- glmer (pttype ~ std.growing_degree_days + std.mean_annual_temp +
@@ -1259,12 +1218,12 @@ model.lme4.du6.lw.ggd.mat <- glmer (pttype ~ std.growing_degree_days + std.mean_
                                     family = binomial (link = "logit"),
                                     verbose = T) 
 # AIC
-table.aic [9, 1] <- "DU6"
-table.aic [9, 2] <- "Late Winter"
-table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [9, 4] <- "GDD, MAT"
-table.aic [9, 5] <- "(1 | UniqueID)"
-table.aic [9, 6] <-  AIC (model.lme4.du6.lw.ggd.mat)
+table.aic [6, 1] <- "DU6"
+table.aic [6, 2] <- "Late Winter"
+table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [6, 4] <- "GDD, MAT"
+table.aic [6, 5] <- "(1 | UniqueID)"
+table.aic [6, 6] <-  AIC (model.lme4.du6.lw.ggd.mat)
 
 ## PRECIPITATION AS SNOW, GROWING DEGREE DAYS, MEAN ANNUAL TEMP ##
 model.lme4.du6.lw.pas.gdd.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.growing_degree_days +
@@ -1274,34 +1233,31 @@ model.lme4.du6.lw.pas.gdd.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.gr
                                         family = binomial (link = "logit"),
                                         verbose = T) 
 # AIC
-table.aic [10, 1] <- "DU6"
-table.aic [10, 2] <- "Late Winter"
-table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [10, 4] <- "PaS, GDD, MAT"
-table.aic [10, 5] <- "(1 | UniqueID)"
-table.aic [10, 6] <-  AIC (model.lme4.du6.lw.pas.gdd.mat)
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Late Winter"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "PaS, GDD, MAT"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  AIC (model.lme4.du6.lw.pas.gdd.mat)
 
 ## AIC comparison of MODELS ## 
 table.aic$AIC <- as.numeric (table.aic$AIC)
-list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5,7:10), 6])))), 
-                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
-                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
-                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
-                    (exp (-0.5 * (table.aic [8, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
-                    (exp (-0.5 * (table.aic [9, 6] - min (table.aic [c (1,3,5,7:10), 6])))),
-                    (exp (-0.5 * (table.aic [10, 6] - min (table.aic [c (1,3,5,7:10), 6])))))
-table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
-table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
-table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
-table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
-table.aic [8, 7] <- round ((exp (-0.5 * (table.aic [8, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
-table.aic [9, 7] <- round ((exp (-0.5 * (table.aic [9, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
-table.aic [10, 7] <- round ((exp (-0.5 * (table.aic [10, 6] - min (table.aic [c (1,3,5,7:10), 6])))) / sum (list.aic.like), 3)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [1:7, 6])))), 
+                    (exp (-0.5 * (table.aic [2, 6] - min (table.aic [1:7, 6])))),
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [1:7, 6])))),
+                    (exp (-0.5 * (table.aic [4, 6] - min (table.aic [1:7, 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [1:7, 6])))),
+                    (exp (-0.5 * (table.aic [6, 6] - min (table.aic [1:7, 6])))),
+                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [1:7, 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
+table.aic [2, 7] <- round ((exp (-0.5 * (table.aic [2, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
+table.aic [4, 7] <- round ((exp (-0.5 * (table.aic [4, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
+table.aic [6, 7] <- round ((exp (-0.5 * (table.aic [6, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
+table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [1:7, 6])))) / sum (list.aic.like), 3)
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_annual_climate.csv", sep = ",")
-
-save (model.lme4.du6.lw.pas.gdd.mat, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_lw_annual_climate_top.rda")
 
 
 #=================================
@@ -1392,7 +1348,7 @@ ggplot (rsf.data.climate.winter.du6.lw, aes (x = temp_min_winter, fill = pttype)
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_annual_climate_du6_lw_temp_min.png")
 
 ### CORRELATION ###
-corr.climate.winter.du6.lw <- rsf.data.climate.winter.du6.lw [c (12:16)]
+corr.climate.winter.du6.lw <- rsf.data.climate.winter.du6.lw [c (10, 12:16)] # frost free days all = 0
 corr.climate.winter.du6.lw <- round (cor (corr.climate.winter.du6.lw, method = "spearman"), 3)
 ggcorrplot (corr.climate.winter.du6.lw, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Winter Climate Resource Selection Function Model
@@ -1413,15 +1369,6 @@ colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariat
 rsf.data.climate.winter.du6.lw$std.ppt_as_snow_winter <- (rsf.data.climate.winter.du6.lw$ppt_as_snow_winter - mean (rsf.data.climate.winter.du6.lw$ppt_as_snow_winter)) / sd (rsf.data.climate.winter.du6.lw$ppt_as_snow_winter)
 rsf.data.climate.winter.du6.lw$std.temp_avg_winter <- (rsf.data.climate.winter.du6.lw$temp_avg_winter - mean (rsf.data.climate.winter.du6.lw$temp_avg_winter)) / sd (rsf.data.climate.winter.du6.lw$temp_avg_winter)
 
-# FUNCTIONAL RESPONSE Covariates
-sub <- subset (rsf.data.climate.winter.du6.lw, pttype == 0)
-ppt_as_snow_winter_E <- tapply (sub$std.ppt_as_snow_winter, sub$uniqueID, sum)
-temp_avg_winter_E <- tapply (sub$std.temp_avg_winter, sub$uniqueID, sum)
-inds <- as.character (rsf.data.climate.winter.du6.lw$uniqueID)
-rsf.data.climate.winter.du6.lw <- cbind (rsf.data.climate.winter.du6.lw, 
-                                         "ppt_as_snow_winter_E" = ppt_as_snow_winter_E [inds],
-                                         "temp_avg_winter_E" = temp_avg_winter_E [inds])
-
 ## PRECIPITATION AS SNOW ##
 model.lme4.du6.lw.winter.pas <- glmer (pttype ~ std.ppt_as_snow_winter + (1 | uniqueID), 
                                 data = rsf.data.climate.winter.du6.lw, 
@@ -1435,48 +1382,18 @@ table.aic [1, 4] <- "WPaS"
 table.aic [1, 5] <- "(1 | UniqueID)"
 table.aic [1, 6] <-  AIC (model.lme4.du6.lw.winter.pas)
 
-model.lme4.du6.lw.winter.pas1 <- glmer (pttype ~ std.ppt_as_snow_winter + 
-                                                 ppt_as_snow_winter_E + 
-                                                 std.ppt_as_snow_winter:ppt_as_snow_winter_E +
-                                                 (1 | uniqueID), 
-                                       data = rsf.data.climate.winter.du6.lw, 
-                                       family = binomial (link = "logit"),
-                                       verbose = T) 
-# AIC
-table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
-table.aic [2, 3] <- "GLMM with Functional Response"
-table.aic [2, 4] <- "WPaS, A_WPaS, WPaS*A_WPaS"
-table.aic [2, 5] <- "(1 | UniqueID)"
-table.aic [2, 6] <-  "NA" # failed to converge
-
 ## AVERAGE TEMPERATURE ##
 model.lme4.du6.lw.winter.temp <- glmer (pttype ~ std.temp_avg_winter + (1 | uniqueID), 
                                        data = rsf.data.climate.winter.du6.lw, 
                                        family = binomial (link = "logit"),
                                        verbose = T) 
 # AIC
-table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
-table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [3, 4] <- "WTemp"
-table.aic [3, 5] <- "(1 | UniqueID)"
-table.aic [3, 6] <-  AIC (model.lme4.du6.lw.winter.temp)
-
-model.lme4.du6.lw.winter.temp1 <- glmer (pttype ~ std.temp_avg_winter + 
-                                                   temp_avg_winter_E +
-                                                   std.temp_avg_winter:temp_avg_winter_E +
-                                                   (1 | uniqueID), 
-                                        data = rsf.data.climate.winter.du6.lw, 
-                                        family = binomial (link = "logit"),
-                                        verbose = T) 
-# AIC
-table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Late Winter"
-table.aic [4, 3] <- "GLMM with Functional Response"
-table.aic [4, 4] <- "WTemp, A_WTemp, WTemp*A_WTemp"
-table.aic [4, 5] <- "(1 | UniqueID)"
-table.aic [4, 6] <-  "NA" #failed to converge
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Late Winter"
+table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [2, 4] <- "WTemp"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  AIC (model.lme4.du6.lw.winter.temp)
 
 ## PRECIPITATION AS SNOW and AVERAGE TEMPERATURE ##
 model.lme4.du6.lw.winter.pas.temp <- glmer (pttype ~ std.ppt_as_snow_winter + std.temp_avg_winter +
@@ -1485,27 +1402,22 @@ model.lme4.du6.lw.winter.pas.temp <- glmer (pttype ~ std.ppt_as_snow_winter + st
                                        family = binomial (link = "logit"),
                                        verbose = T) 
 # AIC
-table.aic [5, 1] <- "DU6"
-table.aic [5, 2] <- "Late Winter"
-table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [5, 4] <- "WPaS, WTemp"
-table.aic [5, 5] <- "(1 | UniqueID)"
-table.aic [5, 6] <-  AIC (model.lme4.du6.lw.winter.pas.temp)
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Late Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "WPaS, WTemp"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.lw.winter.pas.temp)
 
 ## AIC comparison of MODELS ## 
-table.aic$AIC <- as.numeric (table.aic$AIC)
-list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5), 6])))), 
-                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5), 6])))),
-                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5), 6])))))
-table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
-table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
-table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1,3,5), 6])))) / sum (list.aic.like), 3)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [1:3, 6])))), 
+                    (exp (-0.5 * (table.aic [2, 6] - min (table.aic [1:3, 6])))),
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [1:3, 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [1:3, 6])))) / sum (list.aic.like), 3)
+table.aic [2, 7] <- round ((exp (-0.5 * (table.aic [2, 6] - min (table.aic [1:3, 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [1:3, 6])))) / sum (list.aic.like), 3)
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_winter_climate.csv", sep = ",")
-
-save (model.lme4.du6.lw.winter.pas.temp, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\terrain\\model_du6_lw_winter_climate_top.rda")
-
 
 #=================================
 # VEGETATION/FOREST Models
