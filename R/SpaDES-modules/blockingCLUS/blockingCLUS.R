@@ -84,17 +84,25 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 blockingCLUS.Init <- function(sim) {
   sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
  
-   #clip the boundary with the provincial similarity raste
+  #clip the boundary with the provincial similarity raste
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
   # going to leave the similarity raster unattached to clusdb, rather use it to sample zones.
+ 
+  #mask similarity raster
+  thlb<-sim$ras.similar 
+  thlb[]<-unlist(c(dbGetQuery(sim$clusdb, "Select thlb from pixels")))
+  sim$ras.similar[thlb[] > 0 & is.na(sim$ras.similar[])] <- 1 #In the thlb but there is no similarity value assign a 1
+  sim$ras.similar[is.na(thlb[])]<-NA #not in the thlb assign a NA
+  sim$ras.similar[thlb[]<= 0]<-NA
   
-  thlb<-sim$ras.similar #mask similarity raster
-  thlb[]<-as.matrix(dbGetQuery(sim$clusdb, "Select thlb from pixels"))
-  thlb[thlb[] > 0]<-1
-  sim$ras.similar<-sim$ras.similar*thlb
+  #fuzzy the precision to prevent "line shaped" blocks
+  ras_var<-sim$ras.similar
+  ras_var[]<-runif(as.integer(length(ras_var)), 0,0.001)
+  sim$ras.similar<-ras_var + sim$ras.similar
   
+  writeRaster(sim$ras.similar, "ras_similar.tif", overwrite = TRUE)
   rm(thlb)
   gc()
   
@@ -124,20 +132,16 @@ blockingCLUS.setSpreadProb<- function(sim) {
 }
 
 blockingCLUS.preBlock <- function(sim) {
-  #fuzzy the precision to prevent "line" shapes
-  ras_var<-sim$ras.similar
-  len<-length(sim$ras.similar[sim$ras.similar > 0])
-  ras_var[ras_var>0]<-runif(as.integer(len), 0,0.001)
-  sim$ras.similar<-sim$ras.similar+ras_var
-  
-  ras.matrix<-raster::as.matrix(sim$ras.similar)#convert the raster to a matrix
-  weight<-c(t(ras.matrix)) #transpose then vectorize which matches the same order as adj
+
+  ras.matrix<-raster::as.matrix(sim$ras.similar) # convert the raster to a matrix
+  weight<-c(t(ras.matrix)) # transpose then vectorize which matches the same order as adj
   size_ras<-length(weight)
   weight<-data.table(weight) # convert to a data.table - faster for large objects than data.frame
   weight[, id := seq_len(.N)] # set the id for ther verticies which is used to merge with the edge list from adj
   
-  edges<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
+  edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix),
              cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix)))) #hard-coded the "rooks" case
+  edges<-edgesAdj
   edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
   edges<-unique(edges)#remove the duplicates
   
@@ -158,17 +162,19 @@ blockingCLUS.preBlock <- function(sim) {
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0 and zoneid > 0 and zoneid in (598, 208)  order by zoneid')))#get the zone names - strict use of integers for these
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0  AND zoneid > 0 order by zoneid')))#get the zone names - strict use of integers for these
   print(zones)
  
   #get the inputs for the forest_hierarchy java object as a list  
   resultset<-lapply(zones, function (x){ 
-    g.mst<-mst(induced_subgraph(g, v = as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x), ' AND thlb > 0')))) , weighted=TRUE)
-    paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst)), E(g.mst)$weight))
+    vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x), ' AND thlb > 0')))
+    g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
+    print(E(g.mst_sub))
+    paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
     paths.matrix[, V1 := as.integer(V1)]
     paths.matrix[, V2 := as.integer(V2)]
-    print(head(get.edgelist(g.mst)))
-    degreeList<-as.matrix(degree(g.mst))
+    print(head(get.edgelist(g.mst_sub)))
+    degreeList<-as.matrix(degree(g.mst_sub)) 
     list(degreeList, paths.matrix) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
   })
   
@@ -213,6 +219,27 @@ blockingCLUS.preBlock <- function(sim) {
   #sim$harvestUnits<-raster(extent(sim$ras.similar),crs= crs(sim$ras.similar), res =100, vals = c(dbGetQuery(sim$clusdb, "Select blockid from pixels")))
   sim$harvestUnits<-sim$ras.similar
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
+  
+  #set the adjacency table
+  
+  setkey(blockids, V2)
+  edgesAdj<-merge(edgesAdj, blockids,by.x="to", by.y="V2" )
+  edgesAdj<-merge(edgesAdj, blockids,by.x="from", by.y="V2" )
+  edgesAdj<-data.table(edgesAdj[,3:4])
+  edgesAdj<-edgesAdj[V1.x  != V1.y]
+  edgesAdj<-edgesAdj[V1.x  > 0]
+  edgesAdj<-edgesAdj[V1.y  > 0]
+  edgesAdj<-unique(edgesAdj)
+  setnames(edgesAdj, c("blockid", "adjblockid")) #reformat
+  
+  print("set the adjacency table")
+  dbBegin(sim$clusdb)
+   rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) values (:blockid, :adjblockid)", edgesAdj)
+   dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  #print(dbGetQuery(sim$clusdb, "SELECT adjblockid from adjacentBlocks where blockid = 1"))
+ 
   rm(result, weight,  g, edges.weight, edges, ras.matrix)
   gc()
   return(invisible(sim))
@@ -291,3 +318,4 @@ worker.init <- function(packages) { #used for setting up the environments of the
   }
   NULL #return NULL to avoid sending unnecessary data back to the master process
 }
+
