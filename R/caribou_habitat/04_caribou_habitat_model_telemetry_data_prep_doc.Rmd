@@ -1155,7 +1155,7 @@ tried differtn smoothign factors, including 750, 500, 350 and 250
 
 
 show exampels of each size for why picked
-resoltuion of data: smallest size (h=250) is ~200 m from point locations to egde of hr in some cases, leaving littel room for avriability in habitat between used and avalable for analysis @1ha resoltuion; larger sizes (h = 750) tended to estiamet large outer extents form teh points (>1 km) that may not realistially be a part of a hoem rnage
+resoltuion of data: smallest size (h=250) is ~200 m from point locations to egde of hr in some cases, leaving littel room for avability in habitat between used and avalable for analysis @1ha resoltuion; larger sizes (h = 750) tended to estiamet large outer extents form teh points (>1 km) that may not realistially be a part of a hoem rnage
 
 h=500 seemed to provide rasonable trade-off between capturing contiguous ranges encompassign lcoations, but not estimatign large extents outside teh bounds of the locations
 
@@ -5298,31 +5298,176 @@ rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 13)],
 rm (raster.herb.cover)
 gc ()
 
-
-
-
-
-
-
-
-raster.herb.cover <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
-rsf.locations <- raster::extract (raster.herb.cover, rsf.locations, method = 'simple',
+raster.live.volume <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_livestandvolume125.tif")
+rsf.locations <- raster::extract (raster.live.volume, rsf.locations, method = 'simple',
                                   factors = F, df = T, sp = T) 
-names (rsf.locations) [13] <- "vri_herb_cover_pct"
-rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 13)], 
+names (rsf.locations) [14] <- "vri_live_volume"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 14)], 
                                   by = c ("ptID" = "ptID")) 
-rm (raster.herb.cover)
+rm (raster.live.volume)
 gc ()
 
+raster.proj.age <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projage1.tif")
+rsf.locations <- raster::extract (raster.proj.age, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [15] <- "vri_proj_age"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 15)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.proj.age)
+gc ()
 
-# write.table (rsf.data.veg, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv", sep = ",")
+raster.proj.height <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projheight1.tif")
+rsf.locations <- raster::extract (raster.proj.height, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [16] <- "vri_proj_height"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 16)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.proj.height)
+gc ()
 
+raster.shrub.cc <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_shrubcrownclosure.tif")
+rsf.locations <- raster::extract (raster.shrub.cc, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [17] <- "vri_shrub_crown_close"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 17)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.shrub.cc)
+gc ()
 
+raster.shrub.height <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_shrubheight.tif")
+rsf.locations <- raster::extract (raster.shrub.height, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [18] <- "vri_shrub_height"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 18)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.shrub.height)
+gc ()
 
+raster.site.index <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_siteindex.tif")
+rsf.locations <- raster::extract (raster.site.index, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [19] <- "vri_site_index"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 19)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.site.index)
+gc ()
 
-# rsf.data.climate <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate.csv")
+raster.soil.moist <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_soilmoistureregime1.tif")
+rsf.locations <- raster::extract (raster.soil.moist, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [10] <- "vri_soil_moisture"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 10)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.soil.moist)
+gc ()
 
+raster.soil.nutrient <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_soilnutrientregime.tif")
+rsf.locations <- raster::extract (raster.soil.nutrient, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [11] <- "vri_soil_nutrient"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 11)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.soil.nutrient)
+gc ()
 
+raster.species.con <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_species_con.tif")
+rsf.locations <- raster::extract (raster.species.con, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [12] <- "vri_species_conifer"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 12)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.species.con)
+gc ()
+
+raster.species <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_species_primary.tif")
+rsf.locations <- raster::extract (raster.species, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [13] <- "vri_species_primary"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 13)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.species)
+gc ()
+
+raster.species.top3 <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_species_top3.tif")
+rsf.locations <- raster::extract (raster.species.top3, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [14] <- "vri_species_top3"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 14)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.species.top3)
+gc ()
+
+raster.vri.class <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_bclcsgroupid.tif")
+rsf.locations <- raster::extract (raster.vri.class, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [15] <- "vri_bclcs_class_id"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 15)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.vri.class)
+gc ()
+
+raster.vri.herb.type <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcovertype.tif")
+rsf.locations <- raster::extract (raster.vri.herb.type, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [16] <- "vri_herb_cover_type"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 16)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.vri.herb.type)
+gc ()
+
+# look-up tables for categorical values
+connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
+                      host = "DC052586", 
+                      user = "Tyler",
+                      dbname = "clus",
+                      password = "tyler",
+                      port = "5432")
+vri.bclcs.vat <- dbReadTable (connKyle, 
+                              "vri_tsa_att_bclcs_classes_vat")
+names (vri.bclcs.vat) [1] <- "vri_bclcs_class_id"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, vri.bclcs.vat [1:3], 
+                                   by = c ("vri_bclcs_class_id" = "vri_bclcs_class_id")) 
+names (rsf.data.veg) [33] <- "vri_bclcs_class_code"
+names (rsf.data.veg) [34] <- "vri_bclcs_class_name"
+
+vri.herb.cover.type.vat <- dbReadTable (connKyle, 
+                                        "vri_tsa_att_herbcovertype_vat")
+names (vri.herb.cover.type.vat) [1] <- "vri_herb_cover_type"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, vri.herb.cover.type.vat [c (1,3)], 
+                                   by = c ("vri_herb_cover_type" = "vri_herb_cover_type")) 
+names (rsf.data.veg) [36] <- "vri_herb_cover_type_name"
+
+vri.soil.nutrient.vat <- dbReadTable (connKyle, 
+                                      "vri_tsa_att_soilnutrientregime_vat")
+names (vri.soil.nutrient.vat) [1] <- "vri_soil_nutrient"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, vri.soil.nutrient.vat [c (1,3)], 
+                                  by = c ("vri_soil_nutrient" = "vri_soil_nutrient")) 
+names (rsf.data.veg) [37] <- "vri_soil_nutrient_class_name"
+
+vri.species.vat <- dbReadTable (connKyle, 
+                                "vri_tsa_att_species_primary_vat")
+names (vri.species.vat) [1] <- "vri_species_primary"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, vri.species.vat [c (1,3)], 
+                                  by = c ("vri_species_primary" = "vri_species_primary")) 
+names (rsf.data.veg) [38] <- "vri_species_primary_name"
+
+vri.species.top3.vat <- dbReadTable (connKyle, 
+                                     "vri_tsa_att_species_top3_vat")
+names (vri.species.top3.vat) [1] <- "vri_species_top3"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, vri.species.top3.vat [c (1,3)], 
+                                  by = c ("vri_species_top3" = "vri_species_top3")) 
+names (rsf.data.veg) [39] <- "vri_species_primary_top3_name"
+
+vri.species.type.top3.vat <- dbReadTable (connKyle, 
+                                          "vri_tsa_att_species_type_top3_vat")
+names (vri.species.type.top3.vat) [1] <- "vri_species_conifer"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, vri.species.type.top3.vat [c (1,3)], 
+                                  by = c ("vri_species_conifer" = "vri_species_conifer")) 
+names (rsf.data.veg) [40] <- "vri_species_conifer_name"
+
+dbDisconnect (connKyle)
+
+write.table (rsf.data.veg, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv", sep = ",")
 
 
 
