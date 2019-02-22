@@ -104,19 +104,8 @@ car::vif (glm.terrain.du6.ew)
 
 - used this to subset soem fo teh potential GIS covaiatres based on DU ecology
 
-#### DU6
-- select wetlands, avoid uplands; swamps, treed bogs and fens (Mumma and Gillinham 2017; http://www.bcogris.ca/sites/default/files/bcip-2015-09-final-report-may17.pdf)
-- new (0-15) and old (16-40) cutblocks and burns, elevation, slope, disatcne to water, veg richness and raod density and sesimic density w (Mumma et al. 2018; https://reader.elsevier.com/reader/sd/pii/S0006320718307225?token=10CAC422DF6B2AE064234F05EE679D6B3C6D1FDC138746FA05D2E85C1D260B16F8B4392DBE5B0426F99BAFE911924D31)
-- land cover, ndvi, slope, lakes, rivers, fires adn disturabnce (Demars 2018)
--  black spruce (Picea mariana) and tamarack (Larix laricina) (boreal herd plans)
-- crandom efefct for idnvidual cariobu/year (Mumma et al. 2018; Demars 2018)
+- random efefct for idnvidual cariobu/year (Mumma et al. 2018; Demars 2018)
 
-- endurign features tested:
-  -  slope, disatcne to lake, distane to river, soil parnet maetiral 
-
-- human features
-  - raods, wells, piepline, seismic, agriculture, mine adn forestry
-  
 
 - covaraites tdandardized ((x-mean) / sd) to help with model convergence and simplify interepretation of relative effects of covariates
 
@@ -128,8 +117,222 @@ car::vif (glm.terrain.du6.ew)
 - first fit terrain models, fit single covaraites, then combined, identified top model to combine with others
 
 
-#### DU7
+#### key poitns from workshops with reagional biologists
+General:
+- lienar featrues in core cariobu habtait are bad
+- Basal area is good representation of forest attributes desirable to caribou
+- fire
+- cutblock characteristics; slope, snow, roads
+- disatcne to permamabnet human ladn use (ag)
 
+
+#### DU6 Resource Covariates
+
+- select wetlands, avoid uplands; swamps, treed bogs and fens (Mumma and Gillinham 2017; http://www.bcogris.ca/sites/default/files/bcip-2015-09-final-report-may17.pdf)
+- new (0-15) and old (16-40) cutblocks and burns, elevation, slope, disatcne to water, veg richness and raod density and sesimic density w (Mumma et al. 2018; https://reader.elsevier.com/reader/sd/pii/S0006320718307225?token=10CAC422DF6B2AE064234F05EE679D6B3C6D1FDC138746FA05D2E85C1D260B16F8B4392DBE5B0426F99BAFE911924D31)
+- land cover, ndvi, slope, lakes, rivers, fires adn disturabnce (Demars 2018)
+-  black spruce (Picea mariana) and tamarack (Larix laricina) (boreal herd plans)
+- select treed bogs and poor fens; avoid decisuous samp adn upland types; avoid high lienar feature density; select early seral/imamture forest (Wilson and Demars 2015)
+
+(Denryter et al. 2016 - boreal and northern and central groups)
+- mountains: high forage value in alpine shrub areas, mid-elevation spruce/fir stands
+- boreal: high forage value intreed, rich fens and white spruce communities
+- low forage value in dry apline adn unproductive black spruce
+
+(Denryter et al. 2016 - boreal and northern and central groups)
+- low forage quality:
+  - BWBSmw, BWBSmk
+  - Af, Ag, Ah
+- high forage quality:
+  - wetland fens (Wf) in BWBSmw and BWBSmk
+  - BWBSwk2, BWBSwk1, SBSwk2
+  - SWBmk and Sc
+  - Wm, Wf in BWBS and ESSF
+  
+  
+#### DU7 Resource Covariates
+- experts
+  - low elevation, pine-lichen stands
+  - high leavtion
+  - terretiral lichen
+  - sub-alpine arboreal lichen
+
+- Wolverine (Johnson et al. 2004a)
+  - winter
+    - select pine-lichen stands, typically SBSmk2, SBSwk2, BWBSdk1 and ESSFmv3
+    - select wetladns and black spruce
+    - avoid deep and hard snow
+    
+- Atlin (Polfus et al. 2011)
+  - avoid roads and mines, cabins, hunting camps and urban areas
+
+- Atlin (Polfus et al. 2013)
+  - summer
+    - avoid mixed conifer, select krummholz, alpine shrub and alpine tundra
+    - select mid-high-elevation (1363m), mid-slope, mid-snow
+  - winter
+    - avoid krummholz, burn, select spruce-fir, avoid alpine
+    - select low-mid-eleavtion (1179m), low slope
+    - select lichen-lodgepole pine, spruce-fir forests, low elevation willow
+    
+- Moberley to Narraway (Johnson et al. 2015)
+  - generally avoid roads, avoid or select siesmic and popialines, select cutblocks, avoid or select 
+    oil and gas, aovid mines select fire
+    
+- Muskwa-Kechika (Gustien and PArker 2006)
+  - summer/fall
+    - select subalpine
+    - select alpine
+    - avoid burn and low fragmentation
+    - select mid and high fragmentation
+    - select mid-elevation and mid-slope 
+  - winter
+    - select north adn west aspects
+    - avoid burn and low fragmentation
+    - select mid and high fragmentation 
+    - select alpine
+  
+(Denryter et al. 2016 - boreal and northern and central groups)
+- mountains: high forage value in alpine shrub areas, mid-elevation spruce/fir stands
+- boreal: high forage value intreed, rich fens and white spruce communities
+- low forage value in dry apline adn unproductive black spruce
+
+(Apps et al. 2001 - Itcha and Rainbows)
+- dry, alpine, little vegetation productivity or overstory cover
+- closed canopy lodgepole pine overstory and higher site productivity at lower elevation
+
+(Denryter et al. 2016 - boreal and northern and central groups)
+- low forage quality:
+  - BWBSmw, BWBSmk
+  - Af, Ag, Ah
+- high forage quality:
+  - wetland fens (Wf) in BWBSmw and BWBSmk
+  - BWBSwk2, BWBSwk1, SBSwk2
+  - SWBmk and Sc
+  - Wm, Wf in BWBS and ESSF
+  
+  
+#### DU8 Resource Covariates
+- experts
+  - habtait could be simpyl dfined by elevation and BEC 
+  - some herds at high elevation yer round, others seasonal
+  - snow is imrptoant in soutehrn herds; coudl use elvation as a proxy, but PAS may also be useufl 
+  - BEC is a key covriate in moutnain cariobu ecoptype
+    - ineractison with snow depth and seral satge likely also important
+    - BEC and lichen?
+  - old growth forest >150 y.o. adn arboral lichen
+  - balasm leading 
+  - ESSF
+  - low elevation cedar-hemlock
+
+(Apps et al. 2001 - Itcha and Rainbows)
+  - high elevation in summer and winter
+  
+  
+slope (degrees) 
+(Johnson et al. 2004 - Hart Ranges - winter - slope + slope^2; select slopes ~35deg, normal distribtuon)
+(Terry et al. 2000 - cariboo/narrow lake - select 16-30deg)
+
+(Apps et al. 2001 - Itcha and Rainbows)
+- NE aspects
+
+(Apps et al. 2001 - Itcha - old forests)
+
+
+
+
+#### DU9 Resource Covariates
+- experts
+  - habtait could be simpyl dfined by elevation and BEC 
+  - some herds at high elevation yer round, others seasonal
+  - snow is imrptoant in soutehrn herds; coudl use elvation as a proxy, but PAS may also be useufl 
+  - BEC is a key covriate in moutnain cariobu ecoptype
+    - ineractison with snow depth and seral satge likely also important
+    - BEC and lichen?
+  - old growth forest >150 y.o. adn arboral lichen
+  - balasm leading 
+  - ESSF
+  - low elevation cedar-hemlock
+  
+- Hart Ranges (Johnson et al. 2004b)
+  - winter
+    - select sub-alpine fir and alpine forest, avoid spurce, mixed pine, cedar/hemlock
+    - select mid elevation (1200m, squared-term) and mid-slope (40deg, squared-term)
+    
+- Hart Ranges, south (Apps adn McLennan 2006)
+  - select wet and very wet BEC subzones fo ICH and ESSF
+  - avoid 101-140 year old forest
+  - select >140 year old forest
+  - select closed canopy
+  - avoid motorized recreation and road density
+  - select spruce/sub-alpine fir overstory
+  - seelct cedar/hemlock
+  - avoid deciduous
+  - avoid road desnity and major highways
+  
+- south Selkirks (Rominger adn Oldemeyer 1989)
+  - use old growth stands with mdoerate (30deg) slopes, higher elevations, less canopy cover adn less     basal area comarped to random
+  
+elevation (m) 
+  (Johnson et al. 2004 - Hart Ranges)
+  - winter - elevation + elevation^2; select elevations ~1200m,   distribtuion skewed left a bit
+  (Terry et al. 2000 - cariboo/narrow lake)
+  - select mid-elevation, 1526-1677m
+  (Apps and Kinley 2000 - Wells Gray, Columbia)
+  - higher elevation in late winter, lower in early winter
+  (Apps & McLellan 2006 - southern mountain, southern group)
+  - non-forested alpine
+  
+(Apps and Kinley 2000 - Wells Gray, Columbia)
+- NE aspect
+  
+(Apps & McLellan 2006 - southern mountain, southern group)
+- select 'remoteness'
+- avoid summer motorized recreation
+- aovid linear road density
+- avoid major highways
+
+timber volume:
+(Terry et al. 2000 - cariboo/narrow lake)
+- avoid >300m3/ha
+- use lower basal area sites or foraging
+
+(Apps & McLellan 2006 - southern mountain, southern group - select age >140, avoid age 101-140)
+
+(Johnson et al. 2004 - Hart Ranges - winter):
+- subalpine fir (>80%; selected)
+- mix subapline fir (subalipmne fir dominated)
+- spruce (spruce dominated)
+- mix lodgepole pine dominated
+- cedar/hemlock dominated
+- alpine forest (high elevation forest; selected)
+- alpine (no trees; selected)
+- other (infrequent types)
+- subalpine fir x stand age
+- subalpine fir x site productivity
+- subalpine fir x elevation
+- subalpine fir x slope x slope^2
+  
+(Apps and Kinley 2000 - Wells, Columbia)
+- subapline fir
+- low site index
+- older
+- avoid pine, doug fir, deciduous
+
+(Apps & McLellan 2006 - southern mountain, southern group)
+- select cedar/hemlock, spruce/subapline fir
+- select canopy closure
+- avoid deciduous
+- avoid non-forested alpine, large lakes, icefields
+
+(Terry et al. 2000 - cariboo/narrow lake)
+- select >80% subalpine fir
+- avoid cedar-hemlock-spruce
+
+(Apps & McLellan 2006 - southern mountain, southern group)
+- select `wet`and `very wet` subzones of ICH and ESSF (Medinger and Pojar 1991)
+    -  ICHwk, ICHvk, ICHvc
+    - ESSFwm, ESSFwk, ESSFwc, ESSFwv, ESSFvc, ESSFvv
 
 
 
@@ -390,8 +593,6 @@ car::vif (glm.terrain.du6.ew)
 
 
 
-
-
 #### Late Winter
 ###### Enduring Features
 - boxplots
@@ -443,8 +644,6 @@ car::vif (glm.terrain.du6.ew)
 ![](plots/hist_du6_lw_dist_well.png) 
 
 - correlations
-
-
   - disatcne to agriculure highly correalted with disatnce to paved raoads ($\rho$ = 0.73) and some       cutblock ages ($\rho$ > 0.71), thus dropped that covariate
   - disatnce to pipeline adn distance to well highly correlated ($\rho$ = 0.72); dropped well because     mechanism of predation is via linear features
   
@@ -542,6 +741,224 @@ correlations
 
 - the top model included winter preciptation as snow and average winter temperature (AIC*~w~* = 0.555); the second ranked model included average winter temperature (AIC*~w~* = 0.414)
 - coefficients of the top models were similar, and therefore all covraites were retained for further consideration
+
+
+
+
+
+
+
+
+#### Summer
+###### Enduring Features
+- boxplots
+- soem outliers in slope; removed >75 degree slopes
+
+![](plots/boxplot_terrain_water_du6_s_slope.png)
+![](plots/boxplot_terrain_water_du6_s_dist_lake.png)
+![](plots/boxplot_terrain_water_du6_s_dist_watercourse.png)
+
+
+- histograms
+![](plots/hist_terrain_water_du6_s_slope.png)
+![](plots/hist_terrain_water_du6_s_dist_lake.png)
+![](plots/hist_terrain_water_du6_s_dist_watercourse.png)
+
+- correlations
+![](plots/corr_terrain_water_du6_s.png)
+
+- vif
+- all had a VIF < 1.4
+
+- the top model included all covaraites (slope, distance to watercourse and distance to lake) and had an AIC*~w~* = 1.00
+
+
+###### Human Disturbance
+- boxplots
+
+![](plots/boxplot_du6_s_distcut1to4.png)
+![](plots/boxplot_du6_s_distcut5to9.png)
+![](plots/boxplot_du6_s_distcut_over10.png)
+![](plots/boxplot_du6_s_dist_pvd_rd.png)
+![](plots/boxplot_du6_s_dist_resource_rd.png)
+![](plots/boxplot_du6_s_dist_ag.png)
+![](plots/boxplot_du6_s_dist_mine.png)
+![](plots/boxplot_du6_s_dist_pipe.png)
+![](plots/boxplot_du6_s_dist_well.png)
+
+- histograms
+
+![](plots/hist_du6_s_dist_cut_1to4.png)
+![](plots/hist_du6_s_dist_cut_5to9.png)
+![](plots/hist_du6_s_dist_cut_over10.png)
+![](plots/hist_du6_s_dist_pvd_rd.png)
+![](plots/hist_du6_s_dist_res_rd.png)
+![](plots/hist_du6_s_dist_ag.png)
+![](plots/hist_du6_s_dist_mine.png)
+![](plots/hist_du6_s_dist_pipe.png)
+![](plots/hist_du6_s_dist_well.png)
+
+
+
+- correlation
+  - disatcne to agriculure highly correalted with disatnce to cutblock age 5 to 9 ($\rho$ > 0.72)
+  - disatnce to pipeline adn distance to well highly correlated ($\rho$ = 0.72)
+  - dropped disatcne to well well because mechanism of predation is via linear features adn distacne      to ag becuase correaltion to forestry and roads
+![](plots/corr_human_dist_du6_s.png)
+  
+- highest vif value was 3.21
+ 
+- Human disturbance features top-ranked model (AIC*~w~* 1.000) included all covaraites (distance to cutblock, distance to paved and resource roads, distance to mine and distance to piepline.  
+ 
+###### Natural Disturbance
+  
+correlations
+  - not correlated
+
+![](plots/corr_natrual_disturb_du6_s.png)
+
+- highest vif value was 1.00
+- natural disturbance features top-ranked model (AIC*~w~* 1.000) included all covaraites (fire and beetle).  
+ 
+###### Annual Climate
+
+- boxplots
+- generally didn't appear to be significant outliers
+
+![](plots/boxplot_annual_climate_du6_s_frost_free_start.png)
+![](plots/boxplot_annual_climate_du6_s_grow_deg_day.png)
+![](plots/boxplot_annual_climate_du6_s_frost_free_end.png)
+![](plots/boxplot_annual_climate_du6_s_frost_free_period.png)
+![](plots/boxplot_annual_climate_du6_s_mean_annual_ppt.png)
+![](plots/boxplot_annual_climate_du6_s_mean_annual_temp.png)
+![](plots/boxplot_annual_climate_du6_s_mean_cold_mth_temp.png)
+![](plots/boxplot_annual_climate_du6_s_mean_warm_mth_temp.png)
+![](plots/boxplot_annual_climate_du6_s_mean_annual_pas.png)
+
+- histograms
+
+![](plots/hist_annual_climate_du6_s_frost_free_start.png)
+![](plots/hist_annual_climate_du6_s_grow_deg_days.png)
+![](plots/hist_annual_climate_du6_s_frost_free_end.png)
+![](plots/hist_annual_climate_du6_s_frost_free_period.png)
+![](plots/hist_annual_climate_du6_s_mean_annual_ppt.png)
+![](plots/hist_annual_climate_du6_s_mean_annual_temp.png)
+![](plots/hist_annual_climate_du6_s_mean_annual_cold_mth_temp.png)
+![](plots/hist_annual_climate_du6_s_mean_annual_warm_mth_temp.png)
+![](plots/hist_annual_climate_du6_s_mean_frost_free_days.png)
+![](plots/hist_annual_climate_du6_s_mean_pas.png)
+ 
+ - correlation
+  - frost free end day correalted with growing dregree days ($\rho$ = 0.77)
+  - frost free period highly correlated with growing degree days ($\rho$ = 0.77) 
+  - mean warmest month temperature highly correlated with growing degree days ($\rho$ = 0.87) and         mean coldest month temperature ($\rho$ = -0.71)
+  - number of frost free days highly correlated with growing degree days ($\rho$ = 0.74), frost free      end day ($\rho$ = 0.71), frost free period ($\rho$ = 0.87), and mean annual temperature ($\rho$ =     0.76)
+  - precipitation as snow correlated with mean annual precipitation ($\rho$ = 0.80)
+  - ended up using precipitation as snow, growing degree days and mean annual temperature
+    - snow, indicator of winter conditions, mean annual temp indicator of larger climate                    conditions adn growing degree days indicator of foage production potential
+
+-  vif values were less than 1.96
+
+- the top model included all three covaraites (growing degree days, mean annual temperature,     
+  precipitation as snow) and had an AIC*~w~* = 0.672; the second ranked model included precipitation    as snow and mean annual temperature (AIC*~w~* = 0.328)
+- coefficients of the top models were similar, and therefore all covraites were retained for further    consideration
+
+
+###### Summer Climate
+- boxplots
+- generally didn't appear to be significant outliers
+
+![](plots/boxplot_summer_climate_du6_s_ppt.png)
+![](plots/boxplot_summer_climate_du6_s_temp_avg.png)
+![](plots/boxplot_summer_climate_du6_s_temp_max.png)
+![](plots/boxplot_summer_climate_du6_s_temp_min.png)
+
+
+- histograms
+![](plots/hist_annual_climate_du6_s_ppt.png)
+![](plots/hist_annual_climate_du6_s_temp_avg.png)
+![](plots/hist_annual_climate_du6_s_temp_max.png)
+![](plots/hist_annual_climate_du6_s_temp_min.png)
+
+- correlations
+  - frost free days and growing degree days were highly correlated ($\rho$ = 0.83)
+  - average temperature and growing degree days were highly correlated ($\rho$ = 1.00)
+  - average temperature and frost free days were highly correlated ($\rho$ = 0.83)
+  - maximum temperature and growing degree days were highly correlated ($\rho$ = 0.98)
+  - maximum temperature and frost free days were highly correlated ($\rho$ = 0.78)
+  - maximum temperature and average temperature were highly correlated ($\rho$ = 0.98)
+  - minimum temperature and growing degree days were highly correlated ($\rho$ = 0.96)
+  - minimum temperature and frost free days were highly correlated ($\rho$ = 0.85)
+  - minimum temperature and average temperature were highly correlated ($\rho$ = 0.96)
+  - minimum temperature and maximum temperature were highly correlated ($\rho$ = 0.89)
+  
+  - kept precipitation and average temperature
+  
+![](plots/corr_summer_climate_du6_s.png)
+
+- vif values were less than 2.19
+
+- the top model included summer preciptation and average summer temperature (AIC*~w~* = 0.884); the second ranked model included summer preciptation (AIC*~w~* = 0.116)
+- coefficients of the top models were similar, and therefore all covraites were retained for further consideration
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Conclusions
+- maladaptive sink is improtant narrative of this modeling; need to emhpasize that may selct for distyurbance, but not necessarily 'good' for cariobu
+
+
+
+## Literature Cited
+Apps, C. and Kinley, T. (2000) MULTISCALE HABITAT MODELING FOR MOUNTAIN CARIBOU IN THE COLUMBIA HIGHLANDS AND NORTHERN COLUMBIA MOUNTAINS ECOREGIONS, BRITISH COLUMBIA. Wildlife Section, Ministry of Water, Land and Air Protection, Williams Lake, British
+Columbia, Canada. Available from: http://www.env.gov.bc.ca/cariboo/env_stewardship/wildlife/inventory/caribou/mtncar/hmi/habitatmod04-00.pdf
+
+Apps, C. D., T. A. Kinley, and J. A. Young. 2001. Multi-scale habitat modeling for woodland
+caribou in the Itcha, Ilgachuz, and Rainbow mountains of west-central British Columbia.
+Wildlife Section, Ministry of Water, Land and Air Protection, Williams Lake, British
+Columbia, Canada. Available from: http://www.env.gov.bc.ca/cariboo/env_stewardship/wildlife/inventory/caribou/northcar/hmi/hsi06-01.pdf
+
+Apps, C. D., & McLellan, B. N. (2006). Factors influencing the dispersion and fragmentation of endangered mountain caribou populations. Biological Conservation, 130(1), 84-97.
+
+Denryter, K. A., Cook, R., Cook, J. G., & Parker, K. L. 2016. Straight from the caribou’s mouth: detailed observations of tame caribou reveal new insights into summer-autumn diets. Canadian Journal of Zoology
+
+Gustine, D. D., & Parker, K. L. (2008). Variation in the seasonal selection of resources by woodland caribou in northern British Columbia. Canadian Journal of Zoology, 86(8), 812–825. http://doi.org/10.1139/Z08-047
+
+Johnson, C. J., Ehlers, L. P., & Seip, D. R. (2015). Witnessing extinction–Cumulative impacts across landscapes and the future loss of an evolutionarily significant unit of woodland caribou in Canada. Biological Conservation, 186, 176-186.
+
+Johnson, C.J., K.L. Parker, D.C. Heard, and D.R. Seip. 2004a. Movements, foraging habits, and habitat use strategies of northern woodland caribou during winter: Implications for forest practices in British Columbia. BC Journal of Ecosystems and Management 5(1):22–35. URL: www.forrex.org/jem/2004/vol5/no1/art4.pdf
+
+Johnson, C. J., Seip, D. R., & Boyce, M. S. (2004b). A quantitative approach to conservation planning: using resource selection functions to map the distribution of mountain caribou at multiple spatial scales. Journal of Applied Ecology, 41(2), 238-251.
+
+Meidinger,D.V. and Pojar, J. 1991. Ecosystems of British Columbia. Ministry of FOrests. Available: https://www.for.gov.bc.ca/hfd/pubs/Docs/Srs/Srs06.htm
+
+Polfus, J. L., Hebblewhite, M., & Heinemeyer, K. (2011). Identifying indirect habitat loss and avoidance of human infrastructure by northern mountain woodland caribou. Biological Conservation, 144(11), 2637-2646.
+
+Rominger, E. M., & Oldemeyer, J. L. (1989). Early-winter habitat of woodland caribou, Selkirk Mountains, British Columbia. The Journal of wildlife management, 238-243.
+
+Terry, E. L., McLellan, B. N., & Watts, G. S. (2000). Winter habitat ecology of mountain caribou in relation to forest management. Journal of Applied Ecology, 37(4), 589-602.
+
+Wilson, S. F., & DeMars, C. A. (2015). A Bayesian approach to characterizing habitat use by, and impacts of anthropogenic features on, woodland caribou (Rangifer tarandus caribou) in northeast British Columbia. Canadian Wildlife Biology and Management, 4, 107-118.
+
+
+
+
+
+
+
+Johnson, C. J., Seip, D. R., & Boyce, M. S. (2004). A quantitative approach to conservation planning: using resource selection functions to map the distribution of mountain caribou at multiple spatial scales. Journal of Applied Ecology, 41(2), 238-251.
 
 
 
