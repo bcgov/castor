@@ -1391,17 +1391,12 @@ rm (fh.1999, bark.beetles.1999, bark.beetles.s.1999, bark.beetles.vs.1999, bark.
 gc ()
 
 
-
-
 #===========================================================
-# VRI - data rasterization scripted within Kyle's postgres
+# VRI 
 #==========================================================
 
 
 
-#===================================================
-# Roads - data exsiting on Kyle's postgres
-#==================================================
 
 
 

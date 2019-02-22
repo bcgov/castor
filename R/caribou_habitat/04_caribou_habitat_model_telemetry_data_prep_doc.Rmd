@@ -5258,11 +5258,61 @@ rsf.data.terrain.water <- dplyr::full_join (rsf.data.terrain.water, class_soil_p
                                                       "soil_parent_material_class")) 
 write.table (rsf.data.terrain.water, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_terrain_water.csv", sep = ",")
 
-# VRI
+## VRI ATTRIBUTES ##
+rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv", 
+                          sep = ",")
+
+raster.basal.area <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_basalarea.tif")
+rsf.locations <- raster::extract (raster.basal.area, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [10] <- "vri_basal_area"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 10)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.basal.area)
+gc ()
+
+raster.bryoid.cover <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_bryoidcoverpct.tif")
+rsf.locations <- raster::extract (raster.bryoid.cover, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [11] <- "vri_bryoid_cover_pct"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 11)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.bryoid.cover)
+gc ()
+
+raster.crown.close <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_crownclosure.tif")
+rsf.locations <- raster::extract (raster.crown.close, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [12] <- "vri_crown_closure"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 12)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.crown.close)
+gc ()
+
+raster.herb.cover <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
+rsf.locations <- raster::extract (raster.herb.cover, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [13] <- "vri_herb_cover_pct"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 13)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.herb.cover)
+gc ()
 
 
 
 
+
+
+
+
+raster.herb.cover <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
+rsf.locations <- raster::extract (raster.herb.cover, rsf.locations, method = 'simple',
+                                  factors = F, df = T, sp = T) 
+names (rsf.locations) [13] <- "vri_herb_cover_pct"
+rsf.data.veg <- dplyr::full_join (rsf.data.veg, rsf.locations@data [c (9, 13)], 
+                                  by = c ("ptID" = "ptID")) 
+rm (raster.herb.cover)
+gc ()
 
 
 # write.table (rsf.data.veg, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv", sep = ",")
