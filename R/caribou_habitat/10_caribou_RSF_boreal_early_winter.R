@@ -3873,6 +3873,9 @@ rsf.data.veg$vri_soil_mositure_name <- recode (rsf.data.veg$vri_soil_mositure_na
                                                "'0' = 'very xeric'")
 
 
+
+
+
 rsf.data.veg$vri_soil_mositure_name <- recode (rsf.data.veg$vri_soil_mositure_name,
                                                "'0' = 'very xeric'")
 
