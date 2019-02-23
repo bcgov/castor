@@ -35,6 +35,7 @@ require (ggplot2)
 require (ggcorrplot)
 require (car)
 require (lme4)
+require (rpostgis)
 
 #===========
 # Datasets
@@ -53,16 +54,15 @@ rsf.data.climate.winter <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habi
 rsf.data.climate.spring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_spring.csv", header = T, sep = "")
 rsf.data.climate.summer <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_summer.csv", header = T, sep = "")
 rsf.data.climate.fall <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_fall.csv", header = T, sep = "")
-
 rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
 
 # load RSF data into postgres
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                     host = "DC052586", # Kyle's computer name
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
-                      port = "5432")
+connKyle <- dbConnect (drv = dbDriver ("PostgreSQL"), 
+                       host = "DC052586", # Kyle's computer name
+                       user = "Tyler",
+                       dbname = "clus",
+                       password = "tyler",
+                       port = "5432")
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
                    user = "postgres",
@@ -102,10 +102,14 @@ dbWriteDataFrame (df = rsf.data.climate.summer,
 dbWriteDataFrame (df = rsf.data.climate.fall, 
                   conn = connKyle, 
                   name = c ("public", "rsf_data_climate_fall"))
+dbWriteDataFrame (df = rsf.data.veg, 
+                  conn = connKyle, 
+                  name = c ("public", "rsf_data_vegetation"))
+dbWriteDataFrame (df = rsf.data.veg, 
+                  conn = conn, 
+                  name = c ("caribou", "rsf_data_vegetation"))
 dbDisconnect (connKyle) 
-
-
-
+dbDisconnect (conn) 
 
 #########################
 ### A BIT OF CLEAN-UP ###
@@ -131,11 +135,12 @@ test <- rsf.data.climate.winter %>% filter (is.na (winter_growing_degree_days))
 rsf.data.climate.winter <- rsf.data.climate.winter %>% 
                                filter (!is.na (winter_growing_degree_days))
 
-
 test <- rsf.data.veg %>% filter (is.na (bec_label))
 rsf.data.veg <- rsf.data.veg %>% 
                   filter (!is.na (bec_label))
 
+
+test <- rsf.data.veg %>% filter (is.na (vri_soil_moisture))
 
 # noticed issue with eastness/northness data, need to make value = 0 if slope = 0
 rsf.data.terrain.water$easting <- ifelse (rsf.data.terrain.water$slope == 0, 0, rsf.data.terrain.water$easting) 
@@ -3858,6 +3863,23 @@ rsf.data.veg.du6.ew$bec_label <- relevel (rsf.data.veg.du6.ew$bec_label,
                                           ref = "BWBSmk")
 rsf.data.veg.du6.ew$wetland_demars <- relevel (rsf.data.veg.du6.ew$wetland_demars,
                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
+
+
+
+# RECLASS SOME OF THESE
+# soil moisture
+rsf.data.veg$vri_soil_mositure_name <- as.factor (rsf.data.veg$vri_soil_moisture)
+rsf.data.veg$vri_soil_mositure_name <- recode (rsf.data.veg$vri_soil_mositure_name,
+                                               "'0' = 'very xeric'")
+
+
+rsf.data.veg$vri_soil_mositure_name <- recode (rsf.data.veg$vri_soil_mositure_name,
+                                               "'0' = 'very xeric'")
+
+# soil nutirent
+# top 3 type
+# primary spp. 
+# bclcs class
 
 
 ### OUTLIERS ###
