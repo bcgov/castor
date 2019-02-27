@@ -86,7 +86,7 @@ blockingCLUS.Init <- function(sim) {
  
   #clip the boundary with the provincial similarity raste
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-  geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
+  geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
   sim$ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
   # going to leave the similarity raster unattached to clusdb, rather use it to sample zones.
  
@@ -102,7 +102,6 @@ blockingCLUS.Init <- function(sim) {
   ras_var[]<-runif(as.integer(length(ras_var)), 0,0.001)
   sim$ras.similar<-ras_var + sim$ras.similar
   
-  writeRaster(sim$ras.similar, "ras_similar.tif", overwrite = TRUE)
   rm(thlb)
   gc()
   
@@ -163,23 +162,23 @@ blockingCLUS.preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
   zones<-unname(unlist(dbGetQuery(sim$clusdb, 'Select distinct (zoneid) from pixels where zoneid Is NOT NULL AND thlb > 0  AND zoneid > 0 order by zoneid')))#get the zone names - strict use of integers for these
-  print(zones)
+  #print(zones)
  
   #get the inputs for the forest_hierarchy java object as a list  
   resultset<-lapply(zones, function (x){ 
     vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x), ' AND thlb > 0')))
     g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
-    print(E(g.mst_sub))
+    #print(E(g.mst_sub))
     paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
     paths.matrix[, V1 := as.integer(V1)]
     paths.matrix[, V2 := as.integer(V2)]
-    print(head(get.edgelist(g.mst_sub)))
+    #print(head(get.edgelist(g.mst_sub)))
     degreeList<-as.matrix(degree(g.mst_sub)) 
     list(degreeList, paths.matrix) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
   })
   
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
-  if(length(zones) > 1 && object.size(g) > 100000000){ #0.1 GB
+  if(length(zones) > 1 && object.size(g) > 100000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
     print(paste0("make cluster on:", noCores, " cores"))
     cl<-makeCluster(noCores, type = "SOCK")
@@ -216,19 +215,16 @@ blockingCLUS.preBlock <- function(sim) {
   dbCommit(sim$clusdb)
   
   #store the block pixel raster
-  #sim$harvestUnits<-raster(extent(sim$ras.similar),crs= crs(sim$ras.similar), res =100, vals = c(dbGetQuery(sim$clusdb, "Select blockid from pixels")))
   sim$harvestUnits<-sim$ras.similar
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
   
   #set the adjacency table
-  
   setkey(blockids, V2)
   edgesAdj<-merge(edgesAdj, blockids,by.x="to", by.y="V2" )
   edgesAdj<-merge(edgesAdj, blockids,by.x="from", by.y="V2" )
   edgesAdj<-data.table(edgesAdj[,3:4])
   edgesAdj<-edgesAdj[V1.x  != V1.y]
-  edgesAdj<-edgesAdj[V1.x  > 0]
-  edgesAdj<-edgesAdj[V1.y  > 0]
+  edgesAdj<-edgesAdj[V1.x  > 0 & V1.y  > 0]
   edgesAdj<-unique(edgesAdj)
   setnames(edgesAdj, c("blockid", "adjblockid")) #reformat
   
@@ -238,9 +234,14 @@ blockingCLUS.preBlock <- function(sim) {
    dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  #print(dbGetQuery(sim$clusdb, "SELECT adjblockid from adjacentBlocks where blockid = 1"))
- 
-  rm(result, weight,  g, edges.weight, edges, ras.matrix)
+  print("set the blocks table")
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, zoneid, age, area, state, regendelay) SELECT blockid, zoneid, ROUND(AVG(age), 0) as age, count(*) as area, 0 , 0 from pixels where blockid > 0 group by blockid")
+    dbClearResult(rs)
+  dbCommit(sim$clusdb)
+
+  rm(zones, result, weight, g, edges.weight, edges, edges.w1, edges.w2, 
+     ras.matrix, paths.matrix, edgesAdj, blockids)
   gc()
   return(invisible(sim))
 }
@@ -263,7 +264,7 @@ blockingCLUS.spreadBlock<- function(sim) {
         simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.similar, start = landings[,1], directions =4, 
                                          maxSize= landings[,2], allowOverlap=FALSE)
       }else{
-          simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings[,1], directions =4, 
+        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings[,1], directions =4, 
                      maxSize= landings[,2], allowOverlap=FALSE)
       }
       mV<-maxValue(simBlocks) 
@@ -304,8 +305,8 @@ getBlocksIDs<- function(x){
   from<-.jarray(as.matrix(x[][[2]][,2]))
   weight<-.jarray(as.matrix(x[][[2]][,3]))
   
-  print(paste0("to: ", getJavaClassName(to), " from: ", getJavaClassName(from), " weight: ", getJavaClassName(weight), " d: ", getJavaClassName(d)))
-  print(head(as.matrix(x[][[2]][,1])))
+  #print(paste0("to: ", getJavaClassName(to), " from: ", getJavaClassName(from), " weight: ", getJavaClassName(weight), " d: ", getJavaClassName(d)))
+  #print(head(as.matrix(x[][[2]][,1])))
   fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
   fhClass$blockEdges() # creates the blocks
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
