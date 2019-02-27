@@ -53,7 +53,6 @@ rsf.data.climate.winter <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habi
 rsf.data.climate.spring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_spring.csv", header = T, sep = "")
 rsf.data.climate.summer <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_summer.csv", header = T, sep = "")
 rsf.data.climate.fall <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_fall.csv", header = T, sep = "")
-
 rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
 
 # load RSF data into postgres
@@ -136,6 +135,249 @@ test <- rsf.data.veg %>% filter (is.na (bec_label))
 rsf.data.veg <- rsf.data.veg %>% 
                   filter (!is.na (bec_label))
 
+# RECLASS SOME OF THESE
+# soil moisture
+rsf.data.veg$vri_soil_moisture_name <- rsf.data.veg$vri_soil_moisture
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'0' = 'very xeric'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'1' = 'xeric'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'2' = 'subxeric'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'3' = 'submesic'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'4' = 'mesic'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'5' = 'subhygric'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'6' = 'hygric'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'7' = 'subhydric'")
+rsf.data.veg$vri_soil_moisture_name <- recode (rsf.data.veg$vri_soil_moisture_name,
+                                               "'8' = 'hydric'")
+rsf.data.veg$vri_soil_moisture_name <- as.factor (rsf.data.veg$vri_soil_moisture_name)
+rsf.data.veg$vri_soil_moisture_name  <- relevel (rsf.data.veg$vri_soil_moisture_name,
+                                                 ref = "mesic")
+
+# soil nutrient
+rsf.data.veg$vri_soil_nutrient_name <- rsf.data.veg$vri_soil_nutrient
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'1' = 'very poor'")
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'2' = 'poor'")
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'3' = 'medium'")
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'4' = 'rich'")
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'5' = 'very rich'")
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'6' = 'ultra rich'")
+rsf.data.veg$vri_soil_nutrient_name <- recode (rsf.data.veg$vri_soil_nutrient_name,
+                                               "'0' = 'NA'")
+rsf.data.veg$vri_soil_nutrient_name <- as.factor (rsf.data.veg$vri_soil_nutrient_name)
+rsf.data.veg$vri_soil_nutrient_name  <- relevel (rsf.data.veg$vri_soil_nutrient_name,
+                                                 ref = "medium")
+
+# BCLCS class
+rsf.data.veg$vri_bclcs_class <- rsf.data.veg$vri_bclcs_class_code
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'N' = 'Non-Vegetated'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'N-L' = 'Non-Vegetated'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'N-W' = 'Water'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BL-CL' = 'Alpine-Lichen'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BL-OP' = 'Alpine-Lichen'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BM-CL' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BM-OP' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BY-CL' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BY-OP' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-BY-OP' = 'Alpine-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HE-DE' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HE-OP' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HE-SP' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HF-DE' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HF-OP' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HF-SP' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HG-DE' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HG-OP' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-HG-SP' = 'Alpine-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-SL-DE' = 'Alpine-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-SL-OP' = 'Alpine-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-SL-SP' = 'Alpine-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-ST-DE' = 'Alpine-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-ST-OP' = 'Alpine-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-A-ST-SP' = 'Alpine-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-SL-SP' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U' = 'Upland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-BL-CL' = 'Upland-Lichen'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-BL-OP' = 'Upland-Lichen'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-BM-CL' = 'Upland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-BM-OP' = 'Upland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-BY-CL' = 'Upland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-BY-OP' = 'Upland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HE-DE' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HE-OP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HE-SP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HF-DE' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HF-OP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HE-SP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HG-DE' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HF-SP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HG-OP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-HG-SP' = 'Upland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-SL-DE' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-SL-OP' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-SL-SP' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-ST-DE' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-ST-SP' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-ST-OP' = 'Upland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-U-TM-SP' = 'Upland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-BL-CL' = 'Wetland-Lichen'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-BM-CL' = 'Wetland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-BM-OP' = 'Wetland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-BY-CL' = 'Wetland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-BY-OP' = 'Wetland-NonTreed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HE-DE' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HE-OP' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HE-SP' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HF-DE' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HF-OP' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HF-SP' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HG-DE' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HG-OP' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-HG-SP' = 'Wetland-Herb'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-SL-DE' = 'Wetland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-SL-OP' = 'Wetland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-SL-SP' = 'Wetland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-ST-DE' = 'Wetland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-ST-OP' = 'Wetland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-N-W-ST-SP' = 'Wetland-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T' = 'Unknown'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'U' = 'Unknown'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'' = 'Unknown'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-SL-SP' = 'Upland-Treed-Shrub'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TB-DE' = 'Upland-Treed-Deciduous'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TB-OP' = 'Upland-Treed-Deciduous'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TB-SP' = 'Upland-Treed-Deciduous'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TC-DE' = 'Upland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TC-OP' = 'Upland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TC-SP' = 'Upland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TM-DE' = 'Upland-Treed-Mixed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TM-OP' = 'Upland-Treed-Mixed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-U-TM-SP' = 'Upland-Treed-Mixed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TB-DE' = 'Wetland-Treed-Deciduous'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TB-OP' = 'Wetland-Treed-Deciduous'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TB-SP' = 'Wetland-Treed-Deciduous'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TC-DE' = 'Wetland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TC-SP' = 'Wetland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TC-OP' = 'Wetland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TC-SP' = 'Wetland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TM-DE' = 'Wetland-Treed-Mixed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TM-OP' = 'Wetland-Treed-Mixed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-T-W-TM-SP' = 'Wetland-Treed-Mixed'")
+rsf.data.veg$vri_bclcs_class <- recode (rsf.data.veg$vri_bclcs_class,
+                                        "'V-U-TC-OP' = 'Upland-Treed-Conifer'")
+rsf.data.veg$vri_bclcs_class <- as.factor (rsf.data.veg$vri_bclcs_class)
+rsf.data.veg$vri_bclcs_class [is.na (rsf.data.veg$vri_bclcs_class)] <- "Unknown"
+rsf.data.veg$vri_bclcs_class  <- relevel (rsf.data.veg$vri_bclcs_class,
+                                          ref = "Upland-Treed-Conifer")
 
 # noticed issue with eastness/northness data, need to make value = 0 if slope = 0
 rsf.data.terrain.water$easting <- ifelse (rsf.data.terrain.water$slope == 0, 0, rsf.data.terrain.water$easting) 

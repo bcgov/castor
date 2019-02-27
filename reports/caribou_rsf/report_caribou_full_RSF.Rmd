@@ -543,13 +543,64 @@ timber volume:
 ###### Vegetation and Forest Characteristics
 
 - boxplots
+  - no significant outliers
+
+![](plots/boxplot_veg_du6_ew_basal_area.png)
+![](plots/boxplot_veg_du6_ew_bryoid_perc.png)
+![](plots/boxplot_veg_du6_ew_crown_close.png)
+![](plots/boxplot_veg_du6_ew_herb_cover.png)
+![](plots/boxplot_veg_du6_ew_live_volume.png)
+![](plots/boxplot_veg_du6_ew_stand_age.png)
+![](plots/boxplot_veg_du6_ew_stand_height.png)
+![](plots/boxplot_veg_du6_ew_shrub_closure.png)
+![](plots/boxplot_veg_du6_ew_shrub_height.png)
+![](plots/boxplot_veg_du6_ew_site_index.png)
+
 
 
 - histograms
-
+  - grouped the subxeric to very xeric soil moisture types together because rare
+  - grouped rich adn very rich soil nutrient types together because rare
+  - grouped wetland-treed-deciduous, wetland-treed-mixed, wetland-nontreed adn wetland-herb into     
+    wetland-other, because rare
+  - grouped upland-herb, upland-nontreed, upland-treed-deciduous adn upland-treed-mixed into     
+    upland-other, because rare
+  - grouped unknown, non-vegetated and water together as other, because rare
+  
 ![](plots/hist_veg_du6_ew_bec.png)
 
 ![](plots/hist_veg_du6_ew_wetland.png)
+
+![](plots/hist_veg_du6_ew_soil_moisture.png)
+
+![](plots/hist_veg_du6_ew_soil_nutrient.png)
+
+![](plots/hist_veg_du6_ew_bclcs.png)
+
+- correlations
+  - vri projected height and live volume were highly correlated ($\rho$ = 0.89)
+  - VRI basal area correlated with crown closure ($\rho$ = 0.67), live volume ($\rho$ = 0.67) and 
+    height ($\rho$ = 0.69)
+  - kept basal area, becuase seemed to represent many features (height, volume and crown closure),       bryoid cover, herb cover, stand age, and shrub crown closure
+  
+- used wetland cover classes instead of VRI cover classes for DU6 because of precedent (Demars)
+
+![](plots/corr_veg_du6_ew.png)
+
+-  vif values were less than 1.83
+
+
+
+
+
+
+- the top model included preciptation as snow and had an AIC*~w~* = 0.379;  the second ranked model included average winter temperature (AIC*~w~* = 0.349) and the third ranked model included precipitation as snow and average winter temperature (AIC*~w~* = 0.271); none of the models with functional responses converged
+
+- coefficients of the top models were similar, and therefore all covraites were retained for further consideration
+
+
+
+
 
 
 ###### Combination Models
