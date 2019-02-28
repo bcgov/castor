@@ -114,7 +114,7 @@ car::vif (glm.terrain.du6.ew)
 
 - fit models with random efefcts (inercept for each unique indivudal and year, adn fixed efefcts for continouts and categoriacla covaraites, random efefcts account for indivdual anaimal variability and a random sampel of the popautlion; fixed efefcts are the popautliomn efefct, estiametd with random invidail varaition in sample accounted for in the model
 
-- first fit terrain models, fit single covaraites, then combined, identified top model to combine with others
+- first fit terrain, vegetation, climate, huamn disturbnce, natural disturbnce specific-models, most fit all comibnatiosn fo models, for vegetation, many combinations, used minimum five covaiates  
 
 
 #### key poitns from workshops with reagional biologists
@@ -588,6 +588,15 @@ timber volume:
 ![](plots/corr_veg_du6_ew.png)
 
 -  vif values were less than 1.83
+
+
+
+
+
+##############################################
+
+
+
 
 
 
