@@ -110,8 +110,8 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer PRIMARY KEY, zoneid integer, state integer, regendelay integer, age integer, area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, volume numeric, crownclosure numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid integer PRIMARY KEY, constraintid integer, oldgrowth numeric, earlyseral numeric, crownclosure numeric, roaddensity numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS constraints ( constraintid integer PRIMARY KEY, fromage integer, toage integer, minvalue numeric, maxvalue numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid integer PRIMARY KEY, compartid integer, oldgrowth numeric, earlyseral numeric, crownclosure numeric, roaddensity numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS constraints ( id integer PRIMARY KEY, zoneid integer, constraintsid integer, fromage integer, toage integer, minvalue numeric, maxvalue numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zoneid integer, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, roadyear integer)")
   return(invisible(sim))
 }
