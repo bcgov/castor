@@ -8,6 +8,7 @@ library(raster)
 library(spex) # fast conversion of raster to polygons
 # For parallel processing tiles to rasters
 library(gdalUtils)
+library(data.table)
 
 getSpatialQuery<-function(sql){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='postgres' ,password='postgres')
@@ -20,8 +21,10 @@ layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_da
 #Make an empty provincial raster aligned with hectares BC
 ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(layer)$proj4string, resolution = c(100, 100), vals = 0
+  crs = st_crs(lyr)$proj4string, resolution = c(100, 100), vals = 0
 )
+
+
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
 writeRaster(layer.ras, file="thlb_rco_Lyr.tif", format="GTiff", overwrite=TRUE)
 
