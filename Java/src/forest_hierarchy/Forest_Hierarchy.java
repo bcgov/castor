@@ -366,4 +366,15 @@ public class Forest_Hierarchy {
 	public Integer[] getBlocks(){
 		return this.blockPixels;
 	}
+	
+	public void clearInfo(){
+		this.edgeList.clear();
+		this.blockList.clear(); 
+		//this.degreeList.clear();
+		this.degreeList = new ArrayList<Integer>();
+		this.blockPixels = null;
+		this.hist = null;
+		this.degree = null;
+		this.idegree = null;
+	}
 }

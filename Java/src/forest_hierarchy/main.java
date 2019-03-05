@@ -14,10 +14,14 @@ public class main {
 	        	for(int i = 0; i < f.getBlocks().length; i++){
 	        		System.out.println(f.getBlocks()[i]);
 	        	}
+	        	f.clearInfo();
 	        }else{
 	        	Forest_Hierarchy f = new Forest_Hierarchy();
 	        	f.createData();
+	        	f.clearInfo();
 	        }
+		  
+		  
 	}
 
 }
