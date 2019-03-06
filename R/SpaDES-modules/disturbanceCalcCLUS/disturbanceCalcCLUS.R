@@ -75,6 +75,14 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   return(invisible(sim))
 }
+disturbanceCalcCLUS.patch <- function(sim) {
+  #calculates the patch size distributions
+  #For each landscape unit that has a patch size constraint
+  # Make a graph 
+  # igraph::induce_subgraph based on a SELECT pixelids from pixels where age < 40
+  # determine the number of distinct components using igraph::component_distribution
+  return(invisible(sim))
+}
 
 disturbanceCalcCLUS.roads <- function(sim) {
   if(!is.null(sim$roads)){
