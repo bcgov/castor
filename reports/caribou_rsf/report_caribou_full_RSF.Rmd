@@ -114,7 +114,7 @@ car::vif (glm.terrain.du6.ew)
 
 - fit models with random efefcts (inercept for each unique indivudal and year, adn fixed efefcts for continouts and categoriacla covaraites, random efefcts account for indivdual anaimal variability and a random sampel of the popautlion; fixed efefcts are the popautliomn efefct, estiametd with random invidail varaition in sample accounted for in the model
 
-- first fit terrain, vegetation, climate, huamn disturbnce, natural disturbnce specific-models, most fit all comibnatiosn fo models, for vegetation, many combinations, used minimum five covaiates  
+- first fit terrain, vegetation, climate, huamn disturbnce, natural disturbnce specific-models, most fit all comibnatiosn fo models, for vegetation, used groups of ladncover and BEC, food and forest stand characteristics together and tested models with combinations of these three covariate sets
 
 
 #### key poitns from workshops with reagional biologists
@@ -581,31 +581,25 @@ timber volume:
   - vri projected height and live volume were highly correlated ($\rho$ = 0.89)
   - VRI basal area correlated with crown closure ($\rho$ = 0.67), live volume ($\rho$ = 0.67) and 
     height ($\rho$ = 0.69)
-  - kept basal area, becuase seemed to represent many features (height, volume and crown closure),       bryoid cover, herb cover, stand age, and shrub crown closure
-  
+  - kept height, crown closure, bryoid cover, herb cover, stand age, and shrub crown   
+    closure
+  - fit candidate models with wetland and BEC classes only (base model), and added food (shurb, 
+    bryoids adn herbs), and forest stand cahracteristics (age, height + crown closure) for 
+    comaprison
+
 - used wetland cover classes instead of VRI cover classes for DU6 because of precedent (Demars)
 
 ![](plots/corr_veg_du6_ew.png)
 
--  vif values were less than 1.83
-
-
-
-
-
-##############################################
-
-
+-  vif values were less than 2.90
+ 
+- the top model included all covariates (wetladn, BEC, shrub closure, bryoid coveer, herb cover, stand age, stand height adn stand canopy closure) and had an AIC*~w~* = 1.00
 
 
 
 
 
 
-
-- the top model included preciptation as snow and had an AIC*~w~* = 0.379;  the second ranked model included average winter temperature (AIC*~w~* = 0.349) and the third ranked model included precipitation as snow and average winter temperature (AIC*~w~* = 0.271); none of the models with functional responses converged
-
-- coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
 
 
@@ -961,11 +955,20 @@ correlations
 - the top model included summer preciptation and average summer temperature (AIC*~w~* = 0.884); the second ranked model included summer preciptation (AIC*~w~* = 0.116)
 - coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
+###### Combination Model
 
+- correlations
+  - annual and winter ppt as snow higly correalted ($\rho$ = 0.96); kept winter PAS
+  - mean annual temp adn witner temp close to being correalted ($\rho$ = 0.69); removed annual temp
 
+![](plots/corr_all_du6_ew.png)
 
+- vif value for winter temperates was 10.86; removed form analysis, all VIFs <4.26
 
-
+- fit combination models
+  - remove seismic line and soil parent material form all models because models sometimes failed to 
+    converge
+  - dropped distance to mine; covariate said selection for mines, which is unlikely
 
 
 
