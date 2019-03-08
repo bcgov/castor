@@ -442,15 +442,13 @@ rsf.data.combo <- dplyr::full_join (rsf.data.combo,
 rm (rsf.data.climate.winter)
 gc ()
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
-                                    rsf.data.veg [, c (9, 10, 17)],
+                                    rsf.data.veg [, c (9:10, 18:24, 44)],
                                     by = "ptID")
 rm (rsf.data.veg)
 gc ()
-
 rsf.data.combo.du6.ew <- rsf.data.combo %>%
                           dplyr::filter (du == "du6") %>%
                           dplyr::filter (season == "EarlyWinter")
-
 # group cutblock ages together, as per forest cutblock model results
 rsf.data.combo.du6.ew <- dplyr::mutate (rsf.data.combo.du6.ew, distance_to_cut_10yoorOver = pmin (distance_to_cut_10to29yo, distance_to_cut_30orOveryo))
 rsf.data.combo.du6.ew <- rsf.data.combo.du6.ew %>% 
@@ -460,8 +458,7 @@ rsf.data.combo.du6.ew$bec_label <- relevel (rsf.data.combo.du6.ew$bec_label,
 rsf.data.combo.du6.ew$wetland_demars <- relevel (rsf.data.combo.du6.ew$wetland_demars,
                                                  ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
 write.csv (rsf.data.combo.du6.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv")
-
-
+# rsf.data.combo.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv", sep = ",")
 
 #######################
 ### FITTING MODELS ###
@@ -4271,7 +4268,8 @@ ggcorrplot (corr.veg.du6.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size 
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_veg_du6_ew.png")
 
 ### VIF ###
-glm.veg.du6.ew <- glm (pttype ~ bec_label + wetland_demars + vri_basal_area + vri_bryoid_cover_pct +
+glm.veg.du6.ew <- glm (pttype ~ bec_label + wetland_demars + vri_proj_height + vri_crown_closure + 
+                                vri_bryoid_cover_pct + 
                                 vri_herb_cover_pct + vri_proj_age + vri_shrub_crown_close, 
                        data = rsf.data.veg.du6.ew,
                        family = binomial (link = 'logit'))
@@ -4283,619 +4281,155 @@ colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariat
 # table.aic <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_veg.csv", header = T, sep = ",")
 
 # standardize covariates  (helps with model convergence)
-rsf.data.veg.du6.ew$std.vri_basal_area <- (rsf.data.veg.du6.ew$vri_basal_area - mean (rsf.data.veg.du6.ew$vri_basal_area)) / sd (rsf.data.veg.du6.ew$vri_basal_area)
 rsf.data.veg.du6.ew$std.vri_bryoid_cover_pct <- (rsf.data.veg.du6.ew$vri_bryoid_cover_pct - mean (rsf.data.veg.du6.ew$vri_bryoid_cover_pct)) / sd (rsf.data.veg.du6.ew$vri_bryoid_cover_pct)
 rsf.data.veg.du6.ew$std.vri_herb_cover_pct <- (rsf.data.veg.du6.ew$vri_herb_cover_pct - mean (rsf.data.veg.du6.ew$vri_herb_cover_pct)) / sd (rsf.data.veg.du6.ew$vri_herb_cover_pct)
 rsf.data.veg.du6.ew$std.vri_proj_age <- (rsf.data.veg.du6.ew$vri_proj_age - mean (rsf.data.veg.du6.ew$vri_proj_age)) / sd (rsf.data.veg.du6.ew$vri_proj_age)
 rsf.data.veg.du6.ew$std.vri_shrub_crown_close <- (rsf.data.veg.du6.ew$vri_shrub_crown_close - mean (rsf.data.veg.du6.ew$vri_shrub_crown_close)) / sd (rsf.data.veg.du6.ew$vri_shrub_crown_close)
+rsf.data.veg.du6.ew$std.vri_proj_height <- (rsf.data.veg.du6.ew$vri_proj_height - mean (rsf.data.veg.du6.ew$vri_proj_height)) / sd (rsf.data.veg.du6.ew$vri_proj_height)
+rsf.data.veg.du6.ew$std.vri_crown_closure <- (rsf.data.veg.du6.ew$vri_crown_closure - mean (rsf.data.veg.du6.ew$vri_crown_closure)) / sd (rsf.data.veg.du6.ew$vri_crown_closure)
+# rsf.data.veg.du6.ew$std.vri_basal_area <- (rsf.data.veg.du6.ew$vri_basal_area - mean (rsf.data.veg.du6.ew$vri_basal_area)) / sd (rsf.data.veg.du6.ew$vri_basal_area)
 
-## BEC ##
-model.lme4.du6.ew.veg.bec <- glmer (pttype ~ bec_label + (1 | uniqueID), 
-                                    data = rsf.data.veg.du6.ew, 
-                                    family = binomial (link = "logit"),
-                                    verbose = T) 
-# AIC
-table.aic [1, 1] <- "DU6"
-table.aic [1, 2] <- "Early Winter"
-table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [1, 4] <- "BEC"
-table.aic [1, 5] <- "(1 | UniqueID)"
-table.aic [1, 6] <-  AIC (model.lme4.du6.ew.veg.bec)
-
-## WETLAND CLASS ##
-model.lme4.du6.ew.veg.wetland <- glmer (pttype ~ wetland_demars + (1 | uniqueID), 
-                                        data = rsf.data.veg.du6.ew, 
-                                        family = binomial (link = "logit"),
-                                        verbose = T) 
-# AIC
-table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Early Winter"
-table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [2, 4] <- "Wetland"
-table.aic [2, 5] <- "(1 | UniqueID)"
-table.aic [2, 6] <-  AIC (model.lme4.du6.ew.veg.wetland)
-
-## BASAL AREA ##
-model.lme4.du6.ew.veg.basal <- glmer (pttype ~ std.vri_basal_area + (1 | uniqueID), 
-                                        data = rsf.data.veg.du6.ew, 
-                                        family = binomial (link = "logit"),
-                                        verbose = T) 
-# AIC
-table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Early Winter"
-table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [3, 4] <- "BasalArea"
-table.aic [3, 5] <- "(1 | UniqueID)"
-table.aic [3, 6] <-  AIC (model.lme4.du6.ew.veg.basal)
-
-## BRYOID COVER ##
-model.lme4.du6.ew.veg.bryoid <- glmer (pttype ~ std.vri_bryoid_cover_pct  + (1 | uniqueID), 
-                                       data = rsf.data.veg.du6.ew, 
-                                       family = binomial (link = "logit"),
-                                       verbose = T) 
-# AIC
-table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Early Winter"
-table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [4, 4] <- "BryoidCover"
-table.aic [4, 5] <- "(1 | UniqueID)"
-table.aic [4, 6] <-  AIC (model.lme4.du6.ew.veg.bryoid)
-
-## HERB COVER ##
-model.lme4.du6.ew.veg.herb <- glmer (pttype ~ std.vri_herb_cover_pct  + (1 | uniqueID), 
-                                     data = rsf.data.veg.du6.ew, 
-                                     family = binomial (link = "logit"),
-                                     verbose = T) 
-# AIC
-table.aic [5, 1] <- "DU6"
-table.aic [5, 2] <- "Early Winter"
-table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [5, 4] <- "HerbCover"
-table.aic [5, 5] <- "(1 | UniqueID)"
-table.aic [5, 6] <-  AIC (model.lme4.du6.ew.veg.herb)
-
-## STAND AGE ##
-model.lme4.du6.ew.veg.age <- glmer (pttype ~ std.vri_proj_age  + (1 | uniqueID), 
-                                     data = rsf.data.veg.du6.ew, 
-                                     family = binomial (link = "logit"),
-                                     verbose = T) 
-# AIC
-table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Early Winter"
-table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [6, 4] <- "Age"
-table.aic [6, 5] <- "(1 | UniqueID)"
-table.aic [6, 6] <-  AIC (model.lme4.du6.ew.veg.age)
-
-## SHRUB COVER ##
-model.lme4.du6.ew.veg.shrub <- glmer (pttype ~ std.vri_shrub_crown_close  + (1 | uniqueID), 
-                                      data = rsf.data.veg.du6.ew, 
-                                      family = binomial (link = "logit"),
-                                      verbose = T) 
-# AIC
-table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Early Winter"
-table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [7, 4] <- "ShrubClosure"
-table.aic [7, 5] <- "(1 | UniqueID)"
-table.aic [7, 6] <-  AIC (model.lme4.du6.ew.veg.shrub)
-
-## BEC and WETLAND CLASS ##
+### CANDIDATE MODELS ###
+## WETLAND, BEC ##
 model.lme4.du6.ew.veg.wetland.bec <- glmer (pttype ~ wetland_demars + bec_label + 
-                                                     (1 | uniqueID), 
-                                            data = rsf.data.veg.du6.ew, 
-                                            family = binomial (link = "logit"),
-                                            verbose = T) 
+                                                                       (1 | uniqueID), 
+                                                              data = rsf.data.veg.du6.ew, 
+                                                              family = binomial (link = "logit"),
+                                                              verbose = T) 
 ss <- getME (model.lme4.du6.ew.veg.wetland.bec, c ("theta","fixef"))
 model.lme4.du6.ew.veg.wetland.bec <- update (model.lme4.du6.ew.veg.wetland.bec, start = ss) # failed to converge, restart with parameter estimates
 
 # AIC
-table.aic [8, 1] <- "DU6"
-table.aic [8, 2] <- "Early Winter"
-table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [8, 4] <- "Wetland, BEC"
-table.aic [8, 5] <- "(1 | UniqueID)"
-table.aic [8, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec)
+table.aic [1, 1] <- "DU6"
+table.aic [1, 2] <- "Early Winter"
+table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [1, 4] <- "Wetland, BEC"
+table.aic [1, 5] <- "(1 | UniqueID)"
+table.aic [1, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec)
 
-## BEC and BASAL AREA ##
-model.lme4.du6.ew.veg.bec.basal <- glmer (pttype ~ bec_label + std.vri_basal_area +
-                                                     (1 | uniqueID), 
+
+## FOOD ##
+model.lme4.du6.ew.veg.food <- glmer (pttype ~ std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                              std.vri_herb_cover_pct + (1 | uniqueID), 
                                             data = rsf.data.veg.du6.ew, 
                                             family = binomial (link = "logit"),
                                             verbose = T) 
 # AIC
-table.aic [9, 1] <- "DU6"
-table.aic [9, 2] <- "Early Winter"
-table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [9, 4] <- "BEC, BasalArea"
-table.aic [9, 5] <- "(1 | UniqueID)"
-table.aic [9, 6] <-  AIC (model.lme4.du6.ew.veg.bec.basal)
+table.aic [2, 1] <- "DU6"
+table.aic [2, 2] <- "Early Winter"
+table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [2, 4] <- "ShrubClosure, BryoidCover, HerbCover"
+table.aic [2, 5] <- "(1 | UniqueID)"
+table.aic [2, 6] <-  AIC (model.lme4.du6.ew.veg.food)
 
-## BEC and BRYOID ##
-model.lme4.du6.ew.veg.bec.bryoid <- glmer (pttype ~ bec_label + std.vri_bryoid_cover_pct +
-                                                    (1 | uniqueID), 
-                                           data = rsf.data.veg.du6.ew, 
-                                           family = binomial (link = "logit"),
-                                           verbose = T) 
+## FOREST STAND ##
+model.lme4.du6.ew.veg.forest <- glmer (pttype ~ std.vri_proj_age + std.vri_proj_height +
+                                                std.vri_crown_closure + (1 | uniqueID), 
+                                     data = rsf.data.veg.du6.ew, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
 # AIC
-table.aic [10, 1] <- "DU6"
-table.aic [10, 2] <- "Early Winter"
-table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [10, 4] <- "BEC, BryoidCover"
-table.aic [10, 5] <- "(1 | UniqueID)"
-table.aic [10, 6] <-  AIC (model.lme4.du6.ew.veg.bec.bryoid)
+table.aic [3, 1] <- "DU6"
+table.aic [3, 2] <- "Early Winter"
+table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [3, 4] <- "TreeAge, TreeHeight, TreeClosure"
+table.aic [3, 5] <- "(1 | UniqueID)"
+table.aic [3, 6] <-  AIC (model.lme4.du6.ew.veg.forest)
 
-## BEC and HERB ##
-model.lme4.du6.ew.veg.bec.herb <- glmer (pttype ~ bec_label + std.vri_herb_cover_pct  +
-                                             (1 | uniqueID), 
-                                           data = rsf.data.veg.du6.ew, 
-                                           family = binomial (link = "logit"),
-                                           verbose = T) 
-# AIC
-table.aic [11, 1] <- "DU6"
-table.aic [11, 2] <- "Early Winter"
-table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [11, 4] <- "BEC, HerbCover"
-table.aic [11, 5] <- "(1 | UniqueID)"
-table.aic [11, 6] <-  AIC (model.lme4.du6.ew.veg.bec.herb)
-
-## BEC and AGE ##
-model.lme4.du6.ew.veg.bec.age <- glmer (pttype ~ bec_label + std.vri_proj_age +
-                                           (1 | uniqueID), 
-                                         data = rsf.data.veg.du6.ew, 
-                                         family = binomial (link = "logit"),
-                                         verbose = T) 
-# AIC
-table.aic [12, 1] <- "DU6"
-table.aic [12, 2] <- "Early Winter"
-table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [12, 4] <- "BEC, Age"
-table.aic [12, 5] <- "(1 | UniqueID)"
-table.aic [12, 6] <-  AIC (model.lme4.du6.ew.veg.bec.age)
-
-## BEC and SHRUB ##
-model.lme4.du6.ew.veg.bec.shrub <- glmer (pttype ~ bec_label + std.vri_shrub_crown_close +
-                                          (1 | uniqueID), 
-                                        data = rsf.data.veg.du6.ew, 
-                                        family = binomial (link = "logit"),
-                                        verbose = T) 
-# AIC
-table.aic [12, 1] <- "DU6"
-table.aic [12, 2] <- "Early Winter"
-table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [12, 4] <- "BEC, ShrubClosure"
-table.aic [12, 5] <- "(1 | UniqueID)"
-table.aic [12, 6] <-  AIC (model.lme4.du6.ew.veg.bec.shrub)
-
-## WETLAND and BASAL AREA ##
-model.lme4.du6.ew.veg.wetland.basal <- glmer (pttype ~ wetland_demars + std.vri_basal_area +
-                                                       (1 | uniqueID), 
-                                              data = rsf.data.veg.du6.ew, 
-                                              family = binomial (link = "logit"),
-                                              verbose = T) 
-# AIC
-table.aic [13, 1] <- "DU6"
-table.aic [13, 2] <- "Early Winter"
-table.aic [13, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [13, 4] <- "Wetland, BasalArea"
-table.aic [13, 5] <- "(1 | UniqueID)"
-table.aic [13, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.basal)
-
-## WETLAND and BRYOID ##
-model.lme4.du6.ew.veg.wetland.bryoid <- glmer (pttype ~ wetland_demars + std.vri_bryoid_cover_pct +
-                                                (1 | uniqueID), 
-                                              data = rsf.data.veg.du6.ew, 
-                                              family = binomial (link = "logit"),
-                                              verbose = T) 
-# AIC
-table.aic [14, 1] <- "DU6"
-table.aic [14, 2] <- "Early Winter"
-table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [14, 4] <- "Wetland, BryoidCover"
-table.aic [14, 5] <- "(1 | UniqueID)"
-table.aic [14, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bryoid)
-
-## WETLAND and HERB ##
-model.lme4.du6.ew.veg.wetland.herb <- glmer (pttype ~ wetland_demars + std.vri_herb_cover_pct +
-                                                 (1 | uniqueID), 
-                                               data = rsf.data.veg.du6.ew, 
-                                               family = binomial (link = "logit"),
-                                               verbose = T) 
-ss <- getME (model.lme4.du6.ew.veg.wetland.herb, c ("theta","fixef"))
-model.lme4.du6.ew.veg.wetland.herb <- update (model.lme4.du6.ew.veg.wetland.herb, start = ss) # failed to converge, restart with parameter estimates
-
-# AIC
-table.aic [15, 1] <- "DU6"
-table.aic [15, 2] <- "Early Winter"
-table.aic [15, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [15, 4] <- "Wetland, HerbCover"
-table.aic [15, 5] <- "(1 | UniqueID)"
-table.aic [15, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.herb)
-
-## WETLAND and AGE ##
-model.lme4.du6.ew.veg.wetland.age <- glmer (pttype ~ wetland_demars + std.vri_proj_age +
-                                                 (1 | uniqueID), 
-                                               data = rsf.data.veg.du6.ew, 
-                                               family = binomial (link = "logit"),
-                                               verbose = T) 
-# AIC
-table.aic [16, 1] <- "DU6"
-table.aic [16, 2] <- "Early Winter"
-table.aic [16, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [16, 4] <- "Wetland, Age"
-table.aic [16, 5] <- "(1 | UniqueID)"
-table.aic [16, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.age)
-
-## WETLAND and SHRUB ##
-model.lme4.du6.ew.veg.wetland.shrub <- glmer (pttype ~ wetland_demars + std.vri_shrub_crown_close +
-                                                        (1 | uniqueID), 
-                                              data = rsf.data.veg.du6.ew, 
-                                              family = binomial (link = "logit"),
-                                              verbose = T) 
-# AIC
-table.aic [17, 1] <- "DU6"
-table.aic [17, 2] <- "Early Winter"
-table.aic [17, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [17, 4] <- "Wetland, ShrubClosure"
-table.aic [17, 5] <- "(1 | UniqueID)"
-table.aic [17, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.shrub)
-
-## BEC, BASAL AREA and BRYOID ##
-model.lme4.du6.ew.veg.bec.basal.bryoid <- glmer (pttype ~ bec_label + std.vri_basal_area +
-                                                          std.vri_bryoid_cover_pct + (1 | uniqueID), 
+## WETLAND, BEC and FOOD ##
+model.lme4.du6.ew.veg.wetland.bec.food <- glmer (pttype ~ wetland_demars + bec_label + 
+                                                   std.vri_shrub_crown_close + 
+                                                   std.vri_bryoid_cover_pct + 
+                                                   std.vri_herb_cover_pct +
+                                                   (1 | uniqueID), 
                                                  data = rsf.data.veg.du6.ew, 
                                                  family = binomial (link = "logit"),
                                                  verbose = T) 
-# AIC
-table.aic [18, 1] <- "DU6"
-table.aic [18, 2] <- "Early Winter"
-table.aic [18, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [18, 4] <- "BEC, BasalArea, BryoidCover"
-table.aic [18, 5] <- "(1 | UniqueID)"
-table.aic [18, 6] <-  AIC (model.lme4.du6.ew.veg.bec.basal.bryoid)
+ss <- getME (model.lme4.du6.ew.veg.wetland.bec.food, c ("theta","fixef"))
+model.lme4.du6.ew.veg.wetland.bec.food <- update (model.lme4.du6.ew.veg.wetland.bec.food, start = ss) # failed to converge, restart with parameter estimates
 
-## BEC, BASAL AREA and HERB ##
-model.lme4.du6.ew.veg.bec.basal.herb <- glmer (pttype ~ bec_label + std.vri_basal_area +
-                                                   std.vri_herb_cover_pct  + (1 | uniqueID), 
-                                                 data = rsf.data.veg.du6.ew, 
-                                                 family = binomial (link = "logit"),
-                                                 verbose = T) 
 # AIC
-table.aic [19, 1] <- "DU6"
-table.aic [19, 2] <- "Early Winter"
-table.aic [19, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [19, 4] <- "BEC, BasalArea, HerbCover"
-table.aic [19, 5] <- "(1 | UniqueID)"
-table.aic [19, 6] <-  AIC (model.lme4.du6.ew.veg.bec.basal.herb)
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Early Winter"
+table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 4] <- "Wetland, BEC, ShrubClosure, BryoidCover, HerbCover"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.food)
 
-## BEC, BASAL AREA and AGE ##
-model.lme4.du6.ew.veg.bec.basal.age <- glmer (pttype ~ bec_label + std.vri_basal_area +
-                                                std.vri_proj_age + (1 | uniqueID), 
-                                               data = rsf.data.veg.du6.ew, 
-                                               family = binomial (link = "logit"),
-                                               verbose = T) 
+## WETLAND, BEC and FOREST ##
+model.lme4.du6.ew.veg.wetland.bec.forest <- glmer (pttype ~ wetland_demars + bec_label + 
+                                                            std.vri_proj_age + 
+                                                            std.vri_proj_height +
+                                                            std.vri_crown_closure +
+                                                            (1 | uniqueID), 
+                                                   data = rsf.data.veg.du6.ew, 
+                                                   family = binomial (link = "logit"),
+                                                   verbose = T) 
 # AIC
-table.aic [20, 1] <- "DU6"
-table.aic [20, 2] <- "Early Winter"
-table.aic [20, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [20, 4] <- "BEC, BasalArea, Age"
-table.aic [20, 5] <- "(1 | UniqueID)"
-table.aic [20, 6] <-  AIC (model.lme4.du6.ew.veg.bec.basal.age)
+table.aic [5, 1] <- "DU6"
+table.aic [5, 2] <- "Early Winter"
+table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [5, 4] <- "Wetland, BEC, TreeAge, TreeHeight, TreeClosure"
+table.aic [5, 5] <- "(1 | UniqueID)"
+table.aic [5, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.forest)
 
-## BEC, BASAL AREA and SHRUB ##
-model.lme4.du6.ew.veg.bec.basal.shrub <- glmer (pttype ~ bec_label + std.vri_basal_area +
-                                                         std.vri_shrub_crown_close + (1 | uniqueID), 
+## FOOD and FOREST ##
+model.lme4.du6.ew.veg.food.forest <- glmer (pttype ~ std.vri_bryoid_cover_pct + 
+                                                     std.vri_herb_cover_pct + 
+                                                     std.vri_shrub_crown_close +
+                                                     std.vri_proj_age + 
+                                                     std.vri_proj_height +
+                                                     std.vri_crown_closure +
+                                                     (1 | uniqueID), 
+                                                   data = rsf.data.veg.du6.ew, 
+                                                   family = binomial (link = "logit"),
+                                                   verbose = T) 
+# AIC
+table.aic [6, 1] <- "DU6"
+table.aic [6, 2] <- "Early Winter"
+table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [6, 4] <- "ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [6, 5] <- "(1 | UniqueID)"
+table.aic [6, 6] <-  AIC (model.lme4.du6.ew.veg.food.forest)
+
+## WETLAND, BEC, FOOD and FOREST ##
+model.lme4.du6.ew.veg.food.forest.food <- glmer (pttype ~ wetland_demars + bec_label + 
+                                                          std.vri_bryoid_cover_pct + 
+                                                          std.vri_herb_cover_pct + 
+                                                          std.vri_shrub_crown_close +
+                                                          std.vri_proj_age + 
+                                                          std.vri_proj_height +
+                                                          std.vri_crown_closure +
+                                                          (1 | uniqueID), 
                                                 data = rsf.data.veg.du6.ew, 
                                                 family = binomial (link = "logit"),
                                                 verbose = T) 
+ss <- getME (model.lme4.du6.ew.veg.food.forest.food, c ("theta","fixef"))
+model.lme4.du6.ew.veg.food.forest.food <- update (model.lme4.du6.ew.veg.food.forest.food, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [21, 1] <- "DU6"
-table.aic [21, 2] <- "Early Winter"
-table.aic [21, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [21, 4] <- "BEC, BasalArea, ShrubClosure"
-table.aic [21, 5] <- "(1 | UniqueID)"
-table.aic [21, 6] <-  AIC (model.lme4.du6.ew.veg.bec.basal.shrub)
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Early Winter"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  AIC (model.lme4.du6.ew.veg.food.forest.food)
 
-## WETLAND, BASAL AREA and BRYOID ##
-model.lme4.du6.ew.veg.wetland.basal.bryoid <- glmer (pttype ~ wetland_demars + std.vri_basal_area +
-                                                              std.vri_bryoid_cover_pct + (1 | uniqueID), 
-                                                     data = rsf.data.veg.du6.ew, 
-                                                     family = binomial (link = "logit"),
-                                                     verbose = T) 
-ss <- getME (model.lme4.du6.ew.veg.wetland.basal.bryoid, c ("theta","fixef"))
-model.lme4.du6.ew.veg.wetland.basal.bryoid <- update (model.lme4.du6.ew.veg.wetland.basal.bryoid, start = ss) # failed to converge, restart with parameter estimates
-
-# AIC
-table.aic [22, 1] <- "DU6"
-table.aic [22, 2] <- "Early Winter"
-table.aic [22, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [22, 4] <- "Wetland, BasalArea, BryoidCover"
-table.aic [22, 5] <- "(1 | UniqueID)"
-table.aic [22, 6] <- AIC (model.lme4.du6.ew.veg.wetland.basal.bryoid)
-
-## WETLAND, BASAL AREA and HERB ##
-model.lme4.du6.ew.veg.wetland.basal.herb <- glmer (pttype ~ wetland_demars + std.vri_basal_area +
-                                                            std.vri_herb_cover_pct  + (1 | uniqueID), 
-                                                   data = rsf.data.veg.du6.ew, 
-                                                   family = binomial (link = "logit"),
-                                                   verbose = T) 
-ss <- getME (model.lme4.du6.ew.veg.wetland.basal.herb, c ("theta","fixef"))
-model.lme4.du6.ew.veg.wetland.basal.herb <- update (model.lme4.du6.ew.veg.wetland.basal.herb, start = ss) # failed to converge, restart with parameter estimates
-
-# AIC
-table.aic [23, 1] <- "DU6"
-table.aic [23, 2] <- "Early Winter"
-table.aic [23, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [23, 4] <- "Wetland, BasalArea, HerbCover"
-table.aic [23, 5] <- "(1 | UniqueID)"
-table.aic [23, 6] <- AIC (model.lme4.du6.ew.veg.wetland.basal.herb)
-
-## WETLAND, BASAL AREA and AGE ##
-model.lme4.du6.ew.veg.wetland.basal.age <- glmer (pttype ~ wetland_demars + std.vri_basal_area +
-                                                           std.vri_proj_age + (1 | uniqueID), 
-                                                   data = rsf.data.veg.du6.ew, 
-                                                   family = binomial (link = "logit"),
-                                                   verbose = T) 
-ss <- getME (model.lme4.du6.ew.veg.wetland.basal.age, c ("theta","fixef"))
-model.lme4.du6.ew.veg.wetland.basal.age <- update (model.lme4.du6.ew.veg.wetland.basal.age, start = ss) # failed to converge, restart with parameter estimates
-
-# AIC
-table.aic [24, 1] <- "DU6"
-table.aic [24, 2] <- "Early Winter"
-table.aic [24, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [24, 4] <- "Wetland, BasalArea, Age"
-table.aic [24, 5] <- "(1 | UniqueID)"
-table.aic [24, 6] <- AIC (model.lme4.du6.ew.veg.wetland.basal.age)
-
-## WETLAND, BASAL AREA and SHRUB ##
-model.lme4.du6.ew.veg.wetland.basal.shrub <- glmer (pttype ~ wetland_demars + std.vri_basal_area +
-                                                            std.vri_shrub_crown_close + (1 | uniqueID), 
-                                                    data = rsf.data.veg.du6.ew, 
-                                                    family = binomial (link = "logit"),
-                                                    verbose = T) 
-# AIC
-table.aic [25, 1] <- "DU6"
-table.aic [25, 2] <- "Early Winter"
-table.aic [25, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [25, 4] <- "Wetland, BasalArea, Shrub"
-table.aic [25, 5] <- "(1 | UniqueID)"
-table.aic [25, 6] <- AIC (model.lme4.du6.ew.veg.wetland.basal.shrub)
-
-## BEC, WETLAND CLASS and BASAL AREA ##
-model.lme4.du6.ew.veg.wetland.bec.basal <- glmer (pttype ~ wetland_demars + bec_label + 
-                                                           std.vri_basal_area + (1 | uniqueID), 
-                                                  data = rsf.data.veg.du6.ew, 
-                                                  family = binomial (link = "logit"),
-                                                  verbose = T) 
-ss <- getME (model.lme4.du6.ew.veg.wetland.bec.basal, c ("theta","fixef"))
-model.lme4.du6.ew.veg.wetland.bec.basal <- update (model.lme4.du6.ew.veg.wetland.bec.basal, start = ss) # failed to converge, restart with parameter estimates
-
-# AIC
-table.aic [26, 1] <- "DU6"
-table.aic [26, 2] <- "Early Winter"
-table.aic [26, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [26, 4] <- "Wetland, BEC, BasalArea"
-table.aic [26, 5] <- "(1 | UniqueID)"
-table.aic [26, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.basal)
-
-## BEC, WETLAND CLASS and BRYOID ##
-model.lme4.du6.ew.veg.wetland.bec.bryoid <- glmer (pttype ~ wetland_demars + bec_label + 
-                                                    std.vri_bryoid_cover_pct  + (1 | uniqueID), 
-                                                  data = rsf.data.veg.du6.ew, 
-                                                  family = binomial (link = "logit"),
-                                                  verbose = T) 
-# AIC
-table.aic [27, 1] <- "DU6"
-table.aic [27, 2] <- "Early Winter"
-table.aic [27, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [27, 4] <- "Wetland, BEC, BryoidCover"
-table.aic [27, 5] <- "(1 | UniqueID)"
-table.aic [27, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.bryoid)
-
-## BEC, WETLAND CLASS and HERB ##
-model.lme4.du6.ew.veg.wetland.bec.herb <- glmer (pttype ~ wetland_demars + bec_label + 
-                                                          std.vri_herb_cover_pct + (1 | uniqueID), 
-                                                   data = rsf.data.veg.du6.ew, 
-                                                   family = binomial (link = "logit"),
-                                                   verbose = T) 
-# AIC
-table.aic [28, 1] <- "DU6"
-table.aic [28, 2] <- "Early Winter"
-table.aic [28, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [28, 4] <- "Wetland, BEC, HerbCover"
-table.aic [28, 5] <- "(1 | UniqueID)"
-table.aic [28, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.herb)
-
-## BEC, WETLAND CLASS and AGE ##
-model.lme4.du6.ew.veg.wetland.bec.age <- glmer (pttype ~ wetland_demars + bec_label + 
-                                                          std.vri_proj_age  + (1 | uniqueID), 
-                                                 data = rsf.data.veg.du6.ew, 
-                                                 family = binomial (link = "logit"),
-                                                 verbose = T) 
-# AIC
-table.aic [29, 1] <- "DU6"
-table.aic [29, 2] <- "Early Winter"
-table.aic [29, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [29, 4] <- "Wetland, BEC, Age"
-table.aic [29, 5] <- "(1 | UniqueID)"
-table.aic [29, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.age)
-
-## BEC, WETLAND CLASS and SHRUB ##
-model.lme4.du6.ew.veg.wetland.bec.shrub <- glmer (pttype ~ wetland_demars + bec_label + 
-                                                           std.vri_shrub_crown_close  + (1 | uniqueID), 
-                                                data = rsf.data.veg.du6.ew, 
-                                                family = binomial (link = "logit"),
-                                                verbose = T) 
-# AIC
-table.aic [30, 1] <- "DU6"
-table.aic [30, 2] <- "Early Winter"
-table.aic [30, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [30, 4] <- "Wetland, BEC, ShrubClosure"
-table.aic [30, 5] <- "(1 | UniqueID)"
-table.aic [30, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.bec.shrub)
-
-## WETLAND CLASS, BRYOID and SHRUB ##
-model.lme4.du6.ew.veg.wetland.broid.shrub <- glmer (pttype ~ wetland_demars + std.vri_bryoid_cover_pct + 
-                                                             std.vri_shrub_crown_close  + (1 | uniqueID), 
-                                                    data = rsf.data.veg.du6.ew, 
-                                                    family = binomial (link = "logit"),
-                                                    verbose = T) 
-# AIC
-table.aic [31, 1] <- "DU6"
-table.aic [31, 2] <- "Early Winter"
-table.aic [31, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [31, 4] <- "Wetland, BryoidCover, ShrubClosure"
-table.aic [31, 5] <- "(1 | UniqueID)"
-table.aic [31, 6] <-  AIC (model.lme4.du6.ew.veg.wetland.broid.shrub)
-
-## BASAL AREA and BRYOID ##
-model.lme4.du6.ew.veg.basal.bryoid <- glmer (pttype ~ std.vri_basal_area + std.vri_bryoid_cover_pct +
-                                                      (1 | uniqueID), 
-                                             data = rsf.data.veg.du6.ew, 
-                                             family = binomial (link = "logit"),
-                                             verbose = T) 
-# AIC
-table.aic [32, 1] <- "DU6"
-table.aic [32, 2] <- "Early Winter"
-table.aic [32, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [32, 4] <- "BasalArea, BryoidCover"
-table.aic [32, 5] <- "(1 | UniqueID)"
-table.aic [32, 6] <-  AIC (model.lme4.du6.ew.veg.basal.bryoid)
-
-## BASAL AREA and HERB ##
-model.lme4.du6.ew.veg.basal.herb <- glmer (pttype ~ std.vri_basal_area + std.vri_herb_cover_pct +
-                                               (1 | uniqueID), 
-                                             data = rsf.data.veg.du6.ew, 
-                                             family = binomial (link = "logit"),
-                                             verbose = T) 
-# AIC
-table.aic [33, 1] <- "DU6"
-table.aic [33, 2] <- "Early Winter"
-table.aic [33, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [33, 4] <- "BasalArea, HerbCover"
-table.aic [33, 5] <- "(1 | UniqueID)"
-table.aic [33, 6] <-  AIC (model.lme4.du6.ew.veg.basal.herb)
-
-## BASAL AREA and AGE ##
-model.lme4.du6.ew.veg.basal.age <- glmer (pttype ~ std.vri_basal_area + std.vri_proj_age +
-                                             (1 | uniqueID), 
-                                           data = rsf.data.veg.du6.ew, 
-                                           family = binomial (link = "logit"),
-                                           verbose = T) 
-# AIC
-table.aic [34, 1] <- "DU6"
-table.aic [34, 2] <- "Early Winter"
-table.aic [34, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [34, 4] <- "BasalArea, Age"
-table.aic [34, 5] <- "(1 | UniqueID)"
-table.aic [34, 6] <-  AIC (model.lme4.du6.ew.veg.basal.age)
-
-## BASAL AREA and SHRUB ##
-model.lme4.du6.ew.veg.basal.shrub <- glmer (pttype ~ std.vri_basal_area + std.vri_shrub_crown_close +
-                                                    (1 | uniqueID), 
-                                          data = rsf.data.veg.du6.ew, 
-                                          family = binomial (link = "logit"),
-                                          verbose = T) 
-# AIC
-table.aic [35, 1] <- "DU6"
-table.aic [35, 2] <- "Early Winter"
-table.aic [35, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [35, 4] <- "BasalArea, ShrubClosure"
-table.aic [35, 5] <- "(1 | UniqueID)"
-table.aic [35, 6] <-  AIC (model.lme4.du6.ew.veg.basal.shrub)
-
-## BRYOID and HERB ##
-model.lme4.du6.ew.veg.bryoid.herb <- glmer (pttype ~ std.vri_bryoid_cover_pct + std.vri_herb_cover_pct +
-                                                     (1 | uniqueID), 
-                                            data = rsf.data.veg.du6.ew, 
-                                            family = binomial (link = "logit"),
-                                            verbose = T) 
-# AIC
-table.aic [36, 1] <- "DU6"
-table.aic [36, 2] <- "Early Winter"
-table.aic [36, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [36, 4] <- "BryoidCover, HerbCover"
-table.aic [36, 5] <- "(1 | UniqueID)"
-table.aic [36, 6] <-  AIC (model.lme4.du6.ew.veg.bryoid.herb)
-
-## BRYOID and AGE ##
-model.lme4.du6.ew.veg.bryoid.age <- glmer (pttype ~ std.vri_bryoid_cover_pct + std.vri_proj_age +
-                                                    (1 | uniqueID), 
-                                            data = rsf.data.veg.du6.ew, 
-                                            family = binomial (link = "logit"),
-                                            verbose = T) 
-# AIC
-table.aic [37, 1] <- "DU6"
-table.aic [37, 2] <- "Early Winter"
-table.aic [37, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [37, 4] <- "BryoidCover, Age"
-table.aic [37, 5] <- "(1 | UniqueID)"
-table.aic [37, 6] <-  AIC (model.lme4.du6.ew.veg.bryoid.age)
-
-## BRYOID and SHRUB ##
-model.lme4.du6.ew.veg.bryoid.shrub <- glmer (pttype ~ std.vri_bryoid_cover_pct + std.vri_shrub_crown_close +
-                                                      (1 | uniqueID), 
-                                           data = rsf.data.veg.du6.ew, 
-                                           family = binomial (link = "logit"),
-                                           verbose = T) 
-# AIC
-table.aic [38, 1] <- "DU6"
-table.aic [38, 2] <- "Early Winter"
-table.aic [38, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [38, 4] <- "BryoidCover, ShrubClosure"
-table.aic [38, 5] <- "(1 | UniqueID)"
-table.aic [38, 6] <-  AIC (model.lme4.du6.ew.veg.bryoid.shrub)
-
-## HERB and AGE ##
-model.lme4.du6.ew.veg.herb.age <- glmer (pttype ~ std.vri_herb_cover_pct + std.vri_proj_age +
-                                                  (1 | uniqueID), 
-                                         data = rsf.data.veg.du6.ew, 
-                                         family = binomial (link = "logit"),
-                                         verbose = T) 
-# AIC
-table.aic [39, 1] <- "DU6"
-table.aic [39, 2] <- "Early Winter"
-table.aic [39, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [39, 4] <- "HerbCover, Age"
-table.aic [39, 5] <- "(1 | UniqueID)"
-table.aic [39, 6] <-  AIC (model.lme4.du6.ew.veg.herb.age)
-
-## HERB and SHRUB ##
-model.lme4.du6.ew.veg.herb.shrub <- glmer (pttype ~ std.vri_herb_cover_pct + std.vri_shrub_crown_close +
-                                                    (1 | uniqueID), 
-                                             data = rsf.data.veg.du6.ew, 
-                                             family = binomial (link = "logit"),
-                                             verbose = T) 
-# AIC
-table.aic [40, 1] <- "DU6"
-table.aic [40, 2] <- "Early Winter"
-table.aic [40, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [40, 4] <- "HerbCover, ShrubClosure"
-table.aic [40, 5] <- "(1 | UniqueID)"
-table.aic [40, 6] <-  AIC (model.lme4.du6.ew.veg.herb.shrub)
-
-## AGE and SHRUB ##
-model.lme4.du6.ew.veg.age.shrub <- glmer (pttype ~ std.vri_proj_age + std.vri_shrub_crown_close +
-                                             (1 | uniqueID), 
-                                           data = rsf.data.veg.du6.ew, 
-                                           family = binomial (link = "logit"),
-                                           verbose = T) 
-# AIC
-table.aic [41, 1] <- "DU6"
-table.aic [41, 2] <- "Early Winter"
-table.aic [41, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [41, 4] <- "Age, ShrubClosure"
-table.aic [41, 5] <- "(1 | UniqueID)"
-table.aic [41, 6] <-  AIC (model.lme4.du6.ew.veg.age.shrub)
-
-
-
-
-
-
-
-
-
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:7), 6])))), 
+                    (exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [2, 7] <- round ((exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [4, 7] <- round ((exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [6, 7] <- round ((exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_veg.csv", sep = ",")
 
@@ -4908,7 +4442,7 @@ table.aic.annual.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habita
 table.aic <- table.aic.annual.clim [10, ]
 rm (table.aic.annual.clim)
 table.aic.human <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_human_disturb.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.human [110, ])
+table.aic <- bind_rows (table.aic, table.aic.human [1, ])
 rm (table.aic.human)
 table.aic.nat.disturb <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_natural_disturb.csv", header = T, sep = ",")
 table.aic <- bind_rows (table.aic, table.aic.nat.disturb [5, ])
@@ -4919,11 +4453,15 @@ rm (table.aic.enduring)
 table.aic.winter.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_winter_climate.csv", header = T, sep = ",")
 table.aic <- bind_rows (table.aic, table.aic.winter.clim [5, ])
 rm (table.aic.winter.clim)
-
-# table.aic.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_veg.csv", header = T, sep = ",")
-# table.aic <- bind_rows (table.aic, table.aic.veg [5, ])
-# rm (table.aic.winter.clim)
-
+table.aic.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_veg.csv", header = T, sep = ",")
+table.aic <- bind_rows (table.aic, table.aic.veg [7, ])
+rm (table.aic.veg)
+table.aic <- table.aic [-10]
+table.aic <- table.aic [-9]
+table.aic <- table.aic [-8]
+table.aic [c (1:6), 7] <- 0
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_all_top.csv", sep = ",")
+# table.aic <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_all_top.csv", header = T, sep = ",")
 
 # Load and tidy the data 
 rsf.data.combo.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv", header = T, sep = ",")
@@ -4935,15 +4473,15 @@ rsf.data.combo.du6.ew$soil_parent_material_name <- relevel (rsf.data.combo.du6.e
 rsf.data.combo.du6.ew$bec_label <- relevel (rsf.data.combo.du6.ew$bec_label,
                                             ref = "BWBSmk")
 rsf.data.combo.du6.ew$wetland_demars <- relevel (rsf.data.combo.du6.ew$wetland_demars,
-                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
+                                                 ref = "Upland Conifer") # upland conifer as referencce, as per Demars 2018
 
 ### CORRELATION ###
-corr.data.du6.ew <- rsf.data.combo.du6.ew [c (11:14, 16:17, 37, 20:34)]
+corr.data.du6.ew <- rsf.data.combo.du6.ew [c (11:14, 16:17, 44, 20:34, 40:42, 36:38)]
 corr.du6.ew <- round (cor (corr.data.du6.ew, method = "spearman"), 3)
-ggcorrplot (corr.du6.ew, type = "lower", lab = TRUE, tl.cex = 9,  lab_size = 2,
+ggcorrplot (corr.du6.ew, type = "lower", lab = TRUE, tl.cex = 7,  lab_size = 1.6,
             title = "Resource Selection Function Model Covariate Correlations \
                      for DU6, Early Winter")
-ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_winter_climate_du6_ew.png")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_all_du6_ew.png")
 
 ### VIF ###
 glm.all.du6.ew <- glm (pttype ~ slope + distance_to_lake + distance_to_watercourse +
@@ -4952,10 +4490,17 @@ glm.all.du6.ew <- glm (pttype ~ slope + distance_to_lake + distance_to_watercour
                                 distance_to_resource_road + distance_to_mines + distance_to_pipeline +
                                 seismic + beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
                                 fire_over25yo + growing_degree_days + ppt_as_snow_winter +
-                                temp_avg_winter + bec_label + wetland_demars,  
+                                temp_avg_winter + bec_label + wetland_demars +
+                                vri_bryoid_cover_pct + vri_herb_cover_pct + 
+                                vri_proj_age + vri_shrub_crown_close + vri_proj_height + 
+                                vri_crown_closure,  
                        data = rsf.data.combo.du6.ew,
                        family = binomial (link = 'logit'))
 car::vif (glm.all.du6.ew)
+
+glm.all.du6.ew2 <- update (glm.all.du6.ew, 
+                           . ~ . - temp_avg_winter) # drop winter temp
+car::vif (glm.all.du6.ew2)
 
 # standardize covariates  (helps with model convergence)
 rsf.data.combo.du6.ew$std.slope <- (rsf.data.combo.du6.ew$slope - 
@@ -4997,103 +4542,61 @@ rsf.data.combo.du6.ew$std.ppt_as_snow_winter <- (rsf.data.combo.du6.ew$ppt_as_sn
 rsf.data.combo.du6.ew$std.temp_avg_winter <- (rsf.data.combo.du6.ew$temp_avg_winter - 
                                                    mean (rsf.data.combo.du6.ew$temp_avg_winter)) / 
                                                    sd (rsf.data.combo.du6.ew$temp_avg_winter)
-
-# FUNCTIONAL RESPONSE Covariates
-sub <- subset (rsf.data.combo.du6.ew, pttype == 0)
-slope_E <- tapply (sub$std.slope, sub$uniqueID, sum)
-distance_to_lake_E <- tapply (sub$std.distance_to_lake, sub$uniqueID, sum)
-distance_to_watercourse_E <- tapply (sub$std.distance_to_watercourse, sub$uniqueID, sum)
-distance_to_cut_1to4yo_E <- tapply (sub$std.distance_to_cut_1to4yo, sub$uniqueID, sum)
-distance_to_cut_5to9yo_E <- tapply (sub$std.distance_to_cut_5to9yo, sub$uniqueID, sum)
-distance_to_cut_10yoorOver_E <- tapply (sub$std.distance_to_cut_10yoorOver, sub$uniqueID, sum)
-distance_to_paved_road_E <- tapply (sub$std.distance_to_paved_road, sub$uniqueID, sum)
-distance_to_resource_road_E <- tapply (sub$std.distance_to_resource_road, sub$uniqueID, sum)
-distance_to_mines_E <- tapply (sub$std.distance_to_mines, sub$uniqueID, sum)
-distance_to_pipeline_E <- tapply (sub$std.distance_to_pipeline, sub$uniqueID, sum)
-growing_degree_days_E <- tapply (sub$std.growing_degree_days, sub$uniqueID, sum)
-ppt_as_snow_winter_E <- tapply (sub$std.ppt_as_snow_winter, sub$uniqueID, sum)
-inds <- as.character (rsf.data.combo.du6.ew$uniqueID)
-rsf.data.combo.du6.ew <- cbind (rsf.data.combo.du6.ew, 
-                              "slope_E" = slope_E [inds],
-                              "distance_to_lake_E" = distance_to_lake_E [inds],
-                              "distance_to_watercourse_E" = distance_to_watercourse_E [inds],
-                              "distance_to_cut_1to4yo_E" = distance_to_cut_1to4yo_E [inds],
-                              "distance_to_cut_5to9yo_E" = distance_to_cut_5to9yo_E [inds],
-                              "distance_to_cut_10yoorOver_E" = distance_to_cut_10yoorOver_E [inds],
-                              "distance_to_paved_road_E" = distance_to_paved_road_E [inds],
-                              "distance_to_resource_road_E" = distance_to_resource_road_E [inds],
-                              "distance_to_mines_E" = distance_to_mines_E [inds],
-                              "distance_to_pipeline_E" = distance_to_pipeline_E [inds],
-                              "growing_degree_days_E" = growing_degree_days_E [inds],
-                              "ppt_as_snow_winter_E" = ppt_as_snow_winter_E [inds])
+rsf.data.combo.du6.ew$std.vri_bryoid_cover_pct <- (rsf.data.combo.du6.ew$vri_bryoid_cover_pct - mean (rsf.data.combo.du6.ew$vri_bryoid_cover_pct)) / sd (rsf.data.combo.du6.ew$vri_bryoid_cover_pct)
+rsf.data.combo.du6.ew$std.vri_herb_cover_pct <- (rsf.data.combo.du6.ew$vri_herb_cover_pct - mean (rsf.data.combo.du6.ew$vri_herb_cover_pct)) / sd (rsf.data.combo.du6.ew$vri_herb_cover_pct)
+rsf.data.combo.du6.ew$std.vri_proj_age <- (rsf.data.combo.du6.ew$vri_proj_age - mean (rsf.data.combo.du6.ew$vri_proj_age)) / sd (rsf.data.combo.du6.ew$vri_proj_age)
+rsf.data.combo.du6.ew$std.vri_shrub_crown_close <- (rsf.data.combo.du6.ew$vri_shrub_crown_close - mean (rsf.data.combo.du6.ew$vri_shrub_crown_close)) / sd (rsf.data.combo.du6.ew$vri_shrub_crown_close)
+rsf.data.combo.du6.ew$std.vri_proj_height <- (rsf.data.combo.du6.ew$vri_proj_height - mean (rsf.data.combo.du6.ew$vri_proj_height)) / sd (rsf.data.combo.du6.ew$vri_proj_height)
+rsf.data.combo.du6.ew$std.vri_crown_closure <- (rsf.data.combo.du6.ew$vri_crown_closure - mean (rsf.data.combo.du6.ew$vri_crown_closure)) / sd (rsf.data.combo.du6.ew$vri_crown_closure)
 
 ### ENDURING FEATURES AND HUMAN DISTURBANCE ###
 model.lme4.du6.ew.ef.hd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                           std.distance_to_watercourse + soil_parent_material_name +
+                                           std.distance_to_watercourse + 
                                            std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                            std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
-                                           std.distance_to_resource_road + std.distance_to_mines +
-                                           std.distance_to_pipeline +
+                                           std.distance_to_resource_road + std.distance_to_pipeline +
                                            (1 | uniqueID), 
                                     data = rsf.data.combo.du6.ew, 
                                     family = binomial (link = "logit"),
                                     verbose = T) 
-ss <- getME (model.lme4.du6.ew.ef.hd, c ("theta","fixef"))
-model.lme4.du6.ew.ef.hd2 <- update (model.lme4.du6.ew.ef.hd, start = ss) # failed to converge, restart with parameter estimates
-model.lme4.du6.ew.ef.hd3 <- update (model.lme4.du6.ew.ef.hd, 
-                                    . ~ . - seismic) # drop seismic lines
-model.lme4.du6.ew.ef.hd4 <- update (model.lme4.du6.ew.ef.hd, 
-                                    . ~ . - soil_parent_material_name) # drop soil
+#ss <- getME (model.lme4.du6.ew.ef.hd, c ("theta","fixef"))
+#model.lme4.du6.ew.ef.hd2 <- update (model.lme4.du6.ew.ef.hd, start = ss) # failed to converge, restart with parameter estimates
+#model.lme4.du6.ew.ef.hd3 <- update (model.lme4.du6.ew.ef.hd, 
+#                                    . ~ . - seismic) # drop seismic lines
+#model.lme4.du6.ew.ef.hd4 <- update (model.lme4.du6.ew.ef.hd, 
+#                                    . ~ . - soil_parent_material_name) # drop soil
 # AIC
-table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Early Winter"
-table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [6, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe"
-table.aic [6, 5] <- "(1 | UniqueID)"
-table.aic [6, 6] <-  AIC (model.lme4.du6.ew.ef.hd)
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Early Winter"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  AIC (model.lme4.du6.ew.ef.hd)
 
 ### ENDURING FEATURES AND NATURAL DISTURBANCE ###
 model.lme4.du6.ew.ef.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                            std.distance_to_watercourse + soil_parent_material_name +
+                                            std.distance_to_watercourse + 
                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
                                             fire_over25yo +
                                             (1 | uniqueID), 
                                   data = rsf.data.combo.du6.ew, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
-model.lme4.du6.ew.ef.nd2 <- update (model.lme4.du6.ew.ef.nd, 
-                                    . ~ . - soil_parent_material_name) # drop soils
-# AIC
-table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Early Winter"
-table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [7, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
-table.aic [7, 5] <- "(1 | UniqueID)"
-table.aic [7, 6] <-  AIC (model.lme4.du6.ew.ef.nd2)
-
-### ENDURING FEATURES AND CLIMATE ###
-model.lme4.du6.ew.ef.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                              std.distance_to_watercourse + std.growing_degree_days +
-                                              std.ppt_as_snow_winter + std.temp_avg_winter + 
-                                              (1 | uniqueID), 
-                                  data = rsf.data.combo.du6.ew, 
-                                  family = binomial (link = "logit"),
-                                  verbose = T) 
+#model.lme4.du6.ew.ef.nd2 <- update (model.lme4.du6.ew.ef.nd, 
+#                                    . ~ . - soil_parent_material_name) # drop soils
 # AIC
 table.aic [8, 1] <- "DU6"
 table.aic [8, 2] <- "Early Winter"
 table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [8, 4] <- "Slope, DLake, DWat, GDD, PAS, WTemp"
+table.aic [8, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [8, 5] <- "(1 | UniqueID)"
-table.aic [8, 6] <-  AIC (model.lme4.du6.ew.ef.clim)
+table.aic [8, 6] <-  AIC (model.lme4.du6.ew.ef.nd)
 
-### HUMAN DISTURBANCE AND NATURAL DISTURBANCE ###
-model.lme4.du6.ew.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
-                                            std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
-                                            std.distance_to_resource_road + std.distance_to_mines + 
-                                            std.distance_to_pipeline + beetle_1to5yo + beetle_6to9yo + 
-                                            fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                            (1 | uniqueID), 
+### ENDURING FEATURES AND CLIMATE ###
+model.lme4.du6.ew.ef.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                              std.distance_to_watercourse + std.growing_degree_days +
+                                              std.ppt_as_snow_winter +
+                                              (1 | uniqueID), 
                                   data = rsf.data.combo.du6.ew, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
@@ -5101,16 +4604,17 @@ model.lme4.du6.ew.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.dist
 table.aic [9, 1] <- "DU6"
 table.aic [9, 2] <- "Early Winter"
 table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [9, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [9, 4] <- "Slope, DLake, DWat, GDD, PAS, WTemp"
 table.aic [9, 5] <- "(1 | UniqueID)"
-table.aic [9, 6] <-  AIC (model.lme4.du6.ew.hd.nd)
+table.aic [9, 6] <-  AIC (model.lme4.du6.ew.ef.clim)
 
-### HUMAN DISTURBANCE AND CLIMATE ###
-model.lme4.du6.ew.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
-                                            std.distance_to_cut_10yoorOver + std.distance_to_paved_road +
-                                            std.distance_to_resource_road + std.distance_to_mines +
-                                            std.distance_to_pipeline + std.growing_degree_days +
-                                            std.ppt_as_snow_winter + std.temp_avg_winter +
+### HUMAN DISTURBANCE AND NATURAL DISTURBANCE ###
+model.lme4.du6.ew.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                            std.distance_to_cut_10yoorOver + 
+                                            std.distance_to_paved_road +
+                                            std.distance_to_resource_road + std.distance_to_pipeline + 
+                                            beetle_1to5yo + beetle_6to9yo + 
+                                            fire_1to5yo + fire_6to25yo + fire_over25yo +
                                             (1 | uniqueID), 
                                   data = rsf.data.combo.du6.ew, 
                                   family = binomial (link = "logit"),
@@ -5119,15 +4623,19 @@ model.lme4.du6.ew.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.di
 table.aic [10, 1] <- "DU6"
 table.aic [10, 2] <- "Early Winter"
 table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [10, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [10, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [10, 5] <- "(1 | UniqueID)"
-table.aic [10, 6] <-  AIC (model.lme4.du6.ew.hd.clim)
+table.aic [10, 6] <-  AIC (model.lme4.du6.ew.hd.nd)
 
-### NATURAL DISTURBANCE AND CLIMATE ###
-model.lme4.du6.ew.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
-                                      fire_over25yo + std.growing_degree_days +
-                                      std.ppt_as_snow_winter + std.temp_avg_winter +
-                                      (1 | uniqueID), 
+### HUMAN DISTURBANCE AND CLIMATE ###
+model.lme4.du6.ew.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                              std.distance_to_cut_5to9yo +
+                                              std.distance_to_cut_10yoorOver + 
+                                              std.distance_to_paved_road +
+                                              std.distance_to_resource_road + 
+                                              std.distance_to_pipeline + std.growing_degree_days +
+                                              std.ppt_as_snow_winter + 
+                                              (1 | uniqueID), 
                                     data = rsf.data.combo.du6.ew, 
                                     family = binomial (link = "logit"),
                                     verbose = T) 
@@ -5135,41 +4643,106 @@ model.lme4.du6.ew.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fir
 table.aic [11, 1] <- "DU6"
 table.aic [11, 2] <- "Early Winter"
 table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [11, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS, WTemp"
+table.aic [11, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [11, 5] <- "(1 | UniqueID)"
-table.aic [11, 6] <-  AIC (model.lme4.du6.ew.nd.clim)
+table.aic [11, 6] <-  AIC (model.lme4.du6.ew.hd.clim)
 
-
-### ENDURING FEATURES AND VEGETATION ###
-model.lme4.du6.ew.ef.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                            std.distance_to_watercourse + bec_label + wetland_demars +
-                                            (1 | uniqueID), 
-                                  data = rsf.data.combo.du6.ew, 
-                                  family = binomial (link = "logit"),
-                                  verbose = T) 
+### NATURAL DISTURBANCE AND CLIMATE ###
+model.lme4.du6.ew.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + 
+                                              fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                              std.growing_degree_days +
+                                              std.ppt_as_snow_winter + 
+                                              (1 | uniqueID), 
+                                    data = rsf.data.combo.du6.ew, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
 # AIC
 table.aic [12, 1] <- "DU6"
 table.aic [12, 2] <- "Early Winter"
 table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [12, 4] <- "Slope, DLake, DWat, BEC, Wetland"
+table.aic [12, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS, WTemp"
 table.aic [12, 5] <- "(1 | UniqueID)"
-table.aic [12, 6] <-  AIC (model.lme4.du6.ew.ef.veg)
+table.aic [12, 6] <-  AIC (model.lme4.du6.ew.nd.clim)
 
-### ENDURING FEATURES **NEW** ### UPDATED TO REMOVE SOIL
-model.lme4.du6.ew.ef.new <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                             std.distance_to_watercourse +
-                                             (1 | uniqueID), 
-                                     data = rsf.data.combo.du6.ew, 
-                                     family = binomial (link = "logit"),
-                                     verbose = T) 
-
+### ENDURING FEATURES AND VEGETATION ###
+model.lme4.du6.ew.ef.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
+                                            std.distance_to_watercourse + bec_label + wetland_demars +
+                                            std.vri_proj_age + std.vri_proj_height +
+                                            std.vri_crown_closure + std.vri_bryoid_cover_pct + 
+                                            std.vri_herb_cover_pct + std.vri_shrub_crown_close +
+                                            (1 | uniqueID), 
+                                   data = rsf.data.combo.du6.ew, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+ss <- getME (model.lme4.du6.ew.ef.veg, c ("theta","fixef"))
+model.lme4.du6.ew.ef.veg <- update (model.lme4.du6.ew.ef.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Early Winter"
-table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [4, 4] <- "Slope, DLake, DWat"
-table.aic [4, 5] <- "(1 | UniqueID)"
-table.aic [4, 6] <-  AIC (model.lme4.du6.ew.ef.new)
+table.aic [13, 1] <- "DU6"
+table.aic [13, 2] <- "Early Winter"
+table.aic [13, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [13, 4] <- "Slope, DLake, DWat, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [13, 5] <- "(1 | UniqueID)"
+table.aic [13, 6] <-  AIC (model.lme4.du6.ew.ef.veg)
+
+### HUMAN AND VEGETATION ###
+model.lme4.du6.ew.hd.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10yoorOver + 
+                                             std.distance_to_paved_road +
+                                             std.distance_to_resource_road + 
+                                             std.distance_to_pipeline + 
+                                             bec_label + wetland_demars +
+                                             std.vri_proj_age + std.vri_proj_height +
+                                             std.vri_crown_closure + std.vri_bryoid_cover_pct + 
+                                             std.vri_herb_cover_pct + std.vri_shrub_crown_close +
+                                             (1 | uniqueID), 
+                                   data = rsf.data.combo.du6.ew, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+ss <- getME (model.lme4.du6.ew.hd.veg, c ("theta","fixef"))
+model.lme4.du6.ew.hd.veg <- update (model.lme4.du6.ew.hd.veg, start = ss) # failed to converge, restart with parameter estimates
+# AIC
+table.aic [14, 1] <- "DU6"
+table.aic [14, 2] <- "Early Winter"
+table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [14, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [14, 5] <- "(1 | UniqueID)"
+table.aic [14, 6] <-  AIC (model.lme4.du6.ew.hd.veg)
+
+### NATURAL DISTURB AND VEGETATION ###
+model.lme4.du6.ew.nd.veg <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + 
+                                             fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                             bec_label + wetland_demars +
+                                             std.vri_proj_age + std.vri_proj_height +
+                                             std.vri_crown_closure + std.vri_bryoid_cover_pct + 
+                                             std.vri_herb_cover_pct + std.vri_shrub_crown_close +
+                                             (1 | uniqueID), 
+                                   data = rsf.data.combo.du6.ew, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+ss <- getME (model.lme4.du6.ew.nd.veg, c ("theta","fixef"))
+model.lme4.du6.ew.nd.veg <- update (model.lme4.du6.ew.nd.veg, start = ss) # failed to converge, restart with parameter estimates
+# AIC
+table.aic [15, 1] <- "DU6"
+table.aic [15, 2] <- "Early Winter"
+table.aic [15, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [15, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [15, 5] <- "(1 | UniqueID)"
+table.aic [15, 6] <-  AIC (model.lme4.du6.ew.nd.veg)
+
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_all_top.csv", sep = ",")
+
+
+
+
+
+
+
+
+
+
+
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE ###
 model.lme4.du6.ew.ef.hd.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
@@ -5294,7 +4867,6 @@ table.aic [16, 6] <-  AIC (model.lme4.du6.ew.ed.hd.nd.clim)
 
 
 
-write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\early_winter\\table_aic_all_top.csv", sep = ",")
 
 
 
@@ -5303,5 +4875,5 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ai
 # natural disturbance: burn age  (burns 1 to 5 years old, 6 to 25 years old and over 25 years old) adn beetle kill age (stands 1 to 5 years old and 6 to 9 years old)
 # annual climate: precipitation as snow, growing degree days and mean annual temperature
 # winter climate: precipitation as snow and average winter temp
-# VEG
+# VEG: bec, wetland, shrub, herb, bryoid, height, age, canopy closure
  
