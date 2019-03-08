@@ -1,1 +1,1 @@
-This module depends on dataloaderCLUS and a postgres connection that stores rasters
+This module depends on dataloaderCLUS which involves a postgres db that stores rasters at the provincial extent
