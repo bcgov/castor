@@ -16,6 +16,7 @@ public class Forest_Hierarchy {
 	Integer[] degree;
 	Integer[] idegree;
 	int blockID = 0;
+	double cwt = 0.0, allowableDiff = 0.2;
 	
 	private static final int EMPTY = -1;
 	
@@ -54,7 +55,7 @@ public class Forest_Hierarchy {
 				//System.out.println("seed: " + seed);
 			}else{
 				if(this.degreeList.get(seed) > 0) { //if there are still edges from the seed to spawn
-					seedNew = findPixelToAdd(seed); //get the lowest weighted edge. Note the first edge to be added will have the lowest weight because it is sorted 
+					seedNew = findPixelToAdd(seed, blockSize); //get the lowest weighted edge. Note the first edge to be added will have the lowest weight because it is sorted 
 				}else{
 					//TODO: use a heuristic to compare which branches to choose. Compare an average weight?
 					d++; //counts where the branch will occur. 
@@ -62,7 +63,7 @@ public class Forest_Hierarchy {
 					for(int b = d; b < blockList.size() ; b++){//loop here to find branches off the main
 						seed = this.blockList.get(b).intValue() - 1;
 						if(this.degreeList.get(seed) > 0) {
-							seedNew = findPixelToAdd(seed);
+							seedNew = findPixelToAdd(seed, blockSize);
 							if(seedNew > 0) break;
 						} else  counter++;
 					}
@@ -147,16 +148,23 @@ public class Forest_Hierarchy {
 		
 	}
 
-	private  int findPixelToAdd(int seed) {
+	private  int findPixelToAdd(int seed, int blocksize) {
 	//double wt = 0.0;
 	int nextPixel = -1;
 		for(Edges edge : this.edgeList){ //find the next pixel from a seed
 			if (edge.to == (seed + 1) || edge.from == (seed + 1)) {
 				if(edge.to == (seed + 1)) nextPixel = edge.from; //get the 'from' pixel because the seed is the 'to'
 				if(edge.from == (seed + 1)) nextPixel = edge.to; //get the 'to' pixel because the seed is the 'from'
-				//wt = edge.weight;
-				this.edgeList.remove(edge);
-				break; //a match has been found so break out of the loop of the edges
+				
+				if(blocksize > 1 && edge.weight/cwt < allowableDiff){
+					this.edgeList.remove(edge);
+					break; //a match ha
+				}else{
+					cwt = edge.weight;
+					this.edgeList.remove(edge);
+					break; //a match has been found so break out of the loop of the edges
+				}
+				
 			}
 		}
 		if(nextPixel > 0){ //remove degrees from each of the pixels
@@ -348,8 +356,8 @@ public class Forest_Hierarchy {
 			//System.out.println("the bin size:" + this.bins.size());
 			//System.out.println("the random is:" + (1 + (int)(Math.random() * (this.bins.size()) )));
 			//this.nextBin = (int)(Math.random() * (this.bins.size() + 1));  
-			this.nextBin = (1 + (int)(Math.random() * (this.bins.size()) ));
-			
+			//this.nextBin = (1 + (int)(Math.random() * (this.bins.size()) ));
+			this.nextBin = this.bins.size();
         }
         
         public int getBin(){
