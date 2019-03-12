@@ -1009,9 +1009,10 @@ correlations
 
 
 ![](plots/kfold_lm_du6_ew_grp1.png)
-
-
-
+![](plots/kfold_lm_du6_ew_grp2.png)
+![](plots/kfold_lm_du6_ew_grp3.png)
+![](plots/kfold_lm_du6_ew_grp4.png)
+![](plots/kfold_lm_du6_ew_grp5.png)
 
 
 
