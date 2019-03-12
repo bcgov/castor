@@ -16,7 +16,7 @@ Decision support tools are infraomtion and models that represent factors of inte
 
 Here I develop the cariobu habitat model component of the CLUS. The habitat model was developed using a resource selection function (RSF) and model selection process approach.  RSFs were calculated for three seasons (early winter, late winter and summer), and across four caribou designatable units (DUs), i.e., ecological designations, of caribou. Caribou DU's  in British Columbia include DU 6 (boreal), DU7 (northern mountain), DU8 (central mountain) and DU9 (sourthern mountain) [see COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf). I had data that estimated measures of caribou habitat features (covaraites) at approximately 500,000 caribou telemetry locations collected across Brtisish Columbia, and approximately two million randomly sampled locations within caribou home ranges (i.e., 'available' locations). Cariobu selection of these habtait features was tested by formulating RSF models consisting of different combinatiosn of habtait covariates. Each RSF model reprsents a differetn hypothesis of habtiat features that influence cariobu. These hypotheses are coamrped in a model selection appraoch using Akaike's Infomation Criterion (AIC), and soem consdieation of their ability to predict cariobu occurence. 
 
-The hyptohesis consisted of the follwong models:
+The 'hyptohesis' consisted of the follwong models:
 - terrain adn water (soil parent amterail, lakes, watercoruses, eleavtion, aspect adn slope); cariobu are infleunced by 'enduring' features of teh ladnscape and/or these features represent or are proxies for a wide range of habtait featrues imprtoant to cariobu (food, predation risk, etc.)   
 - forestry disturabnce (distance to cubtlocks of variaous age and different road types); well documented that cariobu distirbution and survical are inlfuenced by forestry activity, either as disturabnce or likely through predation meachnisms
 - agricultural distruabnce (distance to agricultrual areas and different road types); likely contributes to predation mechanism; ag lands highly provudctive for ungualtes
@@ -115,6 +115,8 @@ car::vif (glm.terrain.du6.ew)
 - fit models with random efefcts (inercept for each unique indivudal and year, adn fixed efefcts for continouts and categoriacla covaraites, random efefcts account for indivdual anaimal variability and a random sampel of the popautlion; fixed efefcts are the popautliomn efefct, estiametd with random invidail varaition in sample accounted for in the model
 
 - first fit terrain, vegetation, climate, huamn disturbnce, natural disturbnce specific-models, most fit all comibnatiosn fo models, for vegetation, used groups of ladncover and BEC, food and forest stand characteristics together and tested models with combinations of these three covariate sets
+
+- also looked at specific covaraites; if were non-sensical based on ecological understadnign than removed them. for example, in du6, early winter, found selection for locatiosn closer to mines; no ecological itnerpretation for why, so removed. conversely, ambiguous whetehr cariobu select for cutblocks (food) or aovid (predation risk), so kept these covaites, 
 
 
 #### key poitns from workshops with reagional biologists
@@ -238,6 +240,17 @@ slope (degrees)
 
 (Apps et al. 2001 - Itcha - old forests)
 
+### Model validation
+#### k-fold
+- follwoed methods described by Johnson et al,. 2006
+- divided data into 5 groups randomly, based on unique identifier
+- ran the top RSF model on each set of traingin data (i.e., all data wihout the witheld rgoup ) and on  precdicted values ont the witheld (i.e., test) group
+- classified RSF predictions into ten equal sized 'bins' (i.e., ordinal RSF classes)
+- cauclated expected numebr fo caribou locations in each bin based on area-weighted rank of each bin, multiplied by the total numebr of lcoaitons teh test group
+- comapred teh observed conunt to the expected coutn in each bin using a lieanr regression model, where intercept of 0, slope of 1, *R^2* value of 1 and $$\chi^2$$ not singifant indicated a highly predictive model 
+
+
+#### regional workshops?
 
 
 
@@ -333,6 +346,7 @@ timber volume:
 - select `wet`and `very wet` subzones of ICH and ESSF (Medinger and Pojar 1991)
     -  ICHwk, ICHvk, ICHvc
     - ESSFwm, ESSFwk, ESSFwc, ESSFwv, ESSFvc, ESSFvv
+
 
 
 
@@ -641,9 +655,9 @@ timber volume:
   - failed to converge
   - fit simpler model without seismic and model converged
 
+- best model included
 
-
-
+- realtionships were (Table)
 
 
 
@@ -970,9 +984,31 @@ correlations
     converge
   - dropped distance to mine; covariate said selection for mines, which is unlikely
 
+- top model (AIC*~w~* = 0.999) included all covariates 
+- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
+  approximately   0.02)
+- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
+  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
+  -0.055)
+- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
+- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
+- selected for 1 to 5 year old (\beta = 0.167) 6 to 9 year old (\beta = 0.167) beetle killed stands 
+- selected for young burns (\beta = 0.161), but avoided burns 6 to 25 years old (\beta = -0.305) or over 25 years old (\beta = -0.108)
+- avoided areas patches logner growing seasons (\beta = -0.145) and with deeper snow (\beta = -0.156)
+- avoided BWBSmw (\beta = -0.168) compared to BWBSmk
+- strongly selected for treed bog (\beta = 0.699), and the 'other' (\beta = 0.679) wetland type   
+  relative to upland conifer
+- selected for nutrient rich (\beta = 0.342) and nutrient poor (\beta = 0.242) fens relative to 
+  upland conifer
+- selected for patches with higher percentage of bryoid cover (\beta = 0.144) and herb cover (\beta = 0.124) 
+- selected for pacthes with older  (\beta = 0.076), but shorter (\beta = -0.155) forest stadns
 
 
+##### k-fold validation
+- average slope, etc. across teh five bins, make a table?
 
+
+![](plots/kfold_lm_du6_ew_grp1.png)
 
 
 
@@ -980,7 +1016,9 @@ correlations
 
 
 ## Conclusions
-- maladaptive sink is improtant narrative of this modeling; need to emhpasize that may selct for distyurbance, but not necessarily 'good' for cariobu
+In DU6 , early winter, 
+- cosnsitent with Demards: selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/imamture forest
+- selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
 
 
 
