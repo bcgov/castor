@@ -197,18 +197,18 @@ public class Forest_Hierarchy {
 	public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable ) {
 		//Instantiate the Edge objects from the R data.table
 		
-		System.out.println("Linking to java...");
+		//System.out.println("Linking to java...");
 		for(int i =0;  i < to.length; i++){
 			 this.edgeList.add( new Edges((int)to[i], (int)from[i], (double)weight[i]));
 		}
-		System.out.println(to.length + " edges ");
+		//System.out.println(to.length + " edges ");
 
 		this.degree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
 		this.idegree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
-		System.out.println(degree.length + " degree ");
+		//System.out.println(degree.length + " degree ");
 		
 		this.hist = new histogram(histTable);
-		System.out.println(this.hist.bins.size() + " target bins have been added");
+		//System.out.println(this.hist.bins.size() + " target bins have been added");
 		
 		dg = null;
 		//histTable.clear();

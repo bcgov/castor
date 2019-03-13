@@ -90,7 +90,7 @@ blockingCLUS.Init <- function(sim) {
   #ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
   
   #Calculate the similarity using Mahalanobis distance of similarity
-  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, age, crownclosure FROM pixels WHERE age > 0 and crownclosure > 0'))
+  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels WHERE height > 0 and crownclosure > 0'))
   dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
   
   # attaching to the pixels table
