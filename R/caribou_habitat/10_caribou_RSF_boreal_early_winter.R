@@ -36,6 +36,8 @@ require (ggcorrplot)
 require (car)
 require (lme4)
 require (rpostgis)
+require (raster)
+require (rgdal)
 
 #===========
 # Datasets
@@ -407,8 +409,6 @@ rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
                                        "c ('Shrub Swamp', 'Hardwood Swamp', 'Mixedwood Swamp') = 'Deciduous Swamp'")
 rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
                                        "c ('Upland Other', 'Cloud Shadow', 'Anthropogenic', 'Burn', 'Aquatic Bed', 'Cloud', 'Mountain', 'Agriculture', 'Mudflats', 'Open Water', 'Meadow Marsh', 'Emergent Marsh', 'Cutblock') = 'Other'")
-rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
-                                       "c ('Upland Deciduous', 'Upland Mixedwood') = 'Upland Deciduous'")
 rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
                                        "c ('Upland Deciduous', 'Upland Mixedwood') = 'Upland Deciduous'")
 
@@ -5963,16 +5963,139 @@ table.kfold.results.du6.ew <- table.kfold.results.du6.ew [- c (2:6)]
 
 table.kfold.results.du6.ew <- table.kfold.results.du6.ew %>%
                                 slice (c (1, 11, 21, 31, 41))
+
 write.csv (table.kfold.results.du6.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
 
 ###############################
 ### RSF RASTER CALCULATION ###
 #############################
 
+### LOAD RASTERS ###
+slope <- raster ("C:\\Work\\caribou\\clus_data\\dem\\slope_deg_all_bc_8_clip.tif")
+dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_lakes_bcalbers_20180820.tif")
+dist.water <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
+dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
+dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
+dist.cut.10over <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10yo_over.tif")
+dist.paved.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_paved.tif")
+dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
+dist.pipeline <- raster ("C:\\Work\\caribou\\clus_data\\pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
+beetle.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_1to5yo_fin.tif")
+beetle.6to9 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_6to9yo_fin.tif")
+fire.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1to5yo_fin.tif")
+fire.6to25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_6to25yo_fin.tif")
+fire.over25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_over25yo_fin.tif")
+growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\dd5")
+ppt.as.snow.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_wt")
+bec.bwbs.mw <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bwbs_mw.tif")
+wet.conifer.swamp <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_coniferswamp.tif")
+wet.decid.swamp <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_deciduousswamp.tif")
+wet.poor.fen <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_nutrientpoorfen.tif")
+wet.rich.fen <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_nutrientrichfen.tif")
+wet.other <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_other.tif")
+wet.tree.bog <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_treedbog.tif")
+wet.upland.decid <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_uplanddeciduous.tif")
+vri.bryoid <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_bryoidcoverpct.tif")
+vri.herb <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
+vri.age <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projage1.tif")
+vri.shrub <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_shrubcrownclosure.tif")
+vri.height <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projheight1.tif")
+vri.crown.close <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_crownclosure.tif")
+
+### CROP RASTERS TO DU; USED "BOX' "of HERD RANGES PLUS 25km BUFFER ###
+caribou.boreal.sa <- readOGR ("C:\\Work\\caribou\\climate_analysis\\data\\studyarea\\caribou_boreal_study_area.shp", stringsAsFactors = T) # herds with 25km buffer
+slope <- crop (slope, extent (caribou.boreal.sa))
+dist.lake <- crop (dist.lake, extent (caribou.boreal.sa))
+dist.water <- crop (dist.water, extent (caribou.boreal.sa))
+dist.cut.1to4 <- crop (dist.cut.1to4, extent (caribou.boreal.sa))
+dist.cut.5to9 <- crop (dist.cut.5to9, extent (caribou.boreal.sa))
+dist.cut.10over <- crop (dist.cut.10over, extent (caribou.boreal.sa))
+dist.paved.rd <- crop (dist.paved.rd, extent (caribou.boreal.sa))
+dist.resource.rd <- crop (dist.resource.rd, extent (caribou.boreal.sa))
+dist.pipeline <- crop (dist.pipeline, extent (caribou.boreal.sa))
+beetle.1to5 <- crop (beetle.1to5, extent (caribou.boreal.sa))
+beetle.6to9 <- crop (beetle.6to9, extent (caribou.boreal.sa))
+fire.1to5 <- crop (fire.1to5, extent (caribou.boreal.sa))
+fire.6to25 <- crop (fire.6to25, extent (caribou.boreal.sa))
+fire.over25 <- crop (fire.over25, extent (caribou.boreal.sa))
+bec.bwbs.mw <- crop (bec.bwbs.mw, extent (caribou.boreal.sa))
+wet.conifer.swamp <- crop (wet.conifer.swamp, extent (caribou.boreal.sa))
+wet.decid.swamp <- crop (wet.decid.swamp, extent (caribou.boreal.sa))
+wet.poor.fen <- crop (wet.poor.fen, extent (caribou.boreal.sa))
+wet.rich.fen <- crop (wet.rich.fen, extent (caribou.boreal.sa))
+wet.other <- crop (wet.other, extent (caribou.boreal.sa))
+wet.tree.bog <- crop (wet.tree.bog, extent (caribou.boreal.sa))
+wet.upland.decid <- crop (wet.upland.decid, extent (caribou.boreal.sa))
+vri.bryoid <- crop (vri.bryoid, extent (caribou.boreal.sa))
+vri.herb <- crop (vri.herb, extent (caribou.boreal.sa))
+vri.age <- crop (vri.age, extent (caribou.boreal.sa))
+vri.shrub <- crop (vri.shrub, extent (caribou.boreal.sa))
+vri.height <- crop (vri.height, extent (caribou.boreal.sa))
+vri.crown.close <- crop (vri.crown.close, extent (caribou.boreal.sa))
+
+proj.crs <- proj4string (caribou.boreal.sa)
+growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "ngb")
+ppt.as.snow.winter <- projectRaster (ppt.as.snow.winter, crs = proj.crs, method = "ngb")
+growing.degree.day <- crop (growing.degree.day, extent (caribou.boreal.sa))
+ppt.as.snow.winter <- crop (ppt.as.snow.winter, extent (caribou.boreal.sa))
+
+### Adjust the raster data for 'standardized' model covariates ###
+system.time (std.slope <- (slope - 1.29) / 1.70) # rounded these numbers to facilitate faster processing; decreases processing time substantially
+std.dist.lake <- (dist.lake - 1735) / 1321
+std.dist.water <- (dist.water - 8340) / 5601
+std.dist.cut.1to4 <- (dist.cut.1to4 - 82949) / 62638
+std.dist.cut.5to9 <- (dist.cut.5to9 - 44787) / 35084
+std.dist.cut.10over <- (dist.cut.10over - 24934) / 24867
+std.dist.paved.rd <- (dist.paved.rd - 25318) / 18921
+std.dist.resource.rd <- (dist.resource.rd - 603) / 574
+std.dist.pipeline <- (dist.pipeline - 4011) / 4577
+std.growing.degree.day <- (growing.degree.day - 1151) / 80
+std.ppt.as.snow.winter <- (ppt.as.snow.winter - 69) / 6
+std.vri.bryoid <- (vri.bryoid - 17) / 15
+std.vri.herb <- (vri.herb - 13) / 12
+std.vri.age <- (vri.age - 96) / 38
+std.vri.shrub <- (vri.shrub - 27) / 19
+std.vri.height <- (vri.height - 8) / 5
+std.vri.crown.close <- (vri.crown.close - 31) / 18
+
+## MAKE RASTER THE SAME RESOLUTION ###
+std.slope <- projectRaster (std.slope, std.dist.lake, method = 'bilinear')
+std.growing.degree.day <- projectRaster (std.growing.degree.day, std.dist.lake, method = 'bilinear')
+std.ppt.as.snow.winter <- projectRaster (std.ppt.as.snow.winter, std.dist.lake, method = 'bilinear')
+
+### CALCULATE RASTER OF STATIC VARIABLES ###
+raster.rsf.static <- (-2.56 + (std.slope * -0.02) + (std.dist.lake * -0.02) +
+                      (std.dist.water * -0.02) + (std.vri.bryoid * 0.14) +
+                      (std.vri.herb * 0.12) + (std.vri.shrub * 0.09) + 
+                      (wet.conifer.swamp * 0.05) + (wet.decid.swamp * -0.03) +
+                      (wet.poor.fen * 0.24) + (wet.rich.fen * 0.34) +
+                      (wet.other * 0.68) + (wet.tree.bog * 0.70) + 
+                      (wet.upland.decid * -0.51))
+writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\rsf_static_du6_ew.tif", 
+             format = GTiff)
+
+raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
+                  (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
+                  (std.dist.paved.rd * 0.04) + (std.dist.resource.rd * 0.03) +
+                  (std.dist.pipeline * 0.01) + (beetle.1to5 * 0.17) + 
+                  (beetle.6to9 * 0.50) + (fire.1to5 * 0.16) + 
+                  (fire.6to25 * -0.31) + (fire.over25 * -0.11) + 
+                  (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
+                  (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
+                  (std.vri.height * -0.16) + (std.vri.crown.close * 0.01)) / 
+              1 + exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
+                         (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
+                         (std.dist.paved.rd * 0.04) + (std.dist.resource.rd * 0.03) +
+                         (std.dist.pipeline * 0.01) + (beetle.1to5 * 0.17) + 
+                         (beetle.6to9 * 0.50) + (fire.1to5 * 0.16) + 
+                         (fire.6to25 * -0.31) + (fire.over25 * -0.11) + 
+                         (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
+                         (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
+                         (std.vri.height * -0.16) + (std.vri.crown.close * 0.01))
 
 
 
-
+overlay ()
 
 
 
