@@ -1008,6 +1008,8 @@ correlations
 ##### k-fold validation
 - du6, early winter stong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
 
+ - visual vlaiation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
+
 
 ```{r, k-fold du6, early winter table, eval = T, echo = F}
 table.kfold.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")

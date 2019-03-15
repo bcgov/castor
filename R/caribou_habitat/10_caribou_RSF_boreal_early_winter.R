@@ -38,6 +38,7 @@ require (lme4)
 require (rpostgis)
 require (raster)
 require (rgdal)
+require (clusterR)
 
 #===========
 # Datasets
@@ -6034,12 +6035,55 @@ vri.height <- crop (vri.height, extent (caribou.boreal.sa))
 vri.crown.close <- crop (vri.crown.close, extent (caribou.boreal.sa))
 
 proj.crs <- proj4string (caribou.boreal.sa)
-growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "ngb")
-ppt.as.snow.winter <- projectRaster (ppt.as.snow.winter, crs = proj.crs, method = "ngb")
+growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "bilinear")
+ppt.as.snow.winter <- projectRaster (ppt.as.snow.winter, crs = proj.crs, method = "bilinear")
 growing.degree.day <- crop (growing.degree.day, extent (caribou.boreal.sa))
 ppt.as.snow.winter <- crop (ppt.as.snow.winter, extent (caribou.boreal.sa))
 
+## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
+beginCluster ()
+
+slope <- resample (slope, dist.lake, method = 'bilinear')
+writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\slope_resample.tif", 
+             format = "GTiff")
+growing.degree.day <- resample (growing.degree.day, dist.lake, method = 'bilinear')
+writeRaster (growing.degree.day, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\grow_deg_day.tif", 
+             format = "GTiff")
+ppt.as.snow.winter <- resample (ppt.as.snow.winter, dist.lake, method = 'bilinear')
+writeRaster (ppt.as.snow.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\ppt_snow_winter.tif", 
+             format = "GTiff")
+wet.conifer.swamp <- resample (wet.conifer.swamp, dist.lake, method = 'ngb')
+writeRaster (wet.conifer.swamp, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\conifer_swamp.tif", 
+             format = "GTiff")
+wet.decid.swamp <- resample (wet.decid.swamp, dist.lake, method = 'ngb')
+writeRaster (wet.decid.swamp, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\deciduous_swamp.tif", 
+             format = "GTiff")
+wet.poor.fen <- resample (wet.poor.fen, dist.lake, method = 'ngb')
+writeRaster (wet.poor.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\poor_fen.tif", 
+             format = "GTiff")
+wet.rich.fen <- resample (wet.rich.fen, dist.lake, method = 'ngb')
+writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rich_fen.tif", 
+             format = "GTiff")
+wet.other <- resample (wet.other, dist.lake, method = 'ngb')
+writeRaster (wet.other, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\wet_other.tif", 
+             format = "GTiff")
+wet.tree.bog <- resample (wet.tree.bog, dist.lake, method = 'ngb')
+writeRaster (wet.tree.bog, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\treed_bog.tif", 
+             format = "GTiff")
+wet.upland.decid <- resample (wet.upland.decid, dist.lake, method = 'ngb')
+writeRaster (wet.upland.decid, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\upland_deciduous.tif", 
+             format = "GTiff")
+wet.rich.fen <- resample (wet.rich.fen, dist.lake, method = 'ngb')
+writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rich_fen.tif", 
+             format = "GTiff", overwrite = T)
+bec.bwbs.mw <- resample (bec.bwbs.mw, dist.lake, method = 'ngb')
+writeRaster (bec.bwbs.mw, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\bec_bwbs_mw.tif", 
+             format = "GTiff", overwrite = T)
+endCluster ()
+
 ### Adjust the raster data for 'standardized' model covariates ###
+beginCluster ()
+
 system.time (std.slope <- (slope - 1.29) / 1.70) # rounded these numbers to facilitate faster processing; decreases processing time substantially
 std.dist.lake <- (dist.lake - 1735) / 1321
 std.dist.water <- (dist.water - 8340) / 5601
@@ -6058,12 +6102,11 @@ std.vri.shrub <- (vri.shrub - 27) / 19
 std.vri.height <- (vri.height - 8) / 5
 std.vri.crown.close <- (vri.crown.close - 31) / 18
 
-## MAKE RASTER THE SAME RESOLUTION ###
-std.slope <- projectRaster (std.slope, std.dist.lake, method = 'bilinear')
-std.growing.degree.day <- projectRaster (std.growing.degree.day, std.dist.lake, method = 'bilinear')
-std.ppt.as.snow.winter <- projectRaster (std.ppt.as.snow.winter, std.dist.lake, method = 'bilinear')
+endCluster ()
 
 ### CALCULATE RASTER OF STATIC VARIABLES ###
+beginCluster ()
+
 raster.rsf.static <- (-2.56 + (std.slope * -0.02) + (std.dist.lake * -0.02) +
                       (std.dist.water * -0.02) + (std.vri.bryoid * 0.14) +
                       (std.vri.herb * 0.12) + (std.vri.shrub * 0.09) + 
@@ -6071,8 +6114,8 @@ raster.rsf.static <- (-2.56 + (std.slope * -0.02) + (std.dist.lake * -0.02) +
                       (wet.poor.fen * 0.24) + (wet.rich.fen * 0.34) +
                       (wet.other * 0.68) + (wet.tree.bog * 0.70) + 
                       (wet.upland.decid * -0.51))
-writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\rsf_static_du6_ew.tif", 
-             format = GTiff)
+writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rsf_static_du6_ew.tif", 
+             format = "GTiff")
 
 raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
                   (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
@@ -6092,11 +6135,8 @@ raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) +
                          (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
                          (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
                          (std.vri.height * -0.16) + (std.vri.crown.close * 0.01))
-
-
-
-overlay ()
-
+writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rsf_du6_ew.tif", 
+             format = "GTiff")
 
 
 
