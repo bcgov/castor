@@ -412,11 +412,9 @@ rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
 ### BUILD COMBO MODEL RSF DATASETS  ###
 ######################################
 
-rsf.data.combo <- rsf.data.terrain.water [, c (1:9, 10, 13:15, 17)]
+rsf.data.combo <- rsf.data.terrain.water [, c (1:9, 13:15)]
 rm (rsf.data.terrain.water)
 gc ()
-rsf.data.combo$soil_parent_material_name <- relevel (rsf.data.combo$soil_parent_material_name,
-                                                            ref = "Till")
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
                                     rsf.data.human.dist [, c (9:14, 26, 21:23)],
                                     by = "ptID")
@@ -438,7 +436,7 @@ rsf.data.combo <- dplyr::full_join (rsf.data.combo,
 rm (rsf.data.climate.winter)
 gc ()
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
-                                    rsf.data.veg [, c (9, 10, 17)],
+                                    rsf.data.veg [, c (9:10, 18:24, 44)],
                                     by = "ptID")
 rm (rsf.data.veg)
 gc ()
@@ -455,11 +453,7 @@ rsf.data.combo.du6.lw$bec_label <- relevel (rsf.data.combo.du6.lw$bec_label,
                                             ref = "BWBSmk")
 rsf.data.combo.du6.lw$wetland_demars <- relevel (rsf.data.combo.du6.lw$wetland_demars,
                                                  ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
-write.csv (rsf.data.combo.du6.lw, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\rsf_data_combo_du6_lw.csv")
-
-
-
-
+write.csv (rsf.data.combo.du6.lw, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_lw.csv")
 
 
 #######################
@@ -1682,6 +1676,102 @@ rsf.data.veg.du6.lw$wetland_demars <- relevel (rsf.data.veg.du6.lw$wetland_demar
 ### OUTLIERS ###
 
 
+
+
+
+
+
+
+
+
+
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_basal_area)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Basal Area\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Basal Area of Trees")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_basal_area.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_bryoid_cover_pct)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Bryoid Cover\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Percent Cover")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_bryoid_perc.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_crown_closure)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Crown Closure\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Crown Closure")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_crown_close.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_herb_cover_pct)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Herbaceous Cover\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Percent Cover")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_herb_cover.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_live_volume)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Live Forest Stand Volume\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Volume")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_live_volume.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_proj_age)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Projected Forest Stand Age\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Age")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_stand_age.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_proj_height)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Projected Forest Stand Height\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Height")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_stand_height.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_shrub_crown_close)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Shrub Crown Closure\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Crown Closure")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_shrub_closure.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_shrub_height)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Shrub Height\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Height")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_shrub_height.png")
+ggplot (rsf.data.veg.du6.lw, aes (x = pttype, y = vri_site_index)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Late Winter, Site Index\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Site Index")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_lw_site_index.png")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### HISTOGRAMS ###
 ggplot (rsf.data.veg.du6.lw, aes (x = bec_label, fill = pttype)) + 
             geom_histogram (position = "dodge", stat = "count") +
@@ -1775,8 +1865,6 @@ table.aic [3, 5] <- "(1 | UniqueID)"
 table.aic [3, 6] <-  AIC (model.lme4.du6.lw.veg.wetland.bec)
 
 
-
-
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_veg.csv", sep = ",")
 
 #=================================
@@ -1785,24 +1873,25 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ai
 
 ### compile AIC table of top models form each group
 table.aic.annual.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_annual_climate.csv", header = T, sep = ",")
-table.aic <- table.aic.annual.clim [10, ]
+table.aic <- table.aic.annual.clim [7, ]
 rm (table.aic.annual.clim)
 table.aic.human <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_human_disturb.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.human [110, ])
+table.aic <- bind_rows (table.aic, table.aic.human [15, ])
 rm (table.aic.human)
 table.aic.nat.disturb <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_natural_disturb.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.nat.disturb [5, ])
+table.aic <- bind_rows (table.aic, table.aic.nat.disturb [3, ])
 rm (table.aic.nat.disturb)
-table.aic.enduring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_terrain_water_v3.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.enduring [15, ])
+table.aic.enduring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_terrain_water.csv", header = T, sep = ",")
+table.aic <- bind_rows (table.aic, table.aic.enduring [7, ])
 rm (table.aic.enduring)
 table.aic.winter.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_winter_climate.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.winter.clim [5, ])
+table.aic <- bind_rows (table.aic, table.aic.winter.clim [3, ])
 rm (table.aic.winter.clim)
 
 # table.aic.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_veg.csv", header = T, sep = ",")
 # table.aic <- bind_rows (table.aic, table.aic.veg [5, ])
 # rm (table.aic.winter.clim)
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_all.csv", sep = ",")
 
 
 # Load and tidy the data 
