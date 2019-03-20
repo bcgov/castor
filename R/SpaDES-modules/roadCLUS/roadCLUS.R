@@ -74,7 +74,6 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- roadCLUS.PreSolve(sim)
       }else{
       # schedule future event(s)
-      sim <- scheduleEvent(sim, eventTime = start(sim),  "roadCLUS", "save.sim")
       sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads")
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim", eventPriority=20)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim", eventPriority=21)
@@ -104,19 +103,19 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
             snap= {
               sim <- roadCLUS.getClosestRoad(sim)
               sim <- roadCLUS.buildSnapRoads(sim)
-              sim <- roadCLUS.updateDBRoads(sim)
+              sim <- roadCLUS.updateRoadsTable(sim)
             } ,
             lcp ={
               sim <- roadCLUS.getClosestRoad(sim)
               sim <- roadCLUS.lcpList(sim)
               sim <- roadCLUS.shortestPaths(sim)# includes update graph 
-              sim <- roadCLUS.updateDBRoads(sim)
+              #sim <- roadCLUS.updateRoadsTable(sim)
             },
             mst ={
               sim <- roadCLUS.getClosestRoad(sim)
               sim <- roadCLUS.mstList(sim)# will take more time than lcpList given the construction of a mst
               sim <- roadCLUS.shortestPaths(sim)# update graph is within the shorestPaths function
-              sim <- roadCLUS.updateDBRoads(sim)
+              #sim <- roadCLUS.updateRoadsTable(sim)
             }
 
         )
@@ -139,13 +138,11 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 roadCLUS.Init <- function(sim) {
-  sim<-roadCLUS.getRoads(sim) # Get the existing roads
-  sim<-roadCLUS.getCostSurface(sim) # Get the cost surface
-  
+  sim <- roadCLUS.getRoads(sim) # Get the existing roads
   if(!P(sim)$roadMethod == 'snap'){
-    sim <- roadCLUS.getGraph(sim)
+    sim <- roadCLUS.getCostSurface(sim) # Get the cost surface
+    sim <- roadCLUS.getGraph(sim) # build the graph
   }
-  
   return(invisible(sim))
 }
 
@@ -155,14 +152,7 @@ roadCLUS.plot<-function(sim){
 }
 
 roadCLUS.save<-function(sim, time){
-  #Query the raster and set the roaded areas.
-  sim$roads[]<-unlist(c(dbGetQuery(sim$clusdb, 'Select roadyear from pixels')))
-  
-  if (time == 0 && !file.exists(paste0(sim$boundaryInfo[3], ".tif"))){
-    writeRaster(sim$roads, file=paste0(sim$boundaryInfo[3],".tif"), format="GTiff", overwrite=TRUE)
-  } else{
-    writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
-  }
+  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -180,7 +170,14 @@ roadCLUS.getRoads <- function(sim) {
         rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate[,2:3]  )
       dbClearResult(rs)
       dbCommit(sim$clusdb)
+
+      roadpixels<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')
+      sim$roads[]<-unlist(c(roadpixels), use.names =FALSE)
     }
+    
+    rm(roadUpdate)
+    gc()
+    #print(dbGetQuery(sim$clusdb, "SELECT * FROM pixels WHERE roadyear >=0 limit 1"))
     return(invisible(sim))
 }
 
@@ -196,7 +193,7 @@ roadCLUS.getCostSurface<- function(sim){
 }
 
 roadCLUS.getClosestRoad <- function(sim){
-  roads.pts <- rasterToPoints(sim$roads, fun=function(x){x > 0})
+  roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= 0})
   closest.roads.pts <- apply(gDistance(SpatialPoints(roads.pts),SpatialPoints(sim$landings), byid=TRUE), 1, which.min)
   sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
   #The drop =F is needed for a single landing - during the subset of a matrix it will become a column vector because as it converts a vector to a matrix, r will assume you have one column
@@ -216,12 +213,21 @@ roadCLUS.buildSnapRoads <- function(sim){
     st_as_sf(coords=c("x","y"))%>% 
     group_by(id) %>% summarize(m=mean(attr_data)) %>% 
     st_cast("LINESTRING")
-  #sim$newRoads<-fasterize::fasterize(st_buffer(mt,50),sim$roads, field = "m")
-  #sim$roads<-raster::merge(sim$newRoads, sim$roads)
   sim$paths.v<-unlist(sim$rasVelo$extract(mt), use.names = FALSE)
-  sim$roads[sim$ras[] %in% sim$paths.v] <- 100
+  sim$roads[sim$ras[] %in% sim$paths.v] <- (time(sim)+1)
   rm(rdptsXY, landings, mt, coodMatrix)
   gc()
+  return(invisible(sim))
+}
+
+roadCLUS.updateRoadsTable <- function(sim){
+  roadUpdate<-data.table(sim$paths.v)
+  setnames(roadUpdate, "pixelid")
+  roadUpdate[,roadyear := time(sim)+1]
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
   return(invisible(sim))
 }
 
@@ -294,26 +300,10 @@ roadCLUS.shortestPaths<- function(sim){
     paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, x[1], x[2], out = "both"))) #create a list of shortest paths
     #sim$paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), sim$paths.v))#save the verticies for mapping
     sim$paths.v<-data.table(paths[grepl("vpath",names(paths))])#save the verticies for mapping
-    
     paths.e<-paths[grepl("epath",names(paths))]
     edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
     rm(paths.e)
     gc()
-  }
-  return(invisible(sim))
-}
-
-
-roadCLUS.updateDBRoads <- function(sim){
-  if(exists("clusdb", where = sim)){
-    roadUpdate<-data.table(sim$paths.v)
-    setnames(roadUpdate, "pixelid")
-    roadUpdate[,roadyear := time(sim)]
-    print(roadUpdate)
-      dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, paste0('UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid'), roadUpdate )
-      dbClearResult(rs)
-      dbCommit(sim$clusdb)
   }
   return(invisible(sim))
 }
