@@ -26,8 +26,26 @@ inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = 
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 1)
-parameters <- list(nameRoads =  'rast.pre_roads')
-modules <- list("roadCLUS")
+parameters <- list(.progress = list(type = NA, interval = NA),
+  .globals = list(),
+  roadCLUS = list(roadMethod = 'snap', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.pre_roads'),
+  dataLoaderCLUS = list(dbName='clus',
+                         nameBoundaryFile="study_area_compart",
+                         nameBoundaryColumn="tsa_name",
+                         nameBoundary='Morice TSA', 
+                         nameBoundaryGeom='wkb_geometry',
+                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameZoneRaster="rast.land_unit",
+                         nameAgeRaster= "rast.vri2017_projage1",
+                         nameHeightRaster= "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure"),
+  cutblockSeqPrepCLUS = list(queryCutblocks ='cutseq_centroid',
+                             startHarvestYear = 2004, 
+                             getArea =TRUE)
+                   )
+modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -38,9 +56,10 @@ paths <- list(
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
-
-mySimOut<-spades(mySim)
-eventDiagram(mySimOut)
+system.time({
+  mySimOut<-spades(mySim)
+})
+#eventDiagram(mySimOut)
 ```
 
 
