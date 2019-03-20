@@ -87,7 +87,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
       
       #disconnect the db once the sim is over?
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS")
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
       },
     removeDbCLUS={
       sim<-disconnectDbCLUS(sim)
@@ -258,12 +258,13 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels[, height := 10]
   }
   
+
   #------------------------
   #Load the data in Rsqlite
   #------------------------
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, 'INSERT INTO pixels (pixelid, compartid, zoneid, yieldid, thlb, age, crownclosure, height) 
-                    values (:pixelid, :compartid, :zoneid, :yieldid, :thlb, :age, :crownclosure, :height  )', pixels )
+    rs<-dbSendQuery(sim$clusdb, 'INSERT INTO pixels (pixelid, compartid, zoneid, yieldid, thlb, age, crownclosure, height, roadyear) 
+                    values (:pixelid, :compartid, :zoneid, :yieldid, :thlb, :age, :crownclosure, :height, NULL  )', pixels )
     dbClearResult(rs)
   dbCommit(sim$clusdb)
   
