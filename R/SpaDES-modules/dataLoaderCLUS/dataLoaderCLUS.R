@@ -126,24 +126,25 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameCompartmentRaster") == "99999")){
     print(paste0('.....compartment ids: ', P(sim, "dataLoaderCLUS", "nameCompartmentRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    sim$ras<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), clipper=geom, conn=conn)
-    
+    sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     setnames(pixels, "V1", "compartid")
+    sim$ras[]<-unlist(pixels[,2], use.names = FALSE)
     
   }else{
     print('.....compartment ids: default 1')
     #Set the empty table for values not supplied in the parmaters
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    sim$ras<-RASTER_CLIP(srcRaster="rast.similarity_vri2003", clipper=geom, conn=conn) #Need to change this - hard coded
-    
+    sim$ras<-RASTER_CLIP2(srcRaster= 'rast.bc_bound', clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-data.table(c(t(raster::as.matrix(sim$ras)))) #transpose then vectorize which matches the same order as adj
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 1]
     pixels<-pixels[,2:3]
+    sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
+    sim$rasVelo<-velox::velox(sim$ras)
   }
   
   #----------------
@@ -152,9 +153,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameZoneRaster") == "99999")){ 
     print(paste0('.....zone ids: ',P(sim, "dataLoaderCLUS", "nameZoneRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.zone<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRaster"), clipper=geom, conn=conn)
-    
+    ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
     setnames(pixels, "V1", "zoneid")
     
@@ -173,9 +173,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print(paste0('.....thlb: ',P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster")))
     
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.thlb<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), clipper=geom, conn=conn)
-    
+    ras.thlb<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.thlb)))))
     setnames(pixels, "V1", "thlb")
     
@@ -193,12 +192,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameYieldsRaster") == "99999")){
     print(paste0('.....yield ids: ',P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.ylds<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), clipper=geom, conn=conn)
-    
+    ras.ylds<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ylds)))))
     setnames(pixels, "V1", "yieldid")
-    
     rm(ras.ylds)
     gc()
     
@@ -213,15 +210,12 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999")){
     print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameAgeRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.age<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), clipper=geom, conn=conn)
-    
+    ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.age)))))
     setnames(pixels, "V1", "age")
-    
     rm(ras.age)
     gc()
-    
   }else{
     print('.....age: default 120')
     pixels[, age := 120]
@@ -233,9 +227,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999")){
     print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.cc<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), clipper=geom, conn=conn)
-    
+    ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.cc)))))
     setnames(pixels, "V1", "crownclosure")
     
@@ -252,9 +245,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999")){
     print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.ht<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameHeightRaster"), clipper=geom, conn=conn)
-    
+    ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ht)))))
     setnames(pixels, "V1", "height")
     
@@ -266,9 +258,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels[, height := 10]
   }
   
-  #---------------------
+  #------------------------
   #Load the data in Rsqlite
-  #---------------------
+  #------------------------
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, 'INSERT INTO pixels (pixelid, compartid, zoneid, yieldid, thlb, age, crownclosure, height) 
                     values (:pixelid, :compartid, :zoneid, :yieldid, :thlb, :age, :crownclosure, :height  )', pixels )
