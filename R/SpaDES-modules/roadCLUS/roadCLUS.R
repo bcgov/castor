@@ -29,7 +29,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "roadCLUS.Rmd"),
-  reqdPkgs = list("raster", "sp", "latticeExtra", "sf", "rgeos", "velox"),
+  reqdPkgs = list("raster", "sp", "latticeExtra", "sf", "rgeos", "velox", "RANN"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
@@ -193,9 +193,15 @@ roadCLUS.getCostSurface<- function(sim){
 }
 
 roadCLUS.getClosestRoad <- function(sim){
+  #TODO: Need a better approach here - converting to points then nearest distance seems redundant?
   roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= 0})
-  closest.roads.pts <- apply(gDistance(SpatialPoints(roads.pts),SpatialPoints(sim$landings), byid=TRUE), 1, which.min)
-  sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
+  #Maybe a SELECT pixelid FROM pixels where roadyear>= 0. Then XYfromCELL?
+  #closest.roads.pts <- apply(gDistance(SpatialPoints(roads.pts),SpatialPoints(sim$landings), byid=TRUE), 1, which.min)
+  #package RANN function nn2()? - yes much faster
+  closest.roads.pts <-nn2(roads.pts[,1:2],coordinates(sim$landings), k =1)
+  #sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
+  sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts$nn.idx, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
+  
   #The drop =F is needed for a single landing - during the subset of a matrix it will become a column vector because as it converts a vector to a matrix, r will assume you have one column
   rm(roads.pts, closest.roads.pts)
   gc()
