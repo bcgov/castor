@@ -41,6 +41,7 @@ def send_email(user, pwd, recipient, subject, body):
         log('Successfully sent the mail')
     except Exception as e:
         log("****Failed to send mail****")
+
 def openlog(buDir):
     global kennyloggins
     logger = os.path.join(os.path.dirname(buDir), '{0}.log'.format(os.path.basename(buDir)))
@@ -51,11 +52,11 @@ def openlog(buDir):
 def log(string):
         global kennyloggins
         msg = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + ": " + str(string)
-        print msg
+        print (msg)
         if not kennyloggins is None:
             kennyloggins.write('{0}\n'.format(msg))
 
-def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='clus', backup_dir=r'C:\Data\PGBackups', backup_prefix='CLUS_DB_Backup', dbPort='5432', schema_only=False, gmailacct='mfowler.bc@gmail.com', gmailpass='****', notifyrecip='mike.fowler@gov.bc.ca'):
+def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='clus', backup_dir=r'C:\Data\PGBackups', backup_prefix='CLUS_DB_Backup', dbPort='5432', schema_only=False, gmailacct='k', gmailpass='k', notifyrecip='k'):
     global kennyloggins
     tstamp = str(strftime("%Y%m%d"))
     buDir = os.path.join(backup_dir, '{0}_{1}'.format(backup_prefix, tstamp))
@@ -100,24 +101,24 @@ def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='cl
         log("*****Error Executing Command: {0}".format(command))
         log("*****Error Performing Backup.")
         kennyloggins.close()
-        if not gmailacct is None:
-            send_email(gmailacct, gmailpass, notifyrecip, 'CLUS -DB Backup - ERROR', 'The database did not finish backing up at: ' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + '\n\nError:{0}\n\nCommand Executed:{1}'.format(error, command))
+        #if not gmailacct is None:
+          #  send_email(gmailacct, gmailpass, notifyrecip, 'CLUS -DB Backup - ERROR', 'The database did not finish backing up at: ' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + '\n\nError:{0}\n\nCommand Executed:{1}'.format(error, command))
     else:
         log("Dump finished for {0}".format(dbName))
         log("Backup Directory: {0}".format(buDir))
         log("Backup job complete.")
         kennyloggins.close()
-        if not gmailacct is None:
-            send_email(gmailacct, gmailpass, notifyrecip, 'CLUS -DB Backup - SUCCESS', 'The database finished backing up at: ' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + '\n\nCommand Executed:{0}\n\nBackup Directory Created:{1}'.format(command, buDir))
+        #if not gmailacct is None:
+            #send_email(gmailacct, gmailpass, notifyrecip, 'CLUS -DB Backup - SUCCESS', 'The database finished backing up at: ' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + '\n\nCommand Executed:{0}\n\nBackup Directory Created:{1}'.format(command, buDir))
    #--------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
 
     #stashSpot = r'W:\FOR\VIC\HTS\ANA\Workarea\mwfowler\CLUS\Data\CLUS_DB_Backups'
-    #stashSpot = r'C:\Data\PGBackups'
-    stashSpot = os.environ['TEMP']
+    stashSpot = r'C:\Data\PGBackups'
+    #stashSpot = os.environ['TEMP']
     prefix = 'CLUS_DB_Backup'
-    schemaMode = True
+    schemaMode = False
     #--Change the gmail account and password and notify recipient, or to omit this option leave gmailacct=None and it will be skipped.   See subsequent line call.
-    BackupDB(backup_dir=stashSpot, backup_prefix=prefix, schema_only=schemaMode, gmailacct='mfowler.bc@gmail.com', gmailpass='******', notifyrecip='mike.fowler@gov.bc.ca')
+    BackupDB(backup_dir=stashSpot, backup_prefix=prefix, schema_only=schemaMode, gmailacct='', gmailpass='', notifyrecip='')
     #BackupDB(backup_dir=stashSpot, backup_prefix=prefix, schema_only=schemaMode, gmailacct=None)
 
