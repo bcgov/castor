@@ -39,7 +39,7 @@ parameters <- list(
   dataLoaderCLUS = list( dbName='clus',
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary='Prince George TSA', 
+                         nameBoundary='Morice TSA', 
                          nameBoundaryGeom='wkb_geometry',
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                          nameZoneRaster="rast.land_unit",
