@@ -100,7 +100,7 @@ blockingCLUS.Init <- function(sim) {
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
   dbClearResult(rs)
   dbCommit(sim$clusdb)
-  
+  print("....done")
   rm(dt)
   gc()
   
@@ -160,21 +160,27 @@ blockingCLUS.preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   
   zones<-unname(unlist(dbGetQuery(sim$clusdb, 
-          'SELECT zoneid FROM pixels where thlb > 0 and similar > 0 group by zoneid Having count(pixelid) > 1')))#get the zone names - strict use of integers for these
-
-    #get the inputs for the forest_hierarchy java object as a list  
-  resultset<-lapply(zones, function (x){ 
-    vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(x), ' AND thlb > 0 and similar > 0')))
+          'SELECT zoneid FROM pixels where thlb > 0 and similar > 0 and zoneid > 0 group by zoneid Having count(pixelid) > 1')))#get the zone names - strict use of integers for these
+  print(zones)
+    #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
+  resultset<-list()
+  for(zone in zones){
+    vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(zone), ' AND thlb > 0 and similar > 0')))
     g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
-    paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
-    paths.matrix[, V1 := as.integer(V1)]
-    paths.matrix[, V2 := as.integer(V2)]
-    #print(head(get.edgelist(g.mst_sub)))
-    list(as.matrix(degree(g.mst_sub)), paths.matrix, x) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
-    })
-  
+    if(length(get.edgelist(g.mst_sub)) > 0){
+      paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
+      paths.matrix[, V1 := as.integer(V1)]
+      paths.matrix[, V2 := as.integer(V2)]
+      #print(head(get.edgelist(g.mst_sub)))
+      resultset<-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
+    }else{
+      print(paste0(zone, " has length<0"))
+      next
+    }
+  }
+
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
-  if(length(zones) > 1 && object.size(g) > 10000000){ #0.1 GB
+  if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
     print(paste0("make cluster on:", noCores, " cores"))
     cl<-makeCluster(noCores, type = "SOCK")
@@ -182,11 +188,15 @@ blockingCLUS.preBlock <- function(sim) {
     blockids<-parLapply(cl, resultset, getBlocksIDs)#runs in parallel using load balancing
     stopCluster.default(cl)
   }else{
-    library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the JVM on both the cores and the main. 
+    options(java.parameters = "-Xmx2g")
+    library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the same JVM on both the cores and the master. 
     library(jdx)
     print("running java on one cluster")
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
+  
+  rm(resultset)
+  gc()
   
   #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
   lastBlockID <<- 0
@@ -287,26 +297,28 @@ blockingCLUS.spreadBlock<- function(sim) {
 ### additional functions
 getBlocksIDs<- function(x){
   print(paste0("getBlocksID for zone: ", x[][[3]]))
-  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx 5g", force.init = TRUE)
+  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   
   dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]])))
   dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(-1)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
-  
   d<-convertToJava(as.integer(unlist(dg[,"V2"])))
   
-  h<-convertToJava(data.frame(size= c(20,40,60,100), n = as.integer(c(1000000, 300000,10000,1000))), array.order = "column-major", data.frame.row.major = TRUE)
+  h<-convertToJava(data.frame(size= c(40,320,400,1000), n = as.integer(c(1000000, 300000,10000,1000))), array.order = "column-major", data.frame.row.major = TRUE)
   h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
   
   to<-.jarray(as.matrix(x[][[2]][,1]))
   from<-.jarray(as.matrix(x[][[2]][,2]))
   weight<-.jarray(as.matrix(x[][[2]][,3]))
+  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
+  fhClass$blockEdges() # creates the blocks
+  blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
+  fhClass$clearInfo()
   
-    fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
-    fhClass$blockEdges() # creates the blocks
-    blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
-    fhClass$clearInfo()
-
+  rm(fhClass, dg, h, to, from, weight)
+  gc()
+  jgc()
+  
   list(blockids)
 }
 
@@ -317,3 +329,4 @@ worker.init <- function(packages) { #used for setting up the environments of the
   NULL #return NULL to avoid sending unnecessary data back to the master process
 }
 
+jgc <- function() .jcall("java/lang/System", method = "gc")
