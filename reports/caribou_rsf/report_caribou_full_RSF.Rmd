@@ -5,8 +5,9 @@ date: "January 17, 2019"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require (knitr)
 ```
 
 ## Introduction
@@ -609,17 +610,6 @@ timber volume:
  
 - the top model included all covariates (wetladn, BEC, shrub closure, bryoid coveer, herb cover, stand age, stand height adn stand canopy closure) and had an AIC*~w~* = 1.00
 
-
-
-
-
-
-
-
-
-
-
-
 ###### Combination Models
 
 - correlations
@@ -641,23 +631,80 @@ timber volume:
   - fit simpler model without seismic and model converged
   - fit simpler model without soils and model converged 
 
-- model with endruing features (slope, distance_to_lake, distance_to_watercourse, soil_parent_material_name, ) and natural disturbance features (beetle and fire)
-  - model failed to converge
-  - fit simpler model without soil parent material and model converged
+- DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
   
-- DROPPED SOIL becuase was problematic for fitting models
-  
-- model with enduring features (slope, distance_to_lake, distance_to_watercourse) and climate (growing_degree_days, ppt_as_snow_winter, temp_avg_winter)
+- fit combination models
+  - remove seismic line and soil parent material form all models because models sometimes failed to 
+    converge
+  - dropped distance to mine; covariate said selection for mines, which is unlikely
 
-- model with enduring features (slope, distance_to_lake, distance_to_watercourse) human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic), natural disturbance features (beetle and fire) 
+- top model (AIC*~w~* = 0.999) included all covariates 
+- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
+  approximately   0.02)
+- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
+  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
+  -0.055)
+- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
+- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
+- selected for 1 to 5 year old (\beta = 0.167) 6 to 9 year old (\beta = 0.167) beetle killed stands 
+- selected for young burns (\beta = 0.161), but avoided burns 6 to 25 years old (\beta = -0.305) or over 25 years old (\beta = -0.108)
+- avoided areas patches logner growing seasons (\beta = -0.145) and with deeper snow (\beta = -0.156)
+- avoided BWBSmw (\beta = -0.168) compared to BWBSmk
+- strongly selected for treed bog (\beta = 0.699), and the 'other' (\beta = 0.679) wetland type   
+  relative to upland conifer
+- selected for nutrient rich (\beta = 0.342) and nutrient poor (\beta = 0.242) fens relative to 
+  upland conifer
+- selected for patches with higher percentage of bryoid cover (\beta = 0.144) and herb cover (\beta = 0.124) 
+- selected for pacthes with older  (\beta = 0.076), but shorter (\beta = -0.155) forest stadns
 
-- model with enduring features (slope, distance_to_lake, distance_to_watercourse) human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic), and climate (growing_degree_days, ppt_as_snow_winter, temp_avg_winter)
-  - failed to converge
-  - fit simpler model without seismic and model converged
 
-- best model included
+##### k-fold validation
+- du6, early winter stong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
 
-- realtionships were (Table)
+ - visual vlaiation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
+
+
+```{r, k-fold du6, early winter table, eval = T, echo = F}
+table.kfold.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
+table.kfold.du6.ew <- table.kfold.du6.ew [-1]
+kable (table.kfold.du6.ew)
+```
+
+![](plots/kfold_lm_du6_ew_grp1.png)
+![](plots/kfold_lm_du6_ew_grp2.png)
+![](plots/kfold_lm_du6_ew_grp3.png)
+![](plots/kfold_lm_du6_ew_grp4.png)
+![](plots/kfold_lm_du6_ew_grp5.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -767,7 +814,7 @@ correlations
   - mean warmest month temperature highly correlated with growing degree days ($\rho$ = 0.87) and         mean coldest month temperature ($\rho$ = -0.72)
   - number of frost free days highly correlated with growing degree days ($\rho$ = 0.74), frost free      end day ($\rho$ = 0.71), frost free period ($\rho$ = 0.89), and mean annual temperature ($\rho$ =     0.75)
   - precipitation as snow correlated with mean annual precipitation ($\rho$ = 0.80)
-  - ended up using precipitation as snow, growing degree days and mean annual temperature
+  - ended up using precipitation as snow and growing degree days
    - snow, indicator of winter conditions, mean annual temp indicator of larger climate                    conditions adn growing degree days indicator of foage production potential
 
 ![](plots/corr_annual_climate_du6_lw.png)
@@ -809,6 +856,144 @@ correlations
 
 - the top model included winter preciptation as snow and average winter temperature (AIC*~w~* = 0.555); the second ranked model included average winter temperature (AIC*~w~* = 0.414)
 - coefficients of the top models were similar, and therefore all covraites were retained for further consideration
+
+###### Vegetation and Forest Characteristics
+
+- boxplots
+  - no significant outliers
+
+![](plots/boxplot_veg_du6_ew_basal_area.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###### Combination Models
+
+
+
+
+
+
+
+
+
+
+
+
+
+- correlations
+  - annual precipitation as snow and elevation correlated ($\rho$ = 0.74)
+  - annual precipitation as snow and winter precipitation as snow correlated ($\rho$ = 0.96)
+  - average winter temperature and elevation correlated ($\rho$ = 0.88)
+  - average winter temperature and mean annual temperature close to being correlated ($\rho$ = 0.69)
+  
+  - removed elevation, annual precipitation as snow and mean annaul temperature
+  
+
+![](plots/corr_winter_climate_du6_ew.png)
+
+- average witner temperature had a VIF = 10.6, therefore removed
+
+
+- model with enduring features (slope, distance_to_lake, distance_to_watercourse, soil_parent_material_name, ) and human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic)
+  - model failed to converge
+  - fit simpler model without seismic and model converged
+  - fit simpler model without soils and model converged 
+
+- DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
+  
+- fit combination models
+  - remove seismic line and soil parent material form all models because models sometimes failed to 
+    converge
+  - dropped distance to mine; covariate said selection for mines, which is unlikely
+
+- top model (AIC*~w~* = 0.999) included all covariates 
+- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
+  approximately   0.02)
+- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
+  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
+  -0.055)
+- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
+- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
+- selected for 1 to 5 year old (\beta = 0.167) 6 to 9 year old (\beta = 0.167) beetle killed stands 
+- selected for young burns (\beta = 0.161), but avoided burns 6 to 25 years old (\beta = -0.305) or over 25 years old (\beta = -0.108)
+- avoided areas patches logner growing seasons (\beta = -0.145) and with deeper snow (\beta = -0.156)
+- avoided BWBSmw (\beta = -0.168) compared to BWBSmk
+- strongly selected for treed bog (\beta = 0.699), and the 'other' (\beta = 0.679) wetland type   
+  relative to upland conifer
+- selected for nutrient rich (\beta = 0.342) and nutrient poor (\beta = 0.242) fens relative to 
+  upland conifer
+- selected for patches with higher percentage of bryoid cover (\beta = 0.144) and herb cover (\beta = 0.124) 
+- selected for pacthes with older  (\beta = 0.076), but shorter (\beta = -0.155) forest stadns
+
+
+##### k-fold validation
+- du6, early winter stong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
+
+ - visual vlaiation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
+
+
+```{r, k-fold du6, early winter table, eval = T, echo = F}
+table.kfold.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
+table.kfold.du6.ew <- table.kfold.du6.ew [-1]
+kable (table.kfold.du6.ew)
+```
+
+![](plots/kfold_lm_du6_ew_grp1.png)
+![](plots/kfold_lm_du6_ew_grp2.png)
+![](plots/kfold_lm_du6_ew_grp3.png)
+![](plots/kfold_lm_du6_ew_grp4.png)
+![](plots/kfold_lm_du6_ew_grp5.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -969,46 +1154,30 @@ correlations
 - the top model included summer preciptation and average summer temperature (AIC*~w~* = 0.884); the second ranked model included summer preciptation (AIC*~w~* = 0.116)
 - coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
-###### Combination Model
-
-- correlations
-  - annual and winter ppt as snow higly correalted ($\rho$ = 0.96); kept winter PAS
-  - mean annual temp adn witner temp close to being correalted ($\rho$ = 0.69); removed annual temp
-
-![](plots/corr_all_du6_ew.png)
-
-- vif value for winter temperates was 10.86; removed form analysis, all VIFs <4.26
-
-- fit combination models
-  - remove seismic line and soil parent material form all models because models sometimes failed to 
-    converge
-  - dropped distance to mine; covariate said selection for mines, which is unlikely
-
-- top model (AIC*~w~* = 0.999) included all covariates 
-- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
-  approximately   0.02)
-- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
-  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
-  -0.055)
-- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
-- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
-- selected for 1 to 5 year old (\beta = 0.167) 6 to 9 year old (\beta = 0.167) beetle killed stands 
-- selected for young burns (\beta = 0.161), but avoided burns 6 to 25 years old (\beta = -0.305) or over 25 years old (\beta = -0.108)
-- avoided areas patches logner growing seasons (\beta = -0.145) and with deeper snow (\beta = -0.156)
-- avoided BWBSmw (\beta = -0.168) compared to BWBSmk
-- strongly selected for treed bog (\beta = 0.699), and the 'other' (\beta = 0.679) wetland type   
-  relative to upland conifer
-- selected for nutrient rich (\beta = 0.342) and nutrient poor (\beta = 0.242) fens relative to 
-  upland conifer
-- selected for patches with higher percentage of bryoid cover (\beta = 0.144) and herb cover (\beta = 0.124) 
-- selected for pacthes with older  (\beta = 0.076), but shorter (\beta = -0.155) forest stadns
 
 
-##### k-fold validation
-- average slope, etc. across teh five bins, make a table?
 
 
-![](plots/kfold_lm_du6_ew_grp1.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -36,6 +36,9 @@ require (ggcorrplot)
 require (car)
 require (lme4)
 require (rpostgis)
+require (raster)
+require (rgdal)
+require (clusterR)
 
 #===========
 # Datasets
@@ -407,8 +410,6 @@ rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
                                        "c ('Shrub Swamp', 'Hardwood Swamp', 'Mixedwood Swamp') = 'Deciduous Swamp'")
 rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
                                        "c ('Upland Other', 'Cloud Shadow', 'Anthropogenic', 'Burn', 'Aquatic Bed', 'Cloud', 'Mountain', 'Agriculture', 'Mudflats', 'Open Water', 'Meadow Marsh', 'Emergent Marsh', 'Cutblock') = 'Other'")
-rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
-                                       "c ('Upland Deciduous', 'Upland Mixedwood') = 'Upland Deciduous'")
 rsf.data.veg$wetland_demars <- recode (rsf.data.veg$wetland_demars,
                                        "c ('Upland Deciduous', 'Upland Mixedwood') = 'Upland Deciduous'")
 
@@ -5594,12 +5595,6 @@ model.lme4.du6.ew.train3 <- glmer (pttype ~ std.slope + std.distance_to_lake +
 ss <- getME (model.lme4.du6.ew.train3, c ("theta","fixef"))
 model.lme4.du6.ew.train3 <- update (model.lme4.du6.ew.train3, start = ss)
 
-
-
-
-
-
-
 # data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
 rsf.data.combo.du6.ew$preds.train3 <- predict (model.lme4.du6.ew.train3, 
                                                newdata = rsf.data.combo.du6.ew, 
@@ -5670,21 +5665,20 @@ table.kfold [28, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [28
 table.kfold [29, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [29, 4], 0) # expected number of uses in each bin
 table.kfold [30, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [30, 4], 0) # expected number of uses in each bin
 
-glm.kfold.test2 <- lm (used.count ~ expected.count, 
+glm.kfold.test3 <- lm (used.count ~ expected.count, 
                        data = dplyr::filter (table.kfold, test.number == 3))
-summary (glm.kfold.test2)
+summary (glm.kfold.test3)
 
-table.kfold [21, 7] <- 1.02626
+table.kfold [21, 7] <- 1.014
 table.kfold [21, 8] <- "<0.001"
-table.kfold [21, 9] <- -16.86137
-table.kfold [21, 10] <- 0.731
-table.kfold [21, 11] <- 0.9841
+table.kfold [21, 9] <- -11.366
+table.kfold [21, 10] <- 0.437
+table.kfold [21, 11] <- 0.9991
 
 chisq.test(dplyr::filter(table.kfold, test.number == 3)$used.count, dplyr::filter(table.kfold, test.number == 3)$expected.count)
-table.kfold [21, 12] <- 0.08552
+table.kfold [21, 12] <- 0.09884
 
 write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_valid_du6_ew.csv")
-
 
 ggplot (dplyr::filter(table.kfold, test.number == 3), aes (x = expected.count, y = used.count)) +
   geom_point () +
@@ -5694,20 +5688,11 @@ ggplot (dplyr::filter(table.kfold, test.number == 3), aes (x = expected.count, y
         locations in 10 RSF bins",
         x = "Expected proportion",
         y = "Observed proportion") + 
-  scale_x_continuous (breaks = seq (0, 3000, by = 250)) + 
-  scale_y_continuous (breaks = seq (0, 3000, by = 250))
+  scale_x_continuous (breaks = seq (0, 3500, by = 250)) + 
+  scale_y_continuous (breaks = seq (0, 3500, by = 250))
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du6_ew_grp3.png")
 
 write.csv (test.data.3, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\rsf_preds_du6_ew_train3.csv")
-
-
-
-
-
-
-
-
-
 
 ### FOLD 4 ###
 train.data.4 <- rsf.data.combo.du6.ew %>%
@@ -5741,11 +5726,105 @@ model.lme4.du6.ew.train4 <- glmer (pttype ~ std.slope + std.distance_to_lake +
 ss <- getME (model.lme4.du6.ew.train4, c ("theta","fixef"))
 model.lme4.du6.ew.train4 <- update (model.lme4.du6.ew.train4, start = ss)
 
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.combo.du6.ew$preds.train4 <- predict (model.lme4.du6.ew.train4, 
+                                               newdata = rsf.data.combo.du6.ew, 
+                                               re.form = NA, type = "response")
+max (rsf.data.combo.du6.ew$preds.train4)
+min (rsf.data.combo.du6.ew$preds.train4)
+rsf.data.combo.du6.ew$preds.train4.class <- cut (rsf.data.combo.du6.ew$preds.train4, # put into classes; 0 to 0.4, based on max and min values
+                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
+                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
+                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+write.csv (rsf.data.combo.du6.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv")
+rsf.data.combo.du6.ew.avail <- dplyr::filter (rsf.data.combo.du6.ew, pttype == 0)
+
+table.kfold [c (31:40), 1] <- 4
+
+table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.06")) * 0.06)
+table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.10")) * 0.10)
+table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.14")) * 0.14)
+table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.18")) * 0.18)
+table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.22")) * 0.22)
+table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.26")) * 0.26)
+table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.30")) * 0.30)
+table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.34")) * 0.34)
+table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train4.class == "0.38")) * 0.38)
+
+table.kfold [31, 4] <- table.kfold [31, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [32, 4] <- table.kfold [32, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [33, 4] <- table.kfold [33, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [34, 4] <- table.kfold [34, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [35, 4] <- table.kfold [35, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [36, 4] <- table.kfold [36, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [37, 4] <- table.kfold [37, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [38, 4] <- table.kfold [38, 3] / sum  (table.kfold [c (31:40), 3])
+table.kfold [39, 4] <- table.kfold [39, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [40, 4] <- table.kfold [40, 3] / sum  (table.kfold [c (31:40), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_valid_du6_ew.csv")
+
+# data for estimating use
+test.data.4$preds <- predict (model.lme4.du6.ew.train4, newdata = test.data.4, re.form = NA, type = "response")
+test.data.4$preds.class <- cut (test.data.4$preds, # put into classes; 0 to 0.4, based on max and min values
+                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
+                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
+                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+write.csv (test.data.4, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\rsf_preds_du6_ew_train4.csv")
+test.data.4.used <- dplyr::filter (test.data.4, pttype == 1)
+
+table.kfold [31, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.02"))
+table.kfold [32, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.06"))
+table.kfold [33, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.10"))
+table.kfold [34, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.14"))
+table.kfold [35, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.18"))
+table.kfold [36, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.22"))
+table.kfold [37, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.26"))
+table.kfold [38, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.30"))
+table.kfold [39, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.34"))
+table.kfold [40, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.38"))
+
+table.kfold [31, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [21, 4], 0) # expected number of uses in each bin
+table.kfold [32, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [22, 4], 0) # expected number of uses in each bin
+table.kfold [33, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [23, 4], 0) # expected number of uses in each bin
+table.kfold [34, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [24, 4], 0) # expected number of uses in each bin
+table.kfold [35, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [25, 4], 0) # expected number of uses in each bin
+table.kfold [36, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [26, 4], 0) # expected number of uses in each bin
+table.kfold [37, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [27, 4], 0) # expected number of uses in each bin
+table.kfold [38, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [28, 4], 0) # expected number of uses in each bin
+table.kfold [39, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [29, 4], 0) # expected number of uses in each bin
+table.kfold [40, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [30, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test4 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter (table.kfold, test.number == 4))
+summary (glm.kfold.test4)
+
+table.kfold [31, 7] <- 0.98884
+table.kfold [31, 8] <- "<0.001"
+table.kfold [31, 9] <- 7.52495
+table.kfold [31, 10] <- 0.765
+table.kfold [31, 11] <- 0.9958
+
+chisq.test(dplyr::filter(table.kfold, test.number == 4)$used.count, dplyr::filter(table.kfold, test.number == 4)$expected.count)
+table.kfold [31, 12] <- 0.09884
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_valid_du6_ew.csv")
 
 
+ggplot (dplyr::filter(table.kfold, test.number == 4), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 4 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 3000, by = 250)) + 
+  scale_y_continuous (breaks = seq (0, 3000, by = 250))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du6_ew_grp4.png")
 
-
-
+write.csv (test.data.4, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\rsf_preds_du6_ew_train4.csv")
 
 ### FOLD 5 ###
 train.data.5 <- rsf.data.combo.du6.ew %>%
@@ -5779,12 +5858,285 @@ model.lme4.du6.ew.train5 <- glmer (pttype ~ std.slope + std.distance_to_lake +
 ss <- getME (model.lme4.du6.ew.train5, c ("theta","fixef"))
 model.lme4.du6.ew.train5 <- update (model.lme4.du6.ew.train5, start = ss)
 
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.combo.du6.ew$preds.train5 <- predict (model.lme4.du6.ew.train5, 
+                                               newdata = rsf.data.combo.du6.ew, 
+                                               re.form = NA, type = "response")
+max (rsf.data.combo.du6.ew$preds.train5)
+min (rsf.data.combo.du6.ew$preds.train5)
+rsf.data.combo.du6.ew$preds.train5.class <- cut (rsf.data.combo.du6.ew$preds.train5, # put into classes; 0 to 0.4, based on max and min values
+                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
+                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
+                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+write.csv (rsf.data.combo.du6.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_ew.csv")
+rsf.data.combo.du6.ew.avail <- dplyr::filter (rsf.data.combo.du6.ew, pttype == 0)
+
+table.kfold [c (41:50), 1] <- 5
+
+table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.06")) * 0.06)
+table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.10")) * 0.10)
+table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.14")) * 0.14)
+table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.18")) * 0.18)
+table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.22")) * 0.22)
+table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.26")) * 0.26)
+table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.30")) * 0.30)
+table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.34")) * 0.34)
+table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du6.ew.avail, preds.train5.class == "0.38")) * 0.38)
+
+table.kfold [41, 4] <- table.kfold [41, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [42, 4] <- table.kfold [42, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [43, 4] <- table.kfold [43, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [44, 4] <- table.kfold [44, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [45, 4] <- table.kfold [45, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [46, 4] <- table.kfold [46, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [47, 4] <- table.kfold [47, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [48, 4] <- table.kfold [48, 3] / sum  (table.kfold [c (41:50), 3])
+table.kfold [49, 4] <- table.kfold [49, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [50, 4] <- table.kfold [50, 3] / sum  (table.kfold [c (41:50), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_valid_du6_ew.csv")
+
+# data for estimating use
+test.data.5$preds <- predict (model.lme4.du6.ew.train5, newdata = test.data.5, re.form = NA, type = "response")
+test.data.5$preds.class <- cut (test.data.5$preds, # put into classes; 0 to 0.4, based on max and min values
+                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
+                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
+                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+write.csv (test.data.5, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\rsf_preds_du6_ew_train5.csv")
+test.data.5.used <- dplyr::filter (test.data.5, pttype == 1)
+
+table.kfold [41, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.02"))
+table.kfold [42, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.06"))
+table.kfold [43, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.10"))
+table.kfold [44, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.14"))
+table.kfold [45, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.18"))
+table.kfold [46, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.22"))
+table.kfold [47, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.26"))
+table.kfold [48, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.30"))
+table.kfold [49, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.34"))
+table.kfold [50, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.38"))
+
+table.kfold [41, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [41, 4], 0) # expected number of uses in each bin
+table.kfold [42, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [42, 4], 0) # expected number of uses in each bin
+table.kfold [43, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [43, 4], 0) # expected number of uses in each bin
+table.kfold [44, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [44, 4], 0) # expected number of uses in each bin
+table.kfold [45, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [45, 4], 0) # expected number of uses in each bin
+table.kfold [46, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [46, 4], 0) # expected number of uses in each bin
+table.kfold [47, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [47, 4], 0) # expected number of uses in each bin
+table.kfold [48, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [48, 4], 0) # expected number of uses in each bin
+table.kfold [49, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [49, 4], 0) # expected number of uses in each bin
+table.kfold [50, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [50, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test5 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter (table.kfold, test.number == 5))
+summary (glm.kfold.test5)
+
+table.kfold [41, 7] <- 1.01386
+table.kfold [41, 8] <- "<0.001"
+table.kfold [41, 9] <- -9.00387
+table.kfold [41, 10] <- 0.763
+table.kfold [41, 11] <- 0.994
+
+chisq.test(dplyr::filter(table.kfold, test.number == 5)$used.count, dplyr::filter(table.kfold, test.number == 5)$expected.count)
+table.kfold [41, 12] <- 0.08552
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_valid_du6_ew.csv")
 
 
+ggplot (dplyr::filter(table.kfold, test.number == 5), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 5 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 3000, by = 250)) + 
+  scale_y_continuous (breaks = seq (0, 3000, by = 250))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du6_ew_grp5.png")
 
+write.csv (test.data.5, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\rsf_preds_du6_ew_train5.csv")
 
+# create results table
+table.kfold.results.du6.ew <- table.kfold
+table.kfold.results.du6.ew <- table.kfold.results.du6.ew [- c (2:6)]
 
+table.kfold.results.du6.ew <- table.kfold.results.du6.ew %>%
+                                slice (c (1, 11, 21, 31, 41))
 
+write.csv (table.kfold.results.du6.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
+
+###############################
+### RSF RASTER CALCULATION ###
+#############################
+
+### LOAD RASTERS ###
+slope <- raster ("C:\\Work\\caribou\\clus_data\\dem\\slope_deg_all_bc_8_clip.tif")
+dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_lakes_bcalbers_20180820.tif")
+dist.water <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
+dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
+dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
+dist.cut.10over <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10yo_over.tif")
+dist.paved.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_paved.tif")
+dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
+dist.pipeline <- raster ("C:\\Work\\caribou\\clus_data\\pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
+beetle.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_1to5yo_fin.tif")
+beetle.6to9 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_6to9yo_fin.tif")
+fire.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1to5yo_fin.tif")
+fire.6to25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_6to25yo_fin.tif")
+fire.over25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_over25yo_fin.tif")
+growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\dd5")
+ppt.as.snow.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_wt")
+bec.bwbs.mw <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bwbs_mw.tif")
+wet.conifer.swamp <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_coniferswamp.tif")
+wet.decid.swamp <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_deciduousswamp.tif")
+wet.poor.fen <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_nutrientpoorfen.tif")
+wet.rich.fen <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_nutrientrichfen.tif")
+wet.other <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_other.tif")
+wet.tree.bog <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_treedbog.tif")
+wet.upland.decid <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_uplanddeciduous.tif")
+vri.bryoid <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_bryoidcoverpct.tif")
+vri.herb <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
+vri.age <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projage1.tif")
+vri.shrub <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_shrubcrownclosure.tif")
+vri.height <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projheight1.tif")
+vri.crown.close <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_crownclosure.tif")
+
+### CROP RASTERS TO DU; USED "BOX' "of HERD RANGES PLUS 25km BUFFER ###
+caribou.boreal.sa <- readOGR ("C:\\Work\\caribou\\climate_analysis\\data\\studyarea\\caribou_boreal_study_area.shp", stringsAsFactors = T) # herds with 25km buffer
+slope <- crop (slope, extent (caribou.boreal.sa))
+dist.lake <- crop (dist.lake, extent (caribou.boreal.sa))
+dist.water <- crop (dist.water, extent (caribou.boreal.sa))
+dist.cut.1to4 <- crop (dist.cut.1to4, extent (caribou.boreal.sa))
+dist.cut.5to9 <- crop (dist.cut.5to9, extent (caribou.boreal.sa))
+dist.cut.10over <- crop (dist.cut.10over, extent (caribou.boreal.sa))
+dist.paved.rd <- crop (dist.paved.rd, extent (caribou.boreal.sa))
+dist.resource.rd <- crop (dist.resource.rd, extent (caribou.boreal.sa))
+dist.pipeline <- crop (dist.pipeline, extent (caribou.boreal.sa))
+beetle.1to5 <- crop (beetle.1to5, extent (caribou.boreal.sa))
+beetle.6to9 <- crop (beetle.6to9, extent (caribou.boreal.sa))
+fire.1to5 <- crop (fire.1to5, extent (caribou.boreal.sa))
+fire.6to25 <- crop (fire.6to25, extent (caribou.boreal.sa))
+fire.over25 <- crop (fire.over25, extent (caribou.boreal.sa))
+bec.bwbs.mw <- crop (bec.bwbs.mw, extent (caribou.boreal.sa))
+wet.conifer.swamp <- crop (wet.conifer.swamp, extent (caribou.boreal.sa))
+wet.decid.swamp <- crop (wet.decid.swamp, extent (caribou.boreal.sa))
+wet.poor.fen <- crop (wet.poor.fen, extent (caribou.boreal.sa))
+wet.rich.fen <- crop (wet.rich.fen, extent (caribou.boreal.sa))
+wet.other <- crop (wet.other, extent (caribou.boreal.sa))
+wet.tree.bog <- crop (wet.tree.bog, extent (caribou.boreal.sa))
+wet.upland.decid <- crop (wet.upland.decid, extent (caribou.boreal.sa))
+vri.bryoid <- crop (vri.bryoid, extent (caribou.boreal.sa))
+vri.herb <- crop (vri.herb, extent (caribou.boreal.sa))
+vri.age <- crop (vri.age, extent (caribou.boreal.sa))
+vri.shrub <- crop (vri.shrub, extent (caribou.boreal.sa))
+vri.height <- crop (vri.height, extent (caribou.boreal.sa))
+vri.crown.close <- crop (vri.crown.close, extent (caribou.boreal.sa))
+
+proj.crs <- proj4string (caribou.boreal.sa)
+growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "bilinear")
+ppt.as.snow.winter <- projectRaster (ppt.as.snow.winter, crs = proj.crs, method = "bilinear")
+growing.degree.day <- crop (growing.degree.day, extent (caribou.boreal.sa))
+ppt.as.snow.winter <- crop (ppt.as.snow.winter, extent (caribou.boreal.sa))
+
+## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
+beginCluster ()
+
+slope <- resample (slope, dist.lake, method = 'bilinear')
+writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\slope_resample.tif", 
+             format = "GTiff")
+growing.degree.day <- resample (growing.degree.day, dist.lake, method = 'bilinear')
+writeRaster (growing.degree.day, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\grow_deg_day.tif", 
+             format = "GTiff")
+ppt.as.snow.winter <- resample (ppt.as.snow.winter, dist.lake, method = 'bilinear')
+writeRaster (ppt.as.snow.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\ppt_snow_winter.tif", 
+             format = "GTiff")
+wet.conifer.swamp <- resample (wet.conifer.swamp, dist.lake, method = 'ngb')
+writeRaster (wet.conifer.swamp, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\conifer_swamp.tif", 
+             format = "GTiff")
+wet.decid.swamp <- resample (wet.decid.swamp, dist.lake, method = 'ngb')
+writeRaster (wet.decid.swamp, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\deciduous_swamp.tif", 
+             format = "GTiff")
+wet.poor.fen <- resample (wet.poor.fen, dist.lake, method = 'ngb')
+writeRaster (wet.poor.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\poor_fen.tif", 
+             format = "GTiff")
+wet.rich.fen <- resample (wet.rich.fen, dist.lake, method = 'ngb')
+writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rich_fen.tif", 
+             format = "GTiff")
+wet.other <- resample (wet.other, dist.lake, method = 'ngb')
+writeRaster (wet.other, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\wet_other.tif", 
+             format = "GTiff")
+wet.tree.bog <- resample (wet.tree.bog, dist.lake, method = 'ngb')
+writeRaster (wet.tree.bog, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\treed_bog.tif", 
+             format = "GTiff")
+wet.upland.decid <- resample (wet.upland.decid, dist.lake, method = 'ngb')
+writeRaster (wet.upland.decid, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\upland_deciduous.tif", 
+             format = "GTiff")
+wet.rich.fen <- resample (wet.rich.fen, dist.lake, method = 'ngb')
+writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rich_fen.tif", 
+             format = "GTiff", overwrite = T)
+bec.bwbs.mw <- resample (bec.bwbs.mw, dist.lake, method = 'ngb')
+writeRaster (bec.bwbs.mw, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\bec_bwbs_mw.tif", 
+             format = "GTiff", overwrite = T)
+endCluster ()
+
+### Adjust the raster data for 'standardized' model covariates ###
+beginCluster ()
+
+system.time (std.slope <- (slope - 1.29) / 1.70) # rounded these numbers to facilitate faster processing; decreases processing time substantially
+std.dist.lake <- (dist.lake - 1735) / 1321
+std.dist.water <- (dist.water - 8340) / 5601
+std.dist.cut.1to4 <- (dist.cut.1to4 - 82949) / 62638
+std.dist.cut.5to9 <- (dist.cut.5to9 - 44787) / 35084
+std.dist.cut.10over <- (dist.cut.10over - 24934) / 24867
+std.dist.paved.rd <- (dist.paved.rd - 25318) / 18921
+std.dist.resource.rd <- (dist.resource.rd - 603) / 574
+std.dist.pipeline <- (dist.pipeline - 4011) / 4577
+std.growing.degree.day <- (growing.degree.day - 1151) / 80
+std.ppt.as.snow.winter <- (ppt.as.snow.winter - 69) / 6
+std.vri.bryoid <- (vri.bryoid - 17) / 15
+std.vri.herb <- (vri.herb - 13) / 12
+std.vri.age <- (vri.age - 96) / 38
+std.vri.shrub <- (vri.shrub - 27) / 19
+std.vri.height <- (vri.height - 8) / 5
+std.vri.crown.close <- (vri.crown.close - 31) / 18
+
+endCluster ()
+
+### CALCULATE RASTER OF STATIC VARIABLES ###
+beginCluster ()
+
+raster.rsf.static <- (-2.56 + (std.slope * -0.02) + (std.dist.lake * -0.02) +
+                      (std.dist.water * -0.02) + (std.vri.bryoid * 0.14) +
+                      (std.vri.herb * 0.12) + (std.vri.shrub * 0.09) + 
+                      (wet.conifer.swamp * 0.05) + (wet.decid.swamp * -0.03) +
+                      (wet.poor.fen * 0.24) + (wet.rich.fen * 0.34) +
+                      (wet.other * 0.68) + (wet.tree.bog * 0.70) + 
+                      (wet.upland.decid * -0.51))
+writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rsf_static_du6_ew.tif", 
+             format = "GTiff")
+
+raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
+                  (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
+                  (std.dist.paved.rd * 0.04) + (std.dist.resource.rd * 0.03) +
+                  (std.dist.pipeline * 0.01) + (beetle.1to5 * 0.17) + 
+                  (beetle.6to9 * 0.50) + (fire.1to5 * 0.16) + 
+                  (fire.6to25 * -0.31) + (fire.over25 * -0.11) + 
+                  (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
+                  (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
+                  (std.vri.height * -0.16) + (std.vri.crown.close * 0.01)) / 
+              1 + exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
+                         (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
+                         (std.dist.paved.rd * 0.04) + (std.dist.resource.rd * 0.03) +
+                         (std.dist.pipeline * 0.01) + (beetle.1to5 * 0.17) + 
+                         (beetle.6to9 * 0.50) + (fire.1to5 * 0.16) + 
+                         (fire.6to25 * -0.31) + (fire.over25 * -0.11) + 
+                         (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
+                         (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
+                         (std.vri.height * -0.16) + (std.vri.crown.close * 0.01))
+writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\early_winter\\rsf_du6_ew.tif", 
+             format = "GTiff")
 
 
 
