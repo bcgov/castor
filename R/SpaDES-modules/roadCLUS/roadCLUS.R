@@ -29,7 +29,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "roadCLUS.Rmd"),
-  reqdPkgs = list("raster", "sp", "latticeExtra", "sf", "rgeos", "velox", "RANN"),
+  reqdPkgs = list("raster", "sf", "latticeExtra", "SpaDES.tools", "rgeos", "velox", "RANN"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
@@ -109,13 +109,13 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
               sim <- roadCLUS.getClosestRoad(sim)
               sim <- roadCLUS.lcpList(sim)
               sim <- roadCLUS.shortestPaths(sim)# includes update graph 
-              #sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- roadCLUS.updateRoadsTable(sim)
             },
             mst ={
               sim <- roadCLUS.getClosestRoad(sim)
               sim <- roadCLUS.mstList(sim)# will take more time than lcpList given the construction of a mst
               sim <- roadCLUS.shortestPaths(sim)# update graph is within the shorestPaths function
-              #sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- roadCLUS.updateRoadsTable(sim)
             }
 
         )
@@ -175,6 +175,8 @@ roadCLUS.getRoads <- function(sim) {
       sim$roads[]<-unlist(c(roadpixels), use.names =FALSE)
     }
     
+    sim$paths.v<-NULL #set the placeholder for simulated paths
+    
     rm(roadUpdate)
     gc()
     #print(dbGetQuery(sim$clusdb, "SELECT * FROM pixels WHERE roadyear >=0 limit 1"))
@@ -183,25 +185,29 @@ roadCLUS.getRoads <- function(sim) {
 
 ### Get the rasterized cost surface
 roadCLUS.getCostSurface<- function(sim){
-  rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
+  #rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
+  rds<-sim$roads
+  rds[is.na(rds[])]<-1
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-  sim$costSurface<-rds*(resample(RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
-                                 , sim$roads, method = 'bilinear')*288 + 3243)#multiply the cost surface by the existing roads
-  rm(rds)
+  costSurf<-RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
+  sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243)#multiply the cost surface by the existing roads
+  writeRaster(sim$roads, file="cost.tif", format="GTiff", overwrite=TRUE)
+  
+  rm(rds, costSurf)
   gc()
   return(invisible(sim))
 }
 
 roadCLUS.getClosestRoad <- function(sim){
+  print('getClosestRoad')
   #TODO: Need a better approach here - converting to points then nearest distance seems redundant?
   roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= 0})
-  #Maybe a SELECT pixelid FROM pixels where roadyear>= 0. Then XYfromCELL?
+  #Maybe a SELECT pixelid FROM pixels where roadyear>= 0. Then XYfromCELL? --NEEd to test but rasterTopoints is fairly fast < 0.48s for a 1000x1000
   #closest.roads.pts <- apply(gDistance(SpatialPoints(roads.pts),SpatialPoints(sim$landings), byid=TRUE), 1, which.min)
   #package RANN function nn2()? - yes much faster
   closest.roads.pts <-nn2(roads.pts[,1:2],coordinates(sim$landings), k =1)
   #sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
   sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts$nn.idx, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
-  
   #The drop =F is needed for a single landing - during the subset of a matrix it will become a column vector because as it converts a vector to a matrix, r will assume you have one column
   rm(roads.pts, closest.roads.pts)
   gc()
@@ -227,6 +233,7 @@ roadCLUS.buildSnapRoads <- function(sim){
 }
 
 roadCLUS.updateRoadsTable <- function(sim){
+  print('updateRoadsTable')
   roadUpdate<-data.table(sim$paths.v)
   setnames(roadUpdate, "pixelid")
   roadUpdate[,roadyear := time(sim)+1]
@@ -239,36 +246,46 @@ roadCLUS.updateRoadsTable <- function(sim){
 
 ###Set the grpah which determines least cost paths
 roadCLUS.getGraph<- function(sim){
-  #Creates a graph (sim$g) in inititation phase which can be updated and solved for paths
-  sim$paths.v<-NULL
-  #------prepare the cost surface raster
-  ras.matrix<-raster::as.matrix(sim$costSurface)#get the cost surface as a matrix using the raster package
-  weight<-data.table(c(t(ras.matrix))) #transpose then vectorize which matches the same order as adj
-  weight[, id := seq_len(.N)] # get the id for ther verticies which is used to merge with the edge list from adj
+  igraph::layout.kamada.kawai
+  print(paste0('getGraph for cols:', ncol(sim$ras), ' rows:', nrow(sim$ras)))#Creates a graph (sim$g) in inititation phase which can be updated and solved for paths
   #------get the adjacency using SpaDES function adj
-  edges<-data.table(adj(returnDT= TRUE, numCol = ncol(ras.matrix), numCell=ncol(ras.matrix)*nrow(ras.matrix), directions =8, cells = 1:as.integer(ncol(ras.matrix)*nrow(ras.matrix))))
+  edges<-data.table(SpaDES.tools::adj(returnDT= TRUE, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras), 
+                                      directions = 8, cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras))))
+  edges[, to:= as.integer(to)]
+  edges[, from:= as.integer(from)]
   edges[from < to, c("from", "to") := .(to, from)]
   edges<-unique(edges)
+  
+  #------prepare the cost surface raster
+  weight<-data.table(c(t(raster::as.matrix(sim$costSurface)))) #transpose then vectorize which matches the same order as adj
+  weight[, id := seq_len(.N)] #full list of the raster including the NA. get the id for ther verticies which is used to merge with the edge list from adj
+  
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="id") #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1")) #reformat
   edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="id"))#merge in the weights to a cost surface
   setnames(edges.w2, c("from", "to", "w1", "w2")) #reformat
   edges.w2$weight<-(edges.w2$w1 + edges.w2$w2)/2 #take the average cost between the two pixels
+  
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
-  edges.weight[, id := seq_len(.N)] #set the ids of the edge list. Faster than using as.integer(row.names())
+  
   #------make the graph
+  #sim$g<-make_lattice(c(ncol(sim$ras), nrow(sim$ras)))#instantiate the igraph object
   sim$g<-graph.edgelist(as.matrix(edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(sim$g)$weight<-as.matrix(edges.weight)[,3]#assign weights to the graph. Requires a matrix input
+  V(sim$g)$name<-V(sim$g)
+  sim$g<-delete.vertices(sim$g, degree(sim$g) == 0)
+ 
   #------clean up
-  rm(edges.w1,edges.w2, edges, weight, ras.matrix)#remove unused objects
+  rm(edges.w1,edges.w2, edges, weight)#remove unused objects
   gc() #garbage collection
   return(invisible(sim))
 }
 
 ##Get a list of paths from which there is a to and from point
 roadCLUS.lcpList<- function(sim){
-  paths.matrix<-cbind(cellFromXY(sim$costSurface,sim$landings ), cellFromXY(sim$costSurface,sim$roads.close.XY ))
+  print('lcp List')
+  paths.matrix<-cbind(cellFromXY(sim$ras,sim$landings), cellFromXY(sim$ras,sim$roads.close.XY ))
   sim$paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
   rm(paths.matrix)
   gc()
@@ -299,16 +316,28 @@ roadCLUS.mstList<- function(sim){
 }
 
 roadCLUS.shortestPaths<- function(sim){
-  #print('shortestPaths')
+  print('shortestPaths')
   #------finds the least cost paths between a list of two points
-  if(!length(sim$paths.list)==0){
-    #print(sim$paths.list)
-    paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, x[1], x[2], out = "both"))) #create a list of shortest paths
+  if(length(sim$paths.list) > 0){
+    print(sim$paths.list[[1]][1])
+    print(sim$paths.list[[1]][2])
+    #print(get.shortest.paths(sim$g, sim$paths.list[[1]][1], sim$paths.list[[1]][2], out = "both"))
+    #for(i in 2:185){
+    #  test<<-i
+    #  get.shortest.paths(sim$g, sim$paths.list[[i]][1], sim$paths.list[[i]][2], out = "both")
+    #
+    #  }
+    
+    print('last')
+    #paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, x[1], x[2], out = "both"))) #create a list of shortest paths
     #sim$paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), sim$paths.v))#save the verticies for mapping
+    paths<-get.shortest.paths(sim$g, sim$paths.list[[1]][1], sim$paths.list[[1]][2], out = "both")
     sim$paths.v<-data.table(paths[grepl("vpath",names(paths))])#save the verticies for mapping
+    print(sim$paths.v)
     paths.e<-paths[grepl("epath",names(paths))]
     edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
-    rm(paths.e)
+    
+    rm(paths.e, paths)
     gc()
   }
   return(invisible(sim))

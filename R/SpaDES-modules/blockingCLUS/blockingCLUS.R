@@ -158,6 +158,7 @@ blockingCLUS.preBlock <- function(sim) {
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
+  g<-delete.vertices(g, degree(g) == 0)
   
   zones<-unname(unlist(dbGetQuery(sim$clusdb, 
           'SELECT zoneid FROM pixels where thlb > 0 and similar > 0 and zoneid > 0 group by zoneid Having count(pixelid) > 1')))#get the zone names - strict use of integers for these
@@ -195,7 +196,7 @@ blockingCLUS.preBlock <- function(sim) {
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
-  rm(resultset)
+  rm(resultset, g)
   gc()
   
   #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
