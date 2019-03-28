@@ -48,7 +48,8 @@ defineModule(sim, list(
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Name of the raster representing THLB"),
     defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster representing yield ids"),
     defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Name of the raster represnting pixel age"),
-    defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Name of the raster representing pixel crown closure")
+    defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Name of the raster representing pixel crown closure"),
+    defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Name of the raster representing pixel height")
     ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -59,10 +60,11 @@ defineModule(sim, list(
     expectsInput("nameCompartmentRaster", objectClass ="character" , desc = "Administrative boundary for forest compartments or supply blocks", sourceURL = NA),
     expectsInput("nameZoneRaster", objectClass ="character", desc = "Administrative boundary containing zones of management objectives", sourceURL = NA),
     expectsInput("nameMaskHarvestLandbaseRaster", objectClass ="character", desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest", sourceURL = NA),
-    expectsInput("nameYieldsRaster", objectClass ="character", desc = "Biophysical boundary containing yield ids. These ids connect to the yields table", sourceURL = NA),
-    expectsInput("nameAgeRaster", objectClass ="character", desc = "Biophysical boundary containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve", sourceURL = NA),
-    expectsInput("nameCrownClosureRaster", objectClass ="character", desc = "Biophysical boundary containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/", sourceURL = NA)
-     ),
+    expectsInput("nameYieldsRaster", objectClass ="character", desc = "Raster containing yield ids. These ids connect to the yields table", sourceURL = NA),
+    expectsInput("nameAgeRaster", objectClass ="character", desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve", sourceURL = NA),
+    expectsInput("nameCrownClosureRaster", objectClass ="character", desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/", sourceURL = NA),
+    expectsInput("nameHeightRaster", objectClass ="character", desc = "Raster containing pixel height. EX. Canopy height model", sourceURL = NA)
+    ),
   outputObjects = bind_rows(
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("bbox", objectClass ="numeric", desc = NA),
@@ -85,7 +87,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
       
       #disconnect the db once the sim is over?
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS")
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
       },
     removeDbCLUS={
       sim<-disconnectDbCLUS(sim)
@@ -112,7 +114,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, volume numeric, crownclosure numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid integer PRIMARY KEY, compartid integer, oldgrowth numeric, earlyseral numeric, crownclosure numeric, roaddensity numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS constraints ( id integer PRIMARY KEY, zoneid integer, constraintsid integer, fromage integer, toage integer, minvalue numeric, maxvalue numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zoneid integer, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, roadyear integer)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zoneid integer, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, height numeric, roadyear integer)")
   return(invisible(sim))
 }
 
@@ -124,27 +126,25 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameCompartmentRaster") == "99999")){
     print(paste0('.....compartment ids: ', P(sim, "dataLoaderCLUS", "nameCompartmentRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.compartment<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), clipper=geom, conn=conn)
-    
-    pixels<-data.table(c(t(raster::as.matrix(ras.compartment))))
+    sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
+    pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     setnames(pixels, "V1", "compartid")
-    
-    rm(ras.compartment)
-    gc()
+    sim$ras[]<-unlist(pixels[,2], use.names = FALSE)
     
   }else{
     print('.....compartment ids: default 1')
     #Set the empty table for values not supplied in the parmaters
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.compartment<-RASTER_CLIP(srcRaster="rast.similarity_vri2003", clipper=geom, conn=conn) #Need to change this - hard coded
-    
-    pixels<-data.table(c(t(raster::as.matrix(ras.compartment)))) #transpose then vectorize which matches the same order as adj
+    sim$ras<-RASTER_CLIP2(srcRaster= 'rast.bc_bound', clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
+    pixels<-data.table(c(t(raster::as.matrix(sim$ras)))) #transpose then vectorize which matches the same order as adj
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 1]
     pixels<-pixels[,2:3]
+    sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
+    sim$rasVelo<-velox::velox(sim$ras)
   }
   
   #----------------
@@ -153,9 +153,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameZoneRaster") == "99999")){ 
     print(paste0('.....zone ids: ',P(sim, "dataLoaderCLUS", "nameZoneRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.zone<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRaster"), clipper=geom, conn=conn)
-    
+    ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
     setnames(pixels, "V1", "zoneid")
     
@@ -174,9 +173,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print(paste0('.....thlb: ',P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster")))
     
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.thlb<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), clipper=geom, conn=conn)
-    
+    ras.thlb<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.thlb)))))
     setnames(pixels, "V1", "thlb")
     
@@ -194,12 +192,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameYieldsRaster") == "99999")){
     print(paste0('.....yield ids: ',P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.ylds<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), clipper=geom, conn=conn)
-    
+    ras.ylds<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ylds)))))
     setnames(pixels, "V1", "yieldid")
-    
     rm(ras.ylds)
     gc()
     
@@ -214,15 +210,12 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999")){
     print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameAgeRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.age<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), clipper=geom, conn=conn)
-    
+    ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.age)))))
     setnames(pixels, "V1", "age")
-    
     rm(ras.age)
     gc()
-    
   }else{
     print('.....age: default 120')
     pixels[, age := 120]
@@ -234,9 +227,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999")){
     print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(GEOM)), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-    ras.cc<-RASTER_CLIP(srcRaster= P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), clipper=geom, conn=conn)
-    
+    ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.cc)))))
     setnames(pixels, "V1", "crownclosure")
     
@@ -248,11 +240,31 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels[, crownclosure := 60]
   }
   #---------------------
-  #Load the data in Rsqlite
+  #Set the Height 
   #---------------------
+  if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999")){
+    print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
+    conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+    ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
+    pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ht)))))
+    setnames(pixels, "V1", "height")
+    
+    rm(ras.ht)
+    gc()
+    
+  }else{
+    print('.....crown closure: default 60')
+    pixels[, height := 10]
+  }
+  
+
+  #------------------------
+  #Load the data in Rsqlite
+  #------------------------
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, 'INSERT INTO pixels (pixelid, compartid, zoneid, yieldid, thlb, age, crownclosure) 
-                    values (:pixelid, :compartid, :zoneid, :yieldid, :thlb, :age, :crownclosure  )', pixels )
+    rs<-dbSendQuery(sim$clusdb, 'INSERT INTO pixels (pixelid, compartid, zoneid, yieldid, thlb, age, crownclosure, height, roadyear) 
+                    values (:pixelid, :compartid, :zoneid, :yieldid, :thlb, :age, :crownclosure, :height, NULL  )', pixels )
     dbClearResult(rs)
   dbCommit(sim$clusdb)
   
