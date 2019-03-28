@@ -858,33 +858,42 @@ correlations
 - coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
 ###### Vegetation and Forest Characteristics
-
 - boxplots
   - no significant outliers
 
-![](plots/boxplot_veg_du6_ew_basal_area.png)
+![](plots/boxplot_veg_du6_lw_basal_area.png)
+![](plots/boxplot_veg_du6_lw_bryoid_perc.png)
+![](plots/boxplot_veg_du6_lw_crown_close.png)
+![](plots/boxplot_veg_du6_lw_herb_cover.png)
+![](plots/boxplot_veg_du6_lw_live_volume.png)
+![](plots/boxplot_veg_du6_lw_stand_age.png)
+![](plots/boxplot_veg_du6_lw_stand_height.png)
+![](plots/boxplot_veg_du6_lw_shrub_height.png)
+![](plots/boxplot_veg_du6_lw_site_index.png)
 
+- histograms
+![](plots/hist_veg_du6_lw_bec.png)
+![](plots/hist_veg_du6_lw_wetland.png)
 
+- correlations
+  - vri projected height and basal area were highly correlated ($\rho$ = 0.70)
+  - vri projected height and live volume were highly correlated ($\rho$ = 0.90)
+  - vri projected height and site index were highly correlated ($\rho$ = 0.72)
+  
+  - VRI basal area correlated with crown closure ($\rho$ = 0.65) and live volume ($\rho$ = 0.68)
+  - kept height, crown closure, bryoid cover, herb cover, stand age, and shrub crown   
+    closure
+  - fit candidate models with wetland and BEC classes only (base model), and added food (shurb, 
+    bryoids adn herbs), and forest stand cahracteristics (age, height + crown closure) for 
+    comaprison
 
+- used wetland cover classes instead of VRI cover classes for DU6 because of precedent (Demars)
+    
+![](plots/corr_veg_du6_lw.png)
 
+- vif values were less than 2.83
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- the top model included all covariates (AIC*~w~* = 1.00), and therefore all covariates were retained for further consideration
 
 ###### Combination Models
 
@@ -1186,7 +1195,7 @@ correlations
 
 ## Conclusions
 In DU6 , early winter, 
-- cosnsitent with Demards: selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/imamture forest
+- visually adn statsically cosnsitent with Demars: overlap in defintion of high and low quality habitat pacthes; selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/immature forest
 - selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
 
 
