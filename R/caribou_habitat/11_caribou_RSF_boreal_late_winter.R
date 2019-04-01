@@ -3604,56 +3604,56 @@ endCluster ()
 ### Adjust the raster data for 'standardized' model covariates ###
 beginCluster ()
 
-system.time (std.slope <- (slope - 1.29) / 1.70) # rounded these numbers to facilitate faster processing; decreases processing time substantially
-std.dist.lake <- (dist.lake - 1735) / 1321
-std.dist.water <- (dist.water - 8340) / 5601
-std.dist.cut.1to4 <- (dist.cut.1to4 - 82949) / 62638
-std.dist.cut.5to9 <- (dist.cut.5to9 - 44787) / 35084
-std.dist.cut.10over <- (dist.cut.10over - 24934) / 24867
-std.dist.paved.rd <- (dist.paved.rd - 25318) / 18921
-std.dist.resource.rd <- (dist.resource.rd - 603) / 574
-std.dist.pipeline <- (dist.pipeline - 4011) / 4577
-std.growing.degree.day <- (growing.degree.day - 1151) / 80
+system.time (std.slope <- (slope - 1.34) / 1.82) # rounded these numbers to facilitate faster processing; decreases processing time substantially
+std.dist.lake <- (dist.lake - 1931) / 1578
+std.dist.water <- (dist.water - 7895) / 5458
+std.dist.cut.1to4 <- (dist.cut.1to4 - 77316) / 62909
+std.dist.cut.5to9 <- (dist.cut.5to9 - 42943) / 34048
+std.dist.cut.10over <- (dist.cut.10over - 21327) / 21454
+std.dist.paved.rd <- (dist.paved.rd - 23662) / 16945
+std.dist.resource.rd <- (dist.resource.rd - 611) / 571
+std.dist.pipeline <- (dist.pipeline - 4452) / 5101
+std.growing.degree.day <- (growing.degree.day - 1156) / 79
 std.ppt.as.snow.winter <- (ppt.as.snow.winter - 69) / 6
-std.vri.bryoid <- (vri.bryoid - 17) / 15
-std.vri.herb <- (vri.herb - 13) / 12
-std.vri.age <- (vri.age - 96) / 38
-std.vri.shrub <- (vri.shrub - 27) / 19
-std.vri.height <- (vri.height - 8) / 5
-std.vri.crown.close <- (vri.crown.close - 31) / 18
+std.vri.bryoid <- (vri.bryoid - 17) / 16
+std.vri.herb <- (vri.herb - 12) / 12
+std.vri.age <- (vri.age - 98) / 38
+std.vri.shrub <- (vri.shrub - 25) / 18
+std.vri.height <- (vri.height - 9) / 6
+std.vri.crown.close <- (vri.crown.close - 33) / 18
 
 endCluster ()
 
 ### CALCULATE RASTER OF STATIC VARIABLES ###
 beginCluster ()
 
-raster.rsf.static <- (-2.56 + (std.slope * -0.02) + (std.dist.lake * -0.02) +
-                        (std.dist.water * -0.02) + (std.vri.bryoid * 0.14) +
-                        (std.vri.herb * 0.12) + (std.vri.shrub * 0.09) + 
-                        (wet.conifer.swamp * 0.05) + (wet.decid.swamp * -0.03) +
-                        (wet.poor.fen * 0.24) + (wet.rich.fen * 0.34) +
-                        (wet.other * 0.68) + (wet.tree.bog * 0.70) + 
-                        (wet.upland.decid * -0.51))
+raster.rsf.static <- (-2.07 + (std.slope * -0.04) + (std.dist.lake * 0.01) +
+                        (std.dist.water * 0.01) + (std.vri.bryoid * 0.14) +
+                        (std.vri.herb * 0.02) + (std.vri.shrub * 0.05) + 
+                        (wet.conifer.swamp * 0.08) + (wet.decid.swamp * -0.32) +
+                        (wet.poor.fen * 0.35) + (wet.rich.fen * -0.07) +
+                        (wet.other * 0.31) + (wet.tree.bog * 0.65) + 
+                        (wet.upland.decid * -1.07))
 writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\late_winter\\rsf_static_du6_lw.tif", 
              format = "GTiff")
 
-raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
-                     (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
-                     (std.dist.paved.rd * 0.04) + (std.dist.resource.rd * 0.03) +
-                     (std.dist.pipeline * 0.01) + (beetle.1to5 * 0.17) + 
-                     (beetle.6to9 * 0.50) + (fire.1to5 * 0.16) + 
-                     (fire.6to25 * -0.31) + (fire.over25 * -0.11) + 
-                     (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
-                     (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
-                     (std.vri.height * -0.16) + (std.vri.crown.close * 0.01)) / 
-  1 + exp (raster.rsf.static + (std.dist.cut.1to4 * -0.05) + 
-             (std.dist.cut.5to9 * -0.15) + (std.dist.cut.10over * -0.10) +
-             (std.dist.paved.rd * 0.04) + (std.dist.resource.rd * 0.03) +
-             (std.dist.pipeline * 0.01) + (beetle.1to5 * 0.17) + 
-             (beetle.6to9 * 0.50) + (fire.1to5 * 0.16) + 
-             (fire.6to25 * -0.31) + (fire.over25 * -0.11) + 
-             (std.growing.degree.day * -0.15) + (std.ppt.as.snow.winter * -0.16) +
-             (bec.bwbs.mw * -0.17)  + (std.vri.age * 0.08) + 
-             (std.vri.height * -0.16) + (std.vri.crown.close * 0.01))
+raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.06) + 
+                     (std.dist.cut.5to9 * -0.05) + (std.dist.cut.10over * -0.01) +
+                     (std.dist.paved.rd * -0.002) + (std.dist.resource.rd * 0.03) +
+                     (std.dist.pipeline * 0.06) + (beetle.1to5 * 0.21) + 
+                     (beetle.6to9 * -0.06) + (fire.1to5 * -0.25) + 
+                     (fire.6to25 * -0.41) + (fire.over25 * -0.21) + 
+                     (std.growing.degree.day * 0.04) + (std.ppt.as.snow.winter * -0.04) +
+                     (bec.bwbs.mw * -0.13)  + (std.vri.age * 0.08) + 
+                     (std.vri.height * -0.21) + (std.vri.crown.close * 0.08)) / 
+  1 + exp (raster.rsf.static + (std.dist.cut.1to4 * -0.06) + 
+             (std.dist.cut.5to9 * -0.05) + (std.dist.cut.10over * -0.01) +
+             (std.dist.paved.rd * -0.002) + (std.dist.resource.rd * 0.03) +
+             (std.dist.pipeline * 0.06) + (beetle.1to5 * 0.21) + 
+             (beetle.6to9 * -0.06) + (fire.1to5 * -0.25) + 
+             (fire.6to25 * -0.41) + (fire.over25 * -0.21) + 
+             (std.growing.degree.day * 0.04) + (std.ppt.as.snow.winter * -0.04) +
+             (bec.bwbs.mw * -0.13)  + (std.vri.age * 0.08) + 
+             (std.vri.height * -0.21) + (std.vri.crown.close * 0.08))
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\late_winter\\rsf_du6_lw.tif", 
              format = "GTiff")

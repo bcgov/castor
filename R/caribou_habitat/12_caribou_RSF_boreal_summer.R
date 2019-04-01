@@ -35,6 +35,8 @@ require (ggplot2)
 require (ggcorrplot)
 require (car)
 require (lme4)
+require (raster)
+require (rgdal)
 
 #===========
 # Datasets
@@ -53,7 +55,6 @@ rsf.data.climate.winter <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habi
 rsf.data.climate.spring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_spring.csv", header = T, sep = "")
 rsf.data.climate.summer <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_summer.csv", header = T, sep = "")
 rsf.data.climate.fall <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_fall.csv", header = T, sep = "")
-
 rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
 
 # load RSF data into postgres
