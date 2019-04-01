@@ -45,6 +45,12 @@ RSF models are a form of binomial logistic regression models that are used to st
 AIC is a model selction method, where models are ranked based on their fit to the data (log-likelihood) and the numebr of covaraites in teh model (Bunrham adn Anderson 2002). Models are penalzied for having more covaraites (i.e., are more complex).  
 
 
+### Seasons
+Data were split into 3 seasons, based on lit. review (see caariobu seasosn spreadsheet):
+ calving/summer/fall	(summer) = 15-May to 31-Oct 
+early winter =	01-Nov	to 15-Jan
+late winter	= 16-Jan to 14-May
+
 ### GIS data
 - CE data
   - roads: paved adn 'resoruce road' types
@@ -897,36 +903,16 @@ correlations
 
 ###### Combination Models
 
-
-
-
-
-
-
-
-
-
-
-
-
 - correlations
-  - annual precipitation as snow and elevation correlated ($\rho$ = 0.74)
-  - annual precipitation as snow and winter precipitation as snow correlated ($\rho$ = 0.96)
-  - average winter temperature and elevation correlated ($\rho$ = 0.88)
-  - average winter temperature and mean annual temperature close to being correlated ($\rho$ = 0.69)
-  
-  - removed elevation, annual precipitation as snow and mean annaul temperature
+  - annual precipitation as snow and winter precipitation as snow correlated ($\rho$ = 0.95)
+  - average winter temperature and mean annual temperature correlated ($\rho$ = 0.73)
+  - removed annual precipitation as snow and mean annaul temperature
   
 
-![](plots/corr_winter_climate_du6_ew.png)
+![](plots/corr_winter_climate_du6_lw.png)
 
-- average witner temperature had a VIF = 10.6, therefore removed
+- average witner temperature had a VIF = 8.43, therefore removed
 
-
-- model with enduring features (slope, distance_to_lake, distance_to_watercourse, soil_parent_material_name, ) and human disturbance features (distance_to_cut_1to4yo, distance_to_cut_5to9yo, distance_to_cut_10yoorOver, distance_to_resource_road, distance_to_paved_road, distance_to_pipeline, distance_to_mines, seismic)
-  - model failed to converge
-  - fit simpler model without seismic and model converged
-  - fit simpler model without soils and model converged 
 
 - DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
   
@@ -936,31 +922,38 @@ correlations
   - dropped distance to mine; covariate said selection for mines, which is unlikely
 
 - top model (AIC*~w~* = 0.999) included all covariates 
-- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
-  approximately   0.02)
-- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
-  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
-  -0.055)
-- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
-- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
-- selected for 1 to 5 year old (\beta = 0.167) 6 to 9 year old (\beta = 0.167) beetle killed stands 
-- selected for young burns (\beta = 0.161), but avoided burns 6 to 25 years old (\beta = -0.305) or over 25 years old (\beta = -0.108)
-- avoided areas patches logner growing seasons (\beta = -0.145) and with deeper snow (\beta = -0.156)
-- avoided BWBSmw (\beta = -0.168) compared to BWBSmk
-- strongly selected for treed bog (\beta = 0.699), and the 'other' (\beta = 0.679) wetland type   
-  relative to upland conifer
-- selected for nutrient rich (\beta = 0.342) and nutrient poor (\beta = 0.242) fens relative to 
-  upland conifer
-- selected for patches with higher percentage of bryoid cover (\beta = 0.144) and herb cover (\beta = 0.124) 
-- selected for pacthes with older  (\beta = 0.076), but shorter (\beta = -0.155) forest stadns
+- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta 
+  < 0.05); intereestingly, avoided wateroceses and lakes in late witner, oppostie of    
+  early witner, but efefct not signficant in late winter (*p-value* = 0.253 and 0.073, respectively)
+- selected for pacthes near cutblocks, but weak, not signifcaint (*p-value* = 0.456) selection for 
+  over 10 years old cutblocks(\beta =  -0.014)  
+- selected patches near paved roads, but weak (\beta = -0.002) and non-signfcaint (*p-value* = 0.886)   but avoided resource roads (\beta = 0.033)  
+- avoided patches near pipelines (\beta = 0.063)  
+- selected for 1 to 5 year old (\beta = 0.213) beetle killed stands; not signfcant for 6 to 9 year 
+  old stands
+- avoided all burn age calsses (\beta < -0.214)
+- selected patches with logner growing seasons (\beta = 0.043) and with shallower snow (\beta = 
+  -0.041)
+- avoided BWBSmw (\beta = -0.126) compared to BWBSmk
+- strongly selected for treed bog (\beta = 0.649), other (\beta = 0.307), and the nutrient poor fen 
+  (\beta = 0.350) wetland types relative to upland conifer
+- selected for confier swamp (\beta = 0.082)  relative to upland conifer
+- strongly avoided upland deciduous (\beta = -1.073) relative to upland conifer, and avoided decdious   swamp (\beta = -0.321) adn nutirent rich fen (\beta = -0.072) 
+- selected for patches with higher percentage of bryoid cover (\beta = 0.139), shrub cover (\beta = 
+  0.053) and herb cover (\beta = 0.019) 
+- selected for pacthes with older  (\beta = 0.075), but shorter (\beta = -0.214) adn open (\beta = 
+  0.083) forest stadns
+
+- in genreal, in late winter there is more avidaocen of 'prodcutive' areas (i.e., riparian areas, deciduous wetland cover types, waeker selection fo cublocks; but not gorwing dregree days); less focus on food in late winter? or greater predation pressure?
+
+
 
 
 ##### k-fold validation
-- du6, early winter stong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
-
+###### DU6, Early Winter 
+- stong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
  - visual vlaiation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
-
-
+ 
 ```{r, k-fold du6, early winter table, eval = T, echo = F}
 table.kfold.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
 table.kfold.du6.ew <- table.kfold.du6.ew [-1]
@@ -973,18 +966,20 @@ kable (table.kfold.du6.ew)
 ![](plots/kfold_lm_du6_ew_grp4.png)
 ![](plots/kfold_lm_du6_ew_grp5.png)
 
+###### DU6, Early Winter 
 
 
 
 
+![](plots/kfold_lm_du6_lw_grp1.png)
 
+![](plots/kfold_lm_du6_lw_grp2.png)
 
+![](plots/kfold_lm_du6_lw_grp3.png)
 
+![](plots/kfold_lm_du6_lw_grp4.png)
 
-
-
-
-
+![](plots/kfold_lm_du6_lw_grp5.png)
 
 
 
