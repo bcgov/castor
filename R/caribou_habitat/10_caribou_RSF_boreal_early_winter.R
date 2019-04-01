@@ -5696,9 +5696,9 @@ write.csv (test.data.3, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 
 ### FOLD 4 ###
 train.data.4 <- rsf.data.combo.du6.ew %>%
-  filter (group == 1 | group == 2 | group == 3 | group == 5)
+  filter (group == 1 | group == 3 | group == 4 | group == 5)
 test.data.4 <- rsf.data.combo.du6.ew %>%
-  filter (group == 4)
+  filter (group == 2)
 
 model.lme4.du6.ew.train4 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
                                      std.distance_to_watercourse + 
@@ -5828,9 +5828,9 @@ write.csv (test.data.4, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 
 ### FOLD 5 ###
 train.data.5 <- rsf.data.combo.du6.ew %>%
-  filter (group == 1 | group == 2 | group == 3 | group == 4)
+  filter (group == 2 | group == 3 | group == 4 | group == 5)
 test.data.5 <- rsf.data.combo.du6.ew %>%
-  filter (group == 5)
+  filter (group == 1)
 
 model.lme4.du6.ew.train5 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
                                      std.distance_to_watercourse + 
