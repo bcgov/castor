@@ -438,11 +438,7 @@ timber volume:
  
   - Human disturbance features top-ranked model (AIC*~w~* 0.708) included the distance to cutblock covaraites, distance to road covariates and distance to mine. The second ranked model included the same covariates, and a covariate for distance to pipeline,  and had an AIC*~w~* = 0.270.  Coefficent values of covairaets  for these two models were nearly ideantical, tehrefore ratehr than take average of each model, I used the model that included the seismic line covaraite rather tahn average models
 
-
-
-  
 ###### Natural Disturbance
-  
   - correlations
   - not correalted
 
@@ -502,7 +498,7 @@ timber volume:
 
 
  - correlations
-    - frost free end day correalted with growing dregree days ($\rho$ = 0.79)
+    - frost free end day correlated with growing dregree days ($\rho$ = 0.79)
     - frost free period highly correlated with frost free start day ($\rho$ = -0.93), growing degree      days ($\rho$ = 0.75), frost free end day ($\rho$ = 0.70), and number of frost free days ($\rho$ =     0.85)
     - mean warmest month temperature highly correlated with growing degree days ($\rho$ = 0.87) and         mean coldest month temperature ($\rho$ = -0.73) 
     - number of frost free days highly correlated with frost free start day ($\rho$ = -0.76), growing       degree days ($\rho$ = 0.74), frost free end day ($\rho$ = 0.74), frost free period ($\rho$ =          0.85), and mean annual temperature ($\rho$ = 0.76)
@@ -617,7 +613,6 @@ timber volume:
 - the top model included all covariates (wetladn, BEC, shrub closure, bryoid coveer, herb cover, stand age, stand height adn stand canopy closure) and had an AIC*~w~* = 1.00
 
 ###### Combination Models
-
 - correlations
   - annual precipitation as snow and elevation correlated ($\rho$ = 0.74)
   - annual precipitation as snow and winter precipitation as snow correlated ($\rho$ = 0.96)
@@ -1029,7 +1024,6 @@ kable (table.kfold.du6.ew)
 
 - the top model included all covaraites (slope, distance to watercourse and distance to lake) and had an AIC*~w~* = 1.00
 
-
 ###### Human Disturbance
 - boxplots
 
@@ -1055,8 +1049,6 @@ kable (table.kfold.du6.ew)
 ![](plots/hist_du6_s_dist_pipe.png)
 ![](plots/hist_du6_s_dist_well.png)
 
-
-
 - correlation
   - disatcne to agriculure highly correalted with disatnce to cutblock age 5 to 9 ($\rho$ > 0.72)
   - disatnce to pipeline adn distance to well highly correlated ($\rho$ = 0.72)
@@ -1068,7 +1060,6 @@ kable (table.kfold.du6.ew)
 - Human disturbance features top-ranked model (AIC*~w~* 1.000) included all covaraites (distance to cutblock, distance to paved and resource roads, distance to mine and distance to piepline.  
  
 ###### Natural Disturbance
-  
 correlations
   - not correlated
 
@@ -1158,24 +1149,48 @@ correlations
 - the top model included summer preciptation and average summer temperature (AIC*~w~* = 0.884); the second ranked model included summer preciptation (AIC*~w~* = 0.116)
 - coefficients of the top models were similar, and therefore all covraites were retained for further consideration
 
+###### Vegetation and Forest Characteristics
+- boxplots
+- generally didn't appear to be significant outliers
 
+![](plots/boxplot_veg_du6_s_basal_area.png)
+![](plots/boxplot_veg_du6_s_bryoid_perc.png)
+![](plots/boxplot_veg_du6_s_crown_close.png)
+![](plots/boxplot_veg_du6_s_herb_cover.png)
+![](plots/boxplot_veg_du6_s_live_volume.png)
+![](plots/boxplot_veg_du6_s_stand_age.png)
+![](plots/boxplot_veg_du6_s_stand_height.png)
+![](plots/boxplot_veg_du6_s_shrub_closure.png)
+![](plots/boxplot_veg_du6_s_shrub_height.png)
+![](plots/boxplot_veg_du6_s_site_index.png)
 
+- histograms
+  - combine BWBSwk 3 with BWBSmw because former very rare
 
+![](plots/hist_veg_du6_s_bec.png)
+![](plots/hist_veg_du6_s_wetland.png)
 
+- correlation
+  - vri projected height and live volume were highly correlated ($\rho$ = 0.90) 
+  - VRI basal area correlated with crown closure ($\rho$ = 0.65) live volume ($\rho$ = 0.68) and 
+    projected height ($\rho$ = 0.69)
+  - vri projected height and site index were correlated ($\rho$ = 0.67)
 
+  - kept height, crown closure, bryoid cover, herb cover, stand age, and shrub crown   
+    closure
 
+  - fit candidate models with wetland and BEC classes only (base model), and added food (shurb, 
+    bryoids adn herbs), and forest stand cahracteristics (age, height + crown closure) for 
+    comaprison
 
+  - used wetland cover classes instead of VRI cover classes for DU6 because of precedent (Demars)
 
+- vif values were less than 3.24
 
+- the top model included all covariates (AIC*~w~* = 1.00), and therefore all covraites were retained for further consideration
 
-
-
-
-
-
-
-
-
+  
+###### Combination Models
 
 
 
@@ -1190,7 +1205,7 @@ correlations
 
 ## Conclusions
 In DU6 , early winter, 
-- visually adn statsically cosnsitent with Demars: overlap in defintion of high and low quality habitat pacthes; selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/immature forest
+- visually and statsically cosnsitent with Demars: overlap in defintion of high and low quality habitat pacthes; selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/immature forest
 - selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
 
 

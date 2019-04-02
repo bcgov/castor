@@ -13,7 +13,7 @@
 #=================================
 #  Script Name: 12_caribou_RSF_boreal_summer.R
 #  Script Version: 1.0
-#  Script Purpose: Script to develop caribou RSF model for DU6 and Late winter.
+#  Script Purpose: Script to develop caribou RSF model for DU6 and Summer.
 #  Script Author: Tyler Muhly, Natural Resource Modeling Specialist, Forest Analysis and 
 #                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #                 Report is located here: 
@@ -438,12 +438,12 @@ rsf.data.combo <- dplyr::full_join (rsf.data.combo,
 rm (rsf.data.climate.annual)
 gc ()
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
-                                    rsf.data.climate.winter [, c (9, 12, 14)],
+                                    rsf.data.climate.summer [, c (9, 13, 14)],
                                     by = "ptID")
 rm (rsf.data.climate.winter)
 gc ()
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
-                                    rsf.data.veg [, c (9, 10, 17)],
+                                    rsf.data.veg [, c (9:12, 44, 17:20, 22:24)],
                                     by = "ptID")
 rm (rsf.data.veg)
 gc ()
@@ -460,12 +460,7 @@ rsf.data.combo.du6.s$bec_label <- relevel (rsf.data.combo.du6.s$bec_label,
                                             ref = "BWBSmk")
 rsf.data.combo.du6.s$wetland_demars <- relevel (rsf.data.combo.du6.s$wetland_demars,
                                                  ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
-write.csv (rsf.data.combo.du6.s, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\summer\\rsf_data_combo_du6_s.csv")
-
-
-
-
-
+write.csv (rsf.data.combo.du6.s, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du6_s.csv")
 
 #######################
 ### FITTING MODELS ###
@@ -483,7 +478,7 @@ rsf.data.terrain.water.du6.s$soil_parent_material_name <- relevel (rsf.data.terr
 ### OUTLIERS ###
 ggplot (rsf.data.terrain.water.du6.s, aes (x = pttype, y = slope)) +
         geom_boxplot (outlier.colour = "red") +
-        labs (title = "Boxplot DU6, Late Winter Slope at Available (0) and Used (1) Locations",
+        labs (title = "Boxplot DU6, Summer Slope at Available (0) and Used (1) Locations",
               x = "Available (0) and Used (1) Locations",
               y = "Slope")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_terrain_water_du6_s_slope.png")
@@ -494,14 +489,14 @@ rsf.data.terrain.water.du6.s <- rsf.data.terrain.water.du6.s %>%
 ####
 ggplot (rsf.data.terrain.water.du6.s, aes (x = pttype, y = distance_to_lake)) +
             geom_boxplot (outlier.colour = "red") +
-            labs (title = "Boxplot DU6, Late Winter Distance to Lake \
+            labs (title = "Boxplot DU6, Summer Distance to Lake \
                   at Available (0) and Used (1) Locations",
                   x = "Available (0) and Used (1) Locations",
                   y = "Distance to Lake")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_terrain_water_du6_s_dist_lake.png")
 ggplot (rsf.data.terrain.water.du6.s, aes (x = pttype, y = distance_to_watercourse)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Watercourse \
+  labs (title = "Boxplot DU6, Summer Distance to Watercourse \
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Watercourse")
@@ -510,21 +505,21 @@ ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_te
 ### HISTOGRAMS ###
 ggplot (rsf.data.terrain.water.du6.s, aes (x = slope, fill = pttype)) + 
           geom_histogram (position = "dodge", binwidth = 5) +
-          labs (title = "Histogram DU6, Late Winter Slope at Available (0) and Used (1) Locations",
+          labs (title = "Histogram DU6, Summer Slope at Available (0) and Used (1) Locations",
                 x = "Slope",
                 y = "Count") +
           scale_fill_discrete (name = "Location Type")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_terrain_water_du6_s_slope.png")
 ggplot (rsf.data.terrain.water.du6.s, aes (x = distance_to_lake, fill = pttype)) + 
         geom_histogram (position = "dodge", binwidth = 200) +
-        labs (title = "Histogram DU6, Late Winter Distance to Lake at Available (0) and Used (1) Locations",
+        labs (title = "Histogram DU6, Summer Distance to Lake at Available (0) and Used (1) Locations",
               x = "Distance to Lake",
               y = "Count") +
         scale_fill_discrete (name = "Location Type")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_terrain_water_du6_s_dist_lake.png")
 ggplot (rsf.data.terrain.water.du6.s, aes (x = distance_to_watercourse, fill = pttype)) + 
           geom_histogram (position = "dodge", binwidth = 200) +
-          labs (title = "Histogram DU6, Late Winter Distance to Watercourse at Available (0) and Used (1) Locations",
+          labs (title = "Histogram DU6, Summer Distance to Watercourse at Available (0) and Used (1) Locations",
                 x = "Distance to Watercourse",
                 y = "Count") +
           scale_fill_discrete (name = "Location Type")
@@ -535,7 +530,7 @@ corr.terrain.water.du6.s <- rsf.data.terrain.water.du6.s [c (13:15)]
 corr.terrain.water.du6.s <- round (cor (corr.terrain.water.du6.s, method = "spearman"), 3)
 ggcorrplot (corr.terrain.water.du6.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Terrain and Water Resource Selection Function Model
-            Covariate Correlations for DU6, Late Winter")
+            Covariate Correlations for DU6, Summer")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_terrain_water_du6_s.png")
 
 ### VIF ###
@@ -577,7 +572,7 @@ model.lme4.du6.s.slope <- glmer (pttype ~ std.slope + (1 | uniqueID),
                                    verbose = T) 
 # AIC
 table.aic [1, 1] <- "DU6"
-table.aic [1, 2] <- "Late Winter"
+table.aic [1, 2] <- "Summer"
 table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [1, 4] <- "Slope"
 table.aic [1, 5] <- "(1 | UniqueID)"
@@ -590,7 +585,7 @@ model.lme4.du6.s.lake <- glmer (pttype ~ std.distance_to_lake + (1 | uniqueID),
                                   verbose = T) 
 # AIC
 table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
+table.aic [2, 2] <- "Summer"
 table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [2, 4] <- "Dist. to Lake"
 table.aic [2, 5] <- "(1 | UniqueID)"
@@ -604,7 +599,7 @@ model.lme4.du6.s.wc <- glmer (pttype ~ std.distance_to_watercourse  +
                                  verbose = T) 
 # AIC
 table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
+table.aic [3, 2] <- "Summer"
 table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [3, 4] <- "Dist. to Watercourse"
 table.aic [3, 5] <- "(1 | UniqueID)"
@@ -615,7 +610,7 @@ model.lme4.du6.s.slope.lake <- update (model.lme4.du6.s.slope,
                                          . ~ . + std.distance_to_lake) 
 # AIC
 table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Late Winter"
+table.aic [4, 2] <- "Summer"
 table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [4, 4] <- "Slope, Dist. to Lake"
 table.aic [4, 5] <- "(1 | UniqueID)"
@@ -626,7 +621,7 @@ model.lme4.du6.s.slope.water <- update (model.lme4.du6.s.slope,
                                          . ~ . + std.distance_to_watercourse) 
 # AIC
 table.aic [5, 1] <- "DU6"
-table.aic [5, 2] <- "Late Winter"
+table.aic [5, 2] <- "Summer"
 table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [5, 4] <- "Slope, Dist. to Watercourse"
 table.aic [5, 5] <- "(1 | UniqueID)"
@@ -637,7 +632,7 @@ model.lme4.du6.s.lake.water <- update (model.lme4.du6.s.lake,
                                         . ~ . + std.distance_to_watercourse)
 # AIC
 table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Late Winter"
+table.aic [6, 2] <- "Summer"
 table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [6, 4] <- "Dist. to Lake, Dist. to Watercourse"
 table.aic [6, 5] <- "(1 | UniqueID)"
@@ -648,7 +643,7 @@ model.lme4.du6.s.slope.lake.wc <- update (model.lme4.du6.s.slope.lake,
                                             . ~ . + std.distance_to_watercourse) 
 # AIC
 table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Late Winter"
+table.aic [7, 2] <- "Summer"
 table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [7, 4] <- "Slope, Dist. to Lake, Dist. to Watercourse"
 table.aic [7, 5] <- "(1 | UniqueID)"
@@ -686,63 +681,63 @@ rsf.data.human.dist.du6.s <- dplyr::mutate (rsf.data.human.dist.du6.s, distance_
 ### OUTLIERS ###
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_cut_1to4yo)) +
         geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Cutblocks 1 to 4 Years Old\
+  labs (title = "Boxplot DU6, Summer Distance to Cutblocks 1 to 4 Years Old\
                 at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_distcut1to4.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_cut_5to9yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Cutblocks 5 to 9 Years Old\
+  labs (title = "Boxplot DU6, Summer Distance to Cutblocks 5 to 9 Years Old\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_distcut5to9.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_cut_10yoorOver)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Cutblocks over 10 Years Old\
+  labs (title = "Boxplot DU6, Summer Distance to Cutblocks over 10 Years Old\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_distcut_over10.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_paved_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Paved Road\
+  labs (title = "Boxplot DU6, Summer Distance to Paved Road\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Paved Road")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_dist_pvd_rd.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Resource Road\
+  labs (title = "Boxplot DU6, Summer Distance to Resource Road\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_dist_resource_rd.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_agriculture)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Agriculture\
+  labs (title = "Boxplot DU6, Summer Distance to Agriculture\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Agriculture")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_dist_ag.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_mines)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Mine\
+  labs (title = "Boxplot DU6, Summer Distance to Mine\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Mine")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_dist_mine.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_pipeline)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Pipeline\
+  labs (title = "Boxplot DU6, Summer Distance to Pipeline\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Pipeline")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du6_s_dist_pipe.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = pttype, y = distance_to_wells)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Boxplot DU6, Late Winter Distance to Well\
+  labs (title = "Boxplot DU6, Summer Distance to Well\
         at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Well")
@@ -751,7 +746,7 @@ ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_du
 ### HISTOGRAMS ###
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_cut_1to4yo, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 5) +
-  labs (title = "Histogram DU6, Late Winter Distance to Cutblock 1 to 4 Years Old\
+  labs (title = "Histogram DU6, Summer Distance to Cutblock 1 to 4 Years Old\
                 at Available (0) and Used (1) Locations",
         x = "Distance to Cutblock",
         y = "Count") +
@@ -759,7 +754,7 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_cut_1to4yo, fill = pttyp
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_cut_1to4.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_cut_5to9yo, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 5) +
-  labs (title = "Histogram DU6, Late Winter Distance to Cutblock 5 to 9 Years Old\
+  labs (title = "Histogram DU6, Summer Distance to Cutblock 5 to 9 Years Old\
                 at Available (0) and Used (1) Locations",
         x = "Distance to Cutblock",
         y = "Count") +
@@ -767,7 +762,7 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_cut_5to9yo, fill = pttyp
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_cut_5to9.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_cut_10yoorOver, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 5) +
-  labs (title = "Histogram DU6, Late Winter Distance to Cutblock over 10 Years Old\
+  labs (title = "Histogram DU6, Summer Distance to Cutblock over 10 Years Old\
                 at Available (0) and Used (1) Locations",
         x = "Distance to Cutblock",
         y = "Count") +
@@ -775,7 +770,7 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_cut_10yoorOver, fill = p
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_cut_over10.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_paved_road, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 200) +
-  labs (title = "Histogram DU6, Late Winter Distance to Paved Road\
+  labs (title = "Histogram DU6, Summer Distance to Paved Road\
                 at Available (0) and Used (1) Locations",
         x = "Distance to Paved Road",
         y = "Count") +
@@ -783,7 +778,7 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_paved_road, fill = pttyp
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_pvd_rd.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_resource_road, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 200) +
-  labs (title = "Histogram DU6, Late Winter Distance to Resource Road\
+  labs (title = "Histogram DU6, Summer Distance to Resource Road\
                   at Available (0) and Used (1) Locations",
         x = "Distance to Resource Road",
         y = "Count") +
@@ -791,7 +786,7 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_resource_road, fill = pt
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_res_rd.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_agriculture, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 200) +
-  labs (title = "Histogram DU6, Late Winter Distance to Agriculture\
+  labs (title = "Histogram DU6, Summer Distance to Agriculture\
                   at Available (0) and Used (1) Locations",
         x = "Distance to Agriculture",
         y = "Count") +
@@ -799,14 +794,14 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_agriculture, fill = ptty
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_ag.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_mines, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 200) +
-  labs (title = "Histogram DU6, Late Winter Distance to Mine at Available (0) and Used (1) Locations",
+  labs (title = "Histogram DU6, Summer Distance to Mine at Available (0) and Used (1) Locations",
         x = "Distance to Mine",
         y = "Count") +
   scale_fill_discrete (name = "Location Type")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_mine.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_pipeline, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 200) +
-  labs (title = "Histogram DU6, Late Winter Distance to Pipeline at\
+  labs (title = "Histogram DU6, Summer Distance to Pipeline at\
                  Available (0) and Used (1) Locations",
         x = "Distance to Pipeline",
         y = "Count") +
@@ -814,7 +809,7 @@ ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_pipeline, fill = pttype)
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_du6_s_dist_pipe.png")
 ggplot (rsf.data.human.dist.du6.s, aes (x = distance_to_wells, fill = pttype)) + 
   geom_histogram (position = "dodge", binwidth = 200) +
-  labs (title = "Histogram DU6, Late Winter Distance to Well at\
+  labs (title = "Histogram DU6, Summer Distance to Well at\
                  Available (0) and Used (1) Locations",
         x = "Distance to Pipeline",
         y = "Count") +
@@ -826,7 +821,7 @@ corr.human.dist.du6.s <- rsf.data.human.dist.du6.s [c (10:11, 27, 14, 26, 20:24)
 corr.human.dist.du6.s <- round (cor (corr.human.dist.du6.s, method = "spearman"), 3)
 ggcorrplot (corr.human.dist.du6.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Human Disturbance Resource Selection Function Model
-            Covariate Correlations for DU6, Late Winter")
+            Covariate Correlations for DU6, Summer")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_human_dist_du6_s.png")
 
 ### VIF ###
@@ -862,7 +857,7 @@ model.lme4.du6.s.cutblock <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.di
                                       verbose = T) 
 # AIC
 table.aic [1, 1] <- "DU6"
-table.aic [1, 2] <- "Late Winter"
+table.aic [1, 2] <- "Summer"
 table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [1, 4] <- "DC1to4, DC5to9, DCover9"
 table.aic [1, 5] <- "(1 | UniqueID)"
@@ -876,7 +871,7 @@ model.lme4.du6.s.road <- glmer (pttype ~ std.distance_to_paved_road +
                                      verbose = T) 
 # AIC
 table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
+table.aic [2, 2] <- "Summer"
 table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [2, 4] <- "DPR, DRR"
 table.aic [2, 5] <- "(1 | UniqueID)"
@@ -889,7 +884,7 @@ model.lme4.du6.s.mine <- glmer (pttype ~ std.distance_to_mines + (1 | uniqueID),
                                  verbose = T) 
 # AIC
 table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
+table.aic [3, 2] <- "Summer"
 table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [3, 4] <- "DMine"
 table.aic [3, 5] <- "(1 | UniqueID)"
@@ -902,7 +897,7 @@ model.lme4.du6.s.pipe <- glmer (pttype ~ std.distance_to_pipeline + (1 | uniqueI
                                  verbose = T) 
 # AIC
 table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Late Winter"
+table.aic [4, 2] <- "Summer"
 table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [4, 4] <- "DPipeline"
 table.aic [4, 5] <- "(1 | UniqueID)"
@@ -920,7 +915,7 @@ model.lme4.du6.s.cut.road <- glmer (pttype ~ std.distance_to_cut_1to4yo +
                                      verbose = T) 
 # AIC
 table.aic [5, 1] <- "DU6"
-table.aic [5, 2] <- "Late Winter"
+table.aic [5, 2] <- "Summer"
 table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [5, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR"
 table.aic [5, 5] <- "(1 | UniqueID)"
@@ -937,7 +932,7 @@ model.lme4.du6.s.cut.mine <- glmer (pttype ~ std.distance_to_cut_1to4yo +
                                      verbose = T) 
 # AIC
 table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Late Winter"
+table.aic [6, 2] <- "Summer"
 table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [6, 4] <- "DC1to4, DC5to9, DCover9, DMine"
 table.aic [6, 5] <- "(1 | UniqueID)"
@@ -954,7 +949,7 @@ model.lme4.du6.s.cut.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo +
                                      verbose = T) 
 # AIC
 table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Late Winter"
+table.aic [7, 2] <- "Summer"
 table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [7, 4] <- "DC1to4, DC5to9, DCover9, DPipeline"
 table.aic [7, 5] <- "(1 | UniqueID)"
@@ -970,7 +965,7 @@ model.lme4.du6.s.road.mine <- glmer (pttype ~ std.distance_to_paved_road +
                                        verbose = T) 
 # AIC
 table.aic [8, 1] <- "DU6"
-table.aic [8, 2] <- "Late Winter"
+table.aic [8, 2] <- "Summer"
 table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [8, 4] <- "DPR, DRR, DMine"
 table.aic [8, 5] <- "(1 | UniqueID)"
@@ -986,7 +981,7 @@ model.lme4.du6.s.road.pipe <- glmer (pttype ~ std.distance_to_paved_road +
                                       verbose = T) 
 # AIC
 table.aic [9, 1] <- "DU6"
-table.aic [9, 2] <- "Late Winter"
+table.aic [9, 2] <- "Summer"
 table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [9, 4] <- "DPR, DRR, DPipeline"
 table.aic [9, 5] <- "(1 | UniqueID)"
@@ -1001,7 +996,7 @@ model.lme4.du6.s.mine.pipe <- glmer (pttype ~ std.distance_to_mines +
                                      verbose = T) 
 # AIC
 table.aic [10, 1] <- "DU6"
-table.aic [10, 2] <- "Late Winter"
+table.aic [10, 2] <- "Summer"
 table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [10, 4] <- "DMine, DPipeline"
 table.aic [10, 5] <- "(1 | UniqueID)"
@@ -1020,7 +1015,7 @@ model.lme4.du6.s.cut.road.mine <- glmer (pttype ~ std.distance_to_cut_1to4yo +
                                          verbose = T) 
 # AIC
 table.aic [11, 1] <- "DU6"
-table.aic [11, 2] <- "Late Winter"
+table.aic [11, 2] <- "Summer"
 table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [11, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine"
 table.aic [11, 5] <- "(1 | UniqueID)"
@@ -1039,7 +1034,7 @@ model.lme4.du6.s.cut.road.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo +
                                           verbose = T) 
 # AIC
 table.aic [12, 1] <- "DU6"
-table.aic [12, 2] <- "Late Winter"
+table.aic [12, 2] <- "Summer"
 table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [12, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DPipeline"
 table.aic [12, 5] <- "(1 | UniqueID)"
@@ -1057,7 +1052,7 @@ model.lme4.du6.s.cut.mine.pipe <- glmer (pttype ~ std.distance_to_cut_1to4yo +
                                            verbose = T) 
 # AIC
 table.aic [13, 1] <- "DU6"
-table.aic [13, 2] <- "Late Winter"
+table.aic [13, 2] <- "Summer"
 table.aic [13, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [13, 4] <- "DC1to4, DC5to9, DCover9, DMine, DPipeline"
 table.aic [13, 5] <- "(1 | UniqueID)"
@@ -1074,7 +1069,7 @@ model.lme4.du6.s.road.mine.pipe <- glmer (pttype ~ std.distance_to_paved_road +
                                             verbose = T) 
 # AIC
 table.aic [14, 1] <- "DU6"
-table.aic [14, 2] <- "Late Winter"
+table.aic [14, 2] <- "Summer"
 table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [14, 4] <- "DPR, DRR, DMine, DPipeline"
 table.aic [14, 5] <- "(1 | UniqueID)"
@@ -1094,7 +1089,7 @@ model.lme4.du6.s.cut.road.mine.pipe <- glmer (pttype ~ std.distance_to_cut_1to4y
                                               verbose = T) 
 # AIC
 table.aic [15, 1] <- "DU6"
-table.aic [15, 2] <- "Late Winter"
+table.aic [15, 2] <- "Summer"
 table.aic [15, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [15, 4] <- "DC1to4, DC5to9, DCover9, DPR, DRR, DMine, DPipeline"
 table.aic [15, 5] <- "(1 | UniqueID)"
@@ -1145,7 +1140,7 @@ corr.rsf.data.natural.dist.du6.s <- rsf.data.natural.dist.du6.s [c (10:14)]
 corr.rsf.data.natural.dist.du6.s <- round (cor (corr.rsf.data.natural.dist.du6.s, method = "spearman"), 3)
 ggcorrplot (corr.rsf.data.natural.dist.du6.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Fire and Beetle Disturbance Selection Function Model
-            Covariate Correlations for DU6, Late Winter")
+            Covariate Correlations for DU6, Summer")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_natural_disturb_du6_s.png")
 
 ### VIF ###
@@ -1167,7 +1162,7 @@ model.lme4.du6.s.fire <- glmer (pttype ~ fire_1to5yo + fire_6to25yo +
                                  verbose = T) 
 # AIC
 table.aic [1, 1] <- "DU6"
-table.aic [1, 2] <- "Late Winter"
+table.aic [1, 2] <- "Summer"
 table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [1, 4] <- "Fire1to5, Fire6to25, Fireover25"
 table.aic [1, 5] <- "(1 | UniqueID)"
@@ -1181,7 +1176,7 @@ model.lme4.du6.s.beetle <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo +
                                    verbose = T) 
 # AIC
 table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
+table.aic [2, 2] <- "Summer"
 table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [2, 4] <- "Beetle1to5, Beetle6to9"
 table.aic [2, 5] <- "(1 | UniqueID)"
@@ -1196,7 +1191,7 @@ model.lme4.du6.s.fire.beetle <- glmer (pttype ~ fire_1to5yo + fire_6to25yo + fir
                                        verbose = T) 
 # AIC
 table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
+table.aic [3, 2] <- "Summer"
 table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [3, 4] <- "Fire1to5, Fire6to25, Fireover25, Beetle1to5, Beetle6to9"
 table.aic [3, 5] <- "(1 | UniqueID)"
@@ -1398,7 +1393,7 @@ model.lme4.du6.s.pas <- glmer (pttype ~ std.ppt_as_snow_annual + (1 | uniqueID),
                                 verbose = T) 
 # AIC
 table.aic [1, 1] <- "DU6"
-table.aic [1, 2] <- "Late Winter"
+table.aic [1, 2] <- "Summer"
 table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [1, 4] <- "PaS"
 table.aic [1, 5] <- "(1 | UniqueID)"
@@ -1411,7 +1406,7 @@ model.lme4.du6.s.ggd <- glmer (pttype ~ std.growing_degree_days + (1 | uniqueID)
                                 verbose = T) 
 # AIC
 table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
+table.aic [2, 2] <- "Summer"
 table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [2, 4] <- "GDD"
 table.aic [2, 5] <- "(1 | UniqueID)"
@@ -1424,7 +1419,7 @@ model.lme4.du6.s.mat <- glmer (pttype ~ std.mean_annual_temp + (1 | uniqueID),
                                 verbose = T) 
 # AIC
 table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
+table.aic [3, 2] <- "Summer"
 table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [3, 4] <- "MAT"
 table.aic [3, 5] <- "(1 | UniqueID)"
@@ -1438,7 +1433,7 @@ model.lme4.du6.s.pas.gdd <- glmer (pttype ~ std.ppt_as_snow_annual + std.growing
                                     verbose = T) 
 # AIC
 table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Late Winter"
+table.aic [4, 2] <- "Summer"
 table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [4, 4] <- "PaS, GDD"
 table.aic [4, 5] <- "(1 | UniqueID)"
@@ -1452,7 +1447,7 @@ model.lme4.du6.s.pas.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.mean_an
                                     verbose = T) 
 # AIC
 table.aic [5, 1] <- "DU6"
-table.aic [5, 2] <- "Late Winter"
+table.aic [5, 2] <- "Summer"
 table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [5, 4] <- "PaS, MAT"
 table.aic [5, 5] <- "(1 | UniqueID)"
@@ -1466,7 +1461,7 @@ model.lme4.du6.s.ggd.mat <- glmer (pttype ~ std.growing_degree_days + std.mean_a
                                     verbose = T) 
 # AIC
 table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Late Winter"
+table.aic [6, 2] <- "Summer"
 table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [6, 4] <- "GDD, MAT"
 table.aic [6, 5] <- "(1 | UniqueID)"
@@ -1481,7 +1476,7 @@ model.lme4.du6.s.pas.gdd.mat <- glmer (pttype ~ std.ppt_as_snow_annual + std.gro
                                         verbose = T) 
 # AIC
 table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Late Winter"
+table.aic [7, 2] <- "Summer"
 table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [7, 4] <- "PaS, GDD, MAT"
 table.aic [7, 5] <- "(1 | UniqueID)"
@@ -1668,22 +1663,92 @@ rsf.data.veg.du6.s$bec_label <- relevel (rsf.data.veg.du6.s$bec_label,
 rsf.data.veg.du6.s$wetland_demars <- relevel (rsf.data.veg.du6.s$wetland_demars,
                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
 
-
 ### OUTLIERS ###
-
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_basal_area)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Basal Area\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Basal Area of Trees")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_basal_area.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_bryoid_cover_pct)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Bryoid Cover\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Percent Cover")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_bryoid_perc.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_crown_closure)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Crown Closure\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Crown Closure")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_crown_close.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_herb_cover_pct)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Herbaceous Cover\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Percent Cover")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_herb_cover.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_live_volume)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Live Forest Stand Volume\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Volume")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_live_volume.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_proj_age)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Projected Forest Stand Age\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Age")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_stand_age.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_proj_height)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Projected Forest Stand Height\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Height")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_stand_height.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_shrub_crown_close)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Shrub Crown Closure\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Crown Closure")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_shrub_closure.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_shrub_height)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Shrub Height\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Height")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_shrub_height.png")
+ggplot (rsf.data.veg.du6.s, aes (x = pttype, y = vri_site_index)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Summer, Site Index\ 
+        at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Site Index")
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du6_s_site_index.png")
 
 ### HISTOGRAMS ###
 ggplot (rsf.data.veg.du6.s, aes (x = bec_label, fill = pttype)) + 
             geom_histogram (position = "dodge", stat = "count") +
-            labs (title = "Histogram DU6, Late Winter, BEC Type\
+            labs (title = "Histogram DU6, Summer, BEC Type\
                           at Available (0) and Used (1) Locations",
                   x = "Biogeclimatic Unit",
                   y = "Count") +
             scale_fill_discrete (name = "Location Type")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du6_s_bec.png")
+rsf.data.veg.du6.s$bec_label <- recode (rsf.data.veg.du6.s$bec_label,
+                                                      "'BWBSwk 3' = 'BWBSmw'")
 ggplot (rsf.data.veg.du6.s, aes (x = wetland_demars, fill = pttype)) + 
           geom_histogram (position = "dodge", stat = "count") +
-          labs (title = "Histogram DU6, Late Winter, Wetland Type\
+          labs (title = "Histogram DU6, Summer, Wetland Type\
                                   at Available (0) and Used (1) Locations",
                 x = "Wetland Type",
                 y = "Count") +
@@ -1691,39 +1756,33 @@ ggplot (rsf.data.veg.du6.s, aes (x = wetland_demars, fill = pttype)) +
           theme (axis.text.x = element_text (angle = -90, hjust = 0))
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du6_s_wetland.png")
 
-
 ### CORRELATION ###
-corr.veg.du6.s <- rsf.data.veg.du6.s [c (12:16)]
+corr.veg.du6.s <- rsf.data.veg.du6.s [c (17:26)]
 corr.veg.du6.s <- round (cor (corr.veg.du6.s, method = "spearman"), 3)
 ggcorrplot (corr.veg.du6.s, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Vegeation Resource Selection Function Model
-            Covariate Correlations for DU6, Late Winter")
+            title = "Vegetation Resource Selection Function Model
+            Covariate Correlations for DU6, Summer")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_veg_du6_s.png")
 
 ### VIF ###
-glm.veg.du6.s <- glm (pttype ~ bec_label + wetland_demars, 
-                                  data = rsf.data.veg.du6.s,
-                                  family = binomial (link = 'logit'))
+glm.veg.du6.s <- glm (pttype ~ bec_label + wetland_demars + vri_proj_height + vri_crown_closure + 
+                                vri_bryoid_cover_pct + vri_herb_cover_pct + vri_proj_age + 
+                                vri_shrub_crown_close, 
+                      data = rsf.data.veg.du6.s,
+                      family = binomial (link = 'logit'))
 car::vif (glm.veg.du6.s)
-
-
 
 ### Build an AIC Table ###
 table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
 colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
 
 # standardize covariates  (helps with model convergence)
-rsf.data.veg.du6.s$std.ppt_as_snow_winter <- (rsf.data.veg.du6.s$ppt_as_snow_winter - mean (rsf.data.veg.du6.s$ppt_as_snow_winter)) / sd (rsf.data.veg.du6.s$ppt_as_snow_winter)
-rsf.data.veg.du6.s$std.temp_avg_winter <- (rsf.data.veg.du6.s$temp_avg_winter - mean (rsf.data.veg.du6.s$temp_avg_winter)) / sd (rsf.data.veg.du6.s$temp_avg_winter)
-
-# FUNCTIONAL RESPONSE Covariates
-sub <- subset (rsf.data.veg.du6.s, pttype == 0)
-ppt_as_snow_winter_E <- tapply (sub$std.ppt_as_snow_winter, sub$uniqueID, sum)
-temp_avg_winter_E <- tapply (sub$std.temp_avg_winter, sub$uniqueID, sum)
-inds <- as.character (rsf.data.climate.winter.du6.s$uniqueID)
-rsf.data.veg.du6.s <- cbind (rsf.data.veg.du6.s, 
-                                         "ppt_as_snow_winter_E" = ppt_as_snow_winter_E [inds],
-                                         "temp_avg_winter_E" = temp_avg_winter_E [inds])
+rsf.data.veg.du6.s$std.vri_bryoid_cover_pct <- (rsf.data.veg.du6.s$vri_bryoid_cover_pct - mean (rsf.data.veg.du6.s$vri_bryoid_cover_pct)) / sd (rsf.data.veg.du6.s$vri_bryoid_cover_pct)
+rsf.data.veg.du6.s$std.vri_herb_cover_pct <- (rsf.data.veg.du6.s$vri_herb_cover_pct - mean (rsf.data.veg.du6.s$vri_herb_cover_pct)) / sd (rsf.data.veg.du6.s$vri_herb_cover_pct)
+rsf.data.veg.du6.s$std.vri_proj_age <- (rsf.data.veg.du6.s$vri_proj_age - mean (rsf.data.veg.du6.s$vri_proj_age)) / sd (rsf.data.veg.du6.s$vri_proj_age)
+rsf.data.veg.du6.s$std.vri_shrub_crown_close <- (rsf.data.veg.du6.s$vri_shrub_crown_close - mean (rsf.data.veg.du6.s$vri_shrub_crown_close)) / sd (rsf.data.veg.du6.s$vri_shrub_crown_close)
+rsf.data.veg.du6.s$std.vri_proj_height <- (rsf.data.veg.du6.s$vri_proj_height - mean (rsf.data.veg.du6.s$vri_proj_height)) / sd (rsf.data.veg.du6.s$vri_proj_height)
+rsf.data.veg.du6.s$std.vri_crown_closure <- (rsf.data.veg.du6.s$vri_crown_closure - mean (rsf.data.veg.du6.s$vri_crown_closure)) / sd (rsf.data.veg.du6.s$vri_crown_closure)
 
 ## BEC ##
 model.lme4.du6.s.veg.bec <- glmer (pttype ~ bec_label + (1 | uniqueID), 
@@ -1732,7 +1791,7 @@ model.lme4.du6.s.veg.bec <- glmer (pttype ~ bec_label + (1 | uniqueID),
                                     verbose = T) 
 # AIC
 table.aic [1, 1] <- "DU6"
-table.aic [1, 2] <- "Late Winter"
+table.aic [1, 2] <- "Summer"
 table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [1, 4] <- "BEC"
 table.aic [1, 5] <- "(1 | UniqueID)"
@@ -1745,7 +1804,7 @@ model.lme4.du6.s.veg.wetland <- glmer (pttype ~ wetland_demars + (1 | uniqueID),
                                         verbose = T) 
 # AIC
 table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
+table.aic [2, 2] <- "Summer"
 table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [2, 4] <- "Wetland"
 table.aic [2, 5] <- "(1 | UniqueID)"
@@ -1758,14 +1817,103 @@ model.lme4.du6.s.veg.wetland.bec <- glmer (pttype ~ wetland_demars + bec_label +
                                             verbose = T) 
 # AIC
 table.aic [3, 1] <- "DU6"
-table.aic [3, 2] <- "Late Winter"
+table.aic [3, 2] <- "Summer"
 table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [3, 4] <- "Wetland, BEC"
 table.aic [3, 5] <- "(1 | UniqueID)"
 table.aic [3, 6] <-  AIC (model.lme4.du6.s.veg.wetland.bec)
 
+## WETLAND, BEC and FOOD ##
+model.lme4.du6.s.veg.wetland.bec.food <- glmer (pttype ~ wetland_demars + bec_label + 
+                                                         std.vri_shrub_crown_close + 
+                                                         std.vri_bryoid_cover_pct + 
+                                                         std.vri_herb_cover_pct +
+                                                         (1 | uniqueID), 
+                                                data = rsf.data.veg.du6.s, 
+                                                family = binomial (link = "logit"),
+                                                verbose = T) 
+# AIC
+table.aic [4, 1] <- "DU6"
+table.aic [4, 2] <- "Summer"
+table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [4, 4] <- "Wetland, BEC, ShrubClosure, BryoidCover, HerbCover"
+table.aic [4, 5] <- "(1 | UniqueID)"
+table.aic [4, 6] <-  AIC (model.lme4.du6.s.veg.wetland.bec.food)
 
+## WETLAND, BEC and FOREST ##
+model.lme4.du6.s.veg.wetland.bec.forest <- glmer (pttype ~ wetland_demars + bec_label + 
+                                                     std.vri_proj_age + 
+                                                     std.vri_proj_height +
+                                                     std.vri_crown_closure +
+                                                     (1 | uniqueID), 
+                                                   data = rsf.data.veg.du6.s, 
+                                                   family = binomial (link = "logit"),
+                                                   verbose = T) 
+# AIC
+table.aic [5, 1] <- "DU6"
+table.aic [5, 2] <- "Summer"
+table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [5, 4] <- "Wetland, BEC, TreeAge, TreeHeight, TreeClosure"
+table.aic [5, 5] <- "(1 | UniqueID)"
+table.aic [5, 6] <-  AIC (model.lme4.du6.s.veg.wetland.bec.forest)
 
+## FOOD and FOREST ##
+model.lme4.du6.s.veg.food.forest <- glmer (pttype ~ std.vri_bryoid_cover_pct + 
+                                              std.vri_herb_cover_pct + 
+                                              std.vri_shrub_crown_close +
+                                              std.vri_proj_age + 
+                                              std.vri_proj_height +
+                                              std.vri_crown_closure +
+                                              (1 | uniqueID), 
+                                            data = rsf.data.veg.du6.s, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+# AIC
+table.aic [6, 1] <- "DU6"
+table.aic [6, 2] <- "Summer"
+table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [6, 4] <- "ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [6, 5] <- "(1 | UniqueID)"
+table.aic [6, 6] <-  AIC (model.lme4.du6.s.veg.food.forest)
+
+## WETLAND, BEC, FOOD and FOREST ##
+model.lme4.du6.s.veg.food.forest.food <- glmer (pttype ~ wetland_demars + bec_label + 
+                                                   std.vri_bryoid_cover_pct + 
+                                                   std.vri_herb_cover_pct + 
+                                                   std.vri_shrub_crown_close +
+                                                   std.vri_proj_age + 
+                                                   std.vri_proj_height +
+                                                   std.vri_crown_closure +
+                                                   (1 | uniqueID), 
+                                                 data = rsf.data.veg.du6.s, 
+                                                 family = binomial (link = "logit"),
+                                                 verbose = T) 
+ss <- getME (model.lme4.du6.s.veg.food.forest.food, c ("theta","fixef"))
+model.lme4.du6.s.veg.food.forest.food <- update (model.lme4.du6.s.veg.food.forest.food, start = ss) # failed to converge, restart with parameter estimates
+# AIC
+table.aic [7, 1] <- "DU6"
+table.aic [7, 2] <- "Summer"
+table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [7, 4] <- "Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [7, 5] <- "(1 | UniqueID)"
+table.aic [7, 6] <-  AIC (model.lme4.du6.s.veg.food.forest.food)
+
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC)
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:7), 6])))), 
+                    (exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))),
+                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))))
+table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [2, 7] <- round ((exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [4, 7] <- round ((exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [6, 7] <- round ((exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
+table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\summer\\table_aic_veg.csv", sep = ",")
 
@@ -1775,10 +1923,10 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ai
 
 ### compile AIC table of top models form each group
 table.aic.annual.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\summer\\table_aic_annual_climate.csv", header = T, sep = ",")
-table.aic <- table.aic.annual.clim [10, ]
+table.aic <- table.aic.annual.clim [7, ]
 rm (table.aic.annual.clim)
 table.aic.human <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\summer\\table_aic_human_disturb.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.human [110, ])
+table.aic <- bind_rows (table.aic, table.aic.human [15, ])
 rm (table.aic.human)
 table.aic.nat.disturb <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\summer\\table_aic_natural_disturb.csv", header = T, sep = ",")
 table.aic <- bind_rows (table.aic, table.aic.nat.disturb [5, ])
@@ -1812,7 +1960,7 @@ corr.data.du6.s <- rsf.data.combo.du6.s [c (11:14, 16:17, 37, 20:34)]
 corr.du6.s <- round (cor (corr.data.du6.s, method = "spearman"), 3)
 ggcorrplot (corr.du6.s, type = "lower", lab = TRUE, tl.cex = 9,  lab_size = 2,
             title = "Resource Selection Function Model Covariate Correlations \
-                     for DU6, Late Winter")
+                     for DU6, Summer")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_winter_climate_du6_s.png")
 
 ### VIF ###
@@ -1916,7 +2064,7 @@ model.lme4.du6.s.ef.hd4 <- update (model.lme4.du6.s.ef.hd,
                                     . ~ . - soil_parent_material_name) # drop soil
 # AIC
 table.aic [6, 1] <- "DU6"
-table.aic [6, 2] <- "Late Winter"
+table.aic [6, 2] <- "Summer"
 table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [6, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe"
 table.aic [6, 5] <- "(1 | UniqueID)"
@@ -1935,7 +2083,7 @@ model.lme4.du6.s.ef.nd2 <- update (model.lme4.du6.s.ef.nd,
                                     . ~ . - soil_parent_material_name) # drop soils
 # AIC
 table.aic [7, 1] <- "DU6"
-table.aic [7, 2] <- "Late Winter"
+table.aic [7, 2] <- "Summer"
 table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [7, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [7, 5] <- "(1 | UniqueID)"
@@ -1951,7 +2099,7 @@ model.lme4.du6.s.ef.clim <- glmer (pttype ~ std.slope + std.distance_to_lake +
                                   verbose = T) 
 # AIC
 table.aic [8, 1] <- "DU6"
-table.aic [8, 2] <- "Late Winter"
+table.aic [8, 2] <- "Summer"
 table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [8, 4] <- "Slope, DLake, DWat, GDD, PAS, WTemp"
 table.aic [8, 5] <- "(1 | UniqueID)"
@@ -1969,7 +2117,7 @@ model.lme4.du6.s.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.dista
                                   verbose = T) 
 # AIC
 table.aic [9, 1] <- "DU6"
-table.aic [9, 2] <- "Late Winter"
+table.aic [9, 2] <- "Summer"
 table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [9, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [9, 5] <- "(1 | UniqueID)"
@@ -1987,7 +2135,7 @@ model.lme4.du6.s.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.dis
                                   verbose = T) 
 # AIC
 table.aic [10, 1] <- "DU6"
-table.aic [10, 2] <- "Late Winter"
+table.aic [10, 2] <- "Summer"
 table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [10, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [10, 5] <- "(1 | UniqueID)"
@@ -2003,7 +2151,7 @@ model.lme4.du6.s.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fire
                                     verbose = T) 
 # AIC
 table.aic [11, 1] <- "DU6"
-table.aic [11, 2] <- "Late Winter"
+table.aic [11, 2] <- "Summer"
 table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [11, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS, WTemp"
 table.aic [11, 5] <- "(1 | UniqueID)"
@@ -2019,7 +2167,7 @@ model.lme4.du6.s.ef.veg <- glmer (pttype ~ std.slope + std.distance_to_lake +
                                   verbose = T) 
 # AIC
 table.aic [12, 1] <- "DU6"
-table.aic [12, 2] <- "Late Winter"
+table.aic [12, 2] <- "Summer"
 table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [12, 4] <- "Slope, DLake, DWat, BEC, Wetland"
 table.aic [12, 5] <- "(1 | UniqueID)"
@@ -2035,7 +2183,7 @@ model.lme4.du6.s.ef.new <- glmer (pttype ~ std.slope + std.distance_to_lake +
 
 # AIC
 table.aic [4, 1] <- "DU6"
-table.aic [4, 2] <- "Late Winter"
+table.aic [4, 2] <- "Summer"
 table.aic [4, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [4, 4] <- "Slope, DLake, DWat"
 table.aic [4, 5] <- "(1 | UniqueID)"
@@ -2055,7 +2203,7 @@ model.lme4.du6.s.ef.hd.nd <- glmer (pttype ~ std.slope + std.distance_to_lake +
                                      verbose = T) 
 # AIC
 table.aic [13, 1] <- "DU6"
-table.aic [13, 2] <- "Late Winter"
+table.aic [13, 2] <- "Summer"
 table.aic [13, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [13, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [13, 5] <- "(1 | UniqueID)"
@@ -2077,7 +2225,7 @@ model.lme4.du6.s.ef.hd.clim2 <- update (model.lme4.du6.s.ef.hd.clim,
                                     . ~ . - seismic) # drop seismic lines
 # AIC
 table.aic [14, 1] <- "DU6"
-table.aic [14, 2] <- "Late Winter"
+table.aic [14, 2] <- "Summer"
 table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [14, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, GDD, PAS, WTemp"
 table.aic [14, 5] <- "(1 | UniqueID)"
@@ -2094,7 +2242,7 @@ model.lme4.du6.s.hd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance
                                        verbose = T) 
 # AIC
 table.aic [2, 1] <- "DU6"
-table.aic [2, 2] <- "Late Winter"
+table.aic [2, 2] <- "Summer"
 table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [2, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe"
 table.aic [2, 5] <- "(1 | UniqueID)"
@@ -2118,7 +2266,7 @@ model.lme4.du6.s.hd.nd.clim2 <- update (model.lme4.du6.s.hd.nd.clim, start = ss)
 
 # AIC
 table.aic [15, 1] <- "DU6"
-table.aic [15, 2] <- "Late Winter"
+table.aic [15, 2] <- "Summer"
 table.aic [15, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
 table.aic [15, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DMine, DPipe, GDD, PAS, WTemp, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [15, 5] <- "(1 | UniqueID)"
