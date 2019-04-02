@@ -1939,23 +1939,6 @@ table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1
 table.aic [6, 7] <- round ((exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
 table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
 
-## AIC comparison of MODELS ## 
-table.aic$AIC <- as.numeric (table.aic$AIC)
-list.aic.like <- c ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:7), 6])))), 
-                    (exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:7), 6])))),
-                    (exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:7), 6])))),
-                    (exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:7), 6])))),
-                    (exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:7), 6])))),
-                    (exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))),
-                    (exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))))
-table.aic [1, 7] <- round ((exp (-0.5 * (table.aic [1, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-table.aic [2, 7] <- round ((exp (-0.5 * (table.aic [2, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-table.aic [3, 7] <- round ((exp (-0.5 * (table.aic [3, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-table.aic [4, 7] <- round ((exp (-0.5 * (table.aic [4, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-table.aic [5, 7] <- round ((exp (-0.5 * (table.aic [5, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-table.aic [6, 7] <- round ((exp (-0.5 * (table.aic [6, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-table.aic [7, 7] <- round ((exp (-0.5 * (table.aic [7, 6] - min (table.aic [c (1:7), 6])))) / sum (list.aic.like), 3)
-
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du6\\late_winter\\table_aic_veg.csv", sep = ",")
 
 #=================================
