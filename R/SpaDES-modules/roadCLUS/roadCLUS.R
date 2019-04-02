@@ -318,28 +318,13 @@ roadCLUS.mstList<- function(sim){
 roadCLUS.shortestPaths<- function(sim){
   print('shortestPaths')
   #------finds the least cost paths between a list of two points
-  if(length(sim$paths.list) > 0){
-    print(sim$paths.list[[1]][1])
-    print(sim$paths.list[[1]][2])
-    #print(get.shortest.paths(sim$g, sim$paths.list[[1]][1], sim$paths.list[[1]][2], out = "both"))
-    #for(i in 2:185){
-    #  test<<-i
-    #  get.shortest.paths(sim$g, sim$paths.list[[i]][1], sim$paths.list[[i]][2], out = "both")
-    #
-    #  }
-    
-    print('last')
-    #paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, x[1], x[2], out = "both"))) #create a list of shortest paths
-    #sim$paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), sim$paths.v))#save the verticies for mapping
-    paths<-get.shortest.paths(sim$g, sim$paths.list[[1]][1], sim$paths.list[[1]][2], out = "both")
+    paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, V(g)[V(g)$name == sim$paths.list[[1]][1]], V(g)[V(g)$name == sim$paths.list[[1]][2]], out = "both"))) #create a list of shortest paths
     sim$paths.v<-data.table(paths[grepl("vpath",names(paths))])#save the verticies for mapping
-    print(sim$paths.v)
     paths.e<-paths[grepl("epath",names(paths))]
     edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
     
     rm(paths.e, paths)
     gc()
-  }
   return(invisible(sim))
 }
 
