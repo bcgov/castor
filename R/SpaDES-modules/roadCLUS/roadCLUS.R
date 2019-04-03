@@ -89,7 +89,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     },
     save.sim = {
       # do stuff for this event
-      sim <- roadCLUS.save(sim, time(sim))
+      sim <- roadCLUS.save(sim)
     },
     analysis.sim = {
       # do stuff for this event
@@ -151,8 +151,8 @@ roadCLUS.plot<-function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.save<-function(sim, time){
-  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time, ".tif"), format="GTiff", overwrite=TRUE)
+roadCLUS.save<-function(sim){
+  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -191,7 +191,7 @@ roadCLUS.getCostSurface<- function(sim){
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   costSurf<-RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243)#multiply the cost surface by the existing roads
-  writeRaster(sim$roads, file="cost.tif", format="GTiff", overwrite=TRUE)
+  writeRaster(sim$costSurface, file="cost.tif", format="GTiff", overwrite=TRUE)
   
   rm(rds, costSurf)
   gc()
@@ -200,6 +200,7 @@ roadCLUS.getCostSurface<- function(sim){
 
 roadCLUS.getClosestRoad <- function(sim){
   print('getClosestRoad')
+  sim$roads.close.XY<-NULL
   #TODO: Need a better approach here - converting to points then nearest distance seems redundant?
   roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= 0})
   #Maybe a SELECT pixelid FROM pixels where roadyear>= 0. Then XYfromCELL? --NEEd to test but rasterTopoints is fairly fast < 0.48s for a 1000x1000
@@ -316,15 +317,23 @@ roadCLUS.mstList<- function(sim){
 }
 
 roadCLUS.shortestPaths<- function(sim){
-  print('shortestPaths')
+  print(paste0('shortestPaths for ', length(sim$paths.list)))
   #------finds the least cost paths between a list of two points
-    paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g, V(g)[V(g)$name == sim$paths.list[[1]][1]], V(g)[V(g)$name == sim$paths.list[[1]][2]], out = "both"))) #create a list of shortest paths
-    sim$paths.v<-data.table(paths[grepl("vpath",names(paths))])#save the verticies for mapping
-    paths.e<-paths[grepl("epath",names(paths))]
-    edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
+  paths<-unlist(lapply(sim$paths.list, function(x) 
+      get.shortest.paths(sim$g, 
+                         V(sim$g)[V(sim$g)$name == as.integer(x[1]) ], 
+                         V(sim$g)[V(sim$g)$name == as.integer(x[2]) ], 
+                         out = "both"))) #create a list of shortest paths
     
-    rm(paths.e, paths)
-    gc()
+  paths.e<-paths[grepl("epath",names(paths))]
+  edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.00001 #changes the cost(weight) associated with the edge that became a path (or road)
+    
+  sim$paths.v<-unlist(data.table(paths[grepl("vpath",names(paths))]),  use.names = FALSE)#save the verticies for mapping
+  pths2<- V(sim$g)$name[V(sim$g) %in% sim$paths.v]
+  sim$roads[sim$ras[] %in% pths2] <- (time(sim)+1)
+  
+  rm(paths.e, paths)
+  gc()
   return(invisible(sim))
 }
 
