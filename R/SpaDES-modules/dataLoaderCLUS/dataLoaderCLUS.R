@@ -66,6 +66,7 @@ defineModule(sim, list(
     expectsInput("nameHeightRaster", objectClass ="character", desc = "Raster containing pixel height. EX. Canopy height model", sourceURL = NA)
     ),
   outputObjects = bind_rows(
+    createsOutput("zone.length", objectClass ="numeric", desc = NA),
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("bbox", objectClass ="numeric", desc = NA),
     createsOutput("boundary", objectClass ="sf", desc = NA),
@@ -151,8 +152,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #Set the zone IDs
   #----------------
   print(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
-  if(!(P(sim, "dataLoaderCLUS", "nameZoneRasters")[1] == "99999")){ 
-    print(paste0('.....zones: ',length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))))
+  if(!(P(sim, "dataLoaderCLUS", "nameZoneRasters")[1] == "99999")){
+    sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
+    print(paste0('.....zones: ',sim$zone.length))
     #TODO: Need to add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))){
       conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
@@ -169,17 +171,18 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       }
     
     qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, thlb, age, crownclosure, height, roadyear, zone',
-                 paste(as.character(seq(1:length(P(sim, "dataLoaderCLUS", "nameZoneRasters")))), sep="' '", collapse=", zone"),') 
+                 paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),') 
                 values (:pixelid, :compartid, :yieldid, :thlb, :age, :crownclosure, :height, NULL, :zone', 
-                 paste(as.character(seq(1:length(P(sim, "dataLoaderCLUS", "nameZoneRasters")))), sep="' '", collapse=", :zone"),')')
+                 paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
    
   } else{
     print('.....zone ids: default 1')
+    sim$zone.length<-1
     pixels[, zone1:= 1]
     qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, thlb, age, crownclosure, height, roadyear, zone1) 
                 values (:pixelid, :compartid, :yieldid, :thlb, :age, :crownclosure, :height, NULL, :zone1)')
-    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 numeric")
-    dbExecute(sim$clusdb, paste0('INSERT INTO zone (zoneid, reference_zone) values ( 1, zone1)' ))
+    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer")
+    dbExecute(sim$clusdb, paste0("INSERT INTO zone (zoneid, reference_zone) values ( 1, 'zone1')" ))
     
     }
 
@@ -283,7 +286,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     rs<-dbSendQuery(sim$clusdb, qry, pixels )
     dbClearResult(rs)
   dbCommit(sim$clusdb)
-
+  
   rm(pixels)
   gc()
   return(invisible(sim))

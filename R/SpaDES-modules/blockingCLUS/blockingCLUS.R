@@ -41,6 +41,7 @@ defineModule(sim, list(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataloaderCLUS", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA)
@@ -158,15 +159,27 @@ blockingCLUS.preBlock <- function(sim) {
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  g<-delete.vertices(g, degree(g) == 0)
+  #g<-delete.vertices(g, degree(g) == 0)
   
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, 
-          'SELECT zoneid FROM pixels where thlb > 0 and similar > 0 and zoneid > 0 group by zoneid Having count(pixelid) > 1')))#get the zone names - strict use of integers for these
-  print(zones)
+  #TODO: build a unique zone -- concatenating all specified zone
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT (COALESCE(`zone", 
+  paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique FROM
+  pixels where thlb > 0 and similar > 0 group by zone_unique"))))
+            
+  #zones<-unname(unlist(dbGetQuery(sim$clusdb, 
+  #        'SELECT zoneid FROM pixels where thlb > 0 and similar > 0 and zoneid > 0 group by zoneid 
+  #        Having count(pixelid) > 1')))#get the zone names - strict use of integers for these
+  #print(zones)
+  
     #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
   for(zone in zones){
-    vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where zoneid = ', as.integer(zone), ' AND thlb > 0 and similar > 0')))
+    #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
+    vertices<-as.matrix(dbGetQuery(sim$clusdb,
+          paste0("SELECT pixelid, (COALESCE(`zone", paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique FROM
+                  pixels where thlb > 0 and similar > 0 AND zone_unique = ", zone)))[,1]
+    print(vertices)
+    #TODO: ERROR HERE
     g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))

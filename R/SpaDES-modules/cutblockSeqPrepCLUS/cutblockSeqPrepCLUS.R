@@ -97,6 +97,7 @@ cutblockSeqPrepCLUS.getLandings <- function(sim) {
       print(paste0('geting landings in: ', time(sim)))
       sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+      #TODO: put a unique statement here? so that there aren't duplicate of the same landing location
       if(P(sim)$getArea){sim$landingsArea<-landings[,4]}else {sim$landingsArea<-NULL}
       
     }else{
