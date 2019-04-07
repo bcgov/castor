@@ -1,0 +1,147 @@
+---
+title: "PostgreSQL server comparison via pgbench"
+author: "Kyle Lochhead"
+date: "April 4th, 2019"
+output:
+  html_document: 
+    keep_md: yes
+params:
+  host1:
+    label: "Host Name 1"
+    value: ""
+    input: text
+  db1:
+    label: "Database Name 1"
+    value: ""
+    input: text
+  user1:
+    label: "User Name 1"
+    value: ""
+    input: text
+  pwd1:
+    label: "Enter the Password for user"
+    value: ""
+    input: password
+  host2:
+    label: "Host Name 2"
+    value: ""
+    input: text
+  db2:
+    label: "Database Name 2"
+    value: ""
+    input: text
+  user2:
+    label: "User Name 2"
+    value: ""
+    input: text
+  pwd2:
+    label: "Enter the Password for user"
+    value: ""
+    input: password
+  clients:
+    label: "The number of clients to simulate"
+    value: 10
+    input: slider
+    min: 1
+    max: 50
+    step: 1
+  workers:
+    label: "The number of workers to simulate"
+    value: 2
+    input: slider
+    min: 1
+    max: 8
+    step: 1
+  transactions:
+    label: "The number of transactions to simulate"
+    value: 5000
+    input: slider
+    min: 1
+    max: 50000
+    step: 1000
+---
+## Settings
+
+```{r, settings, echo=FALSE}
+library(RPostgreSQL)
+library(data.table)
+
+con1<-dbConnect(dbDriver("PostgreSQL"), dbname =params$db1, host=params$host1, port=5432, user=params$user1,password=params$pwd1)
+query <- paste("select name unit, setting, short_desc from pg_settings where name in('max_connections', 'shared_buffers', 'effective_cache_size', 'maintenance_work_mem' ,'checkpoint_completion_target', 'wal_buffers',
+'default_statistics_target','random_page_cost','effective_io_concurrency','work_mem', 'min_wal_size','max_wal_size','max_worker_processes','max_parallel_workers','max_parallel_workers_per_gather');")
+knitr::kable(data.table(dbGetQuery(con1,query)), caption = params$host1)
+init1<-FALSE
+dbDisconnect(con1)
+
+con2<-dbConnect(dbDriver("PostgreSQL"), dbname =params$db2, host=params$host2, port=5432, user=params$user2,password=params$pwd2)
+query <- paste("select name unit, setting, short_desc from pg_settings where name in('max_connections', 'shared_buffers', 'effective_cache_size', 'maintenance_work_mem' ,'checkpoint_completion_target', 'wal_buffers',
+'default_statistics_target','random_page_cost','effective_io_concurrency','work_mem', 'min_wal_size','max_wal_size','max_worker_processes','max_parallel_workers','max_parallel_workers_per_gather');")
+knitr::kable(data.table(dbGetQuery(con2,query)), caption = params$host2)
+dbDisconnect(con2)
+```
+
+## Initialize 
+
+Initializing a pgbench_accounts with 5,000,000 rows (integer).
+
+```{r intit, echo=FALSE}
+
+print(paste0('initializing on host1: ', params$host1))
+system("cmd.exe", input = paste0("pgbench.exe -h ", params$host1, " -p 5432 -U ", params$user1, " -i -s 50 ", params$db1))
+
+print(paste0('initializing on host2: ', params$host2))
+  system("cmd.exe", input = paste0("pgbench.exe -h ", params$host2, " -p 5432 -U ", params$user2, " -i -s 50 ", params$db2))
+
+```
+
+## Compare 
+
+Simulating ``r params$clients`` clients executing ``r params$transactions`` transactions on ``r params$workers`` worker processes using --select-only script
+
+```{r compare, echo = FALSE }
+out1<-capture.output(cat(system("cmd.exe", input = paste0("pgbench.exe -h ", params$host1, " -p 5432 -U ", params$user1, " -c ", params$clients," -j ", params$workers, " -t ", params$transactions," ", params$db1), show.output.on.console = TRUE, invisible = FALSE, intern = TRUE),collapse = "\n"))
+spt<-strsplit(out1, ":")
+knitr::kable(data.table(output=c("transaction type",
+                           "scaling factor",
+                           "query mode",
+                           "number of clients",
+                           "number of threads",
+                           "number of transactions per client",
+                           "number of transactions actually processed",
+                           "latency average",
+                           "tps",
+                           "tps"
+                           ),
+           value= c(
+                    strsplit(spt[[1]][3], "scaling factor",fixed = TRUE)[1],
+                    strsplit(spt[[1]][4], "query mode",fixed = TRUE)[1],
+                    strsplit(spt[[1]][5], "number of clients",fixed = TRUE)[1],
+                    strsplit(spt[[1]][6], "number of threads",fixed = TRUE)[1],
+                    strsplit(spt[[1]][7], "number of transactions per client",fixed = TRUE)[1],
+                    strsplit(spt[[1]][8], "number of transactions actually processed",fixed = TRUE)[1],
+                    strsplit(spt[[1]][9], "latency average",fixed = TRUE)[1],
+                    strsplit(spt[[1]][10], "tps",fixed = TRUE)[[1]][1],
+                    strsplit(spt[[1]][10], "tps",fixed = TRUE)[[1]][2],
+                    strsplit(spt[[1]][10], "tps",fixed = TRUE)[[1]][3]
+           )), caption = params$host1)
+
+
+out2<-capture.output(cat(system("cmd.exe", input = paste0("pgbench.exe -h ", params$host2, " -p 5432 -U ", params$user2, " -c ", params$clients," -j ", params$workers, " -t ", params$transactions," ", params$db2), show.output.on.console = TRUE, invisible = FALSE, intern = TRUE),collapse = "\n"))
+
+spt<-strsplit(out2, ":")
+knitr::kable(data.table(output=c("transaction type","scaling factor","query mode", "number of clients","number of threads","number of transactions per client","number of transactions actually processed","latency average",
+"tps","tps"),
+           value= c(
+                    strsplit(spt[[1]][3], "scaling factor",fixed = TRUE)[1],
+                    strsplit(spt[[1]][4], "query mode",fixed = TRUE)[1],
+                    strsplit(spt[[1]][5], "number of clients",fixed = TRUE)[1],
+                    strsplit(spt[[1]][6], "number of threads",fixed = TRUE)[1],
+                    strsplit(spt[[1]][7], "number of transactions per client",fixed = TRUE)[1],
+                    strsplit(spt[[1]][8], "number of transactions actually processed",fixed = TRUE)[1],
+                    strsplit(spt[[1]][9], "latency average",fixed = TRUE)[1],
+                    strsplit(spt[[1]][10], "tps",fixed = TRUE)[[1]][1],
+                    strsplit(spt[[1]][10], "tps",fixed = TRUE)[[1]][2],
+                    strsplit(spt[[1]][10], "tps",fixed = TRUE)[[1]][3]
+           )), caption = params$host2)
+
+```
