@@ -1127,51 +1127,36 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
   - dropped distance to mine; covariate said selection for mines, which is unlikely
 
 - top model (AIC*~w~* = 1.000) included all covariates 
-
-
-
-
-
-
-
-#####
-######
-#####
-
-
-
-
 - the effects of enduring featrues were relatively weak, standardized coefficient values realtively 
   small (\beta  < 0.07), but signfciant; selected flatter areas, further from watercourses and lakes
 - selected for pacthes near cutblocks of all ages, but partcilarlyl 5 to 9 years old (\beta =  
-  -0.266) 
+  -0.267) 
 - selected patches further from paved (\beta = 0.020) and resource (\beta = 0.062) roads, but not 
   statistically signifcant for paved roads (*p-value* = 0.170)
-- avoided patches near pipelines (\beta = 0.107) 
+- avoided patches near pipelines (\beta = 0.108) 
 - selected for 1 to 5 year old (\beta = 0.068) beetle killed stands; but avoided 6 to 9 year 
   beetle killed old stands (\beta = -0.201) 
-- avoided all burn age classes (\beta = -0.019 to -0.252), but weak (\beta = -0.019) and not 
+- avoided all burn age classes (\beta = -0.019 to -0.253), but weak (\beta = -0.019) and not 
   statistically significant (*p-value* = 0.344) for over 25 years old burns
-- selected patches that had deeper winter snow (\beta = 0.311), higher summer precipitation (\beta = 
+- selected patches that had deeper winter snow (\beta = 0.310), higher summer precipitation (\beta = 
   0.091) and higher summer temperature (\beta = 0.082)
-- selected BWBSmw (\beta = 0.021) compared to BWBSmk, but not statistically significant (*p-value* = 
-  0.400); avoided BWBSwk 3 (\beta = -0.535) compared to BWBSmk
-- strongly selected for treed bog (\beta = 0.582), other (\beta = 0.341), nutrient poor fen 
-  (\beta = 0.493) and conifer swamp (\beta = 0.328) wetland types relative to upland conifer 
-- selected for nutirent rich fen (\beta = 0.192)relative to upland conifer
-- strongly avoided upland deciduous (\beta = -0.732) relative to upland conifer, and avoided decdious   swamp (\beta = -0.100)
-- selected for patches with higher percentage of bryoid cover (\beta = 0.149), shrub cover (\beta = 
-  0.135) and herb cover (\beta = 0.073) 
+- selected BWBSmw (\beta = 0.018) compared to BWBSmk, but not statistically significant (*p-value* = 
+  0.639)
+- strongly selected for treed bog (\beta = 0.583), other (\beta = 0.342), nutrient poor fen 
+  (\beta = 0.493) and conifer swamp (\beta = 0.329) wetland types relative to upland conifer 
+- selected for nutrient rich fen (\beta = 0.193) relative to upland conifer
+- strongly avoided upland deciduous (\beta = -0.731) relative to upland conifer, and avoided 
+  deciduous swamp (\beta = -0.095)
+- selected for patches with higher percentage of bryoid cover (\beta = 0.149), shrub crown closure 
+  (\beta = 0.135) and herb cover (\beta = 0.073) 
 - selected for pacthes with older  (\beta = 0.112), but shorter (\beta = -0.131) and closed (\beta = 
-  0.140) forest stadns
-
-
-- in genreal, in summer there is was a mix of avoidance of 'productive' areas (i.e., riparian areas, deciduous wetland cover types, burned areas), but greater use of areas near younger cutblocks and warmer, wetter areas, so a bit conflicting in terms of forage and predation risk; 
-- interestingly, a lag effect of snow?, where caribou selected areas in summer that had deeper snow in winter; unclear what the mechanism behind this might be 
-
-
-
-
+  0.140) forest stands
+- in genreal, in summer there is was a mix of avoidance of 'productive' areas (i.e., riparian areas, 
+  deciduous wetland cover types, burned areas), but greater use of areas near younger cutblocks and 
+  warmer, wetter areas, so a bit conflicting in terms of forage and predation risk; 
+- interestingly, a lag effect of snow?, where caribou selected areas in summer that had deeper snow 
+  in winter; unclear what the mechanism behind this might be, but these may be low predation risk 
+  year-round?
 
 
 
@@ -1216,17 +1201,46 @@ kable (table.kfold.du6.lw)
 ###### DU6, Summer
 
 
+- reasonable validation results, but not as stong as early or late winter
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.73 to 0.93 and $$\chi^2$$ values were not significant (Table xx)
+ - visual validation looks reasonable, but with soem issues. realtively low scores in Calendar adn high scores in PArker adn Prophet comarped to what expected; different from Demars there (add fig form GIS or try adn do it in R - use quantile classifcation)
+ 
+```{r, k-fold du6, late winter table, eval = T, echo = F}
+table.kfold.du6.s <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\summer\\table_kfold_summary_du6_s.csv")
+table.kfold.du6.s <- table.kfold.du6.s [-1]
+kable (table.kfold.du6.s)
+```
+
+![](plots/kfold_lm_du6_s_grp1.png)
+![](plots/kfold_lm_du6_s_grp2.png)
+![](plots/kfold_lm_du6_s_grp3.png)
+![](plots/kfold_lm_du6_s_grp4.png)
+![](plots/kfold_lm_du6_s_grp5.png)
+
+
+
+
 
 
 
 ## Conclusions
 In DU6 , 
 
-early winter, 
-- visually and statsically cosnsitent with Demars: overlap in defintion of high and low quality habitat pacthes; selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/immature forest
+- visually and statsically cosnsitent with Demars: overlap in defintion of high and low quality   
+  habitat pacthes; selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar 
+  features and select early seral/immature forest
+- but summer model not as good in validation
+  - key differences are changes in use of BEC zone, from BWBSmk in winter to BWBSmw in summer, 
+    greater avoidance of lakes in summer, and different climate variables, in particular use of 
+    warmer, wetter areas in summer, use of winter deep snow areas in summer (but avoidance of 
+    snow in winter)
+  - summer climate variables somewhat counter-intuitive adn teh snow variable apepars to be a key 
+    factor,but the mechanisms is unclear; may need to be cautious with those variable in the model
+
+
+
 - selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
 
-late winter
 
 
 
