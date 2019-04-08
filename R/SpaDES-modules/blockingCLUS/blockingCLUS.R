@@ -178,8 +178,7 @@ blockingCLUS.preBlock <- function(sim) {
     vertices<-as.matrix(dbGetQuery(sim$clusdb,
           paste0("SELECT pixelid, (COALESCE(`zone", paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique FROM
                   pixels where thlb > 0 and similar > 0 AND zone_unique = ", zone)))[,1]
-    print(vertices)
-    #TODO: ERROR HERE
+    
     g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
@@ -257,7 +256,8 @@ blockingCLUS.preBlock <- function(sim) {
   
   print("set the blocks table")
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, zoneid, age, area, state, regendelay) SELECT blockid, zoneid, ROUND(AVG(age), 0) as age, count(*) as area, 0 , 0 from pixels where blockid > 0 group by blockid")
+    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO blocks (blockid, zone_unique, age, area, state, regendelay) SELECT blockid,  
+                                       (COALESCE(`zone", paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique, ROUND(AVG(age), 0) as age, count(*) as area, 0 , 0 from pixels where blockid > 0 group by blockid"))
     dbClearResult(rs)
   dbCommit(sim$clusdb)
 
