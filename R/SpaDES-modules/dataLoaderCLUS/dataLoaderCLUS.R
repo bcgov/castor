@@ -110,7 +110,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS indicators (id integer PRIMARY KEY, year integer, schedHarvestflow numeric, simharvestflow numeric, schedharvestarea numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS compartment ( compartid integer PRIMARY KEY, tsa_number integer, zoneid integer, active integer, allocation numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer PRIMARY KEY, zoneid integer, state integer, regendelay integer, age integer, area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer PRIMARY KEY, zone_unique integer, state integer, regendelay integer, age integer, area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, volume numeric, crownclosure numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid integer PRIMARY KEY, reference_zone text)")
