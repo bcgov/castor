@@ -679,36 +679,6 @@ kable (table.kfold.du6.ew)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #### Late Winter
 ###### Enduring Features
 - boxplots
@@ -936,68 +906,10 @@ correlations
 - strongly avoided upland deciduous (\beta = -1.073) relative to upland conifer, and avoided decdious   swamp (\beta = -0.321) adn nutirent rich fen (\beta = -0.072) 
 - selected for patches with higher percentage of bryoid cover (\beta = 0.139), shrub cover (\beta = 
   0.053) and herb cover (\beta = 0.019) 
-- selected for pacthes with older  (\beta = 0.075), but shorter (\beta = -0.214) adn open (\beta = 
+- selected for pacthes with older  (\beta = 0.075), but shorter (\beta = -0.214) adn closed (\beta = 
   0.083) forest stadns
 
 - in genreal, in late winter there is more avidaocen of 'prodcutive' areas (i.e., riparian areas, deciduous wetland cover types, waeker selection fo cublocks; but not gorwing dregree days); less focus on food in late winter? or greater predation pressure?
-
-
-
-
-##### k-fold validation
-###### DU6, Early Winter 
-- stong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
- - visual vlaiation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
- 
-```{r, k-fold du6, early winter table, eval = T, echo = F}
-table.kfold.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
-table.kfold.du6.ew <- table.kfold.du6.ew [-1]
-kable (table.kfold.du6.ew)
-```
-
-![](plots/kfold_lm_du6_ew_grp1.png)
-![](plots/kfold_lm_du6_ew_grp2.png)
-![](plots/kfold_lm_du6_ew_grp3.png)
-![](plots/kfold_lm_du6_ew_grp4.png)
-![](plots/kfold_lm_du6_ew_grp5.png)
-
-###### DU6, Early Winter 
-
-
-
-
-![](plots/kfold_lm_du6_lw_grp1.png)
-
-![](plots/kfold_lm_du6_lw_grp2.png)
-
-![](plots/kfold_lm_du6_lw_grp3.png)
-
-![](plots/kfold_lm_du6_lw_grp4.png)
-
-![](plots/kfold_lm_du6_lw_grp5.png)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1171,6 +1083,9 @@ correlations
 ![](plots/hist_veg_du6_s_wetland.png)
 
 - correlation
+
+![](plots/corr_veg_du6_s.png)
+
   - vri projected height and live volume were highly correlated ($\rho$ = 0.90) 
   - VRI basal area correlated with crown closure ($\rho$ = 0.65) live volume ($\rho$ = 0.68) and 
     projected height ($\rho$ = 0.69)
@@ -1191,6 +1106,27 @@ correlations
 
   
 ###### Combination Models
+- correlation
+  - summer preciptation and annual growing degree days highly correlated ($\rho$ = -0.72)
+  - average summer preciptation and annual growing degree days highly correlated ($\rho$ = 0.92)
+  
+  - removed growing degree days
+ 
+![](plots/corr_all_du6_s.png)
+
+
+- mean_annual_temp had a vif value = 13.2, terhefore removed
+- then vif values <3.9
+
+
+DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
+  
+- fit combination models
+  - remove seismic line and soil parent material form all models because models sometimes failed to 
+    converge
+  - dropped distance to mine; covariate said selection for mines, which is unlikely
+
+- top model (AIC*~w~* = 1.000) included all covariates 
 
 
 
@@ -1198,15 +1134,104 @@ correlations
 
 
 
+#####
+######
+#####
+
+
+
+
+- the effects of enduring featrues were relatively weak, standardized coefficient values realtively 
+  small (\beta  < 0.07), but signfciant; selected flatter areas, further from watercourses and lakes
+- selected for pacthes near cutblocks of all ages, but partcilarlyl 5 to 9 years old (\beta =  
+  -0.266) 
+- selected patches further from paved (\beta = 0.020) and resource (\beta = 0.062) roads, but not 
+  statistically signifcant for paved roads (*p-value* = 0.170)
+- avoided patches near pipelines (\beta = 0.107) 
+- selected for 1 to 5 year old (\beta = 0.068) beetle killed stands; but avoided 6 to 9 year 
+  beetle killed old stands (\beta = -0.201) 
+- avoided all burn age classes (\beta = -0.019 to -0.252), but weak (\beta = -0.019) and not 
+  statistically significant (*p-value* = 0.344) for over 25 years old burns
+- selected patches that had deeper winter snow (\beta = 0.311), higher summer precipitation (\beta = 
+  0.091) and higher summer temperature (\beta = 0.082)
+- selected BWBSmw (\beta = 0.021) compared to BWBSmk, but not statistically significant (*p-value* = 
+  0.400); avoided BWBSwk 3 (\beta = -0.535) compared to BWBSmk
+- strongly selected for treed bog (\beta = 0.582), other (\beta = 0.341), nutrient poor fen 
+  (\beta = 0.493) and conifer swamp (\beta = 0.328) wetland types relative to upland conifer 
+- selected for nutirent rich fen (\beta = 0.192)relative to upland conifer
+- strongly avoided upland deciduous (\beta = -0.732) relative to upland conifer, and avoided decdious   swamp (\beta = -0.100)
+- selected for patches with higher percentage of bryoid cover (\beta = 0.149), shrub cover (\beta = 
+  0.135) and herb cover (\beta = 0.073) 
+- selected for pacthes with older  (\beta = 0.112), but shorter (\beta = -0.131) and closed (\beta = 
+  0.140) forest stadns
+
+
+- in genreal, in summer there is was a mix of avoidance of 'productive' areas (i.e., riparian areas, deciduous wetland cover types, burned areas), but greater use of areas near younger cutblocks and warmer, wetter areas, so a bit conflicting in terms of forage and predation risk; 
+- interestingly, a lag effect of snow?, where caribou selected areas in summer that had deeper snow in winter; unclear what the mechanism behind this might be 
+
+
+
+
+
+
+
+##### k-fold validation
+###### DU6, Early Winter 
+- strong validation results, slopes of lieanr models between expected adn observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
+ - visual vlaiation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
+ 
+```{r, k-fold du6, early winter table, eval = T, echo = F}
+table.kfold.du6.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\early_winter\\table_kfold_summary_du6_ew.csv")
+table.kfold.du6.ew <- table.kfold.du6.ew [-1]
+kable (table.kfold.du6.ew)
+```
+
+![](plots/kfold_lm_du6_ew_grp1.png)
+![](plots/kfold_lm_du6_ew_grp2.png)
+![](plots/kfold_lm_du6_ew_grp3.png)
+![](plots/kfold_lm_du6_ew_grp4.png)
+![](plots/kfold_lm_du6_ew_grp5.png)
+
+
+###### DU6, Late Winter 
+- strong validation results, slopes of linear models between expected and observed counts of cariobu locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.96 and $$\chi^2$$ values were not significant (Table xx)
+ - visual validation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
+ 
+```{r, k-fold du6, late winter table, eval = T, echo = F}
+table.kfold.du6.lw <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\late_winter\\table_kfold_summary_du6_lw.csv")
+table.kfold.du6.lw <- table.kfold.du6.lw [-1]
+kable (table.kfold.du6.lw)
+```
+
+![](plots/kfold_lm_du6_lw_grp1.png)
+
+![](plots/kfold_lm_du6_lw_grp2.png)
+
+![](plots/kfold_lm_du6_lw_grp3.png)
+
+![](plots/kfold_lm_du6_lw_grp4.png)
+
+![](plots/kfold_lm_du6_lw_grp5.png)
+
+###### DU6, Summer
 
 
 
 
 
 ## Conclusions
-In DU6 , early winter, 
+In DU6 , 
+
+early winter, 
 - visually and statsically cosnsitent with Demars: overlap in defintion of high and low quality habitat pacthes; selected treed bogs and fens; avoid decisuous adn upland types; avoid  lienar features and select early seral/immature forest
 - selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
+
+late winter
+
+
+
+remember cliamet is for 1990-2010; indicator of a long term trend not actual climatic conditions for a given year
+
 
 
 
