@@ -51,7 +51,8 @@ defineModule(sim, list(
     expectsInput(objectName ="nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "raster", desc = NA, sourceURL = NA)
+    expectsInput(objectName = "ras", objectClass = "raster", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "rasVelo", objectClass = "VeloxRaster", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
