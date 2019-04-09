@@ -116,7 +116,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS compartment ( compartid integer PRIMARY KEY, tsa_number integer, zoneid integer, active integer, allocation numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer PRIMARY KEY, zone_unique integer, state integer, regendelay integer, age integer, area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, volume numeric, crownclosure numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, volume numeric, height numeric, crownclosure numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid integer PRIMARY KEY, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, variable text, threshold numeric, type text, percentage numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zone_unique text, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, height numeric, roadyear integer)")
@@ -305,6 +305,16 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     warning(paste0("nameZoneTable or nameZoneRasters not set properly"))
   }
   
+  #yields table
+  if(!P(sim)$nameYeildTable == '99999' & !P(sim)$nameYieldRasters == '99999'){
+    yields<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameYieldTable))
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields ( ) values ()", yields)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }else{
+    warning(paste0("nameZoneTable or nameZoneRasters not set properly"))
+  }  
   rm(pixels)
   gc()
   
