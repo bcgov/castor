@@ -48,11 +48,8 @@ parameters <- list(
                          nameCrownClosureRaster = "rast.vri2017_crownclosure"),
   blockingCLUS = list(blockMethod='pre',  
                       useLandingsArea=FALSE, 
-                      useSpreadProbRas=FALSE),
-  cutblockSeqPrepCLUS = list(queryCutblocks ='cutseq_centroid',
-                             startHarvestYear = 2004, 
-                             getArea =TRUE)
-)
+                      useSpreadProbRas=FALSE)
+                        )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS")
 objects <- list()
 paths <- list(
