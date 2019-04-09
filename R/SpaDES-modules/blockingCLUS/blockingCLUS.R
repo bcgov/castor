@@ -30,6 +30,7 @@ defineModule(sim, list(
     defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
     defineParameter("spreadProbRas", "character", "99999", NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
+    defineParameter("patchZone", "character", "99999", NA, NA, "Zones that pertain to the patch size distribution requirements"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -104,10 +105,12 @@ blockingCLUS.setSimilarity <- function(sim) {
   # attaching to the pixels table
   print("updating pixels table with similarity metric")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
+  
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
-  dbClearResult(rs)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
+    dbClearResult(rs)
   dbCommit(sim$clusdb)
+  
   print("....done")
   rm(dt)
   gc()
@@ -168,15 +171,16 @@ blockingCLUS.preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
   
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(zone1) FROM pixels where thlb > 0 and similar > 0 group by zone1"))))
+  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zoneid FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 and similar > 0 group by ", patchSizeZone))))
   #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
   
   for(zone in zones){
     #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
     vertices<-as.matrix(dbGetQuery(sim$clusdb,
-          paste0("SELECT pixelid FROM pixels where thlb > 0 and similar > 0 AND 
-                 zone1 in ( '", zone, "')")))
+          paste0("SELECT pixelid FROM pixels where thlb > 0 and similar > 0 AND ",
+                 patchSizeZone, " in ( '", zone, "')")))
     
     g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
