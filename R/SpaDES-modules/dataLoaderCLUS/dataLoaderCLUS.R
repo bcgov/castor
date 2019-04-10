@@ -43,34 +43,32 @@ defineModule(sim, list(
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name"),
     defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
-    defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a zone"),
+    defineParameter("save_clusdb", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
+    defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represtents a compartment or supply block"),
-    defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Name of the raster representing THLB"),
-    defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster representing yield ids"),
-    defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Name of the raster represnting pixel age"),
-    defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Name of the raster representing pixel crown closure"),
-    defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Name of the raster representing pixel height")
-    ),
+    defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
+    defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve"),
+    defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
+    defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
+    defineParameter("nameZoneTable", "character", "99999", NA, NA, desc = "Name of the table documenting the zone types"),
+    defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
+    defineParameter("nameYieldTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields")
+     ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput("nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameCompartmentRaster", objectClass ="character" , desc = "Administrative boundary for forest compartments or supply blocks", sourceURL = NA),
-    expectsInput("nameZoneRasters", objectClass ="list", desc = "Administrative boundary containing zones of management objectives", sourceURL = NA),
-    expectsInput("nameMaskHarvestLandbaseRaster", objectClass ="character", desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest", sourceURL = NA),
-    expectsInput("nameYieldsRaster", objectClass ="character", desc = "Raster containing yield ids. These ids connect to the yields table", sourceURL = NA),
-    expectsInput("nameAgeRaster", objectClass ="character", desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve", sourceURL = NA),
-    expectsInput("nameCrownClosureRaster", objectClass ="character", desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/", sourceURL = NA),
-    expectsInput("nameHeightRaster", objectClass ="character", desc = "Raster containing pixel height. EX. Canopy height model", sourceURL = NA)
+    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
     ),
   outputObjects = bind_rows(
     createsOutput("zone.length", objectClass ="numeric", desc = NA),
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("bbox", objectClass ="numeric", desc = NA),
     createsOutput("boundary", objectClass ="sf", desc = NA),
-    createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information")
+    createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
+    createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
+    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads")
   )
 ))
 
@@ -99,10 +97,20 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   )
   return(invisible(sim))
 }
+
 disconnectDbCLUS<- function(sim) {
+  if(P(sim)$save_clusdb){
+    print('Saving clusdb')
+    con<-dbConnect(RSQLite::SQLite(), "clusdb.sqlite")
+    RSQLite::sqliteCopyDatabase(sim$clusdb, con)
+    unlink("clusdb.sqlite")
+  }
+  
   dbDisconnect(sim$clusdb)
+  
   return(invisible(sim))
 }
+
 dataLoaderCLUS.createCLUSdb <- function(sim) {
   print ('create clusdb')
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
@@ -112,10 +120,10 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS compartment ( compartid integer PRIMARY KEY, tsa_number integer, zoneid integer, active integer, allocation numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer PRIMARY KEY, zone_unique integer, state integer, regendelay integer, age integer, area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, volume numeric, crownclosure numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid integer PRIMARY KEY, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS constraints ( id integer PRIMARY KEY, zoneid integer, constraintsid integer, fromage integer, toage integer, minvalue numeric, maxvalue numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, height numeric, roadyear integer)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid text, reference_zone text)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, variable text, threshold numeric, type text, percentage numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zone_unique text, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, height numeric, roadyear integer)")
   return(invisible(sim))
 }
 
@@ -132,7 +140,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     setnames(pixels, "V1", "compartid")
-    sim$ras[]<-unlist(pixels[,2], use.names = FALSE)
+    
+    sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
+    sim$rasVelo<-velox::velox(sim$ras)
     
   }else{
     print('.....compartment ids: default 1')
@@ -144,6 +154,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 1]
     pixels<-pixels[,2:3]
+    
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
     sim$rasVelo<-velox::velox(sim$ras)
   }
@@ -151,11 +162,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #----------------
   #Set the zone IDs
   #----------------
-  print(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
   if(!(P(sim, "dataLoaderCLUS", "nameZoneRasters")[1] == "99999")){
     sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
     print(paste0('.....zones: ',sim$zone.length))
-    #TODO: Need to add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
+    #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))){
       conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
       ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
@@ -164,26 +174,28 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
       setnames(pixels, "V1", paste0('zone',i))#SET NAMES to RASTER layer
       dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric'))
-      dbExecute(sim$clusdb, paste0('INSERT INTO zone (zoneid, reference_zone) values (', i, ", '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
+      dbExecute(sim$clusdb, paste0("INSERT INTO zone (zoneid, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
       
       rm(ras.zone)
       gc()
       }
     
+    #create the unique zones
+    pixels[, zone_unique := do.call(paste, c(.SD, sep = "_")), .SDcols = paste0("zone",as.character(seq(1:sim$zone.length)))]
+    
     qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, thlb, age, crownclosure, height, roadyear, zone',
-                 paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),') 
+                 paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' , zone_unique) 
                 values (:pixelid, :compartid, :yieldid, :thlb, :age, :crownclosure, :height, NULL, :zone', 
-                 paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
+                 paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),', :zone_unique)')
    
   } else{
     print('.....zone ids: default 1')
     sim$zone.length<-1
     pixels[, zone1:= 1]
-    qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, thlb, age, crownclosure, height, roadyear, zone1) 
-                values (:pixelid, :compartid, :yieldid, :thlb, :age, :crownclosure, :height, NULL, :zone1)')
+    qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, thlb, age, crownclosure, height, roadyear, zone1, zone_unique) 
+                values (:pixelid, :compartid, :yieldid, :thlb, :age, :crownclosure, :height, NULL, :zone1, :zone_unique)')
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer")
-    dbExecute(sim$clusdb, paste0("INSERT INTO zone (zoneid, reference_zone) values ( 1, 'zone1')" ))
-    
+    dbExecute(sim$clusdb, paste0("INSERT INTO zone (zoneid, reference_zone) values ( 'zone1', 'default')" ))
     }
 
   #------------
@@ -214,8 +226,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
     ras.ylds<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
     dbDisconnect(conn)
+    
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ylds)))))
     setnames(pixels, "V1", "yieldid")
+    
     rm(ras.ylds)
     gc()
     
@@ -232,8 +246,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
     ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
     dbDisconnect(conn)
+    
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.age)))))
     setnames(pixels, "V1", "age")
+    
     rm(ras.age)
     gc()
   }else{
@@ -249,6 +265,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
     ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
     dbDisconnect(conn)
+    
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.cc)))))
     setnames(pixels, "V1", "crownclosure")
     
@@ -267,6 +284,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
     ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
     dbDisconnect(conn)
+    
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ht)))))
     setnames(pixels, "V1", "height")
     
@@ -282,13 +300,49 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #------------------------
   #Load the data in Rsqlite
   #------------------------
+  #pixels table
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, qry, pixels )
     dbClearResult(rs)
   dbCommit(sim$clusdb)
   
+  #zone_constraint table
+  if(!P(sim)$nameZoneTable == '99999'){
+    zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable))
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zone_constraints (zoneid, reference_zone, variable, threshold, type ,percentage ) 
+                      values (:zoneid, :reference_zone, :variable, :threshold, :type, :percentage)", zone_const)
+      
+      dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }else{
+    warning(paste0("nameZoneTable not set properly"))
+  }
+  
+  #yields table
+  if(!P(sim)$nameYieldTable == '99999'){
+    yields<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameYieldTable))
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, con, height, eca) 
+                      values (:yieldid, :age, :tvol, :con, :height, :eca)", yields)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }else{
+    yields<-data.table(yieldid= 1, age= seq(from =0, to=190, by = 10), 
+                       tvol = seq(1:20)**2, 
+                       con = 100, 
+                       height = seq(1:20), 
+                       eca = 0)
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, con, height, eca ) 
+                      values (:yieldid, :age, :tvol, :con, :height, :eca)", yields)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }  
   rm(pixels)
   gc()
+  
+  #print(head(dbGetQuery(sim$clusdb, 'SELECT * FROM pixels WHERE thlb > 0 limit 5 ')))
   return(invisible(sim))
 }
 
@@ -297,22 +351,5 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   return(invisible(sim))
 }
 
-#Useful functions
-getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  st_read(conn, query = sql)
-}
 
-getTableQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  dbGetQuery(conn, sql)
-}
-
-getRasterQuery<-function(name, bb){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  pgGetRast(conn, name, boundary = c(bb[4],bb[2],bb[3],bb[1]))
-}
 

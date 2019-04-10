@@ -28,8 +28,9 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("nameSimilarityRas", "character", "rast.similarity_vri2003", NA, NA, desc = "Name of the cost surface raster"),
     defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
-    defineParameter("useSpreadProbRas", "logical", FALSE, NA, NA, desc = "Use the similarity raster to direct the spreading?"),
+    defineParameter("spreadProbRas", "character", "99999", NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
+    defineParameter("patchZone", "character", "99999", NA, NA, "Zones that pertain to the patch size distribution requirements"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -40,15 +41,12 @@ defineModule(sim, list(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameSimilarityRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataloaderCLUS", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    #createsOutput("objectName", "objectClass", "output object description", ...),
-    #createsOutput(objectName = "ras.similar", objectClass = "RasterLayer", desc = NA),
     createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA)
   )
 ))
@@ -60,9 +58,12 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim<-blockingCLUS.Init(sim)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
       switch(P(sim)$blockMethod,
+             
              pre= {
+               sim<-blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
                sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
              },
+             
              dynamic ={
                sim <- blockingCLUS.setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
@@ -84,27 +85,6 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
 blockingCLUS.Init <- function(sim) {
   sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
- 
-  #clip the boundary with the provincial similarity raste
-  #conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-  #geom<-dbGetQuery(conn, paste0("SELECT ST_ASTEXT(ST_TRANSFORM(ST_Force2D(ST_UNION(",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),")), 4326)) FROM ", P(sim, "dataLoaderCLUS", "nameBoundaryFile")," WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " = '",  P(sim, "dataLoaderCLUS", "nameBoundary"), "';"))
-  #ras.similar<-RASTER_CLIP(srcRaster= P(sim, "blockingCLUS", "nameSimilarityRas"), clipper=geom, conn=conn) 
-  
-  #Calculate the similarity using Mahalanobis distance of similarity
-  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels WHERE height > 0 and crownclosure > 0'))
-  dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
-  
-  # attaching to the pixels table
-  print("updating pixels table with similarity metric")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  print("....done")
-  rm(dt)
-  gc()
-  
   return(invisible(sim))
 }
 
@@ -117,17 +97,47 @@ blockingCLUS.getBounds<-function(sim){
   return(invisible(sim))
 }
 
+blockingCLUS.setSimilarity <- function(sim) {
+  #Calculate the similarity using Mahalanobis distance of similarity
+  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels WHERE height > 0 and crownclosure > 0'))
+  dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
+  
+  # attaching to the pixels table
+  print("updating pixels table with similarity metric")
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
+  
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
+    dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  print("....done")
+  rm(dt)
+  gc()
+  
+  return(invisible(sim))
+}
+
 blockingCLUS.setSpreadProb<- function(sim) {
   #Create a mask for the area of interst
-  #NEED BETTER LOGIC HERE....
   sim$aoi <- sim$ras #set the area of interest as the similarity raster
-  sim$aoi[aoi[] > 0] <- 1 # for those locations where the distance is greater than 0 assign a 1
-  sim$aoi[is.na(aoi[])] <- 0 # for those locations where there is no distance - they are NA, assign a 0
+  sim$aoi[]<-dbGetQuery(sim$clusdb, "SELECT thlb FROM pixels")
+  sim$aoi[sim$aoi[] > 0] <- 1 # for those locations where the distance is greater than 0 assign a 1
+  sim$aoi[is.na(sim$aoi[])] <- 0 # for those locations where there is no distance - they are NA, assign a 0
   
   sim$harvestUnits<-NULL
   
-  #scale the similarity raster so that the values are [0,1]
-  sim$ras.similar<-1-(sim$ras - minValue(sim$ras))/(maxValue(sim$ras)-minValue(sim$ras))
+  if(!P(sim)$spreadProbRas == "99999"){
+    #scale the spread probability raster so that the values are [0,1]
+    conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+    sim$ras.spreadProbBlock<-RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "spreadProbRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
+    dbDisconnect(conn)
+    
+    sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
+  }else{
+    sim$ras.spreadProbBlock<-sim$aoi
+  }
+
   return(invisible(sim))
 }
 
@@ -159,25 +169,18 @@ blockingCLUS.preBlock <- function(sim) {
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  #g<-delete.vertices(g, degree(g) == 0)
+  #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
   
-  #TODO: build a unique zone -- concatenating all specified zone
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT (COALESCE(`zone", 
-  paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique FROM
-  pixels where thlb > 0 and similar > 0 group by zone_unique"))))
-            
-  #zones<-unname(unlist(dbGetQuery(sim$clusdb, 
-  #        'SELECT zoneid FROM pixels where thlb > 0 and similar > 0 and zoneid > 0 group by zoneid 
-  #        Having count(pixelid) > 1')))#get the zone names - strict use of integers for these
-  #print(zones)
-  
-    #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
+  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zoneid FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 and similar > 0 group by ", patchSizeZone))))
+  #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
+  
   for(zone in zones){
     #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
     vertices<-as.matrix(dbGetQuery(sim$clusdb,
-          paste0("SELECT pixelid, (COALESCE(`zone", paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique FROM
-                  pixels where thlb > 0 and similar > 0 AND zone_unique = ", zone)))[,1]
+          paste0("SELECT pixelid FROM pixels where thlb > 0 and similar > 0 AND ",
+                 patchSizeZone, " in ( '", zone, "')")))
     
     g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
@@ -256,12 +259,11 @@ blockingCLUS.preBlock <- function(sim) {
   
   print("set the blocks table")
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO blocks (blockid, zone_unique, age, area, state, regendelay) SELECT blockid,  
-                                       (COALESCE(`zone", paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse="`,'NA') || '_' || COALESCE(`zone"),"`, 'NA')) as zone_unique, ROUND(AVG(age), 0) as age, count(*) as area, 0 , 0 from pixels where blockid > 0 group by blockid"))
+    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO blocks (blockid, zone_unique, age, area, state, regendelay) SELECT blockid, zone_unique, ROUND(AVG(age), 0) as age, count(*) as area, 0 , 0 from pixels where blockid > 0 group by blockid"))
     dbClearResult(rs)
   dbCommit(sim$clusdb)
 
-  rm(zones, result, weight, g, edges.weight, edges, edges.w1, edges.w2, 
+  rm(zones, result, weight, edges.weight, edges, edges.w1, edges.w2, 
      edgesAdj, blockids)
   gc()
   return(invisible(sim))
@@ -280,14 +282,11 @@ blockingCLUS.spreadBlock<- function(sim) {
       landings<-cellFromXY(sim$aoi, sim$landings)
       landings<-as.data.frame(cbind(landings, size))
       landings<-landings[!duplicated(landings$landings),]
-      
-      if(P(sim)$useSpreadProbRas){
-        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.similar, start = landings[,1], directions =4, 
+    
+        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.spreadProbBlock, 
+                                         start = landings[,1], directions =4, 
                                          maxSize= landings[,2], allowOverlap=FALSE)
-      }else{
-        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$aoi, start = landings[,1], directions =4, 
-                     maxSize= landings[,2], allowOverlap=FALSE)
-      }
+  
       mV<-maxValue(simBlocks) 
       #update the aoi to remove areas that have already been spread to...?
       maskSimBlocks<-reclassify(simBlocks, matrix(cbind( NA, NA, 1, -1,0.5, 1, 0.5, mV + 1, 0), ncol =3, byrow =TRUE))

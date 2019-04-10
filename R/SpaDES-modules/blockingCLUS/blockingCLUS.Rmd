@@ -20,7 +20,7 @@ output: pdf_document
 
 # Overview
 
-This module groups pixels together to form harvest units. The purpose of this process is to specfiy the distribution of patches formed through forestry activities. For a greater description of this process and the calibration of this sub-module go [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md) 
+This module groups pixels together to form harvest units. The purpose of this process is to specfiy the distribution of patches formed through forestry activities. For a greater description of this process and the calibration of this module go [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md) 
 
 # Usage
 
@@ -42,18 +42,16 @@ parameters <- list(
                          nameBoundary='Morice TSA', 
                          nameBoundaryGeom='wkb_geometry',
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters="rast.zone_beo",
+                         nameZoneRasters=c("rast.zone_beo","rast.zone_vqo"),
+                         nameZoneTable="zone_constraints",
                          nameAgeRaster= "rast.vri2017_projage1",
                          nameHeightRaster= "rast.vri2017_projheight1",
                          nameCrownClosureRaster = "rast.vri2017_crownclosure"),
-  blockingCLUS = list(blockMethod='pre',  
-                      nameSimilarityRas='rast.similarity_vri2003',
+  blockingCLUS = list(blockMethod='pre', 
+                      patchZone = 'rast.zone_beo',
                       useLandingsArea=FALSE, 
-                      useSpreadProbRas=FALSE),
-  cutblockSeqPrepCLUS = list(queryCutblocks ='cutseq_centroid',
-                             startHarvestYear = 2004, 
-                             getArea =TRUE)
-)
+                      useSpreadProbRas=FALSE)
+                        )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "blockingCLUS")
 objects <- list()
 paths <- list(
@@ -74,19 +72,22 @@ mysimout<-spades(mySim)
 
 # Events
 
-There are two methods used in blockingCLUS: 1) pre blocking and 2) dynamic blocking. 
+There are two methods used in blockingCLUS under the blockMethod parameter: 
+1) pre blocking ('pre') - aggregates pixels at one time step using a graph based segementation approach
+2) dynamic blocking ('dynamic')  - aggregates pixels at multiple steps using a contagion approach
 
 # Data dependencies
 
 ## Input data
 
-A raster describing the similarity between pixels is required
+A SQLite db is required as an output from dataloaderCLUS.
 
 ## Output data
 
-A raster of block IDs
+A raster of block IDs, internally stored in memory in clusdb
 
 # Links to other modules
 
-Requires dataloaderCLUS to establish the database connections and define the area of interest.
+dataloaderCLUS is required.
+
 
