@@ -41,13 +41,14 @@ library(data.table)
 data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting landbase',
                    'Southern Interior timber harvesting landbase',
                    'Northern Interior timber harvesting landbase',
-                   'Generalized Forest Cover Ownership'
+                   'Generalized Forest Cover Ownership',
+                   'Consolidated cutblocks ID'
                    ),
            public = c('bc_thlb'
-                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon' ),
-           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own'),
+                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ),
+           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl'),
            source=c('INTERNAL','INTERNAL','INTERNAL','INTERNAL',
-                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership'))
+                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ))
 ```
 
 ## Set empty raster
@@ -94,7 +95,11 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 ```
 
 
-## Administrative
+## Tenure reduction
+
+Location for administrative layers used in TSR: \\Orbital\s63016\!Publish\TSR Documentation.
+The [Generalized Forest Ownership layer](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/data-management/standards/generalized_forest_cover_ownership_layer_2018.pdf) is used to arrive at a contributing forest landbase
+
 ```{r, admin}
 #Forest Ownership
 layer<-getSpatialQuery("SELECT own, wkb_geometry FROM public.f_own_polygon")
@@ -103,4 +108,27 @@ layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "own")
 writeRaster(layer.ras, file="own.tif", format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/own.tif -t 100x100 rast.f_own| psql -d clus")
+```
+
+## Consolidated cutblocks
+
+[Harvested areas of bc](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-). Used to depict the timing of harvest operations.
+
+```{r, cutblocks}
+#Harvest locations year
+layer<-getSpatialQuery("SELECT harvestyr, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 ORDER BY harvestyr")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "harvestyr")
+writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl_year | psql -d clus")
+
+#Harvest locations id
+layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 ORDER BY cutblockid")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "cutblockid")
+writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl | psql -d clus")
+
 ```
