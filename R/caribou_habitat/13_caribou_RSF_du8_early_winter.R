@@ -420,12 +420,12 @@ rsf.data.combo <- dplyr::full_join (rsf.data.combo,
 rm (rsf.data.climate.annual)
 gc ()
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
-                                    rsf.data.climate.winter [, c (9, 12, 16)],
+                                    rsf.data.climate.winter [, c (9, 12, 14)],
                                     by = "ptID")
 rm (rsf.data.climate.winter)
 gc ()
 rsf.data.combo <- dplyr::full_join (rsf.data.combo, 
-                                    rsf.data.veg [, c (9, 45, 18, 20, 22, 23, 24, 26)],
+                                    rsf.data.veg [, c (9, 10, 18, 19, 20, 22, 24, 26)],
                                     by = "ptID")
 rm (rsf.data.veg)
 gc ()
@@ -434,14 +434,6 @@ rsf.data.combo.du8.ew <- rsf.data.combo %>%
                           dplyr::filter (du == "du8") %>%
                           dplyr::filter (season == "EarlyWinter")
 
-# group cutblock ages together, as per forest cutblcok model results
-rsf.data.combo.du8.ew <- dplyr::mutate (rsf.data.combo.du8.ew, distance_to_cut_10yoorOver = pmin (distance_to_cut_10to29yo, distance_to_cut_30orOveryo))
-rsf.data.combo.du8.ew <- rsf.data.combo.du8.ew %>% 
-                          filter (!is.na (wetland_demars))
-rsf.data.combo.du8.ew$bec_label <- relevel (rsf.data.combo.du8.ew$bec_label,
-                                            ref = "BWBSmk")
-rsf.data.combo.du8.ew$wetland_demars <- relevel (rsf.data.combo.du8.ew$wetland_demars,
-                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
 write.csv (rsf.data.combo.du8.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv")
 
 
@@ -2135,7 +2127,7 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ai
 
 ### compile AIC table of top models form each group
 table.aic.annual.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_annual_climate.csv", header = T, sep = ",")
-table.aic <- table.aic.annual.clim [7, ]
+table.aic <- table.aic.annual.clim [1, ]
 rm (table.aic.annual.clim)
 table.aic.human <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_human_disturb.csv", header = T, sep = ",")
 table.aic <- bind_rows (table.aic, table.aic.human [15, ])
@@ -2144,7 +2136,7 @@ table.aic.nat.disturb <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habita
 table.aic <- bind_rows (table.aic, table.aic.nat.disturb [3, ])
 rm (table.aic.nat.disturb)
 table.aic.enduring <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_terrain_water.csv", header = T, sep = ",")
-table.aic <- bind_rows (table.aic, table.aic.enduring [7, ])
+table.aic <- bind_rows (table.aic, table.aic.enduring [13, ])
 rm (table.aic.enduring)
 table.aic.winter.clim <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_winter_climate.csv", header = T, sep = ",")
 table.aic <- bind_rows (table.aic, table.aic.winter.clim [3, ])
@@ -2154,718 +2146,576 @@ table.aic <- bind_rows (table.aic, table.aic.veg [7, ])
 rm (table.aic.veg)
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_all.csv", sep = ",")
 
-
 # Load and tidy the data 
 rsf.data.combo.du8.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv", header = T, sep = ",")
+
 rsf.data.combo.du8.ew$pttype <- as.factor (rsf.data.combo.du8.ew$pttype)
+
+# reclassify BEC for caribou
+rsf.data.combo.du8.ew$bec_label_reclass <- rsf.data.combo.du8.ew$bec_label
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BAFAun' = 'BAFA'") # simplified to alpine type
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BAFAunp' = 'BAFA'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BWBSdk' = 'BWBS'") # simplified to BWBS type
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BWBSmk' = 'BWBS'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BWBSmw' = 'BWBS'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BWBSwk 1' = 'BWBS'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BWBSwk 2' = 'BWBS'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'BWBSwk 3' = 'BWBS'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'SBS wk 1' = 'SBS_very_wet_to_wet_cool'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'SBS wk 2' = 'SBS_very_wet_to_wet_cool'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'SBS vk' = 'SBS_very_wet_to_wet_cool'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'ESSFmvp' = 'ESSF_moist_very_cold'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'ESSFmv 2' = 'ESSF_moist_very_cold'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'ESSFwc 3' = 'ESSF_wet_cold'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'ESSFwcp' = 'ESSF_wet_cold'")
+rsf.data.combo.du8.ew$bec_label_reclass <- recode (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                 "'ESSFwk 2' = 'ESSF_wet_cool'")
+rsf.data.combo.du8.ew$bec_label_reclass <- relevel (rsf.data.combo.du8.ew$bec_label_reclass,
+                                                  ref = "ESSF_wet_cold") # reference category
 rsf.data.combo.du8.ew <- rsf.data.combo.du8.ew %>% 
                          filter (!is.na (ppt_as_snow_annual))
-rsf.data.combo.du8.ew$soil_parent_material_name <- relevel (rsf.data.combo.du8.ew$soil_parent_material_name,
-                                                            ref = "Till")
-rsf.data.combo.du8.ew$bec_label <- relevel (rsf.data.combo.du8.ew$bec_label,
-                                            ref = "BWBSmk")
-rsf.data.combo.du8.ew$wetland_demars <- relevel (rsf.data.combo.du8.ew$wetland_demars,
-                                                 ref = "Upland Conifer") # upland confier as referencce, as per Demars 2018
+rsf.data.combo.du8.ew$slope.sq <- rsf.data.combo.du8.ew$slope * rsf.data.combo.du8.ew$slope
 
 ### CORRELATION ###
-corr.data.du8.ew <- rsf.data.combo.du8.ew [c (11:15, 42, 18:21, 28:32, 34:40)]
+corr.data.du8.ew <- rsf.data.combo.du8.ew [c (11:28, 30:35)]
 corr.du8.ew <- round (cor (corr.data.du8.ew, method = "spearman"), 3)
 ggcorrplot (corr.du8.ew, type = "lower", lab = TRUE, tl.cex = 9,  lab_size = 2,
             title = "Resource Selection Function Model Covariate Correlations \
-                     for du8, Early Winter")
+                     for DU8, Early Winter")
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_winter_climate_du8_ew.png")
 
 ### VIF ###
-glm.all.du8.ew <- glm (pttype ~ slope + distance_to_lake + distance_to_watercourse +
+glm.all.du8.ew <- glm (pttype ~ # distance_to_watercourse + 
+                                # slope + slope.sq  + 
+                                # elevation +
                                 distance_to_cut_1to4yo + distance_to_cut_5to9yo + 
-                                distance_to_cut_10yoorOver + distance_to_paved_road +
-                                distance_to_resource_road + distance_to_pipeline +
-                                beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
-                                fire_over25yo + growing_degree_days + ppt_as_snow_winter +
-                                temp_avg_winter + bec_label + wetland_demars,  
+                                distance_to_cut_10to29yo + distance_to_cut_30orOveryo +
+                                # distance_to_paved_road + 
+                                distance_to_resource_road + 
+                                # distance_to_pipeline + distance_to_mines + 
+                                beetle_1to5yo + beetle_6to9yo + 
+                                fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                # ppt_as_snow_winter + temp_avg_winter + 
+                                bec_label_reclass + 
+                                vri_shrub_crown_close + 
+                                # vri_herb_cover_pct + 
+                                # vri_crown_closure +
+                                # vri_proj_age + 
+                                # vri_site_index  + 
+                                vri_bryoid_cover_pct ,  
                        data = rsf.data.combo.du8.ew,
                        family = binomial (link = 'logit'))
 car::vif (glm.all.du8.ew)
 
 # standardize covariates  (helps with model convergence)
-rsf.data.combo.du8.ew$std.slope <- (rsf.data.combo.du8.ew$slope - 
-                                    mean (rsf.data.combo.du8.ew$slope)) / 
-                                    sd (rsf.data.combo.du8.ew$slope)
-rsf.data.combo.du8.ew$std.distance_to_lake <- (rsf.data.combo.du8.ew$distance_to_lake - 
-                                                mean (rsf.data.combo.du8.ew$distance_to_lake)) / 
-                                                sd (rsf.data.combo.du8.ew$distance_to_lake)
-rsf.data.combo.du8.ew$std.distance_to_watercourse <- (rsf.data.combo.du8.ew$distance_to_watercourse - 
-                                                      mean (rsf.data.combo.du8.ew$distance_to_watercourse)) / 
-                                                      sd (rsf.data.combo.du8.ew$distance_to_watercourse)
-rsf.data.combo.du8.ew$std.distance_to_cut_1to4yo <- (rsf.data.combo.du8.ew$distance_to_cut_1to4yo - 
-                                                      mean (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)) / 
-                                                      sd (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
-rsf.data.combo.du8.ew$std.distance_to_cut_5to9yo <- (rsf.data.combo.du8.ew$distance_to_cut_5to9yo - 
-                                                      mean (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)) / 
-                                                      sd (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
-rsf.data.combo.du8.ew$std.distance_to_cut_10yoorOver <- (rsf.data.combo.du8.ew$distance_to_cut_10yoorOver - 
-                                                          mean (rsf.data.combo.du8.ew$distance_to_cut_10yoorOver)) / 
-                                                          sd (rsf.data.combo.du8.ew$distance_to_cut_10yoorOver)
-rsf.data.combo.du8.ew$std.distance_to_paved_road <- (rsf.data.combo.du8.ew$distance_to_paved_road - 
-                                                           mean (rsf.data.combo.du8.ew$distance_to_paved_road)) / 
-                                                           sd (rsf.data.combo.du8.ew$distance_to_paved_road)
-rsf.data.combo.du8.ew$std.distance_to_resource_road <- (rsf.data.combo.du8.ew$distance_to_resource_road - 
-                                                        mean (rsf.data.combo.du8.ew$distance_to_resource_road)) / 
-                                                        sd (rsf.data.combo.du8.ew$distance_to_resource_road)
-rsf.data.combo.du8.ew$std.distance_to_mines <- (rsf.data.combo.du8.ew$distance_to_mines - 
-                                                mean (rsf.data.combo.du8.ew$distance_to_mines)) / 
-                                                sd (rsf.data.combo.du8.ew$distance_to_mines)
-rsf.data.combo.du8.ew$std.distance_to_pipeline <- (rsf.data.combo.du8.ew$distance_to_pipeline - 
-                                                    mean (rsf.data.combo.du8.ew$distance_to_pipeline)) / 
-                                                    sd (rsf.data.combo.du8.ew$distance_to_pipeline)
-rsf.data.combo.du8.ew$std.growing_degree_days <- (rsf.data.combo.du8.ew$growing_degree_days - 
-                                                  mean (rsf.data.combo.du8.ew$growing_degree_days)) / 
-                                                  sd (rsf.data.combo.du8.ew$growing_degree_days)
-rsf.data.combo.du8.ew$std.ppt_as_snow_winter <- (rsf.data.combo.du8.ew$ppt_as_snow_winter - 
-                                                  mean (rsf.data.combo.du8.ew$ppt_as_snow_winter)) / 
-                                                  sd (rsf.data.combo.du8.ew$ppt_as_snow_winter)
-rsf.data.combo.du8.ew$std.temp_avg_winter <- (rsf.data.combo.du8.ew$temp_avg_winter - 
-                                                   mean (rsf.data.combo.du8.ew$temp_avg_winter)) / 
-                                                   sd (rsf.data.combo.du8.ew$temp_avg_winter)
-rsf.data.combo.du8.ew$std.vri_bryoid_cover_pct <- (rsf.data.combo.du8.ew$vri_bryoid_cover_pct - mean (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)) / sd (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
-rsf.data.combo.du8.ew$std.vri_herb_cover_pct <- (rsf.data.combo.du8.ew$vri_herb_cover_pct - mean (rsf.data.combo.du8.ew$vri_herb_cover_pct)) / sd (rsf.data.combo.du8.ew$vri_herb_cover_pct)
-rsf.data.combo.du8.ew$std.vri_proj_age <- (rsf.data.combo.du8.ew$vri_proj_age - mean (rsf.data.combo.du8.ew$vri_proj_age)) / sd (rsf.data.combo.du8.ew$vri_proj_age)
+rsf.data.combo.du8.ew$std.slope <- (rsf.data.combo.du8.ew$slope - mean (rsf.data.combo.du8.ew$slope)) / sd (rsf.data.combo.du8.ew$slope)
+rsf.data.combo.du8.ew$std.distance_to_watercourse <- (rsf.data.combo.du8.ew$distance_to_watercourse - mean (rsf.data.combo.du8.ew$distance_to_watercourse)) / sd (rsf.data.combo.du8.ew$distance_to_watercourse)
+rsf.data.combo.du8.ew$std.elevation <- (rsf.data.combo.du8.ew$elevation - mean (rsf.data.combo.du8.ew$elevation)) / sd (rsf.data.combo.du8.ew$elevation)
+rsf.data.combo.du8.ew$std.distance_to_cut_1to4yo <- (rsf.data.combo.du8.ew$distance_to_cut_1to4yo - mean (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)) / sd (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
+rsf.data.combo.du8.ew$std.distance_to_cut_5to9yo <- (rsf.data.combo.du8.ew$distance_to_cut_5to9yo - mean (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)) / sd (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
+rsf.data.combo.du8.ew$std.distance_to_cut_10to29yo <- (rsf.data.combo.du8.ew$distance_to_cut_10to29yo - mean (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)) / sd (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
+rsf.data.combo.du8.ew$std.distance_to_cut_30orOveryo <- (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo - mean (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)) / sd (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
+rsf.data.combo.du8.ew$std.distance_to_paved_road <- (rsf.data.combo.du8.ew$distance_to_paved_road - mean (rsf.data.combo.du8.ew$distance_to_paved_road)) / sd (rsf.data.combo.du8.ew$distance_to_paved_road)
+rsf.data.combo.du8.ew$std.distance_to_resource_road <- (rsf.data.combo.du8.ew$distance_to_resource_road - mean (rsf.data.combo.du8.ew$distance_to_resource_road)) / sd (rsf.data.combo.du8.ew$distance_to_resource_road)
+rsf.data.combo.du8.ew$std.distance_to_pipeline <- (rsf.data.combo.du8.ew$distance_to_pipeline - mean (rsf.data.combo.du8.ew$distance_to_pipeline)) / sd (rsf.data.combo.du8.ew$distance_to_pipeline)
+rsf.data.combo.du8.ew$std.distance_to_mines <- (rsf.data.combo.du8.ew$distance_to_mines - mean (rsf.data.combo.du8.ew$distance_to_mines)) / sd (rsf.data.combo.du8.ew$distance_to_mines)
+rsf.data.combo.du8.ew$std.ppt_as_snow_winter <- (rsf.data.combo.du8.ew$ppt_as_snow_winter - mean (rsf.data.combo.du8.ew$ppt_as_snow_winter)) / sd (rsf.data.combo.du8.ew$ppt_as_snow_winter)
+rsf.data.combo.du8.ew$std.temp_avg_winter <- (rsf.data.combo.du8.ew$temp_avg_winter - mean (rsf.data.combo.du8.ew$temp_avg_winter)) / sd (rsf.data.combo.du8.ew$temp_avg_winter)
 rsf.data.combo.du8.ew$std.vri_shrub_crown_close <- (rsf.data.combo.du8.ew$vri_shrub_crown_close - mean (rsf.data.combo.du8.ew$vri_shrub_crown_close)) / sd (rsf.data.combo.du8.ew$vri_shrub_crown_close)
-rsf.data.combo.du8.ew$std.vri_proj_height <- (rsf.data.combo.du8.ew$vri_proj_height - mean (rsf.data.combo.du8.ew$vri_proj_height)) / sd (rsf.data.combo.du8.ew$vri_proj_height)
+rsf.data.combo.du8.ew$std.vri_herb_cover_pct <- (rsf.data.combo.du8.ew$vri_herb_cover_pct - mean (rsf.data.combo.du8.ew$vri_herb_cover_pct)) / sd (rsf.data.combo.du8.ew$vri_herb_cover_pct)
+rsf.data.combo.du8.ew$std.vri_bryoid_cover_pct <- (rsf.data.combo.du8.ew$vri_bryoid_cover_pct - mean (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)) / sd (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
+rsf.data.combo.du8.ew$std.vri_proj_age <- (rsf.data.combo.du8.ew$vri_proj_age - mean (rsf.data.combo.du8.ew$vri_proj_age)) / sd (rsf.data.combo.du8.ew$vri_proj_age)
 rsf.data.combo.du8.ew$std.vri_crown_closure <- (rsf.data.combo.du8.ew$vri_crown_closure - mean (rsf.data.combo.du8.ew$vri_crown_closure)) / sd (rsf.data.combo.du8.ew$vri_crown_closure)
+rsf.data.combo.du8.ew$std.vri_site_index <- (rsf.data.combo.du8.ew$vri_site_index - mean (rsf.data.combo.du8.ew$vri_site_index)) / sd (rsf.data.combo.du8.ew$vri_site_index)
 
-### HUMAN DISTURBANCE *** NEW - UPDATED WITHOUT SEISMIC AND MINES *** ###
-model.lme4.du8.ew.hd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
-                                         std.distance_to_cut_10yoorOver + 
-                                         std.distance_to_paved_road + std.distance_to_resource_road + 
-                                         std.distance_to_pipeline +
-                                         (1 | uniqueID), 
-                                       data = rsf.data.combo.du8.ew, 
-                                       family = binomial (link = "logit"),
-                                       verbose = T) 
-# AIC
-table.aic [2, 1] <- "du8"
-table.aic [2, 2] <- "Early Winter"
-table.aic [2, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [2, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe"
-table.aic [2, 5] <- "(1 | UniqueID)"
-table.aic [2, 6] <-  AIC (model.lme4.du8.ew.hd)
 
 ### ENDURING FEATURES AND HUMAN DISTURBANCE ###
-model.lme4.du8.ew.ef.hd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                            std.distance_to_watercourse + 
-                                            std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
-                                            std.distance_to_cut_10yoorOver + 
-                                            std.distance_to_paved_road +
-                                            std.distance_to_resource_road + std.distance_to_pipeline +
-                                            (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd <- glmer (pttype ~ std.slope + std.distance_to_watercourse + 
+                                           std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                           std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                           std.distance_to_paved_road + std.distance_to_resource_road + 
+                                           (1 | uniqueID), 
                                   data = rsf.data.combo.du8.ew, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
-#ss <- getME (model.lme4.du8.ew.ef.hd, c ("theta","fixef"))
-#model.lme4.du8.ew.ef.hd2 <- update (model.lme4.du8.ew.ef.hd, start = ss) # failed to converge, restart with parameter estimates
-#model.lme4.du8.ew.ef.hd3 <- update (model.lme4.du8.ew.ef.hd, 
-#                                    . ~ . - seismic) # drop seismic lines
-#model.lme4.du8.ew.ef.hd4 <- update (model.lme4.du8.ew.ef.hd, 
-#                                    . ~ . - soil_parent_material_name) # drop soil
 # AIC
-table.aic [7, 1] <- "du8"
+table.aic [7, 1] <- "DU8"
 table.aic [7, 2] <- "Early Winter"
 table.aic [7, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [7, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe"
+table.aic [7, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR"
 table.aic [7, 5] <- "(1 | UniqueID)"
 table.aic [7, 6] <-  AIC (model.lme4.du8.ew.ef.hd)
 
 ### ENDURING FEATURES AND NATURAL DISTURBANCE ###
-model.lme4.du8.ew.ef.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                    std.distance_to_watercourse + 
-                                    beetle_1to5yo + beetle_6to9yo + fire_1to5yo + fire_6to25yo +
-                                    fire_over25yo +
-                                    (1 | uniqueID), 
+model.lme4.du8.ew.ef.nd <- glmer (pttype ~ std.slope + std.distance_to_watercourse + 
+                                            beetle_1to5yo + beetle_6to9yo + 
+                                            fire_1to5yo + fire_6to25yo + fire_over25yo +
+                                            (1 | uniqueID), 
                                   data = rsf.data.combo.du8.ew, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
-#model.lme4.du8.ew.ef.nd2 <- update (model.lme4.du8.ew.ef.nd, 
-#                                    . ~ . - soil_parent_material_name) # drop soils
 # AIC
-table.aic [8, 1] <- "du8"
+table.aic [8, 1] <- "DU8"
 table.aic [8, 2] <- "Early Winter"
 table.aic [8, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [8, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [8, 4] <- "Slope, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [8, 5] <- "(1 | UniqueID)"
 table.aic [8, 6] <-  AIC (model.lme4.du8.ew.ef.nd)
 
 ### ENDURING FEATURES AND CLIMATE ###
-model.lme4.du8.ew.ef.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                              std.distance_to_watercourse + std.growing_degree_days +
-                                              std.ppt_as_snow_winter +
-                                              (1 | uniqueID), 
+model.lme4.du8.ew.ef.clim <- glmer (pttype ~ std.slope + std.distance_to_watercourse + 
+                                             std.ppt_as_snow_winter + std.temp_avg_winter +
+                                             (1 | uniqueID), 
                                     data = rsf.data.combo.du8.ew, 
                                     family = binomial (link = "logit"),
                                     verbose = T) 
 # AIC
-table.aic [9, 1] <- "du8"
+table.aic [9, 1] <- "DU8"
 table.aic [9, 2] <- "Early Winter"
 table.aic [9, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [9, 4] <- "Slope, DLake, DWat, GDD, PAS"
+table.aic [9, 4] <- "Slope, DWat, WPAS, WTemp"
 table.aic [9, 5] <- "(1 | UniqueID)"
 table.aic [9, 6] <-  AIC (model.lme4.du8.ew.ef.clim)
 
 ### HUMAN DISTURBANCE AND NATURAL DISTURBANCE ###
 model.lme4.du8.ew.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
-                                    std.distance_to_cut_10yoorOver + 
-                                    std.distance_to_paved_road +
-                                    std.distance_to_resource_road + std.distance_to_pipeline + 
-                                    beetle_1to5yo + beetle_6to9yo + 
-                                    fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                    (1 | uniqueID), 
+                                           std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                           std.distance_to_paved_road + std.distance_to_resource_road + 
+                                           beetle_1to5yo + beetle_6to9yo + 
+                                           fire_1to5yo + fire_6to25yo + fire_over25yo +
+                                           (1 | uniqueID), 
                                   data = rsf.data.combo.du8.ew, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
 # AIC
-table.aic [10, 1] <- "du8"
+table.aic [10, 1] <- "DU8"
 table.aic [10, 2] <- "Early Winter"
 table.aic [10, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [10, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [10, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [10, 5] <- "(1 | UniqueID)"
 table.aic [10, 6] <-  AIC (model.lme4.du8.ew.hd.nd)
 
 ### HUMAN DISTURBANCE AND CLIMATE ###
-model.lme4.du8.ew.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
-                                      std.distance_to_cut_5to9yo +
-                                      std.distance_to_cut_10yoorOver + 
-                                      std.distance_to_paved_road +
-                                      std.distance_to_resource_road + 
-                                      std.distance_to_pipeline + std.growing_degree_days +
-                                      std.ppt_as_snow_winter + 
-                                      (1 | uniqueID), 
+model.lme4.du8.ew.hd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_paved_road + std.distance_to_resource_road + 
+                                             std.ppt_as_snow_winter + std.temp_avg_winter +
+                                             (1 | uniqueID), 
                                     data = rsf.data.combo.du8.ew, 
                                     family = binomial (link = "logit"),
                                     verbose = T) 
 # AIC
-table.aic [11, 1] <- "du8"
+table.aic [11, 1] <- "DU8"
 table.aic [11, 2] <- "Early Winter"
 table.aic [11, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [11, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, GDD, PAS"
+table.aic [11, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, WPAS, WTemp"
 table.aic [11, 5] <- "(1 | UniqueID)"
 table.aic [11, 6] <-  AIC (model.lme4.du8.ew.hd.clim)
 
 ### NATURAL DISTURBANCE AND CLIMATE ###
 model.lme4.du8.ew.nd.clim <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + 
-                                      fire_1to5yo + fire_6to25yo + fire_over25yo + 
-                                      std.growing_degree_days +
-                                      std.ppt_as_snow_winter + 
-                                      (1 | uniqueID), 
+                                             fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                             std.ppt_as_snow_winter + std.temp_avg_winter +
+                                             (1 | uniqueID), 
                                     data = rsf.data.combo.du8.ew, 
                                     family = binomial (link = "logit"),
                                     verbose = T) 
 # AIC
-table.aic [12, 1] <- "du8"
+table.aic [12, 1] <- "DU8"
 table.aic [12, 2] <- "Early Winter"
 table.aic [12, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [12, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS"
+table.aic [12, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp"
 table.aic [12, 5] <- "(1 | UniqueID)"
 table.aic [12, 6] <-  AIC (model.lme4.du8.ew.nd.clim)
 
 ### ENDURING FEATURES AND VEGETATION ###
-model.lme4.du8.ew.ef.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                     std.distance_to_watercourse + bec_label + wetland_demars +
-                                     std.vri_proj_age + std.vri_proj_height +
-                                     std.vri_crown_closure + std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + std.vri_shrub_crown_close +
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.ef.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse + 
+                                            std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                            std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                            (1 | uniqueID), 
                                    data = rsf.data.combo.du8.ew, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
-
 # AIC
-table.aic [13, 1] <- "du8"
+table.aic [13, 1] <- "DU8"
 table.aic [13, 2] <- "Early Winter"
 table.aic [13, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [13, 4] <- "Slope, DLake, DWat, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [13, 4] <- "Slope, DWat, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [13, 5] <- "(1 | UniqueID)"
 table.aic [13, 6] <-  AIC (model.lme4.du8.ew.ef.veg)
 
 ### HUMAN AND VEGETATION ###
-model.lme4.du8.ew.hd.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
-                                             std.distance_to_cut_5to9yo +
-                                             std.distance_to_cut_10yoorOver + 
-                                             std.distance_to_paved_road +
-                                             std.distance_to_resource_road + 
-                                             std.distance_to_pipeline + 
-                                             bec_label + wetland_demars +
-                                             std.vri_proj_age + std.vri_proj_height +
-                                             std.vri_crown_closure + std.vri_bryoid_cover_pct + 
-                                             std.vri_herb_cover_pct + std.vri_shrub_crown_close +
+model.lme4.du8.ew.hd.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_paved_road + std.distance_to_resource_road + 
+                                             std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                             std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
                                              (1 | uniqueID), 
                                    data = rsf.data.combo.du8.ew, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
-ss <- getME (model.lme4.du8.ew.hd.veg, c ("theta","fixef"))
-model.lme4.du8.ew.hd.veg <- update (model.lme4.du8.ew.hd.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [14, 1] <- "du8"
+table.aic [14, 1] <- "DU8"
 table.aic [14, 2] <- "Early Winter"
 table.aic [14, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [14, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [14, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [14, 5] <- "(1 | UniqueID)"
 table.aic [14, 6] <-  AIC (model.lme4.du8.ew.hd.veg)
 
 ### NATURAL DISTURB AND VEGETATION ###
 model.lme4.du8.ew.nd.veg <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + 
-                                     fire_1to5yo + fire_6to25yo + fire_over25yo + 
-                                     bec_label + wetland_demars +
-                                     std.vri_proj_age + std.vri_proj_height +
-                                     std.vri_crown_closure + std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + std.vri_shrub_crown_close +
-                                     (1 | uniqueID), 
+                                            fire_1to5yo + fire_6to25yo + fire_over25yo + 
+                                            std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                            std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                            (1 | uniqueID), 
                                    data = rsf.data.combo.du8.ew, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
-ss <- getME (model.lme4.du8.ew.nd.veg, c ("theta","fixef"))
-model.lme4.du8.ew.nd.veg <- update (model.lme4.du8.ew.nd.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [15, 1] <- "du8"
+table.aic [15, 1] <- "DU8"
 table.aic [15, 2] <- "Early Winter"
 table.aic [15, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [15, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [15, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [15, 5] <- "(1 | UniqueID)"
 table.aic [15, 6] <-  AIC (model.lme4.du8.ew.nd.veg)
 
 ### CLIMATE AND VEGETATION ###
-model.lme4.du8.ew.clim.veg <- glmer (pttype ~ std.growing_degree_days + std.ppt_as_snow_winter + 
-                                       bec_label + wetland_demars +
-                                       std.vri_proj_age + std.vri_proj_height +
-                                       std.vri_crown_closure + std.vri_bryoid_cover_pct + 
-                                       std.vri_herb_cover_pct + std.vri_shrub_crown_close +
-                                       (1 | uniqueID), 
+model.lme4.du8.ew.clim.veg <- glmer (pttype ~ std.ppt_as_snow_winter + std.temp_avg_winter +
+                                              std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                              std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                              (1 | uniqueID), 
                                      data = rsf.data.combo.du8.ew, 
                                      family = binomial (link = "logit"),
                                      verbose = T) 
-ss <- getME (model.lme4.du8.ew.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.clim.veg <- update (model.lme4.du8.ew.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [16, 1] <- "du8"
+table.aic [16, 1] <- "DU8"
 table.aic [16, 2] <- "Early Winter"
 table.aic [16, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [16, 4] <- "GDD, PAS, BEC, Wetland, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [16, 4] <- "ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex, WPAS, WTemp"
 table.aic [16, 5] <- "(1 | UniqueID)"
 table.aic [16, 6] <-  AIC (model.lme4.du8.ew.clim.veg)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE ###
-model.lme4.du8.ew.ef.hd.nd <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                       std.distance_to_watercourse + 
-                                       std.distance_to_cut_1to4yo + 
-                                       std.distance_to_cut_5to9yo + 
-                                       std.distance_to_cut_10yoorOver + 
-                                       std.distance_to_paved_road + 
-                                       std.distance_to_resource_road + 
-                                       std.distance_to_pipeline +
-                                       beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                       fire_6to25yo + fire_over25yo +
-                                       (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.nd <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                               std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                               std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                               std.distance_to_paved_road + std.distance_to_resource_road + 
+                                               beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                               fire_6to25yo + fire_over25yo +
+                                               (1 | uniqueID), 
                                      data = rsf.data.combo.du8.ew, 
                                      family = binomial (link = "logit"),
                                      verbose = T) 
 # AIC
-table.aic [17, 1] <- "du8"
+table.aic [17, 1] <- "DU8"
 table.aic [17, 2] <- "Early Winter"
 table.aic [17, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [17, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [17, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
 table.aic [17, 5] <- "(1 | UniqueID)"
 table.aic [17, 6] <-  AIC (model.lme4.du8.ew.ef.hd.nd)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, CLIMATE ###
-model.lme4.du8.ew.ef.hd.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                         std.distance_to_watercourse + 
-                                         std.distance_to_cut_1to4yo + 
-                                         std.distance_to_cut_5to9yo + 
-                                         std.distance_to_cut_10yoorOver + 
-                                         std.distance_to_paved_road + 
-                                         std.distance_to_resource_road + 
-                                         std.distance_to_pipeline + 
-                                         std.growing_degree_days + std.ppt_as_snow_winter + 
-                                         (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.clim <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                std.distance_to_paved_road + std.distance_to_resource_road + 
+                                                std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                (1 | uniqueID), 
                                        data = rsf.data.combo.du8.ew, 
                                        family = binomial (link = "logit"),
                                        verbose = T) 
 # AIC
-table.aic [18, 1] <- "du8"
+table.aic [18, 1] <- "DU8"
 table.aic [18, 2] <- "Early Winter"
 table.aic [18, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [18, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, GDD, PAS"
+table.aic [18, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, WPAS, WTemp"
 table.aic [18, 5] <- "(1 | UniqueID)"
 table.aic [18, 6] <-  AIC (model.lme4.du8.ew.ef.hd.clim)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, VEGETATION ###
-model.lme4.du8.ew.ef.hd.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                        std.distance_to_watercourse + 
-                                        std.distance_to_cut_1to4yo + 
-                                        std.distance_to_cut_5to9yo + 
-                                        std.distance_to_cut_10yoorOver + 
-                                        std.distance_to_paved_road + 
-                                        std.distance_to_resource_road + 
-                                        std.distance_to_pipeline + 
-                                        bec_label + wetland_demars + std.vri_bryoid_cover_pct + 
-                                        std.vri_herb_cover_pct + std.vri_proj_age + 
-                                        std.vri_shrub_crown_close + 
-                                        std.vri_proj_height + std.vri_crown_closure +
-                                        (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                std.distance_to_paved_road + std.distance_to_resource_road + 
+                                                std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                (1 | uniqueID), 
                                       data = rsf.data.combo.du8.ew, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
-ss <- getME (model.lme4.du8.ew.ef.hd.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.hd.veg <- update (model.lme4.du8.ew.ef.hd.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [19, 1] <- "du8"
+table.aic [19, 1] <- "DU8"
 table.aic [19, 2] <- "Early Winter"
 table.aic [19, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [19, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [19, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [19, 5] <- "(1 | UniqueID)"
 table.aic [19, 6] <-  AIC (model.lme4.du8.ew.ef.hd.veg)
 
 ### ENDURING FEATURES, NATURAL DISTURBANCE, CLIMATE ###
-model.lme4.du8.ew.ef.nd.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                         std.distance_to_watercourse + 
-                                         beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                         fire_6to25yo + fire_over25yo +
-                                         std.growing_degree_days + std.ppt_as_snow_winter +
-                                         (1 | uniqueID), 
+model.lme4.du8.ew.ef.nd.clim <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                 beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                 fire_6to25yo + fire_over25yo +
+                                                 std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                 (1 | uniqueID), 
                                        data = rsf.data.combo.du8.ew, 
                                        family = binomial (link = "logit"),
                                        verbose = T) 
 # AIC
-table.aic [20, 1] <- "du8"
+table.aic [20, 1] <- "DU8"
 table.aic [20, 2] <- "Early Winter"
 table.aic [20, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [20, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS"
+table.aic [20, 4] <- "Slope, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp"
 table.aic [20, 5] <- "(1 | UniqueID)"
 table.aic [20, 6] <-  AIC (model.lme4.du8.ew.ef.nd.clim)
 
 ### ENDURING FEATURES, NATURAL DISTURBANCE, VEGETATION ###
-model.lme4.du8.ew.ef.nd.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                        std.distance_to_watercourse + 
-                                        beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                        fire_6to25yo + fire_over25yo +
-                                        bec_label + wetland_demars + 
-                                        std.vri_bryoid_cover_pct + 
-                                        std.vri_herb_cover_pct + std.vri_proj_age + 
-                                        std.vri_shrub_crown_close + std.vri_proj_height + 
-                                        std.vri_crown_closure +
-                                        (1 | uniqueID), 
+model.lme4.du8.ew.ef.nd.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                fire_6to25yo + fire_over25yo +
+                                                std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                (1 | uniqueID), 
                                       data = rsf.data.combo.du8.ew, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
-ss <- getME (model.lme4.du8.ew.ef.nd.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.nd.veg <- update (model.lme4.du8.ew.ef.nd.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [21, 1] <- "du8"
+table.aic [21, 1] <- "DU8"
 table.aic [21, 2] <- "Early Winter"
 table.aic [21, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [21, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [21, 4] <- "Slope, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [21, 5] <- "(1 | UniqueID)"
 table.aic [21, 6] <-  AIC (model.lme4.du8.ew.ef.nd.veg)
 
 ### ENDURING FEATURES, CLIMATE, VEGETATION ###
-model.lme4.du8.ew.ef.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                          std.distance_to_watercourse + 
-                                          std.growing_degree_days + std.ppt_as_snow_winter +
-                                          bec_label + wetland_demars + 
-                                          std.vri_bryoid_cover_pct + 
-                                          std.vri_herb_cover_pct + std.vri_proj_age + 
-                                          std.vri_shrub_crown_close + std.vri_proj_height + 
-                                          std.vri_crown_closure +
-                                          (1 | uniqueID), 
+model.lme4.du8.ew.ef.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                  std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                  std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                  std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                  (1 | uniqueID), 
                                         data = rsf.data.combo.du8.ew, 
                                         family = binomial (link = "logit"),
                                         verbose = T) 
-ss <- getME (model.lme4.du8.ew.ef.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.clim.veg <- update (model.lme4.du8.ew.ef.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [22, 1] <- "du8"
+table.aic [22, 1] <- "DU8"
 table.aic [22, 2] <- "Early Winter"
 table.aic [22, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [22, 4] <- "Slope, DLake, DWat, GDD, PAS, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [22, 4] <- "Slope, DWat, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [22, 5] <- "(1 | UniqueID)"
 table.aic [22, 6] <-  AIC (model.lme4.du8.ew.ef.clim.veg)
 
 ### HUMAN DISTURBANCE, NATURAL DISTURBANCE, CLIMATE ###
-model.lme4.du8.ew.hd.nd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
-                                         std.distance_to_cut_5to9yo + 
-                                         std.distance_to_cut_10yoorOver + 
-                                         std.distance_to_paved_road + 
-                                         std.distance_to_resource_road + 
-                                         std.distance_to_pipeline +
-                                         std.growing_degree_days +
-                                         std.ppt_as_snow_winter + 
-                                         beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                         fire_6to25yo + fire_over25yo +
-                                         (1 | uniqueID), 
+model.lme4.du8.ew.hd.nd.clim <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                   std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                   std.distance_to_paved_road + std.distance_to_resource_road + 
+                                                   beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                   fire_6to25yo + fire_over25yo +
+                                                   std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                   (1 | uniqueID), 
                                        data = rsf.data.combo.du8.ew, 
                                        family = binomial (link = "logit"),
                                        verbose = T) 
 # AIC
-table.aic [23, 1] <- "du8"
+table.aic [23, 1] <- "DU8"
 table.aic [23, 2] <- "Early Winter"
 table.aic [23, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [23, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, GDD, PAS, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [23, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp"
 table.aic [23, 5] <- "(1 | UniqueID)"
 table.aic [23, 6] <-  AIC (model.lme4.du8.ew.hd.nd.clim)
 
 ### HUMAN DISTURBANCE, NATURAL DISTURBANCE, VEGETATION ###
-model.lme4.du8.ew.hd.nd.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
-                                        std.distance_to_cut_5to9yo + 
-                                        std.distance_to_cut_10yoorOver + 
-                                        std.distance_to_paved_road + 
-                                        std.distance_to_resource_road + 
-                                        std.distance_to_pipeline +
-                                        beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                        fire_6to25yo + fire_over25yo +
-                                        bec_label + wetland_demars + 
-                                        std.vri_bryoid_cover_pct + 
-                                        std.vri_herb_cover_pct + 
-                                        std.vri_proj_age + 
-                                        std.vri_shrub_crown_close + 
-                                        std.vri_proj_height + 
-                                        std.vri_crown_closure +
-                                        (1 | uniqueID), 
+model.lme4.du8.ew.hd.nd.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                std.distance_to_paved_road + std.distance_to_resource_road + 
+                                                beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                fire_6to25yo + fire_over25yo +
+                                                std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                (1 | uniqueID), 
                                       data = rsf.data.combo.du8.ew, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
-ss <- getME (model.lme4.du8.ew.hd.nd.veg, c ("theta","fixef"))
-model.lme4.du8.ew.hd.nd.veg <- update (model.lme4.du8.ew.hd.nd.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [24, 1] <- "du8"
+table.aic [24, 1] <- "DU8"
 table.aic [24, 2] <- "Early Winter"
 table.aic [24, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [24, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [24, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [24, 5] <- "(1 | UniqueID)"
 table.aic [24, 6] <-  AIC (model.lme4.du8.ew.hd.nd.veg)
 
 ### HUMAN DISTURBANCE, CLIMATE, VEGETATION ###
-model.lme4.du8.ew.hd.clim.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + 
-                                          std.distance_to_cut_5to9yo + 
-                                          std.distance_to_cut_10yoorOver + 
-                                          std.distance_to_paved_road + 
-                                          std.distance_to_resource_road + 
-                                          std.distance_to_pipeline +
-                                          std.growing_degree_days + std.ppt_as_snow_winter +
-                                          bec_label + wetland_demars + 
-                                          std.vri_bryoid_cover_pct + 
-                                          std.vri_herb_cover_pct + 
-                                          std.vri_proj_age + 
-                                          std.vri_shrub_crown_close + 
-                                          std.vri_proj_height + 
-                                          std.vri_crown_closure +
-                                          (1 | uniqueID), 
+model.lme4.du8.ew.hd.clim.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                  std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                  std.distance_to_paved_road + std.distance_to_resource_road +
+                                                  std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                  std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                  std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                  (1 | uniqueID), 
                                         data = rsf.data.combo.du8.ew, 
                                         family = binomial (link = "logit"),
                                         verbose = T) 
-ss <- getME (model.lme4.du8.ew.hd.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.hd.clim.veg <- update (model.lme4.du8.ew.hd.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [25, 1] <- "du8"
+table.aic [25, 1] <- "DU8"
 table.aic [25, 2] <- "Early Winter"
 table.aic [25, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [25, 4] <- "DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure, GDD, PAS"
+table.aic [25, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [25, 5] <- "(1 | UniqueID)"
 table.aic [25, 6] <-  AIC (model.lme4.du8.ew.hd.clim.veg)
 
 ### NATURAL DISTURBANCE, CLIMATE, VEGETATION ###
 model.lme4.du8.ew.nd.clim.veg <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                          fire_6to25yo + fire_over25yo +
-                                          std.growing_degree_days + std.ppt_as_snow_winter +
-                                          bec_label + wetland_demars + 
-                                          std.vri_bryoid_cover_pct + 
-                                          std.vri_herb_cover_pct + 
-                                          std.vri_proj_age + 
-                                          std.vri_shrub_crown_close + 
-                                          std.vri_proj_height + 
-                                          std.vri_crown_closure +
-                                          (1 | uniqueID), 
+                                                 fire_6to25yo + fire_over25yo +
+                                                  std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                  std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                  std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                  (1 | uniqueID), 
                                         data = rsf.data.combo.du8.ew, 
                                         family = binomial (link = "logit"),
                                         verbose = T) 
-ss <- getME (model.lme4.du8.ew.nd.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.nd.clim.veg <- update (model.lme4.du8.ew.nd.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [26, 1] <- "du8"
+table.aic [26, 1] <- "DU8"
 table.aic [26, 2] <- "Early Winter"
 table.aic [26, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [26, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure, GDD, PAS"
+table.aic [26, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [26, 5] <- "(1 | UniqueID)"
 table.aic [26, 6] <-  AIC (model.lme4.du8.ew.nd.clim.veg)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE, CLIMATE ###
-model.lme4.du8.ew.ef.hd.nd.clim <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                            std.distance_to_watercourse + 
-                                            std.distance_to_cut_1to4yo + 
-                                            std.distance_to_cut_5to9yo + 
-                                            std.distance_to_cut_10yoorOver + 
-                                            std.distance_to_paved_road + 
-                                            std.distance_to_resource_road + 
-                                            std.distance_to_pipeline +
-                                            beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                            fire_6to25yo + fire_over25yo +
-                                            std.growing_degree_days + std.ppt_as_snow_winter +
-                                            (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.nd.clim <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                    std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                    std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                    std.distance_to_paved_road + std.distance_to_resource_road +
+                                                    beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                    fire_6to25yo + fire_over25yo +
+                                                    std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                    (1 | uniqueID), 
                                           data = rsf.data.combo.du8.ew, 
                                           family = binomial (link = "logit"),
                                           verbose = T) 
 # AIC
-table.aic [27, 1] <- "du8"
+table.aic [27, 1] <- "DU8"
 table.aic [27, 2] <- "Early Winter"
 table.aic [27, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [27, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS"
+table.aic [27, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp"
 table.aic [27, 5] <- "(1 | UniqueID)"
 table.aic [27, 6] <-  AIC (model.lme4.du8.ew.ef.hd.nd.clim)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE, VEGETATION ###
-model.lme4.du8.ew.ef.hd.nd.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                           std.distance_to_watercourse + 
-                                           std.distance_to_cut_1to4yo + 
-                                           std.distance_to_cut_5to9yo + 
-                                           std.distance_to_cut_10yoorOver + 
-                                           std.distance_to_paved_road + 
-                                           std.distance_to_resource_road + 
-                                           std.distance_to_pipeline +
-                                           beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                           fire_6to25yo + fire_over25yo +
-                                           bec_label + wetland_demars + 
-                                           std.vri_bryoid_cover_pct + std.vri_herb_cover_pct + 
-                                           std.vri_proj_age + 
-                                           std.vri_shrub_crown_close + std.vri_proj_height + 
-                                           std.vri_crown_closure +
-                                           (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.nd.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                   std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                   std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                   std.distance_to_paved_road + std.distance_to_resource_road +
+                                                   beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                   fire_6to25yo + fire_over25yo +
+                                                   std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                   std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                   (1 | uniqueID), 
                                          data = rsf.data.combo.du8.ew, 
                                          family = binomial (link = "logit"),
                                          verbose = T) 
-ss <- getME (model.lme4.du8.ew.ef.hd.nd.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.hd.nd.veg <- update (model.lme4.du8.ew.ef.hd.nd.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [28, 1] <- "du8"
+table.aic [28, 1] <- "DU8"
 table.aic [28, 2] <- "Early Winter"
 table.aic [28, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [28, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [28, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [28, 5] <- "(1 | UniqueID)"
 table.aic [28, 6] <-  AIC (model.lme4.du8.ew.ef.hd.nd.veg)
 
 ### HUMAN DISTURBANCE, NATURAL DISTURBANCE, CLIMATE, VEGETATION ###
-model.lme4.du8.ew.hd.nd.clim.veg <- glmer (pttype ~ std.growing_degree_days + std.ppt_as_snow_winter + 
-                                             std.distance_to_cut_1to4yo + 
-                                             std.distance_to_cut_5to9yo + 
-                                             std.distance_to_cut_10yoorOver + 
-                                             std.distance_to_paved_road + 
-                                             std.distance_to_resource_road + 
-                                             std.distance_to_pipeline +
-                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                             fire_6to25yo + fire_over25yo +
-                                             bec_label + wetland_demars + 
-                                             std.vri_bryoid_cover_pct + std.vri_herb_cover_pct + 
-                                             std.vri_proj_age + 
-                                             std.vri_shrub_crown_close + std.vri_proj_height + 
-                                             std.vri_crown_closure +
-                                             (1 | uniqueID), 
+model.lme4.du8.ew.hd.nd.clim.veg <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                     std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                     std.distance_to_paved_road + std.distance_to_resource_road +
+                                                     beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                     fire_6to25yo + fire_over25yo +
+                                                     std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                     std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                     std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                     (1 | uniqueID), 
                                            data = rsf.data.combo.du8.ew, 
                                            family = binomial (link = "logit"),
                                            verbose = T) 
-ss <- getME (model.lme4.du8.ew.hd.nd.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.hd.nd.veg <- update (model.lme4.du8.ew.hd.nd.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [29, 1] <- "du8"
+table.aic [29, 1] <- "DU8"
 table.aic [29, 2] <- "Early Winter"
 table.aic [29, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [29, 4] <- "GDD, PAS, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [29, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [29, 5] <- "(1 | UniqueID)"
 table.aic [29, 6] <-  AIC (model.lme4.du8.ew.hd.nd.clim.veg)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, CLIMATE, VEGETATION ###
-model.lme4.du8.ew.ef.hd.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                             std.distance_to_watercourse + 
-                                             std.distance_to_cut_1to4yo + 
-                                             std.distance_to_cut_5to9yo + 
-                                             std.distance_to_cut_10yoorOver + 
-                                             std.distance_to_paved_road + 
-                                             std.distance_to_resource_road + 
-                                             std.distance_to_pipeline +
-                                             std.growing_degree_days + std.ppt_as_snow_winter +
-                                             bec_label + wetland_demars + 
-                                             std.vri_bryoid_cover_pct + std.vri_herb_cover_pct + 
-                                             std.vri_proj_age + 
-                                             std.vri_shrub_crown_close + std.vri_proj_height + 
-                                             std.vri_crown_closure +
-                                             (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                     std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                     std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                     std.distance_to_paved_road + std.distance_to_resource_road +
+                                                     std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                     std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                     std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                     (1 | uniqueID), 
                                            data = rsf.data.combo.du8.ew, 
                                            family = binomial (link = "logit"),
                                            verbose = T) 
 ss <- getME (model.lme4.du8.ew.ef.hd.clim.veg, c ("theta","fixef"))
 model.lme4.du8.ew.ef.hd.clim.veg <- update (model.lme4.du8.ew.ef.hd.clim.veg, start = ss) # failed to converge, restart with parameter estimates
-ss <- getME (model.lme4.du8.ew.ef.hd.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.hd.clim.veg <- update (model.lme4.du8.ew.ef.hd.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [30, 1] <- "du8"
+table.aic [30, 1] <- "DU8"
 table.aic [30, 2] <- "Early Winter"
 table.aic [30, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [30, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, GDD, PAS, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [30, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [30, 5] <- "(1 | UniqueID)"
 table.aic [30, 6] <-  AIC (model.lme4.du8.ew.ef.hd.clim.veg)
 
 ### ENDURING FEATURES, NATURAL DISTURBANCE, CLIMATE, VEGETATION ###
-model.lme4.du8.ew.ef.nd.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                             std.distance_to_watercourse + 
-                                             beetle_1to5yo + beetle_6to9yo + 
-                                             fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                             std.growing_degree_days + std.ppt_as_snow_winter +
-                                             bec_label + wetland_demars + 
-                                             std.vri_bryoid_cover_pct + 
-                                             std.vri_herb_cover_pct + 
-                                             std.vri_proj_age + 
-                                             std.vri_shrub_crown_close + 
-                                             std.vri_proj_height + 
-                                             std.vri_crown_closure +
-                                             (1 | uniqueID), 
+model.lme4.du8.ew.ef.nd.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                     beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                     fire_6to25yo + fire_over25yo +
+                                                     std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                     std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                     std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                     (1 | uniqueID), 
                                            data = rsf.data.combo.du8.ew, 
                                            family = binomial (link = "logit"),
                                            verbose = T) 
-ss <- getME (model.lme4.du8.ew.ef.nd.clim.veg, c ("theta","fixef"))
-model.lme4.du8.ew.ef.nd.clim.veg <- update (model.lme4.du8.ew.ef.nd.clim.veg, start = ss) # failed to converge, restart with parameter estimates
 # AIC
-table.aic [31, 1] <- "du8"
+table.aic [31, 1] <- "DU8"
 table.aic [31, 2] <- "Early Winter"
 table.aic [31, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [31, 4] <- "Slope, DLake, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [31, 4] <- "Slope, DWat, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [31, 5] <- "(1 | UniqueID)"
 table.aic [31, 6] <-  AIC (model.lme4.du8.ew.ef.nd.clim.veg)
 
 ### ENDURING FEATURES, HUMAN DISTURBANCE, NATURAL DISTURBANCE, CLIMATE, VEGETATION ###
-model.lme4.du8.ew.ef.hd.nd.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                                std.distance_to_watercourse + 
-                                                std.distance_to_cut_1to4yo + 
-                                                std.distance_to_cut_5to9yo +
-                                                std.distance_to_cut_10yoorOver + 
-                                                std.distance_to_paved_road +
-                                                std.distance_to_resource_road + 
-                                                std.distance_to_pipeline + 
-                                                beetle_1to5yo + beetle_6to9yo + 
-                                                fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                                std.growing_degree_days + 
-                                                std.ppt_as_snow_winter +
-                                                bec_label + wetland_demars + 
-                                                std.vri_bryoid_cover_pct + 
-                                                std.vri_herb_cover_pct + 
-                                                std.vri_proj_age + 
-                                                std.vri_shrub_crown_close + 
-                                                std.vri_proj_height + 
-                                                std.vri_crown_closure +
-                                                (1 | uniqueID), 
+model.lme4.du8.ew.ef.hd.nd.clim.veg <- glmer (pttype ~ std.slope + std.distance_to_watercourse +
+                                                        std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                        std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                        std.distance_to_paved_road + std.distance_to_resource_road +
+                                                        beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                        fire_6to25yo + fire_over25yo +
+                                                        std.ppt_as_snow_winter + std.temp_avg_winter +
+                                                        std.vri_proj_age + std.vri_crown_closure + std.vri_site_index + 
+                                                        std.vri_herb_cover_pct + std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                                        (1 | uniqueID), 
                                               data = rsf.data.combo.du8.ew, 
                                               family = binomial (link = "logit"),
                                               verbose = T) 
 # AIC
-table.aic [32, 1] <- "du8"
+table.aic [32, 1] <- "DU8"
 table.aic [32, 2] <- "Early Winter"
 table.aic [32, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [32, 4] <- "Slope, DLake, DWat, DC1to4, DC5to9, DC10, DPR, DRR, DPipe, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, GDD, PAS, Wetland, BEC, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeHeight, TreeClosure"
+table.aic [32, 4] <- "Slope, DWat, DC1to4, DC5to9, DC10to29, DCover30, DPR, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, WPAS, WTemp, ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
 table.aic [32, 5] <- "(1 | UniqueID)"
 table.aic [32, 6] <-  AIC (model.lme4.du8.ew.ef.hd.nd.clim.veg)
 
@@ -2943,49 +2793,321 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ai
 save (model.lme4.du8.ew.ef.hd.nd.clim.veg, 
       file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_ew_final.rda")
 
+### SPARSE FULL MODEL ###
+model.lme4.du8.ew.sparse <- glmer (pttype ~ bec_label_reclass +
+                                     std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                     std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                     std.distance_to_resource_road +
+                                     beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                     fire_6to25yo + fire_over25yo +
+                                     std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                     (1 | uniqueID), 
+                                   data = rsf.data.combo.du8.ew, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+# AIC
+table.aic [33, 1] <- "DU8"
+table.aic [33, 2] <- "Early Winter"
+table.aic [33, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [33, 4] <- "BEC, DC1to4, DC5to9, DC10to29, DCover30, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover"
+table.aic [33, 5] <- "(1 | UniqueID)"
+table.aic [33, 6] <-  AIC (model.lme4.du8.ew.sparse)
+
+### SPARSE BEC ###
+model.lme4.du8.ew.sparse.bec <- glmer (pttype ~ bec_label_reclass + 
+                                                (1 | uniqueID), 
+                                       data = rsf.data.combo.du8.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [34, 1] <- "DU8"
+table.aic [34, 2] <- "Early Winter"
+table.aic [34, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [34, 4] <- "BEC"
+table.aic [34, 5] <- "(1 | UniqueID)"
+table.aic [34, 6] <-  AIC (model.lme4.du8.ew.sparse.bec)
+
+### SPARSE HUMAN DISTURBANCE ###
+model.lme4.du8.ew.sparse.human <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                   std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                   std.distance_to_resource_road +
+                                                   (1 | uniqueID), 
+                                       data = rsf.data.combo.du8.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [35, 1] <- "DU8"
+table.aic [35, 2] <- "Early Winter"
+table.aic [35, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [35, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DRR"
+table.aic [35, 5] <- "(1 | UniqueID)"
+table.aic [35, 6] <-  AIC (model.lme4.du8.ew.sparse.human)
+
+### SPARSE NATURAL DISTURBANCE ###
+model.lme4.du8.ew.sparse.nat <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                   fire_6to25yo + fire_over25yo +
+                                                   (1 | uniqueID), 
+                                         data = rsf.data.combo.du8.ew, 
+                                         family = binomial (link = "logit"),
+                                         verbose = T) 
+# AIC
+table.aic [36, 1] <- "DU8"
+table.aic [36, 2] <- "Early Winter"
+table.aic [36, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [36, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [36, 5] <- "(1 | UniqueID)"
+table.aic [36, 6] <-  AIC (model.lme4.du8.ew.sparse.nat)
+
+### SPARSE FOOD ###
+model.lme4.du8.ew.sparse.food <- glmer (pttype ~ std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                (1 | uniqueID), 
+                                        data = rsf.data.combo.du8.ew, 
+                                        family = binomial (link = "logit"),
+                                        verbose = T) 
+# AIC
+table.aic [37, 1] <- "DU8"
+table.aic [37, 2] <- "Early Winter"
+table.aic [37, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [37, 4] <- "ShrubClosure, BryoidCover"
+table.aic [37, 5] <- "(1 | UniqueID)"
+table.aic [37, 6] <-  AIC (model.lme4.du8.ew.sparse.food)
+
+### SPARSE BEC AND HUMAN ###
+model.lme4.du8.ew.sparse.bec.hd <- glmer (pttype ~ bec_label_reclass + 
+                                                 std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                 std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                 std.distance_to_resource_road +
+                                                 (1 | uniqueID), 
+                                       data = rsf.data.combo.du8.ew, 
+                                       family = binomial (link = "logit"),
+                                       verbose = T) 
+# AIC
+table.aic [38, 1] <- "DU8"
+table.aic [38, 2] <- "Early Winter"
+table.aic [38, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [38, 4] <- "BEC, DC1to4, DC5to9, DC10to29, DCover30, DRR"
+table.aic [38, 5] <- "(1 | UniqueID)"
+table.aic [38, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.hd)
+
+### SPARSE BEC AND NATURAL ###
+model.lme4.du8.ew.sparse.bec.nd <- glmer (pttype ~ bec_label_reclass + 
+                                                    beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                    fire_6to25yo + fire_over25yo +
+                                                    (1 | uniqueID), 
+                                          data = rsf.data.combo.du8.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [39, 1] <- "DU8"
+table.aic [39, 2] <- "Early Winter"
+table.aic [39, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [39, 4] <- "BEC, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [39, 5] <- "(1 | UniqueID)"
+table.aic [39, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.nd)
+
+### SPARSE BEC AND FOOD ###
+model.lme4.du8.ew.sparse.bec.food <- glmer (pttype ~ bec_label_reclass + 
+                                                     std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                     (1 | uniqueID), 
+                                          data = rsf.data.combo.du8.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [40, 1] <- "DU8"
+table.aic [40, 2] <- "Early Winter"
+table.aic [40, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [40, 4] <- "BEC, ShrubClosure, BryoidCover"
+table.aic [40, 5] <- "(1 | UniqueID)"
+table.aic [40, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.food)
+
+### HUMAN AND NATURAL ###
+model.lme4.du8.ew.sparse.hd.nd <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                   std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                   std.distance_to_resource_road +
+                                                   beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                   fire_6to25yo + fire_over25yo +
+                                                   (1 | uniqueID), 
+                                          data = rsf.data.combo.du8.ew, 
+                                          family = binomial (link = "logit"),
+                                          verbose = T) 
+# AIC
+table.aic [41, 1] <- "DU8"
+table.aic [41, 2] <- "Early Winter"
+table.aic [41, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [41, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [41, 5] <- "(1 | UniqueID)"
+table.aic [41, 6] <-  AIC (model.lme4.du8.ew.sparse.hd.nd)
+
+### HUMAN AND FOOD ###
+model.lme4.du8.ew.sparse.hd.food <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                    std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                    std.distance_to_resource_road +
+                                                    std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                    (1 | uniqueID), 
+                                         data = rsf.data.combo.du8.ew, 
+                                         family = binomial (link = "logit"),
+                                         verbose = T) 
+# AIC
+table.aic [42, 1] <- "DU8"
+table.aic [42, 2] <- "Early Winter"
+table.aic [42, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [42, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DRR, ShrubClosure, BryoidCover"
+table.aic [42, 5] <- "(1 | UniqueID)"
+table.aic [42, 6] <-  AIC (model.lme4.du8.ew.sparse.hd.food)
+
+### NATURAL AND FOOD ###
+model.lme4.du8.ew.sparse.nd.food <- glmer (pttype ~ beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                    fire_6to25yo + fire_over25yo +
+                                                    std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                    (1 | uniqueID), 
+                                           data = rsf.data.combo.du8.ew, 
+                                           family = binomial (link = "logit"),
+                                           verbose = T) 
+# AIC
+table.aic [43, 1] <- "DU8"
+table.aic [43, 2] <- "Early Winter"
+table.aic [43, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [43, 4] <- "Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover"
+table.aic [43, 5] <- "(1 | UniqueID)"
+table.aic [43, 6] <-  AIC (model.lme4.du8.ew.sparse.nd.food)
+
+### SPARSE BEC AND HUMAN AND NATURAL ###
+model.lme4.du8.ew.sparse.bec.hd.nd <- glmer (pttype ~ bec_label_reclass + 
+                                                      std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                      std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                      std.distance_to_resource_road +
+                                                      beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                      fire_6to25yo + fire_over25yo +
+                                                      (1 | uniqueID), 
+                                            data = rsf.data.combo.du8.ew, 
+                                            family = binomial (link = "logit"),
+                                            verbose = T) 
+ss <- getME (model.lme4.du8.ew.sparse.bec.hd.nd, c ("theta","fixef"))
+model.lme4.du8.ew.sparse.bec.hd.nd <- update (model.lme4.du8.ew.sparse.bec.hd.nd, start = ss) # failed to converge, restart with parameter estimates
+# AIC
+table.aic [44, 1] <- "DU8"
+table.aic [44, 2] <- "Early Winter"
+table.aic [44, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [44, 4] <- "BEC, DC1to4, DC5to9, DC10to29, DCover30, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9"
+table.aic [44, 5] <- "(1 | UniqueID)"
+table.aic [44, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.hd.nd)
+
+### SPARSE BEC AND HUMAN AND FOOD ###
+model.lme4.du8.ew.sparse.bec.hd.nd <- glmer (pttype ~ bec_label_reclass + 
+                                                       std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                       std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                       std.distance_to_resource_road +
+                                                       std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                       (1 | uniqueID), 
+                                             data = rsf.data.combo.du8.ew, 
+                                             family = binomial (link = "logit"),
+                                             verbose = T) 
+# AIC
+table.aic [45, 1] <- "DU8"
+table.aic [45, 2] <- "Early Winter"
+table.aic [45, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [45, 4] <- "BEC, DC1to4, DC5to9, DC10to29, DCover30, DRR, ShrubClosure, BryoidCover"
+table.aic [45, 5] <- "(1 | UniqueID)"
+table.aic [45, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.hd.nd)
+
+### SPARSE BEC AND NATURAL AND FOOD ###
+model.lme4.du8.ew.sparse.bec.nd.food <- glmer (pttype ~ bec_label_reclass + 
+                                                       beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                       fire_6to25yo + fire_over25yo +
+                                                       std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                       (1 | uniqueID), 
+                                             data = rsf.data.combo.du8.ew, 
+                                             family = binomial (link = "logit"),
+                                             verbose = T) 
+# AIC
+table.aic [46, 1] <- "DU8"
+table.aic [46, 2] <- "Early Winter"
+table.aic [46, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [46, 4] <- "BEC, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover"
+table.aic [46, 5] <- "(1 | UniqueID)"
+table.aic [46, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.nd.food)
+
+### SPARSE HUMAN AND NATURAL AND FOOD ###
+model.lme4.du8.ew.sparse.hd.nd.food <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                         std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                         std.distance_to_resource_road +
+                                                         beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                                         fire_6to25yo + fire_over25yo +
+                                                         std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                                         (1 | uniqueID), 
+                                               data = rsf.data.combo.du8.ew, 
+                                               family = binomial (link = "logit"),
+                                               verbose = T) 
+# AIC
+table.aic [47, 1] <- "DU8"
+table.aic [47, 2] <- "Early Winter"
+table.aic [47, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [47, 4] <- "DC1to4, DC5to9, DC10to29, DCover30, DRR, Fire1to5, Fire6to25, FireOver25, Beetle1to5, Beetle6to9, ShrubClosure, BryoidCover"
+table.aic [47, 5] <- "(1 | UniqueID)"
+table.aic [47, 6] <-  AIC (model.lme4.du8.ew.sparse.hd.nd.food)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_all_top.csv", sep = ",")
+
+## AIC comparison of MODELS ## 
+table.aic$AIC <- as.numeric (table.aic$AIC)
+list.aic.like <- c ((exp (-0.5 * (table.aic [33, 6] - min (table.aic [c (33:47), 6])))), 
+                    (exp (-0.5 * (table.aic [34, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [35, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [36, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [37, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [38, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [39, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [40, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [41, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [42, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [43, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [44, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [45, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [46, 6] - min (table.aic [c (33:47), 6])))),
+                    (exp (-0.5 * (table.aic [47, 6] - min (table.aic [c (33:47), 6])))))
+table.aic [33, 7] <- round ((exp (-0.5 * (table.aic [33, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [34, 7] <- round ((exp (-0.5 * (table.aic [34, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [35, 7] <- round ((exp (-0.5 * (table.aic [35, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [36, 7] <- round ((exp (-0.5 * (table.aic [36, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [37, 7] <- round ((exp (-0.5 * (table.aic [37, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [38, 7] <- round ((exp (-0.5 * (table.aic [38, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [39, 7] <- round ((exp (-0.5 * (table.aic [39, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [40, 7] <- round ((exp (-0.5 * (table.aic [40, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [41, 7] <- round ((exp (-0.5 * (table.aic [41, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [42, 7] <- round ((exp (-0.5 * (table.aic [42, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [43, 7] <- round ((exp (-0.5 * (table.aic [43, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [44, 7] <- round ((exp (-0.5 * (table.aic [44, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [45, 7] <- round ((exp (-0.5 * (table.aic [45, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [46, 7] <- round ((exp (-0.5 * (table.aic [46, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+table.aic [47, 7] <- round ((exp (-0.5 * (table.aic [47, 6] - min (table.aic [c (33:47), 6])))) / sum (list.aic.like), 3)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_all_top.csv", sep = ",")
+
+save (model.lme4.du8.ew.sparse, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_ew_final.rda")
+
 # Create table of model coefficients from top model
-model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.ew.ef.hd.nd.clim.veg)))
+model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.ew.sparse)))
 model.coeffs$mean <- 0
 model.coeffs$sd <- 0
 
-model.coeffs [2, 5] <- mean (rsf.data.combo.du8.ew$slope)
-model.coeffs [3, 5] <- mean (rsf.data.combo.du8.ew$distance_to_lake)
-model.coeffs [4, 5] <- mean (rsf.data.combo.du8.ew$distance_to_watercourse)
-model.coeffs [5, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
-model.coeffs [6, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
-model.coeffs [7, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_10yoorOver)
-model.coeffs [8, 5] <- mean (rsf.data.combo.du8.ew$distance_to_paved_road)
-model.coeffs [9, 5] <- mean (rsf.data.combo.du8.ew$distance_to_resource_road)
-model.coeffs [10, 5] <- mean (rsf.data.combo.du8.ew$distance_to_pipeline)
-model.coeffs [16, 5] <- mean (rsf.data.combo.du8.ew$growing_degree_days)
-model.coeffs [17, 5] <- mean (rsf.data.combo.du8.ew$ppt_as_snow_winter)
-model.coeffs [26, 5] <- mean (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
-model.coeffs [27, 5] <- mean (rsf.data.combo.du8.ew$vri_herb_cover_pct)
-model.coeffs [28, 5] <- mean (rsf.data.combo.du8.ew$vri_proj_age)
-model.coeffs [29, 5] <- mean (rsf.data.combo.du8.ew$vri_shrub_crown_close)
-model.coeffs [30, 5] <- mean (rsf.data.combo.du8.ew$vri_proj_height)
-model.coeffs [31, 5] <- mean (rsf.data.combo.du8.ew$vri_crown_closure)
+model.coeffs [7, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
+model.coeffs [8, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
+model.coeffs [9, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
+model.coeffs [10, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
+model.coeffs [11, 5] <- mean (rsf.data.combo.du8.ew$distance_to_resource_road)
+model.coeffs [17, 5] <- mean (rsf.data.combo.du8.ew$vri_shrub_crown_close)
+model.coeffs [18, 5] <- mean (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
 
-model.coeffs [2, 6] <- sd (rsf.data.combo.du8.ew$slope)
-model.coeffs [3, 6] <- sd (rsf.data.combo.du8.ew$distance_to_lake)
-model.coeffs [4, 6] <- sd (rsf.data.combo.du8.ew$distance_to_watercourse)
-model.coeffs [5, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
-model.coeffs [6, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
-model.coeffs [7, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_10yoorOver)
-model.coeffs [8, 6] <- sd (rsf.data.combo.du8.ew$distance_to_paved_road)
-model.coeffs [9, 6] <- sd (rsf.data.combo.du8.ew$distance_to_resource_road)
-model.coeffs [10, 6] <- sd (rsf.data.combo.du8.ew$distance_to_pipeline)
-model.coeffs [16, 6] <- sd (rsf.data.combo.du8.ew$growing_degree_days)
-model.coeffs [17, 6] <- sd (rsf.data.combo.du8.ew$ppt_as_snow_winter)
-model.coeffs [26, 6] <- sd (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
-model.coeffs [27, 6] <- sd (rsf.data.combo.du8.ew$vri_herb_cover_pct)
-model.coeffs [28, 6] <- sd (rsf.data.combo.du8.ew$vri_proj_age)
-model.coeffs [29, 6] <- sd (rsf.data.combo.du8.ew$vri_shrub_crown_close)
-model.coeffs [30, 6] <- sd (rsf.data.combo.du8.ew$vri_proj_height)
-model.coeffs [31, 6] <- sd (rsf.data.combo.du8.ew$vri_crown_closure)
+model.coeffs [7, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
+model.coeffs [8, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
+model.coeffs [9, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
+model.coeffs [10, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
+model.coeffs [11, 6] <- sd (rsf.data.combo.du8.ew$distance_to_resource_road)
+model.coeffs [17, 6] <- sd (rsf.data.combo.du8.ew$vri_shrub_crown_close)
+model.coeffs [18, 6] <- sd (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
 
 write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_ew_model_coeffs_top.csv", sep = ",")
-
 
 ##########################
 ### k-fold Validation ###
@@ -3001,59 +3123,54 @@ train.data.1 <- rsf.data.combo.du8.ew %>%
 test.data.1 <- rsf.data.combo.du8.ew %>%
   filter (group == 5)
 
-model.lme4.du8.ew.train1 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                     std.distance_to_watercourse + 
-                                     std.distance_to_cut_1to4yo + 
-                                     std.distance_to_cut_5to9yo +
-                                     std.distance_to_cut_10yoorOver + 
-                                     std.distance_to_paved_road +
-                                     std.distance_to_resource_road + 
-                                     std.distance_to_pipeline + 
-                                     beetle_1to5yo + beetle_6to9yo + 
-                                     fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                     std.growing_degree_days + 
-                                     std.ppt_as_snow_winter +
-                                     bec_label + wetland_demars + 
-                                     std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + 
-                                     std.vri_proj_age + 
-                                     std.vri_shrub_crown_close + 
-                                     std.vri_proj_height + 
-                                     std.vri_crown_closure +
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.train1 <- glmer (pttype ~ bec_label_reclass +
+                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_resource_road +
+                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                             fire_6to25yo + fire_over25yo +
+                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                             (1 | uniqueID), 
                                    data = train.data.1, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
-
+ss <- getME (model.lme4.du8.ew.train1, c ("theta","fixef"))
+model.lme4.du8.ew.train1 <- update (model.lme4.du8.ew.train1, start = ss) # failed to converge, restart with parameter estimates
 # create a table of k-fold outputs
 table.kfold <- data.frame (matrix (ncol = 12, nrow = 50))
 colnames (table.kfold) <- c ("test.number", "bin.mid", "bin.weight", "utilization", "used.count", 
                              "expected.count", "lm.slope", "lm.slope.p.value", "lm.intercept",
                              "lm.intercept.p.value", "adj.R.sq", "chi.sq.p.value")
 table.kfold [c (1:10), 1] <- 1
-table.kfold$bin.mid <- c (0.02, 0.06, 0.10, 0.14, 0.18, 0.22, 0.26, 0.30, 0.34, 0.38)
+table.kfold$bin.mid <- c (0.025, 0.075, 0.125, 0.175, 0.225, 0.275, 0.325, 0.375, 0.45, 0.75)
 
 # data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
 rsf.data.combo.du8.ew$preds.train1 <- predict (model.lme4.du8.ew.train1, 
                                                newdata = rsf.data.combo.du8.ew, 
                                                re.form = NA, type = "response")
+
+ggplot (data = rsf.data.combo.du8.ew, aes (preds.train1)) +
+        geom_histogram()
+max (rsf.data.combo.du8.ew$preds.train1)
+min (rsf.data.combo.du8.ew$preds.train1)
+
 rsf.data.combo.du8.ew$preds.train1.class <- cut (rsf.data.combo.du8.ew$preds.train1, # put into classes; 0 to 0.4, based on max and min values
-                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                                 breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                                 labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                                             "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (rsf.data.combo.du8.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv")
 rsf.data.combo.du8.ew.avail <- dplyr::filter (rsf.data.combo.du8.ew, pttype == 0)
 
-table.kfold [1, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [2, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.06")) * 0.06)
-table.kfold [3, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.10")) * 0.10)
-table.kfold [4, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.14")) * 0.14)
-table.kfold [5, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.18")) * 0.18)
-table.kfold [6, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.22")) * 0.22)
-table.kfold [7, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.26")) * 0.26)
-table.kfold [8, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.30")) * 0.30)
-table.kfold [9, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.34")) * 0.34)
-table.kfold [10, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.38")) * 0.38)
+table.kfold [1, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.025")) * 0.025) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [2, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.075")) * 0.075)
+table.kfold [3, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.125")) * 0.125)
+table.kfold [4, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.175")) * 0.175)
+table.kfold [5, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.225")) * 0.225)
+table.kfold [6, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.275")) * 0.275)
+table.kfold [7, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.325")) * 0.325)
+table.kfold [8, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.375")) * 0.375)
+table.kfold [9, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.45")) * 0.45)
+table.kfold [10, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train1.class == "0.75")) * 0.75)
 
 table.kfold [1, 4] <- table.kfold [1, 3] / sum  (table.kfold [c (1:10), 3]) 
 table.kfold [2, 4] <- table.kfold [2, 3] / sum  (table.kfold [c (1:10), 3]) 
@@ -3071,22 +3188,22 @@ write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 # data for estimating use
 test.data.1$preds <- predict (model.lme4.du8.ew.train1, newdata = test.data.1, re.form = NA, type = "response")
 test.data.1$preds.class <- cut (test.data.1$preds, # put into classes; 0 to 0.4, based on max and min values
-                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                            "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (test.data.1, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\rsf_preds_du8_ew_train1.csv")
 test.data.1.used <- dplyr::filter (test.data.1, pttype == 1)
 
-table.kfold [1, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.02"))
-table.kfold [2, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.06"))
-table.kfold [3, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.10"))
-table.kfold [4, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.14"))
-table.kfold [5, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.18"))
-table.kfold [6, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.22"))
-table.kfold [7, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.26"))
-table.kfold [8, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.30"))
-table.kfold [9, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.34"))
-table.kfold [10, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.38"))
+table.kfold [1, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.025"))
+table.kfold [2, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.075"))
+table.kfold [3, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.125"))
+table.kfold [4, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.175"))
+table.kfold [5, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.225"))
+table.kfold [6, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.275"))
+table.kfold [7, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.325"))
+table.kfold [8, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.375"))
+table.kfold [9, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.45"))
+table.kfold [10, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.75"))
 
 table.kfold [1, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [1, 4], 0) # expected number of uses in each bin
 table.kfold [2, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [2, 4], 0) # expected number of uses in each bin
@@ -3103,11 +3220,11 @@ glm.kfold.test1 <- lm (used.count ~ expected.count,
                        data = dplyr::filter(table.kfold, test.number == 1))
 summary (glm.kfold.test1)
 
-table.kfold [1, 7] <- 1.02023
+table.kfold [1, 7] <- 0.98976
 table.kfold [1, 8] <- "<0.001"
-table.kfold [1, 9] <- -27.39636
-table.kfold [1, 10] <- 0.815
-table.kfold [1, 11] <- 0.9694
+table.kfold [1, 9] <- 6.39948
+table.kfold [1, 10] <- 0.900
+table.kfold [1, 11] <- 0.9726
 
 chisq.test(dplyr::filter(table.kfold, test.number == 1)$used.count, dplyr::filter(table.kfold, test.number == 1)$expected.count)
 table.kfold [1, 12] <- 0.2313
@@ -3134,55 +3251,47 @@ train.data.2 <- rsf.data.combo.du8.ew %>%
 test.data.2 <- rsf.data.combo.du8.ew %>%
   filter (group == 4)
 
-model.lme4.du8.ew.train2 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                     std.distance_to_watercourse + 
-                                     std.distance_to_cut_1to4yo + 
-                                     std.distance_to_cut_5to9yo +
-                                     std.distance_to_cut_10yoorOver + 
-                                     std.distance_to_paved_road +
-                                     std.distance_to_resource_road + 
-                                     std.distance_to_pipeline + 
-                                     beetle_1to5yo + beetle_6to9yo + 
-                                     fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                     std.growing_degree_days + 
-                                     std.ppt_as_snow_winter +
-                                     bec_label + wetland_demars + 
-                                     std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + 
-                                     std.vri_proj_age + 
-                                     std.vri_shrub_crown_close + 
-                                     std.vri_proj_height + 
-                                     std.vri_crown_closure +
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.train2 <- glmer (pttype ~ bec_label_reclass +
+                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_resource_road +
+                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                             fire_6to25yo + fire_over25yo +
+                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                             (1 | uniqueID), 
                                    data = train.data.2, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
+ss <- getME (model.lme4.du8.ew.train2, c ("theta","fixef"))
+model.lme4.du8.ew.train2 <- update (model.lme4.du8.ew.train2, start = ss) # failed to converge, restart with parameter estimates
 
 # data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
 rsf.data.combo.du8.ew$preds.train2 <- predict (model.lme4.du8.ew.train2, 
                                                newdata = rsf.data.combo.du8.ew, 
                                                re.form = NA, type = "response")
+ggplot (data = rsf.data.combo.du8.ew, aes (preds.train2)) +
+        geom_histogram()
 max (rsf.data.combo.du8.ew$preds.train2)
 min (rsf.data.combo.du8.ew$preds.train2)
 rsf.data.combo.du8.ew$preds.train2.class <- cut (rsf.data.combo.du8.ew$preds.train2, # put into classes; 0 to 0.4, based on max and min values
-                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                                 breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                                 labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                                             "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (rsf.data.combo.du8.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv")
 rsf.data.combo.du8.ew.avail <- dplyr::filter (rsf.data.combo.du8.ew, pttype == 0)
 
 table.kfold [c (11:20), 1] <- 2
 
-table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.06")) * 0.06)
-table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.10")) * 0.10)
-table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.14")) * 0.14)
-table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.18")) * 0.18)
-table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.22")) * 0.22)
-table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.26")) * 0.26)
-table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.30")) * 0.30)
-table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.34")) * 0.34)
-table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.38")) * 0.38)
+table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.025")) * 0.025) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.075")) * 0.075)
+table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.125")) * 0.125)
+table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.175")) * 0.175)
+table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.225")) * 0.225)
+table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.275")) * 0.275)
+table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.325")) * 0.325)
+table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.375")) * 0.375)
+table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.45")) * 0.45)
+table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train2.class == "0.75")) * 0.75)
 
 table.kfold [11, 4] <- table.kfold [11, 3] / sum  (table.kfold [c (11:20), 3]) 
 table.kfold [12, 4] <- table.kfold [12, 3] / sum  (table.kfold [c (11:20), 3]) 
@@ -3200,22 +3309,22 @@ write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 # data for estimating use
 test.data.2$preds <- predict (model.lme4.du8.ew.train2, newdata = test.data.2, re.form = NA, type = "response")
 test.data.2$preds.class <- cut (test.data.2$preds, # put into classes; 0 to 0.4, based on max and min values
-                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                            "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (test.data.2, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\rsf_preds_du8_ew_train2.csv")
 test.data.2.used <- dplyr::filter (test.data.2, pttype == 1)
 
-table.kfold [11, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.02"))
-table.kfold [12, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.06"))
-table.kfold [13, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.10"))
-table.kfold [14, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.14"))
-table.kfold [15, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.18"))
-table.kfold [16, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.22"))
-table.kfold [17, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.26"))
-table.kfold [18, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.30"))
-table.kfold [19, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.34"))
-table.kfold [20, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.38"))
+table.kfold [11, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.025"))
+table.kfold [12, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.075"))
+table.kfold [13, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.125"))
+table.kfold [14, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.175"))
+table.kfold [15, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.225"))
+table.kfold [16, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.275"))
+table.kfold [17, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.325"))
+table.kfold [18, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.375"))
+table.kfold [19, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.45"))
+table.kfold [20, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.75"))
 
 table.kfold [11, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [11, 4], 0) # expected number of uses in each bin
 table.kfold [12, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [12, 4], 0) # expected number of uses in each bin
@@ -3232,11 +3341,11 @@ glm.kfold.test2 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 2))
 summary (glm.kfold.test2)
 
-table.kfold [11, 7] <- 1.08018
+table.kfold [11, 7] <- 1.0370
 table.kfold [11, 8] <- "<0.001"
-table.kfold [11, 9] <- -124.25032
-table.kfold [11, 10] <- 0.262
-table.kfold [11, 11] <- 0.9819
+table.kfold [11, 9] <- -22.8228
+table.kfold [11, 10] <- 0.838
+table.kfold [11, 11] <- 0.8966
 
 chisq.test(dplyr::filter(table.kfold, test.number == 2)$used.count, dplyr::filter(table.kfold, test.number == 2)$expected.count)
 table.kfold [11, 12] <- 0.2313
@@ -3264,26 +3373,14 @@ train.data.3 <- rsf.data.combo.du8.ew %>%
 test.data.3 <- rsf.data.combo.du8.ew %>%
   filter (group == 3)
 
-model.lme4.du8.ew.train3 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                     std.distance_to_watercourse + 
-                                     std.distance_to_cut_1to4yo + 
-                                     std.distance_to_cut_5to9yo +
-                                     std.distance_to_cut_10yoorOver + 
-                                     std.distance_to_paved_road +
-                                     std.distance_to_resource_road + 
-                                     std.distance_to_pipeline + 
-                                     beetle_1to5yo + beetle_6to9yo + 
-                                     fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                     std.growing_degree_days + 
-                                     std.ppt_as_snow_winter +
-                                     bec_label + wetland_demars + 
-                                     std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + 
-                                     std.vri_proj_age + 
-                                     std.vri_shrub_crown_close + 
-                                     std.vri_proj_height + 
-                                     std.vri_crown_closure +
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.train3 <- glmer (pttype ~ bec_label_reclass +
+                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_resource_road +
+                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                             fire_6to25yo + fire_over25yo +
+                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                             (1 | uniqueID), 
                                    data = train.data.3, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
@@ -3295,24 +3392,24 @@ rsf.data.combo.du8.ew$preds.train3 <- predict (model.lme4.du8.ew.train3,
 max (rsf.data.combo.du8.ew$preds.train3)
 min (rsf.data.combo.du8.ew$preds.train3)
 rsf.data.combo.du8.ew$preds.train3.class <- cut (rsf.data.combo.du8.ew$preds.train3, # put into classes; 0 to 0.4, based on max and min values
-                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                                 breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                                 labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                                             "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (rsf.data.combo.du8.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv")
 rsf.data.combo.du8.ew.avail <- dplyr::filter (rsf.data.combo.du8.ew, pttype == 0)
 
 table.kfold [c (21:30), 1] <- 3
 
-table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.06")) * 0.06)
-table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.10")) * 0.10)
-table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.14")) * 0.14)
-table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.18")) * 0.18)
-table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.22")) * 0.22)
-table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.26")) * 0.26)
-table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.30")) * 0.30)
-table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.34")) * 0.34)
-table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.38")) * 0.38)
+table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.025")) * 0.025) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.075")) * 0.075)
+table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.125")) * 0.125)
+table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.175")) * 0.175)
+table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.225")) * 0.225)
+table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.275")) * 0.275)
+table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.325")) * 0.325)
+table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.375")) * 0.375)
+table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.45")) * 0.45)
+table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train3.class == "0.75")) * 0.75)
 
 table.kfold [21, 4] <- table.kfold [21, 3] / sum  (table.kfold [c (21:30), 3]) 
 table.kfold [22, 4] <- table.kfold [22, 3] / sum  (table.kfold [c (21:30), 3]) 
@@ -3330,22 +3427,22 @@ write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 # data for estimating use
 test.data.3$preds <- predict (model.lme4.du8.ew.train3, newdata = test.data.3, re.form = NA, type = "response")
 test.data.3$preds.class <- cut (test.data.3$preds, # put into classes; 0 to 0.4, based on max and min values
-                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                            "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (test.data.3, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\rsf_preds_du8_ew_train3.csv")
 test.data.3.used <- dplyr::filter (test.data.3, pttype == 1)
 
-table.kfold [21, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.02"))
-table.kfold [22, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.06"))
-table.kfold [23, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.10"))
-table.kfold [24, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.14"))
-table.kfold [25, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.18"))
-table.kfold [26, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.22"))
-table.kfold [27, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.26"))
-table.kfold [28, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.30"))
-table.kfold [29, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.34"))
-table.kfold [30, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.38"))
+table.kfold [21, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.025"))
+table.kfold [22, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.075"))
+table.kfold [23, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.125"))
+table.kfold [24, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.175"))
+table.kfold [25, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.225"))
+table.kfold [26, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.275"))
+table.kfold [27, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.325"))
+table.kfold [28, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.375"))
+table.kfold [29, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.45"))
+table.kfold [30, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.75"))
 
 table.kfold [21, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [21, 4], 0) # expected number of uses in each bin
 table.kfold [22, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [22, 4], 0) # expected number of uses in each bin
@@ -3362,11 +3459,11 @@ glm.kfold.test3 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 3))
 summary (glm.kfold.test3)
 
-table.kfold [21, 7] <- 1.08735
+table.kfold [21, 7] <- 1.0606
 table.kfold [21, 8] <- "<0.001"
-table.kfold [21, 9] <- -137.25596
-table.kfold [21, 10] <- 0.217
-table.kfold [21, 11] <- 0.9826
+table.kfold [21, 9] <- -35.4835
+table.kfold [21, 10] <- 0.753
+table.kfold [21, 11] <- 0.8797
 
 chisq.test(dplyr::filter(table.kfold, test.number == 3)$used.count, dplyr::filter(table.kfold, test.number == 3)$expected.count)
 table.kfold [21, 12] <- 0.2313
@@ -3393,26 +3490,14 @@ train.data.4 <- rsf.data.combo.du8.ew %>%
 test.data.4 <- rsf.data.combo.du8.ew %>%
   filter (group == 2)
 
-model.lme4.du8.ew.train4 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                     std.distance_to_watercourse + 
-                                     std.distance_to_cut_1to4yo + 
-                                     std.distance_to_cut_5to9yo +
-                                     std.distance_to_cut_10yoorOver + 
-                                     std.distance_to_paved_road +
-                                     std.distance_to_resource_road + 
-                                     std.distance_to_pipeline + 
-                                     beetle_1to5yo + beetle_6to9yo + 
-                                     fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                     std.growing_degree_days + 
-                                     std.ppt_as_snow_winter +
-                                     bec_label + wetland_demars + 
-                                     std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + 
-                                     std.vri_proj_age + 
-                                     std.vri_shrub_crown_close + 
-                                     std.vri_proj_height + 
-                                     std.vri_crown_closure +
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.train4 <- glmer (pttype ~ bec_label_reclass +
+                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_resource_road +
+                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                             fire_6to25yo + fire_over25yo +
+                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                             (1 | uniqueID), 
                                    data = train.data.4, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
@@ -3426,24 +3511,24 @@ rsf.data.combo.du8.ew$preds.train4 <- predict (model.lme4.du8.ew.train4,
 max (rsf.data.combo.du8.ew$preds.train4)
 min (rsf.data.combo.du8.ew$preds.train4)
 rsf.data.combo.du8.ew$preds.train4.class <- cut (rsf.data.combo.du8.ew$preds.train4, # put into classes; 0 to 0.4, based on max and min values
-                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                                 breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                                 labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                                             "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (rsf.data.combo.du8.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv")
 rsf.data.combo.du8.ew.avail <- dplyr::filter (rsf.data.combo.du8.ew, pttype == 0)
 
 table.kfold [c (31:40), 1] <- 4
 
-table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.06")) * 0.06)
-table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.10")) * 0.10)
-table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.14")) * 0.14)
-table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.18")) * 0.18)
-table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.22")) * 0.22)
-table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.26")) * 0.26)
-table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.30")) * 0.30)
-table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.34")) * 0.34)
-table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.38")) * 0.38)
+table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.025")) * 0.025) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.075")) * 0.075)
+table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.125")) * 0.125)
+table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.175")) * 0.175)
+table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.225")) * 0.225)
+table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.275")) * 0.275)
+table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.325")) * 0.325)
+table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.375")) * 0.375)
+table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.45")) * 0.45)
+table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train4.class == "0.75")) * 0.75)
 
 table.kfold [31, 4] <- table.kfold [31, 3] / sum  (table.kfold [c (31:40), 3]) 
 table.kfold [32, 4] <- table.kfold [32, 3] / sum  (table.kfold [c (31:40), 3]) 
@@ -3461,22 +3546,22 @@ write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 # data for estimating use
 test.data.4$preds <- predict (model.lme4.du8.ew.train4, newdata = test.data.4, re.form = NA, type = "response")
 test.data.4$preds.class <- cut (test.data.4$preds, # put into classes; 0 to 0.4, based on max and min values
-                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                            "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (test.data.4, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\rsf_preds_du8_ew_train4.csv")
 test.data.4.used <- dplyr::filter (test.data.4, pttype == 1)
 
-table.kfold [31, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.02"))
-table.kfold [32, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.06"))
-table.kfold [33, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.10"))
-table.kfold [34, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.14"))
-table.kfold [35, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.18"))
-table.kfold [36, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.22"))
-table.kfold [37, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.26"))
-table.kfold [38, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.30"))
-table.kfold [39, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.34"))
-table.kfold [40, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.38"))
+table.kfold [31, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.025"))
+table.kfold [32, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.075"))
+table.kfold [33, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.125"))
+table.kfold [34, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.175"))
+table.kfold [35, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.225"))
+table.kfold [36, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.275"))
+table.kfold [37, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.325"))
+table.kfold [38, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.375"))
+table.kfold [39, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.45"))
+table.kfold [40, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.75"))
 
 table.kfold [31, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [21, 4], 0) # expected number of uses in each bin
 table.kfold [32, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [22, 4], 0) # expected number of uses in each bin
@@ -3493,17 +3578,16 @@ glm.kfold.test4 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 4))
 summary (glm.kfold.test4)
 
-table.kfold [31, 7] <- 1.05713
+table.kfold [31, 7] <- 1.1291
 table.kfold [31, 8] <- "<0.001"
-table.kfold [31, 9] <- -87.45899
-table.kfold [31, 10] <- 0.387
-table.kfold [31, 11] <- 0.9831
+table.kfold [31, 9] <- -85.0623
+table.kfold [31, 10] <- 0.547
+table.kfold [31, 11] <- 0.8717
 
 chisq.test(dplyr::filter(table.kfold, test.number == 4)$used.count, dplyr::filter(table.kfold, test.number == 4)$expected.count)
 table.kfold [31, 12] <- 0.2313
 
 write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\table_kfold_valid_du8_ew.csv")
-
 
 ggplot (dplyr::filter(table.kfold, test.number == 4), aes (x = expected.count, y = used.count)) +
   geom_point () +
@@ -3525,30 +3609,17 @@ train.data.5 <- rsf.data.combo.du8.ew %>%
 test.data.5 <- rsf.data.combo.du8.ew %>%
   filter (group == 1)
 
-model.lme4.du8.ew.train5 <- glmer (pttype ~ std.slope + std.distance_to_lake + 
-                                     std.distance_to_watercourse + 
-                                     std.distance_to_cut_1to4yo + 
-                                     std.distance_to_cut_5to9yo +
-                                     std.distance_to_cut_10yoorOver + 
-                                     std.distance_to_paved_road +
-                                     std.distance_to_resource_road + 
-                                     std.distance_to_pipeline + 
-                                     beetle_1to5yo + beetle_6to9yo + 
-                                     fire_1to5yo + fire_6to25yo + fire_over25yo +
-                                     std.growing_degree_days + 
-                                     std.ppt_as_snow_winter +
-                                     bec_label + wetland_demars + 
-                                     std.vri_bryoid_cover_pct + 
-                                     std.vri_herb_cover_pct + 
-                                     std.vri_proj_age + 
-                                     std.vri_shrub_crown_close + 
-                                     std.vri_proj_height + 
-                                     std.vri_crown_closure +
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.train5 <- glmer (pttype ~ bec_label_reclass +
+                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_resource_road +
+                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                             fire_6to25yo + fire_over25yo +
+                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                             (1 | uniqueID), 
                                    data = train.data.5, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
-
 # data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
 rsf.data.combo.du8.ew$preds.train5 <- predict (model.lme4.du8.ew.train5, 
                                                newdata = rsf.data.combo.du8.ew, 
@@ -3556,24 +3627,24 @@ rsf.data.combo.du8.ew$preds.train5 <- predict (model.lme4.du8.ew.train5,
 max (rsf.data.combo.du8.ew$preds.train5)
 min (rsf.data.combo.du8.ew$preds.train5)
 rsf.data.combo.du8.ew$preds.train5.class <- cut (rsf.data.combo.du8.ew$preds.train5, # put into classes; 0 to 0.4, based on max and min values
-                                                 breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                                 labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                                             "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                                 breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                                 labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                                             "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (rsf.data.combo.du8.ew, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv")
 rsf.data.combo.du8.ew.avail <- dplyr::filter (rsf.data.combo.du8.ew, pttype == 0)
 
 table.kfold [c (41:50), 1] <- 5
 
-table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.02")) * 0.02) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.06")) * 0.06)
-table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.10")) * 0.10)
-table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.14")) * 0.14)
-table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.18")) * 0.18)
-table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.22")) * 0.22)
-table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.26")) * 0.26)
-table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.30")) * 0.30)
-table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.34")) * 0.34)
-table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.38")) * 0.38)
+table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.025")) * 0.025) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.075")) * 0.075)
+table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.125")) * 0.125)
+table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.175")) * 0.175)
+table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.225")) * 0.225)
+table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.275")) * 0.275)
+table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.325")) * 0.325)
+table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.375")) * 0.375)
+table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.45")) * 0.45)
+table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.ew.avail, preds.train5.class == "0.75")) * 0.75)
 
 table.kfold [41, 4] <- table.kfold [41, 3] / sum  (table.kfold [c (41:50), 3]) 
 table.kfold [42, 4] <- table.kfold [42, 3] / sum  (table.kfold [c (41:50), 3]) 
@@ -3591,22 +3662,22 @@ write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 # data for estimating use
 test.data.5$preds <- predict (model.lme4.du8.ew.train5, newdata = test.data.5, re.form = NA, type = "response")
 test.data.5$preds.class <- cut (test.data.5$preds, # put into classes; 0 to 0.4, based on max and min values
-                                breaks = c (-Inf, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32, 0.36, Inf), 
-                                labels = c ("0.02", "0.06", "0.10", "0.14", "0.18",
-                                            "0.22", "0.26", "0.30", "0.34", "0.38"))
+                                breaks = c (-Inf, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, Inf), 
+                                labels = c ("0.025", "0.075", "0.125", "0.175", "0.225",
+                                            "0.275", "0.325", "0.375", "0.45", "0.75"))
 write.csv (test.data.5, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\rsf_preds_du8_ew_train5.csv")
 test.data.5.used <- dplyr::filter (test.data.5, pttype == 1)
 
-table.kfold [41, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.02"))
-table.kfold [42, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.06"))
-table.kfold [43, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.10"))
-table.kfold [44, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.14"))
-table.kfold [45, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.18"))
-table.kfold [46, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.22"))
-table.kfold [47, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.26"))
-table.kfold [48, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.30"))
-table.kfold [49, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.34"))
-table.kfold [50, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.38"))
+table.kfold [41, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.025"))
+table.kfold [42, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.075"))
+table.kfold [43, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.125"))
+table.kfold [44, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.175"))
+table.kfold [45, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.225"))
+table.kfold [46, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.275"))
+table.kfold [47, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.325"))
+table.kfold [48, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.375"))
+table.kfold [49, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.45"))
+table.kfold [50, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.75"))
 
 table.kfold [41, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [41, 4], 0) # expected number of uses in each bin
 table.kfold [42, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [42, 4], 0) # expected number of uses in each bin
@@ -3623,11 +3694,11 @@ glm.kfold.test5 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 5))
 summary (glm.kfold.test5)
 
-table.kfold [41, 7] <- 1.02491
+table.kfold [41, 7] <- 0.86571
 table.kfold [41, 8] <- "<0.001"
-table.kfold [41, 9] <- -35.34741
-table.kfold [41, 10] <- 0.645
-table.kfold [41, 11] <- 0.9886
+table.kfold [41, 9] <- 79.76850
+table.kfold [41, 10] <- 0.301
+table.kfold [41, 11] <- 0.9221
 
 chisq.test(dplyr::filter(table.kfold, test.number == 5)$used.count, dplyr::filter(table.kfold, test.number == 5)$expected.count)
 table.kfold [41, 12] <- 0.2313
@@ -3663,13 +3734,10 @@ write.csv (table.kfold.results.du8.ew, file = "C:\\Work\\caribou\\clus_data\\car
 #############################
 
 ### LOAD RASTERS ###
-slope <- raster ("C:\\Work\\caribou\\clus_data\\dem\\slope_deg_all_bc_8_clip.tif")
-dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_lakes_bcalbers_20180820.tif")
-dist.water <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
 dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
 dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
 dist.cut.10over <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10yo_over.tif")
-dist.paved.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_paved.tif")
+
 dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
 dist.pipeline <- raster ("C:\\Work\\caribou\\clus_data\\pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
 beetle.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_1to5yo_fin.tif")

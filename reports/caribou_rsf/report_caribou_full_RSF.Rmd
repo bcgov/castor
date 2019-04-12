@@ -1374,17 +1374,41 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
     0.91)
   - projected age highly correlated with projected height ($\rho$ = 0.70)
   - shrub crown closure highly correlated with shrub height ($\rho$ = 0.86)
-  - kept age, crown closure, site index, bryoid cover, herb cover adn shrub crown closure 
+  - kept age, crown closure, site index, bryoid cover, herb cover and shrub crown closure 
 
 ![](plots/corr_veg_du8_ew.png)
 
 - vif values for BEC type, landcover class and primary tree species class very high (>38) when all in   model, or in pairs; can only include one; decided to use BEC because of precednece in lietraure adn   link to climate
 
-- top vegetation model included all covariates (BEC type, shrub closure, bryoid cover, herb cover, forest stand age, forest stadn height adn site index) and had an AIC weight (AIC*~w~*) of 1.0
+- top vegetation model included all covariates (BEC type, shrub closure, bryoid cover, herb cover, forest stand age,crown closure and site index) and had an AIC weight (AIC*~w~*) of 1.0
 
 ###### Combination Models
 - correlations
-  - annual precipitation as snow and elevation correlated ($\rho$ = 0.74)
+  - annual precipitation as snow and winter precipitation as snow highly correlated ($\rho$ = 0.91)
+  - annual precipitation as snow and average winter temperature highly correlated ($\rho$ = 0.86)
+  
+  - removed annual ppt as snow
+
+![](plots/corr_winter_climate_du8_ew.png)
+
+- very high vif values for BEC type (207), elevation (29), distance to mines (12) and distance to pipelines (12), therefore removed all of these from analysis
+
+
+- the top DU8 early winter model included all covariates adn had an AIC*~w~* = 1.00
+- however, covariates in the model produced some results not consistent with the literature, i.e., 
+  selection of younger stands, low slopes, low snow areas and selection of areas near paved roads 
+  (but avoid resoruce roads)
+  - needed to re-structure the model to address these issues
+  - to do this I:
+    - removed distance to paved road
+    - replaced all enduring feature (slope, elevation and disatnce to watercoure), vegetation (age, 
+      site index, crown closure) and climate (preciptation as snow and temperature) covariates with 
+      BEC zone; appeared to be the source of much of the variance inflation (VIF of BEC went from 207       to 9); essentially BEC confounded with all these things, so used BEC to simplify model
+    - this 'sparse' model captures cliamet and site characteristics that imapct forest, and then 
+      disturbances seperately
+      - comarped this to simpler models (i.e., combiantions of BEC, human distrabnce, natural 
+        disturabnce, and food covariates) using AIC
+      - the top 'simpler' DU8 early winter model included all covariates and had an AIC*~w~* = 1.00
 
 
 
@@ -1392,6 +1416,14 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 
 
+- top model  included all covariates 
+- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
+  approximately   0.02)
+- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
+  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
+  -0.055)
+- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
+- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
 
 
 ##### k-fold validation
@@ -1450,6 +1482,35 @@ kable (table.kfold.du6.s)
 ![](plots/kfold_lm_du6_s_grp3.png)
 ![](plots/kfold_lm_du6_s_grp4.png)
 ![](plots/kfold_lm_du6_s_grp5.png)
+
+
+###### DU6, Early Winter
+
+- strong validation results
+
+
+
+
+
+
+
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.73 to 0.93 and $$\chi^2$$ values were not significant (Table xx)
+ - visual validation looks reasonable, but with soem issues. realtively low scores in Calendar adn high scores in PArker adn Prophet comarped to what expected; different from Demars there (add fig form GIS or try adn do it in R - use quantile classifcation)
+ 
+```{r, k-fold du6, late winter table, eval = T, echo = F}
+table.kfold.du8.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\table_kfold_valid_du8_ew.csv")
+table.kfold.du8.ew <- table.kfold.du8.ew [-1]
+kable (table.kfold.du8.ew)
+```
+
+
+
+
+![](plots/kfold_lm_du8_ew_grp1.png)
+![](plots/kfold_lm_du8_ew_grp2.png)
+![](plots/kfold_lm_du8_ew_grp3.png)
+![](plots/kfold_lm_du8_ew_grp4.png)
+![](plots/kfold_lm_du8_ew_grp5.png)
 
 
 
