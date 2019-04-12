@@ -20,23 +20,7 @@ output: pdf_document
 
 # Overview
 
-The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS
-
-#Dependendices
-
-First need an area of interest.
-+nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
-+nameBoundary<-The specific area of interest
-+nameBoundaryColumn<-The colume in the nameBoundaryFile that support the query for the area of interest
-+nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
-
-The remaining files are:
-+nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
-+nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
-+nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Deflauts to 1 yield table
-+nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to a age of 120
-+nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaluts to a 0 crown closure
-+nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaults to all of the area of interest being eligible for harvesting.
+The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by sepcifying the path with `useCLUSdb = ".../clusdb.sqlite"`
 
 # Usage
 
@@ -57,9 +41,10 @@ parameters <-  list(.progress = list(type = NA, interval = NA),
                   nameBoundaryColumn="tsa_name",
                   nameBoundary='Golden TSA', 
                   nameBoundaryGeom='wkb_geometry',
+                  save_clusdb = FALSE,
                   nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                   nameZoneRasters=c("rast.zone_beo"),
-                  nameZoneTable="zone_beo",
+                  nameZoneTable="zone_constraints",
                   nameAgeRaster= "rast.vri2017_projage1",
                   nameHeightRaster= "rast.vri2017_projheight1",
                   nameCrownClosureRaster= "rast.vri2017_crownclosure"))
@@ -77,6 +62,21 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 
 spades(mySim)
 ```
+#Dependendices
+
+First need an area of interest.
++nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
++nameBoundary<-The specific area of interest
++nameBoundaryColumn<-The colume in the nameBoundaryFile that support the query for the area of interest
++nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
+
+The remaining files are:
++nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
++nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
++nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Deflauts to 1 yield table
++nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to a age of 120
++nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaluts to a 0 crown closure
++nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaults to all of the area of interest being eligible for harvesting.
 
 # Events
 

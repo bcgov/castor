@@ -44,6 +44,7 @@ defineModule(sim, list(
     defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("save_clusdb", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
+    defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db?"),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represtents a compartment or supply block"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
@@ -76,17 +77,22 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-      #build clusdb
-      sim<-dataLoaderCLUS.createCLUSdb(sim)
-      #setBoundaries
-      sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
-      sim$bbox<-st_bbox(sim$boundary)
-      sim$boundaryInfo <- c(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
-      #populate clusdb tables
-      sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
-      
-      #disconnect the db once the sim is over?
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
+      if(P(sim, "dataLoaderCLUS", "useCLUSdb") == "99999"){
+        #build clusdb
+        sim<-dataLoaderCLUS.createCLUSdb(sim)
+        #setBoundaries
+        sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
+        sim$bbox<-st_bbox(sim$boundary)
+        sim$boundaryInfo <- c(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
+        #populate clusdb tables
+        sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
+        #disconnect the db once the sim is over?
+        sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
+      }else{
+        #TODO: Allow previous versions to be loaded
+        print(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
+        #TODO: If an old clusdb drop columns?
+      }
       },
     removeDbCLUS={
       sim<-disconnectDbCLUS(sim)
@@ -121,9 +127,10 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer PRIMARY KEY, zone_unique integer, state integer, regendelay integer, age integer, area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zoneid text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, variable text, threshold numeric, type text, percentage numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zone_unique text, blockid integer, yieldid integer, thlb numeric , age numeric, crownclosure numeric, height numeric, roadyear integer)")
+  #Note Zone table is created as a JOIN with zone_constraints and zone_lu
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_lu (zone_column text, reference_zone text)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, zone_unique text, blockid integer, yieldid integer, zone_const integer, thlb numeric , age numeric, crownclosure numeric, height numeric, roadyear integer)")
   return(invisible(sim))
 }
 
@@ -174,7 +181,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
       setnames(pixels, "V1", paste0('zone',i))#SET NAMES to RASTER layer
       dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric'))
-      dbExecute(sim$clusdb, paste0("INSERT INTO zone (zoneid, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
+      dbExecute(sim$clusdb, paste0("INSERT INTO zone_lu (zone_column, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
       
       rm(ras.zone)
       gc()
@@ -195,7 +202,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, thlb, age, crownclosure, height, roadyear, zone1, zone_unique) 
                 values (:pixelid, :compartid, :yieldid, :thlb, :age, :crownclosure, :height, NULL, :zone1, :zone_unique)')
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer")
-    dbExecute(sim$clusdb, paste0("INSERT INTO zone (zoneid, reference_zone) values ( 'zone1', 'default')" ))
+    dbExecute(sim$clusdb, paste0("INSERT INTO zone_lu (zone_column, reference_zone) values ( 'zone1', 'default')" ))
     }
 
   #------------
@@ -295,10 +302,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print('.....height: default 10')
     pixels[, height := 10]
   }
-  
 
   #------------------------
-  #Load the data in Rsqlite
+  #Load the data in RSQLite
   #------------------------
   #pixels table
   dbBegin(sim$clusdb)
@@ -308,15 +314,36 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   
   #zone_constraint table
   if(!P(sim)$nameZoneTable == '99999'){
+    
     zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable))
+    ref<-dbGetQuery(sim$clusdb, "SELECT * FROM zone_lu")
+    zone_const<-merge(zone_const,ref, by = 'reference_zone')
+    
+    
+    #Need to select only those constraints that pertain to the study area
+    test2<-unique(data.table(getTableQuery(paste0(
+      "SELECT reference_zone, variable, threshold, type, percentage 
+      FROM ", P(sim)$nameZoneTable)))) #This is all of them....
+    print(test2)
+    
+    
+   # test<-data.table(zoneid=0, zone_column='')
+    #for( i in 1:nrow(ref)){
+    #dzone<-unlist(dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT(zone", i,") FROM pixels")), use.names = FALSE)
+    #test<-rbind(test, data.table(zoneid = dzone,
+    #             zone_column = paste0('zone', i)))
+    #}
+    
+
     dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zone_constraints (zoneid, reference_zone, variable, threshold, type ,percentage ) 
-                      values (:zoneid, :reference_zone, :variable, :threshold, :type, :percentage)", zone_const)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zone_constraints (zoneid, reference_zone, zone_column, variable, threshold, type ,percentage ) 
+                      values (:zoneid, :reference_zone, :zone_column, :variable, :threshold, :type, :percentage)", zone_const)
       
       dbClearResult(rs)
     dbCommit(sim$clusdb)
+    
   }else{
-    warning(paste0("nameZoneTable not set properly"))
+    warning(paste0("nameZoneTable not set"))
   }
   
   #yields table

@@ -1,0 +1,106 @@
+<!--
+Copyright 2018 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Rasterize public layers"
+author: "Kyle Lochhead"
+date: "April 10, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Purpose
+
+The clus database is oraganized into a set of [schemas](https://www.postgresql.org/docs/9.1/ddl-schemas.html) or logical groupings that correspond to the origin and type of data structure.
+
+* `public` layers downloaded from data bc.
+* `rast` all compiled raster layers.
+* `caribou` all caribou outputs.
+
+> This .rmd documents the rasterization process of `public` layers into the `rast` schema
+
+## Layers being rasterized
+
+Following table is a list of vector layers that are rasterized at 1 ha resoultion for the province using the [hectares BC](https://hectaresbc.org/app/habc/HaBC.html) extent.
+
+```{r layer_table}
+library(data.table)
+data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting landbase',
+                   'Southern Interior timber harvesting landbase',
+                   'Northern Interior timber harvesting landbase',
+                   'Generalized Forest Cover Ownership'
+                   ),
+           public = c('bc_thlb'
+                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon' ),
+           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own'),
+           source=c('INTERNAL','INTERNAL','INTERNAL','INTERNAL',
+                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership'))
+```
+
+## Set empty raster
+```{r, faster_raster}
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+#Get dummy layer for projection (too lazy to write it) 
+lyr<-getSpatialQuery(paste("SELECT geom FROM public.gcbp_carib_polygon"))
+
+#Make an empty provincial raster aligned with hectares BC
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lyr)$proj4string, resolution = c(100, 100), vals = 0
+)
+```
+
+## THLB
+```{r, thlb}
+#Get coast data 
+layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_data_rco"))
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+writeRaster(layer.ras, file="thlb_rco_Lyr.tif", format="GTiff", overwrite=TRUE)
+
+#Get southern interior data 
+layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_data_sir"))
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+writeRaster(layer.ras, file="thlb_sir_Lyr.tif", format="GTiff", overwrite=TRUE)
+
+#Get northern interior data 
+layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.thlb_data_nir"))
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+writeRaster(layer.ras, file="thlb_nir_Lyr.tif", format="GTiff", overwrite=TRUE)
+
+#Get thlb 2018 data 
+layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.bc_thlb"))
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+writeRaster(layer.ras, file="thlb2018", format="GTiff", overwrite=TRUE)
+
+#Upload to PostgreSQL
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb_nir_Lyr.tif -t 100x100 public.ras_thlb_nir_Lyr2018 | psql -d clus")
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb_rco_Lyr.tif -t 100x100 public.ras_thlb_rco_Lyr2018 | psql -d clus")
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb_sir_Lyr.tif -t 100x100 public.ras_thlb_sir_Lyr2018 | psql -d clus")
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb2018.tif -t 100x100 public.ras_bc_thlb2018 | psql -d clus")
+```
+
+
+## Administrative
+```{r, admin}
+#Forest Ownership
+layer<-getSpatialQuery("SELECT own, wkb_geometry FROM public.f_own_polygon")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "own")
+writeRaster(layer.ras, file="own.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/own.tif -t 100x100 rast.f_own| psql -d clus")
+```

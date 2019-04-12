@@ -171,7 +171,7 @@ blockingCLUS.preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
   
-  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zoneid FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
+  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone_lu where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
   zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 and similar > 0 group by ", patchSizeZone))))
   #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
