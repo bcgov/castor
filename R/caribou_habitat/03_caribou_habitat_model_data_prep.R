@@ -145,11 +145,11 @@ ProvRast <- raster (nrows = 15744, ncols = 17216,
 bec <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
                     layer = "bec_poly_20180725")
 writeTableQuery (bec, c ("vegetation", "bec_poly_20180725"))
-ras.bec.zone <- fasterize (bec, ProvRast, field = "ZONE" , 
+ras.bec.zone <- fasterize (bec, ProvRast, field = "MAP_LABEL" , 
                            fun = "last") # takes the 'last' polygon value for the raster; ideally would use the most common, but couldn't find a function for that
 writeRasterQuery (c ("vegetation", "raster_bec_zone_current"), ras.bec.zone)
-lut_bec_zone_current <- data.frame (levels (bec$ZONE))
-lut_bec_zone_current$raster_integer <- c (1:16)
+lut_bec_zone_current <- data.frame (levels (bec$MAP_LABEL))
+lut_bec_zone_current$raster_integer <- c (1:213)
 dbWriteTable (conn, c ("vegetation", "lut_bec_current"), lut_bec_zone_current)
 
 #===================================================

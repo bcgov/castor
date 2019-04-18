@@ -1355,13 +1355,12 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 - histograms
   - to minimize '0' value or very low use classes:
-      - grouped SBS BEC types together
       - grouped wetland and water landcover types together into wetland
       - grouped alpine types together
       - grouped upland treed deciduous and upland treed mixed to upland treed deciduous mixed
       - grouped aspen-poplar-cottonwood (APC) with Alder-Birch (ALB) to Deciduous
 
-![](plots/hist_veg_du8_ew_bec.png)
+![](plots/hist_bec2_du8_ew.png)
 ![](plots/hist_veg_du8_ew_landcover.png)
 ![](plots/hist_veg_du8_ew_lead_tree_spp.png)
 
@@ -1403,12 +1402,22 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
     - removed distance to paved road
     - replaced all enduring feature (slope, elevation and disatnce to watercoure), vegetation (age, 
       site index, crown closure) and climate (preciptation as snow and temperature) covariates with 
-      BEC zone; appeared to be the source of much of the variance inflation (VIF of BEC went from 207       to 9); essentially BEC confounded with all these things, so used BEC to simplify model
+      BEC zone; appeared to be the source of much of the variance inflation (VIF of BEC went from 207       to 7); essentially BEC confounded with all these things, so used BEC to simplify model
+        - recalssifed BEC to remove SBSvk because few locatiosn there, leadign to porr fitting model
     - this 'sparse' model captures cliamet and site characteristics that imapct forest, and then 
       disturbances seperately
       - comarped this to simpler models (i.e., combiantions of BEC, human distrabnce, natural 
         disturabnce, and food covariates) using AIC
-      - the top 'simpler' DU8 early winter model included all covariates and had an AIC*~w~* = 1.00
+        - also tried some itnerctiosn between BEC adn forest age, BEC and site index, BEC and canopy            closure and BEC and elevation to see if improtant interactiosn there 
+
+- the top 'simpler' DU8 early winter model included all covariates and had an AIC*~w~* = 1.00
+      
+    
+      
+
+        
+        
+        
 
 
 
@@ -1416,14 +1425,13 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 
 
-- top model  included all covariates 
-- the efefcts of endurign featrues were generally weak, standardized coefficient values (\beta)   
-  approximately   0.02)
-- selected for pacthes near cutblocks, but order of magnitude stronger selection for ages 5 to 9     
-  years (\beta = -0.155) and over 10 years (\beta = -0.103)  comarped to younger cutblocks (\beta = 
-  -0.055)
-- avoided patches near paved (\beta = 0.037) and resource roads (\beta = 0.029)
-- weakly avoided patches near pipelines (\beta = 0.029), but the efefct was not signficant (*p-value* = 0.419)
+
+
+
+
+
+
+
 
 
 ##### k-fold validation
@@ -1484,22 +1492,21 @@ kable (table.kfold.du6.s)
 ![](plots/kfold_lm_du6_s_grp5.png)
 
 
-###### DU6, Early Winter
+###### DU8, Early Winter
 
 - strong validation results
 
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.97 and $$\chi^2$$ values were not significant (Table xx)
 
 
 
 
 
 
-- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.73 to 0.93 and $$\chi^2$$ values were not significant (Table xx)
  - visual validation looks reasonable, but with soem issues. realtively low scores in Calendar adn high scores in PArker adn Prophet comarped to what expected; different from Demars there (add fig form GIS or try adn do it in R - use quantile classifcation)
  
 ```{r, k-fold du6, late winter table, eval = T, echo = F}
-table.kfold.du8.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\table_kfold_valid_du8_ew.csv")
-table.kfold.du8.ew <- table.kfold.du8.ew [-1]
+table.kfold.du8.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\table_kfold_summary_du8_ew.csv")
 kable (table.kfold.du8.ew)
 ```
 

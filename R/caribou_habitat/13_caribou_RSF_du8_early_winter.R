@@ -1758,7 +1758,7 @@ rsf.data.veg.du8.ew$pttype <- as.factor (rsf.data.veg.du8.ew$pttype)
 rsf.data.veg.du8.ew <- rsf.data.veg.du8.ew %>% # remove basal area outlier
                     filter (vri_basal_area < 150)
 
-# reclassify BEC for caribou
+# reclassify BEC for caribou: NOTE TWO TYPES; USED THE LATTER IN MODEL
 rsf.data.veg.du8.ew$bec_label_reclass <- rsf.data.veg.du8.ew$bec_label
 rsf.data.veg.du8.ew$bec_label_reclass <- recode (rsf.data.veg.du8.ew$bec_label_reclass,
                                                "'BAFAun' = 'BAFA'") # simplified to alpine type
@@ -1794,6 +1794,12 @@ rsf.data.veg.du8.ew$bec_label_reclass <- recode (rsf.data.veg.du8.ew$bec_label_r
                                                  "'ESSFwk 2' = 'ESSF_wet_cool'")
 rsf.data.veg.du8.ew$bec_label_reclass <- relevel (rsf.data.veg.du8.ew$bec_label_reclass,
                                                   ref = "ESSF_wet_cold") # reference category
+
+rsf.data.combo.du8.ew$bec_label_reclass2 <- rsf.data.combo.du8.ew$bec_label
+rsf.data.combo.du8.ew <- rsf.data.combo.du8.ew %>%
+  dplyr::filter (bec_label_reclass2 != "SBS vk")
+rsf.data.combo.du8.ew$bec_label_reclass2 <- relevel (rsf.data.combo.du8.ew$bec_label_reclass2,
+                                                     ref = "ESSFwc 3") # reference category
 
 rsf.data.veg.du8.ew$vri_bclcs_class  <- relevel (rsf.data.veg.du8.ew$vri_bclcs_class,
                                                   ref = "Upland-Treed-Conifer")
@@ -2148,7 +2154,6 @@ write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\ai
 
 # Load and tidy the data 
 rsf.data.combo.du8.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_ew.csv", header = T, sep = ",")
-
 rsf.data.combo.du8.ew$pttype <- as.factor (rsf.data.combo.du8.ew$pttype)
 
 # reclassify BEC for caribou
@@ -2190,6 +2195,23 @@ rsf.data.combo.du8.ew$bec_label_reclass <- relevel (rsf.data.combo.du8.ew$bec_la
 rsf.data.combo.du8.ew <- rsf.data.combo.du8.ew %>% 
                          filter (!is.na (ppt_as_snow_annual))
 rsf.data.combo.du8.ew$slope.sq <- rsf.data.combo.du8.ew$slope * rsf.data.combo.du8.ew$slope
+rsf.data.combo.du8.ew$elev.sq <- rsf.data.combo.du8.ew$elevation * rsf.data.combo.du8.ew$elevation
+
+rsf.data.combo.du8.ew$bec_label_reclass2 <- rsf.data.combo.du8.ew$bec_label
+rsf.data.combo.du8.ew <- rsf.data.combo.du8.ew %>%
+                          dplyr::filter (bec_label_reclass2 != "SBS vk")
+rsf.data.combo.du8.ew$bec_label_reclass2 <- relevel (rsf.data.combo.du8.ew$bec_label_reclass2,
+                                                     ref = "ESSFwc 3") # reference category
+
+ggplot (rsf.data.combo.du8.ew, aes (x = bec_label_reclass2, fill = pttype)) + 
+  geom_histogram (position = "dodge", stat = "count") +
+  labs (title = "Histogram DU8, Early Winter, BEC\
+                at Available (0) and Used (1) Locations",
+        x = "BEC Type",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type") +
+  theme (axis.text.x = element_text (angle = -90, hjust = 0))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_bec2_du8_ew.png")
 
 ### CORRELATION ###
 corr.data.du8.ew <- rsf.data.combo.du8.ew [c (11:28, 30:35)]
@@ -2211,7 +2233,7 @@ glm.all.du8.ew <- glm (pttype ~ # distance_to_watercourse +
                                 beetle_1to5yo + beetle_6to9yo + 
                                 fire_1to5yo + fire_6to25yo + fire_over25yo + 
                                 # ppt_as_snow_winter + temp_avg_winter + 
-                                bec_label_reclass + 
+                                bec_label_reclass2 + 
                                 vri_shrub_crown_close + 
                                 # vri_herb_cover_pct + 
                                 # vri_crown_closure +
@@ -2242,7 +2264,8 @@ rsf.data.combo.du8.ew$std.vri_bryoid_cover_pct <- (rsf.data.combo.du8.ew$vri_bry
 rsf.data.combo.du8.ew$std.vri_proj_age <- (rsf.data.combo.du8.ew$vri_proj_age - mean (rsf.data.combo.du8.ew$vri_proj_age)) / sd (rsf.data.combo.du8.ew$vri_proj_age)
 rsf.data.combo.du8.ew$std.vri_crown_closure <- (rsf.data.combo.du8.ew$vri_crown_closure - mean (rsf.data.combo.du8.ew$vri_crown_closure)) / sd (rsf.data.combo.du8.ew$vri_crown_closure)
 rsf.data.combo.du8.ew$std.vri_site_index <- (rsf.data.combo.du8.ew$vri_site_index - mean (rsf.data.combo.du8.ew$vri_site_index)) / sd (rsf.data.combo.du8.ew$vri_site_index)
-
+rsf.data.combo.du8.ew$std.slope.sq <- (rsf.data.combo.du8.ew$slope.sq - mean (rsf.data.combo.du8.ew$slope.sq)) / sd (rsf.data.combo.du8.ew$slope.sq)
+rsf.data.combo.du8.ew$std.elev.sq <- (rsf.data.combo.du8.ew$elev.sq - mean (rsf.data.combo.du8.ew$elev.sq)) / sd (rsf.data.combo.du8.ew$elev.sq)
 
 ### ENDURING FEATURES AND HUMAN DISTURBANCE ###
 model.lme4.du8.ew.ef.hd <- glmer (pttype ~ std.slope + std.distance_to_watercourse + 
@@ -2794,17 +2817,19 @@ save (model.lme4.du8.ew.ef.hd.nd.clim.veg,
       file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_ew_final.rda")
 
 ### SPARSE FULL MODEL ###
-model.lme4.du8.ew.sparse <- glmer (pttype ~ bec_label_reclass +
-                                     std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
-                                     std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
-                                     std.distance_to_resource_road +
-                                     beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
-                                     fire_6to25yo + fire_over25yo +
-                                     std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
-                                     (1 | uniqueID), 
+model.lme4.du8.ew.sparse <- glmer (pttype ~ bec_label_reclass2 +
+                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                             std.distance_to_resource_road +
+                                             beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
+                                             fire_6to25yo + fire_over25yo +
+                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
+                                             (1 | uniqueID), 
                                    data = rsf.data.combo.du8.ew, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
+ss <- getME (model.lme4.du8.ew.sparse, c ("theta","fixef"))
+model.lme4.du8.ew.sparse <- update (model.lme4.du8.ew.sparse, start = ss) # failed to converge, restart with parameter estimates
 # AIC
 table.aic [33, 1] <- "DU8"
 table.aic [33, 2] <- "Early Winter"
@@ -2814,7 +2839,7 @@ table.aic [33, 5] <- "(1 | UniqueID)"
 table.aic [33, 6] <-  AIC (model.lme4.du8.ew.sparse)
 
 ### SPARSE BEC ###
-model.lme4.du8.ew.sparse.bec <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec <- glmer (pttype ~ bec_label_reclass2 + 
                                                 (1 | uniqueID), 
                                        data = rsf.data.combo.du8.ew, 
                                        family = binomial (link = "logit"),
@@ -2873,7 +2898,7 @@ table.aic [37, 5] <- "(1 | UniqueID)"
 table.aic [37, 6] <-  AIC (model.lme4.du8.ew.sparse.food)
 
 ### SPARSE BEC AND HUMAN ###
-model.lme4.du8.ew.sparse.bec.hd <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec.hd <- glmer (pttype ~ bec_label_reclass2 + 
                                                  std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                                  std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                                  std.distance_to_resource_road +
@@ -2890,7 +2915,7 @@ table.aic [38, 5] <- "(1 | UniqueID)"
 table.aic [38, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.hd)
 
 ### SPARSE BEC AND NATURAL ###
-model.lme4.du8.ew.sparse.bec.nd <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec.nd <- glmer (pttype ~ bec_label_reclass2 + 
                                                     beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
                                                     fire_6to25yo + fire_over25yo +
                                                     (1 | uniqueID), 
@@ -2906,7 +2931,7 @@ table.aic [39, 5] <- "(1 | UniqueID)"
 table.aic [39, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.nd)
 
 ### SPARSE BEC AND FOOD ###
-model.lme4.du8.ew.sparse.bec.food <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec.food <- glmer (pttype ~ bec_label_reclass2 + 
                                                      std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
                                                      (1 | uniqueID), 
                                           data = rsf.data.combo.du8.ew, 
@@ -2972,7 +2997,7 @@ table.aic [43, 5] <- "(1 | UniqueID)"
 table.aic [43, 6] <-  AIC (model.lme4.du8.ew.sparse.nd.food)
 
 ### SPARSE BEC AND HUMAN AND NATURAL ###
-model.lme4.du8.ew.sparse.bec.hd.nd <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec.hd.nd <- glmer (pttype ~ bec_label_reclass2 + 
                                                       std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                                       std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                                       std.distance_to_resource_road +
@@ -2993,7 +3018,7 @@ table.aic [44, 5] <- "(1 | UniqueID)"
 table.aic [44, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.hd.nd)
 
 ### SPARSE BEC AND HUMAN AND FOOD ###
-model.lme4.du8.ew.sparse.bec.hd.nd <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec.hd.nd <- glmer (pttype ~ bec_label_reclass2 + 
                                                        std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                                        std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                                        std.distance_to_resource_road +
@@ -3011,7 +3036,7 @@ table.aic [45, 5] <- "(1 | UniqueID)"
 table.aic [45, 6] <-  AIC (model.lme4.du8.ew.sparse.bec.hd.nd)
 
 ### SPARSE BEC AND NATURAL AND FOOD ###
-model.lme4.du8.ew.sparse.bec.nd.food <- glmer (pttype ~ bec_label_reclass + 
+model.lme4.du8.ew.sparse.bec.nd.food <- glmer (pttype ~ bec_label_reclass2 + 
                                                        beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
                                                        fire_6to25yo + fire_over25yo +
                                                        std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
@@ -3083,6 +3108,91 @@ table.aic [47, 7] <- round ((exp (-0.5 * (table.aic [47, 6] - min (table.aic [c 
 
 write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_all_top.csv", sep = ",")
 
+#### BEC INTERACTION MODELS ####
+### BEC and STAND AGE ###
+model.lme4.du8.ew.interact.bec.age <- glmer (pttype ~ bec_label_reclass + std.vri_proj_age +
+                                                      bec_label_reclass * std.vri_proj_age +
+                                                      (1 | uniqueID), 
+                                              data = rsf.data.combo.du8.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+# AIC
+table.aic [48, 1] <- "DU8"
+table.aic [48, 2] <- "Early Winter"
+table.aic [48, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [48, 4] <- "BEC, TreeAge, BEC*TreeAge"
+table.aic [48, 5] <- "(1 | UniqueID)"
+table.aic [48, 6] <-  AIC (model.lme4.du8.ew.interact.bec.age)
+
+### BEC and SITE INDEX ###
+model.lme4.du8.ew.interact.bec.site <- glmer (pttype ~ bec_label_reclass + std.vri_site_index+
+                                                       bec_label_reclass * std.vri_site_index +
+                                                       (1 | uniqueID), 
+                                              data = rsf.data.combo.du8.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+ss <- getME (model.lme4.du8.ew.interact.bec.site, c ("theta","fixef"))
+model.lme4.du8.ew.interact.bec.site <- update (model.lme4.du8.ew.interact.bec.site, start = ss) # failed to converge, restart with parameter estimates
+# AIC
+table.aic [49, 1] <- "DU8"
+table.aic [49, 2] <- "Early Winter"
+table.aic [49, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [49, 4] <- "BEC, SiteIndex, BEC*SiteIndex"
+table.aic [49, 5] <- "(1 | UniqueID)"
+table.aic [49, 6] <-  AIC (model.lme4.du8.ew.interact.bec.site)
+
+### ELEVATION and STAND AGE ###
+model.lme4.du8.ew.interact.elev.age <- glmer (pttype ~ std.elevation + std.vri_proj_age +
+                                                       std.elevation * std.vri_proj_age +
+                                                       (1 | uniqueID), 
+                                             data = rsf.data.combo.du8.ew, 
+                                             family = binomial (link = "logit"),
+                                             verbose = T) 
+# AIC
+table.aic [50, 1] <- "DU8"
+table.aic [50, 2] <- "Early Winter"
+table.aic [50, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [50, 4] <- "Elevation, TreeAge, Elevation*TreeAge"
+table.aic [50, 5] <- "(1 | UniqueID)"
+table.aic [50, 6] <-  AIC (model.lme4.du8.ew.interact.elev.age)
+
+### ELEVATION and SITE INDEX ###
+model.lme4.du8.ew.interact.elev.site <- glmer (pttype ~ std.elevation + std.vri_site_index +
+                                                        std.elevation * std.vri_site_index +
+                                                        (1 | uniqueID), 
+                                              data = rsf.data.combo.du8.ew, 
+                                              family = binomial (link = "logit"),
+                                              verbose = T) 
+# AIC
+table.aic [51, 1] <- "DU8"
+table.aic [51, 2] <- "Early Winter"
+table.aic [51, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [51, 4] <- "Elevation, SiteIndex, Elevation*SiteIndex"
+table.aic [51, 5] <- "(1 | UniqueID)"
+table.aic [51, 6] <-  AIC (model.lme4.du8.ew.interact.elev.site)
+
+
+### BEC x STAND AGE and HUMAN DISTURBANCE ###
+model.lme4.du8.ew.interact.bec2.age.hd <- glmer (pttype ~ bec_label_reclass2 + std.vri_proj_age +
+                                                         bec_label_reclass2 * std.vri_proj_age +
+                                                         std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
+                                                         std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+                                                         std.distance_to_resource_road +
+                                                         (1 | uniqueID), 
+                                             data = rsf.data.combo.du8.ew, 
+                                             family = binomial (link = "logit"),
+                                             verbose = T) 
+# AIC
+table.aic [53, 1] <- "DU8"
+table.aic [53, 2] <- "Early Winter"
+table.aic [53, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [53, 4] <- "BEC2, TreeAge, BEC*TreeAge, DC1to4, DC5to9, DC10to29, DCover30, DRR"
+table.aic [53, 5] <- "(1 | UniqueID)"
+table.aic [53, 6] <-  AIC (model.lme4.du8.ew.interact.bec2.age.hd)
+
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\aic_tables\\du8\\early_winter\\table_aic_all_top.csv", sep = ",")
+
 save (model.lme4.du8.ew.sparse, 
       file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_ew_final.rda")
 
@@ -3091,21 +3201,21 @@ model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.ew.sparse)))
 model.coeffs$mean <- 0
 model.coeffs$sd <- 0
 
-model.coeffs [7, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
-model.coeffs [8, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
-model.coeffs [9, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
-model.coeffs [10, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
-model.coeffs [11, 5] <- mean (rsf.data.combo.du8.ew$distance_to_resource_road)
-model.coeffs [17, 5] <- mean (rsf.data.combo.du8.ew$vri_shrub_crown_close)
-model.coeffs [18, 5] <- mean (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
+model.coeffs [11, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
+model.coeffs [12, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
+model.coeffs [13, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
+model.coeffs [14, 5] <- mean (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
+model.coeffs [15, 5] <- mean (rsf.data.combo.du8.ew$distance_to_resource_road)
+model.coeffs [21, 5] <- mean (rsf.data.combo.du8.ew$vri_shrub_crown_close)
+model.coeffs [22, 5] <- mean (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
 
-model.coeffs [7, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
-model.coeffs [8, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
-model.coeffs [9, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
-model.coeffs [10, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
-model.coeffs [11, 6] <- sd (rsf.data.combo.du8.ew$distance_to_resource_road)
-model.coeffs [17, 6] <- sd (rsf.data.combo.du8.ew$vri_shrub_crown_close)
-model.coeffs [18, 6] <- sd (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
+model.coeffs [11, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_1to4yo)
+model.coeffs [12, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_5to9yo)
+model.coeffs [13, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_10to29yo)
+model.coeffs [14, 6] <- sd (rsf.data.combo.du8.ew$distance_to_cut_30orOveryo)
+model.coeffs [15, 6] <- sd (rsf.data.combo.du8.ew$distance_to_resource_road)
+model.coeffs [21, 6] <- sd (rsf.data.combo.du8.ew$vri_shrub_crown_close)
+model.coeffs [22, 6] <- sd (rsf.data.combo.du8.ew$vri_bryoid_cover_pct)
 
 write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_ew_model_coeffs_top.csv", sep = ",")
 
@@ -3123,7 +3233,7 @@ train.data.1 <- rsf.data.combo.du8.ew %>%
 test.data.1 <- rsf.data.combo.du8.ew %>%
   filter (group == 5)
 
-model.lme4.du8.ew.train1 <- glmer (pttype ~ bec_label_reclass +
+model.lme4.du8.ew.train1 <- glmer (pttype ~ bec_label_reclass2 +
                                              std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                              std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                              std.distance_to_resource_road +
@@ -3251,7 +3361,7 @@ train.data.2 <- rsf.data.combo.du8.ew %>%
 test.data.2 <- rsf.data.combo.du8.ew %>%
   filter (group == 4)
 
-model.lme4.du8.ew.train2 <- glmer (pttype ~ bec_label_reclass +
+model.lme4.du8.ew.train2 <- glmer (pttype ~ bec_label_reclass2 +
                                              std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                              std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                              std.distance_to_resource_road +
@@ -3373,7 +3483,7 @@ train.data.3 <- rsf.data.combo.du8.ew %>%
 test.data.3 <- rsf.data.combo.du8.ew %>%
   filter (group == 3)
 
-model.lme4.du8.ew.train3 <- glmer (pttype ~ bec_label_reclass +
+model.lme4.du8.ew.train3 <- glmer (pttype ~ bec_label_reclass2 +
                                              std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                              std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                              std.distance_to_resource_road +
@@ -3490,7 +3600,7 @@ train.data.4 <- rsf.data.combo.du8.ew %>%
 test.data.4 <- rsf.data.combo.du8.ew %>%
   filter (group == 2)
 
-model.lme4.du8.ew.train4 <- glmer (pttype ~ bec_label_reclass +
+model.lme4.du8.ew.train4 <- glmer (pttype ~ bec_label_reclass2 +
                                              std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                              std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                              std.distance_to_resource_road +
@@ -3609,7 +3719,7 @@ train.data.5 <- rsf.data.combo.du8.ew %>%
 test.data.5 <- rsf.data.combo.du8.ew %>%
   filter (group == 1)
 
-model.lme4.du8.ew.train5 <- glmer (pttype ~ bec_label_reclass +
+model.lme4.du8.ew.train5 <- glmer (pttype ~ bec_label_reclass2 +
                                              std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
                                              std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
                                              std.distance_to_resource_road +
@@ -3732,167 +3842,108 @@ write.csv (table.kfold.results.du8.ew, file = "C:\\Work\\caribou\\clus_data\\car
 ###############################
 ### RSF RASTER CALCULATION ###
 #############################
+raster.bec <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_subzone.tif")
+lut.bec <- read.csv ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\lut_bec_subzone.csv", header = T, sep = ",")
+
+
+becCurr.rst.bafa <- reclassify (becCurr.rst, c (1,1,1,  2,16,0), include.lowest = T, right = NA)
+
 
 ### LOAD RASTERS ###
+bec.bafa <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bafa.tif")
+bec.bwbs <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bwbs_du8.tif")
+bec.essf_m_vc <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_m_vc_du8.tif")
+bec.essf_w_c <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_w_cool_du8.tif")
+bec.sbs <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_sbs_vw_w_cool_du8.tif")
 dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
 dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
-dist.cut.10over <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10yo_over.tif")
-
+dist.cut.10to29 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10to29yo.tif")
+dist.cut.30over <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_30yo_over.tif")
 dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
-dist.pipeline <- raster ("C:\\Work\\caribou\\clus_data\\pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
 beetle.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_1to5yo_fin.tif")
 beetle.6to9 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_6to9yo_fin.tif")
 fire.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1to5yo_fin.tif")
 fire.6to25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_6to25yo_fin.tif")
 fire.over25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_over25yo_fin.tif")
-growing.degree.day <- raster ("C:\\Work\\caribou\\clus_data\\climate\\annual\\dd5")
-ppt.as.snow.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_wt")
-bec.bwbs.mw <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bwbs_mw.tif")
-wet.conifer.swamp <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_coniferswamp.tif")
-wet.decid.swamp <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_deciduousswamp.tif")
-wet.poor.fen <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_nutrientpoorfen.tif")
-wet.rich.fen <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_nutrientrichfen.tif")
-wet.other <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_other.tif")
-wet.tree.bog <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_treedbog.tif")
-wet.upland.decid <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\raster_demars_wetland_uplanddeciduous.tif")
-vri.bryoid <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_bryoidcoverpct.tif")
-vri.herb <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
-vri.age <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projage1.tif")
 vri.shrub <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_shrubcrownclosure.tif")
-vri.height <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projheight1.tif")
-vri.crown.close <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_crownclosure.tif")
+vri.bryoid <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_bryoidcoverpct.tif")
 
-### CROP RASTERS TO DU; USED "BOX' "of HERD RANGES PLUS 25km BUFFER ###
-caribou.boreal.sa <- readOGR ("C:\\Work\\caribou\\climate_analysis\\data\\studyarea\\caribou_boreal_study_area.shp", stringsAsFactors = T) # herds with 25km buffer
-slope <- crop (slope, extent (caribou.boreal.sa))
-dist.lake <- crop (dist.lake, extent (caribou.boreal.sa))
-dist.water <- crop (dist.water, extent (caribou.boreal.sa))
+### CROP RASTERS TO DU8 USED "BOX' "of HERD RANGES PLUS 25km BUFFER ###
+caribou.boreal.sa <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\caribou_herd\\du8_herds_buff25km.shp", stringsAsFactors = T) # DU8 herds with 25km buffer
+bec.bafa <- crop (bec.bafa, extent (caribou.boreal.sa))
+bec.bwbs <- crop (bec.bwbs, extent (caribou.boreal.sa))
+bec.essf_m_vc <- crop (bec.essf_m_vc, extent (caribou.boreal.sa))
+bec.essf_w_c <- crop (bec.essf_w_c, extent (caribou.boreal.sa))
+bec.sbs <- crop (bec.sbs, extent (caribou.boreal.sa))
 dist.cut.1to4 <- crop (dist.cut.1to4, extent (caribou.boreal.sa))
 dist.cut.5to9 <- crop (dist.cut.5to9, extent (caribou.boreal.sa))
-dist.cut.10over <- crop (dist.cut.10over, extent (caribou.boreal.sa))
-dist.paved.rd <- crop (dist.paved.rd, extent (caribou.boreal.sa))
+dist.cut.10to29 <- crop (dist.cut.10to29, extent (caribou.boreal.sa))
+dist.cut.30over <- crop (dist.cut.30over, extent (caribou.boreal.sa))
 dist.resource.rd <- crop (dist.resource.rd, extent (caribou.boreal.sa))
-dist.pipeline <- crop (dist.pipeline, extent (caribou.boreal.sa))
 beetle.1to5 <- crop (beetle.1to5, extent (caribou.boreal.sa))
 beetle.6to9 <- crop (beetle.6to9, extent (caribou.boreal.sa))
 fire.1to5 <- crop (fire.1to5, extent (caribou.boreal.sa))
 fire.6to25 <- crop (fire.6to25, extent (caribou.boreal.sa))
 fire.over25 <- crop (fire.over25, extent (caribou.boreal.sa))
-bec.bwbs.mw <- crop (bec.bwbs.mw, extent (caribou.boreal.sa))
-wet.conifer.swamp <- crop (wet.conifer.swamp, extent (caribou.boreal.sa))
-wet.decid.swamp <- crop (wet.decid.swamp, extent (caribou.boreal.sa))
-wet.poor.fen <- crop (wet.poor.fen, extent (caribou.boreal.sa))
-wet.rich.fen <- crop (wet.rich.fen, extent (caribou.boreal.sa))
-wet.other <- crop (wet.other, extent (caribou.boreal.sa))
-wet.tree.bog <- crop (wet.tree.bog, extent (caribou.boreal.sa))
-wet.upland.decid <- crop (wet.upland.decid, extent (caribou.boreal.sa))
 vri.bryoid <- crop (vri.bryoid, extent (caribou.boreal.sa))
-vri.herb <- crop (vri.herb, extent (caribou.boreal.sa))
-vri.age <- crop (vri.age, extent (caribou.boreal.sa))
 vri.shrub <- crop (vri.shrub, extent (caribou.boreal.sa))
-vri.height <- crop (vri.height, extent (caribou.boreal.sa))
-vri.crown.close <- crop (vri.crown.close, extent (caribou.boreal.sa))
 
-proj.crs <- proj4string (caribou.boreal.sa)
-growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "bilinear")
-ppt.as.snow.winter <- projectRaster (ppt.as.snow.winter, crs = proj.crs, method = "bilinear")
-growing.degree.day <- crop (growing.degree.day, extent (caribou.boreal.sa))
-ppt.as.snow.winter <- crop (ppt.as.snow.winter, extent (caribou.boreal.sa))
+# proj.crs <- proj4string (caribou.boreal.sa)
+# growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "bilinear")
 
 ## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
 beginCluster ()
-
-slope <- resample (slope, dist.lake, method = 'bilinear')
-writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\slope_resample.tif", 
-             format = "GTiff")
-growing.degree.day <- resample (growing.degree.day, dist.lake, method = 'bilinear')
-writeRaster (growing.degree.day, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\grow_deg_day.tif", 
-             format = "GTiff")
-ppt.as.snow.winter <- resample (ppt.as.snow.winter, dist.lake, method = 'bilinear')
-writeRaster (ppt.as.snow.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\ppt_snow_winter.tif", 
-             format = "GTiff")
-wet.conifer.swamp <- resample (wet.conifer.swamp, dist.lake, method = 'ngb')
-writeRaster (wet.conifer.swamp, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\conifer_swamp.tif", 
-             format = "GTiff")
-wet.decid.swamp <- resample (wet.decid.swamp, dist.lake, method = 'ngb')
-writeRaster (wet.decid.swamp, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\deciduous_swamp.tif", 
-             format = "GTiff")
-wet.poor.fen <- resample (wet.poor.fen, dist.lake, method = 'ngb')
-writeRaster (wet.poor.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\poor_fen.tif", 
-             format = "GTiff")
-wet.rich.fen <- resample (wet.rich.fen, dist.lake, method = 'ngb')
-writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\rich_fen.tif", 
-             format = "GTiff")
-wet.other <- resample (wet.other, dist.lake, method = 'ngb')
-writeRaster (wet.other, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\wet_other.tif", 
-             format = "GTiff")
-wet.tree.bog <- resample (wet.tree.bog, dist.lake, method = 'ngb')
-writeRaster (wet.tree.bog, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\treed_bog.tif", 
-             format = "GTiff")
-wet.upland.decid <- resample (wet.upland.decid, dist.lake, method = 'ngb')
-writeRaster (wet.upland.decid, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\upland_deciduous.tif", 
-             format = "GTiff")
-wet.rich.fen <- resample (wet.rich.fen, dist.lake, method = 'ngb')
-writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\rich_fen.tif", 
+bec.bafa <- resample (bec.bafa, dist.cut.1to4, method = 'ngb')
+writeRaster (bec.bafa, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\bec_bafa_du8.tif", 
              format = "GTiff", overwrite = T)
-bec.bwbs.mw <- resample (bec.bwbs.mw, dist.lake, method = 'ngb')
-writeRaster (bec.bwbs.mw, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\bec_bwbs_mw.tif", 
+bec.bwbs <- resample (bec.bwbs, dist.cut.1to4, method = 'ngb')
+writeRaster (bec.bwbs, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\bec_bwbs_du8.tif", 
+             format = "GTiff", overwrite = T)
+bec.essf_m_vc <- resample (bec.essf_m_vc, dist.cut.1to4, method = 'ngb')
+writeRaster (bec.essf_m_vc, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\bec_essf_m_vc_du8.tif", 
+             format = "GTiff", overwrite = T)
+bec.essf_w_c <- resample (bec.essf_w_c, dist.cut.1to4, method = 'ngb')
+writeRaster (bec.essf_w_c, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\bec_essf_w_c_du8.tif", 
+             format = "GTiff", overwrite = T)
+bec.sbs <- resample (bec.sbs, dist.cut.1to4, method = 'ngb')
+writeRaster (bec.sbs, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\bec_sbs_du8.tif", 
              format = "GTiff", overwrite = T)
 endCluster ()
 
 ### Adjust the raster data for 'standardized' model covariates ###
 beginCluster ()
 
-system.time (std.slope <- (slope - 1.34) / 1.82) # rounded these numbers to facilitate faster processing; decreases processing time substantially
-std.dist.lake <- (dist.lake - 1931) / 1578
-std.dist.water <- (dist.water - 7895) / 5458
-std.dist.cut.1to4 <- (dist.cut.1to4 - 77316) / 62909
-std.dist.cut.5to9 <- (dist.cut.5to9 - 42943) / 34048
-std.dist.cut.10over <- (dist.cut.10over - 21327) / 21454
-std.dist.paved.rd <- (dist.paved.rd - 23662) / 16945
-std.dist.resource.rd <- (dist.resource.rd - 611) / 571
-std.dist.pipeline <- (dist.pipeline - 4452) / 5101
-std.growing.degree.day <- (growing.degree.day - 1156) / 79
-std.ppt.as.snow.winter <- (ppt.as.snow.winter - 69) / 6
-std.vri.bryoid <- (vri.bryoid - 17) / 16
-std.vri.herb <- (vri.herb - 12) / 12
-std.vri.age <- (vri.age - 98) / 38
-std.vri.shrub <- (vri.shrub - 25) / 18
-std.vri.height <- (vri.height - 9) / 6
-std.vri.crown.close <- (vri.crown.close - 33) / 18
+std.dist.cut.1to4 <- (dist.cut.1to4 - 9654) / 6561 # rounded these numbers to facilitate faster processing; decreases processing time substantially
+std.dist.cut.5to9 <- (dist.cut.5to9 - 6613) / 4840
+dist.cut.10to29 <- (dist.cut.10to29 - 3180) / 2658
+dist.cut.30over <- (dist.cut.30over - 5809) / 3687
+std.dist.resource.rd <- (dist.resource.rd - 1301) / 1561
+std.vri.bryoid <- (vri.bryoid - 5) / 10
+std.vri.shrub <- (vri.shrub - 10) / 14
 
 endCluster ()
 
 ### CALCULATE RASTER OF STATIC VARIABLES ###
 beginCluster ()
 
-raster.rsf.static <- (-2.07 + (std.slope * -0.04) + (std.dist.lake * 0.01) +
-                        (std.dist.water * 0.01) + (std.vri.bryoid * 0.14) +
-                        (std.vri.herb * 0.02) + (std.vri.shrub * 0.05) + 
-                        (wet.conifer.swamp * 0.08) + (wet.decid.swamp * -0.32) +
-                        (wet.poor.fen * 0.35) + (wet.rich.fen * -0.07) +
-                        (wet.other * 0.31) + (wet.tree.bog * 0.65) + 
-                        (wet.upland.decid * -1.07))
-writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\rsf_static_du8_ew.tif", 
-             format = "GTiff")
-
-raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.06) + 
-                     (std.dist.cut.5to9 * -0.05) + (std.dist.cut.10over * -0.01) +
-                     (std.dist.paved.rd * -0.002) + (std.dist.resource.rd * 0.03) +
-                     (std.dist.pipeline * 0.06) + (beetle.1to5 * 0.21) + 
-                     (beetle.6to9 * -0.06) + (fire.1to5 * -0.25) + 
-                     (fire.6to25 * -0.41) + (fire.over25 * -0.21) + 
-                     (std.growing.degree.day * 0.04) + (std.ppt.as.snow.winter * -0.04) +
-                     (bec.bwbs.mw * -0.13)  + (std.vri.age * 0.08) + 
-                     (std.vri.height * -0.21) + (std.vri.crown.close * 0.08)) / 
-  1 + exp (raster.rsf.static + (std.dist.cut.1to4 * -0.06) + 
-             (std.dist.cut.5to9 * -0.05) + (std.dist.cut.10over * -0.01) +
-             (std.dist.paved.rd * -0.002) + (std.dist.resource.rd * 0.03) +
-             (std.dist.pipeline * 0.06) + (beetle.1to5 * 0.21) + 
-             (beetle.6to9 * -0.06) + (fire.1to5 * -0.25) + 
-             (fire.6to25 * -0.41) + (fire.over25 * -0.21) + 
-             (std.growing.degree.day * 0.04) + (std.ppt.as.snow.winter * -0.04) +
-             (bec.bwbs.mw * -0.13)  + (std.vri.age * 0.08) + 
-             (std.vri.height * -0.21) + (std.vri.crown.close * 0.08))
+raster.rsf <- exp (-2.67 + (bec.bafa * 1.59) + (bec.bwbs * 0.68) + (bec.essf_m_vc * 0.46) +
+                           (bec.essf_w_c * 0.002) + (bec.sbs * 0.41) +
+                           (std.dist.cut.1to4 * 0.03) + (std.dist.cut.5to9 * -0.14) +
+                           (dist.cut.10to29 * 0.06) + (dist.cut.30over * -0.13) +
+                           (std.dist.resource.rd * 0.03) +
+                           (beetle.1to5 * 0.07) + (beetle.6to9 * -0.11) +
+                           (fire.1to5 * -1.12) + (fire.6to25 * -0.11) + (fire.over25 * -0.23) +
+                           (std.vri.shrub * -0.07) + (std.vri.bryoid * 0.44)) /
+              1 + exp (-2.67 + (bec.bafa * 1.59) + (bec.bwbs * 0.68) + (bec.essf_m_vc * 0.46) +
+                          (bec.essf_w_c * 0.002) + (bec.sbs * 0.41) +
+                          (std.dist.cut.1to4 * 0.03) + (std.dist.cut.5to9 * -0.14) +
+                          (dist.cut.10to29 * 0.06) + (dist.cut.30over * -0.13) +
+                          (std.dist.resource.rd * 0.03) +
+                          (beetle.1to5 * 0.07) + (beetle.6to9 * -0.11) +
+                          (fire.1to5 * -1.12) + (fire.6to25 * -0.11) + (fire.over25 * -0.23) +
+                          (std.vri.shrub * -0.07) + (std.vri.bryoid * 0.44))       
+          
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\rsf_du8_ew.tif", 
              format = "GTiff")
+
+endCluster ()
