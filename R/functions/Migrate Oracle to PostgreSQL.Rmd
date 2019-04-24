@@ -54,7 +54,7 @@ In cmd.exe:
 `perl -MCPAN -e "install DBD::Oracle"`
 	
 ### Use ora2pg
-####Update the configuration file in c:/ora2pg/ora2pg.conf
+#### Update the configuration file in c:/ora2pg/ora2pg.conf
 
 ORACLE_HOME	`C:/ORACLE/ORAHOME_11g`
 
