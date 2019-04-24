@@ -1,0 +1,46 @@
+#Get Perl for Ms Windows via http://strawberryperl.com/
+	#Strawberry Perl 5.28.1.1 (64 bit)
+	#check the install with cmd.exe perl -version
+
+#Get ora2pg via https://github.com/darold/ora2pg/releases
+#In cmd.exe:
+	cd <un tarred location>\ora2pg-20.0
+
+	perl Makefile.PL
+
+	gmake && gmake install
+
+#Set the environment variables:
+	Set ORACLE_HOME=<ORACLE_CLIENT_SOFTWARE_LOCATION>
+	Set LD_LIBRARY_PATH=<ORACLE_CLIENT_HOME>/lib
+
+#Install DBD::Oracle libraries - Internet is must
+	perl -MCPAN -e "install DBD::Oracle"
+	
+#Update the configuration file in c:/ora2pg/ora2pg.conf
+ORACLE_HOME	C:/ORACLE/ORAHOME_11g
+ORACLE_DSN	dbi:Oracle:host=BCGW.BCGOV;sid=IDWPROD11;port=1521
+ORACLE_USER	xxxxxx
+ORACLE_PWD	xxxxxx
+USER_GRANTS     1
+SCHEMA	WHSE_BASEMAPPING
+ALLOW		TRIM_EBM_WATERBODIES
+FTS_INDEX_ONLY	1
+DISABLE_SEQUENCE	1
+DISABLE_TRIGGERS 1
+PG_DSN		dbi:Pg:dbname=clus;host=localhost;port=5432
+PG_USER	postgres
+PG_PWD		postgres
+OUTPUT		output.sql
+DATA_LIMIT	150000
+DROP_INDEXES	1
+PG_VERSION	9.5
+AUTODETECT_SPATIAL_TYPE	1
+DEFAULT_SRID		3005
+GEOMETRY_EXTRACT_TYPE	INTERNAL
+
+#Run the ora2pg.conf with
+TYPE TABLE
+
+#Run the ora2pg.conf with
+TYPE TABLE, INSERT
