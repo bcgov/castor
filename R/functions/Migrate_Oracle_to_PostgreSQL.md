@@ -11,7 +11,7 @@ output:
 
 ## Description
 
-ora2pg moves an Oracle database to PostgreSQL. An entire schema or a single table can be migrated from Oracle to PostgrSQL. The documentation for this tool can be found [here](http://ora2pg.darold.net/documentation.html).
+ora2pg moves an Oracle database to PostgreSQL. An entire schema or a single table can be migrated from Oracle to PostgreSQL. The documentation for this tool can be found [here](http://ora2pg.darold.net/documentation.html).
 
 To get this tool working there are a series of steps
 
