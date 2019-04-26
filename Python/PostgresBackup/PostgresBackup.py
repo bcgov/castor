@@ -56,7 +56,7 @@ def log(string):
         if not kennyloggins is None:
             kennyloggins.write('{0}\n'.format(msg))
 
-def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='clus', backup_dir=r'C:\Data\PGBackups', backup_prefix='CLUS_DB_Backup', dbPort='5432', schema_only=False, gmailacct='k', gmailpass='k', notifyrecip='k'):
+def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='localhost', dbName='clus', backup_dir=r'F:\Data\PGBackups', backup_prefix='CLUS_DB_Backup', dbPort='5432', schema_only=False, gmailacct='k', gmailpass='k', notifyrecip='k'):
     global kennyloggins
     tstamp = str(strftime("%Y%m%d"))
     buDir = os.path.join(backup_dir, '{0}_{1}'.format(backup_prefix, tstamp))
@@ -81,7 +81,7 @@ def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='cl
     if schema_only:
         params = ['pg_dump', '-U', dbUser, '-h', dbHost, '-p', dbPort, '-s', '-Fd', '-f', buDir, dbName]
     else:
-        params = ['pg_dump', '-U', dbUser, '-h', dbHost, '-p', dbPort, '-Fd', '-f', buDir, dbName]
+        params = ['pg_dump', '-U', dbUser, '-h', dbHost, '-p', dbPort,  '-Fd' , '-f ', buDir , dbName, ]
 
     command = ""
     for p in params:
@@ -114,7 +114,7 @@ def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='cl
 if __name__ == '__main__':
 
     #stashSpot = r'W:\FOR\VIC\HTS\ANA\Workarea\mwfowler\CLUS\Data\CLUS_DB_Backups'
-    stashSpot = r'C:\Data\PGBackups'
+    stashSpot = r'F:\Data\PGBackups'
     #stashSpot = os.environ['TEMP']
     prefix = 'CLUS_DB_Backup'
     schemaMode = False

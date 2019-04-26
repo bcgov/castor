@@ -34,20 +34,24 @@ The clus database is oraganized into a set of [schemas](https://www.postgresql.o
 
 ## Layers being rasterized
 
-Following table is a list of vector layers that are rasterized at 1 ha resoultion for the province using the [hectares BC](https://hectaresbc.org/app/habc/HaBC.html) extent.
+Following table is a list of vector layers that are rasterized at 1 ha resoultion for the province using the [hectares BC](https://hectaresbc.org/app/habc/HaBC.html) extent which follows the [raster standard](https://www2.gov.bc.ca/assets/gov/government/services-for-government-and-broader-public-sector/information-technology-services/standards-files/raster_standards.pdf)
 
 ```{r layer_table}
 library(data.table)
 data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting landbase',
                    'Southern Interior timber harvesting landbase',
                    'Northern Interior timber harvesting landbase',
-                   'Generalized Forest Cover Ownership'
+                   'Generalized Forest Cover Ownership',
+                   'Consolidated cutblocks ID',
+                   'VEG_COMP feature id',
+                   'Waterbodies',
+                   'Watercoures'
                    ),
            public = c('bc_thlb'
-                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon' ),
-           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own'),
+                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses'),
+           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses'),
            source=c('INTERNAL','INTERNAL','INTERNAL','INTERNAL',
-                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership'))
+                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm'))
 ```
 
 ## Set empty raster
@@ -94,7 +98,11 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 ```
 
 
-## Administrative
+## Tenure reduction
+
+Location for administrative layers used in TSR: \\Orbital\s63016\!Publish\TSR Documentation.
+The [Generalized Forest Ownership layer](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/data-management/standards/generalized_forest_cover_ownership_layer_2018.pdf) is used to arrive at a contributing forest landbase
+
 ```{r, admin}
 #Forest Ownership
 layer<-getSpatialQuery("SELECT own, wkb_geometry FROM public.f_own_polygon")
@@ -103,4 +111,76 @@ layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "own")
 writeRaster(layer.ras, file="own.tif", format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/own.tif -t 100x100 rast.f_own| psql -d clus")
+```
+
+## Consolidated cutblocks
+
+[Harvested areas of bc](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-). Used to depict the timing of harvest operations.
+
+```{r, cutblocks}
+#Harvest locations year
+layer<-getSpatialQuery("SELECT harvestyr, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 ORDER BY harvestyr")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "harvestyr")
+writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl_year | psql -d clus")
+
+#Harvest locations id
+layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 ORDER BY cutblockid")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "cutblockid")
+writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl | psql -d clus")
+
+```
+
+## VEG COMP feature id
+
+This id links to polygon level attribution. Also links to yield curve generation from results - TIPSY and feature projection - VDYP
+```{r, veg_comp, echo = FALSE}
+#Harvest locations year
+layer<-getSpatialQuery("SELECT feature_id, wkb_geometry FROM public.veg_comp_lyr_r1_poly_final_spatialv2_2003")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
+writeRaster(layer.ras, file="veg_comp_2003_id.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/veg_comp_2003_id.tif -t 100x100 rast.veg_comp2003_id | psql -d clus")
+```
+
+## Water
+
+The BC [waterbodies dataset](https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm) is found on the BCGW oracle server under a user restriction. There are a few options for connecting to the BCGW
+
+* Use citrix to connect to the GTS and save it to a `.gdb` using ArcGIS
+* Use FME to create a connection between BCGW and Postgres
+* Use rOracle to create a connection between BCGW and R
+* Use ora2pg to create a connection between BCGW and Postgres
+* Use ogr2ogr to create a connection between BCGW and Postgres
+
+For the later (quicker?) option:
+
+>system("cmd.exe", input = 'ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" OCI:"user/pass@(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = BCGW.BCGOV)(PORT = 1521)))(CONNECT_DATA = (SERVICE_NAME=IDWPROD1.BCGOV))):WHSE_BASEMAPPING.TRIM_EBM_WATERBODIES" -lco SCHEMA=public -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -gt 65536')
+
+```{r, waterbodies}
+water<-st_as_sf(getSpatialQuery("SELECT feature_type,wkb_geometry FROM public.trim_ebm_waterbodies"))
+ras.water <- fasterize::fasterize(st_cast(water), ProvRast, 
+                        field = NULL,#cells that are waterbodies get a value of 1
+                        background = 0) 
+writeRaster(ras.water, file="water.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/water.tif -t 100x100 rast.waterbodies| psql -d clus")
+```
+
+The BC [watercourses dataset](https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm). Location of rivers, streams and waterways.
+
+```{r, watercourses}
+water<-st_as_sf(getSpatialQuery("SELECT feature_type,wkb_geometry FROM public.trim_ebm_watercourses"))
+ras.water <- fasterize::fasterize(st_cast(water), ProvRast, 
+                        field = NULL,#cells that are waterbodies get a value of 1
+                        background = 0) 
+writeRaster(ras.water, file="water.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/water.tif -t 100x100 rast.watercourses| psql -d clus")
 ```

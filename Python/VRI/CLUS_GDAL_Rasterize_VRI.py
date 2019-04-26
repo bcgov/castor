@@ -17,8 +17,30 @@ import os, sys, subprocess
 import shutil, getpass, datetime
 #--Globals
 global kennyloggins
-pfx = '{0}_'.format(os.path.basename(os.path.splitext(sys.argv[0])[0]))
+pfx = os.path.basename(os.path.splitext(sys.argv[0])[0])
 logTime = ''
+def send_email(user, pwd, recipient, subject, body):
+    import smtplib
+
+    FROM = user
+    TO = recipient if isinstance(recipient, list) else [recipient]
+    SUBJECT = subject
+    TEXT = body
+
+    # Prepare actual message
+    message = """From: %s\nTo: %s\nSubject: %s\n\n%s
+    """ % (FROM, ", ".join(TO), SUBJECT, TEXT)
+    try:
+        #server = smtplib.SMTP("smtp.gmail.com", 587)
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.ehlo()
+        #server.starttls()
+        server.login(user, pwd)
+        server.sendmail(FROM, TO, message)
+        server.close()
+        WriteLog(kennyloggins, 'Successfully sent the mail')
+    except Exception as e:
+        WriteLog(kennyloggins, "****Failed to send mail****")
 def WriteOutErrors(lstErrors):
     errLog = os.path.join(os.path.dirname(sys.argv[0]), pfx + logTime + ".errors.log")
     fLog = open(errLog, 'w')
@@ -36,7 +58,7 @@ def WriteOutErrors(lstErrors):
         fLog.write('{0}\n'.format(str(err)))
     fLog.write("------------------------------------------------------------------\n")
     fLog.close()
-def CreateLogFile(srcDB, outDB, tiffDir, bMsg=False):
+def CreateLogFile(bMsg=False):
     global logTime
     logTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     currLog = os.path.join(os.path.dirname(sys.argv[0]), pfx + datetime.datetime.now().strftime("%Y%m%d_%H%M%S.log"))
@@ -46,9 +68,6 @@ def CreateLogFile(srcDB, outDB, tiffDir, bMsg=False):
     lstLog.append("Log file for {0}\n".format(sys.argv[0]))
     lstLog.append("Date:{0} \n".format(datetime.datetime.now().strftime("%B %d, %Y - %H%M")))
     lstLog.append("User:{}\n".format(getpass.getuser()))
-    lstLog.append("Source DB:{}\n".format(srcDB))
-    lstLog.append("Output DB:{}\n".format(outDB))
-    lstLog.append("TIFF Directory:{}\n".format(tiffDir))
     lstLog.append("\n")
     lstLog.append("------------------------------------------------------------------\n")
     sLog = ''.join(lstLog)
@@ -71,82 +90,77 @@ def LoadListFromCSV(inCSV):
         for row in csv_reader:
             if line_count == 0:
                 pass
+                #print(row)
             else:
-                #processLst.append([row[0], row[1], row[2], row[3]])
-                processLst.append(row)
+                #print('{0}-{1}-{2}'.format(row[0], row[1], row[2]))
+                processLst.append([row[0], row[1], row[2], row[3]])
             line_count += 1
     return processLst
 def Rasterize(db, sql, fld, outWrk, outName):
-    WriteLog(kennyloggins, 'Rasterize..........................\n', True)
+    print('Rasterize..........................')
     db = 'PG:"{0}"'.format(db)
     fld = fld.lower()
     outTIFF = os.path.join(outWrk, '{0}.tif'.format(outName))
     sql = '"{0}"'.format(sql)
-    WriteLog(kennyloggins, '-----{0}\n'.format(db), True)
-    WriteLog(kennyloggins, '-----{0}\n'.format(fld), True)
-    WriteLog(kennyloggins, '-----{0}\n'.format(outTIFF), True)
-    WriteLog(kennyloggins, '-----{0}\n'.format(sql), True)
+    print('-----{0}'.format(db))
+    print('-----{0}'.format(fld))
+    print('-----{0}'.format(outTIFF))
+    print('-----{0}'.format(sql))
     #--Build the command to run the GDAL Rasterize
     cmd =  'gdal_rasterize -tr 100 100 -te 273287.5 359687.5 1870587.5 1735787.5 -a {0} {1} -sql {2} {3}'.format(fld, db, sql, outTIFF)
-    WriteLog(kennyloggins, '-----Running CMD:\n', True)
-    WriteLog(kennyloggins, '{0}\n'.format(cmd), True)
-    try:
-        subprocess.check_output(cmd, shell=True)
-    except subprocess.CalledProcessError as e:
-        WriteLog(kennyloggins, '{0}\n'.format(str(e.output)), True)
-        raise Exception(str(e.output))
-    return outTIFF
-def TIFF2PostGIS(tiff, db, outSchema, outName):
-    WriteLog(kennyloggins, 'TIFF2PostGIS..........................\n', True)
-    WriteLog(kennyloggins, '-----{0}\n'.format(tiff), True)
-    WriteLog(kennyloggins, '-----{0}\n'.format(db), True)
-    WriteLog(kennyloggins, '-----{0}\n'.format(outName), True)
-    cmd = 'raster2pgsql -s 3005 -d -I -C -M {0} -t 100x100 {1}.{2} | psql {3}'.format(tiff, outSchema, outName, db)
-    WriteLog(kennyloggins, '-----Running CMD:\n', True)
-    WriteLog(kennyloggins, '{0}\n'.format(cmd), True)
+    print ('-----Running CMD:\n-----{0}'.format(cmd) )
+    print (outTIFF )
     try:
         #subprocess.call(cmd, shell=True)
         subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as e:
-        WriteLog(kennyloggins, '{0}\n'.format(str(e.output)), True)
+        print(e.output)
         raise Exception(str(e.output))
+    except :
+        print(str(e))
+        raise Exception(str(e))
+    return outTIFF
+def TIFF2PostGIS(tiff, db, outName):
+    print('TIFF2PostGIS..........................')
+    print('-----{0}'.format(tiff))
+    print('-----{0}'.format(db))
+    print('-----{0}'.format(outName))
+    cmd = 'raster2pgsql -s 3005 -d -I -C -M {0} -t 100x100 {1} | psql {2}'.format(tiff, outName, db)
+    print ('-----Running CMD:\n-----{0}'.format(cmd) )
+    try:
+        #subprocess.call(cmd, shell=True)
+        subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        raise Exception(str(e.output))
+    except:
+        print(str(e))
+        raise Exception(str(e))
 
 if __name__ == '__main__':
-    #--Read inputs into a Processing List
-    inputCSV = os.path.join(os.path.dirname(sys.argv[0]), '{0}Input.csv'.format(pfx))
-    #--Read the input CSV to get the list of queries,layers to rasterize
-    processList =LoadListFromCSV(inputCSV)
-    errList = []
-    #--Setting the source DB and Output DB arguments.  If not supplied we will defalut to localhost, postgres
-    if len(sys.argv) > 1:
-        srcDB = sys.argv[1]
-    else:
-        srcDB = "host='localhost' dbname = 'clus' port='5432' user='postgres' password='postgres'"
-    if len(sys.argv) > 2:
-        outDB = sys.argv[2]
-    else:
-        outDB = "-d clus"
-        #outDB = "-d clus"
-        #outDB = "-d clus -h DC052586.idir.bcgov -U postgres"
-    tiffWork = os.path.join(os.environ['TEMP'], '{0}TIFF'.format(pfx))
+    emailPwd = 'bruins26'
     #--Create a Log File
-    kennyloggins = CreateLogFile(srcDB, outDB, tiffWork, True)
+    kennyloggins = CreateLogFile(True)
+    #--Read inputs into a Processing List
+    inputCSV = os.path.join(os.path.dirname(sys.argv[0]), 'CLUS_GDAL_Rasterize_VRI_Input.csv')
+    processList =LoadListFromCSV(inputCSV)
 
-    if not os.path.exists(tiffWork):
-        os.makedirs(tiffWork)
 
-    WriteLog(kennyloggins, '--------------------------------------------------------------------------------------\n', True)
+    errList = []
+    bRemoveTIFF = False
+    bSendEmails = True
+    #srcDB = "host='localhost' dbname = 'postgres' port='5432' user='postgres' password='postgres'"
+    #outDB = "-d postgres"
+    #tiffWork = r'C:\Users\mwfowler\tiff'
+    tiffWork = r'C:\Users\KLOCHHEA'
+    srcDB = "host='DC052586.idir.bcgov' dbname = 'clus' port='5432' user='postgres' password='postgres'"
+    outDB = "-d clus"
     for itm in processList:
-        bRemoveTIFF = False
         #--Only process the input records with a PROCESS = 'Y'
-        if itm[4].upper() == 'Y':
-            WriteLog(kennyloggins, '--------------------------------------------------------------------------------------\n', True)
-            outSchema = itm[0]
-            outName = itm[1]
-            fld = itm[2]
-            sql = itm[3]
-            retainTIFF = itm[5].upper()
-            if retainTIFF =='N': bRemoveTIFF = True
+        if itm[3].upper() == 'Y':
+            outName = itm[0]
+            fld = itm[1]
+            sql = itm[2]
             WriteLog(kennyloggins, 'Processing:{0}\n'.format(str(itm)), True)
             try:
                 WriteLog(kennyloggins, 'Running Rasterize....\n', True)
@@ -154,21 +168,22 @@ if __name__ == '__main__':
                 outTIFF = Rasterize(srcDB, sql, fld, tiffWork, outName)
                 WriteLog(kennyloggins, 'Running TIFF2PostGIS....\n', True)
                 #--Load the TIFF to Postgres
-                TIFF2PostGIS(outTIFF, outDB, outSchema, outName)
+                TIFF2PostGIS(outTIFF, outDB, outName)
                 #--Delete the TIFF if flagged to do so
                 if bRemoveTIFF:
                     os.remove(outTIFF)
-                WriteLog(kennyloggins, '--------------------------------------------------------------------------------------\n', True)
+                if bSendEmails:
+                    send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', 'CLUS-Rasterize-Processed', '{0}\n{1}\n'.format(outDB, str(itm)))
             except:
-                WriteLog(kennyloggins, '--------------------------------------------------------------------------------------\n', True)
-                #WriteLog(kennyloggins, 'Error: {0}\n'.format(str(e)), True)
+                WriteLog(kennyloggins, 'Error: {0}\n'.format(str(e)), True)
+                if bSendEmails:
+                    send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', '***CLUS-Rasterize-Error***', '{0}\n{1}'.format(str(itm), str(e)))
                 errList.append(itm)
     if len(errList) > 0:
         WriteLog(kennyloggins, 'Writing out Errors......\n', True)
         WriteOutErrors(errList)
-    WriteLog(kennyloggins, '--------------------------------------------------------------------------------------\n', True)
-    WriteLog(kennyloggins, 'Script Complete-----------------------------------------------------------------------\n', True)
-    WriteLog(kennyloggins, '--------------------------------------------------------------------------------------\n', True)
+    if bSendEmails:
+        send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', 'CLUS-Rasterize-Complete', 'The script finished\n')
     kennyloggins.close()
 
 

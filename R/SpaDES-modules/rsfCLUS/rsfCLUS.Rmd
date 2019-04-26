@@ -1,0 +1,88 @@
+---
+title: "rsfCLUS"
+author: ""
+date: "15 April 2019"
+output: pdf_document
+---
+
+<!--
+Copyright 2018 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+# Overview
+
+This module is used to track various Resource Selection Functions (RSF) within CLUS. 
+
+```{r module_usage}
+library(SpaDES.core)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+times <- list(start = 0, end = 15)
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list( dbName='clus',
+                         nameBoundaryFile="study_area_compart",
+                         nameBoundaryColumn="tsa_name",
+                         nameBoundary='Morice TSA', 
+                         nameBoundaryGeom='wkb_geometry'),
+rsfCLUS = list()
+                        )
+modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "rsfCLUS")
+
+rsf_model_coeff<-data.table(population = "DU6", 
+                            season ="EW",
+                            static = c('Y','Y','Y','Y','N','N','N'),
+                            beta = c(-2.562923161, -0.017756076, -0.018701324, -0.022060543, -0.054817853,  -0.154907815, -0.103495695),
+                            layer=c('int', "rast.bc_ha_slope", "rast.dt_waterbodies", "rast.dt_watercourses",'cut_1_4','cut_5_10','cut_gt_10'),
+                            sql=c('','','','', 'blockid > 0 AND age BETWEEN 1 to 4','blockid > 0 AND age BETWEEN 5 to 10', 'blockid > 0 AND age > 10'),
+                            type =c('','','','','DT', 'DT','DT'))
+
+objects <- list(rsf_model_coeffs=rsf_model_coeffs)
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects, paths = paths)
+
+system.time({
+mysimout<-spades(mySim)
+})
+#eventDiagram(mySimOut)
+```
+
+# Events
+
+At each time step, the rsfCLUS module calculates the RSF.
+
+# Data dependencies
+
+## Input data
+
+The user provides the input object that has the model coefficients for the various raster layers.
+## Output data
+
+A table within the `clusdb` SQLite database that stores RSFs
+
+# Links to other modules
+
+Requires dataLoaderCLUS to instantiate the `clusdb` SQLite database.
+

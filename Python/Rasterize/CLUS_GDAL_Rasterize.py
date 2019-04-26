@@ -122,13 +122,13 @@ if __name__ == '__main__':
         srcDB = sys.argv[1]
     else:
         srcDB = "host='localhost' dbname = 'postgres' port='5432' user='postgres' password='postgres'"
-        #srcDB = "host='DC052586.idir.bcgov' dbname = 'clus' port='5432' user='postgres' password='postgres'"
+      
     if len(sys.argv) > 2:
         outDB = sys.argv[2]
     else:
         outDB = "-d postgres"
         #outDB = "-d clus"
-        #outDB = "-d clus -h DC052586.idir.bcgov -U postgres"
+        
     tiffWork = os.path.join(os.environ['TEMP'], '{0}TIFF'.format(pfx))
     #--Create a Log File
     kennyloggins = CreateLogFile(srcDB, outDB, tiffWork, True)

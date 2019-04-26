@@ -56,7 +56,7 @@ GetPolygonText<-function(coords){
   txtPoly = paste(txtPoly, '))') 
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------
-GetPostgresConn<-function(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432){
+GetPostgresConn<-function(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432){
   pgConn <- dbConnect(PostgreSQL(), dbname=dbName, user=dbUser, password=dbPass, host=dbHost, port=dbPort) 
   return(pgConn)  
 }
@@ -87,7 +87,7 @@ RASTER_FROM_VECTOR <- function(drawPoly, srcVect, whereClause="*", vatFld=NULL, 
   tmpRast = 'FAIB_RFV_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
+    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
     #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -119,7 +119,7 @@ RASTER_FROM_RASTER <- function(drawPoly, srcRast, rastVal="*", rastVAT=NULL, mas
   tmpRast = 'FAIB_RFR_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
+    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
     #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -148,7 +148,7 @@ FC_TO_RASTER <- function(fc, valFld, vat=NULL, conn=NULL){
   tmpRast = 'FAIB_FTR_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
+    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
     #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -177,7 +177,7 @@ RASTER_CLIP <- function(srcRaster, clipper, conn=NULL){
   tmpRast = 'FAIB_RCL_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
+    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
     #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -200,7 +200,7 @@ RASTER_CLIP2 <- function(srcRaster, clipper, geom, where_clause, conn=NULL){
   tmpRast = 'FAIB_RCL_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
+    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
     #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
   }
   #--Build the query string to execute the function to generate temporary Raster
