@@ -1,0 +1,66 @@
+---
+title: "OpenSSH on Windows 7"
+author: "Kyle Lochhead"
+date: "April 24, 2019"
+output: 
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Get OpenSSH server. 
+
+Note there are many other ssh servers available. OpenSSH is available in Windows 10- as windows has opted to use this ssh server.
+
+*	Download the latest OpenSSH for Windows binaries (package OpenSSH-Win64.zip ).
+
+*	As the Administrator, extract the package to C:\Program Files\OpenSSH . 
+
+*	As the Administrator (R-click on cmd and select as administrator), install sshd and ssh-agent services by running the following in cmd:
+
+`powershell.exe -ExecutionPolicy Bypass -File “C:\Program Files\OpenSSH\install-sshd.ps1” `
+
+### Allow incoming connections to SSH server in Windows Firewall:
+
+*	go to Control Panel > System and Security > Windows Firewall1 > Advanced Settings > Inbound Rules and add a new rule for port 22.
+
+#### Start the service and/or configure automatic start:
+	
+*	Go to Control Panel > System and Security > Administrative Tools and open Services. Locate OpenSSH SSH Serverservice.
+	
+*	If you want the server to start automatically when your machine is started: Go to Action > Properties. In the Properties dialog, change Startup type to Automatic(delayed)  and confirm.
+	
+* Start the OpenSSH SSH Server service by clicking the Start the service.
+Before the first connection, find out fingerprint of the server’s ED25519 key by running from the OpenSSH installation folder: 
+
+`.\ssh-keygen.exe -l -f"%ProgramData%\ssh\ssh_host_ed25519_key" -E md5`
+
+This should display something similar to:
+
+`C:\Windows\System32\OpenSSH>.\ssh-keygen.exe -l -f "%ProgramData%\ssh\ssh_host_ed25519_key" -E md5
+256 MD5:0d:df:0a:db:b4:e9:f1:08:d5:59:2b:91:8e:08:1c:78 system@DC05XXXX (ED25519`
+
+
+### Download PuTTY
+
+Under Category> Session Type in the Host Name (e.g., DC05xxxx) or the computer you want to connect to. 
+
+Under Category> Connection> Data  select the radio button Use System username ([Your User Name]), go back to Category> Session and Type in a name for this session under Saved Sessions then click Save.
+
+To open a ssh connection click open or double click the saved name of the session
+
+
+### Download WinSCP 
+
+Start WinSCP. Login dialog will appear. On the dialog:
+
+*	Make sure New site node is selected.
+*	On New site node, make sure the SFTP protocol is selected.
+*	Enter your machine name (eg. DC052586) into the Host name box.
+*	Enter your Windows account name to the User name box. 
+*	Enter your Windows account password to the Password box.
+*	Save your site settings using the Save button.
+*	Login using Login button
