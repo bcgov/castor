@@ -56,7 +56,7 @@ def log(string):
         if not kennyloggins is None:
             kennyloggins.write('{0}\n'.format(msg))
 
-def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='DC052586', dbName='clus', backup_dir=r'F:\Data\PGBackups', backup_prefix='CLUS_DB_Backup', dbPort='5432', schema_only=False, gmailacct='k', gmailpass='k', notifyrecip='k'):
+def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='localhost', dbName='clus', backup_dir=r'F:\Data\PGBackups', backup_prefix='CLUS_DB_Backup', dbPort='5432', schema_only=False, gmailacct='k', gmailpass='k', notifyrecip='k'):
     global kennyloggins
     tstamp = str(strftime("%Y%m%d"))
     buDir = os.path.join(backup_dir, '{0}_{1}'.format(backup_prefix, tstamp))
