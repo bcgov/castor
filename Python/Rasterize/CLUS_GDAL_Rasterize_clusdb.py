@@ -122,7 +122,6 @@ if __name__ == '__main__':
         srcDB = sys.argv[1]
     else:
         srcDB = "host='localhost' dbname = 'clus' port='5432' user='postgres' password='postgres'"
-        #srcDB = "host='DC052586.idir.bcgov' dbname = 'clus' port='5432' user='postgres' password='postgres'"
     if len(sys.argv) > 2:
         outDB = sys.argv[2]
     else:
