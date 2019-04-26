@@ -42,18 +42,20 @@ parameters <- list(
                         nameBoundaryGeom='wkb_geometry',
                         nameCutblockRaster ="rast.cns_cut_bl",
                         nameCutblockTable = "public.cns_cut_bl_polygon",
-                        nameAgeRaster= "rast.vri2017_projage1"),
+                        nameAgeRaster= "rast.vri2017_projage1",
+                        nameHeightRaster= "rast.vri2017_projheight1",
+                        nameCrownClosureRaster= "rast.vri2017_crownclosure"),
 rsfCLUS = list()
                         )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "rsfCLUS")
 
 rsf_model_coeff<-data.table(population = "DU6", 
                             season ="EW",
-                            static = c('Y','Y','Y','Y','N','N','N'),
-                            beta = c(-2.562923161, -0.017756076, -0.018701324, -0.022060543, -0.054817853,  -0.154907815, -0.103495695),
-                            layer=c('int', "rast.bc_ha_slope", "rast.dt_waterbodies", "rast.dt_watercourses",'cut_1_4','cut_5_10','cut_gt_10'),
-                            sql=c('','','','', 'blockid > 0 AND age BETWEEN 1 AND 4','blockid > 0 AND age BETWEEN 5 AND 10', 'blockid > 0 AND age > 10'),
-                            type =c('','','','','DT', 'DT','DT'))
+                            static = c('Y','Y','Y','Y','N','N','N','N','N','N'),
+                            beta = c(-2.562923161, -0.017756076, -0.018701324, -0.022060543, -0.054817853,  -0.154907815, -0.103495695, 0.076301527,-0.155193551,0.004786669),
+                            layer=c('int', "rast.bc_ha_slope", "rast.dt_waterbodies", "rast.dt_watercourses",'cut_1_4','cut_5_10','cut_gt_10','age','height', 'crownclosure'),
+                            sql=c('','','','', 'blockid > 0 AND age BETWEEN 1 AND 4','blockid > 0 AND age BETWEEN 5 AND 10', 'blockid > 0 AND age > 10','','',''),
+                            type =c('','','','','DT', 'DT','DT','UP','UP','UP'))
 
 objects <- list(rsf_model_coeff=rsf_model_coeff)
 paths <- list(
