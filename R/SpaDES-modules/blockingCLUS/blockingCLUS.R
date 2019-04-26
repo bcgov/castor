@@ -40,6 +40,7 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
+    expectsInput(objectName ="ras", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataloaderCLUS", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
@@ -47,7 +48,8 @@ defineModule(sim, list(
     expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA)
+    createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA),
+    createsOutput(objectName = "edgesAdj", objectClass = "data.table", desc = "Table of adjacent edges between pixels")
   )
 ))
 
@@ -85,6 +87,9 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
 blockingCLUS.Init <- function(sim) {
   sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
+  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
+                                             cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
+  
   return(invisible(sim))
 }
 
@@ -129,10 +134,7 @@ blockingCLUS.setSpreadProb<- function(sim) {
   
   if(!P(sim)$spreadProbRas == "99999"){
     #scale the spread probability raster so that the values are [0,1]
-    conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    sim$ras.spreadProbBlock<-RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "spreadProbRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
-    dbDisconnect(conn)
-    
+    sim$ras.spreadProbBlock<-RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "spreadProbRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
     sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
   }else{
     sim$ras.spreadProbBlock<-sim$aoi
@@ -143,9 +145,7 @@ blockingCLUS.setSpreadProb<- function(sim) {
 
 blockingCLUS.preBlock <- function(sim) {
 
-  edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
-             cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
-  edges<-edgesAdj
+  edges<-sim$edgesAdj
 
   edges[, to := as.integer(to)]
   edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
@@ -243,7 +243,7 @@ blockingCLUS.preBlock <- function(sim) {
   
   #set the adjacency table
   setkey(blockids, V2)
-  edgesAdj<-merge(edgesAdj, blockids,by.x="to", by.y="V2" )
+  edgesAdj<-merge(sim$edgesAdj, blockids,by.x="to", by.y="V2" )
   edgesAdj<-merge(edgesAdj, blockids,by.x="from", by.y="V2" )
   edgesAdj<-data.table(edgesAdj[,3:4])
   edgesAdj<-edgesAdj[V1.x  != V1.y]
@@ -253,18 +253,25 @@ blockingCLUS.preBlock <- function(sim) {
   
   print("set the adjacency table")
   dbBegin(sim$clusdb)
-   rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) values (:blockid, :adjblockid)", edgesAdj)
+   rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
    dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   print("set the blocks table")
+  setnames(blockids, c("pixelid", "blockid"))
+  blks.table<-blockids[, .(area = .N), by = blockid]
+  blks.table<-blks.table[, c("age", "regendelay", "state"):=list(0,0,0)]
+  blks.table<-blks.table[blockid > 0,]
+  print(head(blks.table))
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO blocks (blockid, zone_unique, age, area, state, regendelay) SELECT blockid, zone_unique, ROUND(AVG(age), 0) as age, count(*) as area, 0 , 0 from pixels where blockid > 0 group by blockid"))
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, age, area, state, regendelay) VALUES(:blockid, :age, :area, :state, :regendelay)" ,blks.table)
     dbClearResult(rs)
   dbCommit(sim$clusdb)
+  
+  print(head(dbGetQuery(sim$clusdb, "SELECT * FROM blocks")))
 
   rm(zones, result, weight, edges.weight, edges, edges.w1, edges.w2, 
-     edgesAdj, blockids)
+     edgesAdj, blockids, blks.table)
   gc()
   return(invisible(sim))
 }
