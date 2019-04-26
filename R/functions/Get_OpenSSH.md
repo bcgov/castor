@@ -39,7 +39,7 @@ Before the first connection, find out fingerprint of the server’s ED25519 key 
 This should display something similar to:
 
 `C:\Windows\System32\OpenSSH>.\ssh-keygen.exe -l -f "%ProgramData%\ssh\ssh_host_ed25519_key" -E md5
-256 MD5:0d:df:0a:db:b4:e9:f1:08:d5:59:2b:91:8e:08:1c:78 system@DC05XXXX (ED25519`
+256 MD5:4d:df:4a:db:b4:e5:f1:68:d7:59:8b:91:8e:98:1c:18 system@DC05XXXX (ED25519`
 
 
 ### Download PuTTY
@@ -57,7 +57,7 @@ Start WinSCP. Login dialog will appear. On the dialog:
 
 *	Make sure New site node is selected.
 *	On New site node, make sure the SFTP protocol is selected.
-*	Enter your machine name (eg. DC052586) into the Host name box.
+*	Enter your machine name (eg. DC05xxxx) into the Host name box.
 *	Enter your Windows account name to the User name box. 
 *	Enter your Windows account password to the Password box.
 *	Save your site settings using the Save button.
