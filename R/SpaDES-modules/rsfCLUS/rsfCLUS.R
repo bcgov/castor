@@ -1,4 +1,3 @@
-
 # Copyright 2018 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +11,6 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 #===========================================================================================
-
 defineModule(sim, list(
   name = "rsfCLUS",
   description = "This module calculates Resource Selection Functions within the simulation", 
@@ -168,7 +166,7 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
       rm(outPts)
       gc()
     }else{
-      sim$rsfCovar[, dt_layers$layer[i]:= nrow(sim$ras*100)]
+      sim$rsfCovar[, dt_layers$layer[i]:= nrow(sim$ras)*100]
     }
   }
   return(invisible(sim))
