@@ -3513,8 +3513,6 @@ model.lme4.du8.lw.train4 <- glmer (pttype ~ std.slope +
                                    data = train.data.4, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
-ss <- getME (model.lme4.du8.lw.train4, c ("theta","fixef"))
-model.lme4.du8.lw.train4 <- update (model.lme4.du8.lw.train4, start = ss) # failed to converge, restart with parameter estimates
 # data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
 rsf.data.combo.du8.lw$preds.train4 <- predict (model.lme4.du8.lw.train4, 
                                                newdata = rsf.data.combo.du8.lw, 
@@ -3589,11 +3587,11 @@ glm.kfold.test4 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 4))
 summary (glm.kfold.test4)
 
-table.kfold [31, 7] <- 0.97592
-table.kfold [31, 8] <- "<0.001"
-table.kfold [31, 9] <- 15.88603
-table.kfold [31, 10] <- 0.779
-table.kfold [31, 11] <- 0.969
+table.kfold [31, 7] <- 0.6449
+table.kfold [31, 8] <- 0.416
+table.kfold [31, 9] <- 398.9445
+table.kfold [31, 10] <- 0.674
+table.kfold [31, 11] <- -0.0301
 
 chisq.test(dplyr::filter(table.kfold, test.number == 4)$used.count, dplyr::filter(table.kfold, test.number == 4)$expected.count)
 table.kfold [31, 12] <- 0.2313
@@ -3620,17 +3618,31 @@ train.data.5 <- rsf.data.combo.du8.lw %>%
 test.data.5 <- rsf.data.combo.du8.lw %>%
   filter (group == 1)
 
-model.lme4.du8.lw.train5 <- glmer (pttype ~ bec_label_reclass2 +
-                                             std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo +
-                                             std.distance_to_cut_10to29yo + std.distance_to_cut_30orOveryo +
+model.lme4.du8.lw.train5 <- glmer (pttype ~ std.slope + 
+                                             std.distance_to_watercourse +
+                                             std.distance_to_lake +
+                                             std.elevation +
+                                             std.distance_to_cut_1to4yo + 
+                                             std.distance_to_cut_5to9yo +
+                                             std.distance_to_cut_10to29yo + 
+                                             std.distance_to_cut_30orOveryo +
                                              std.distance_to_resource_road +
+                                             std.distance_to_pipeline + 
+                                             std.distance_to_agriculture +
                                              beetle_1to5yo + beetle_6to9yo + fire_1to5yo + 
                                              fire_6to25yo + fire_over25yo +
-                                             std.vri_shrub_crown_close + std.vri_bryoid_cover_pct +
+                                             std.vri_proj_age + 
+                                             std.vri_site_index + 
+                                             std.vri_herb_cover_pct + 
+                                             std.vri_shrub_crown_close +
+                                             std.ppt_as_snow_winter +
+                                             std.temp_avg_winter +
                                              (1 | uniqueID), 
                                    data = train.data.5, 
                                    family = binomial (link = "logit"),
                                    verbose = T) 
+ss <- getME (model.lme4.du8.lw.train5, c ("theta","fixef"))
+model.lme4.du8.lw.train5 <- update (model.lme4.du8.lw.train5, start = ss) # failed to converge, restart with parameter estimates
 # data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
 rsf.data.combo.du8.lw$preds.train5 <- predict (model.lme4.du8.lw.train5, 
                                                newdata = rsf.data.combo.du8.lw, 
@@ -3705,11 +3717,11 @@ glm.kfold.test5 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 5))
 summary (glm.kfold.test5)
 
-table.kfold [41, 7] <- 0.84325
-table.kfold [41, 8] <- "<0.001"
-table.kfold [41, 9] <- 93.19460
-table.kfold [41, 10] <- 0.294
-table.kfold [41, 11] <- 0.8928
+table.kfold [41, 7] <- 0.6448
+table.kfold [41, 8] <- 0.306
+table.kfold [41, 9] <- 370.6369
+table.kfold [41, 10] <- 0.596
+table.kfold [41, 11] <- 0.02104
 
 chisq.test(dplyr::filter(table.kfold, test.number == 5)$used.count, dplyr::filter(table.kfold, test.number == 5)$expected.count)
 table.kfold [41, 12] <- 0.2313

@@ -1762,12 +1762,7 @@ kable (table.kfold.du6.s)
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.97 and $$\chi^2$$ values were not significant (Table xx)
 
-
-
-
-
-
- - visual validation looks reasonable, but clearly shows rleative improtance of BAFA; improtant to note that ESSF is not 'bad; habtiat, just selected less at home range scale; model also indicated importance of 
+ - visual validation looks reasonable, but clearly shows relative importance of BAFA; improtant to note that ESSF is not 'bad' habtiat, just selected less at home range scale 
  
 ```{r, k-fold du6, late winter table, eval = T, echo = F}
 table.kfold.du8.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\early_winter\\table_kfold_summary_du8_ew.csv")
@@ -1775,28 +1770,29 @@ table.kfold.du8.ew <- table.kfold.du8.ew [-1]
 kable (table.kfold.du8.ew)
 ```
 
-
-
-
 ![](plots/kfold_lm_du8_ew_grp1.png)
 ![](plots/kfold_lm_du8_ew_grp2.png)
 ![](plots/kfold_lm_du8_ew_grp3.png)
 ![](plots/kfold_lm_du8_ew_grp4.png)
 ![](plots/kfold_lm_du8_ew_grp5.png)
 
-
 ###### DU8, Late Winter
+- model validation statistics were generally poor
+
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not always close to 1, ranging from 0.52 to 1.02 
+- intercepts were not significantly different from 0, and $$\chi^2$$ values were not significant, but adjusted *R^2* values varied from -0.03 to 0.16 (Table xx, Figure xx)
+- typicaly there was an 'outlier' group in the validation set, where the number of actual used locatiosn in thebin was much greater than the area adjusted expected count; this was always the losst ranked bin (RSF scores between 0 and 0.10)
+  - suggests the model is missing some importanthabtiat characteristic being selcted by caribou that 
+    is not in the model 
+- but visual validation looks reasoanble, if not very good; RSF identifies key high-elevation habitat patches that cariobu lcoations are clearly located within 
+  - problem appears to be in habtiats adjacent to that; adjacent habtait to these patches is often 
+    ranked very low, but some caribou locations 'spill-over' into this habitat; obviosuly caribou need     to traverses these patches to access the high elevation pacthes; so like in early witner model 
+    with ESSF; these pacthes, may be relatively less selected or used compared to adjacent 
+    high-elevation pacthes, but they are still improtant adn needed to access those high-elevation  
+    patches 
+  - regardless, teh modle clearly underestiamets their improtacne, which is important to consider when     interpreting the model results 
 
 
-- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.97 and $$\chi^2$$ values were not significant (Table xx)
-
-
-
-
-
-
- - visual validation looks reasonable, but clearly shows rleative improtance of BAFA; improtant to note that ESSF is not 'bad; habtiat, just selected less at home range scale; model also indicated importance of 
- 
 ```{r, k-fold du6, late winter table, eval = T, echo = F}
 table.kfold.du8.lw <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\late_winter\\table_kfold_summary_du8_lw.csv")
 table.kfold.du8.lw <- table.kfold.du8.lw [-1]
@@ -1809,10 +1805,12 @@ kable (table.kfold.du8.lw)
 ![](plots/kfold_lm_du8_lw_grp1.png)
 ![](plots/kfold_lm_du8_lw_grp2.png)
 ![](plots/kfold_lm_du8_lw_grp3.png)
+![](plots/kfold_lm_du8_lw_grp4.png)
+![](plots/kfold_lm_du8_lw_grp5.png)
 
 
 
-
+kfold_lm_du8_lw_grp4.png
 
 
 
