@@ -80,7 +80,7 @@ cutblockSeqPrepCLUS.Init <- function(sim) {
 
 ### Set the list of the cutblock locations
 cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
-  sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[4], " FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," in (''", sim$boundaryInfo[3],"'')", ") as h
+  sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[4], " FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," IN ('", paste(sim$boundaryInfo[3], sep = "' '", collapse= "', '") ,"')", ") as h
               WHERE h.", sim$boundaryInfo[4] ," && ",  P(sim)$queryCutblocks, ".point 
                                          AND ST_Contains(h.", sim$boundaryInfo[4]," ,",P(sim)$queryCutblocks,".point) AND harvestyr >= ", P(sim)$startHarvestYear,"
                                          ORDER BY harvestyr"))

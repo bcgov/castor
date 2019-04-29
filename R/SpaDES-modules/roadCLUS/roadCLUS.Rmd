@@ -38,21 +38,21 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
-times <- list(start = 0, end = 0)
+times <- list(start = 0, end = 2)
 parameters <- list(.progress = list(type = NA, interval = NA),
   .globals = list(),
-  roadCLUS = list(roadMethod = 'mst', 
+  roadCLUS = list(roadMethod = 'snap', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.pre_roads'),
   dataLoaderCLUS = list(dbName='clus',
                          nameBoundaryFile="study_area_compart",
-                         nameBoundaryFile="gcbp_carib_polygon",
-                         #nameBoundaryColumn="tsa_name",
-                         nameBoundaryColumn="herd_name",
-                         #nameBoundary='Morice TSA', 
-                         nameBoundary='Telkwa',
-                         #nameBoundaryGeom='wkb_geometry',
-                         nameBoundaryGeom='geom',
+                         #nameBoundaryFile="gcbp_carib_polygon",
+                         nameBoundaryColumn="tsa_name",
+                         #nameBoundaryColumn="herd_name",
+                         nameBoundary='Morice TSA', 
+                         #nameBoundary='Telkwa',
+                         nameBoundaryGeom='wkb_geometry',
+                         #nameBoundaryGeom='geom',
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                          nameZoneRasters=c("rast.zone_beo","rast.zone_beo")),
   cutblockSeqPrepCLUS = list(queryCutblocks ='cutseq_centroid',

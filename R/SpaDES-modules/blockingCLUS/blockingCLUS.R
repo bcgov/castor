@@ -96,10 +96,10 @@ blockingCLUS.Init <- function(sim) {
 blockingCLUS.getBounds<-function(sim){
   #The boundary may exist from previous modules?
   if(!suppliedElsewhere("bbox", sim)){
-    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "IN ('",  P(sim, "dataLoaderCLUS", "nameBoundary"),"');" ))
+    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," IN ('", paste(sim$boundaryInfo[3], sep = "' '", collapse= "', '") ,"')" ))
     sim$bbox<-st_bbox(sim$boundary)
   }
-  return(invisible(sim))
+   return(invisible(sim))
 }
 
 blockingCLUS.setSimilarity <- function(sim) {
