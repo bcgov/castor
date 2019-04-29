@@ -38,7 +38,7 @@ parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
                         nameBoundaryFile="study_area_compart",
                         nameBoundaryColumn="tsa_name",
-                        nameBoundary='Morice TSA', 
+                        nameBoundary='Fort Nelson TSA', 
                         nameBoundaryGeom='wkb_geometry',
                         nameCutblockRaster ="rast.cns_cut_bl",
                         nameCutblockTable = "public.cns_cut_bl_polygon",
@@ -51,11 +51,24 @@ modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "rsfCLUS")
 
 rsf_model_coeff<-data.table(population = "DU6", 
                             season ="EW",
-                            static = c('Y','Y','Y','Y','N','N','N','N','N','N'),
-                            beta = c(-2.562923161, -0.017756076, -0.018701324, -0.022060543, -0.054817853,  -0.154907815, -0.103495695, 0.076301527,-0.155193551,0.004786669),
-                            layer=c('int', "rast.bc_ha_slope", "rast.dt_waterbodies", "rast.dt_watercourses",'cut_1_4','cut_5_10','cut_gt_10','age','height', 'crownclosure'),
-                            sql=c('','','','', 'blockid > 0 AND age BETWEEN 1 AND 4','blockid > 0 AND age BETWEEN 5 AND 10', 'blockid > 0 AND age > 10','','',''),
-                            type =c('','','','','DT', 'DT','DT','UP','UP','UP'))
+                            static = c('Y','Y','Y','Y','N','N','N','N','N','N', 'Y'),
+                            beta = c(-2.562923161, -0.017756076, -0.018701324, 
+                                     -0.022060543, -0.054817853,  -0.154907815, 
+                                     -0.103495695, 0.076301527,-0.155193551,
+                                     0.004786669, 0.037246835),
+                            layer=c('int', "rast.bc_ha_slope", "rast.dt_waterbodies",                        "rast.dt_watercourses",'cut_1_4','cut_5_10','cut_gt_10','age','height', 
+                                    'crownclosure', 'rast.crds_paved'),
+                            type =c('','','','','DT', 'DT','DT','UP','UP','UP', 'DT'),
+                            sql=c('','','','', 'blockid > 0 AND age BETWEEN 1 AND 
+                                  4','blockid > 0 AND age BETWEEN 5 AND 10', 'blockid > 0 
+                                  AND age BETWEEN 11 AND 60','','','', '> 0'),
+                            mean=c(NA,1.285316558, 1735.343677, 8339.878587, 82949.33866,
+                                   44787.09279, 24934.39396, 96.48501673, 8.303976041, 
+                                   30.60433628,25318.02571),
+                            sdev=c(NA, 1.699846412, 1320.734513, 5600.597405, 62637.72276,
+                                   35084.0656, 24867.16809, 37.77541289, 5.189987391,
+                                   18.42404009, 18921.1001099999)
+                            )
 
 objects <- list(rsf_model_coeff=rsf_model_coeff)
 paths <- list(
@@ -76,7 +89,7 @@ mysimout<-spades(mySim)
 
 # Events
 
-At each time step, the `rsfCLUS` module calculates the resource selection function for a user defined population and season.
+At each user defined time step, the `rsfCLUS` module calculates the resource selection function for the user defined population and season.
 
 # Data dependencies
 
@@ -93,6 +106,12 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
 * type :=  declares the type of dynamic variable.  UP = 'Updatable' in `clusdb`, DT = 'Distance To'. A value in this column is needed if the static column = N.
 
 * sql := the `WHERE` clause of a sql statement describing the `clusdb` variables used in the dynamic layer
+
+* mean:= the mean of the layer within the scope of the rsf 
+
+* sdev := the standard deviation of the layer within the scope of the rsf 
+
+>Note: The mean and sdev are used to standardize covariates via $x_s = \frac{x - mean}{sdev}$ If standardization is not required use `NA`
 
 
 ```{r, example_rsf_coeff}
