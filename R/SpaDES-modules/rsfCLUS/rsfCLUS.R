@@ -44,7 +44,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
-    createsOutput(objectName = "rsf", objectClass = "data.table", desc = "A data.table of covariates used to calculate the RSF. This could be uploaded into clusdb?"),
+    createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "A data.table of covariates used to calculate the RSF. This could be uploaded into clusdb?"),
     createsOutput(objectName = "rsfGLM", objectClass = "list", desc = "A list of glm objects that describe the RSF. Gets created at Init")
   )
 ))
@@ -80,8 +80,8 @@ rsfCLUS.Init <- function(sim) {
   setnames(sim$pts, "layer", "pixelid") #the default output from rasterToPoints is a variable called 'layer'
   
   #init the rsf table
-  sim$rsf<-sim$pts
-  sim$rsf<-sim$rsf[,'pixelid']
+  sim$rsfCovar<-sim$pts
+  sim$rsfCovar<-sim$rsfCovar[,'pixelid']
   
   #init a concatenated variable called 'rsf' that will report the population and season
   rsf_model_coeff[, rsf:= do.call(paste0, .BY), by = c("population", "season") ]
@@ -91,8 +91,8 @@ rsfCLUS.Init <- function(sim) {
   for(layer_name in static_list){ #Loop for getting all the rsf data into the rsf table
     print(layer_name)
     layer<-RASTER_CLIP2(srcRaster= layer_name, clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
-    sim$rsf<-cbind(sim$rsf, data.table(c(t(raster::as.matrix(layer)))))
-    setnames(sim$rsf, "V1", layer_name)
+    sim$rsfCovar<-cbind(sim$rsfCovar, data.table(c(t(raster::as.matrix(layer)))))
+    setnames(sim$rsfCovar, "V1", layer_name)
   }
   
   rsf_list<-lapply(as.list(unique(rsf_model_coeff[,"rsf"])$rsf), function(x) {#prepare the list needed for lapply to get the glm objects  
@@ -115,7 +115,7 @@ rsfCLUS.UpdateRSFTable<-function(sim){ #gets the variables that are dynamic - ie
 
 getUpdatedLayers<-function(sim){ #gets the updateable (internal to sim$clusdb) variables for the rsf
   up_layers<-paste(unlist((rsf_model_coeff[type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ")
-  sim$rsf<-cbind(sim$rsf, dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels")))
+  sim$rsfCovar<-cbind(sim$rsfCovar, dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels")))
   return(invisible(sim)) 
 }
 
@@ -131,9 +131,9 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
       nearNeigh<-RANN::nn2(outPts[field==0, 2:3], outPts[is.na(field), 2:3], k = 1)
       outPts<-outPts[is.na(field), dist:=nearNeigh$nn.dists] #assign the distances
       outPts[is.na(dist),]<-0 #those that are the distance to pixels, assign 
-      sim$rsf<-merge(sim$rsf, outPts[,c('dist','pixelid')], by = 'pixelid', all.x = TRUE)
-      #test<-unlist(sim$rsf[, "dist"], use.names = FALSE)
-      setnames(sim$rsf, "dist", dt_layers$layer[i])
+      sim$rsfCovar<-merge(sim$rsfCovar, outPts[,c('dist','pixelid')], by = 'pixelid', all.x = TRUE)
+      #test<-unlist(sim$rsfCovar[, "dist"], use.names = FALSE)
+      setnames(sim$rsfCovar, "dist", dt_layers$layer[i])
       
       #----Plotting the raster---
       #distRas<-sim$ras 
@@ -173,11 +173,24 @@ getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
   return(lmFit)
 }
 
-rsfCLUS.PredictRSF(sim) <- function(sim){
-  #TODO: Loop through each population and season to predict its selection probability
-  #unique(rsf_model_coeff[,"rsf"])$rsf
-  #lapply() or for loop here?
-    
+rsfCLUS.PredictRSF <- function(sim){
+  #print(head(sim$rsfCovar))
+  #Loop through each population and season to predict its selection probability
+  rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf
+  #print(sim$rsfGLM[1]$coefficents)
+  #print(sim$rsfGLM[1]$formula)
+  
+  for(i in 1:length(rsfPops)){
+    print(sim$rsfGLM[[i]]$formula)
+    rsf<-data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfCovar, type = "response"))
+    setnames(rsf, "V1", rsfPops[i])
+  }
+  
+  #----Plot the Raster---------------------------
+  test<-sim$ras
+  test[]<-unlist(rsf[,1])
+  writeRaster(test, "test.tif", overwrite = TRUE)
+  #----------------------------------------------
   return(invisible(sim))
 }
 
