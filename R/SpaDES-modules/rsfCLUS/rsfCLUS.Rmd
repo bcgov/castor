@@ -38,7 +38,7 @@ parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
                         nameBoundaryFile="study_area_compart",
                         nameBoundaryColumn="tsb_number",
-                        nameBoundary="08B, 08C", 
+                        nameBoundary=c("08B", "08C"), 
                         nameBoundaryGeom="wkb_geometry",
                         nameCutblockRaster ="rast.cns_cut_bl",
                         nameCutblockTable = "public.cns_cut_bl_polygon",
