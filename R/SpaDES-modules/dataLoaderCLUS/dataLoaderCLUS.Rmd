@@ -39,7 +39,7 @@ parameters <-  list(
   dataLoaderCLUS = list(dbName='clus',
                   nameBoundaryFile="study_area_compart",
                   nameBoundaryColumn="tsa_name",
-                  nameBoundary='Morice TSA', 
+                  nameBoundary= c('Morice TSA'), 
                   nameBoundaryGeom='wkb_geometry',
                   save_clusdb = FALSE,
                   nameOwnershipRaster='rast.f_own',
