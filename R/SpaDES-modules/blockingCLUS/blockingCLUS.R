@@ -86,20 +86,10 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 blockingCLUS.Init <- function(sim) {
-  sim<-blockingCLUS.getBounds(sim) # Get the boundary from which to confine the blocking used in cutblockseq
   sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
   
   return(invisible(sim))
-}
-
-blockingCLUS.getBounds<-function(sim){
-  #The boundary may exist from previous modules?
-  if(!suppliedElsewhere("bbox", sim)){
-    sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ", sim$boundaryInfo[1] , " WHERE ", sim$boundaryInfo[2] ," IN ('", paste(sim$boundaryInfo[3], sep = "' '", collapse= "', '") ,"')" ))
-    sim$bbox<-st_bbox(sim$boundary)
-  }
-   return(invisible(sim))
 }
 
 blockingCLUS.setSimilarity <- function(sim) {
