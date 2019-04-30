@@ -45,13 +45,15 @@ data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting lan
                    'Consolidated cutblocks ID',
                    'VEG_COMP feature id',
                    'Waterbodies',
-                   'Watercoures'
+                   'Watercoures',
+                   'Caribou Designatable Unit 6 Boundary',
+                   'Caribou Designatable Unit 8 Boundary'
                    ),
            public = c('bc_thlb'
-                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses'),
-           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses'),
+                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses', 'caribou_boreal_study_area'),
+           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses', 'du6_bounds','du8_bounds'),
            source=c('INTERNAL','INTERNAL','INTERNAL','INTERNAL',
-                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm'))
+                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm', 'INTERNAL', 'INTERNAL'))
 ```
 
 ## Set empty raster
@@ -183,4 +185,63 @@ ras.water <- fasterize::fasterize(st_cast(water), ProvRast,
 writeRaster(ras.water, file="water.tif", format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/water.tif -t 100x100 rast.watercourses| psql -d clus")
+```
+
+# Designatable Units (for Caribou)
+
+Designatable units are comglomerations of herds that share the same behaviour and range. In BC, the herd and designatable unit look up is as follows:
+
+```{r, du_table}
+du_herd<-data.table(DU= c(6,	6,	6,	6,	6,	6,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	7,	8,	8,	8,	8,	8,	8,	7,	7,	7,	7,	7,	7,	7,	7,	7,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9,	9),
+                    Herd =c('Maxhamish',	'Chinchaga',	'Snake-Sahtaneh',	'Calendar',	'Parker',	'Prophet',	'Atlin',	'Carcross',	'Edziza',	'Finlay',	'Frog',	'Gataga',	'Horseranch',	'Level Kawdy',	'Liard Plateau',	'Little Rancheria',	'Muskwa',	'Pink Mountain',	'Rabbit',	'Spatsizi',	'Swan Lake',	'Thutade',	'Tsenaglode',	'Burnt Pine',	'Kennedy Siding',	'Moberly',	'Quintette',	'Scott',	'Narraway',	'Charlotte Alplands',	'Chase',	'Graham',	'Itcha-Ilgachuz',	'Rainbows',	'Takla',	'Telkwa',	'Tweedsmuir',	'Wolverine',	'Hart Ranges',	'Narrow Lake',	'North Cariboo',	'None',	'Barkerville',	'Wells Gray North',	'Wells Gray South',	'Groundhog',	'Columbia North',	'Central Rockies',	'Columbia South',	'Frisby-Boulder',	'Monashee',	'Duncan',	'Nakusp',	'South Selkirks',	'Purcells South'),
+                    Ecotype = c('boreal',	'boreal',	'boreal',	'boreal',	'boreal',	'boreal',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'northern',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain',	'mountain'),
+                    Local=c('Maxhamish',	'Chinchaga',	'Snake-Sahtaneh',	'Calendar',	'Parker',	'Prophet',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'None',	'Pine River',	'Pine River',	'Pine River',	'Quintette',	'Pine River',	'Narraway',	'Chilcotin',	'Chase',	'Graham',	'Chilcotin',	'Chilcotin',	'Takla',	'Telkwa',	'Tweedsmuir',	'Wolverine',	'Hart Ranges',	'Upper Fraser',	'Upper Fraser',	'Upper Fraser',	'Quesnel Highlands',	'Quesnel Highlands',	'Wells Gray - Thompson',	'Wells Gray - Thompson',	'Revelstoke-Shuswap',	'Kinbasket',	'Revelstoke-Shuswap',	'Revelstoke-Shuswap',	'South Monashee',	'Central Kootenay',	'Central Kootenay',	'Southwest Kootenay',	'Southeast Kootenay'),
+                    National=c('boreal',	'boreal',	'boreal',	'boreal',	'boreal',	'boreal',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'northern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain',	'southern mountain'))
+print(du_herd)
+```
+
+To translate the herd boundaries into DU boundaries a 25 km buffer around each herd boundary that makes up the DU was estimated, then the resulting boundaries were dissolved into one shape. The following documents the rasterization process
+
+```{r, carb_desig}
+#DU6 - Boreal Caribou
+du6<-getSpatialQuery("SELECT wkb_geometry FROM public.caribou_boreal_study_area")
+ras.du6<-fasterize::fasterize(du6, ProvRast, 
+                        field = NULL,#cells that are waterbodies get a value of 1
+                        background = 0) 
+
+writeRaster(ras.du6, file="du6.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/du6.tif -t 100x100 rast.du6_bounds | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
+#DU7 - Northern Mountain
+du7<-getSpatialQuery("SELECT wkb_geometry FROM public.du7_herds_buff25km")
+ras.du7<-fasterize::fasterize(du7, ProvRast, 
+                        field = NULL,#cells that are waterbodies get a value of 1
+                        background = 0) 
+
+writeRaster(ras.du7, file="du7.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/du7.tif -t 100x100 rast.du7_bounds | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
+#DU8 - Southern Mountain
+du8<-getSpatialQuery("SELECT wkb_geometry FROM public.du8_herds_buff25km")
+ras.du8<-fasterize::fasterize(du8, ProvRast, 
+                        field = NULL,#cells that are waterbodies get a value of 1
+                        background = 0) 
+
+writeRaster(ras.du8, file="du8.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/du8.tif -t 100x100 rast.du8_bounds | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
+
+#DU9 - Southern Mountain
+du9<-getSpatialQuery("SELECT wkb_geometry FROM public.du9_herds_buff25km")
+ras.du9<-fasterize::fasterize(du8, ProvRast, 
+                        field = NULL,#cells that are waterbodies get a value of 1
+                        background = 0) 
+
+writeRaster(ras.du9, file="du9.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/du9.tif -t 100x100 rast.du9_bounds | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
 ```
