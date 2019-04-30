@@ -153,15 +153,17 @@ roadCLUS.plot<-function(sim){
 }
 
 roadCLUS.save<-function(sim){
-  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[3],"_",P(sim)$roadMethod,"_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
+  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_",P(sim)$roadMethod,"_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
 ### Get the rasterized roads layer
 roadCLUS.getRoads <- function(sim) {
-    conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-    sim$roads<-RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameRoads"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn)
-    #Update the pixels table to set the roaded pixels.
+    sim$roads<-RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameRoads"), 
+                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL)
+    #Update the pixels table to set the roaded pixels
     roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
     roadUpdate[, pixelid := seq_len(.N)]
     roadUpdate<-roadUpdate[V1 > 0, roadyear := 0]
@@ -400,11 +402,9 @@ roadCLUS.preSolve<-function(sim){
 
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
-    sim$boundaryInfo<-c("public.gcbp_carib_polygon","herd_name","Telkwa","geom")
+    sim$boundaryInfo<-list("public.gcbp_carib_polygon","herd_name","Telkwa","geom")
   }
-  if(!suppliedElsewhere("bbox", sim)){
-    sim$bbox<-st_bbox(getSpatialQuery(paste0("SELECT * FROM ",  sim$boundaryInfo[1], " WHERE ",    sim$boundaryInfo[2], "= '",   sim$boundaryInfo[3],"';" )))
-  }
+
   return(invisible(sim))
 }
 
