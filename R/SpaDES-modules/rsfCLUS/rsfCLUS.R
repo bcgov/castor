@@ -89,7 +89,12 @@ rsfCLUS.Init <- function(sim) {
   
   for(layer_name in static_list){ #Loop for getting all the rsf data into the rsf table
     print(layer_name)
-    layer<-RASTER_CLIP2(srcRaster= layer_name, clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    layer<-RASTER_CLIP2(srcRaster= layer_name, 
+                        clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                        geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                        where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                        conn=NULL)
+    
     sim$rsfCovar<-cbind(sim$rsfCovar, data.table(c(t(raster::as.matrix(layer)))))
 
     if (nrow(rsf_model_coeff[layer == layer_name & type == 'DT']) > 0) { #static layers that are 'Distance To' variables
