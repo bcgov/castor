@@ -37,11 +37,11 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     expectsInput(objectName = "rsf_model_coeff", objectClass = "data.table", desc = 'A User supplied data.table containing the model coeffecients and their decription', sourceURL = NA),
     expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = NA, sourceURL = NA)
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "pts", objectClass = "data.table", desc = NA, sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
     createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "A data.table of covariates used to calculate the RSF. This could be uploaded into clusdb?"),
     createsOutput(objectName = "rsfGLM", objectClass = "list", desc = "A list of glm objects that describe the RSF. Gets created at Init")
   )
@@ -52,15 +52,11 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- rsfCLUS.Init(sim)
-      sim <- rsfCLUS.UpdateRSFTable(sim)
-      sim <- rsfCLUS.PredictRSF(sim)
-      sim <- rsfCLUS.StoreRSFCovar(sim)
-      
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$rsfCalcInterval, "rsfCLUS", "calculateRSF")
     },
     
     calculateRSF = {
-      #sim <- rsfCLUS.UpdateRSFTable(sim)
+      #sim <- rsfCLUS.UpdateRSFCovar(sim)
       #sim <- rsfCLUS.PredictRSF(sim)
       
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$rsfCalcInterval, "rsfCLUS", "calculateRSF")
@@ -73,47 +69,65 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
 }
 
 rsfCLUS.Init <- function(sim) {
-  #init the raster pts
-  sim$pts <- data.table(raster::rasterToPoints(sim$ras)) #Stores the X,Y of the raster
-  setnames(sim$pts, "layer", "pixelid") #the default output from rasterToPoints is a variable called 'layer'
-  #TODO: a) Merge in the area of interest boundary - to reduce times in the DT layer?
-  
-  #init the rsf table
-  sim$rsfCovar<-sim$pts
-  #init a concatenated variable called 'rsf' that will report the population and season
+  #TODO: b) because the rasters get standardized -- need to seperate out the different layers by the population and season
+ 
+   #init a concatenated variable called 'rsf' that will report the population and season
   rsf_model_coeff[, rsf:= do.call(paste0, .BY), by = c("population", "season") ]
   
-  #Set all the static rasters.
-  #TODO: b) because the rasters get standardized -- need to seperate out the different layers by the population and season
-  static_list<-as.list(unlist(unique(rsf_model_coeff[static == 'Y' & layer != 'int'])[,"layer"], use.names = FALSE))
-  
-  for(layer_name in static_list){ #Loop for getting all the rsf data into the rsf table
-    print(layer_name)
-    layer<-RASTER_CLIP2(srcRaster= layer_name, 
-                        clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                        geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                        where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                        conn=NULL)
-    
-    sim$rsfCovar<-cbind(sim$rsfCovar, data.table(c(t(raster::as.matrix(layer)))))
-
-    if (nrow(rsf_model_coeff[layer == layer_name & type == 'DT']) > 0) { #static layers that are 'Distance To' variables
-      print(paste0(layer_name, " is a static DT variable"))
-      nearNeigh<-RANN::nn2(sim$rsfCovar[V1 > 0, c('x', 'y')], sim$rsfCovar[V1 == 0, c('x', 'y')], k = 1)
-      sim$rsfCovar<-sim$rsfCovar[V1 > 0, V1:= -1]
-      sim$rsfCovar<-sim$rsfCovar[V1 == 0, V1:=nearNeigh$nn.dists] #assign the distances
-      sim$rsfCovar[V1 == -1, V1:= 0] #those that are the distance to pixels, assign 
+  #Set all the static rasters - when rsfcovar does not exist in sim$clusdb  
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) {
+    #init the rsfcovar table
+    sim$rsfcovar<-data.table(sim$pts)
+    #Upload the boundary from which the rsf will be applied
+    rsf_list<-unique(rsf_model_coeff[, c("rsf","bounds")])
+    for(k in 1:nrow(rsf_list)){
+      print(rsf_list[k]$bounds)
+      bounds<-data.table(c(t(raster::as.matrix(
+        RASTER_CLIP2(srcRaster= paste0(rsf_list[k]$bounds), 
+                     clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                     geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                     where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                     conn=NULL)))))
+      sim$rsfcovar[, (rsf_list[k]$rsf):= bounds$V1]
     }
     
-    standardCoeff<-rsf_model_coeff[layer == layer_name, c("mean", "sdev")] #Get the mean and sdev
-    sim$rsfCovar[, V1:= (V1-standardCoeff$mean)/(standardCoeff$sdev)]# standardize the layers to match the inputs of the rsf model
-    setnames(sim$rsfCovar, "V1", layer_name)
+    static_list<-as.list(unlist(unique(rsf_model_coeff[static == 'Y' & layer != 'int'])[,"layer"], use.names = FALSE))
+    for(layer_name in static_list){ #Loop for getting all the rsf data into the rsf table
+      print(layer_name)
+      layer<-RASTER_CLIP2(srcRaster= layer_name, 
+                          clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                          geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                          where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                          conn=NULL)
+      
+      sim$rsfcovar[, V1:= data.table(c(t(raster::as.matrix(layer))))] 
+  
+      if (nrow(rsf_model_coeff[layer == layer_name & type == 'DT']) > 0) { #static layers that are 'Distance To' variables
+        print(paste0(layer_name, " is a static DT variable"))
+        nearNeigh<-RANN::nn2(sim$rsfcovar[V1 > 0, c('x', 'y')], sim$rsfcovar[V1 == 0, c('x', 'y')], k = 1)
+        sim$rsfcovar<-sim$rsfcovar[V1 > 0, V1:= -1]
+        sim$rsfcovar<-sim$rsfcovar[V1 == 0, V1:=nearNeigh$nn.dists] #assign the distances
+        sim$rsfcovar[V1 == -1, V1:= 0] #those that are the distance to pixels, assign 
+      }
+      
+      #TODO: This should be a function that returns the appropriate names
+      standardCoeff<-rsf_model_coeff[layer == layer_name, c("mean", "sdev")] #Get the mean and sdev
+      sim$rsfcovar[, V1:= (V1-standardCoeff$mean)/(standardCoeff$sdev)]# standardize the layers to match the inputs of the rsf model
+      setnames(sim$rsfcovar, "V1", layer_name)
+    }
+
+     rsfCLUS.UpdateRSFCovar(sim) # Complete the rsfcovar table with the dynamic variables
+     print(head(sim$rsfcovar))
+     #rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
+     
+  }else{
+    sim$rsfcovar<-dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar")
   }
   
   #----Plotting any raster for checking-------------------
-  test<-sim$ras
-  test[]<-unlist(sim$rsfCovar[,"rast.crds_paved"])
-  writeRaster(test, "dt_crds_paved.tif", overwrite = TRUE)
+  #test<-sim$ras
+  #test[]<-unlist(sim$rsfcovar[,"rast.crds_paved"])
+  #writeRaster(test, "dt_crds_paved.tif", overwrite = TRUE)
   #-------------------------------------------------------
   
   #Set the GLM objects so that inherits class 'glm' which is needed for predict.glm function/method
@@ -125,19 +139,22 @@ rsfCLUS.Init <- function(sim) {
   return(invisible(sim))
 }
 
-rsfCLUS.UpdateRSFTable<-function(sim){ #gets the variables that are dynamic - ie., 'distance to' and simulation updatable variables (ex. height)
-  if(nrow(unique(rsf_model_coeff[type == 'DT']))>0){ #DT is distance to
-    sim<-getDistanceToLayers(sim)
-  }
+rsfCLUS.UpdateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie., 'distance to' and simulation updatable variables (ex. height)
   if(nrow(unique(rsf_model_coeff[type == 'UP']))>0){ #UP is updated layers
     sim<-getUpdatedLayers(sim)
+  }
+  if(nrow(unique(rsf_model_coeff[type == 'DT']))>0){ #DT is distance to
+    sim<-getDistanceToLayers(sim)
   }
   return(invisible(sim))
 }
 
 getUpdatedLayers<-function(sim){ #gets the updateable (internal to sim$clusdb) variables for the rsf
   up_layers<-paste(unlist((rsf_model_coeff[type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ")
-  sim$rsfCovar<-cbind(sim$rsfCovar, dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels")))
+  newLayer<-dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels"))
+  sim$rsfcovar[, (colnames(newLayer)) := as.data.table(newLayer)] # The () evaluate the colnames function
+  rm(newLayer)
+  gc()
   return(invisible(sim)) 
 }
 
@@ -147,17 +164,24 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
     print(dt_layers$layer[i])
     dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE ", dt_layers$sql[i])))
     
+    #replace this in sim$rsfcovar?
     if(nrow(dt_select) > 0){
       dt_select[,field :=0]
-      outPts<-merge(sim$pts, dt_select, by = 'pixelid', all.x =TRUE)
+      outPts<-merge(sim$pts, dt_select, by = 'pixelid', all.x =TRUE) #sim$pts contains: pixelid, x,y
       nearNeigh<-RANN::nn2(outPts[field==0, c('x', 'y')], outPts[is.na(field), c('x', 'y')], k = 1)
       outPts<-outPts[is.na(field), dist:=nearNeigh$nn.dists] #assign the distances
       outPts[is.na(dist),]<-0 #those that are the distance to pixels, assign 
-      sim$rsfCovar<-merge(sim$rsfCovar, outPts[,c('dist','pixelid')], by = 'pixelid', all.x = TRUE)
-      ##test<-unlist(sim$rsfCovar[, "dist"], use.names = FALSE)
+      
+      #TODO:
+      #1. Order outPts by pixelid
+      #2. Assign the dt_layers$layer[i] the values
+      sim$rsfcovar[, dist:= outPts[order(pixelid)]]
+      
+      #sim$rsfcovar<-merge(sim$rsfcovar, outPts[,c('dist','pixelid')], by = 'pixelid', all.x = TRUE)
+      ##test<-unlist(sim$rsfcovar[, "dist"], use.names = FALSE)
       standardCoeff<-rsf_model_coeff[layer == dt_layers$layer[i], c("mean", "sdev")] #Get the mean and sdev
-      sim$rsfCovar[, dist:= (dist-standardCoeff$mean)/(standardCoeff$sdev)]# standardize the layers to match the inputs of the rsf model
-      setnames(sim$rsfCovar, "dist", dt_layers$layer[i])
+      sim$rsfcovar[, dist:= (dist-standardCoeff$mean)/(standardCoeff$sdev)]# standardize the layers to match the inputs of the rsf model
+      setnames(sim$rsfcovar, "dist", dt_layers$layer[i])
       
       #----Plotting the raster---
       #distRas<-sim$ras 
@@ -167,11 +191,10 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
       ##distRas[is.na(distRas[])]<-nearNeigh$nn.dists
       #writeRaster(distRas, paste0(dt_layers$layer[i], ".tif"), overwrite = TRUE)
       #--------------------------
-      
       rm(outPts)
       gc()
     }else{
-      sim$rsfCovar[, dt_layers$layer[i]:= nrow(sim$ras)*100]
+      sim$rsfcovar[, dt_layers$layer[i]:= nrow(sim$ras)*100]
     }
   }
   return(invisible(sim))
@@ -190,6 +213,7 @@ getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
   #get the RSF parameters and variables
   layers <-parm_list[,"layer"][-1] #-1 removes the intercept
   beta <-parm_list[,"beta"]
+  #These names need to match the names in rsfcovar -- this means different columns for each standardized variable...
   #set the names of the fake.dt to the names of variables used in the RSF
   setnames(fake.dt, sprintf("x%s",seq(1:nrow(layers))), layers$layer)
   #Fit a fake model to get the class inheritance of glm
@@ -203,19 +227,34 @@ getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
 rsfCLUS.PredictRSF <- function(sim){
   #Loop through each population and season to predict its selection probability
   rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf
+  
   for(i in 1:length(rsfPops)){
-    suppressWarnings(rsf<-data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfCovar, type = "response")))
-    setnames(rsf, "V1", rsfPops[i])
+    suppressWarnings(rsf<-data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response")))
+    setnames(rsf, "V1", pastersfPops[i])
   }
+  
   #----Plot the Raster---------------------------
   test<-sim$ras
   test[]<-unlist(rsf[,1])
   writeRaster(test, "test.tif", overwrite = TRUE)
   #----------------------------------------------
+  
+  #Insert the rsf values into the rsf table of clusdb
+  
   return(invisible(sim))
 }
 
 rsfCLUS.StoreRSFCovar<- function(sim){
+  #Stores the rsfCover in clusdb. This allows a clusdb to be created and used again without wait times for dataloading
+  dbExecute(sim$clusdb, paste0("CREATE TABLE IF NOT EXISTS rsfcovar (pixelid integer, ",
+                               paste(colnames(sim$rsfcovar), sep = "' '", collapse = ' numeric, '),
+                               " numeric)"))
+  
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO rsfcovar (zoneid, reference_zone, zone_column, variable, threshold, type ,percentage ) 
+                        values (:zoneid, :reference_zone, :zone_column, :variable, :threshold, :type, :percentage)", sim$rsfcovar)
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
   
   
   return(invisible(sim))

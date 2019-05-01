@@ -51,6 +51,7 @@ modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "rsfCLUS")
 
 rsf_model_coeff<-data.table(population = "DU6", 
                             season ="EW",
+                            bounds = "rast.du6_bounds",
                             static = c('Y','Y','Y','Y','N','N','N','N','N','N', 'Y'),
                             beta = c(-2.562923161, -0.017756076, -0.018701324, 
                                      -0.022060543, -0.054817853,  -0.154907815, 
