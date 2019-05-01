@@ -72,10 +72,10 @@ defineModule(sim, list(
     createsOutput("zone.length", objectClass ="numeric", desc = NA),
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("bbox", objectClass ="numeric", desc = NA),
-    createsOutput("boundary", objectClass ="sf", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
-    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads")
+    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
+    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances")
   )
 ))
 
@@ -88,9 +88,8 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         #build clusdb
         sim <- dataLoaderCLUS.createCLUSdb(sim)
         #setBoundaries
-        sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
-        sim$bbox<-st_bbox(sim$boundary)
-        sim$boundaryInfo <- c(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
+        #sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
+        sim$boundaryInfo <- list(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
         #disconnect the db once the sim is over?
@@ -150,7 +149,15 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #-----------------------
   if(!(P(sim, "dataLoaderCLUS", "nameCompartmentRaster") == "99999")){
     print(paste0('.....compartment ids: ', P(sim, "dataLoaderCLUS", "nameCompartmentRaster")))
-    sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
+                          clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                          geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                          where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                          conn=NULL)
+    
+    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
+    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
+    
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     setnames(pixels, "V1", "compartid")
@@ -161,7 +168,15 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   }else{
     print('.....compartment ids: default 1')
     #Set the empty table for values not supplied in the parmaters
-    sim$ras<-RASTER_CLIP2(srcRaster= 'rast.bc_bound', clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    sim$ras<-RASTER_CLIP2(srcRaster= 'rast.bc_bound', 
+                          clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                          geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                          where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), 
+                          conn=NULL)
+    
+    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
+    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
+    
     pixels<-data.table(c(t(raster::as.matrix(sim$ras)))) #transpose then vectorize which matches the same order as adj
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 1]
@@ -179,7 +194,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print(paste0('.....zones: ',sim$zone.length))
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))){
-      ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+      ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], 
+                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                             conn=NULL)
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
       setnames(pixels, "V1", paste0('zone',i))#SET NAMES to RASTER layer
       dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric'))
@@ -224,7 +243,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #------------
   if(!(P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster") == "99999")){
     print(paste0('.....thlb: ',P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster")))
-    ras.thlb<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    ras.thlb<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), 
+                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                            conn=NULL)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.thlb)))))
     setnames(pixels, "V1", "thlb")
     rm(ras.thlb)
@@ -239,7 +262,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #------------
   if(!(P(sim, "dataLoaderCLUS", "nameOwnershipRaster") == "99999")){
     print(paste0('.....ownership: ',P(sim, "dataLoaderCLUS", "nameOwnershipRaster")))
-    ras.own<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameOwnershipRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    ras.own<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameOwnershipRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.own)))))
     setnames(pixels, "V1", "own")
     rm(ras.own)
@@ -254,7 +281,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #-----------------
   if(!(P(sim, "dataLoaderCLUS", "nameYieldsRaster") == "99999")){
     print(paste0('.....yield ids: ',P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
-    ras.ylds<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    ras.ylds<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause = paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ylds)))))
     setnames(pixels, "V1", "yieldid")
     rm(ras.ylds)
@@ -290,7 +321,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!P(sim,"dataLoaderCLUS", "nameForestInventoryRaster") == '99999'){
     dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN fid integer'))
     fid<-c('fid,',':fid,') # used in the query to set the pixels table
-    ras.fid<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameForestInventoryRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    ras.fid<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameForestInventoryRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
     pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.fid)))))
     setnames(pixels, "V1", "fid")
     rm(ras.fid)
@@ -310,7 +345,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #----------------
     if(!(P(sim, "dataLoaderCLUS", "nameCutblockRaster") == '99999')){
       print(paste0('.....blockid: ',P(sim, "dataLoaderCLUS", "nameCutblockRaster")))
-      ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCutblockRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+      ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCutblockRaster"), 
+                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                             conn=NULL)
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.blk)))))
       setnames(pixels, "V1", "blockid")
       rm(ras.blk)
@@ -318,12 +357,12 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       
       #blockid table
       if(!(P(sim, "dataLoaderCLUS", "nameCutblockTable") == "99999")){
-        print('getting blocks information')
+        print('......getting blocks information')
         blocks<- getTableQuery(paste0("SELECT t.blockid, t.area, openingid, (1) as state, (20-(2018 - harvestyr)) as regendelay FROM 
         (SELECT (col1).value::int as blockid, (col1).count::int as area  FROM (
                                       SELECT ST_ValueCount(st_union(ST_Clip(rast, 1, foo.",P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ,", -9999, true)),1,true)  as col1 FROM 
                                       (SELECT st_union(rast) as rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," FROM ",P(sim, "dataLoaderCLUS", "nameCutblockRaster"),", ",P(sim, "dataLoaderCLUS", "nameBoundaryFile"),
-                                      " WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " IN ('", P(sim, "dataLoaderCLUS", "nameBoundary"),"')" ," AND ST_Intersects(rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),") group by ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ) as foo) as k) as t
+                                      " WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '"),"')" ," AND ST_Intersects(rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),") group by ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ) as foo) as k) as t
                                       INNER JOIN ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),"
                                       ON t.blockid = ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),".cutblockid;"))
         
@@ -347,7 +386,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #-----------
     if(!(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999")){
       print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameAgeRaster")))
-      ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+      ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), 
+                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                            conn=NULL)
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.age)))))
       setnames(pixels, "V1", "age")
       rm(ras.age)
@@ -362,7 +405,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #---------------------
     if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999")){
       print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
-      ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+      ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.cc)))))
       setnames(pixels, "V1", "crownclosure")
       rm(ras.cc)
@@ -377,7 +424,11 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #---------------------
     if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999")){
       print(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
-      ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+      ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ht)))))
       setnames(pixels, "V1", "height")
       rm(ras.ht)

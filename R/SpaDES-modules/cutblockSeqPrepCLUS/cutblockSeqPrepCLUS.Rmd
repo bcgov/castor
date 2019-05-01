@@ -71,7 +71,7 @@ https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutb
 
 ## Output data
 
-Produces a query of cutblock schedules based on historic accounts
+Produces a result set of cutblock schedules based on historic accounts
 
 # Links to other modules
 
