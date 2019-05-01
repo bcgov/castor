@@ -74,7 +74,8 @@ defineModule(sim, list(
     createsOutput("bbox", objectClass ="numeric", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
-    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads")
+    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
+    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances")
   )
 ))
 
@@ -153,6 +154,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           conn=NULL)
+    
+    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
+    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
+    
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     setnames(pixels, "V1", "compartid")
@@ -168,6 +173,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), 
                           conn=NULL)
+    
+    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
+    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
+    
     pixels<-data.table(c(t(raster::as.matrix(sim$ras)))) #transpose then vectorize which matches the same order as adj
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 1]
@@ -348,7 +357,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       
       #blockid table
       if(!(P(sim, "dataLoaderCLUS", "nameCutblockTable") == "99999")){
-        print('getting blocks information')
+        print('......getting blocks information')
         blocks<- getTableQuery(paste0("SELECT t.blockid, t.area, openingid, (1) as state, (20-(2018 - harvestyr)) as regendelay FROM 
         (SELECT (col1).value::int as blockid, (col1).count::int as area  FROM (
                                       SELECT ST_ValueCount(st_union(ST_Clip(rast, 1, foo.",P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ,", -9999, true)),1,true)  as col1 FROM 
