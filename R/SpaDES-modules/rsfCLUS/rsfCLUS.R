@@ -70,7 +70,8 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
 
 rsfCLUS.Init <- function(sim) {
    #init a concatenated variable called 'rsf' that will report the population and season
-  rsf_model_coeff[, rsf:= do.call(paste0, .BY), by = c("population", "season") ]
+  rsf_model_coeff[, rsf:= do.call(paste0, list(collapse = "_", .BY)), by = c("population", "season") ]
+  rsf_model_coeff[layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("population", "season", "layer") ]
   
   #Set all the static rasters - when rsfcovar does not exist in sim$clusdb  
   if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) {
@@ -79,6 +80,7 @@ rsfCLUS.Init <- function(sim) {
     
     #Upload the boundary from which the rsf will be applied
     rsf_list<-unique(rsf_model_coeff[, c("population","bounds")])
+    
     for(k in 1:nrow(rsf_list)){
       print(rsf_list[k]$bounds)
       bounds<-data.table(c(t(raster::as.matrix(
@@ -90,8 +92,9 @@ rsfCLUS.Init <- function(sim) {
       sim$rsfcovar[, (rsf_list[k]$population):= bounds$V1]
     }
     
+    #load the static variables
     static_list<-as.list(unlist(unique(rsf_model_coeff[static == 'Y' & layer != 'int'])[,"layer"], use.names = FALSE))
-    for(layer_name in static_list){ #Loop for getting all the rsf data into the rsf table
+    for(layer_name in static_list){ 
       print(layer_name)
       layer<-RASTER_CLIP2(srcRaster= layer_name, 
                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
@@ -112,9 +115,10 @@ rsfCLUS.Init <- function(sim) {
     }
 
      rsfCLUS.UpdateRSFCovar(sim) # Complete the rsfcovar table with the dynamic variables
-     print(head(sim$rsfcovar))
+     rsfCLUS.StandardizeStaticRSFCovar(sim)
      
-     rsfCLUS.StandardizeRSFCover(sim)
+     print(head(sim$rsfcovar))
+     #rsfCLUS.StandardizeDynamicRSFCovar(sim)
      #rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
      
   }else{
@@ -129,10 +133,10 @@ rsfCLUS.Init <- function(sim) {
   
   #Set the GLM objects so that inherits class 'glm' which is needed for predict.glm function/method
   rsf_list<-lapply(as.list(unique(rsf_model_coeff[,"rsf"])$rsf), function(x) {#prepare the list needed for lapply to get the glm objects  
-    rsf_model_coeff[rsf==x, c("rsf","beta", "layer", "mean", "sdev")]
+    rsf_model_coeff[rsf==x, c("rsf","beta", "layer_uni", "mean", "sdev")]
   })
   sim$rsfGLM<-lapply(rsf_list, getglmobj)#init the glm objects for each of the rsf population and season
-  
+  rsfGLM[[1]]$formula
   return(invisible(sim))
 }
 
@@ -181,7 +185,6 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
           outPts[is.na(dist) & eval(pop_select) > 0, dist:=0] #those that are the distance to pixels, assign 
 
           sim$rsfcovar<-merge(sim$rsfcovar, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
-          #setnames(sim$rsfcovar, "dist",dt_variable$layer[j] )
           sim$rsfcovar[, (dt_variable$layer[j]):= dist]
           sim$rsfcovar[, dist:=NULL]
           
@@ -209,30 +212,6 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
   return(invisible(sim))
 }
 
-getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
-  #Create a fake data.table with 30 vars --this can be more....Tyler's RSF models max out ~30
-  fake.dt <-data.table(x1=runif(10,0,1),x2=runif(10,0,1),x3=runif(10,0,1),x4=runif(10,0,1),x5=runif(10,0,1),
-                       x6=runif(10,0,1),x7=runif(10,0,1),x8=runif(10,0,1),x9=runif(10,0,1),x10=runif(10,0,1),
-                       x11=runif(10,0,1),x12=runif(10,0,1),x13=runif(10,0,1),x14=runif(10,0,1),x15=runif(10,0,1),
-                       x16=runif(10,0,1),x17=runif(10,0,1),x18=runif(10,0,1),x19=runif(10,0,1),x20=runif(10,0,1),
-                       x21=runif(10,0,1),x22=runif(10,0,1),x23=runif(10,0,1),x24=runif(10,0,1),x25=runif(10,0,1),
-                       x26=runif(10,0,1),x27=runif(10,0,1),x28=runif(10,0,1),x29=runif(10,0,1),x30=runif(10,0,1),
-                       y=sample(c(0,1), replace=TRUE, size=10))
-  
-  #get the RSF parameters and variables
-  layers <-parm_list[,"layer"][-1] #-1 removes the intercept
-  beta <-parm_list[,"beta"]
-  #These names need to match the names in rsfcovar -- this means different columns for each standardized variable...
-  #set the names of the fake.dt to the names of variables used in the RSF
-  setnames(fake.dt, sprintf("x%s",seq(1:nrow(layers))), layers$layer)
-  #Fit a fake model to get the class inheritance of glm
-  suppressWarnings(lmFit <-glm(paste("y~", paste(layers$layer, sep = "' '", collapse= "+")),family=binomial(link='logit'), data = fake.dt))
-  #Hack the coefficients list so that the glm object uses these coefficents
-  lmFit$coefficients <- beta$beta
-
-  return(lmFit)
-}
-
 rsfCLUS.PredictRSF <- function(sim){
   #Loop through each population and season to predict its selection probability
   rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf
@@ -252,13 +231,20 @@ rsfCLUS.PredictRSF <- function(sim){
   
   return(invisible(sim))
 }
-rsfCLUS.StandardizeRSFCover<-function(sim){
-  #standardCoeff<-rsf_model_coeff[layer == layer_name, c("mean", "sdev")] #Get the mean and sdev
-  #sim$rsfcovar[, V1:= (V1-standardCoeff$mean)/(standardCoeff$sdev)]# standardize the layers to match the inputs of the rsf model
-  cols <- colnames(sim$rsfcovar) #The names of columns to be standardized
-  cm <- #A named vector pertaining to the means
-  csd <- #A named vector pertaining to the standard deviation
-  for(j in cols){
+
+rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
+  print('standardizing static covariates')
+  
+  static_list<-rsf_model_coeff[static == 'Y' & layer != 'int']
+  static_cols <-parse(text=static_list$layer)#The names of columns to be standardized
+  new_cols<- rsf_model_coeff[static == 'Y' & layer != 'int']$layer_uni#The names of columns to be standardized
+  
+  sim$rsfcovar[, (new_cols):= eval(static_cols)]
+ 
+  cm <- setNames(static_list$mean, static_list$layer_uni)
+  csd <- setNames(static_list$sdev, static_list$layer_uni) #A named vector pertaining to the standard deviation
+  
+  for(j in new_cols){
     set(sim$rsfcovar, i=NULL, j = j, value= (sim$rsfcovar[[j]] - cm[j] ) /csd[j] )
   }
   
@@ -279,6 +265,30 @@ rsfCLUS.StoreRSFCovar<- function(sim){
   
   
   return(invisible(sim))
+}
+
+getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
+  #Create a fake data.table with 30 vars --this can be more....Tyler's RSF models max out ~30
+  fake.dt <-data.table(x1=runif(10,0,1),x2=runif(10,0,1),x3=runif(10,0,1),x4=runif(10,0,1),x5=runif(10,0,1),
+                       x6=runif(10,0,1),x7=runif(10,0,1),x8=runif(10,0,1),x9=runif(10,0,1),x10=runif(10,0,1),
+                       x11=runif(10,0,1),x12=runif(10,0,1),x13=runif(10,0,1),x14=runif(10,0,1),x15=runif(10,0,1),
+                       x16=runif(10,0,1),x17=runif(10,0,1),x18=runif(10,0,1),x19=runif(10,0,1),x20=runif(10,0,1),
+                       x21=runif(10,0,1),x22=runif(10,0,1),x23=runif(10,0,1),x24=runif(10,0,1),x25=runif(10,0,1),
+                       x26=runif(10,0,1),x27=runif(10,0,1),x28=runif(10,0,1),x29=runif(10,0,1),x30=runif(10,0,1),
+                       y=sample(c(0,1), replace=TRUE, size=10))
+  
+  #get the RSF parameters and variables
+  layers <-parm_list[,"layer_uni"][-1] #-1 removes the intercept
+  beta <-parm_list[,"beta"]
+  #These names need to match the names in rsfcovar -- this means different columns for each standardized variable...
+  #set the names of the fake.dt to the names of variables used in the RSF
+  setnames(fake.dt, sprintf("x%s",seq(1:nrow(layers))), layers$layer_uni)
+  #Fit a fake model to get the class inheritance of glm
+  suppressWarnings(lmFit <-glm(paste("y~", paste(layers$layer_uni, sep = "' '", collapse= "+")),family=binomial(link='logit'), data = fake.dt))
+  #Hack the coefficients list so that the glm object uses these coefficents
+  lmFit$coefficients <- beta$beta
+  
+  return(lmFit)
 }
 
 completeDTZeros = function(DT) { #Sets all of the data.table columns that have NA to zero
