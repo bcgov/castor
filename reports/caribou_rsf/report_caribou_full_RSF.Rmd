@@ -1863,19 +1863,26 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 - high VIF values for BEC type (23) and moderate VIF values for summer precipitation (8) and minimum summer temperature (6); therefore, removed the latter two from model and got BEC VIF to 10 
 
+- the top DU8 late winter model included enduring all  covariates and had an AIC*~w~* = 1.00
+  - selected flatter slopes (\beta  = -0.37), closer to watercourses (\beta  = -0.14), but further 
+    from lakes (\beta  = 0.14)
+  - selected habitat pacthes closer cutblocks 10 to 29 years old (\beta  = -0.18), but further from 
+    cutblocks 5 to 9 years old (\beta  = 0.06), and over 30 years old (\beta  = 0.02)
+  - avoided patches closer to resource roads (\beta  = 0.12) and pipelines (\beta  = 0.14)
+  - avoided forest stand disturbed by beetles in the last 1 to 5 years (\beta  = -0.18) and 6 to 9 
+    years (\beta  = -0.33)
+  - avoided forest stands disturbed by fire in the last 6 to 25 (\beta  = -0.56) and over 25 years ago     (\beta  = -0.13)
+  - selected younger forest stands (\beta  = -0.06), with a lower site index (\beta  = -0.20), more 
+    herbaceous cover (\beta  = 0.10) and less shrub canopy closure (\beta  = -0.06)
+  - selected BAFA (\beta  = 0.64), ESSFmvp (\beta  = 0.13), ESSFmv2 (\beta  = 0.09) and ESSFwcp (\beta     = 0.08) BEC variants, and avoided BWBSmw (\beta  = -0.93), BWBSwk1 (\beta  = -0.90), ESSFwk2   
+    (\beta  = -0.90), and SBSwk2 (\beta  = -0.50) BEC variants relative to ESSFmc3
+  - avoided areas with on average higher mean annual precipitation (\beta  = -0.22)
 
 
 
 
 
 
-
-- the top DU8 late winter model included enduring features  covariates (elevation ,slope, distance to   watercourse and distance to lake) only had an AIC*~w~* = 1.00
-  - thus, appears elevation is a key covariate, so tested additonal combo models swapping out BEC for     elevation, temperature and snow covraites
-      - VIF < 5.4
-- after additonal model selection, top DU8 late winter model included all covariates and had 
-  an AIC*~w~* = 1.00:
-  - elevation a key covariate, caribou selected higher elevation (\beta  = 1.36)
   
   
   
@@ -1989,7 +1996,7 @@ kable (table.kfold.du8.ew)
   - regardless, teh modle clearly underestiamets their improtacne, which is important to consider when     interpreting the model results 
 
 
-```{r, k-fold du6, late winter table, eval = T, echo = F}
+```{r, k-fold du8, late winter table, eval = T, echo = F}
 table.kfold.du8.lw <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\late_winter\\table_kfold_summary_du8_lw.csv")
 table.kfold.du8.lw <- table.kfold.du8.lw [-1]
 kable (table.kfold.du8.lw)
@@ -2006,11 +2013,30 @@ kable (table.kfold.du8.lw)
 
 
 
-kfold_lm_du8_lw_grp4.png
+###### DU8, Late Summer
+- model validation statistics were generally poor
+
+ 
+
+
+```{r, k-fold du8, summer table, eval = T, echo = F}
+table.kfold.du8.s <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\summer\\table_kfold_summary_du8_s.csv")
+table.kfold.du8.s <- table.kfold.du8.s [-1]
+kable (table.kfold.du8.s)
+```
 
 
 
 
+![](plots/kfold_lm_du8_s_grp1.png)
+
+![](plots/kfold_lm_du8_s_grp2.png)
+
+![](plots/kfold_lm_du8_s_grp3.png)
+
+![](plots/kfold_lm_du8_s_grp4.png)
+
+![](plots/kfold_lm_du8_s_grp5.png)
 
 
 
