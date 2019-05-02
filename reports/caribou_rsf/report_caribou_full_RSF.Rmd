@@ -2014,9 +2014,11 @@ kable (table.kfold.du8.lw)
 
 
 ###### DU8, Late Summer
-- model validation statistics were generally poor
+- model validation statistics were very good
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, andclose to 1, ranging from 0.97 to 1.01 
+- intercepts were not significantly different from 0,  $$\chi^2$$ values were not significant, and adjusted *R^2* values varied from 0.92 to 0.99 (Table xx, Figure xx)
 
- 
+- visually looks good; telemetry locations appear 
 
 
 ```{r, k-fold du8, summer table, eval = T, echo = F}
@@ -2047,7 +2049,14 @@ kable (table.kfold.du8.s)
 
 
 ## Conclusions
+In general, across DU's 'enduring' or 'permanenet' features of the ladnscape (i.e., wetladns, moutanin tops, BEC types) are most improtant to cariobu; they are storngly selecting these permanent features and then likely respondign to disuyrtabnces within and aroudn them, but not beign pushed oaway form them due to disturbance; repsonses to distubrances are not straightforward and often not strictly avoidance; likely they are exploiting forage value of some disturbed areas, but could be at teh expense of predation risk, which this model doesn't capture particularly well; moose model is cirtical to tellign the predtion risk aspect of the story, as forest or disturabnce management may actually have relatively small impact on caribou, or could even have opposite effect, e.g., cutblocks may provide forage for cariobu, bu the larger concern is that they also provide forage for moose, which brings wolves and icnreases predation rate 
+
+
 In DU6 , 
+- key habtiat features are wetlands; more 'permanent' features of the landscape; disturabnce features 
+  less imprtoant, although fire clearly has neagtive effetc, but forestry and beetel disturabnce has a   postive effect 
+- forage also important; especially broid cover
+- older, less productive (shorter) and densse forest stands also improtant
 - visually and statsically cosnsitent with Demars: overlap in defintion of high and low quality   
   habitat pacthes; selected treed bogs and fens; avoid deciduous and upland types; avoid linear 
   features and select early seral/immature forest
@@ -2060,13 +2069,18 @@ In DU6 ,
     factor,but the mechanisms is unclear; may need to be cautious with those variable in the model
 
 In DU8,
-- in terms of habitat, climate is a key feature
-  - BEC really important; climate will drive this in the future
-  - new fire also a big effect
-- some interesting switching in use of cutblocks over time - maladaptive sink?
+- BEC and featrues related to BEC (elevation, slope and cliamte) are really important; climate could therefore drive cariobu habitat in the future
+- natural disturabnces (fire adn beetle) generally appear to be poor habtiat for cariobu with soem exceptions
+- roads adn agriculture always degrade habtiat quality, but eh efefct of cutbocks is ambiguous depednign on season and age, suggesting there may be some benefits of this disturabnce type 
+- some interesting switching in use of cutblocks over time; not necessarily always avoidingm adn sometimes selecting; sugegsts forestry coudl provide quality habtait for cariobu, but this mises the preadtion aspect. indeed it could be a synergistic negative effect by drawing cariobu into high predation risk areas - in this case, cutblocks coudl be a 'maladaptive sink', drawing cariobu to risky areas
+- select watercourses but avoid lakes; this may be more related to 'borader' topography (elevation adn slope), but coudl be that they use forage in riparian areas, but not lakes
+- seem to use drier and warmer areas, but this is in the context of selecting high elevation sites; likely a scale issue, and likely at larger scale use wetter and colder areas
+- consistently uses sites with more bryoids and herbs, but avoid shrubs; may be indicateive of niche seperation form moose
+- consistently use less productive forest stands, but not always older stands; seemed to select younger satdns in summer, perhaps attracted to forage value, but also needs to be considered int eh context of 'distuabnce' as may use yuonger stadns that have not recently been disturbaed by forestry, fire or beetles
 
 
-Across DU's; broad ecosystem/wetland class/types are key; other features are relatively minor effect in terms of habitat
+
+
 
 
 
