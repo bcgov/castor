@@ -50,47 +50,32 @@ rsfCLUS = list()
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "rsfCLUS")
 
 rsf_model_coeff<-data.table(population = c("DU6", "DU6","DU6","DU6","DU6","DU6",
-                                           "DU6","DU6","DU6","DU6","DU6",
-                                           
-                                           "DU6","DU6"),
-                            season =c("EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW",
-                                      
-                                      "LW","LW"),
+                                           "DU6","DU6","DU6","DU6","DU6"),
+                            season =c("EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW"),
                             bounds = c("rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
                                        "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
                                        "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
-                                       "rast.du6_bounds","rast.du6_bounds",
-                                       
                                        "rast.du6_bounds","rast.du6_bounds"),
-                            static = c('Y','Y','Y','Y','N','N','N','N','N','N','Y',
-                                       
-                                       'Y', 'N'),
+                            static = c('Y','Y','Y','Y','N','N','N','N','N','N','Y'),
                             beta = c(-2.562923161, -0.017756076, -0.018701324, 
                                      -0.022060543, -0.054817853,  -0.154907815, 
                                      -0.103495695, 0.076301527,-0.155193551,
-                                     0.004786669, 0.037246835,
-                                     
-                                     -2.07466903, -0.041530085),
-                            layer=c('int', "rast.bc_ha_slope", "rast.dt_waterbodies",
-                                    "rast.dt_watercourses",'du6_cut_1_4','du6_cut_5_10','du6_cut_gt_10',
-                                    'age','height','crownclosure', 'rast.crds_paved',
-                                    
-                                    'int','du6_cut_5_10'),
-                            type =c('','','','','DT', 'DT','DT','UP','UP','UP', 'DT', 
-                                    '', 'DT'),
-                            sql=c('','','','', 'blockid > 0 AND age BETWEEN 1 AND 4',
-                                  'blockid > 0 AND age BETWEEN 5 AND 10', 
-                                  'blockid > 0 AND age BETWEEN 11 AND 60','','','', '> 0',
-                                  
-                                  '', 'blockid > 0 AND age BETWEEN 5 AND 10'),
+                                     0.004786669, 0.037246835),
+                            layer=c('int', "rast_bc_ha_slope", "rast_dt_waterbodies",
+                                    "rast_dt_watercourses",'du6_cut_1_4','du6_cut_5_9','du6_cut_gt_10',
+                                    'age','height','crownclosure', 'rast_crds_paved'),
+                            type =c('','','','','DT', 'DT','DT','UP','UP','UP', ''),
+                            sql=c('','rast.bc_ha_slope','rast.dt_waterbodies','rast.dt_watercourses', 
+                                  'blockid > 0 AND age BETWEEN 0 AND 4',
+                                  'blockid > 0 AND age BETWEEN 5 AND 9', 
+                                  'blockid > 0 AND age BETWEEN 10 AND 60','age','height','crownclosure',
+                                  'rast.dt_crds_paved'),
                             mean=c(NA,1.285316558, 1735.343677, 8339.878587, 82949.33866,
                                    44787.09279, 24934.39396, 96.48501673, 8.303976041, 
-                                   30.60433628,25318.02571,
-                                   NA, 1.340879848),
+                                   30.60433628,25318.02571),
                             sdev=c(NA, 1.699846412, 1320.734513, 5600.597405, 62637.72276,
                                    35084.0656, 24867.16809, 37.77541289, 5.189987391,
-                                   18.42404009, 18921.1001099999,
-                                   NA,1.815616895)
+                                   18.42404009, 18921.1001099999)
                             )
 
 objects <- list(rsf_model_coeff=rsf_model_coeff)

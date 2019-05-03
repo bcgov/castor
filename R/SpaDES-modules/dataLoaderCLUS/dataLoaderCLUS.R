@@ -84,7 +84,6 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       if(P(sim, "dataLoaderCLUS", "useCLUSdb") == "99999"){
-      #if(sim$useCLUSdb == "99999"){
         #build clusdb
         sim <- dataLoaderCLUS.createCLUSdb(sim)
         #setBoundaries
@@ -95,9 +94,8 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         #disconnect the db once the sim is over?
         sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
       }else{
-        #TODO: Allow previous versions to be loaded
         print(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
-        #TODO: If an old clusdb drop columns?
+        sim$clusdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") )
       }
       },
     removeDbCLUS={
