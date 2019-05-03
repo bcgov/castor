@@ -162,8 +162,8 @@ General:
 #### DU7 Resource Covariates
 - experts
   - low elevation, pine-lichen stands
-  - high leavtion
-  - terretiral lichen
+  - high elevvtion
+  - terrestrial lichen
   - sub-alpine arboreal lichen
 
 - Wolverine (Johnson et al. 2004a)
@@ -184,10 +184,6 @@ General:
     - select low-mid-eleavtion (1179m), low slope
     - select lichen-lodgepole pine, spruce-fir forests, low elevation willow
     
-- Moberley to Narraway (Johnson et al. 2015)
-  - generally avoid roads, avoid or select siesmic and popialines, select cutblocks, avoid or select 
-    oil and gas, aovid mines select fire
-    
 - Muskwa-Kechika (Gustien and PArker 2006)
   - summer/fall
     - select subalpine
@@ -203,7 +199,7 @@ General:
   
 (Denryter et al. 2016 - boreal and northern and central groups)
 - mountains: high forage value in alpine shrub areas, mid-elevation spruce/fir stands
-- boreal: high forage value intreed, rich fens and white spruce communities
+- boreal: high forage value in treed, rich fens and white spruce communities
 - low forage value in dry apline adn unproductive black spruce
 
 (Apps et al. 2001 - Itcha and Rainbows)
@@ -222,12 +218,10 @@ General:
   
 (Apps et al. 2001 - Itcha and Rainbows)
   - high elevation in summer and winter
+  - NE aspects
+  - old forests
   
-(Apps et al. 2001 - Itcha and Rainbows)
-- NE aspects
 
-(Apps et al. 2001 - Itcha - old forests)
-  
 #### DU8 Resource Covariates
 - experts
   - habtait could be simpyl dfined by elevation and BEC 
@@ -244,6 +238,10 @@ General:
 slope (degrees) 
 (Johnson et al. 2004 - Hart Ranges - winter - slope + slope^2; select slopes ~35deg, normal distribtuon)
 
+- Moberley to Narraway (Johnson et al. 2015)
+  - generally avoid roads, avoid or select siesmic and pipelines, select cutblocks, avoid or select  oil and gas, aovid mines select fire
+  
+  
 #### DU9 Resource Covariates
 - experts
   - habtait could be simpyl dfined by elevation and BEC 
@@ -1262,20 +1260,91 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 - top annual climate top-ranked model included all covariates (precipitation as snow and mean annual  temperature) and had an AIC weight (AIC*~w~*) of 1.0  
 
 ###### Winter Climate
-
 - boxplots
-- generally didn't appear to be signfiant outliers
+  - generally didn't appear to be signfiant outliers
+![](plots/boxplot_winter_climate_du7_ew_ppt_as_snow.png)
+![](plots/boxplot_winter_climate_du7_ew_ppt.png)
+![](plots/boxplot_winter_climate_du7_ew_temp_avg.png)
+![](plots/boxplot_winter_climate_du7_ew_temp_max.png)
+![](plots/boxplot_winter_climate_du7_ew_temp_min.png)
 
-![](plots/boxplot_winter_climate_du8_ew_ppt_as_snow.png)
+- histograms
+![](plots/hist_annual_climate_du7_ew_pas.png)
+![](plots/hist_annual_climate_du7_ew_ppt.png)
+![](plots/hist_annual_climate_du7_ew_temp_avg.png)
+![](plots/hist_annual_climate_du7_ew_temp_max.png)
+![](plots/hist_annual_climate_du7_ew_temp_min.png)
+
+- correlations
+  - precipication as snow highly correlated with precipitation ($\rho$ = 0.99)
+  - maximum winter temperature highly correlated with average winter temperature     ($\rho$ = 0.70)
+  
+  - kept ppt as snow and winter average temperature only
+  
+![](plots/corr_winter_climate_du7_ew.png)
+
+- VIF's less than 1.2
+
+- top-ranked model winter climate included precipitation as snow and had 
+  AIC*~w~* = 0.715; second-ranked model included both covariates and had 
+  AIC*~w~* = 0.284;
+  
+- similar coefficient values for both so kept second-ranked model
+
+###### Vegetation and Forest Characteristics
+- boxplots
+  - no significant outliers apparent
+![](plots/boxplot_veg_du7_ew_basal_area.png)
+![](plots/boxplot_veg_du7_ew_bryoid_perc.png)
+![](plots/boxplot_veg_du7_ew_crown_close.png)
+![](plots/boxplot_veg_du7_ew_herb_cover.png)
+![](plots/boxplot_veg_du7_ew_live_volume.png)
+![](plots/boxplot_veg_du7_ew_stand_age.png)
+![](plots/boxplot_veg_du7_ew_stand_height.png)
+![](plots/boxplot_veg_du7_ew_shrub_closure.png)
+![](plots/boxplot_veg_du7_ew_shrub_height.png)
+![](plots/boxplot_veg_du7_ew_site_index.png)
+
+- histogram
+  - grouped BAFAun and BAFAunp into BAFA
+  - grouped SBSmc2 and SBSmc3 into SBSmc
+  - grouped ESSFxv1 and ESSFxvp into ESSFxv
+  - removed BWBSmw, ESSFmkp and ESSFmk because few locations there
+  - reference class set to ESSFmc
+  - not much info in the LC class or tree spp.
+  
+![](plots/hist_veg_du7_ew_bec.png)
+![](plots/hist_veg_du7_ew_bec_reclass.png)
+![](plots/hist_veg_du7_ew_landcover.png)
+![](plots/hist_veg_du7_ew_soil_moisture.png)
+![](plots/hist_veg_du7_ew_soil_nutirent.png)
+![](plots/hist_veg_du7_ew_lead_tree_spp.png)
+
+- correlations
+  - basal area highly correlated with crown closure ($\rho$ = 0.82), live volume     ($\rho$ = 0.92), and stand height ($\rho$ = 0.71)
+  - live volume highly correlated with stand height ($\rho$ = 0.86)
+  - stand height highly correlated with site index ($\rho$ = 0.70)
+  - shrub crown closure highly correlated with shrub height ($\rho$ = 0.78)
+  
+  - kept herb cover, bryoid cover, shrub crown closure, and stand crown closure,     site index, height and age
+  
+![](plots/corr_veg_du7_ew.png)
+
+- VIF's less than 7.1
+
+- top vegetation model included all covariates (BEC type, shrub closure, bryoid cover, herb cover, forest stand age, height and crown closure and site index) and had an AIC weight (AIC*~w~*) of 1.0
+
+###### Combination Models
 
 
 
+- correlations
+  - annual precipitation as snow and winter precipitation as snow highly correlated ($\rho$ = 0.91)
+  - annual precipitation as snow and average winter temperature highly correlated ($\rho$ = 0.86)
+  
+  - removed annual ppt as snow
 
-
-
-
-
-
+![](plots/corr_winter_climate_du8_ew.png)
 
 ### DU 8
 #### Early Winter

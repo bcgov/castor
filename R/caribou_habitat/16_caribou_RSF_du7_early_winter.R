@@ -1741,54 +1741,68 @@ rsf.data.veg.du7.ew <- rsf.data.veg %>%
                          dplyr::filter (season == "EarlyWinter")
 rsf.data.veg.du7.ew$pttype <- as.factor (rsf.data.veg.du7.ew$pttype)
 
-rsf.data.veg.du7.ew <- rsf.data.veg.du7.ew %>% # remove basal area outlier
-                    filter (vri_basal_area < 150)
-
 # reclassify BEC for caribou: NOTE TWO TYPES; USED THE LATTER IN MODEL
 rsf.data.veg.du7.ew$bec_label_reclass <- rsf.data.veg.du7.ew$bec_label
 rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                               "'BAFAun' = 'BAFA'") # simplified to alpine type
+                                               "'BAFAun' = 'BAFA'") 
 rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
                                           "'BAFAunp' = 'BAFA'")
 rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                          "'BWBSdk' = 'BWBS'") # simplified to BWBS type
+                                                 "'SBS mc 2' = 'SBSmc'")
 rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                          "'BWBSmk' = 'BWBS'")
+                                                 "'SBS mc 3' = 'SBSmc'")
 rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                          "'BWBSmw' = 'BWBS'")
+                                                 "'ESSFxv 1' = 'ESSFxv'")
 rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                          "'BWBSwk 1' = 'BWBS'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                          "'BWBSwk 2' = 'BWBS'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                          "'BWBSwk 3' = 'BWBS'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'SBS wk 1' = 'SBS_very_wet_to_wet_cool'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'SBS wk 2' = 'SBS_very_wet_to_wet_cool'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'SBS vk' = 'SBS_very_wet_to_wet_cool'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'ESSFmvp' = 'ESSF_moist_very_cold'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'ESSFmv 2' = 'ESSF_moist_very_cold'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'ESSFwc 3' = 'ESSF_wet_cold'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'ESSFwcp' = 'ESSF_wet_cold'")
-rsf.data.veg.du7.ew$bec_label_reclass <- recode (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                 "'ESSFwk 2' = 'ESSF_wet_cool'")
+                                                 "'ESSFxvp' = 'ESSFxv'")
+rsf.data.veg.du7.ew <- rsf.data.veg.du7.ew %>%
+                          dplyr::filter (bec_label_reclass != "BWBSmw")
+rsf.data.veg.du7.ew <- rsf.data.veg.du7.ew %>%
+                          dplyr::filter (bec_label_reclass != "ESSFmk")
+rsf.data.veg.du7.ew <- rsf.data.veg.du7.ew %>%
+                        dplyr::filter (bec_label_reclass != "ESSFmkp")
 rsf.data.veg.du7.ew$bec_label_reclass <- relevel (rsf.data.veg.du7.ew$bec_label_reclass,
-                                                  ref = "ESSF_wet_cold") # reference category
+                                                     ref = "ESSFmc") # reference category
 
-rsf.data.combo.du7.ew$bec_label_reclass2 <- rsf.data.combo.du7.ew$bec_label
-rsf.data.combo.du7.ew <- rsf.data.combo.du7.ew %>%
-  dplyr::filter (bec_label_reclass2 != "SBS vk")
-rsf.data.combo.du7.ew$bec_label_reclass2 <- relevel (rsf.data.combo.du7.ew$bec_label_reclass2,
-                                                     ref = "ESSFwc 3") # reference category
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Wetland-Treed-Conifer' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Wetland-Shrub' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Wetland-Treed-Mixed' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Wetland-Treed-Deciduous' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Wetland-NonTreed' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Wetland-Herb' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Water' = 'Wetland'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Alpine-Herb' = 'Alpine'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Alpine-NonTreed' = 'Alpine'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Alpine-Shrub' = 'Alpine'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Alpine-Lichen' = 'Alpine'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Upland-Treed-Deciduous' = 'Upland-Treed-Decid-Mixed'")
+rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                               "'Upland-Treed-Mixed' = 'Upland-Treed-Decid-Mixed'")
+rsf.data.veg.du7.ew$vri_bclcs_class  <- relevel (rsf.data.veg.du7.ew$vri_bclcs_class,
+                                                 ref = "Upland-Treed-Conifer")
 
 rsf.data.veg.du7.ew$vri_bclcs_class  <- relevel (rsf.data.veg.du7.ew$vri_bclcs_class,
                                                   ref = "Upland-Treed-Conifer")
+
+rsf.data.veg.du7.ew$vri_species_primary_name_reclass <- recode (rsf.data.veg.du7.ew$vri_species_primary_name_reclass,
+                                                                "'ALB' = 'Deciduous'")
+rsf.data.veg.du7.ew$vri_species_primary_name_reclass <- recode (rsf.data.veg.du7.ew$vri_species_primary_name_reclass,
+                                                                "'APC' = 'Deciduous'")
+rsf.data.veg.du7.ew$vri_species_primary_name_reclass  <- relevel (rsf.data.veg.du7.ew$vri_species_primary_name_reclass,
+                                                                  ref = "PIN")
+
 ### OUTLIERS ###
 ggplot (rsf.data.veg.du7.ew, aes (x = pttype, y = vri_basal_area)) +
   geom_boxplot (outlier.colour = "red") +
@@ -1862,7 +1876,7 @@ ggplot (rsf.data.veg.du7.ew, aes (x = pttype, y = vri_site_index)) +
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\boxplot_veg_du7_ew_site_index.png")
 
 ### HISTOGRAMS ###
-ggplot (rsf.data.veg.du7.ew, aes (x = bec_label_reclass, fill = pttype)) + 
+ggplot (rsf.data.veg.du7.ew, aes (x = bec_label, fill = pttype)) + 
             geom_histogram (position = "dodge", stat = "count") +
             labs (title = "Histogram DU7, Early Winter, BEC Type\
                           at Available (0) and Used (1) Locations",
@@ -1872,34 +1886,15 @@ ggplot (rsf.data.veg.du7.ew, aes (x = bec_label_reclass, fill = pttype)) +
             theme (axis.text.x = element_text (angle = 45))
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du7_ew_bec.png")
 
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                        "'Wetland-Treed-Conifer' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                        "'Wetland-Shrub' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                        "'Wetland-Treed-Mixed' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                        "'Wetland-Treed-Deciduous' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Wetland-NonTreed' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Wetland-Herb' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Water' = 'Wetland'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Alpine-Herb' = 'Alpine'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Alpine-NonTreed' = 'Alpine'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Alpine-Shrub' = 'Alpine'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Alpine-Lichen' = 'Alpine'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Upland-Treed-Deciduous' = 'Upland-Treed-Decid-Mixed'")
-rsf.data.veg.du7.ew$vri_bclcs_class <- recode (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                               "'Upland-Treed-Mixed' = 'Upland-Treed-Decid-Mixed'")
-rsf.data.veg.du7.ew$vri_bclcs_class  <- relevel (rsf.data.veg.du7.ew$vri_bclcs_class,
-                                                 ref = "Upland-Treed-Conifer")
+ggplot (rsf.data.veg.du7.ew, aes (x = bec_label_reclass, fill = pttype)) + 
+          geom_histogram (position = "dodge", stat = "count") +
+          labs (title = "Histogram DU7, Early Winter, BEC Type\
+                                  at Available (0) and Used (1) Locations",
+                x = "Biogeclimatic Unit Type",
+                y = "Count") +
+          scale_fill_discrete (name = "Location Type") +
+          theme (axis.text.x = element_text (angle = 45))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du7_ew_bec_reclass.png")
 
 ggplot (rsf.data.veg.du7.ew, aes (x = vri_bclcs_class, fill = pttype)) + 
           geom_histogram (position = "dodge", stat = "count") +
@@ -1931,12 +1926,6 @@ ggplot (rsf.data.veg.du7.ew, aes (x = vri_soil_nutrient_name, fill = pttype)) +
           theme (axis.text.x = element_text (angle = -90, hjust = 0))
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\hist_veg_du7_ew_soil_nutirent.png")
 
-rsf.data.veg.du7.ew$vri_species_primary_name_reclass <- recode (rsf.data.veg.du7.ew$vri_species_primary_name_reclass,
-                                                                "'ALB' = 'Deciduous'")
-rsf.data.veg.du7.ew$vri_species_primary_name_reclass <- recode (rsf.data.veg.du7.ew$vri_species_primary_name_reclass,
-                                                                "'APC' = 'Deciduous'")
-rsf.data.veg.du7.ew$vri_species_primary_name_reclass  <- relevel (rsf.data.veg.du7.ew$vri_species_primary_name_reclass,
-                                                                  ref = "PIN")
 ggplot (rsf.data.veg.du7.ew, aes (x = vri_species_primary_name_reclass, fill = pttype)) + 
           geom_histogram (position = "dodge", stat = "count") +
           labs (title = "Histogram DU7, Early Winter, Primary Tree Species\
@@ -1956,9 +1945,11 @@ ggcorrplot (corr.veg.du7.ew, type = "lower", lab = TRUE, tl.cex = 10,  lab_size 
 ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\corr_veg_du7_ew.png")
 
 ### VIF ###
-glm.veg.du7.ew <- glm (pttype ~ bec_label_reclass + vri_bclcs_class + vri_species_primary_name_reclass +
-                                vri_proj_age + vri_crown_closure + vri_site_index +
-                                vri_bryoid_cover_pct + vri_herb_cover_pct + vri_shrub_crown_close, 
+glm.veg.du7.ew <- glm (pttype ~ bec_label_reclass + 
+                                vri_proj_age + vri_crown_closure + 
+                                vri_site_index + vri_proj_height +
+                                vri_bryoid_cover_pct + vri_herb_cover_pct + 
+                                vri_shrub_crown_close, 
                        data = rsf.data.veg.du7.ew,
                        family = binomial (link = 'logit'))
 car::vif (glm.veg.du7.ew)
@@ -1975,6 +1966,7 @@ rsf.data.veg.du7.ew$std.vri_proj_age <- (rsf.data.veg.du7.ew$vri_proj_age - mean
 rsf.data.veg.du7.ew$std.vri_shrub_crown_close <- (rsf.data.veg.du7.ew$vri_shrub_crown_close - mean (rsf.data.veg.du7.ew$vri_shrub_crown_close)) / sd (rsf.data.veg.du7.ew$vri_shrub_crown_close)
 rsf.data.veg.du7.ew$std.vri_crown_closure <- (rsf.data.veg.du7.ew$vri_crown_closure - mean (rsf.data.veg.du7.ew$vri_crown_closure)) / sd (rsf.data.veg.du7.ew$vri_crown_closure)
 rsf.data.veg.du7.ew$std.vri_site_index <- (rsf.data.veg.du7.ew$vri_site_index - mean (rsf.data.veg.du7.ew$vri_site_index)) / sd (rsf.data.veg.du7.ew$vri_site_index)
+rsf.data.veg.du7.ew$std.vri_proj_height <- (rsf.data.veg.du7.ew$vri_proj_height - mean (rsf.data.veg.du7.ew$vri_proj_height)) / sd (rsf.data.veg.du7.ew$vri_proj_height)
 
 ### CANDIDATE MODELS ###
 ## BEC ##
@@ -1983,6 +1975,8 @@ model.lme4.du7.ew.veg.bec <- glmer (pttype ~ bec_label_reclass +
                                     data = rsf.data.veg.du7.ew, 
                                     family = binomial (link = "logit"),
                                     verbose = T) 
+ss <- getME (model.lme4.du7.ew.veg.bec, c ("theta","fixef"))
+model.lme4.du7.ew.veg.bec <- update (model.lme4.du7.ew.veg.bec, start = ss) # failed to converge, restart with parameter estimates
 # AIC
 table.aic [1, 1] <- "DU7"
 table.aic [1, 2] <- "Early Winter"
@@ -1992,8 +1986,10 @@ table.aic [1, 5] <- "(1 | UniqueID)"
 table.aic [1, 6] <-  AIC (model.lme4.du7.ew.veg.bec)
 
 ## FOOD ##
-model.lme4.du7.ew.veg.food <- glmer (pttype ~ std.vri_shrub_crown_close + std.vri_bryoid_cover_pct + 
-                                              std.vri_herb_cover_pct + (1 | uniqueID), 
+model.lme4.du7.ew.veg.food <- glmer (pttype ~ std.vri_shrub_crown_close + 
+                                              std.vri_bryoid_cover_pct + 
+                                              std.vri_herb_cover_pct + 
+                                              (1 | uniqueID), 
                                      data = rsf.data.veg.du7.ew, 
                                      family = binomial (link = "logit"),
                                      verbose = T) 
@@ -2006,8 +2002,11 @@ table.aic [2, 5] <- "(1 | UniqueID)"
 table.aic [2, 6] <-  AIC (model.lme4.du7.ew.veg.food)
 
 ## FOREST STAND ##
-model.lme4.du7.ew.veg.forest <- glmer (pttype ~ std.vri_proj_age + std.vri_crown_closure +
-                                                std.vri_site_index + (1 | uniqueID), 
+model.lme4.du7.ew.veg.forest <- glmer (pttype ~ std.vri_proj_age + 
+                                                std.vri_crown_closure +
+                                                std.vri_site_index + 
+                                                std.vri_proj_height +
+                                                (1 | uniqueID), 
                                        data = rsf.data.veg.du7.ew, 
                                        family = binomial (link = "logit"),
                                        verbose = T) 
@@ -2015,7 +2014,7 @@ model.lme4.du7.ew.veg.forest <- glmer (pttype ~ std.vri_proj_age + std.vri_crown
 table.aic [3, 1] <- "DU7"
 table.aic [3, 2] <- "Early Winter"
 table.aic [3, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [3, 4] <- "TreeAge, TreeClosure, SiteIndex"
+table.aic [3, 4] <- "TreeAge, TreeClosure, SiteIndex, TreeHeight"
 table.aic [3, 5] <- "(1 | UniqueID)"
 table.aic [3, 6] <-  AIC (model.lme4.du7.ew.veg.forest)
 
@@ -2028,6 +2027,8 @@ model.lme4.du7.ew.veg.bec.food <- glmer (pttype ~  bec_label_reclass +
                                                  data = rsf.data.veg.du7.ew, 
                                                  family = binomial (link = "logit"),
                                                  verbose = T) 
+ss <- getME (model.lme4.du7.ew.veg.bec.food, c ("theta","fixef"))
+model.lme4.du7.ew.veg.bec.food <- update (model.lme4.du7.ew.veg.bec.food, start = ss) # failed to converge, restart with parameter estimates
 # AIC
 table.aic [4, 1] <- "DU7"
 table.aic [4, 2] <- "Early Winter"
@@ -2041,15 +2042,18 @@ model.lme4.du7.ew.veg.bec.forest <- glmer (pttype ~ bec_label_reclass +
                                                      std.vri_proj_age + 
                                                      std.vri_crown_closure +
                                                      std.vri_site_index +
+                                                     std.vri_proj_height +
                                                      (1 | uniqueID), 
                                             data = rsf.data.veg.du7.ew, 
                                             family = binomial (link = "logit"),
                                             verbose = T) 
+ss <- getME (model.lme4.du7.ew.veg.bec.forest, c ("theta","fixef"))
+model.lme4.du7.ew.veg.bec.forest <- update (model.lme4.du7.ew.veg.bec.forest, start = ss) # failed to converge, restart with parameter estimates
 # AIC
 table.aic [5, 1] <- "DU7"
 table.aic [5, 2] <- "Early Winter"
 table.aic [5, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [5, 4] <- "BEC, TreeAge, TreeClosure, SiteIndex"
+table.aic [5, 4] <- "BEC, TreeAge, TreeClosure, SiteIndex, TreeHeight"
 table.aic [5, 5] <- "(1 | UniqueID)"
 table.aic [5, 6] <-  AIC (model.lme4.du7.ew.veg.bec.forest)
 
@@ -2060,6 +2064,7 @@ model.lme4.du7.ew.veg.food.forest <- glmer (pttype ~ std.vri_shrub_crown_close +
                                                      std.vri_proj_age + 
                                                      std.vri_crown_closure +
                                                      std.vri_site_index +
+                                                     std.vri_proj_height +
                                                      (1 | uniqueID), 
                                             data = rsf.data.veg.du7.ew, 
                                             family = binomial (link = "logit"),
@@ -2068,7 +2073,7 @@ model.lme4.du7.ew.veg.food.forest <- glmer (pttype ~ std.vri_shrub_crown_close +
 table.aic [6, 1] <- "DU7"
 table.aic [6, 2] <- "Early Winter"
 table.aic [6, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
-table.aic [6, 4] <- "ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex"
+table.aic [6, 4] <- "ShrubClosure, BryoidCover, HerbCover, TreeAge, TreeClosure, SiteIndex, TreeHeight"
 table.aic [6, 5] <- "(1 | UniqueID)"
 table.aic [6, 6] <-  AIC (model.lme4.du7.ew.veg.food.forest)
 
@@ -2080,6 +2085,7 @@ model.lme4.du7.ew.veg.bec.forest.food <- glmer (pttype ~ bec_label_reclass +
                                                            std.vri_proj_age + 
                                                            std.vri_crown_closure +
                                                            std.vri_site_index +
+                                                           std.vri_proj_height +
                                                            (1 | uniqueID), 
                                                  data = rsf.data.veg.du7.ew, 
                                                  family = binomial (link = "logit"),
