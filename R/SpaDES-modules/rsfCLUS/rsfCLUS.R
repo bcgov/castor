@@ -231,7 +231,7 @@ rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
   csd <- setNames(static_list$sdev, static_list$layer_uni) #A named vector pertaining to the standard deviation
   
   #Standardize the covariates
-  for(j in new_cols){
+  for(j in static_list$layer_uni){
     set(sim$rsfcovar, i=NULL, j = j, value= (sim$rsfcovar[[j]] - cm[[j]] ) /csd[[j]] )
   }
   
