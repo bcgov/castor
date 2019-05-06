@@ -28,6 +28,7 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("rsfCalcInterval", "numeric", 1, NA, NA, "The simulation time at which resource selection function are calculated"),
+    defineParameter("checkRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the rasters to disk. For checking in a GIS"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -54,8 +55,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- rsfCLUS.Init(sim)
-      #sim <- rsfCLUS.PredictRSF(sim)
-      #sim <- rsfCLUS.checkRasters(sim)
+      sim <- rsfCLUS.PredictRSF(sim)
       #sim <- scheduleEvent(sim, time(sim) + P(sim)$rsfCalcInterval, "rsfCLUS", "calculateRSF")
     },
     
@@ -112,10 +112,13 @@ rsfCLUS.Init <- function(sim) {
     }
 
      rsfCLUS.UpdateRSFCovar(sim) # Complete the rsfcovar table with the dynamic variables
-     rsfCLUS.checkRasters(sim)
-     #rsfCLUS.StandardizeStaticRSFCovar(sim)
-     #rsfCLUS.StandardizeDynamicRSFCovar(sim)
-     #rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
+     
+     if(P(sim, "rsfCLUS", "checkRasters")){
+       sim <- rsfCLUS.checkRasters(sim)
+     }
+     rsfCLUS.StandardizeStaticRSFCovar(sim)
+     rsfCLUS.StandardizeDynamicRSFCovar(sim)
+     rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
      
   }else{
     sim$rsfcovar<-dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar")
@@ -217,18 +220,19 @@ rsfCLUS.PredictRSF <- function(sim){
 rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
   print('standardizing static covariates')
   
-  static_list<-rsf_model_coeff[static == 'Y' & layer != 'int']
-  static_cols <-parse(text=static_list$sql)#The names of columns to be standardized
-  new_cols<- rsf_model_coeff[static == 'Y' & layer != 'int']$layer_uni#The names of columns to be standardized
-  
-  sim$rsfcovar[, (new_cols):= eval(static_cols)]
+  static_list<-rsf_model_coeff[static == 'Y' & layer != 'int'] # Get the static list
+  static_list <- within(static_list,  equate <- paste(layer_uni, sql, sep="=")) # concatenate two colums so that the new layer equals the old layer
+
+  static_equals<-paste(static_list$equate, sep ="' '", collapse = ", ")
+  static_assign<-parse(text=paste0("`:=`(",static_equals ,")"))
+  sim$rsfcovar[,eval(static_assign)] #Assugn the new names with the imported (old) layers
  
   cm <- setNames(static_list$mean, static_list$layer_uni)
   csd <- setNames(static_list$sdev, static_list$layer_uni) #A named vector pertaining to the standard deviation
   
   #Standardize the covariates
   for(j in new_cols){
-    set(sim$rsfcovar, i=NULL, j = j, value= (sim$rsfcovar[[j]] - cm[j] ) /csd[j] )
+    set(sim$rsfcovar, i=NULL, j = j, value= (sim$rsfcovar[[j]] - cm[[j]] ) /csd[[j]] )
   }
   
   #Drop the unstandardized covars
@@ -242,17 +246,18 @@ rsfCLUS.StandardizeDynamicRSFCovar<-function(sim){
   print('standardizing dynamic covariates')
   
   dynamic_list<-rsf_model_coeff[static == 'N' & layer != 'int']
-  dynamic_cols <-parse(text=dynamic_list$layer)#The names of columns to be standardized
-  new_cols<- dynamic_list$layer_uni#The names of columns to be standardized
+  dynamic_list <- within(dynamic_list,  equate <- paste(layer_uni, layer, sep="=")) # concatenate two colums so that the new layer equals the old layer
   
-  sim$rsfcovar[, (new_cols):= eval(dynamic_cols)]
+  dynamic_equals<-paste(dynamic_list$equate, sep ="' '", collapse = ", ")
+  dynamic_assign<-parse(text=paste0("`:=`(",dynamic_equals ,")"))
+  sim$rsfcovar[,eval(dynamic_assign)] #Assign the new names with the imported (old) layers
   
   cm <- setNames(dynamic_list$mean, dynamic_list$layer_uni)
   csd <- setNames(dynamic_list$sdev, dynamic_list$layer_uni) #A named vector pertaining to the standard deviation
   
   #Standardize the covariates
-  for(j in new_cols){
-    set(sim$rsfcovar, i=NULL, j = j, value= (sim$rsfcovar[[j]] - cm[j] ) /csd[j] )
+  for(j in dynamic_list$layer_uni){
+    set(sim$rsfcovar, i=NULL, j = j, value= (sim$rsfcovar[[j]] - cm[[j]] ) /csd[[j]] )
   }
   
   #Drop the unstandardized covars
@@ -264,11 +269,7 @@ rsfCLUS.StandardizeDynamicRSFCovar<-function(sim){
 
 rsfCLUS.StoreRSFCovar<- function(sim){
   #Stores the rsfCover in clusdb. This allows a clusdb to be created and used again without wait times for dataloading
-  #print(head(sim$rsfcovar))
-  #print(paste0("CREATE TABLE IF NOT EXISTS rsfcovar (",paste(colnames(sim$rsfcovar), sep = "' '", collapse = ' numeric, '), " numeric)"))
-  #TODO: store pixel id as an integer???
-  
-  #Create the table in clusdb
+  ##Create the table in clusdb
   dbExecute(sim$clusdb, paste0("CREATE TABLE IF NOT EXISTS rsfcovar (",
                               paste(colnames(sim$rsfcovar), sep = "' '", collapse = ' numeric, '), " numeric)"))
   #Insert the values
@@ -278,10 +279,7 @@ rsfCLUS.StoreRSFCovar<- function(sim){
                         values (:", paste(colnames(sim$rsfcovar), sep = "' '", collapse = ',:'), ")"), sim$rsfcovar)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
-  
- # print(dbGetQuery(sim$clusdb, "SELECT * from rsfcovar LIMIT 7"))
-  
-  
+  #print(dbGetQuery(sim$clusdb, "SELECT * from rsfcovar LIMIT 7"))
   return(invisible(sim))
 }
 
