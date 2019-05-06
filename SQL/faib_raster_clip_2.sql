@@ -12,7 +12,7 @@ BEGIN
 	EXECUTE 'DROP TABLE IF EXISTS ' || outRast || ';';
 	
 	qry = 'CREATE TABLE ' || outRast || ' AS
-		(SELECT st_union(ST_Clip(foo.rast, 1, foo.'|| geom ||',-9999, true)) as rast FROM 
+		(SELECT st_union(ST_Clip(foo.rast, 1, foo.'|| geom ||', true)) as rast FROM 
 		(SELECT st_union(rast) as rast,' || geom ||' from ' || srcrast||', ' || clippoly|| '
 		WHERE ' || where_clause || ' AND ST_Intersects(rast, '|| geom ||') group by '|| geom ||' ) as foo
         ) ;';
