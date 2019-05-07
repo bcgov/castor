@@ -218,6 +218,30 @@ RASTER_CLIP2 <- function(srcRaster, clipper, geom, where_clause, conn=NULL){
   #--Return the Raster Layer
   return(rout)           
 }
+
+RASTER_CLIP_CAT <- function(srcRaster, clipper, geom, where_clause, out_reclass, conn=NULL){
+  
+  tmpRast = 'FAIB_RCL_TEMPRAST'
+  #--Get a Connection to the Database if one not supplied
+  if (is.null(conn)){
+    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+  }
+  #--Build the query string to execute the function to generate temporary Raster
+  qry = sprintf("select public.faib_raster_clip_cat('%s', '%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause, out_reclass)
+  #--Execute the query
+  r<-dbGetQuery(conn, qry)
+  #--Get Raster Layer object of Raster result
+  rout <- pgGetRast(conn, tolower(tmpRast), 'rast', 1)
+  #--Drop the temporary Raster from the DB
+  qry = paste('DROP TABLE IF EXISTS', tmpRast)
+  dbGetQuery(conn, qry)
+  #--Disconnect the DB
+  on.exit(dbDisconnect(conn))
+  #--Return the Raster Layer
+  return(rout)           
+}
+
 #----------------------------------------------------------------------------------------------------------------------------------------
 #-Applying the Functions
 #----------------------------------------------------------------------------------------------------------------------------------------
