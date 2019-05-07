@@ -101,33 +101,48 @@ rsfCLUS.Init <- function(sim) {
     static_list<-as.list(unlist(unique(rsf_model_coeff[static == 'Y' & layer != 'int'])[,c("sql")], use.names = FALSE))
     for(layer_name in static_list){ 
       print(layer_name)
-      layer<-data.table(c(t(raster::as.matrix(
-        RASTER_CLIP2(srcRaster= layer_name, 
-                    clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                    geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                    where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                    conn=NULL)))))
-      
+      if(rsf_model_coeff[sql == layer_name & layer != 'int']$type == 'RC' ){
+        rclass_text<- rsf_model_coeff[sql == layer_name & layer != 'int']$reclass
+        print(rclass_text)
+        layer<-data.table(c(t(raster::as.matrix(
+          RASTER_CLIP_CAT(srcRaster= layer_name, 
+                       clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                       geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                       where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                       out_reclass = rclass_text,
+                       conn=NULL)))))
+      }else{
+        layer<-data.table(c(t(raster::as.matrix(
+          RASTER_CLIP2(srcRaster= layer_name, 
+                       clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                       geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                       where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                       conn=NULL)))))
+      }
       sim$rsfcovar[, (layer_name):= layer$V1] 
     }
 
-     rsfCLUS.UpdateRSFCovar(sim) # Complete the rsfcovar table with the dynamic variables
+    rsfCLUS.UpdateRSFCovar(sim) # Complete the rsfcovar table with the dynamic variables
      
-     if(P(sim, "rsfCLUS", "checkRasters")){
-       sim <- rsfCLUS.checkRasters(sim)
-     }
-     rsfCLUS.StandardizeStaticRSFCovar(sim)
-     rsfCLUS.StandardizeDynamicRSFCovar(sim)
-     rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
+    if(P(sim, "rsfCLUS", "checkRasters")){
+      sim <- rsfCLUS.checkRasters(sim)
+    }
+    
+    rsfCLUS.StandardizeStaticRSFCovar(sim)
+    rsfCLUS.StandardizeDynamicRSFCovar(sim)
+    rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
      
   }else{
     sim$rsfcovar<-dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar")
   }
+  
   #Set the GLM objects so that inherits class 'glm' which is needed for predict.glm function/method
   rsf_list<-lapply(as.list(unique(rsf_model_coeff[,"rsf"])$rsf), function(x) {#prepare the list needed for lapply to get the glm objects  
     rsf_model_coeff[rsf==x, c("rsf","beta", "layer_uni", "mean", "sdev")]
   })
+  
   sim$rsfGLM<-lapply(rsf_list, getglmobj)#init the glm objects for each of the rsf population and season
+  
   return(invisible(sim))
 }
 
