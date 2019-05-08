@@ -137,9 +137,17 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
 
 >Note: In layer column an 'int' is needed for each rsf. If the rsf is fit with no intercept, 'int' is required but with beta = 0.
 
-* type :=  declares the type of dynamic variable.  UP = 'Updatable' in `clusdb`, DT = 'Distance To'. A value in this column is needed if the static column = N.
+* type :=  declares the type of dynamic variable. A value in this column is needed if the static column = N. 
+
++ UP = 'Updatable' in `clusdb` 
+
++ DT = 'Distance To' 
+
++ RC = 'Reclass' 
 
 * sql := the `WHERE` clause of a sql statement describing the `clusdb` variables used in the dynamic layer
+
+* reclass := the SQL for [ST_Reclass](https://postgis.net/docs/RT_ST_Reclass.html) - follows the [reclassexpr](https://postgis.net/docs/reclassarg.html) where '(' means greater than, '[' means greater then or equal to. Ex. [a-b] = a <= x <= b in comparison to (a-b) = a < x < b
 
 * mean:= the mean of the layer within the scope of the rsf 
 
