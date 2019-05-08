@@ -28,7 +28,7 @@ The clus database is oraganized into a set of [schemas](https://www.postgresql.o
 
 * `public` layers downloaded from data bc.
 * `rast` all compiled raster layers.
-* `caribou` all caribou outputs.
+* `caribou` all rsf model related outputs to caribou 
 
 > This .rmd documents the rasterization process of `public` layers into the `rast` schema
 
@@ -47,16 +47,18 @@ data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting lan
                    'Waterbodies',
                    'Watercoures',
                    'Caribou Designatable Unit 6 Boundary',
-                   'Caribou Designatable Unit 8 Boundary'
+                   'Caribou Designatable Unit 8 Boundary',
+                   'BEC Zones and subzones'
                    ),
            public = c('bc_thlb'
-                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses', 'caribou_boreal_study_area'),
-           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses', 'du6_bounds','du8_bounds'),
+                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses', 'caribou_boreal_study_area','du8_herds_buff25km','bec_zone'),
+           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses', 'du6_bounds','du8_bounds', 'bec_zone'),
            source=c('INTERNAL','INTERNAL','INTERNAL','INTERNAL',
-                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm', 'INTERNAL', 'INTERNAL'))
+                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm', 'INTERNAL', 'INTERNAL','https://catalogue.data.gov.bc.ca/dataset/biogeoclimatic-ecosystem-classification-bec-map'))
 ```
 
-## Set empty raster
+## Set empty provincial raster
+
 ```{r, faster_raster}
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
@@ -243,5 +245,29 @@ ras.du9<-fasterize::fasterize(du8, ProvRast,
 writeRaster(ras.du9, file="du9.tif", format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/du9.tif -t 100x100 rast.du9_bounds | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
+```
+
+# BEC zones
+
+```{r, bec}
+bec_poly<-getSpatialQuery("SELECT zone, subzone, wkb_geometry FROM public.bec_zone")
+vat_bec<-unique(as.data.table(bec_poly)[,c("zone", "subzone")])[order(zone, subzone)][,value:= seq_len(.N)]
+
+print(vat_bec)
+#write this to pg
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user')
+DBI::dbWriteTable(conn, c("public", "bec_zone_vat"), value= vat_bec, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+#merge back to becpoly
+bec_poly<-merge(bec_poly, vat_bec, by =c("zone", "subzone"))
+#plot(bec_poly["value"])
+ras.bec<-fasterize::fasterize(bec_poly, ProvRast, 
+                        field = "value",#cells that are waterbodies get a value of 1
+                        background = 0) 
+writeRaster(ras.bec, file="bec.tif", format="GTiff", overwrite=TRUE)
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/params/bec.tif -t 100x100 rast.bec_current | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
 
 ```
