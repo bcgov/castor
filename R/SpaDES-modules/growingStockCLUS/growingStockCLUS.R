@@ -69,13 +69,13 @@ Init <- function(sim) {
   
   tab1[, vol:= lapply(.SD, function(x) approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$tvol, 
-                                              xout=x)$y), .SDcols="ages", by=yieldid]
+                                              xout=x)$y), .SDcols="age", by=yieldid]
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET vol = :vol where pixelid = :pixelid", tab1))
+    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET vol = :vol where pixelid = :pixelid", tab1))
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  sim$growingStockReport<-list()
+  sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
   
   return(invisible(sim))
 }
@@ -92,7 +92,7 @@ growingStockCLUS.Update<- function(sim) {
   
   tab1[, vol:= lapply(.SD, function(x) approx(dat[yieldid == .BY]$age, 
                                                 dat[yieldid == .BY]$vol, 
-                                                xout=x)$y), .SDcols="ages", by=yieldid]
+                                                xout=x)$y), .SDcols="age", by=yieldid]
   
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET volume = :vol where pixelid = :pixelid", tab1))
@@ -102,9 +102,7 @@ growingStockCLUS.Update<- function(sim) {
   return(invisible(sim))
 }
 growingStockCLUS.record<- function(sim) {
-  
-  sim$growingStockReport<- NULL
-    
+  sim$growingStockReport[time(sim)+P(sim, "growingStockCLUS", "updateInterval")]<- dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels")
   return(invisible(sim))
 }
 .inputObjects <- function(sim) {
