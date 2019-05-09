@@ -64,41 +64,43 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  dat<-dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields")
-  tab1<-dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels")
-  
-  tab1[, vol:= lapply(.SD, function(x) approx(dat[yieldid == .BY]$age, 
-                                              dat[yieldid == .BY]$tvol, 
-                                              xout=x)$y), .SDcols="age", by=yieldid]
+  dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields"))
+  tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
+  tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
+                                                           dat[yieldid == .BY]$tvol, 
+                                                           xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET vol = :vol where pixelid = :pixelid", tab1))
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol where pixelid = :pixelid", tab1[,c("vol", "pixelid")])
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
   
+  rm(tab1,dat)
+  gc()
   return(invisible(sim))
 }
 growingStockCLUS.Update<- function(sim) {
   #update the age first
+  print(paste0("update at ", time(sim)))
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET age = age +", P(sim, "growingStockCLUS", "updateInterval"),"  WHERE age >= 0"))
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   #update the yields being tracked
-  dat<-dbGetQuery(sim$clusdb, "SELECT yieldid, age, vol FROM yields")
-  tab1<-dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels")
-  
-  tab1[, vol:= lapply(.SD, function(x) approx(dat[yieldid == .BY]$age, 
-                                                dat[yieldid == .BY]$vol, 
-                                                xout=x)$y), .SDcols="age", by=yieldid]
-  
+  dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields"))
+  tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
+  tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
+                                               dat[yieldid == .BY]$tvol, 
+                                               xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET volume = :vol where pixelid = :pixelid", tab1))
+  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol where pixelid = :pixelid", tab1[,c("vol", "pixelid")])
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
+  rm(tab1,dat)
+  gc()
   return(invisible(sim))
 }
 growingStockCLUS.record<- function(sim) {
