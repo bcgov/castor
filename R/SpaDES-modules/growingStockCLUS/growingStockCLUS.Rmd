@@ -26,29 +26,34 @@ This module updates db to acomodate future time. It is used to simulate growth b
 
 ```{r module_usage}
 library(SpaDES)
+library(SpaDES.core)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
-moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
-inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-times <- list(start = 0, end = 15)
+setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
+getPaths() # shows where the 4 relevant paths are
 
-parameters <- list(
- dataLoaderCLUS = list(dbName='clus',
+times <- list(start = 0, end = 10)
+parameters <-  list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list(dbName='clus',
                   nameBoundaryFile="study_area_compart",
                   nameBoundaryColumn="tsa_name",
                   nameBoundary= c('Morice TSA'), 
                   nameBoundaryGeom='wkb_geometry',
                   save_clusdb = FALSE,
-                  nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                  nameAgeRaster= "rast.vri2017_projage1",
-                  nameHeightRaster= "rast.vri2017_projheight1",
-                  nameCrownClosureRaster= "rast.vri2017_crownclosure"
-                  #nameYieldIDRaster ="rast.yieldid",
-                  #nameYieldTable ="yield_ex"
+                  #nameOwnershipRaster='rast.f_own',
+                  #nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                  #nameZoneRasters=c("rast.zone_beo"),
+                  #nameZoneTable="zone_constraints",
+                  #nameCutblockRaster ="rast.cns_cut_bl",
+                  #nameCutblockTable = "public.cns_cut_bl_polygon",
+                  nameAgeRaster= "rast.vri2017_projage1"
+                  #nameHeightRaster= "rast.vri2017_projheight1",
+                  #nameCrownClosureRaster= "rast.vri2017_crownclosure"
                       )
-)
+                    )
+
 modules <- list("dataLoaderCLUS", "growingStockCLUS")
 objects <- list()
 inputs <- list()
@@ -57,7 +62,9 @@ outputs <- list()
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
 
-mySimOut <- spades(mySim)
+system.time({
+mysimout<-spades(mySim)
+})
 ```
 
 
