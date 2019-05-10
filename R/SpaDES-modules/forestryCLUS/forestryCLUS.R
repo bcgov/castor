@@ -73,12 +73,13 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 
 forestryCLUS.Init <- function(sim) {
   sim$harvestPeriod <- 1
+  #Sort the compartment for the loop so that one goes before the other?
   sim$compartment_list<-unique(harvestFlow[, compartment])
   return(invisible(sim))
 }
 
-
 forestryCLUS.getHarvestQueue<- function(sim) {
+  #Right now its looping by compartment -- could have it parallel?
   for(compart in sim$compartment_list){
     # Determine if there is volume to harvest
     harvestTarget<-harvestFlow[compartment == compart]$Flow[(time(sim) + sim$harvestPeriod)]
@@ -86,16 +87,23 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     if(harvestTarget > 0){
       partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
-      queue<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid FROM pixels where 
-                                         compartid = ",compart ," AND thlb > 0 AND
-                                         zone_const = 0 AND", 
+      if(TRUE){
+      queue<-dbGetQuery(sim$clusdb, paste0("SELECT blockid, SUM (thlb*vol) as vol FROM pixels WHERE 
+                                         compartid = ", compart ," AND thlb > 0 AND
+                                         zone_const = 0 AND  ", 
                                          partition, " GROUP BY blockid ORDER BY ", 
-                                         P(sim, "forestryCLUS", "harvestPriority")))
+                                        P(sim, "forestryCLUS", "harvestPriority")))
+      }else{
+      queue<-dbGetQuery(sim$clusdb, paste0("SELECT blockid, SUM (thlb*vol) as vol FROM pixels WHERE 
+                                         compartid = ", compart ," AND thlb > 0 AND
+                                             zone_const = 0 AND  ", 
+                                             partition, " GROUP BY blockid ORDER BY ", 
+                                             P(sim, "forestryCLUS", "harvestPriority")))
+      }
     }
   }
   return(invisible(sim))
 }
-
 
 forestryCLUS.checkZoneConstraints<- function(sim) {
   #Update Constraints

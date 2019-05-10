@@ -66,10 +66,15 @@ parameters <- list(
                          #Yield info
                          #nameYieldIDRaster ="rast.yieldid",
                          nameYieldTable ="yield_ex"
-                      ),
-forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC")
+                      ),  
+  blockingCLUS = list(blockMethod='pre', 
+                      patchZone = 'rast.zone_beo',
+                      nameCutblockRaster ="rast.cns_cut_bl",
+                      useLandingsArea=FALSE, 
+                      useSpreadProbRas=FALSE),
+  forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC")
                 )
-modules <- list("dataLoaderCLUS", "growingStockCLUS", "forestryCLUS")
+modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS")
 harvestFlow<- data.table(compartment = c('08B','08B','08B','08C','08C','08C'),
                                    partition = 'age > 50',
                                    Year = rep(seq(from = 2018, to=2020, by = 
