@@ -20,7 +20,7 @@ output: pdf_document
 
 # Overview
 
-The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by sepcifying the path with `useCLUSdb = ".../clusdb.sqlite"`
+The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`
 
 # Usage
 
@@ -62,7 +62,9 @@ outputs <- list()
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
 
-mySimOut <- spades(mySim)
+system.time({
+mysimout<-spades(mySim)
+})
 ```
 
 #Dependendices
