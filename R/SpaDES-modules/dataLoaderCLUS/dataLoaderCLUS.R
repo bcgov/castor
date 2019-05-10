@@ -158,12 +158,13 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     
-    #TODO: Set V1 to merge in the vat table values so that the column is character
+    #Set V1 to merge in the vat table values so that the column is character
     if(!(P(sim, "dataLoaderCLUS", "nameCompartmentTable") == "99999")){
-      compart_vat <- dat.table(dbGetQuery(conn, paste0("SELECT * FROM ", P(sim, "dataLoaderCLUS", "nameCompartmentTable"))))
-      pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value" )
+      compart_vat <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim, "dataLoaderCLUS", "nameCompartmentTable"))))
+      pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value", all.x = TRUE )
       pixels[,V1:= NULL]
-      setnames(pixels, "value", "compartid")
+      col_name<-data.table(colnames(compart_vat))[!V1 == "value"]
+      setnames(pixels, col_name$V1 , "compartid")
     }else{
       pixels[, V1 := as.character(V1)]
       setnames(pixels, "V1", "compartid")
