@@ -32,6 +32,7 @@ defineModule(sim, list(
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter("blockMethod", "character", "pre", NA, NA, "This describes the type of blocking method"),
     defineParameter("patchZone", "character", "99999", NA, NA, "Zones that pertain to the patch size distribution requirements"),
+    defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -60,14 +61,21 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-blockingCLUS.Init(sim)
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
       switch(P(sim)$blockMethod,
              
              pre= {
-               sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
-               sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
-               sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
-               sim <- blockingCLUS.setAdjTable(sim)
+               if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
+                  #create blocks and adjacency table
+                  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
+                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, regendelay integer, age integer, area numeric, vol numeric)")
+                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+                  
+                  sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
+                  sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
+                  sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
+                  sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
+                  sim <- blockingCLUS.setAdjTable(sim)
+                }
                },
              
              dynamic ={
@@ -75,6 +83,8 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
              }
       )
+      
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
     },
     buildBlocks = {
         sim <- blockingCLUS.spreadBlock(sim)
@@ -92,14 +102,39 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 blockingCLUS.Init <- function(sim) {
   sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
-  return(invisible(sim))
+return(invisible(sim))
+}
+
+blockingCLUS.getExistingCutblocks<-function(sim){
+  if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
+    print(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
+    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
+                           clipper=sim$boundaryInfo[1] , 
+                           geom= sim$boundaryInfo[4] , 
+                           where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
+    setnames(exist_cutblocks, "V1", "blockid")
+    exist_cutblocks[, pixelid := seq_len(.N)]
+    
+    #add to the clusdb
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :V1 where pixelid = :V2", exist_cutblocks)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+    rm(ras.blk,exist_cutblocks)
+    gc()
+  }
+return(invisible(sim))
 }
 
 blockingCLUS.setBlocksTable <- function(sim) {
   print("set the blocks table")
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, age, h_area, t_area, state, regendelay) 
-                    SELECT blockid, AVG(age) as age, SUM(thlb) as h_area, COUNT (*) as t_area, (0) as state, (20) as regendelay FROM pixels GROUP BY blockid")
+    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, regendelay, vol) 
+                    SELECT blockid, AVG(age) as age, SUM(thlb) as area, (20-age) as regendelay, 
+                                       SUM(thlb*vol) as vol FROM pixels GROUP BY blockid"))
   dbClearResult(rs)
   dbCommit(sim$clusdb)
 return(invisible(sim))
@@ -271,7 +306,7 @@ blockingCLUS.setAdjTable<-function(sim){
   
   print("set the adjacency table")
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   return(invisible(sim))
@@ -290,7 +325,7 @@ blockingCLUS.spreadBlock<- function(sim) {
       landings<-as.data.frame(cbind(landings, size))
       landings<-landings[!duplicated(landings$landings),]
     
-        simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.spreadProbBlock, 
+      simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.spreadProbBlock, 
                                          start = landings[,1], directions =4, 
                                          maxSize= landings[,2], allowOverlap=FALSE)
   
@@ -315,6 +350,7 @@ blockingCLUS.spreadBlock<- function(sim) {
 }
 
 blockingCLUS.updateBlocks<-function(sim){
+  #This table updates the block information used in summaries and for a queue
   print("update the blocks table")
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, age, area, state, regendelay) VALUES(:blockid, :age, :area, :state, :regendelay)" ,blks.table)
