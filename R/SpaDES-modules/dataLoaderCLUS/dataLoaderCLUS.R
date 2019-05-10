@@ -56,8 +56,6 @@ defineModule(sim, list(
     defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
     defineParameter("nameYieldTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields"),
     defineParameter("nameOwnershipRaster", "character", "99999", NA, NA, desc = "Name of the raster from GENERALIZED FOREST OWNERSHIP"),
-    defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
-    defineParameter("nameCutblockTable", "character", "99999", NA, NA, desc = "Name of the table with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter("nameForestInventoryTable", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
     defineParameter("nameForestInventoryRaster", "character", "99999", NA, NA, desc = "Name of the veg comp - the forest inventory raster of the primary key"),
     defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster")
@@ -127,14 +125,12 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, openingid numeric, state integer, regendelay integer, age integer,  t_area numeric, h_area numeric, t_vol numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zone_constraints and zone_lu
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_lu (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, blockid integer, yieldid integer, zone_const integer, thlb numeric , age numeric, vol numeric,
+own integer, yieldid integer, zone_const integer, thlb numeric , age numeric, vol numeric,
 crownclosure numeric, height numeric, roadyear integer)")
   return(invisible(sim))
 }
@@ -349,20 +345,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     
     fid<-c('','')
     #----------------
-    #Set the blockids
+    #Set the blockids see blockingCLUS
     #----------------
-    if(!(P(sim, "dataLoaderCLUS", "nameCutblockRaster") == '99999')){
-      print(paste0('.....blockid: ',P(sim, "dataLoaderCLUS", "nameCutblockRaster")))
-      ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCutblockRaster"), 
-                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                             conn=NULL)
-      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.blk)))))
-      setnames(pixels, "V1", "blockid")
-      rm(ras.blk)
-      gc()
-      
       #blockid table
       #if(!(P(sim, "dataLoaderCLUS", "nameCutblockTable") == "99999")){
        # print('......getting blocks information')
@@ -384,11 +368,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       #  print('nameCutblockTable = 99999 ')
       #}
       
-    }else{
-      print('.....blockid: default 0')
-      pixels[, blockid := 0]
-    }
-  
+
     #-----------
     #Set the Age 
     #-----------
@@ -451,9 +431,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<- paste0('INSERT INTO pixels (pixelid, compartid, blockid, yieldid, own, thlb, ', fid[1] , ' age, crownclosure, height, roadyear, zone',
+  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, ', fid[1] , ' age, crownclosure, height, roadyear, zone',
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
-               values (:pixelid, :compartid, :blockid, :yieldid, :own, :thlb, ', fid[2], ' :age, :crownclosure, :height, NULL, :zone', 
+               values (:pixelid, :compartid, :yieldid, :own, :thlb, ', fid[2], ' :age, :crownclosure, :height, NULL, :zone', 
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
   
   #pixels table
