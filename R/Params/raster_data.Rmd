@@ -27,7 +27,7 @@ knitr::opts_chunk$set(echo = TRUE)
 The clus database is oraganized into a set of [schemas](https://www.postgresql.org/docs/9.1/ddl-schemas.html) or logical groupings that correspond to the origin and type of data structure.
 
 * `public` layers downloaded from data bc.
-* `rast` all compiled raster layers.
+* `rast` all compiled raster layers from public.
 * `caribou` all rsf model related outputs to caribou 
 
 > This .rmd documents the rasterization process of `public` layers into the `rast` schema
@@ -43,18 +43,16 @@ data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting lan
                    'Northern Interior timber harvesting landbase',
                    'Generalized Forest Cover Ownership',
                    'Consolidated cutblocks ID',
-                   'VEG_COMP feature id',
-                   'Waterbodies',
-                   'Watercoures',
+                   'VEG_COMP feature id','Waterbodies','Watercoures',
                    'Caribou Designatable Unit 6 Boundary',
                    'Caribou Designatable Unit 8 Boundary',
-                   'BEC Zones and subzones'
+                   'BEC Zones and subzones', 'Forest Tenure'
                    ),
            public = c('bc_thlb'
-                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses', 'caribou_boreal_study_area','du8_herds_buff25km','bec_zone'),
-           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses', 'du6_bounds','du8_bounds', 'bec_zone'),
+                    , 'thlb_data_rco', 'thlb_data_sir', 'thlb_data_nir', 'f_own_polygon', 'cns_cut_bl_polygon' ,'veg_comp_lyr_r1_poly_final_spatialv2_2003', 'trim_ebm_waterbodies','trim_ebm_watercourses', 'caribou_boreal_study_area','du8_herds_buff25km','bec_zone','forest_tenure'),
+           rast = c('bc_thlb', 'thlb_rco_lyr2018','thlb_sir_lyr2018','thlb_nir_lyr2018', 'f_own', 'cns_cut_bl','veg_comp2003_id','waterbodies','watercourses', 'du6_bounds','du8_bounds', 'bec_zone', 'forest_tenure'),
            source=c('INTERNAL','INTERNAL','INTERNAL','INTERNAL',
-                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm', 'INTERNAL', 'INTERNAL','https://catalogue.data.gov.bc.ca/dataset/biogeoclimatic-ecosystem-classification-bec-map'))
+                    'https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership', 'https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-' ,'INTERNAL', 'https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm','https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm', 'INTERNAL', 'INTERNAL','https://catalogue.data.gov.bc.ca/dataset/biogeoclimatic-ecosystem-classification-bec-map', 'https://catalogue.data.gov.bc.ca/dataset?q=tenure'))
 ```
 
 ## Set empty provincial raster
@@ -270,4 +268,27 @@ ras.bec<-fasterize::fasterize(bec_poly, ProvRast,
 writeRaster(ras.bec, file="bec.tif", format="GTiff", overwrite=TRUE)
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/params/bec.tif -t 100x100 rast.bec_current | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
 
+```
+
+# Forest Tenure
+
+```{r, forest_tenure}
+fortenure_poly<-getSpatialQuery("SELECT tsb_number, geom FROM public.forest_tenure WHERE tsb_number IS NOT NULL ORDER BY tsb_number")
+fortenure_vat<-unique(as.data.table(fortenure_poly)[,c("tsb_number")])[,value:= seq_len(.N)]
+
+print(fortenure_vat)
+#write this to pg
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user')
+DBI::dbWriteTable(conn, c("public", "forest_tenure_vat"), value= fortenure_vat, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+#merge back to becpoly
+fortenure_poly<-merge(fortenure_poly, fortenure_vat, by =c("tsb_number"))
+#plot(bec_poly["value"])
+ras.forest_tenure<-fasterize::fasterize(fortenure_poly, ProvRast, 
+                        field = "value",#cells that are waterbodies get a value of 1
+                        background = 0) 
+writeRaster(ras.forest_tenure, file="forest_tenure.tif", format="GTiff", overwrite=TRUE)
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/params/forest_tenure.tif -t 100x100 rast.forest_tenure | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
 ```
