@@ -47,6 +47,7 @@ defineModule(sim, list(
     defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db?"),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represtents a compartment or supply block"),
+    defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represtents a compartment or supply block value attribute look up"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
     defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve"),
     defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
@@ -126,15 +127,13 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS indicators (id integer PRIMARY KEY, year integer, schedHarvestflow numeric, simharvestflow numeric, schedharvestarea numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS compartment ( compartid integer PRIMARY KEY, tsa_number integer, zoneid integer, active integer, allocation numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, openingid numeric, state integer, regendelay integer, age integer, area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zone_constraints and zone_lu
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_lu (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid integer, 
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, blockid integer, yieldid integer, zone_const integer, thlb numeric , age numeric, vol numeric,
 crownclosure numeric, height numeric, roadyear integer)")
   return(invisible(sim))
@@ -158,8 +157,18 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
-    setnames(pixels, "V1", "compartid")
     
+    #TODO: Set V1 to merge in the vat table values so that the column is character
+    if(!(P(sim, "dataLoaderCLUS", "nameCompartmentTable") == "99999")){
+      compart_vat <- dat.table(dbGetQuery(conn, paste0("SELECT * FROM ", P(sim, "dataLoaderCLUS", "nameCompartmentTable"))))
+      pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value" )
+      pixels[,V1:= NULL]
+      setnames(pixels, "value", "compartid")
+    }else{
+      pixels[, V1 := as.character(V1)]
+      setnames(pixels, "V1", "compartid")
+    }
+
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
     sim$rasVelo<-velox::velox(sim$ras)
     
@@ -177,7 +186,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     
     pixels<-data.table(c(t(raster::as.matrix(sim$ras)))) #transpose then vectorize which matches the same order as adj
     pixels[, pixelid := seq_len(.N)]
-    pixels[, compartid := 1]
+    pixels[, compartid := 'all']
     pixels<-pixels[,2:3]
     
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
