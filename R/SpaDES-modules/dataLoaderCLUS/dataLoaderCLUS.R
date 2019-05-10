@@ -127,7 +127,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, openingid numeric, state integer, regendelay integer, age integer, area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, openingid numeric, state integer, regendelay integer, age integer,  t_area numeric, h_area numeric, t_vol numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zone_constraints and zone_lu
@@ -364,25 +364,25 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       gc()
       
       #blockid table
-      if(!(P(sim, "dataLoaderCLUS", "nameCutblockTable") == "99999")){
-        print('......getting blocks information')
-        blocks<- getTableQuery(paste0("SELECT t.blockid, t.area, openingid, (1) as state, (20-(2018 - harvestyr)) as regendelay FROM 
-        (SELECT (col1).value::int as blockid, (col1).count::int as area  FROM (
-                                      SELECT ST_ValueCount(st_union(ST_Clip(rast, 1, foo.",P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ,", -9999, true)),1,true)  as col1 FROM 
-                                      (SELECT st_union(rast) as rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," FROM ",P(sim, "dataLoaderCLUS", "nameCutblockRaster"),", ",P(sim, "dataLoaderCLUS", "nameBoundaryFile"),
-                                      " WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '"),"')" ," AND ST_Intersects(rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),") group by ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ) as foo) as k) as t
-                                      INNER JOIN ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),"
-                                      ON t.blockid = ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),".cutblockid;"))
-        
+      #if(!(P(sim, "dataLoaderCLUS", "nameCutblockTable") == "99999")){
+       # print('......getting blocks information')
+       # blocks<- getTableQuery(paste0("SELECT t.blockid, t.area, openingid, (1) as state, (20-(2018 - harvestyr)) as regendelay FROM 
+       # (SELECT (col1).value::int as blockid, (col1).count::int as area  FROM (
+       #                               SELECT ST_ValueCount(st_union(ST_Clip(rast, 1, foo.",P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ,", -9999, true)),1,true)  as col1 FROM 
+        #                              (SELECT st_union(rast) as rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," FROM ",P(sim, "dataLoaderCLUS", "nameCutblockRaster"),", ",P(sim, "dataLoaderCLUS", "nameBoundaryFile"),
+        #                              " WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '"),"')" ," AND ST_Intersects(rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),") group by ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ) as foo) as k) as t
+        #                              INNER JOIN ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),"
+        #                              ON t.blockid = ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),".cutblockid;"))
+        #
         #Set the table in clusdb
-        dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, openingid, state, regendelay, area) 
-                        values (:blockid, :openingid, :state, :regendelay, :area)", blocks)
-        dbClearResult(rs)
-        dbCommit(sim$clusdb)
-      }else{
-        print('nameCutblockTable = 99999 ')
-      }
+        #dbBegin(sim$clusdb)
+        #rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, openingid, state, regendelay, t_area) 
+        #                values (:blockid, :openingid, :state, :regendelay, :area)", blocks)
+        #dbClearResult(rs)
+        #dbCommit(sim$clusdb)
+      #}else{
+      #  print('nameCutblockTable = 99999 ')
+      #}
       
     }else{
       print('.....blockid: default 0')
