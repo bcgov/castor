@@ -1,0 +1,76 @@
+---
+title: "growingStockCLUS"
+author: ""
+date: "08 May 2019"
+output: pdf_document
+---
+
+<!--
+Copyright 2018 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+# Overview
+
+This module updates db to acomodate future time. It is used to simulate growth by updating the age of the vegetation which relate to an age over yield curve.
+
+# Usage
+
+```{r module_usage}
+library(SpaDES)
+library(SpaDES.core)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
+getPaths() # shows where the 4 relevant paths are
+
+times <- list(start = 0, end = 10)
+parameters <-  list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list(dbName='clus',
+                  nameBoundaryFile="study_area_compart",
+                  nameBoundaryColumn="tsa_name",
+                  nameBoundary= c('Morice TSA'), 
+                  nameBoundaryGeom='wkb_geometry',
+                  save_clusdb = FALSE,
+                  #nameOwnershipRaster='rast.f_own',
+                  #nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                  #nameZoneRasters=c("rast.zone_beo"),
+                  #nameZoneTable="zone_constraints",
+                  nameAgeRaster= "rast.vri2017_projage1"
+                  #nameHeightRaster= "rast.vri2017_projheight1",
+                  #nameCrownClosureRaster= "rast.vri2017_crownclosure"
+                      )
+                    )
+
+modules <- list("dataLoaderCLUS", "growingStockCLUS")
+objects <- list()
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+system.time({
+mysimout<-spades(mySim)
+})
+```
+
+
+# Data dependencies
+
+## Input data
+
+The 'clusdb' is needed for the growingStockCLUS module to function
+
+
+

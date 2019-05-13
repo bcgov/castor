@@ -3,18 +3,18 @@
 # 1. Rename this file based on the content you are testing using
 #    `test-functionName.R` format so that your can directly call `moduleCoverage`
 #    to calculate module coverage information.
-#    `functionName` is a function's name in your module (e.g., `anthroDisturbEvent1`).
-# 2. Copy this file to the tests folder (i.e., `H:/Documents/SpaDESintro/modules/anthroDisturb/tests/testthat`).
+#    `functionName` is a function's name in your module (e.g., `forestryCLUSEvent1`).
+# 2. Copy this file to the tests folder (i.e., `C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/tests/testthat`).
 
 # 3. Modify the test description based on the content you are testing:
 test_that("test Event1 and Event2.", {
-  module <- list("anthroDisturb")
-  path <- list(modulePath = "H:/Documents/SpaDESintro/modules",
+  module <- list("forestryCLUS")
+  path <- list(modulePath = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules",
                outputPath = file.path(tempdir(), "outputs"))
   parameters <- list(
     #.progress = list(type = "graphical", interval = 1),
     .globals = list(verbose = FALSE),
-    anthroDisturb = list(.saveInitialTime = NA)
+    forestryCLUS = list(.saveInitialTime = NA)
   )
   times <- list(start = 0, end = 1)
 
@@ -55,8 +55,8 @@ test_that("test Event1 and Event2.", {
   #    Use this approach when using any function within the simList object
   #    (i.e., one version as a direct call, and one with `simList` object prepended).
 
-  if (exists("anthroDisturbEvent1", envir = .GlobalEnv)) {
-    simOutput <- anthroDisturbEvent1(mySim)
+  if (exists("forestryCLUSEvent1", envir = .GlobalEnv)) {
+    simOutput <- forestryCLUSEvent1(mySim)
   } else {
     simOutput <- myEvent1(mySim)
   }
@@ -66,8 +66,8 @@ test_that("test Event1 and Event2.", {
   expect_equal(simOutput$event1Test1, expectedOutputEvent1Test1) # or other expect function in testthat package.
   expect_equal(simOutput$event1Test2, as.numeric(999)) # or other expect function in testthat package.
 
-  if (exists("anthroDisturbEvent2", envir = .GlobalEnv)) {
-    simOutput <- anthroDisturbEvent2(mySim)
+  if (exists("forestryCLUSEvent2", envir = .GlobalEnv)) {
+    simOutput <- forestryCLUSEvent2(mySim)
   } else {
     simOutput <- myEvent2(mySim)
   }
