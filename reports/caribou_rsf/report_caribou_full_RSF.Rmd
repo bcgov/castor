@@ -1335,16 +1335,37 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 - top vegetation model included all covariates (BEC type, shrub closure, bryoid cover, herb cover, forest stand age, height and crown closure and site index) and had an AIC weight (AIC*~w~*) of 1.0
 
 ###### Combination Models
-
-
+- histograms
+![](plots/hist_bec2_du7_ew.png)
 
 - correlations
-  - annual precipitation as snow and winter precipitation as snow highly correlated ($\rho$ = 0.91)
-  - annual precipitation as snow and average winter temperature highly correlated ($\rho$ = 0.86)
+  - mean annual temperature highly correlated with winter temperature ($\rho$ = 0.79)
+  - annual precipitation as snow and winter precipitation as snow highly correlated ($\rho$ = 0.86)
+  - forest stand height and site index highly correlated ($\rho$ = 0.70)
   
-  - removed annual ppt as snow
+  - removed stand height and annual climate covariates
 
-![](plots/corr_winter_climate_du8_ew.png)
+![](plots/corr_winter_climate_du7_ew.png)
+
+
+- very large VIFs for BEC (1423) and distance to wells (14)
+- removed distance to wells adn BEDC; all VIFs less than 5.3
+
+- the top DU7 early winter model included all covariates and had an AIC*~w~* = 1.00; statistically 
+  significant coefficients:
+  - selected higher elevations (\beta  = 0.54), flatter terrain (\beta  = -0.35), and areas closer to     watercourses (\beta  = -0.18)
+  - selected areas closer to 'young' (1 to 4 years old) cutblocks (\beta  = -0.23) and cutblocks over 
+    10 years old (\beta  = -0.35)
+  - avoided areas closer to paved (\beta  = 0.05) and resource (\beta  = 0.06) roads, and pipelines       (\beta  = 0.41), but selecred areas closer to mines (\beta  = -0.05)
+  - selected forest stands disturbed by beetles within the past 1 to 4 (\beta  = 0.04) or 6 to 9 
+    (\beta = 0.20) years 
+  - avoided areas burned within the past 1 to 5 years (\beta  = -0.32) and over 25 years ago (\beta  =     -0.26)
+  - selected areas with less precipitation as snow (\beta  = -0.40) and colder temperatures (\beta  = 
+    -0.16)
+  - selected forest stands that are younger (\beta  = -0.02), have more open canopy (\beta  = -0.12) 
+    on lower productivity sites (\beta  = -0.05)
+  - selected areas with more bryoid (\beta  = 0.12) and herbaceous (\beta  = 0.08) cover 
+  
 
 ### DU 8
 #### Early Winter
@@ -2098,8 +2119,8 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 
 
-##### k-fold validation
-###### DU6, Early Winter 
+### k-fold validation
+#### DU6, Early Winter 
 - strong validation results, slopes of linear models between expected and observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
  - visual vlaiation looks good (add fig form GIS or try and do it in R - use quantile classifcation)
  
@@ -2116,7 +2137,7 @@ kable (table.kfold.du6.ew)
 ![](plots/kfold_lm_du6_ew_grp5.png)
 
 
-###### DU6, Late Winter 
+#### DU6, Late Winter 
 - strong validation results, slopes of linear models between expected and observed counts of cariobu locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.96 and $$\chi^2$$ values were not significant (Table xx)
  - visual validation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
  
@@ -2136,9 +2157,7 @@ kable (table.kfold.du6.lw)
 
 ![](plots/kfold_lm_du6_lw_grp5.png)
 
-###### DU6, Summer
-
-
+#### DU6, Summer
 - reasonable validation results, but not as stong as early or late winter
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.73 to 0.93 and $$\chi^2$$ values were not significant (Table xx)
  - visual validation looks reasonable, but with soem issues. realtively low scores in Calendar adn high scores in PArker adn Prophet comarped to what expected; different from Demars there (add fig form GIS or try adn do it in R - use quantile classifcation)
@@ -2155,8 +2174,36 @@ kable (table.kfold.du6.s)
 ![](plots/kfold_lm_du6_s_grp4.png)
 ![](plots/kfold_lm_du6_s_grp5.png)
 
+#### DU7, Early Winter
 
-###### DU8, Early Winter
+- strong validation results
+
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.99 and $$\chi^2$$ values were not significant (Table xx)
+
+ - visual validation looks 
+ 
+
+```{r, k-fold du6, late winter table, eval = T, echo = F}
+table.kfold.du7.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du7\\early_winter\\table_kfold_summary_du7_ew.csv")
+table.kfold.du7.ew <- table.kfold.du7.ew [-1]
+kable (table.kfold.du7.ew)
+```
+
+![](plots/kfold_lm_du7_ew_grp1.png)
+![](plots/kfold_lm_du7_ew_grp2.png)
+![](plots/kfold_lm_du7_ew_grp3.png)
+![](plots/kfold_lm_du7_ew_grp4.png)
+![](plots/kfold_lm_du7_ew_grp5.png)
+
+
+
+
+
+
+
+
+
+#### DU8, Early Winter
 
 - strong validation results
 
@@ -2176,7 +2223,7 @@ kable (table.kfold.du8.ew)
 ![](plots/kfold_lm_du8_ew_grp4.png)
 ![](plots/kfold_lm_du8_ew_grp5.png)
 
-###### DU8, Late Winter
+#### DU8, Late Winter
 - model validation statistics were generally poor
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not always close to 1, ranging from 0.52 to 1.02 
@@ -2210,7 +2257,7 @@ kable (table.kfold.du8.lw)
 
 
 
-###### DU8, Late Summer
+#### DU8, Late Summer
 - model validation statistics were very good
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, andclose to 1, ranging from 0.97 to 1.01 
 - intercepts were not significantly different from 0,  $$\chi^2$$ values were not significant, and adjusted *R^2* values varied from 0.92 to 0.99 (Table xx, Figure xx)
@@ -2236,6 +2283,8 @@ kable (table.kfold.du8.s)
 ![](plots/kfold_lm_du8_s_grp4.png)
 
 ![](plots/kfold_lm_du8_s_grp5.png)
+
+
 
 
 
