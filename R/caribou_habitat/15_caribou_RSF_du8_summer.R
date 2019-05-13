@@ -970,9 +970,6 @@ car::vif (glm.human.du8.s)
 table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
 colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
 
-##############################################
-### Generalized Linear Mixed Models (GLMMs) #
-############################################
 # standardize covariates  (helps with model convergence)
 rsf.data.human.dist.du8.s$std.distance_to_cut_1to4yo <- (rsf.data.human.dist.du8.s$distance_to_cut_1to4yo - mean (rsf.data.human.dist.du8.s$distance_to_cut_1to4yo)) / sd (rsf.data.human.dist.du8.s$distance_to_cut_1to4yo)
 rsf.data.human.dist.du8.s$std.distance_to_cut_5to9yo <- (rsf.data.human.dist.du8.s$distance_to_cut_5to9yo - mean (rsf.data.human.dist.du8.s$distance_to_cut_5to9yo)) / sd (rsf.data.human.dist.du8.s$distance_to_cut_5to9yo)
@@ -3528,7 +3525,7 @@ beetle.6to9 <- crop (beetle.6to9, extent (caribou.sa))
 fire.1to5 <- crop (fire.1to5, extent (caribou.sa))
 fire.6to25 <- crop (fire.6to25, extent (caribou.sa))
 fire.over25 <- crop (fire.over25, extent (caribou.sa))
-vri.age <- crop (vri.shrub, extent (caribou.sa))
+vri.age <- crop (vri.age, extent (caribou.sa))
 vri.site.index <- crop (vri.site.index, extent (caribou.sa))
 vri.herb <- crop (vri.herb, extent (caribou.sa))
 vri.shrub <- crop (vri.shrub, extent (caribou.sa))
@@ -3564,7 +3561,7 @@ ppt.annual <- (ppt.annual - 1271) / 304
 
 endCluster ()
 
-### CALCULATE RASTER OF STATIC VARIABLES ###
+### CALCULATE RSF RASTER ###
 beginCluster ()
 
 raster.rsf <- exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) + 
