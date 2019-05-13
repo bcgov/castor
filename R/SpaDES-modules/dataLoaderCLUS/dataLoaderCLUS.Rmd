@@ -20,7 +20,7 @@ output: pdf_document
 
 # Overview
 
-The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by sepcifying the path with `useCLUSdb = ".../clusdb.sqlite"`
+The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`
 
 # Usage
 
@@ -38,16 +38,16 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                   nameBoundaryFile="study_area_compart",
-                  nameBoundaryColumn="tsa_name",
-                  nameBoundary= c('Morice TSA'), 
+                  nameBoundaryColumn="tsb_number",
+                  nameBoundary=c("08B", "08C"), 
                   nameBoundaryGeom='wkb_geometry',
+                  nameCompartmentRaster = "rast.forest_tenure",
+                  nameCompartmentTable = "forest_tenure_vat",
                   save_clusdb = FALSE,
                   nameOwnershipRaster='rast.f_own',
                   nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                   nameZoneRasters=c("rast.zone_beo"),
                   nameZoneTable="zone_constraints",
-                  nameCutblockRaster ="rast.cns_cut_bl",
-                  nameCutblockTable = "public.cns_cut_bl_polygon",
                   nameAgeRaster= "rast.vri2017_projage1",
                   nameHeightRaster= "rast.vri2017_projheight1",
                   nameCrownClosureRaster= "rast.vri2017_crownclosure"
@@ -62,7 +62,9 @@ outputs <- list()
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
 
-mySimOut <- spades(mySim)
+system.time({
+mysimout<-spades(mySim)
+})
 ```
 
 #Dependendices

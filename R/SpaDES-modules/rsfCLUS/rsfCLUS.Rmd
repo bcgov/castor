@@ -31,7 +31,7 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-times <- list(start = 0, end = 15)
+times <- list(start = 0, end = 1)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -45,37 +45,63 @@ parameters <- list(
                         nameAgeRaster= "rast.vri2017_projage1",
                         nameHeightRaster= "rast.vri2017_projheight1",
                         nameCrownClosureRaster= "rast.vri2017_crownclosure"),
-rsfCLUS = list()
+rsfCLUS = list(calculateInterval = 2)
                         )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "rsfCLUS")
 
 rsf_model_coeff<-data.table(population = c("DU6", "DU6","DU6","DU6","DU6","DU6",
-                                           "DU6","DU6","DU6","DU6","DU6"),
-                            season =c("EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW"),
+                                           "DU6","DU6","DU6","DU6","DU6","DU6","DU6","DU6","DU6","DU6",
+                                           "DU6", "DU6", "DU6", "DU6", "DU6", "DU6", "DU6", "DU6", "DU6"),
+                            season =c("EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW",
+                                      "EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW"),
                             bounds = c("rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
                                        "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
                                        "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
-                                       "rast.du6_bounds","rast.du6_bounds"),
-                            static = c('Y','Y','Y','Y','N','N','N','N','N','N','Y'),
+                                       "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
+                                       "rast.du6_bounds", "rast.du6_bounds", "rast.du6_bounds", 
+                                       "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
+                                       "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds",
+                                       "rast.du6_bounds", "rast.du6_bounds","rast.du6_bounds","rast.du6_bounds"),
+                            static = c('Y','Y','Y','Y','N','N','N','N','N','N','Y','Y','Y','Y','Y','Y','Y',
+                                       'Y','Y','Y','Y','Y','Y','Y','Y'),
                             beta = c(-2.562923161, -0.017756076, -0.018701324, 
                                      -0.022060543, -0.054817853,  -0.154907815, 
                                      -0.103495695, 0.076301527,-0.155193551,
-                                     0.004786669, 0.037246835),
+                                     0.004786669, 0.037246835, 0.029396553, 0.008041181,
+                                     0.16724216, 0.498223164, 0.161275935, -0.305260417,
+                                     -0.10830815, -0.145288598, -0.155683991, 0.143537197,
+                                     0.123816036, 0.085138249, 1, 1),
                             layer=c('int', "rast_bc_ha_slope", "rast_dt_waterbodies",
-                                    "rast_dt_watercourses",'du6_cut_1_4','du6_cut_5_9','du6_cut_gt_10',
-                                    'age','height','crownclosure', 'rast_crds_paved'),
-                            type =c('','','','','DT', 'DT','DT','UP','UP','UP', ''),
+                                    "rast_dt_watercourses",'du6_cut_1_4','du6_cut_5_9','du6_cut_gt_10', 
+                                    'age','height','crownclosure', 'crds_paved',
+                                    'dt_resource_road', 'dt_pipeline', 'beetle_1_5', 'beetle_6_9', 
+                                    'fire_1_5','fire_6_25', 'fire_gt_25','growing_degree_days',
+                                    'ppt_as_snow_winter','vri_bryoid_cover_pct','vri_herb_cover_pct',
+                                    'vri_shrub_crown_close', 'demars_wetland', 'bec_bwbs'),
+                            type =c('','','','','DT', 'DT','DT','UP','UP','UP', '', '', '', '', '', '', '',
+                                    '','','','','','', 'RC', 'RC'),
                             sql=c('','rast.bc_ha_slope','rast.dt_waterbodies','rast.dt_watercourses', 
                                   'blockid > 0 AND age BETWEEN 0 AND 4',
                                   'blockid > 0 AND age BETWEEN 5 AND 9', 
                                   'blockid > 0 AND age BETWEEN 10 AND 60','age','height','crownclosure',
-                                  'rast.dt_crds_paved'),
-                            mean=c(NA,1.285316558, 1735.343677, 8339.878587, 82949.33866,
-                                   44787.09279, 24934.39396, 96.48501673, 8.303976041, 
-                                   30.60433628,25318.02571),
-                            sdev=c(NA, 1.699846412, 1320.734513, 5600.597405, 62637.72276,
-                                   35084.0656, 24867.16809, 37.77541289, 5.189987391,
-                                   18.42404009, 18921.1001099999)
+                                  'rast.dt_crds_paved', 'rast.dt_crds_resource', 'rast.dt_pipelines', 
+                                  'rast.beetle_1_to_5','rast.beetle_6_to_9', 'rast.fire_1_to_5',
+                                  'rast.fire_6_to_25','rast.fire_gt_25', 'rast.grow_deg_day',
+                                  'rast.ppt_snow_winter','rast.vri2017_bryoidcoverpct',
+                                  'rast.vri2017_herbcoverpct', 'rast.vri2017_shrubcrownclosure',
+                                  'rast.demars_wetland', 'rast.bec_current'),
+                            reclass =c('','','','','', '','','','','', '', '', '', '', '', '', 
+                                       '', '','','','','','',  "''20:0.05036, 17:-0.0345,
+                                    12:0.242, 11:0.3420, 15:0.69947, 22:-0.5054, 24:0.60678, 
+                                    [1-30]:0.60678''","''7:-0.1676, [1-129]:0''"),
+                            mean=c(NA,1.28, 1735., 8339.8, 82949,
+                                   44787, 24934, 96.5, 8.3, 
+                                   31,25318,603, 4011,0,0,0,0,0,
+                                   1150.6,68.9,17.2,12.6, 27,0,0),
+                            sdev=c(NA, 1.69, 1320, 5600.6, 62637.7,
+                                   35084, 24867, 37, 5.2,
+                                   18, 18921, 573.7820907, 4576,1,1,1,1,1,
+                                   80, 5.96,15, 12,19,1,1)
                             )
 
 objects <- list(rsf_model_coeff=rsf_model_coeff)
@@ -111,9 +137,17 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
 
 >Note: In layer column an 'int' is needed for each rsf. If the rsf is fit with no intercept, 'int' is required but with beta = 0.
 
-* type :=  declares the type of dynamic variable.  UP = 'Updatable' in `clusdb`, DT = 'Distance To'. A value in this column is needed if the static column = N.
+* type :=  declares the type of dynamic variable. A value in this column is needed if the static column = N. 
+
++ UP = 'Updatable' in `clusdb` 
+
++ DT = 'Distance To' 
+
++ RC = 'Reclass' 
 
 * sql := the `WHERE` clause of a sql statement describing the `clusdb` variables used in the dynamic layer
+
+* reclass := the SQL for [ST_Reclass](https://postgis.net/docs/RT_ST_Reclass.html) - follows the [reclassexpr](https://postgis.net/docs/reclassarg.html) where '(' means greater than, '[' means greater then or equal to. Ex. [a-b] = a <= x <= b in comparison to (a-b) = a < x < b
 
 * mean:= the mean of the layer within the scope of the rsf 
 

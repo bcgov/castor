@@ -3664,21 +3664,21 @@ elev <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_elev.tif")
 slope <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_slope.tif")
 
 ### Change Resolution ###
-slope <- resample (slope, dist.water, method = 'bilinear')
+slope <- resample (slope, dist.water, method = 'bilinear') 
 writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_slope_resample.tif", 
-             format = "GTiff")
+             format = "GTiff", overwrite = T)
 elev <- resample (elev, dist.water, method = 'bilinear')
-writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_elev_resample.tif", 
-             format = "GTiff")
+writeRaster (elev, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_elev_resample.tif", 
+             format = "GTiff", overwrite = T)
 
 proj.crs <- proj4string (dist.water)
 pas.winter <- projectRaster (pas.winter, crs = proj.crs, method = "bilinear")
 pas.winter <- resample (pas.winter, dist.water, method = 'bilinear')
-writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_pas_wt_resample.tif", 
+writeRaster (pas.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_pas_wt_resample.tif", 
              format = "GTiff", overwrite = T)
 temp.winter <- projectRaster (temp.winter, crs = proj.crs, method = "bilinear")
 temp.winter <- resample (temp.winter, dist.water, method = 'bilinear')
-writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_tave_wt_resample.tif", 
+writeRaster (temp.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_tave_wt_resample.tif", 
              format = "GTiff", overwrite = T)
 
 ### Adjust the raster data for 'standardized' model covariates ###

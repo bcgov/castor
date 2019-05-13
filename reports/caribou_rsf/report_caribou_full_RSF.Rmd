@@ -1367,6 +1367,17 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
   - selected areas with more bryoid (\beta  = 0.12) and herbaceous (\beta  = 0.08) cover 
   
 
+
+#### Late Winter
+###### Enduring Features
+- boxplots
+- genrally didn't appear to be signfiant outliers
+![](plots/boxplot_terrain_water_du7_ew_slope.png)
+
+
+
+
+
 ### DU 8
 #### Early Winter
 ###### Enduring Features
@@ -2180,8 +2191,8 @@ kable (table.kfold.du6.s)
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.99 and $$\chi^2$$ values were not significant (Table xx)
 
- - visual validation looks 
- 
+ - visual validation looks good; some issues in southern Graham herd area fo the DU, i.e., predicts   
+   low probabiliites where some cariobu occur
 
 ```{r, k-fold du6, late winter table, eval = T, echo = F}
 table.kfold.du7.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du7\\early_winter\\table_kfold_summary_du7_ew.csv")
@@ -2337,9 +2348,19 @@ In DU8,
 - or, they may also be selectign for 'old' forest, whcih foresters are also selcrting, resutls in overlap, and cariobu are nto adapting to this shift (or unabel to becuase lack of old forest elesewhere)
 
 
-
-
 remember cliamet is for 1990-2010; indicator of a long term trend not actual climatic conditions for a given year
+
+
+
+- predictive surfaces generally show left-skewed RSF scores, i.e., majority of the landbase is <.5 
+  probability of selection
+    - could show 'rarity' of high-quality habtiat; caribou key in on specific features (e.g., wetland 
+      types, BEC zones, high elevation) and the rest of habitat less important
+    - need to protect these high value habitats, but also manage for movement among them
+    - points to need to manage moose, wolves in adjacent areas; high-value cariobu habitat not really 
+      threatened, but if habtait aroudn it is degraded could have edge effects, particualrly as it 
+      relates to predation
+
 
 
 
