@@ -67,15 +67,19 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
                   #create blocks and adjacency table
                   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, regendelay integer, age integer, area numeric, vol numeric)")
+                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, age integer, area numeric, vol numeric, adj_const integer)")
                   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
                   
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
                   sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
                   sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
-                  sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
                   sim <- blockingCLUS.setAdjTable(sim)
-                }
+                  sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
+                  
+               }
+               
+               #Schedule the Update 
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks")
                },
              
              dynamic ={
@@ -88,7 +92,12 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     },
     buildBlocks = {
         sim <- blockingCLUS.spreadBlock(sim)
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
+    },
+    updateBlocks = {
+      sim <- blockingCLUS.UpdateBlocks(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
+      
     },
     writeBlocks = {
       writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
@@ -119,7 +128,7 @@ blockingCLUS.getExistingCutblocks<-function(sim){
     
     #add to the clusdb
     dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :V1 where pixelid = :V2", exist_cutblocks)
+      rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -131,12 +140,18 @@ return(invisible(sim))
 
 blockingCLUS.setBlocksTable <- function(sim) {
   print("set the blocks table")
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, regendelay, vol) 
-                    SELECT blockid, AVG(age) as age, SUM(thlb) as area, (20-age) as regendelay, 
-                                       SUM(thlb*vol) as vol FROM pixels GROUP BY blockid"))
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
+ 
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, vol, adj_const) 
+                    SELECT blockid, round(AVG(age),0) as age, SUM(thlb) as area, SUM(thlb*vol) as vol, (0) as adj_const
+                                       FROM pixels WHERE blockid > 0 GROUP BY blockid "))
+
+  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
+            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+            UNION 
+            SELECT b.adjblockid FROM 
+            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+            LEFT JOIN adjacentblocks b ON a.blockid = b.blockid ) ")
+  
 return(invisible(sim))
 }
 
@@ -352,11 +367,26 @@ blockingCLUS.spreadBlock<- function(sim) {
 blockingCLUS.updateBlocks<-function(sim){
   #This table updates the block information used in summaries and for a queue
   print("update the blocks table")
+  #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
+  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, AVG(age) as age, SUM(thlb) as area, SUM(thlb*vol) as vol 
+             FROM pixels GROUP BY blockid WHERE blockid > 0"))
+  
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, age, area, state, regendelay) VALUES(:blockid, :age, :area, :state, :regendelay)" ,blks.table)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks (age, area, vol) VALUES( :age, :area, :vol) WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
+  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 0")
+  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
+            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+            UNION 
+            SELECT b.adjblockid FROM 
+            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+            LEFT JOIN adjacentblocks b ON a.blockid = b.blockid ) ")
+  
+  
+  rm(new_blocks)
+  gc()
   #print(head(dbGetQuery(sim$clusdb, "SELECT * FROM blocks")))
   return(invisible(sim))
 }
