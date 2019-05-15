@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataLoaderCLUS.Rmd"),
-  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite"),
+  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -126,9 +126,9 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
-  #Note Zone table is created as a JOIN with zone_constraints and zone_lu
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_lu (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone_constraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric)")
+  #Note Zone table is created as a JOIN with zoneConstraints and zone
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, zone_const integer, thlb numeric , age numeric, vol numeric,
 crownclosure numeric, height numeric, roadyear integer)")
@@ -196,8 +196,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   if(!(P(sim, "dataLoaderCLUS", "nameZoneRasters")[1] == "99999")){
     sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
     print(paste0('.....zones: ',sim$zone.length))
+    zones_aoi<-data.table(zoneid='', zone_column='')
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
-    for(i in 1:length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))){
+    for(i in 1:sim$zone.length){
       ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], 
                              clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                              geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
@@ -206,8 +207,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
       setnames(pixels, "V1", paste0('zone',i))#SET NAMES to RASTER layer
       dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric'))
-      dbExecute(sim$clusdb, paste0("INSERT INTO zone_lu (zone_column, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
-      
+      dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
+
+      #print(head(zones_aoi))
       rm(ras.zone)
       gc()
       
@@ -219,18 +221,25 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     if(!P(sim)$nameZoneTable == '99999'){
       
       zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable))
-      ref<-dbGetQuery(sim$clusdb, "SELECT * FROM zone_lu")
-      zone_const<-merge(zone_const,ref, by = 'reference_zone')
-      
-      
+      zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone")
+      zone_const<-merge(zone_const, zone, by = 'reference_zone')
       #Need to select only those constraints that pertain to the study area
-      test2<-unique(data.table(getTableQuery(paste0(
-        "SELECT reference_zone, variable, threshold, type, percentage 
-      FROM ", P(sim)$nameZoneTable)))) #This is all of them....
+      
+      
+      zones<-lapply(zone$zone_column, function (x){
+        distinct_zones<-pixels[, .(t_area=uniqueN(pixelid)), by = x]
+        distinct_zones[, zone_column:= x]
+        setnames(distinct_zones, x, "zoneid")
+        distinct_zones
+      })
+      zones<-rbindlist(zones) #unlist the list of data.tables
+      
+      zones<-zones[!is.na(zoneid),] #remove the NA (border pixels)
+      zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
       
       dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zone_constraints (zoneid, reference_zone, zone_column, variable, threshold, type ,percentage ) 
-                      values (:zoneid, :reference_zone, :zone_column, :variable, :threshold, :type, :percentage)", zone_const)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, variable, threshold, type ,percentage, t_area ) 
+                      values (:zoneid, :reference_zone, :zone_column, :variable, :threshold, :type, :percentage, :t_area)", zones)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
     }
@@ -239,7 +248,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     sim$zone.length<-1
     pixels[, zone1:= 1]
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer")
-    dbExecute(sim$clusdb, paste0("INSERT INTO zone_lu (zone_column, reference_zone) values ( 'zone1', 'default')" ))
+    dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default')" ))
   }
   
   #------------
