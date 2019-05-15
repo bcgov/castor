@@ -22,6 +22,7 @@ output: pdf_document
 
 The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`
 
+
 # Usage
 
 ```{r module_usage}
@@ -46,7 +47,7 @@ parameters <-  list(
                   save_clusdb = FALSE,
                   nameOwnershipRaster='rast.f_own',
                   nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                  nameZoneRasters=c("rast.zone_beo"),
+                  nameZoneRasters=c("rast.zone_beo", "rast.zone_vqo"),
                   nameZoneTable="zone_constraints",
                   nameAgeRaster= "rast.vri2017_projage1",
                   nameHeightRaster= "rast.vri2017_projheight1",
