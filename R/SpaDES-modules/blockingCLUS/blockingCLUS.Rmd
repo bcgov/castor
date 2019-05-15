@@ -41,11 +41,12 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-times <- list(start = 0, end = 2)
+times <- list(start = 0, end = 0)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list( dbName='clus',
+                         save_clusdb = TRUE,
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
                          nameBoundary=c("08B", "08C"), 
@@ -64,7 +65,7 @@ parameters <- list(
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE)
                         )
-modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS","growingStockCLUS", "blockingCLUS")
+modules <- list("dataLoaderCLUS","growingStockCLUS", "blockingCLUS")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -84,9 +85,11 @@ mysimout<-spades(mySim)
 
 # Events
 
-There are two methods used in blockingCLUS under the blockMethod parameter: 
-1) pre blocking ('pre') - aggregates pixels at one time step using a graph based segementation approach
-2) dynamic blocking ('dynamic')  - aggregates pixels at multiple steps using a contagion approach
+There are two methods used in blockingCLUS under the blockMethod parameter:
+
+1. pre blocking ('pre') - aggregates pixels at one time step using a graph based segementation approach
+
+2. dynamic blocking ('dynamic')  - aggregates pixels at multiple steps using a contagion approach
 
 # Data dependencies
 

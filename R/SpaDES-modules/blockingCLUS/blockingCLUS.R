@@ -68,7 +68,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   #create blocks and adjacency table
                   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
                   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, age integer, area numeric, vol numeric, adj_const integer)")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentblocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
                   
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
                   sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
@@ -150,7 +150,7 @@ blockingCLUS.setBlocksTable <- function(sim) {
             UNION 
             SELECT b.adjblockid FROM 
             (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-            LEFT JOIN adjacentblocks b ON a.blockid = b.blockid ) ")
+            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
   
 return(invisible(sim))
 }
@@ -224,7 +224,7 @@ blockingCLUS.preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
   
-  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone_lu where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
+  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
   zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 and similar > 0 group by ", patchSizeZone))))
   #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
@@ -382,7 +382,7 @@ blockingCLUS.updateBlocks<-function(sim){
             UNION 
             SELECT b.adjblockid FROM 
             (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-            LEFT JOIN adjacentblocks b ON a.blockid = b.blockid ) ")
+            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
   
   
   rm(new_blocks)
