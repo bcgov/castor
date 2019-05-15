@@ -38,8 +38,9 @@ defineModule(sim, list(
     ),
   inputObjects = bind_rows(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
-    expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA)
-  ),
+    expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
+    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA)
+    ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "compartment_list", objectClass = "character", desc = NA),
@@ -53,6 +54,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
+      sim <- forestryCLUS.setConstraints(sim) 
       sim <- scheduleEvent(sim, time(sim), "forestryCLUS", "schedule")
     },
     schedule = {
@@ -77,7 +79,15 @@ forestryCLUS.Init <- function(sim) {
   sim$compartment_list<-unique(harvestFlow[, compartment])
   return(invisible(sim))
 }
-
+forestryCLUS.setConstraints<- function(sim) {
+  #zone_const is already added to pixels
+  zone_list<-dbGetQuery(sim$clusdb, "SELECT DISTINCT(zone_column) FROM zone")
+  for(zone in zone_list){
+    
+  }
+  
+  return(invisible(sim))
+}
 forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
   for(compart in sim$compartment_list){
@@ -86,19 +96,22 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     
     if(harvestTarget > 0){
       partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
+      harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
-      if(TRUE){
-      queue<-dbGetQuery(sim$clusdb, paste0("SELECT blockid, SUM (thlb*vol) as vol FROM pixels WHERE 
-                                         compartid = ", compart ," AND thlb > 0 AND
+      queue<-as.list(unlist(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid FROM pixels WHERE 
+                                         compartid = ", compart ," AND 
                                          zone_const = 0 AND  ", 
-                                         partition, " GROUP BY blockid ORDER BY ", 
-                                        P(sim, "forestryCLUS", "harvestPriority")))
-      }else{
-      queue<-dbGetQuery(sim$clusdb, paste0("SELECT blockid, SUM (thlb*vol) as vol FROM pixels WHERE 
-                                         compartid = ", compart ," AND thlb > 0 AND
-                                             zone_const = 0 AND  ", 
-                                             partition, " GROUP BY blockid ORDER BY ", 
-                                             P(sim, "forestryCLUS", "harvestPriority")))
+                                         partition, " ORDER BY ", 
+                                         harvestPriority)), use.names = FALSE))
+    if(nrow(queue) == 0) {
+        next #no cutblocks in the queue
+    }else{
+        if(queue[2] > 0 ){
+          #If the blockid is in the adjaceny list?
+        }else{
+          #create a landing to harvest from
+          #Use the spread function
+        }
       }
     }
   }
