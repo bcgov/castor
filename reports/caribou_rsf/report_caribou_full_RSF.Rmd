@@ -1579,6 +1579,43 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 
 
+###### Combination Models
+- correlations
+  - elevation highly correlated with frost free period ($\rho$ = -0.70), mean annual temperature 
+    ($\rho$ = -0.71) and annual precipitation as snow ($\rho$ = 0.72)
+  - mean annual temperature highly correlated with average winter temperature ($\rho$ = 0.85) 
+  - annual precipitation as snow highly correlated with winter precipitation as snow ($\rho$ = 0.78)
+
+- removed frost free period, annual ppt as snow and mean annual temperature due to correlation
+  
+![](plots/corr_winter_climate_du7_lw.png)
+
+- very high VIF values for BEC type (2698) adn average witner tmeperature (10), therefore BEC removed 
+  from analysis
+- model without BEC had  VIFs <3.5
+
+- the top DU7 late winter model included all covariates and had an AIC*~w~* = 1.00
+  - caribou selected:
+    - flatter slopes (\beta  = -0.33), closer to watercourses (\beta  = -0.14), further from lakes 
+      (\beta  = 0.06), higher elevation (\beta  = 0.62)
+    - closer to cutblocks 1 to 4 years old (\beta  = -0.23) and over 5 years old (\beta  = -0.12)
+    - further from resource roads (\beta  = 0.05) but closer to paved roads (\beta  = -0.04)
+    - closer to pipelines (\beta  = -0.08) but further from mines (\beta  = 0.11)
+    - forest stands infested by beetles in last 1 to 5 years (\beta  = 0.06) and 6 to 9 years (\beta  
+      = 0.38) and burned in the last 1 to 5 years (\beta  = 0.15), but avoided stands burned in the 
+      last 6 to 25 years (\beta  = -0.28)
+    - younger (\beta  = -0.05), open canopy (\beta  = -0.12), less productive (\beta  = -0.04) forest 
+      stands 
+    - colder (\beta  = -0.10) and with less snowfall (\beta  = -0.46)
+  
+
+
+
+
+
+
+
+
 ### DU 8
 #### Early Winter
 ###### Enduring Features
@@ -2409,6 +2446,27 @@ kable (table.kfold.du7.ew)
 
 
 
+
+
+
+#### DU7, Late Winter
+- strong validation results
+
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins varied form 0.78 to 0.95 and were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.80 to 0.98 and $$\chi^2$$ values were not significant (Table xx)
+
+ - visual validation looks good; perhaps some issues in northern herds, i.e., predicts   
+   low probabiliites where some cariobu occur
+
+```{r, k-fold du6, late winter table, eval = T, echo = F}
+table.kfold.du7.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du7\\late_winter\\table_kfold_summary_du7_lw.csv")
+table.kfold.du7.ew <- table.kfold.du7.ew [-1]
+kable (table.kfold.du7.ew)
+```
+![](plots/kfold_lm_du7_lw_grp1.png)
+![](plots/kfold_lm_du7_lw_grp2.png)
+![](plots/kfold_lm_du7_lw_grp3.png)
+![](plots/kfold_lm_du7_lw_grp4.png)
+![](plots/kfold_lm_du7_lw_grp5.png)
 
 
 
