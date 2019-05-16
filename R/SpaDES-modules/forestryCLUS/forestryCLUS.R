@@ -44,6 +44,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "compartment_list", objectClass = "character", desc = NA),
+    createsOutput(objectName = "zoneConstraints", objectClass = "data.table", desc = "In R ENV zoneConstraints table"),
     createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc = NA),
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA)
   )
@@ -58,12 +59,9 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim), "forestryCLUS", "schedule")
     },
     schedule = {
-      sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-         
-        #sim<-forestryCLUS.checkAreaConstraints(sim)
-         #sim<-forestryCLUS.checkYieldConstraints(sim)
-         #sim<-forestryCLUS.harvest(sim) # get the queue
-         #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
+      #sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
+      #sim<-forestryCLUS.checkAreaConstraints(sim)
+      #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
       
       sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule")
     },
@@ -74,18 +72,42 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 forestryCLUS.Init <- function(sim) {
-  sim$harvestPeriod <- 1
-  #Sort the compartment for the loop so that one goes before the other?
-  sim$compartment_list<-unique(harvestFlow[, compartment])
+  
+  sim$harvestPeriod <- 1 #This will be able to change in the future to 5 or decadal
+  sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  sim$zoneConstraints<-dbGetQuery(clusdb, "SELECT * FROM zoneConstraints WHERE percentage < 10")
+  
   return(invisible(sim))
 }
+
 forestryCLUS.setConstraints<- function(sim) {
-  #zone_const is already added to pixels
-  zone_list<-dbGetQuery(sim$clusdb, "SELECT DISTINCT(zone_column) FROM zone")
-  for(zone in zone_list){
-    
+  print("...setting constraints")
+  dbExecute(clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
+  print("....assigning zone_const")
+  for(i in 1:nrow(sim$zoneConstraints)){
+    switch(
+      as.character(sim$zoneConstraints[i,][7]),
+      ge = {
+        dbExecute(clusdb,
+                  paste0("UPDATE pixels 
+                   SET zone_const = 1
+                   WHERE pixelid IN ( 
+                          SELECT pixelid FROM pixels WHERE own = 1 AND ", as.vector(sim$zoneConstraints[i,][4])," = ", as.vector(as.integer(sim$zoneConstraints[i,][2])), 
+                         " ORDER BY CASE WHEN ",as.vector(sim$zoneConstraints[i,][5])," > ", as.vector(as.integer(sim$zoneConstraints[i,][6])) , " THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.vector(sim$zoneConstraints[i,][5])," DESC
+                          LIMIT ",as.vector(as.integer(round((sim$zoneConstraints[i,][8]/100) * sim$zoneConstraints[i,][9]))),")"))
+      },
+      le = {
+        dbExecute(clusdb,
+                  paste0("UPDATE pixels 
+                   SET zone_const = 1
+                   WHERE pixelid IN ( 
+                          SELECT pixelid FROM pixels WHERE own = 1 AND ", as.vector(sim$zoneConstraints[i,][4])," = ", as.vector(as.integer(sim$zoneConstraints[i,][2])), 
+                         " ORDER BY CASE WHEN ",as.vector(sim$zoneConstraints[i,][5])," < ", as.vector(as.integer(sim$zoneConstraints[i,][6])) , " THEN 1 ELSE 0 END, thlb, zone_const DESC,", as.vector(sim$zoneConstraints[i,][5])," 
+                          LIMIT ", as.vector(as.integer(round((1-(sim$zoneConstraints[i,][8]/100)) * sim$zoneConstraints[i,][9]))),")"))
+         },
+      warning(paste("Undefined 'type' in zoneConstraints"))
+    )
   }
-  
   return(invisible(sim))
 }
 forestryCLUS.getHarvestQueue<- function(sim) {
@@ -118,32 +140,11 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   return(invisible(sim))
 }
 
-forestryCLUS.checkZoneConstraints<- function(sim) {
-  #Update Constraints
-  #For each zone check if a constraint is violated
-  #  assign a zone_const = 1
-  
-  #Have a generic query updated for each type of constraint
-  #1. Area based constraints
-  #2. Yield based constraints
-  #3. Adjacency based constraints
-  
-  #UPDATE zone set area = (SELECT  COUNT(*) AS area FROM pixels WHERE age > 140 GROUP BY zoneid)
-  
-  #UPDATE pixels SET zone_const = 1 WHERE pixelid IN 
-  #(SELECT pixelid FROM pixels WHERE age > 140 AND zoneid = 1 ORDER BY age limit 67 )    
-  
-  return(invisible(sim))
-}
-
 forestryCLUS.harvest<- function(sim) {
   target<-harvestFlow[, Flow][time(sim) + 1]
  
   return(invisible(sim))
 }
-
-
-
 
 .inputObjects <- function(sim) {
   return(invisible(sim))
