@@ -70,7 +70,6 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput("zone.length", objectClass ="numeric", desc = NA),
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
-    createsOutput("bbox", objectClass ="numeric", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
     createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
@@ -82,20 +81,37 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
+      #setBoundaries
+      sim$boundaryInfo <- list(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
+      sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
+      
       if(P(sim, "dataLoaderCLUS", "useCLUSdb") == "99999"){
         #build clusdb
         sim <- dataLoaderCLUS.createCLUSdb(sim)
-        #setBoundaries
-        #sim$boundary<-getSpatialQuery(paste0("SELECT * FROM ",  P(sim, "dataLoaderCLUS", "nameBoundaryFile"), " WHERE ",   P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), "= '",  P(sim, "dataLoaderCLUS", "nameBoundary"),"';" ))
-        sim$boundaryInfo <- list(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
-        #disconnect the db once the sim is over?
-        sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
-      }else{
+        
+       }else{
         print(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
         sim$clusdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") )
+        sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
+                              clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                              geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                              where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                              conn=NULL)
+        
+        sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
+        sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
+        
+        pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
+        pixels[, pixelid := seq_len(.N)]
+        
+        sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
+        sim$rasVelo<-velox::velox(sim$ras)
       }
+      #disconnect the db once the sim is over?
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
+      
       },
     removeDbCLUS={
       sim<- disconnectDbCLUS(sim)
@@ -114,9 +130,7 @@ disconnectDbCLUS<- function(sim) {
     RSQLite::sqliteCopyDatabase(sim$clusdb, con)
     unlink("clusdb.sqlite")
   }
-  
   dbDisconnect(sim$clusdb)
-  
   return(invisible(sim))
 }
 
@@ -189,13 +203,29 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
     sim$rasVelo<-velox::velox(sim$ras)
   }
+  #------------
+  #Set the Ownership
+  #------------
+  if(!(P(sim, "dataLoaderCLUS", "nameOwnershipRaster") == "99999")){
+    print(paste0('.....ownership: ',P(sim, "dataLoaderCLUS", "nameOwnershipRaster")))
+    ras.own<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameOwnershipRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.own)))))
+    setnames(pixels, "V1", "own")
+    rm(ras.own)
+    gc()
+  }else{
+    print('.....ownership: default 1')
+    pixels[, own := 1]
+  }
   
   #----------------
   #Set the zone IDs
   #----------------
   if(!(P(sim, "dataLoaderCLUS", "nameZoneRasters")[1] == "99999")){
-    sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
-    print(paste0('.....zones: ',sim$zone.length))
     zones_aoi<-data.table(zoneid='', zone_column='')
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:sim$zone.length){
@@ -212,11 +242,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       #print(head(zones_aoi))
       rm(ras.zone)
       gc()
-      
     }
-    #create the unique zones. Don't need a unique zone because management zones are applied mutually exlusive
-    #pixels[, zone_unique := do.call(paste, c(.SD, sep = "_")), .SDcols = paste0("zone",as.character(seq(1:sim$zone.length)))]
-    
     #zone_constraint table
     if(!P(sim)$nameZoneTable == '99999'){
       
@@ -225,9 +251,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       zone_const<-merge(zone_const, zone, by = 'reference_zone')
       #Need to select only those constraints that pertain to the study area
       
-      
       zones<-lapply(zone$zone_column, function (x){
-        distinct_zones<-pixels[, .(t_area=uniqueN(pixelid)), by = x]
+        distinct_zones<-pixels[own == 1, .(t_area=uniqueN(pixelid)), by = x]
         distinct_zones[, zone_column:= x]
         setnames(distinct_zones, x, "zoneid")
         distinct_zones
@@ -270,24 +295,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print('.....thlb: default 1')
     pixels[, thlb := 1]
   }
-  #------------
-  #Set the Ownership
-  #------------
-  if(!(P(sim, "dataLoaderCLUS", "nameOwnershipRaster") == "99999")){
-    print(paste0('.....ownership: ',P(sim, "dataLoaderCLUS", "nameOwnershipRaster")))
-    ras.own<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameOwnershipRaster"), 
-                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.own)))))
-    setnames(pixels, "V1", "own")
-    rm(ras.own)
-    gc()
-  }else{
-    print('.....ownership: default 1')
-    pixels[, own := 1]
-  }
+  
   
   #-----------------
   #Set the Yield IDS
