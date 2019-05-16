@@ -2454,7 +2454,7 @@ kable (table.kfold.du7.ew)
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins varied form 0.78 to 0.95 and were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.80 to 0.98 and $$\chi^2$$ values were not significant (Table xx)
 
- - visual validation looks good; some issues in southern Graham herd area fo the DU, i.e., predicts   
+ - visual validation looks good; perhaps some issues in northern herds, i.e., predicts   
    low probabiliites where some cariobu occur
 
 ```{r, k-fold du6, late winter table, eval = T, echo = F}

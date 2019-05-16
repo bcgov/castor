@@ -3606,126 +3606,75 @@ write.csv (table.kfold.results.du7.lw, file = "C:\\Work\\caribou\\clus_data\\car
 ### RSF RASTER CALCULATION ###
 #############################
 ### LOAD RASTERS ###
-slope <- raster ("C:\\Work\\caribou\\clus_data\\dem\\slope_deg_all_bc_8_clip.tif")
-dist.water <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_watercourses_bcalbers_20180820.tif")
-dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\water\\raster_dist_to_lakes_bcalbers_20180820.tif")
-elev <- raster ("C:\\Work\\caribou\\clus_data\\dem\\dem_all_bc_clip.tif")
-dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
-dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
-dist.cut.10to29 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10to29yo.tif")
-dist.cut.30over <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_30yo_over.tif")
-dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
-dist.pipeline <- raster ("C:\\Work\\caribou\\clus_data\\pipelines\\raster_distance_to_pipelines_bcalbers_20180815.tif")
-dist.agric <- raster ("C:\\Work\\caribou\\clus_data\\agriculture\\raster_dist_to_agriculture_bcalbers_ce_2015.tif")
-beetle.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_1to5yo_fin.tif")
-beetle.6to9 <- raster ("C:\\Work\\caribou\\clus_data\\forest_health\\raster_bark_beetle_all_6to9yo_fin.tif")
-fire.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_1to5yo_fin.tif")
-fire.6to25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_6to25yo_fin.tif")
-fire.over25 <- raster ("C:\\Work\\caribou\\clus_data\\fire\\fire_tiffs\\raster_fire_over25yo_fin.tif")
-vri.age <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_projage1.tif")
-vri.site.index <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_siteindex.tif")
-vri.herb <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_herbcoverpct.tif")
-vri.shrub <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_shrubcrownclosure.tif")
-ppt.as.snow.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\pas_wt")
-temp.winter <- raster ("C:\\Work\\caribou\\clus_data\\climate\\seasonal\\tave_wt") / 10 #divide by ten; data was multiplied by 10
-
-### CROP RASTERS TO DU7 USED "BOX' "of HERD RANGES PLUS 25km BUFFER ###
-caribou.sa <- readOGR ("C:\\Work\\caribou\\clus_data\\caribou\\caribou_herd\\du7_herds_buff25km.shp", stringsAsFactors = T) # DU7 herds with 25km buffer
-slope <- crop (slope, extent (caribou.sa))
-dist.water <- crop (dist.water, extent (caribou.sa))
-dist.lake <- crop (dist.lake, extent (caribou.sa))
-elev <- crop (elev, extent (caribou.sa))
-dist.resource.rd <- crop (dist.resource.rd, extent (caribou.sa))
-dist.pipeline <- crop (dist.pipeline, extent (caribou.sa))
-dist.agric <- crop (dist.agric, extent (caribou.sa))
-dist.cut.1to4 <- crop (dist.cut.1to4, extent (caribou.sa))
-dist.cut.5to9 <- crop (dist.cut.5to9, extent (caribou.sa))
-dist.cut.10to29 <- crop (dist.cut.10to29, extent (caribou.sa))
-dist.cut.30over <- crop (dist.cut.30over, extent (caribou.sa))
-beetle.1to5 <- crop (beetle.1to5, extent (caribou.sa))
-beetle.6to9 <- crop (beetle.6to9, extent (caribou.sa))
-fire.1to5 <- crop (fire.1to5, extent (caribou.sa))
-fire.6to25 <- crop (fire.6to25, extent (caribou.sa))
-fire.over25 <- crop (fire.over25, extent (caribou.sa))
-vri.age <- crop (vri.shrub, extent (caribou.sa))
-vri.site.index <- crop (vri.site.index, extent (caribou.sa))
-vri.herb <- crop (vri.herb, extent (caribou.sa))
-vri.shrub <- crop (vri.shrub, extent (caribou.sa))
-
-proj.crs <- proj4string (caribou.sa)
-ppt.as.snow.winter <- projectRaster (ppt.as.snow.winter, crs = proj.crs, method = "bilinear")
-temp.winter <- projectRaster (temp.winter, crs = proj.crs, method = "bilinear")
-ppt.as.snow.winter <- crop (ppt.as.snow.winter, extent (caribou.sa))
-temp.winter <- crop (temp.winter, extent (caribou.sa))
-
-## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
-beginCluster ()
-
-slope <- resample (slope, dist.lake, method = 'bilinear')
-writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\late_winter\\slope_resample.tif", 
-             format = "GTiff")
-elev <- resample (elev, dist.lake, method = 'bilinear')
-writeRaster (elev, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\late_winter\\elevation_resample.tif", 
-             format = "GTiff")
-ppt.as.snow.winter <- resample (ppt.as.snow.winter, dist.lake, method = 'bilinear')
-writeRaster (ppt.as.snow.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\late_winter\\ppt_snow_winter.tif", 
-             format = "GTiff")
-temp.winter <- resample (temp.winter, dist.lake, method = 'bilinear')
-writeRaster (temp.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\late_winter\\temp_winter.tif", 
-             format = "GTiff", overwrite = TRUE)
-
-endCluster ()
+dist.water <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_distwater.tif")
+dist.lake <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_dist_lake.tif")
+dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_dcut_1to4.tif")
+dist.cut.5over <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_dist_cut_o5.tif")
+dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_dist_res_rd.tif")
+dist.paved.rd <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_pvd_road.tif")
+dist.pipeline <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_dist_pipe.tif")
+dist.mine <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_dist_mine.tif")
+beetle.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_beet1to5.tif")
+beetle.6to9 <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_beet6to9.tif")
+fire.1to5 <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_fire1to5.tif")
+fire.6to25 <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_fire6to25.tif")
+fire.over25 <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_fire_o25.tif")
+vri.age <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_vri_age.tif")
+vri.cc <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_vri_cc.tif")
+vri.site.index <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_vri_site_index.tif")
+pas.winter <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_pas_wt_resample.tif")
+temp.winter <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_tave_wt_resample.tif")
+elev <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_elev_resample.tif")
+slope <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_slope_resample.tif")
 
 ### Adjust the raster data for 'standardized' model covariates ###
 beginCluster ()
 
-slope <- (slope - 17) / 12 # rounded these numbers to facilitate faster processing; decreases processing time substantially
-dist.water <- (dist.water - 5000) / 2149 
-dist.lake <- (dist.lake - 3420) / 2253 
-elev <- (elev - 1524) / 251 
-std.dist.cut.1to4 <- (dist.cut.1to4 - 12205) / 6105 
-std.dist.cut.5to9 <- (dist.cut.5to9 - 8697) / 4998
-dist.cut.10to29 <- (dist.cut.10to29 - 4476) / 3005
-dist.cut.30over <- (dist.cut.30over - 7145) / 4048
-dist.resource.rd <- (dist.resource.rd - 1929) / 1918
-dist.pipeline <- (dist.pipeline - 8436) / 11735
-dist.agric <- (dist.agric - 21330) / 8340
-vri.age <- (vri.age - 107) / 81
-vri.site.index <- (vri.site.index - 5) / 4
-vri.herb <- (vri.herb - 13) / 19
-vri.shrub <- (vri.shrub - 10) / 15
-ppt.as.snow.winter <- (ppt.as.snow.winter - 349) / 128
-temp.winter <- (temp.winter - -10) / 0.5
+slope <- (slope - 10) / 11 # rounded these numbers to facilitate faster processing; decreases processing time substantially
+dist.water <- (dist.water - 7503) / 6691 
+dist.lake <- (dist.lake - 3721) / 3578 
+elev <- (elev - 1254) / 306 
+dist.cut.1to4 <- (dist.cut.1to4 - 40847) / 43498 
+dist.cut.5over <- (dist.cut.5over - 17358) / 25323
+dist.resource.rd <- (dist.resource.rd - 4305) / 5754
+dist.paved.rd <- (dist.paved.rd - 17758) / 12550
+dist.pipeline <- (dist.pipeline - 74169) / 58712
+dist.mine <- (dist.mine - 33168) / 17100
+vri.age <- (vri.age - 106) / 69
+vri.site.index <- (vri.site.index - 7) / 5
+vri.cc <- (vri.cc - 25) / 20
+pas.winter <- (pas.winter - 127) / 56
+temp.winter <- (temp.winter - -9) / 2
 
 endCluster ()
 
 ### CALCULATE RASTER OF STATIC VARIABLES ###
 beginCluster ()
 
-raster.rsf <- exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) + 
-                           (dist.lake * 0.02) + (elev * 1.36) +
-                           (std.dist.cut.1to4 * -0.02) + (std.dist.cut.5to9 * -0.20) +
-                           (dist.cut.10to29 * -0.01) + (dist.cut.30over * -0.04) +
-                           (dist.resource.rd * 0.02) + (dist.pipeline * -0.10) +
-                           (dist.agric * 0.21) + (beetle.1to5 * -0.11) +
-                           (beetle.6to9 * 0.15) + (fire.1to5 * -1.21) + 
-                           (fire.6to25 * -0.09) + (fire.over25 * -0.45) +
-                           (vri.age * 0.09) + (vri.site.index * -0.27) +
-                           (vri.herb * 0.06) + (vri.shrub * -0.07) + 
-                           (ppt.as.snow.winter * -1.14) + (temp.winter * 0.21)) /
-           1 + exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) + 
-                      (dist.lake * 0.02) + (elev * 1.36) +
-                      (std.dist.cut.1to4 * -0.02) + (std.dist.cut.5to9 * -0.20) +
-                      (dist.cut.10to29 * -0.01) + (dist.cut.30over * -0.04) +
-                      (dist.resource.rd * 0.02) + (dist.pipeline * -0.10) +
-                      (dist.agric * 0.21) + (beetle.1to5 * -0.11) +
-                      (beetle.6to9 * 0.15) + (fire.1to5 * -1.21) + 
-                      (fire.6to25 * -0.09) + (fire.over25 * -0.45) +
-                      (vri.age * 0.09) + (vri.site.index * -0.27) +
-                      (vri.herb * 0.06) + (vri.shrub * -0.07) + 
-                      (ppt.as.snow.winter * -1.14) + (temp.winter * 0.21))      
+raster.rsf <- exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) + 
+                           (dist.lake * 0.06) + (elev * 0.62) +
+                           (dist.cut.1to4 * -0.23) + (dist.cut.5over * -0.12) +
+                           (dist.resource.rd * 0.05) + (dist.paved.rd * -0.04) +
+                           (dist.pipeline * -0.08) + (dist.mine * 0.11) + 
+                           (beetle.1to5 * 0.06) +
+                           (beetle.6to9 * 0.38) + (fire.1to5 * 0.15) + 
+                           (fire.6to25 * -0.28) + (fire.over25 * 0.01) +
+                           (vri.age * -0.05) + (vri.site.index * -0.04) +
+                           (vri.cc * -0.12) + 
+                           (pas.winter * -0.46) + (temp.winter * -0.10)) /
+           (1 + exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) + 
+                      (dist.lake * 0.06) + (elev * 0.62) +
+                      (dist.cut.1to4 * -0.23) + (dist.cut.5over * -0.12) +
+                      (dist.resource.rd * 0.05) + (dist.paved.rd * -0.04) +
+                      (dist.pipeline * -0.08) + (dist.mine * 0.11) + 
+                      (beetle.1to5 * 0.06) +
+                      (beetle.6to9 * 0.38) + (fire.1to5 * 0.15) + 
+                      (fire.6to25 * -0.28) + (fire.over25 * 0.01) +
+                      (vri.age * -0.05) + (vri.site.index * -0.04) +
+                      (vri.cc * -0.12) + 
+                      (pas.winter * -0.46) + (temp.winter * -0.10)))      
                 
-writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\late_winter\\rsf_du7_lw.tif", 
+writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\rsf_du7_lw.tif", 
              format = "GTiff", overwrite = T)
 
 endCluster ()
