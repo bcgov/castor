@@ -75,20 +75,22 @@ forestryCLUS.Init <- function(sim) {
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$zoneConstraints<-dbGetQuery(clusdb, "SELECT * FROM zoneConstraints WHERE percentage < 10")
+  sim$zoneConstraints<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints WHERE percentage < 10")
   
   return(invisible(sim))
 }
 
 forestryCLUS.setConstraints<- function(sim) {
   print("...setting constraints")
-  dbExecute(clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
+  dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   print("....assigning zone_const")
+  
+  #TODO: Try a DbBegin, dbSendQuery, dbCommit to commit all transactions at once?
   for(i in 1:nrow(sim$zoneConstraints)){
     switch(
       as.character(sim$zoneConstraints[i,][7]),
       ge = {
-        dbExecute(clusdb,
+        dbExecute(sim$clusdb,
                   paste0("UPDATE pixels 
                    SET zone_const = 1
                    WHERE pixelid IN ( 
@@ -97,7 +99,7 @@ forestryCLUS.setConstraints<- function(sim) {
                           LIMIT ",as.vector(as.integer(round((sim$zoneConstraints[i,][8]/100) * sim$zoneConstraints[i,][9]))),")"))
       },
       le = {
-        dbExecute(clusdb,
+        dbExecute(sim$clusdb,
                   paste0("UPDATE pixels 
                    SET zone_const = 1
                    WHERE pixelid IN ( 
