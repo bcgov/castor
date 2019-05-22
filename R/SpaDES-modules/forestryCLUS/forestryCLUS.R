@@ -38,11 +38,13 @@ defineModule(sim, list(
     ),
   inputObjects = bind_rows(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
-    expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA)
-  ),
+    expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
+    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA)
+    ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "compartment_list", objectClass = "character", desc = NA),
+    createsOutput(objectName = "zoneConstraints", objectClass = "data.table", desc = "In R ENV zoneConstraints table"),
     createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc = NA),
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA)
   )
@@ -53,15 +55,13 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
+      sim <- forestryCLUS.setConstraints(sim) 
       sim <- scheduleEvent(sim, time(sim), "forestryCLUS", "schedule")
     },
     schedule = {
-      sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-         
-        #sim<-forestryCLUS.checkAreaConstraints(sim)
-         #sim<-forestryCLUS.checkYieldConstraints(sim)
-         #sim<-forestryCLUS.harvest(sim) # get the queue
-         #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
+      #sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
+      #sim<-forestryCLUS.checkAreaConstraints(sim)
+      #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
       
       sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule")
     },
@@ -72,12 +72,54 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 forestryCLUS.Init <- function(sim) {
-  sim$harvestPeriod <- 1
-  #Sort the compartment for the loop so that one goes before the other?
-  sim$compartment_list<-unique(harvestFlow[, compartment])
+  
+  sim$harvestPeriod <- 1 #This will be able to change in the future to 5 or decadal
+  sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  sim$zoneConstraints<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints WHERE percentage < 10")
+  
   return(invisible(sim))
 }
 
+forestryCLUS.setConstraints<- function(sim) {
+  print("...setting constraints")
+  dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
+  print("....assigning zone_const")
+  zones<-dbGetQuery(sim$clusdbclusdb, "SELECT zone_column FROM zone")
+  for(i in 1:nrow(zones)){
+      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
+                                                        CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
+                                                        ROUND((1-(percentage*1.0/100))*t_area, 0) END AS limits
+                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND percentage < 10;")))
+      switch(
+        as.character(query_parms[1, "type"]),
+        ge = {
+          
+          sql<-paste0("UPDATE pixels 
+                      SET zone_const = 1
+                      WHERE pixelid IN ( 
+                      SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
+                      LIMIT :limits);")
+          
+        },
+        le = {
+          sql<-paste0("UPDATE pixels 
+                      SET zone_const = 1
+                      WHERE pixelid IN ( 
+                      SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
+                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," < :threshold THEN 1 ELSE 0 END, thlb, zone_const DESC,", as.character(query_parms[1, "variable"])," 
+                      LIMIT :limits);")
+          
+        },
+        warning(paste("Undefined 'type' in zoneConstraints"))
+      )
+      dbBegin(sim$clusdbclusdb)
+        rs<-dbSendQuery(sim$clusdbclusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+      dbClearResult(sim$clusdbrs)
+      dbCommit(sim$clusdbclusdb)
+    }
+  return(invisible(sim))
+}
 forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
   for(compart in sim$compartment_list){
@@ -86,40 +128,25 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     
     if(harvestTarget > 0){
       partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
+      harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
-      if(TRUE){
-      queue<-dbGetQuery(sim$clusdb, paste0("SELECT blockid, SUM (thlb*vol) as vol FROM pixels WHERE 
-                                         compartid = ", compart ," AND thlb > 0 AND
+      queue<-as.list(unlist(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid FROM pixels WHERE 
+                                         compartid = ", compart ," AND 
                                          zone_const = 0 AND  ", 
-                                         partition, " GROUP BY blockid ORDER BY ", 
-                                        P(sim, "forestryCLUS", "harvestPriority")))
-      }else{
-      queue<-dbGetQuery(sim$clusdb, paste0("SELECT blockid, SUM (thlb*vol) as vol FROM pixels WHERE 
-                                         compartid = ", compart ," AND thlb > 0 AND
-                                             zone_const = 0 AND  ", 
-                                             partition, " GROUP BY blockid ORDER BY ", 
-                                             P(sim, "forestryCLUS", "harvestPriority")))
+                                         partition, " ORDER BY ", 
+                                         harvestPriority)), use.names = FALSE))
+    if(nrow(queue) == 0) {
+        next #no cutblocks in the queue
+    }else{
+        if(queue[2] > 0 ){
+          #If the blockid is in the adjaceny list?
+        }else{
+          #create a landing to harvest from
+          #Use the spread function
+        }
       }
     }
   }
-  return(invisible(sim))
-}
-
-forestryCLUS.checkZoneConstraints<- function(sim) {
-  #Update Constraints
-  #For each zone check if a constraint is violated
-  #  assign a zone_const = 1
-  
-  #Have a generic query updated for each type of constraint
-  #1. Area based constraints
-  #2. Yield based constraints
-  #3. Adjacency based constraints
-  
-  #UPDATE zone set area = (SELECT  COUNT(*) AS area FROM pixels WHERE age > 140 GROUP BY zoneid)
-  
-  #UPDATE pixels SET zone_const = 1 WHERE pixelid IN 
-  #(SELECT pixelid FROM pixels WHERE age > 140 AND zoneid = 1 ORDER BY age limit 67 )    
-  
   return(invisible(sim))
 }
 
@@ -128,9 +155,6 @@ forestryCLUS.harvest<- function(sim) {
  
   return(invisible(sim))
 }
-
-
-
 
 .inputObjects <- function(sim) {
   return(invisible(sim))
