@@ -84,32 +84,40 @@ forestryCLUS.setConstraints<- function(sim) {
   print("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   print("....assigning zone_const")
-  
-  #TODO: Try a DbBegin, dbSendQuery, dbCommit to commit all transactions at once?
-  for(i in 1:nrow(sim$zoneConstraints)){
-    switch(
-      as.character(sim$zoneConstraints[i,][7]),
-      ge = {
-        dbExecute(sim$clusdb,
-                  paste0("UPDATE pixels 
-                   SET zone_const = 1
-                   WHERE pixelid IN ( 
-                          SELECT pixelid FROM pixels WHERE own = 1 AND ", as.vector(sim$zoneConstraints[i,][4])," = ", as.vector(as.integer(sim$zoneConstraints[i,][2])), 
-                         " ORDER BY CASE WHEN ",as.vector(sim$zoneConstraints[i,][5])," > ", as.vector(as.integer(sim$zoneConstraints[i,][6])) , " THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.vector(sim$zoneConstraints[i,][5])," DESC
-                          LIMIT ",as.vector(as.integer(round((sim$zoneConstraints[i,][8]/100) * sim$zoneConstraints[i,][9]))),")"))
-      },
-      le = {
-        dbExecute(sim$clusdb,
-                  paste0("UPDATE pixels 
-                   SET zone_const = 1
-                   WHERE pixelid IN ( 
-                          SELECT pixelid FROM pixels WHERE own = 1 AND ", as.vector(sim$zoneConstraints[i,][4])," = ", as.vector(as.integer(sim$zoneConstraints[i,][2])), 
-                         " ORDER BY CASE WHEN ",as.vector(sim$zoneConstraints[i,][5])," < ", as.vector(as.integer(sim$zoneConstraints[i,][6])) , " THEN 1 ELSE 0 END, thlb, zone_const DESC,", as.vector(sim$zoneConstraints[i,][5])," 
-                          LIMIT ", as.vector(as.integer(round((1-(sim$zoneConstraints[i,][8]/100)) * sim$zoneConstraints[i,][9]))),")"))
-         },
-      warning(paste("Undefined 'type' in zoneConstraints"))
-    )
-  }
+  zones<-dbGetQuery(sim$clusdbclusdb, "SELECT zone_column FROM zone")
+  for(i in 1:nrow(zones)){
+      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
+                                                        CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
+                                                        ROUND((1-(percentage*1.0/100))*t_area, 0) END AS limits
+                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND percentage < 10;")))
+      switch(
+        as.character(query_parms[1, "type"]),
+        ge = {
+          
+          sql<-paste0("UPDATE pixels 
+                      SET zone_const = 1
+                      WHERE pixelid IN ( 
+                      SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
+                      LIMIT :limits);")
+          
+        },
+        le = {
+          sql<-paste0("UPDATE pixels 
+                      SET zone_const = 1
+                      WHERE pixelid IN ( 
+                      SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
+                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," < :threshold THEN 1 ELSE 0 END, thlb, zone_const DESC,", as.character(query_parms[1, "variable"])," 
+                      LIMIT :limits);")
+          
+        },
+        warning(paste("Undefined 'type' in zoneConstraints"))
+      )
+      dbBegin(sim$clusdbclusdb)
+        rs<-dbSendQuery(sim$clusdbclusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+      dbClearResult(sim$clusdbrs)
+      dbCommit(sim$clusdbclusdb)
+    }
   return(invisible(sim))
 }
 forestryCLUS.getHarvestQueue<- function(sim) {
