@@ -2868,16 +2868,16 @@ rsf.data.combo.du8.s$preds.train1.class <- cut (rsf.data.combo.du8.s$preds.train
 write.csv (rsf.data.combo.du8.s, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_combo_du8_s.csv")
 rsf.data.combo.du8.s.avail <- dplyr::filter (rsf.data.combo.du8.s, pttype == 0)
 
-table.kfold [1, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [2, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.12")) * 0.15)
-table.kfold [3, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.20")) * 0.25)
-table.kfold [4, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.28")) * 0.35)
-table.kfold [5, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.36")) * 0.45)
-table.kfold [6, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.44")) * 0.55)
-table.kfold [7, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.52")) * 0.65)
-table.kfold [8, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.60")) * 0.75)
-table.kfold [9, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.68")) * 0.85)
-table.kfold [10, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.76")) * 0.95)
+table.kfold [1, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [2, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.12")) * 0.12)
+table.kfold [3, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.20")) * 0.20)
+table.kfold [4, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.28")) * 0.28)
+table.kfold [5, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.36")) * 0.36)
+table.kfold [6, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.44")) * 0.44)
+table.kfold [7, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.52")) * 0.52)
+table.kfold [8, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.60")) * 0.60)
+table.kfold [9, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.68")) * 0.68)
+table.kfold [10, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train1.class == "0.76")) * 0.76)
 
 table.kfold [1, 4] <- table.kfold [1, 3] / sum  (table.kfold [c (1:10), 3]) 
 table.kfold [2, 4] <- table.kfold [2, 3] / sum  (table.kfold [c (1:10), 3]) 
@@ -2997,16 +2997,16 @@ rsf.data.combo.du8.s.avail <- dplyr::filter (rsf.data.combo.du8.s, pttype == 0)
 
 table.kfold [c (11:20), 1] <- 2
 
-table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.12")) * 0.15)
-table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.20")) * 0.25)
-table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.28")) * 0.35)
-table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.36")) * 0.45)
-table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.44")) * 0.55)
-table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.52")) * 0.65)
-table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.60")) * 0.75)
-table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.68")) * 0.85)
-table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.76")) * 0.95)
+table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.12")) * 0.12)
+table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.20")) * 0.20)
+table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.28")) * 0.28)
+table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.36")) * 0.36)
+table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.44")) * 0.44)
+table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.52")) * 0.52)
+table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.60")) * 0.60)
+table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.68")) * 0.68)
+table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train2.class == "0.76")) * 0.76)
 
 table.kfold [11, 4] <- table.kfold [11, 3] / sum  (table.kfold [c (11:20), 3]) 
 table.kfold [12, 4] <- table.kfold [12, 3] / sum  (table.kfold [c (11:20), 3]) 
@@ -3056,14 +3056,14 @@ glm.kfold.test2 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 2))
 summary (glm.kfold.test2)
 
-table.kfold [11, 7] <- 1.01194
+table.kfold [11, 7] <- 1.0247
 table.kfold [11, 8] <- "<0.001"
-table.kfold [11, 9] <- -14.14939
-table.kfold [11, 10] <- 0.933
-table.kfold [11, 11] <- 0.9214
+table.kfold [11, 9] <- -19.8359
+table.kfold [11, 10] <- 0.899
+table.kfold [11, 11] <- 0.8865
 
 chisq.test(dplyr::filter(table.kfold, test.number == 2)$used.count, dplyr::filter(table.kfold, test.number == 2)$expected.count)
-table.kfold [11, 12] <- 0.2313
+table.kfold [11, 12] <- 0.02605
 
 write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\summer\\table_kfold_valid_du8_s.csv")
 
@@ -3126,16 +3126,16 @@ rsf.data.combo.du8.s.avail <- dplyr::filter (rsf.data.combo.du8.s, pttype == 0)
 
 table.kfold [c (21:30), 1] <- 3
 
-table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.12")) * 0.15)
-table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.20")) * 0.25)
-table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.28")) * 0.35)
-table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.36")) * 0.45)
-table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.44")) * 0.55)
-table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.52")) * 0.65)
-table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.60")) * 0.75)
-table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.68")) * 0.85)
-table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.76")) * 0.95)
+table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.12")) * 0.12)
+table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.20")) * 0.20)
+table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.28")) * 0.28)
+table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.36")) * 0.36)
+table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.44")) * 0.44)
+table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.52")) * 0.52)
+table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.60")) * 0.60)
+table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.68")) * 0.68)
+table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train3.class == "0.76")) * 0.76)
 
 table.kfold [21, 4] <- table.kfold [21, 3] / sum  (table.kfold [c (21:30), 3]) 
 table.kfold [22, 4] <- table.kfold [22, 3] / sum  (table.kfold [c (21:30), 3]) 
@@ -3185,14 +3185,14 @@ glm.kfold.test3 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 3))
 summary (glm.kfold.test3)
 
-table.kfold [21, 7] <- 0.9880
+table.kfold [21, 7] <- 0.99627
 table.kfold [21, 8] <- "<0.001"
-table.kfold [21, 9] <- 13.2494
-table.kfold [21, 10] <- 0.905
-table.kfold [21, 11] <- 0.9599
+table.kfold [21, 9] <- 2.86778
+table.kfold [21, 10] <- 0.978
+table.kfold [21, 11] <- 0.9408
 
 chisq.test(dplyr::filter(table.kfold, test.number == 3)$used.count, dplyr::filter(table.kfold, test.number == 3)$expected.count)
-table.kfold [21, 12] <- 0.2313
+table.kfold [21, 12] <- 0.09884
 
 write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\summer\\table_kfold_valid_du8_s.csv")
 
@@ -3254,16 +3254,16 @@ rsf.data.combo.du8.s.avail <- dplyr::filter (rsf.data.combo.du8.s, pttype == 0)
 
 table.kfold [c (31:40), 1] <- 4
 
-table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.12")) * 0.15)
-table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.20")) * 0.25)
-table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.28")) * 0.35)
-table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.36")) * 0.45)
-table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.44")) * 0.55)
-table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.52")) * 0.65)
-table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.60")) * 0.75)
-table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.68")) * 0.85)
-table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.76")) * 0.95)
+table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.12")) * 0.12)
+table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.20")) * 0.20)
+table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.28")) * 0.28)
+table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.36")) * 0.36)
+table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.44")) * 0.44)
+table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.52")) * 0.52)
+table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.60")) * 0.60)
+table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.68")) * 0.68)
+table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train4.class == "0.76")) * 0.76)
 
 table.kfold [31, 4] <- table.kfold [31, 3] / sum  (table.kfold [c (31:40), 3]) 
 table.kfold [32, 4] <- table.kfold [32, 3] / sum  (table.kfold [c (31:40), 3]) 
@@ -3313,14 +3313,14 @@ glm.kfold.test4 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 4))
 summary (glm.kfold.test4)
 
-table.kfold [31, 7] <- 0.96516
+table.kfold [31, 7] <- 0.96772
 table.kfold [31, 8] <- "<0.001"
-table.kfold [31, 9] <- 39.74441
-table.kfold [31, 10] <- 0.507
-table.kfold [31, 11] <- 0.9883
+table.kfold [31, 9] <- 25.15631
+table.kfold [31, 10] <- 0.652
+table.kfold [31, 11] <- 0.9815
 
 chisq.test(dplyr::filter(table.kfold, test.number == 4)$used.count, dplyr::filter(table.kfold, test.number == 4)$expected.count)
-table.kfold [31, 12] <- 0.2424
+table.kfold [31, 12] <- 0.09884
 
 write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\summer\\table_kfold_valid_du8_s.csv")
 
@@ -3382,16 +3382,16 @@ rsf.data.combo.du8.s.avail <- dplyr::filter (rsf.data.combo.du8.s, pttype == 0)
 
 table.kfold [c (41:50), 1] <- 5
 
-table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.12")) * 0.15)
-table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.20")) * 0.25)
-table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.28")) * 0.35)
-table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.36")) * 0.45)
-table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.44")) * 0.55)
-table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.52")) * 0.65)
-table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.60")) * 0.75)
-table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.68")) * 0.85)
-table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.76")) * 0.95)
+table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.12")) * 0.12)
+table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.20")) * 0.20)
+table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.28")) * 0.28)
+table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.36")) * 0.36)
+table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.44")) * 0.44)
+table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.52")) * 0.52)
+table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.60")) * 0.60)
+table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.68")) * 0.68)
+table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du8.s.avail, preds.train5.class == "0.76")) * 0.76)
 
 table.kfold [41, 4] <- table.kfold [41, 3] / sum  (table.kfold [c (41:50), 3]) 
 table.kfold [42, 4] <- table.kfold [42, 3] / sum  (table.kfold [c (41:50), 3]) 
@@ -3441,14 +3441,14 @@ glm.kfold.test5 <- lm (used.count ~ expected.count,
                        data = dplyr::filter (table.kfold, test.number == 5))
 summary (glm.kfold.test5)
 
-table.kfold [41, 7] <- 0.99844
+table.kfold [41, 7] <- 0.93808
 table.kfold [41, 8] <- "<0.001"
-table.kfold [41, 9] <- 1.58635
-table.kfold [41, 10] <- 0.984
-table.kfold [41, 11] <- 0.9747
+table.kfold [41, 9] <- 41.82090
+table.kfold [41, 10] <- 0.423
+table.kfold [41, 11] <- 0.977
 
 chisq.test(dplyr::filter(table.kfold, test.number == 5)$used.count, dplyr::filter(table.kfold, test.number == 5)$expected.count)
-table.kfold [41, 12] <- 0.2313
+table.kfold [41, 12] <- 0.02605
 
 write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\summer\\table_kfold_valid_du8_s.csv")
 
@@ -3469,7 +3469,7 @@ write.csv (test.data.5, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_mo
 
 # create results table
 table.kfold.results.du8.s <- table.kfold
-table.kfold.results.du8.s <- table.kfold.results.du8.s [- c (1, 3:7)]
+table.kfold.results.du8.s <- table.kfold.results.du8.s [-c (2:6)]
 
 table.kfold.results.du8.s <- table.kfold.results.du8.s %>%
   slice (c (1, 11, 21, 31, 41))

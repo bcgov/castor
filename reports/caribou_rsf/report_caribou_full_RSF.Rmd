@@ -1476,25 +1476,6 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
   - covairates were simialr so kept model with all covariates
 
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ###### Winter Climate
 - boxplots
   - generally didn't appear to be signfiant outliers
@@ -1616,6 +1597,266 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
 
 
 
+
+#### Summer
+###### Enduring Features
+- boxplots
+  - didn't appear to be significant outliers
+![](plots/boxplot_terrain_water_du7_s_slope.png)
+![](plots/boxplot_terrain_water_du7_s_dist_lake.png)
+![](plots/boxplot_terrain_water_du7_s_dist_watercourse.png)
+
+- histogram 
+![](plots/hist_terrain_water_du7_s_slope.png)
+![](plots/hist_terrain_water_du7_s_dist_lake.png)
+![](plots/hist_terrain_water_du7_s_dist_watercourse.png)
+![](plots/hist_terrain_water_du7_s_elevation.png)
+
+- correlations
+  - none significantly correlated
+![](plots/corr_terrain_water_du7_s.png)
+
+- VIFs less than 1.5
+
+- Enduring features top-ranked model included all covariates (elevation, slope, disatnce to lake, and distance to watercourse) and had an AIC weight (AIC*~w~*) of 0.968. The second ranked model included elevation, slope, and disatnce to watercourse and had an AIC weight (AIC*~w~*) of 0.032
+
+
+
+
+
+
+###### Human Disturbance
+- boxplots
+  - didn't appear to be signfiant outliers
+![](plots/boxplot_du7_lw_distcut1to4.png)
+![](plots/boxplot_du7_s_distcutover5.png)
+![](plots/boxplot_du7_s_dist_pvd_rd.png)
+![](plots/boxplot_du7_s_dist_resource_rd.png)
+![](plots/boxplot_du7_s_dist_ag.png)
+![](plots/boxplot_du7_s_dist_mine.png)
+![](plots/boxplot_du7_s_dist_pipe.png)
+![](plots/boxplot_du7_s_dist_well.png)
+![](plots/boxplot_du7_s_dist_ski.png)
+
+- histograms
+![](plots/hist_du7_s_dist_cut_1to4.png)
+![](plots/hist_du7_s_dist_cut_over5.png)
+![](plots/hist_du7_s_dist_pvd_rd.png)
+![](plots/hist_du7_s_dist_res_rd.png)
+![](plots/hist_du7_s_dist_ag.png)
+![](plots/hist_du7_s_dist_mine.png)
+![](plots/hist_du7_s_dist_pipe.png)
+![](plots/hist_du7_s_dist_well.png)
+![](plots/hist_du7_s_dist_ski_hill.png)
+
+- correlations
+  - none of the covariates strongly correlated
+![](plots/corr_human_dist_du7_s.png)
+
+
+- VIFs less than 3.4
+
+- removed distance to agrciulture and wells becuase non-sense reuslt (selection)
+
+- human disturbance top-ranked model included all covariates (distance to cutblock (1 to 4 and over 5 years old), distance to pipeline, distance to paved road, distance to resource road and distance to mine and had an AIC weight (AIC*~w~*) of 0.762; the second-ranked model included distance to cutblock, distance to paved and resource roads and distance to pipeline; covariate values were similar for both models, so used top model
+
+
+
+
+
+
+
+
+
+
+
+
+###### Natural Disturbance
+- correlations
+  - not strongly correlated, strongest was 0.64
+
+![](plots/corr_natural_disturb_du7_s.png)  
+
+- VIFs < 1.8
+
+- natural disturbance top-ranked model included all covariates (fire (1 to 5, 6 to 25, and over 25 years old) and beetle (1 to 5 and 6 to 9 years old) and had an AIC weight (AIC*~w~*) of 1.00
+
+###### Annual Climate
+- boxplots
+  - generally didn't appear to be significant outliers
+
+![](plots/boxplot_annual_climate_du7_s_frost_free_start.png)
+![](plots/boxplot_annual_climate_du7_s_grow_deg_day.png)
+![](plots/boxplot_annual_climate_du7_s_frost_free_end.png)
+![](plots/boxplot_annual_climate_du7_s_frost_free_period.png)
+![](plots/boxplot_annual_climate_du7_s_mean_annual_ppt.png)
+![](plots/boxplot_annual_climate_du7_s_mean_annual_temp.png)
+![](plots/boxplot_annual_climate_du7_s_mean_cold_mth_temp.png)
+![](plots/boxplot_annual_climate_du7_s_mean_warm_mth_temp.png)
+![](plots/boxplot_annual_climate_du7_s_mean_annual_pas.png)
+![](plots/boxplot_annual_climate_du7_s_num_frost_free_days.png)
+
+- histograms
+![](plots/hist_annual_climate_du7_s_frost_free_start.png)
+![](plots/hist_annual_climate_du7_s_grow_deg_days.png)
+![](plots/hist_annual_climate_du7_s_frost_free_end.png)
+![](plots/hist_annual_climate_du7_s_frost_free_period.png)
+![](plots/hist_annual_climate_du7_s_mean_annual_ppt.png)
+![](plots/hist_annual_climate_du7_s_mean_annual_temp.png)
+![](plots/hist_annual_climate_du7_s_mean_annual_cold_mth_temp.png)
+![](plots/hist_annual_climate_du7_s_mean_annual_warm_mth_temp.png)
+![](plots/hist_annual_climate_du7_s_mean_frost_free_days.png)
+![](plots/hist_annual_climate_du7_s_mean_pas.png)
+
+- correlations
+  - frost free start day highly correlated with growing degree days ($\rho$ = 
+    -0.86), frost free end date ($\rho$ = -0.70), frost free period ($\rho$ = 
+    -0.87), mean warmest month temperature ($\rho$ = -0.87), and number of frost      free days ($\rho$ = -0.89)
+  - number of growing degree days highly correlated with frost free period 
+    ($\rho$ = 0.78), mean annual temperature ($\rho$ = 0.79), mean warmest month     temperature ($\rho$ = 1.00), number of frost free days ($\rho$ = 0.88) and 
+    precipitation as snow ($\rho$ = -0.72)
+  - frost free end day highly correlated with frost free period ($\rho$ = 
+    0.95), and number of frost free days ($\rho$ = 0.91)
+  -  frost free period highly correlated with mean warmest month 
+    temperature ($\rho$ = 0.79), and number of frost free days ($\rho$ = 0.97)
+  - mean annual precipication highly correlated with precipitation as snow 
+    ($\rho$ = 0.95)
+  - mean annual temperature highly correlated with mean coldest month temperature ($\rho$ = 0.73) and mean warmest month temperature ($\rho$ = 0.76)
+  - mean warmest month temperature highly correlated with number of frost free days ($\rho$ = 0.878) and precipitation as snow ($\rho$ = -0.74)
+  
+- kept mean annual temerature and mean annual precipitation 
+ 
+![](plots/corr_annual_climate_du7_s.png)  
+
+- VIF values less than 21.1
+
+- annual climate top-ranked model included pean annual temerature and mean annual precipitation 
+  covariates and had an AIC weight (AIC*~w~*) of 1.00
+
+
+
+
+###### Summer Climate
+- boxplots
+  - generally didn't appear to be signfiant outliers
+
+![](plots/boxplot_summer_climate_du7_s_temp_avg.png)
+![](plots/boxplot_summer_climate_du7_s_temp_max.png)
+![](plots/boxplot_summer_climate_du7_s_temp_min.png)
+![](plots/boxplot_summer_climate_du7_s_ppt.png)
+![](plots/boxplot_summer_climate_du7_s_gdd.png)
+
+- histograms
+![](plots/hist_annual_climate_du7_s_ppt.png)
+![](plots/hist_annual_climate_du7_s_temp_avg.png)
+![](plots/hist_annual_climate_du7_s_temp_max.png)
+![](plots/hist_annual_climate_du7_s_temp_min.png)
+![](plots/hist_annual_climate_du7_s_gdd.png)
+
+- correlations
+
+  - growing degree days highly correlated with average temperature ($\rho$ = 1.00), maximum 
+    temperature ($\rho$ = 0.96) and minimum temperature ($\rho$ = 0.87)
+  - average temperature highly correlated with max temperature ($\rho$ = 0.96) and 
+    minimum temperature ($\rho$ = 0.87)
+  - max temperature highly correlated with minimum temperature ($\rho$ = 0.70)
+
+  - kept ppt and average temperature only
+
+![](plots/corr_summer_climate_du7_s.png) 
+
+- VIFs less than 1.3
+
+- winter climate top-ranked model included all covariates (precipitation and average  temperature) and had an AIC weight (AIC*~w~*) of 1.00
+
+
+
+
+
+###### Vegetation and Forest Characteristics
+- boxplots
+  - removed stand hegihts >50m; one outlier
+
+![](plots/boxplot_veg_du7_s_basal_area.png)
+![](plots/boxplot_veg_du7_s_bryoid_perc.png)
+![](plots/boxplot_veg_du7_s_crown_close.png)
+![](plots/boxplot_veg_du7_s_herb_cover.png)
+![](plots/boxplot_veg_du7_s_live_volume.png)
+![](plots/boxplot_veg_du7_s_stand_age.png)
+![](plots/boxplot_veg_du7_s_stand_height.png)
+![](plots/boxplot_veg_du7_s_shrub_closure.png)
+![](plots/boxplot_veg_du7_s_shrub_height.png)
+![](plots/boxplot_veg_du7_s_site_index.png)
+
+- histograms
+  - BEC, removed ESSFmwp, ESSFwm4 and ESSFwmw because rare in data; reclassed BAFAunp as BAFAun; 
+    BWBSwk2 and BWBSwk3 as BWBSwk; CMAunp as CMAun; ESSFmcp as ESSFmc; ESSFmkp as ESSFmk; ESSFmvp,   
+    ESSFmv3 and ESSFmv4 as ESSFmv;
+  
+![](plots/hist_veg_du7_s_bec.png)
+![](plots/hist_veg_du7_s_soil_moisture.png)
+![](plots/hist_veg_du7_s_soil_nutrient.png)
+![](plots/hist_veg_du7_s_lead_tree_spp.png)
+![](plots/hist_veg_du7_lw_lead_tree_spp.png)
+![](plots/hist_veg_du7_s_landcover.png)
+![](plots/hist_veg_du7_s_lead_tree_spp.png)
+![](plots/hist_veg_du7_s_bec_reclass.png)
+
+
+- correlations
+  - basal area highly correlated with crown closure ($\rho$ = 0.92), live volume ($\rho$ = 0.93), 
+    projected age ($\rho$ = 0.78), projected height ($\rho$ = 0.92) and site index ($\rho$ = 0.82)
+  - crown closure highly correlated with live volume ($\rho$ = 0.82), projected age ($\rho$ = 0.79), 
+    projected height ($\rho$ = 0.87) and site index ($\rho$ = 0.79)
+  - herb cover highly correlated with shrub crown closure ($\rho$ = 0.72)
+  - live volume highly correlated with projected height ($\rho$ = 0.92) and site index ($\rho$ = 0.81)
+  - projected age highly correlated with projected height ($\rho$ = 0.86)
+  - projected height highly correlated with site index ($\rho$ = 0.88)  
+  - shrub crown closure highly correlated with shrub height ($\rho$ = 0.82)    
+  
+  - kept age, bryoid cover and shrub crown closure 
+
+![](plots/corr_veg_du7_s.png)     
+     
+- used BEC as 'land cover' type; VIF values less than 2
+
+- the top vegetation model included BEC type, forest age, shrub closure and bryoid cover and had an 
+  AIC weight (AIC*~w~*) of 1.0
+
+
+
+
+###### Combination Models
+- correlations
+  - elevation highly correlated with average summer temperature ($\rho$ = -0.89) 
+  - mean annual temperature highly correlated with summer precipitation ($\rho$ = -0.76) and average 
+    summer temperature ($\rho$ = 0.74) 
+
+- removed average summer temperature and summer precipitation due to correlation
+  
+![](plots/corr_winter_climate_du7_s.png)
+
+- very high VIF values for BEC type (266), therefore BEC removed 
+  from analysis
+- model without BEC had VIFs <5.2
+
+- the top DU7 late winter model included all covariates and had an AIC*~w~* = 0.998
+  - caribou selected:
+    - flatter slopes (\beta  = -0.41), closer to watercourses (\beta  = -0.26), and higher elevation 
+      (\beta  = 0.75), further from lakes (\beta  = 0.01), but not statisically significant
+    - closer cutblocks 1 to 4 years old (\beta  = -0.03) but further form cutblocks over 5 years old 
+      (\beta  = 0.03), but not statisically significant, so no clear selection  
+    - further from resource roads (\beta  = 0.04) but closer to paved roads (\beta  = -0.02), but 
+      latter not statisically significant 
+    - closer to pipelines (\beta  = -0.02) but not statisically significant, and further from mines 
+      (\beta  = 0.03)
+    - avoided forest stands infested by beetles in last 1 to 5 years (\beta  = -0.174) and 6 to 9 
+      years (\beta = -0.10) and burned in the last 6 to 25 years (\beta  = -0.38), but selected stands       burned in the last 1 to 5 years (\beta  = 0.45) and over 25 years old (\beta  = 0.07), but 
+      latter not statisically significant
+    - younger (\beta  = -0.14) forest stands 
+    - selected stands with more bryoid cover (\beta  = 0.05) and higher shrub canopy closure (\beta  =       0.10) 
+    - warmer (\beta  = 0.45) and wetter (\beta  = 0.01), but latter not statisically significant
+  
 ### DU 8
 #### Early Winter
 ###### Enduring Features
@@ -2422,9 +2663,9 @@ kable (table.kfold.du6.s)
 ![](plots/kfold_lm_du6_s_grp5.png)
 
 #### DU7, Early Winter
-- strong validation results
+- good validation results
 
-- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.99 and $$\chi^2$$ values were not significant (Table xx)
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.90 to 0.99 but $$\chi^2$$ values were significant for 3 of 5 groups (Table xx)
 
  - visual validation looks good; some issues in southern Graham herd area fo the DU, i.e., predicts   
    low probabiliites where some cariobu occur
@@ -2452,21 +2693,20 @@ kable (table.kfold.du7.ew)
 #### DU7, Late Winter
 - strong validation results
 
-- slopes of linear models between expected and observed counts of caribou locations in RSF bins varied form 0.78 to 0.95 and were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.80 to 0.98 and $$\chi^2$$ values were not significant (Table xx)
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins varied form 0.86 to 1.12 and were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.92 to 0.99 and $$\chi^2$$ values were not significant (Table xx)
 
- - visual validation looks good; perhaps some issues in northern herds, i.e., predicts   
-   low probabiliites where some cariobu occur
+- visual validation looks good; can see spatshift in summer and witner ranges
 
 ```{r, k-fold du6, late winter table, eval = T, echo = F}
-table.kfold.du7.ew <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du7\\late_winter\\table_kfold_summary_du7_lw.csv")
-table.kfold.du7.ew <- table.kfold.du7.ew [-1]
-kable (table.kfold.du7.ew)
+table.kfold.du7.s <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du7\\summer\\table_kfold_summary_du7_s.csv")
+table.kfold.du7.s <- table.kfold.du7.s [-1]
+kable (table.kfold.du7.s)
 ```
-![](plots/kfold_lm_du7_lw_grp1.png)
-![](plots/kfold_lm_du7_lw_grp2.png)
-![](plots/kfold_lm_du7_lw_grp3.png)
-![](plots/kfold_lm_du7_lw_grp4.png)
-![](plots/kfold_lm_du7_lw_grp5.png)
+![](plots/kfold_lm_du7_s_grp1.png)
+![](plots/kfold_lm_du7_s_grp2.png)
+![](plots/kfold_lm_du7_s_grp3.png)
+![](plots/kfold_lm_du7_s_grp4.png)
+![](plots/kfold_lm_du7_s_grp5.png)
 
 
 
@@ -2524,10 +2764,11 @@ kable (table.kfold.du8.lw)
 
 
 
-#### DU8, Late Summer
+#### DU8, Summer
 - model validation statistics were very good
-- slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, andclose to 1, ranging from 0.97 to 1.01 
-- intercepts were not significantly different from 0,  $$\chi^2$$ values were not significant, and adjusted *R^2* values varied from 0.92 to 0.99 (Table xx, Figure xx)
+- slopes of linear models between expected and observed counts of caribou locations in RSF bins were 
+  significantly different from zero, and close to 1, ranging from 0.94 to 1.02 
+- intercepts were not significantly different from 0,  $$\chi^2$$ values were not significant for 3 of the 5 grtoups, and adjusted *R^2* values varied from 0.89 to 0.98 (Table xx, Figure xx)
 
 - visually looks good; telemetry locations appear 
 
