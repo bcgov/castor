@@ -90,6 +90,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- dataLoaderCLUS.createCLUSdb(sim)
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
+        sim<-dataLoaderCLUS.setIndexesCLUSdb(sim)
         
        }else{
         print(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
@@ -465,6 +466,18 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   print('...done')
   
   #print(head(dbGetQuery(sim$clusdb, 'SELECT * FROM pixels WHERE thlb > 0 limit 5 ')))
+  return(invisible(sim))
+}
+dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
+  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
+  
+  zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
+  for(i in 1:nrow(zones)){
+    dbExecute(sim$clusdb, paste0("CREATE INDEX index_zone",i," on pixels (",zones[[1]][i],")"))
+  }
+  dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim))
 }
 
