@@ -94,7 +94,15 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         
        }else{
         print(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
-        sim$clusdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") )
+         #TODO: Make a copy of the db here so that the clusdb is in memory
+        userdb<- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") )
+        sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:")
+        RSQLite::sqliteCopyDatabase(userdb, sim$clusdb)
+        dbDisconnect(userdb)
+        
+        dbExecute(sim$clusdb, "PRAGMA synchronous = OFF")
+        dbExecute(sim$clusdb, "PRAGMA journal_mode = OFF")
+        
         sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
                               clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                               geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
@@ -129,10 +137,12 @@ disconnectDbCLUS<- function(sim) {
     print('Saving clusdb')
     con<-dbConnect(RSQLite::SQLite(), "clusdb.sqlite")
     RSQLite::sqliteCopyDatabase(sim$clusdb, con)
-    unlink("clusdb.sqlite")
+    dbDisconnect(sim$clusdb)
+    dbDisconnect(con)
+  }else{
+    dbDisconnect(sim$clusdb)
   }
-  dbDisconnect(sim$clusdb)
-  unlink("clusdb.sqlite")
+    
   return(invisible(sim))
 }
 
