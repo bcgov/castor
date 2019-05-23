@@ -40,11 +40,11 @@ defineModule(sim, list(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
     expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "compartment_list", objectClass = "character", desc = NA),
-    createsOutput(objectName = "zoneConstraints", objectClass = "data.table", desc = "In R ENV zoneConstraints table"),
     createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc = NA),
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA)
   )
@@ -75,8 +75,7 @@ forestryCLUS.Init <- function(sim) {
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$zoneConstraints<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints WHERE percentage < 10")
-  
+
   return(invisible(sim))
 }
 
@@ -113,17 +112,22 @@ forestryCLUS.setConstraints<- function(sim) {
         },
         warning(paste("Undefined 'type' in zoneConstraints"))
       )
+      #Update clusdb
       dbBegin(sim$clusdbclusdb)
         rs<-dbSendQuery(sim$clusdbclusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
       dbClearResult(sim$clusdbrs)
       dbCommit(sim$clusdbclusdb)
-    }
+  }
+  
+  #TODO: Check that a WITH pixels() INSERT Or REPLACE INTO pixels (zone_const) cte could work?
   return(invisible(sim))
 }
+
 forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
   for(compart in sim$compartment_list){
     # Determine if there is volume to harvest
+    #TODO: Need to figure out the harvest period mid point to reduce bias in reporting
     harvestTarget<-harvestFlow[compartment == compart]$Flow[(time(sim) + sim$harvestPeriod)]
     
     if(harvestTarget > 0){
