@@ -132,6 +132,7 @@ disconnectDbCLUS<- function(sim) {
     unlink("clusdb.sqlite")
   }
   dbDisconnect(sim$clusdb)
+  unlink("clusdb.sqlite")
   return(invisible(sim))
 }
 
@@ -477,6 +478,7 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   for(i in 1:nrow(zones)){
     dbExecute(sim$clusdb, paste0("CREATE INDEX index_zone",i," on pixels (",zones[[1]][i],")"))
   }
+  
   dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim))
 }
