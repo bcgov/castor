@@ -75,7 +75,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- roadCLUS.PreSolve(sim)
       }else{
       # schedule future event(s)
-      sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads")
+      sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads", 7)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim", eventPriority=20)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim", eventPriority=21)
       }
@@ -121,10 +121,10 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
         )
         
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads",7)
       }else{
         #go on to the next time period to see if there are landings to build roads
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads",7)
       }
     },
     simLandings = {

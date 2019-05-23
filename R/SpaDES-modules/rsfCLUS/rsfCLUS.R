@@ -56,7 +56,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
     init = {
       sim <- rsfCLUS.Init(sim)
       sim <- rsfCLUS.PredictRSF(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF")
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8)
     },
     
     calculateRSF = {
@@ -64,7 +64,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
       sim <- rsfCLUS.StandardizeDynamicRSFCovar(sim)
       sim <- rsfCLUS.PredictRSF(sim)
       
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF")
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
