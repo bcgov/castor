@@ -55,15 +55,16 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
-      sim <- forestryCLUS.setConstraints(sim) 
-      sim <- scheduleEvent(sim, time(sim), "forestryCLUS", "schedule")
+      #sim <- forestryCLUS.setConstraints(sim) 
+      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 5)
     },
     schedule = {
+      sim <- forestryCLUS.setConstraints(sim)
+      print('harvest')
       #sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      #sim<-forestryCLUS.checkAreaConstraints(sim)
       #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
       
-      sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule")
+      sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 5)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -118,7 +119,7 @@ forestryCLUS.setConstraints<- function(sim) {
       dbCommit(sim$clusdb)
   }
   
-  #TODO: Check that a WITH pixels() INSERT Or REPLACE INTO pixels (zone_const) cte could work?
+  dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim))
 }
 
