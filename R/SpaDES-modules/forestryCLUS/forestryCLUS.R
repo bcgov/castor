@@ -72,10 +72,9 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 forestryCLUS.Init <- function(sim) {
-  
-  sim$harvestPeriod <- 1 #This will be able to change in the future to 5 or decadal
+  sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-
+  dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   return(invisible(sim))
 }
 
@@ -83,7 +82,7 @@ forestryCLUS.setConstraints<- function(sim) {
   print("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   print("....assigning zone_const")
-  zones<-dbGetQuery(sim$clusdbclusdb, "SELECT zone_column FROM zone")
+  zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){
       query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
                                                         CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
@@ -113,10 +112,10 @@ forestryCLUS.setConstraints<- function(sim) {
         warning(paste("Undefined 'type' in zoneConstraints"))
       )
       #Update clusdb
-      dbBegin(sim$clusdbclusdb)
-        rs<-dbSendQuery(sim$clusdbclusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
-      dbClearResult(sim$clusdbrs)
-      dbCommit(sim$clusdbclusdb)
+      dbBegin(sim$clusdb)
+        rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
   }
   
   #TODO: Check that a WITH pixels() INSERT Or REPLACE INTO pixels (zone_const) cte could work?
@@ -126,11 +125,12 @@ forestryCLUS.setConstraints<- function(sim) {
 forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
   for(compart in sim$compartment_list){
-    # Determine if there is volume to harvest
+    
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting
     harvestTarget<-harvestFlow[compartment == compart]$Flow[(time(sim) + sim$harvestPeriod)]
     
-    if(harvestTarget > 0){
+    if(harvestTarget > 0){# Determine if there is a demand for volume to harvest
+      
       partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
@@ -138,7 +138,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
                                          compartid = ", compart ," AND 
                                          zone_const = 0 AND  ", 
                                          partition, " ORDER BY ", 
-                                         harvestPriority)), use.names = FALSE))
+                                         harvestPriority, ", blockid")), use.names = FALSE))
     if(nrow(queue) == 0) {
         next #no cutblocks in the queue
     }else{
