@@ -10,3 +10,6 @@ It was designed to provide rapid feeback - for exploring the solution space.
 
 
 forestryCLUS is meant to explore the forestry-caribou system where policy shocks on the forestry side would produce down stream effects on caribou
+
+
+![](CaribouNetwork.jpeg)<!-- -->
