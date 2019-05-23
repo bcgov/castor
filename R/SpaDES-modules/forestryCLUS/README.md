@@ -12,7 +12,7 @@ It was designed to provide rapid feeback - for exploring the solution space.
 forestryCLUS simulates the forestry-caribou system where forestry policy shocks or decisions impact caribou. The figure below highlights some of the positive ('straight') and negative ('dashed') direct and indirect impacts from forestry activities
 
 
-![](CaribouNetwork.jpeg)<!-- -->
+![](data/CaribouNetwork.jpeg)<!-- -->
 
 
 ## Licence
