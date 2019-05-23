@@ -49,13 +49,13 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock")
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 9)
 
     },
     updateGrowingStock= {
       sim <- growingStockCLUS.Update(sim)
       sim <- growingStockCLUS.record(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock")
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 9)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -108,6 +108,7 @@ growingStockCLUS.Update<- function(sim) {
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
+  dbExecute(sim$clusdb, "VACUUM;")
   #update the yields being tracked
   dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields"))
   tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
