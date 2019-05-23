@@ -79,7 +79,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                }
                
                #Schedule the Update 
-               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks")
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 10)
                },
              
              dynamic ={
