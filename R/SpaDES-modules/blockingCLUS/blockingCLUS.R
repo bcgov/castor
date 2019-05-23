@@ -88,13 +88,13 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
              }
       )
       
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
+      #sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
     },
     buildBlocks = {
         sim <- blockingCLUS.spreadBlock(sim)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
     },
-    updateBlocks = {
+    UpdateBlocks = {
       sim <- blockingCLUS.UpdateBlocks(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
       
@@ -364,19 +364,19 @@ blockingCLUS.spreadBlock<- function(sim) {
   return(invisible(sim))
 }
 
-blockingCLUS.updateBlocks<-function(sim){
-  #This table updates the block information used in summaries and for a queue
+blockingCLUS.UpdateBlocks<-function(sim){
+  #This function updates the block information used in summaries and for a queue
   print("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
   new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, AVG(age) as age, SUM(thlb) as area, SUM(thlb*vol) as vol 
-             FROM pixels GROUP BY blockid WHERE blockid > 0"))
+             FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks (age, area, vol) VALUES( :age, :area, :vol) WHERE blockid = :blockid", new_blocks)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET (age, area, vol) = ( :age, :area, :vol) WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 0")
+  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 0 WHERE adj_const =1")
   dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
             (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
             UNION 
