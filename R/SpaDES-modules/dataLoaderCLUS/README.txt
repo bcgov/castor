@@ -1,1 +1,0 @@
-This module requires specific data types in a postgresql dataabse
