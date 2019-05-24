@@ -124,7 +124,7 @@ blockingCLUS.getExistingCutblocks<-function(sim){
                            conn=NULL)
     exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
     setnames(exist_cutblocks, "V1", "blockid")
-    exist_cutblocks[, pixelid := seq_len(.N)]
+    exist_cutblocks[, pixelid := seq_len(.N)][blockid > 0,]
     
     #add to the clusdb
     dbBegin(sim$clusdb)
