@@ -156,8 +156,8 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, zone_const integer, thlb numeric , age numeric, vol numeric,
-crownclosure numeric, height numeric, roadyear integer)")
+own integer, yieldid integer, zone_const integer DEFAULT 0, thlb numeric , age numeric, vol numeric,
+crownclosure numeric, height numeric, eca numeric, roadyear integer)")
   return(invisible(sim))
 }
 
