@@ -122,7 +122,7 @@ public class Forest_Hierarchy {
 		
 		for (int r = 0; r < blockPixels.length ; r++){ //assign the remaining blocks their own blockID
 			//System.out.println("idegree[" + r + "]:" + this.idegree[r]);
-			if(this.blockPixels[r]==EMPTY && this.idegree[r] > 0){
+			if(this.blockPixels[r]==EMPTY && this.idegree[r] >= 0){
 				this.blockID++;
 				this.blockPixels[r] = this.blockID ;
 			}
