@@ -112,9 +112,16 @@ forestryCLUS.setConstraints<- function(sim) {
         },
         warning(paste("Undefined 'type' in zoneConstraints"))
       )
-      #Update clusdb
+      #Update pixels in clusdb for zonal constraints
       dbBegin(sim$clusdb)
         rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
+      
+      #Update pixels in clusdb for adjacency constraints
+      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN (SELECT blockid FROM blocks WHERE adj_const =1); ")))
+      dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
   }
@@ -135,15 +142,15 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
-      queue<-as.list(unlist(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid FROM pixels WHERE 
-                                         compartid = ", compart ," AND 
+      queue<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid FROM pixels WHERE 
+                                         compartid = ", compart ," AND
                                          zone_const = 0 AND  ", 
                                          partition, " ORDER BY ", 
-                                         harvestPriority, ", blockid")), use.names = FALSE))
+                                         harvestPriority, ", blockid")))
     if(nrow(queue) == 0) {
-        next #no cutblocks in the queue
+        next #no cutblocks in the queue go to the next compartment
     }else{
-        if(queue[2] > 0 ){
+        if(TRUE){
           #If the blockid is in the adjaceny list?
         }else{
           #create a landing to harvest from
