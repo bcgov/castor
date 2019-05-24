@@ -67,7 +67,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
                   #create blocks and adjacency table
                   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, age integer, area numeric, vol numeric, adj_const integer)")
+                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
                   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
                   
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
