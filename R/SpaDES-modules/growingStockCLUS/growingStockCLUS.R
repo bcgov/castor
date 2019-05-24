@@ -80,7 +80,7 @@ Init <- function(sim) {
   #ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
 
   #Note with any linear interpolation there is a bias for higher yields at younger ages (before cMAI) and lower yields at older ages (past cMAI)
-  dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields"))
+  dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol, height FROM yields"))
   tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
   tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                                            dat[yieldid == .BY]$tvol, 
