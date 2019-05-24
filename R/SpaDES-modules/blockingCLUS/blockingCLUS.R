@@ -66,8 +66,8 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
              pre= {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
                   #create blocks and adjacency table
-                  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
+                  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
                   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
                   
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
@@ -141,8 +141,8 @@ return(invisible(sim))
 blockingCLUS.setBlocksTable <- function(sim) {
   print("set the blocks table")
  
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, vol, adj_const) 
-                    SELECT blockid, round(AVG(age),0) as age, SUM(thlb) as area, SUM(thlb*vol) as vol, (0) as adj_const
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, vol) 
+                    SELECT blockid, round(AVG(age),0) as age, SUM(thlb) as area, SUM(thlb*vol) as vol
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
 
   dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
@@ -158,7 +158,7 @@ return(invisible(sim))
 blockingCLUS.setSimilarity <- function(sim) {
   #Calculate the similarity using Mahalanobis distance of similarity
   dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels 
-                            WHERE height > 0 AND crownclosure > 0 AND thlb > 0 AND (blockid IS NULL OR blockid = 0)'))
+                            WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
   dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
   
   # attaching to the pixels table
@@ -173,6 +173,7 @@ blockingCLUS.setSimilarity <- function(sim) {
   rm(dt)
   gc()
   
+  dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim))
 }
 
@@ -225,7 +226,7 @@ blockingCLUS.preBlock <- function(sim) {
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
   
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 and similar > 0 group by ", patchSizeZone))))
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where similar > 0 group by ", patchSizeZone))))
   #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
   
@@ -235,7 +236,7 @@ blockingCLUS.preBlock <- function(sim) {
           paste0("SELECT pixelid FROM pixels where similar > 0 AND ",
                  patchSizeZone, " in ( '", zone, "')")))
     
-    g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
+    g.mst_sub<-mst(induced_subgraph(g, vids = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)]
