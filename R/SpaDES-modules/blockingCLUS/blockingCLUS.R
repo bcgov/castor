@@ -60,22 +60,20 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-      sim<-blockingCLUS.Init(sim)
+      sim<-blockingCLUS.Init(sim) #Build the adjacent edges
+      
       switch(P(sim)$blockMethod,
              
              pre= {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
-                  #create blocks and adjacency table
-                  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
                   
+                  sim <- blockingCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
                   sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
                   sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
                   sim <- blockingCLUS.setAdjTable(sim)
                   sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
-                  
+                 
                }
                
                #Schedule the Update 
@@ -109,12 +107,28 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 blockingCLUS.Init <- function(sim) {
-  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
+  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 8, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
 return(invisible(sim))
 }
 
+blockingCLUS.createBlocksTable<-function(sim){
+  print("create blockid, blocks and adjacentBlocks")
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
+  
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+  
+  return(invisible(sim)) 
+}
+
 blockingCLUS.getExistingCutblocks<-function(sim){
+
   if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
     print(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
     ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
@@ -124,8 +138,9 @@ blockingCLUS.getExistingCutblocks<-function(sim){
                            conn=NULL)
     exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
     setnames(exist_cutblocks, "V1", "blockid")
-    exist_cutblocks[, pixelid := seq_len(.N)][blockid > 0,]
-    
+    exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
+    exist_cutblocks<-exist_cutblocks[blockid > 0, ]
+ 
     #add to the clusdb
     dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
@@ -157,9 +172,11 @@ return(invisible(sim))
 
 blockingCLUS.setSimilarity <- function(sim) {
   #Calculate the similarity using Mahalanobis distance of similarity
+  
   dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels 
                             WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
   dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
+  
   
   # attaching to the pixels table
   print("updating pixels table with similarity metric")
@@ -223,13 +240,14 @@ blockingCLUS.preBlock <- function(sim) {
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
+  
+  #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where similar > 0 group by ", patchSizeZone))))
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 group by ", patchSizeZone))))
   #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
-  
+ 
   for(zone in zones){
     #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
     vertices<-as.matrix(dbGetQuery(sim$clusdb,
@@ -283,15 +301,14 @@ blockingCLUS.preBlock <- function(sim) {
       test2
   })
   
-  blockids <- Reduce(function(...) merge(..., all=T), result)#join the list components
-  blockids <- data.table(blockids)
+  blockids <- data.table(Reduce(function(...) merge(..., all=T), result))#join the list components
 
   #blockids[with(blockids, order(V2)), ] #sort the table
   #blockids<-data.table(tidyr::complete(blockids, V2= seq(1:as.integer(length(sim$ras))),fill = list(V1 = as.integer(-1))))
   
   #Any blockids previously loaded - respect their values
   max_blockid<- dbGetQuery(sim$clusdb, "SELECT max(blockid) FROM pixels")
-  blockids[V1 > 0,V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
+  blockids[V1 > 0, V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
   
   #add to the clusdb
   dbBegin(sim$clusdb)
@@ -303,6 +320,7 @@ blockingCLUS.preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
 
+  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   rm(zones, result, blockids, max_blockid)
   gc()
   return(invisible(sim))
@@ -419,8 +437,6 @@ getBlocksIDs<- function(x){
   
   list(blockids)
 }
-
-
 
 worker.init <- function(packages) { #used for setting up the environments of the cores
   for (p in packages) {
