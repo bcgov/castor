@@ -462,7 +462,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #--------------------------
   qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, ', fid[1] , ' age, crownclosure, height, roadyear, zone',
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
-               values (:pixelid, :compartid, :yieldid, :own, :thlb, ', fid[2], ' :age, :crownclosure, :height, NULL, :zone', 
+               values (:pixelid, :compartid, :yieldid, :own,  :thlb, ', fid[2], ' :age, :crownclosure, :height, NULL, :zone', 
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
   
   #pixels table
