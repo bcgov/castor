@@ -142,21 +142,29 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
-      queue<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid FROM pixels WHERE 
+      queue<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+                                        (SELECT blockid FROM pixels WHERE 
                                          compartid = ", compart ," AND
                                          zone_const = 0 AND  ", 
                                          partition, " ORDER BY ", 
-                                         harvestPriority, ", blockid")))
+                                         harvestPriority, ", blockid LIMIT ", as.integer(harvestTarget/60), ") AND zone_const = 0 AND ", partition," ORDER BY blockid")))
     if(nrow(queue) == 0) {
         next #no cutblocks in the queue go to the next compartment
     }else{
-        if(TRUE){
-          #If the blockid is in the adjaceny list?
-        }else{
-          #create a landing to harvest from
-          #Use the spread function
-        }
+      queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget]
+      #Update the pixels table
+      dbBegin(sim$clusdb)
+        rs<-dbSendQuery(sim$clusdb, "Update pixels set age = 0 WHERE pixelid = :pixelid", queue)
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
+      
+      #Set the harvesting report
+      
+      #Create landings
+      
       }
+    } else{
+      next #No volume demanded in this compartment
     }
   }
   return(invisible(sim))
