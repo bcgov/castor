@@ -46,7 +46,8 @@ defineModule(sim, list(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "compartment_list", objectClass = "character", desc = NA),
     createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc = NA),
-    createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA)
+    createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA),
+    createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA)
   )
 ))
 
@@ -57,15 +58,20 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
       #sim <- forestryCLUS.setConstraints(sim) 
       sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 5)
+      sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
       sim <- forestryCLUS.setConstraints(sim)
-      print('harvest')
-      #sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
+      sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
       
       sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 5)
+      
     },
+    save = {
+      sim <- forestryCLUS.save(sim)
+    },
+    
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -75,7 +81,13 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 forestryCLUS.Init <- function(sim) {
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  sim$harvestReport <- data.table(time = integer(), area= numeric(), volume = numeric())
   dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
+  return(invisible(sim))
+}
+
+forestryCLUS.save<- function(sim) {
+  write.csv(sim$harvestReport, "harvestReport.csv")
   return(invisible(sim))
 }
 
@@ -119,9 +131,14 @@ forestryCLUS.setConstraints<- function(sim) {
       dbCommit(sim$clusdb)
       
       #Update pixels in clusdb for adjacency constraints
-      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN (SELECT blockid FROM blocks WHERE adj_const =1); ")))
+      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+                                                            UNION 
+                                                            SELECT b.adjblockid FROM 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+                                                            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ); ")))
       dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
+        rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
   }
@@ -135,32 +152,42 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   for(compart in sim$compartment_list){
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting
-    harvestTarget<-harvestFlow[compartment == compart]$Flow[(time(sim) + sim$harvestPeriod)]
-    
+    harvestTarget<-harvestFlow[compartment == compart]$flow[(time(sim) + sim$harvestPeriod)]
     if(harvestTarget > 0){# Determine if there is a demand for volume to harvest
-      
-      partition<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
+      print(paste0("Harvest Target: ", harvestTarget))
+      partition<-harvestFlow[compartment==compart, "partition"][(time(sim) + sim$harvestPeriod)]
       harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       #Queue pixels for harvesting
-      queue<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid, blockid, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+      sql<-paste0("SELECT pixelid, blockid, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                                         (SELECT blockid FROM pixels WHERE 
-                                         compartid = ", compart ," AND
-                                         zone_const = 0 AND  ", 
-                                         partition, " ORDER BY ", 
-                                         harvestPriority, ", blockid LIMIT ", as.integer(harvestTarget/60), ") AND zone_const = 0 AND ", partition," ORDER BY blockid")))
-    if(nrow(queue) == 0) {
-        next #no cutblocks in the queue go to the next compartment
-    }else{
-      queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget]
-      #Update the pixels table
-      dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "Update pixels set age = 0 WHERE pixelid = :pixelid", queue)
-      dbClearResult(rs)
-      dbCommit(sim$clusdb)
+                                         compartid = '", compart ,"' AND
+                                         zone_const = 0 AND blockid > 0 AND thlb > 0 AND vol > 0 AND ", 
+                  partition, " ORDER BY ", 
+                  harvestPriority, ", blockid LIMIT ", as.integer(harvestTarget/60), ") AND zone_const = 0 AND ", partition," ORDER BY blockid")
+      #Use a nested query so that all of the block will be selected -- meet patch size objectives
+      queue<-data.table(dbGetQuery(sim$clusdb, sql))
       
-      #Set the harvesting report
+      if(nrow(queue) == 0) {
+          print("No stands to harvest")
+          next #no cutblocks in the queue go to the next compartment
+      }else{
+        queue<-queue[, cvalue:=cumsum(vol_h)]
+        queue<-queue[cvalue <= harvestTarget,]
+        print('queue')
+        #Update the pixels table
+        
+        dbBegin(sim$clusdb)
+          rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
+        dbClearResult(rs)
+        dbCommit(sim$clusdb)
       
-      #Create landings
+        #Set the harvesting report
+        print(time(sim))
+        print(sum(queue$thlb))
+        print(sum(queue$vol_h))
+        sim$harvestReport<- rbindlist(list(sim$harvestReport, list(time(sim), sum(queue$thlb) , sum(queue$vol_h))))
+      
+        #Create landings
       
       }
     } else{
@@ -170,11 +197,6 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   return(invisible(sim))
 }
 
-forestryCLUS.harvest<- function(sim) {
-  target<-harvestFlow[, Flow][time(sim) + 1]
- 
-  return(invisible(sim))
-}
 
 .inputObjects <- function(sim) {
   return(invisible(sim))
