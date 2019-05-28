@@ -481,6 +481,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
 }
 dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   
+  dbExecute(sim$clusdb, "CREATE INDEX index_pixelid on pixels (pixelid)")
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
   dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
   
