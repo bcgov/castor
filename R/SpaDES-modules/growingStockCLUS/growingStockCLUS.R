@@ -108,7 +108,7 @@ growingStockCLUS.Update<- function(sim) {
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  dbExecute(sim$clusdb, "VACUUM;")
+  #dbExecute(sim$clusdb, "VACUUM;")
   #update the yields being tracked
   dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields"))
   tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
