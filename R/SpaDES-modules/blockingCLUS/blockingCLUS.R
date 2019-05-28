@@ -121,7 +121,9 @@ blockingCLUS.createBlocksTable<-function(sim){
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer)")
+  #dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
+  
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   
   return(invisible(sim)) 
@@ -156,16 +158,18 @@ return(invisible(sim))
 blockingCLUS.setBlocksTable <- function(sim) {
   print("set the blocks table")
  
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, vol) 
-                    SELECT blockid, round(AVG(age),0) as age, SUM(thlb) as area, SUM(thlb*vol) as vol
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
+                    SELECT blockid, round(AVG(age),0) as age
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
 
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
-            UNION 
-            SELECT b.adjblockid FROM 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
+  #dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
+  #          (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+  #          UNION 
+  #          SELECT b.adjblockid FROM 
+  #          (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+  #          LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
   
 return(invisible(sim))
 }
@@ -343,6 +347,9 @@ blockingCLUS.setAdjTable<-function(sim){
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+  
   return(invisible(sim))
 }
 
@@ -387,22 +394,31 @@ blockingCLUS.UpdateBlocks<-function(sim){
   #This function updates the block information used in summaries and for a queue
   print("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
-  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, AVG(age) as age, SUM(thlb) as area, SUM(thlb*vol) as vol 
+  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age 
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET (age, area, vol) = ( :age, :area, :vol) WHERE blockid = :blockid", new_blocks)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 0 WHERE adj_const =1")
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
-            UNION 
-            SELECT b.adjblockid FROM 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
+
+  #dbBegin(sim$clusdb)
+  #  rs<-dbSendQuery(sim$clusdb, "UPDATE blocks set adj_const = 0 WHERE adj_const =1")
+  #dbClearResult(rs)
+  #dbCommit(sim$clusdb)
   
+  #dbBegin(sim$clusdb)
+  #rs<-dbSendQuery(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
+   #         (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+   #         UNION 
+   #         SELECT b.adjblockid FROM 
+   #         (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+    #        LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
+  #dbClearResult(rs)
+  #dbCommit(sim$clusdb)
+  
+  #dbExecute(sim$clusdb, "VACUUM;")
   
   rm(new_blocks)
   gc()
