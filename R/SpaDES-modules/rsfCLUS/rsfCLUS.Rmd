@@ -2,7 +2,9 @@
 title: "rsfCLUS"
 author: ""
 date: "15 April 2019"
-output: pdf_document
+output:
+  html_document: 
+    keep_md: yes
 ---
 
 <!--
