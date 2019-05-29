@@ -100,28 +100,29 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 growingStockCLUS.Update<- function(sim) {
-  #Note: See the SQLiteapproach to updating. The Update statement does not support JOIN
-  #update the age first
-  print(paste0("update at ", time(sim)))
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET age = age +", P(sim, "growingStockCLUS", "updateInterval"),"  WHERE age >= 0"))
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  
-  #dbExecute(sim$clusdb, "VACUUM;")
+  #Note: See the SQLite approach to updating. The Update statement does not support JOIN
   #update the yields being tracked
   dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol FROM yields"))
   tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
+  
+  tab1[, age:= age +  as.integer(P(sim, "growingStockCLUS", "updateInterval"))] #increment the age
   tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                                dat[yieldid == .BY]$tvol, 
                                                xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
   tab1[, ht:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$height, 
                                               xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
+  
+  dbExecute(sim$clusdb, "DROP INDEX index_age")
+  dbExecute(sim$clusdb, "DROP INDEX index_height")
+  
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
+  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, age = :age where pixelid = :pixelid", tab1[,c("age", "vol", "ht", "pixelid")])
   dbClearResult(rs)
   dbCommit(sim$clusdb)
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
+  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
   
   #Vacuum the db
   dbExecute(sim$clusdb, "VACUUM;")
