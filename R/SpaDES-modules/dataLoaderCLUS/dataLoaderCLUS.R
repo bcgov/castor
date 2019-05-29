@@ -117,6 +117,8 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         
         sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
         sim$rasVelo<-velox::velox(sim$ras)
+        
+        #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
       }
       #disconnect the db once the sim is over?
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
@@ -481,7 +483,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
 }
 dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   
-  dbExecute(sim$clusdb, "CREATE INDEX index_pixelid on pixels (pixelid)")
+  dbExecute(sim$clusdb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid)")
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
   dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
   
