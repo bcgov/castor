@@ -455,19 +455,7 @@ mysimout<-spades(mySim)
 ## [1] "...setting constraints"
 ## [1] "....assigning zone_const"
 ## [1] "Harvest Target: 1001"
-## [1] "queue"
-## [1] 1
-## attr(,"unit")
-## [1] "year"
-## [1] 0
-## [1] 0
 ## [1] "Harvest Target: 1011"
-## [1] "queue"
-## [1] 1
-## attr(,"unit")
-## [1] "year"
-## [1] 1.828
-## [1] 132.53
 ## 1         growingStockCLUS updateGrowingStock 9            
 ## [1] "update at 1"
 ## 1         blockingCLUS     UpdateBlocks       10           
@@ -476,19 +464,7 @@ mysimout<-spades(mySim)
 ## [1] "...setting constraints"
 ## [1] "....assigning zone_const"
 ## [1] "Harvest Target: 1004"
-## [1] "queue"
-## [1] 2
-## attr(,"unit")
-## [1] "year"
-## [1] 0
-## [1] 0
 ## [1] "Harvest Target: 1024"
-## [1] "queue"
-## [1] 2
-## attr(,"unit")
-## [1] "year"
-## [1] 0
-## [1] 0
 ## 2         growingStockCLUS updateGrowingStock 9            
 ## [1] "update at 2"
 ## 2         blockingCLUS     UpdateBlocks       10           
@@ -499,7 +475,7 @@ mysimout<-spades(mySim)
 
 ```
 ##    user  system elapsed 
-##   69.75   13.95   94.80
+##   68.70   13.60   93.69
 ```
 
 # Events
@@ -512,8 +488,8 @@ library(SpaDES.core)
 eventDiagram(mysimout)
 ```
 
-<!--html_preserve--><div id="htmlwidget-ac19887cc8e8e424578a" style="width:1000px;height:390px;" class="DiagrammeR html-widget"></div>
-<script type="application/json" data-for="htmlwidget-ac19887cc8e8e424578a">{"x":{"diagram":"gantt\ndateFormat  YYYY-MM-DD\ntitle SpaDES event diagram\nsection  checkpoint \n init:done,checkpoint1,2019-05-28,2019-06-01\nsection  save \n init:done,save1,2019-05-28,2019-06-01\nsection  load \n init:done,load1,2019-05-28,2019-06-01\nsection  dataLoaderCLUS \n init:done,dataLoaderCLUS1,2019-05-28,2019-06-01\nremoveDbCLUS:active,dataLoaderCLUS2,2021-05-27,2021-06-01\nsection  growingStockCLUS \n init:done,growingStockCLUS1,2019-05-28,2019-06-01\nupdateGrowingStock:active,growingStockCLUS2,2020-05-27,2020-05-31\nupdateGrowingStock:active,growingStockCLUS3,2021-05-27,2021-06-01\nsection  forestryCLUS \n init:done,forestryCLUS1,2019-05-28,2019-06-01\nschedule:active,forestryCLUS2,2020-05-27,2020-05-31\nschedule:active,forestryCLUS3,2021-05-27,2021-06-01\nsave:active,forestryCLUS4,2021-05-27,2021-06-01\nsection  blockingCLUS \n init:done,blockingCLUS1,2019-05-28,2019-06-01\nUpdateBlocks:active,blockingCLUS2,2020-05-27,2020-05-31\nUpdateBlocks:active,blockingCLUS3,2021-05-27,2021-06-01\n"},"evals":[],"jsHooks":[]}</script><!--/html_preserve-->
+<!--html_preserve--><div id="htmlwidget-be2720f3b4bd3106280b" style="width:1000px;height:390px;" class="DiagrammeR html-widget"></div>
+<script type="application/json" data-for="htmlwidget-be2720f3b4bd3106280b">{"x":{"diagram":"gantt\ndateFormat  YYYY-MM-DD\ntitle SpaDES event diagram\nsection  checkpoint \n init:done,checkpoint1,2019-05-29,2019-06-02\nsection  save \n init:done,save1,2019-05-29,2019-06-02\nsection  load \n init:done,load1,2019-05-29,2019-06-02\nsection  dataLoaderCLUS \n init:done,dataLoaderCLUS1,2019-05-29,2019-06-02\nremoveDbCLUS:active,dataLoaderCLUS2,2021-05-28,2021-06-02\nsection  growingStockCLUS \n init:done,growingStockCLUS1,2019-05-29,2019-06-02\nupdateGrowingStock:active,growingStockCLUS2,2020-05-28,2020-06-01\nupdateGrowingStock:active,growingStockCLUS3,2021-05-28,2021-06-02\nsection  forestryCLUS \n init:done,forestryCLUS1,2019-05-29,2019-06-02\nschedule:active,forestryCLUS2,2020-05-28,2020-06-01\nschedule:active,forestryCLUS3,2021-05-28,2021-06-02\nsave:active,forestryCLUS4,2021-05-28,2021-06-02\nsection  blockingCLUS \n init:done,blockingCLUS1,2019-05-29,2019-06-02\nUpdateBlocks:active,blockingCLUS2,2020-05-28,2020-06-01\nUpdateBlocks:active,blockingCLUS3,2021-05-28,2021-06-02\n"},"evals":[],"jsHooks":[]}</script><!--/html_preserve-->
 
 ## Algorithum
 
