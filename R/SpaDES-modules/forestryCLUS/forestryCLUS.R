@@ -81,7 +81,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 forestryCLUS.Init <- function(sim) {
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$harvestReport <- data.table(time = integer(), area= numeric(), volume = numeric())
+  sim$harvestReport <- data.table(time = integer(), compartment = character(), area= numeric(), volume = numeric())
   dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   return(invisible(sim))
 }
@@ -157,35 +157,31 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       print(paste0("Harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][(time(sim) + sim$harvestPeriod)]
       harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
-      #Queue pixels for harvesting
+      
+      #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
       sql<-paste0("SELECT pixelid, blockid, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
-                                        (SELECT blockid FROM pixels WHERE 
-                                         compartid = '", compart ,"' AND
-                                         zone_const = 0 AND blockid > 0 AND thlb > 0 AND vol > 0 AND ", 
-                  partition, " ORDER BY ", 
-                  harvestPriority, ", blockid LIMIT ", as.integer(harvestTarget/60), ") AND zone_const = 0 AND ", partition," ORDER BY blockid")
-      #Use a nested query so that all of the block will be selected -- meet patch size objectives
+                   (SELECT distinct(blockid) FROM pixels WHERE 
+                  compartid = '", compart ,"' AND zone_const = 0 AND ", partition, "
+                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/60), ") 
+                  AND thlb > 0 AND zone_const = 0 AND ", partition, 
+                  " ORDER BY blockid ")
+  
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
       
       if(nrow(queue) == 0) {
           print("No stands to harvest")
           next #no cutblocks in the queue go to the next compartment
       }else{
-        queue<-queue[, cvalue:=cumsum(vol_h)]
-        queue<-queue[cvalue <= harvestTarget,]
-        print('queue')
-        #Update the pixels table
+        queue<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]
         
+        #Update the pixels table
         dbBegin(sim$clusdb)
           rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
         dbClearResult(rs)
         dbCommit(sim$clusdb)
       
         #Set the harvesting report
-        print(time(sim))
-        print(sum(queue$thlb))
-        print(sum(queue$vol_h))
-        sim$harvestReport<- rbindlist(list(sim$harvestReport, list(time(sim), sum(queue$thlb) , sum(queue$vol_h))))
+        sim$harvestReport<- rbindlist(list(sim$harvestReport, list(time(sim), compart, sum(queue$thlb) , sum(queue$vol_h))))
       
         #Create landings
       
