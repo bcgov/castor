@@ -82,19 +82,19 @@ forestryCLUS.Init <- function(sim) {
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(time = integer(), compartment = character(), area= numeric(), volume = numeric())
-  dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
+  #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   return(invisible(sim))
 }
 
 forestryCLUS.save<- function(sim) {
-  write.csv(sim$harvestReport, "harvestReport.csv")
+  #write.csv(sim$harvestReport, "harvestReport.csv")
   return(invisible(sim))
 }
 
 forestryCLUS.setConstraints<- function(sim) {
-  print("...setting constraints")
+  message("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
-  print("....assigning zone_const")
+  message("....assigning zone_const")
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){
       query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
@@ -154,7 +154,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting
     harvestTarget<-harvestFlow[compartment == compart]$flow[(time(sim) + sim$harvestPeriod)]
     if(harvestTarget > 0){# Determine if there is a demand for volume to harvest
-      print(paste0("Harvest Target: ", harvestTarget))
+      message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][(time(sim) + sim$harvestPeriod)]
       harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
       
@@ -169,7 +169,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
       
       if(nrow(queue) == 0) {
-          print("No stands to harvest")
+        message("No stands to harvest")
           next #no cutblocks in the queue go to the next compartment
       }else{
         queue<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]

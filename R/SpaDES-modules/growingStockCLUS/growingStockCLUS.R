@@ -43,14 +43,12 @@ defineModule(sim, list(
   )
 ))
 
-
 doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
       sim <- Init(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 9)
-
     },
     updateGrowingStock= {
       sim <- growingStockCLUS.Update(sim)
@@ -99,6 +97,7 @@ Init <- function(sim) {
   gc()
   return(invisible(sim))
 }
+
 growingStockCLUS.Update<- function(sim) {
   #Note: See the SQLite approach to updating. The Update statement does not support JOIN
   #update the yields being tracked
@@ -117,7 +116,7 @@ growingStockCLUS.Update<- function(sim) {
   dbExecute(sim$clusdb, "DROP INDEX index_height")
   
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, age = :age where pixelid = :pixelid", tab1[,c("age", "vol", "ht", "pixelid")])
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, age = :age where pixelid = :pixelid", tab1[,c("age", "vol", "ht", "pixelid")])
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
@@ -131,10 +130,12 @@ growingStockCLUS.Update<- function(sim) {
   gc()
   return(invisible(sim))
 }
+
 growingStockCLUS.record<- function(sim) {
   sim$growingStockReport[time(sim)+P(sim, "growingStockCLUS", "updateInterval")]<- dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels")
   return(invisible(sim))
 }
+
 .inputObjects <- function(sim) {
   return(invisible(sim))
 }

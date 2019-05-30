@@ -113,7 +113,7 @@ return(invisible(sim))
 }
 
 blockingCLUS.createBlocksTable<-function(sim){
-  print("create blockid, blocks and adjacentBlocks")
+  message("create blockid, blocks and adjacentBlocks")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
   
   dbBegin(sim$clusdb)
@@ -132,7 +132,7 @@ blockingCLUS.createBlocksTable<-function(sim){
 blockingCLUS.getExistingCutblocks<-function(sim){
 
   if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
-    print(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
+    message(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
     ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
@@ -156,7 +156,7 @@ return(invisible(sim))
 }
 
 blockingCLUS.setBlocksTable <- function(sim) {
-  print("set the blocks table")
+  message("set the blocks table")
  
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
                     SELECT blockid, round(AVG(age),0) as age
@@ -183,7 +183,7 @@ blockingCLUS.setSimilarity <- function(sim) {
   
   
   # attaching to the pixels table
-  print("updating pixels table with similarity metric")
+  message("updating pixels table with similarity metric")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
   
   dbBegin(sim$clusdb)
@@ -266,7 +266,7 @@ blockingCLUS.preBlock <- function(sim) {
       #print(head(get.edgelist(g.mst_sub)))
       resultset<-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
     }else{
-      print(paste0(zone, " has length<0"))
+      message(paste0(zone, " has length<0"))
       next
     }
   }
@@ -274,7 +274,7 @@ blockingCLUS.preBlock <- function(sim) {
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
-    print(paste0("make cluster on:", noCores, " cores"))
+    message(paste0("make cluster on:", noCores, " cores"))
     #Set up the clusters
     cl<-makeCluster(noCores, type = "SOCK")
     clusterCall(cl, worker.init, c('data.table','rJava', 'jdx')) #instantiates a JVM on each core
@@ -286,7 +286,7 @@ blockingCLUS.preBlock <- function(sim) {
     options(java.parameters = "-Xmx2g")
     library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the same JVM on both the cores and the master. 
     library(jdx)
-    print("running java on one cluster")
+    message("running java on one cluster")
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
@@ -342,7 +342,7 @@ blockingCLUS.setAdjTable<-function(sim){
   edgesAdj<-unique(edgesAdj)
   setnames(edgesAdj, c("blockid", "adjblockid")) #reformat
   
-  print("set the adjacency table")
+  message("set the adjacency table")
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
   dbClearResult(rs)
@@ -392,7 +392,7 @@ blockingCLUS.spreadBlock<- function(sim) {
 
 blockingCLUS.UpdateBlocks<-function(sim){
   #This function updates the block information used in summaries and for a queue
-  print("update the blocks table")
+  message("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
   new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age 
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
@@ -428,7 +428,7 @@ blockingCLUS.UpdateBlocks<-function(sim){
 
 ### additional functions
 getBlocksIDs<- function(x){
-  print(paste0("getBlocksID for zone: ", x[][[3]]))
+  message(paste0("getBlocksID for zone: ", x[][[3]]))
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   
