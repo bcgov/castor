@@ -43,10 +43,10 @@ library(data.table)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
-inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-times <- list(start = 0, end = 2)
+inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
+cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
+times <- list(start = 0, end = 10)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -81,11 +81,11 @@ parameters <- list(
   forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC")
                 )
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS")
-harvestFlow<- data.table(compartment = c('08B','08B','08B','08C','08C','08C'),
+harvestFlow<- data.table(compartment = c('08B','08B','08B','08B','08B','08B','08B','08B','08B','08B', '08C','08C','08C','08C','08C','08C','08C','08C','08C','08C'),
                                    partition = 'vol > 50',
-                                   year = rep(seq(from = 2018, to=2020, by = 
+                                   year = rep(seq(from = 2018, to=2027, by = 
                                                     1),2), 
-                                   flow = c(1000, 1001, 1004, 1100, 1011, 1024))
+                                   flow = 100000)
 objects <- list(harvestFlow = harvestFlow 
                 )
 paths <- list(
@@ -99,7 +99,15 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
 
+outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport"))
+
+#Run the model 1 time
 system.time({mysimout<-spades(mySim)})
+
+#Run the model with experiment
+#sims3 <- experiment(mySim, replicates = 2)
+
+#Profile the model
 #profvis::profvis({system.time({mysimout<-spades(mySim)})})
 
 

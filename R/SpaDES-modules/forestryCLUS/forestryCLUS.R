@@ -151,12 +151,12 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
   for(compart in sim$compartment_list){
     
-    #TODO: Need to figure out the harvest period mid point to reduce bias in reporting
-    harvestTarget<-harvestFlow[compartment == compart]$flow[(time(sim) + sim$harvestPeriod)]
-    if(harvestTarget > 0){# Determine if there is a demand for volume to harvest
+    #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
+    harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
+    if(!is.null(harvestTarget)){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
-      partition<-harvestFlow[compartment==compart, "partition"][(time(sim) + sim$harvestPeriod)]
-      harvestPriority<-harvestFlow[compartment==compart, partition][(time(sim) + sim$harvestPeriod)]
+      partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
+      harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
       sql<-paste0("SELECT pixelid, blockid, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
