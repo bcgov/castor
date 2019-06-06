@@ -3532,6 +3532,8 @@ vri.shrub <- crop (vri.shrub, extent (caribou.sa))
 
 proj.crs <- proj4string (caribou.sa)
 ppt.annual <- projectRaster (ppt.annual, crs = proj.crs, method = "bilinear")
+writeRaster (ppt.annual, "C:\\Work\\caribou\\clus_data\\rsf\\all_rasters\\mean_ann_ppt_resample.tif", 
+             format = "GTiff", overwrite = T)
 
 ## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
 beginCluster ()
