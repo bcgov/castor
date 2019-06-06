@@ -56,7 +56,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
     init = {
       sim <- rsfCLUS.Init(sim)
       sim <- rsfCLUS.PredictRSF(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF")
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8)
     },
     
     calculateRSF = {
@@ -64,7 +64,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
       sim <- rsfCLUS.StandardizeDynamicRSFCovar(sim)
       sim <- rsfCLUS.PredictRSF(sim)
       
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF")
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -87,7 +87,7 @@ rsfCLUS.Init <- function(sim) {
     rsf_list<-unique(rsf_model_coeff[, c("population","bounds")])
     
     for(k in 1:nrow(rsf_list)){
-      print(rsf_list[k]$bounds)
+      message(rsf_list[k]$bounds)
       bounds<-data.table(c(t(raster::as.matrix(
         RASTER_CLIP2(srcRaster= paste0(rsf_list[k]$bounds), 
                      clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
@@ -100,10 +100,10 @@ rsfCLUS.Init <- function(sim) {
     #load the static variables
     static_list<-as.list(unlist(unique(rsf_model_coeff[static == 'Y' & layer != 'int'])[,c("sql")], use.names = FALSE))
     for(layer_name in static_list){ 
-      print(layer_name)
+      message(layer_name)
       if(rsf_model_coeff[sql == layer_name & layer != 'int']$type == 'RC' ){
         rclass_text<- rsf_model_coeff[sql == layer_name & layer != 'int']$reclass
-        print(rclass_text)
+        message(rclass_text)
         layer<-data.table(c(t(raster::as.matrix(
           RASTER_CLIP_CAT(srcRaster= layer_name, 
                        clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
@@ -175,7 +175,7 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
   
   for(i in 1:length(dt_sql)){ #Loop through each of the DT layers
     dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE ", dt_sql[i])))
-    if(nrow(dt_select) > 0){ print(paste0(dt_sql[i], ": TRUE"))
+    if(nrow(dt_select) > 0){ message(paste0(dt_sql[i], ": TRUE"))
       
       dt_select[,field := 0]
       #outPts contains pixelid, x, y, field, population
@@ -198,7 +198,7 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
           sim$rsfcovar[, dist:=NULL]
           
         }else{
-          print(paste0(pop_select, " does not overlap"))
+          message(paste0(pop_select, " does not overlap"))
         }
       }
     }else{
@@ -216,7 +216,7 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
 
 rsfCLUS.PredictRSF <- function(sim){
   #Loop through each population and season to predict its selection probability
-  print("predicting RSF")
+  message("predicting RSF")
   rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf
   sim$rsf<- data.table()
   for(i in 1:length(rsfPops)){
@@ -233,7 +233,7 @@ rsfCLUS.PredictRSF <- function(sim){
 }
 
 rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
-  print('standardizing static covariates')
+  message('standardizing static covariates')
   
   static_list<-rsf_model_coeff[static == 'Y' & layer != 'int'] # Get the static list
   static_list <- within(static_list,  equate <- paste(layer_uni, sql, sep="=")) # concatenate two colums so that the new layer equals the old layer
@@ -258,7 +258,7 @@ rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
 }
 
 rsfCLUS.StandardizeDynamicRSFCovar<-function(sim){
-  print('standardizing dynamic covariates')
+  message('standardizing dynamic covariates')
   
   dynamic_list<-rsf_model_coeff[static == 'N' & layer != 'int']
   dynamic_list <- within(dynamic_list,  equate <- paste(layer_uni, layer, sep="=")) # concatenate two colums so that the new layer equals the old layer
@@ -329,7 +329,7 @@ completeDTZeros = function(DT) { #Sets all of the data.table columns that have N
 rsfCLUS.checkRasters <- function(sim) {
 #----Plotting the raster---
   for(layer in colnames(sim$rsfcovar)){
-    print(paste0("ploting", layer))
+    message(paste0("ploting", layer))
     distRas<-sim$ras 
     test<-parse(text = paste0("sim$rsfcovar$",layer))
     distRas[]<-eval(test)

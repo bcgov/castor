@@ -60,26 +60,24 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-      sim<-blockingCLUS.Init(sim)
+      sim<-blockingCLUS.Init(sim) #Build the adjacent edges
+      
       switch(P(sim)$blockMethod,
              
              pre= {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
-                  #create blocks and adjacency table
-                  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer, age integer, area numeric, vol numeric, adj_const integer)")
-                  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
                   
+                  sim <- blockingCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
                   sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
                   sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
                   sim <- blockingCLUS.setAdjTable(sim)
                   sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
-                  
+                 
                }
                
                #Schedule the Update 
-               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks")
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 10)
                },
              
              dynamic ={
@@ -88,13 +86,13 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
              }
       )
       
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
+      #sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
     },
     buildBlocks = {
         sim <- blockingCLUS.spreadBlock(sim)
         sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
     },
-    updateBlocks = {
+    UpdateBlocks = {
       sim <- blockingCLUS.UpdateBlocks(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
       
@@ -109,14 +107,32 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 blockingCLUS.Init <- function(sim) {
-  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
+  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 8, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
 return(invisible(sim))
 }
 
+blockingCLUS.createBlocksTable<-function(sim){
+  message("create blockid, blocks and adjacentBlocks")
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
+  
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer)")
+  #dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
+  
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+  
+  return(invisible(sim)) 
+}
+
 blockingCLUS.getExistingCutblocks<-function(sim){
+
   if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
-    print(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
+    message(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
     ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
@@ -124,8 +140,9 @@ blockingCLUS.getExistingCutblocks<-function(sim){
                            conn=NULL)
     exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
     setnames(exist_cutblocks, "V1", "blockid")
-    exist_cutblocks[, pixelid := seq_len(.N)]
-    
+    exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
+    exist_cutblocks<-exist_cutblocks[blockid > 0, ]
+ 
     #add to the clusdb
     dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
@@ -139,30 +156,34 @@ return(invisible(sim))
 }
 
 blockingCLUS.setBlocksTable <- function(sim) {
-  print("set the blocks table")
+  message("set the blocks table")
  
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, area, vol, adj_const) 
-                    SELECT blockid, round(AVG(age),0) as age, SUM(thlb) as area, SUM(thlb*vol) as vol, (0) as adj_const
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
+                    SELECT blockid, round(AVG(age),0) as age
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
 
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
-            UNION 
-            SELECT b.adjblockid FROM 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
+  #dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
+  #          (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+  #          UNION 
+  #          SELECT b.adjblockid FROM 
+  #          (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+  #          LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
   
 return(invisible(sim))
 }
 
 blockingCLUS.setSimilarity <- function(sim) {
   #Calculate the similarity using Mahalanobis distance of similarity
+  
   dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels 
-                            WHERE height > 0 AND crownclosure > 0 AND thlb > 0 AND (blockid IS NULL OR blockid = 0)'))
+                            WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
   dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
   
+  
   # attaching to the pixels table
-  print("updating pixels table with similarity metric")
+  message("updating pixels table with similarity metric")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
   
   dbBegin(sim$clusdb)
@@ -173,6 +194,7 @@ blockingCLUS.setSimilarity <- function(sim) {
   rm(dt)
   gc()
   
+  dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim))
 }
 
@@ -222,20 +244,21 @@ blockingCLUS.preBlock <- function(sim) {
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains?
+  
+  #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 and similar > 0 group by ", patchSizeZone))))
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 group by ", patchSizeZone))))
   #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
   resultset<-list()
-  
+ 
   for(zone in zones){
     #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
     vertices<-as.matrix(dbGetQuery(sim$clusdb,
           paste0("SELECT pixelid FROM pixels where similar > 0 AND ",
                  patchSizeZone, " in ( '", zone, "')")))
     
-    g.mst_sub<-mst(induced_subgraph(g, v = vertices), weighted=TRUE)
+    g.mst_sub<-mst(induced_subgraph(g, vids = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)]
@@ -243,7 +266,7 @@ blockingCLUS.preBlock <- function(sim) {
       #print(head(get.edgelist(g.mst_sub)))
       resultset<-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
     }else{
-      print(paste0(zone, " has length<0"))
+      message(paste0(zone, " has length<0"))
       next
     }
   }
@@ -251,7 +274,7 @@ blockingCLUS.preBlock <- function(sim) {
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
-    print(paste0("make cluster on:", noCores, " cores"))
+    message(paste0("make cluster on:", noCores, " cores"))
     #Set up the clusters
     cl<-makeCluster(noCores, type = "SOCK")
     clusterCall(cl, worker.init, c('data.table','rJava', 'jdx')) #instantiates a JVM on each core
@@ -263,7 +286,7 @@ blockingCLUS.preBlock <- function(sim) {
     options(java.parameters = "-Xmx2g")
     library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the same JVM on both the cores and the master. 
     library(jdx)
-    print("running java on one cluster")
+    message("running java on one cluster")
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
@@ -282,15 +305,14 @@ blockingCLUS.preBlock <- function(sim) {
       test2
   })
   
-  blockids <- Reduce(function(...) merge(..., all=T), result)#join the list components
-  blockids <- data.table(blockids)
+  blockids <- data.table(Reduce(function(...) merge(..., all=T), result))#join the list components
 
   #blockids[with(blockids, order(V2)), ] #sort the table
   #blockids<-data.table(tidyr::complete(blockids, V2= seq(1:as.integer(length(sim$ras))),fill = list(V1 = as.integer(-1))))
   
   #Any blockids previously loaded - respect their values
   max_blockid<- dbGetQuery(sim$clusdb, "SELECT max(blockid) FROM pixels")
-  blockids[V1 > 0,V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
+  blockids[V1 > 0, V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
   
   #add to the clusdb
   dbBegin(sim$clusdb)
@@ -302,6 +324,7 @@ blockingCLUS.preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
 
+  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   rm(zones, result, blockids, max_blockid)
   gc()
   return(invisible(sim))
@@ -319,11 +342,14 @@ blockingCLUS.setAdjTable<-function(sim){
   edgesAdj<-unique(edgesAdj)
   setnames(edgesAdj, c("blockid", "adjblockid")) #reformat
   
-  print("set the adjacency table")
+  message("set the adjacency table")
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+  
   return(invisible(sim))
 }
 
@@ -364,26 +390,35 @@ blockingCLUS.spreadBlock<- function(sim) {
   return(invisible(sim))
 }
 
-blockingCLUS.updateBlocks<-function(sim){
-  #This table updates the block information used in summaries and for a queue
-  print("update the blocks table")
+blockingCLUS.UpdateBlocks<-function(sim){
+  #This function updates the block information used in summaries and for a queue
+  message("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
-  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, AVG(age) as age, SUM(thlb) as area, SUM(thlb*vol) as vol 
-             FROM pixels GROUP BY blockid WHERE blockid > 0"))
+  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age 
+             FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks (age, area, vol) VALUES( :age, :area, :vol) WHERE blockid = :blockid", new_blocks)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 0")
-  dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
-            UNION 
-            SELECT b.adjblockid FROM 
-            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-            LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
+
+  #dbBegin(sim$clusdb)
+  #  rs<-dbSendQuery(sim$clusdb, "UPDATE blocks set adj_const = 0 WHERE adj_const =1")
+  #dbClearResult(rs)
+  #dbCommit(sim$clusdb)
   
+  #dbBegin(sim$clusdb)
+  #rs<-dbSendQuery(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
+   #         (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+   #         UNION 
+   #         SELECT b.adjblockid FROM 
+   #         (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+    #        LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
+  #dbClearResult(rs)
+  #dbCommit(sim$clusdb)
+  
+  #dbExecute(sim$clusdb, "VACUUM;")
   
   rm(new_blocks)
   gc()
@@ -393,7 +428,7 @@ blockingCLUS.updateBlocks<-function(sim){
 
 ### additional functions
 getBlocksIDs<- function(x){
-  print(paste0("getBlocksID for zone: ", x[][[3]]))
+  message(paste0("getBlocksID for zone: ", x[][[3]]))
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE)
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
   
@@ -418,8 +453,6 @@ getBlocksIDs<- function(x){
   
   list(blockids)
 }
-
-
 
 worker.init <- function(packages) { #used for setting up the environments of the cores
   for (p in packages) {

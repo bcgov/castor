@@ -2,7 +2,9 @@
 title: "forestryCLUS"
 author: ""
 date: "08 April 2019"
-output: pdf_document
+output:
+  html_document: 
+    keep_md: yes
 ---
 
 <!--
@@ -20,17 +22,19 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
-This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the time period, this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
 
 At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
 
-During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is future.
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
 
 # Usage
-This module could be a parent module. It can rely on: 
-1. dataloadCLUS (set up the db) 
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
 2. blockingCLUS (preforms the pixel aggregation into harvest units)
-3. (Optionally) roadCLUS (preforms the access to the harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
 
 
 ```{r module_usage}
@@ -39,10 +43,10 @@ library(data.table)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
-inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-times <- list(start = 0, end = 1)
+inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
+cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
+times <- list(start = 0, end = 10)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -77,11 +81,11 @@ parameters <- list(
   forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC")
                 )
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS")
-harvestFlow<- data.table(compartment = c('08B','08B','08B','08C','08C','08C'),
-                                   partition = 'age > 50',
-                                   year = rep(seq(from = 2018, to=2020, by = 
+harvestFlow<- data.table(compartment = c('08B','08B','08B','08B','08B','08B','08B','08B','08B','08B', '08C','08C','08C','08C','08C','08C','08C','08C','08C','08C'),
+                                   partition = 'vol > 50',
+                                   year = rep(seq(from = 2018, to=2027, by = 
                                                     1),2), 
-                                   flow = c(1000, 1001, 1004, 1100, 1011, 1024))
+                                   flow = 100000)
 objects <- list(harvestFlow = harvestFlow 
                 )
 paths <- list(
@@ -94,35 +98,51 @@ paths <- list(
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
-system.time({
-mysimout<-spades(mySim)
-})
+
+outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport"))
+
+#Run the model 1 time
+system.time({mysimout<-spades(mySim)})
+
+#Run the model with experiment
+#sims3 <- experiment(mySim, replicates = 2)
+
+#Profile the model
+#profvis::profvis({system.time({mysimout<-spades(mySim)})})
+
 
 ```
 
 # Events
 
+## Flow Chart
+
+```{r, flow_chart}
+library(SpaDES.core)
+eventDiagram(mysimout)
+```
+
+## Algorithum
+
 The general algorithum (pseudo-code) follows as:
 
-`compartment_list`<- SELECT zones FROM compartments WHERE target > 0 ORDER BY priority_compartment
+`compartment_list`= SELECT zones FROM compartments WHERE target > 0 ORDER BY priority_compartment
 
 FOR compartment_selected in `compartment_list`
-`queue`<- SELECT blockid FROM pixels WHERE 
-            compartment = compartment_selected AND thlb > 0 AND constraint = 0              ORDER BY priority
+`queue`<- SELECT pixelid, blockid FROM pixels WHERE 
+            compartment = compartment_selected AND thlb > 0 AND constraint = 0                 ORDER BY priority
                
 IF (`queue` > 0 )
   check constraints
 ELSE 
   NEXT
         
-       
-
 
 # Data dependencies
 
 ## Input data
 
-A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the yeay from which the flow applies and the amount of volume.
+A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the year at which the flow applies and the amount of volume.
 
 ## Output data
 

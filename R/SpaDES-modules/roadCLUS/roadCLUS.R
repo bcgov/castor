@@ -75,7 +75,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- roadCLUS.PreSolve(sim)
       }else{
       # schedule future event(s)
-      sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads")
+      sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads", 7)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim", eventPriority=20)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim", eventPriority=21)
       }
@@ -121,14 +121,14 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
         )
         
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads",7)
       }else{
         #go on to the next time period to see if there are landings to build roads
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads",7)
       }
     },
     simLandings = {
-      print("simulating random landings")
+      message("simulating random landings")
       sim$landings<-NULL
       sim<-roadCLUS.randomLandings(sim)
     },
@@ -205,7 +205,7 @@ roadCLUS.getCostSurface<- function(sim){
 }
 
 roadCLUS.getClosestRoad <- function(sim){
-  print('getClosestRoad')
+  message('getClosestRoad')
   
   sim$roads.close.XY<-NULL
   roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= 0})
@@ -236,7 +236,7 @@ roadCLUS.buildSnapRoads <- function(sim){
 }
 
 roadCLUS.updateRoadsTable <- function(sim){
-  print('updateRoadsTable')
+  message('updateRoadsTable')
   roadUpdate<-data.table(sim$paths.v)
   setnames(roadUpdate, "pixelid")
   roadUpdate[,roadyear := time(sim)+1]
@@ -289,7 +289,7 @@ roadCLUS.getGraph<- function(sim){
 
 ##Get a list of paths from which there is a to and from point
 roadCLUS.lcpList<- function(sim){
-  print('lcp List')
+  message('lcp List')
   paths.matrix<-cbind(cellFromXY(sim$ras,sim$landings), cellFromXY(sim$ras,sim$roads.close.XY ))
   sim$paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
   rm(paths.matrix)
@@ -298,7 +298,7 @@ roadCLUS.lcpList<- function(sim){
 }
 
 roadCLUS.mstList<- function(sim){
-  print('mstList')
+  message('mstList')
   rd_pts<-cellFromXY(sim$ras, sim$roads.close.XY )
   land_pts<-cellFromXY(sim$ras, sim$landings)
 
@@ -323,7 +323,7 @@ roadCLUS.mstList<- function(sim){
   path.wts <- diag(igraph::distances(sim$g, v=unlist(paths.list[,2], use.names= FALSE), 
                                            to=unlist(paths.list[,1], use.names= FALSE)))
   
-  print('build graph')
+  message('build graph')
   land.g <- graph_from_adjacency_matrix(land.adj, weighted=TRUE, mode = "lower") # create a graph
   V(land.g)$name<-land.vert
   
@@ -341,20 +341,20 @@ roadCLUS.mstList<- function(sim){
   
   mst.g <-  full.g + edges(as.vector(t(as.matrix(paths.list))), weight = path.wts)
   
-  print('solve mst')
+  message('solve mst')
   mst.paths <- mst(mst.g, weighted=TRUE) # get the minimum spanning tree
   paths.matrix<-noquote(get.edgelist(mst.paths, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
   class(paths.matrix) <- "numeric"
   
-  print('remove redundant paths')
+  message('remove redundant paths')
   paths.matrix<-data.table(
     cbind(!paths.matrix[, 1] %in% rd.vert, !paths.matrix[,2] %in% rd.vert, 
            paths.matrix[,1],paths.matrix[,2] ))[!(V1 == 0 & V2 == 0), 3:4] #Remove road to road shorestest paths. sim$roads.close.XY will give 
-  print('convert to vertex names')
+  message('convert to vertex names')
   cols<-c("V3","V4")
   paths.matrix[, (cols) := lapply(.SD, function(x){V(sim$g)$name[x]}), .SDcols = cols]
   
-  print('send to shortest paths')
+  message('send to shortest paths')
   sim$paths.list<-split(as.matrix(paths.matrix, use.names = FALSE), 1:nrow(paths.matrix)) # put the edge combinations in a list used for shortestPaths
   rm(mst.paths,mst.g, paths.matrix)
   gc()
@@ -363,7 +363,7 @@ roadCLUS.mstList<- function(sim){
 }
 
 roadCLUS.shortestPaths<- function(sim){
-  print(paste0('shortestPaths for ', length(sim$paths.list)))
+  message(paste0('shortestPaths for ', length(sim$paths.list)))
   
   sim$paths.list<-lapply(sim$paths.list, function(x) 
     cbind(as.integer(V(sim$g)[V(sim$g)$name == x[][1] ]),as.integer(V(sim$g)[V(sim$g)$name == x[][2] ]))

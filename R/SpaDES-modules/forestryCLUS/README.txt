@@ -1,1 +1,0 @@
-forestryCLUS is nothing more than a convenient calculator for massive calculations. It should be used to explore possible futures - to identify where and where not to go, explore the consequences of policy and test sensitivity. It is designed to provide rapid feeback - its up to the analyst to explore the solution space. 
