@@ -356,7 +356,6 @@ timber volume:
 
 
 ## Results
-
 ### DU 6
 #### Early Winter
 ###### Enduring Features
@@ -3380,33 +3379,25 @@ DROPPED SOIL adn SEISMIC becuase was problematic for fitting models
   therefore, removed BEC and distance to wells from model 
     - VIFs to <10 
 
-
-
-
-
-
 - the top DU9 summer model included enduring features (slope, elevation, distance to lake, 
-  distance to watercoure), human disturbance (distance to cutblocks, distance to resource roads), 
-  natural disturbance (fire and beetle) climate (temperature and precipitation as snow) and 
-  vegetation (foreststand age and canopy closure, site index, shrub canopy closure and herb cover) 
-  covariates and had an AIC*~w~* = 0.999  
-  - selected higher elevation (\beta  = 0.70), flatter slopes (\beta  = -0.67), closer to   
-    watercourses (\beta  = -0.44)
-  - selected habitat patches closer to cutblocks 1 to 4 years old (\beta  = -0.34), 5 to 9 years old 
-    (\beta  = -0.17) and over 29 years old (\beta  = -0.37), but further from cutblocks 10 to 29 
-    years old (\beta  = 0.18) and resource roads (\beta  = 0.31)
-  - avoided forest stands infested by beetles 1 to 5 years old (\beta  = -0.86), but selected stands 
-    infested by beetles 6 to 9 years old (\beta  = 1.03); avoided burned areas 6 to 25 (\beta  = 
-    -0.69) and over 25 years old (\beta  = -0.93)
-  - selected older forest stands (\beta  = 0.25), with higher site index (\beta  = 0.24), higher 
-    herbaceuos cover (\beta  = 0.10) and denser canopy closure (\beta  = 0.11)  
-  - selected areas with lower average winter temperature (\beta  = -0.19) and more precipitation as 
-    snow (\beta  = 0.17)
-
-
+  distance to watercoure), human disturbance (distance to cutblocks, distance to resource roads, 
+  distance to pipelines adn distance to mines),  natural disturbance (fire) and 
+  vegetation (forest stand age and canopy closure, site index, shrub canopy closure and herb cover) 
+  covariates and had an AIC*~w~* = 0.519; the second-reanked model incldued the same covraites and 
+  climate (temperature) and had an AIC*~w~* = 0.481; thus, the model fits were nearly identical 
+  according to AIC, and coefficient values were similar for both models; rather than model avaragin I   used the top-ranked model as the climate coefficient was not statiscally signficant (p-value = 
+  0.174); in the top model caribou selected:  
+  - selected higher elevation (\beta  = 0.68), flatter slopes (\beta  = -0.41), furthrr form   
+    lakes (\beta  = 0.24)
+  - selected habitat patches further from cutblocks 10 to 29 years old (\beta  = 0.22), and over 29 
+    years old (\beta  = 0.13), and pipelines (\beta  = 0.11) 
+  - avoided forest stands infested burned over 25 years old (\beta  = -2.03)
+  - selected older forest stands (\beta  = 0.15), with less herbaceuos cover (\beta  = -0.05) and 
+    more shrub crown closure (\beta  = 0.04)  
 
 ### Model Validation
-#### DU6, Early Winter 
+#### DU6
+##### Early Winter 
 - strong validation results, slopes of linear models between expected and observed coutns of cariobu locatiosn in RSF bins were signfcaitly different form zero, but not 1, and intercepts were nto sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.98 and $$\chi^2$$ values were not signcant (Table xx)
  - visual vlaiation looks good (add fig form GIS or try and do it in R - use quantile classifcation)
  
@@ -3423,7 +3414,7 @@ kable (table.kfold.du6.ew)
 ![](plots/kfold_lm_du6_ew_grp5.png)
 
 
-#### DU6, Late Winter 
+##### Late Winter 
 - strong validation results, slopes of linear models between expected and observed counts of cariobu locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different form 0 (Table xx, Figure xx); adjusted *R^2* values were greater than 0.96 and $$\chi^2$$ values were not significant (Table xx)
  - visual validation looks good (add fig form GIS or try adn do it in R - use quantile classifcation)
  
@@ -3443,7 +3434,7 @@ kable (table.kfold.du6.lw)
 
 ![](plots/kfold_lm_du6_lw_grp5.png)
 
-#### DU6, Summer
+##### Summer
 - reasonable validation results, but not as stong as early or late winter
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not 1, and intercepts were not sigfncatly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.73 to 0.93 and $$\chi^2$$ values were not significant (Table xx)
  - visual validation looks reasonable, but with soem issues. realtively low scores in Calendar adn high scores in PArker adn Prophet comarped to what expected; different from Demars there (add fig form GIS or try adn do it in R - use quantile classifcation)
@@ -3460,7 +3451,8 @@ kable (table.kfold.du6.s)
 ![](plots/kfold_lm_du6_s_grp4.png)
 ![](plots/kfold_lm_du6_s_grp5.png)
 
-#### DU7, Early Winter
+#### DU7
+##### Early Winter
 - good validation results
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.90 to 0.99 but $$\chi^2$$ values were significant for 3 of 5 groups (Table xx)
@@ -3481,7 +3473,7 @@ kable (table.kfold.du7.ew)
 ![](plots/kfold_lm_du7_ew_grp5.png)
 
 
-#### DU7, Late Winter
+##### Late Winter
 - strong validation results
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins varied form 0.86 to 1.12 and were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.92 to 0.99 and $$\chi^2$$ values were not significant (Table xx)
@@ -3508,7 +3500,7 @@ kable (table.kfold.du7.lw)
 
 
 
-#### DU7, Summer
+##### Summer
 - strong validation results
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins varied form 0.86 to 1.12 and were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.92 to 0.99 and $$\chi^2$$ values were not significant (Table xx)
@@ -3528,7 +3520,8 @@ kable (table.kfold.du7.s)
 
 
 
-#### DU8, Early Winter
+#### DU8
+##### Early Winter
 - strong validation results
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not significantly different from 1, and intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from 0.87 to 0.97 and $$\chi^2$$ values were not significant (Table xx)
@@ -3547,7 +3540,7 @@ kable (table.kfold.du8.ew)
 ![](plots/kfold_lm_du8_ew_grp4.png)
 ![](plots/kfold_lm_du8_ew_grp5.png)
 
-#### DU8, Late Winter
+##### Late Winter
 - model validation statistics were generally poor
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were significantly different from zero, but not always close to 1, ranging from 0.52 to 1.02 
@@ -3581,7 +3574,7 @@ kable (table.kfold.du8.lw)
 
 
 
-#### DU8, Summer
+##### Summer
 - model validation statistics were very good
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were 
   significantly different from zero, and close to 1, ranging from 0.94 to 1.02 
@@ -3619,7 +3612,8 @@ kable (table.kfold.du8.s)
 
 
 
-#### DU9, Early Winter
+#### DU9
+##### Early Winter
 - really poor model validation
 
 - slopes of linear models between expected and observed counts of caribou locations in RSF bins were not significantly different from zero, but intercepts were not significantly different from 0 (Table xx, Figure xx); adjusted *R^2* values varied from -0.10 to -0.04 and $$\chi^2$$ values were not significant (Table xx)
@@ -3641,7 +3635,7 @@ kable (table.kfold.du9.ew)
 ![](plots/kfold_lm_du9_ew_grp5.png)
 
 
-#### DU9, Late Winter
+##### Late Winter
 
 - fair to good model validation
 
@@ -3668,22 +3662,48 @@ kable (table.kfold.du9.lw)
 
 
 
+##### Summer
+- model validation statistics were fair to good
+  - slopes of linear models between expected and observed counts of caribou locations in RSF bins        were significantly different from zero, and close to 1, ranging from 0.91 to 1.04
+  - intercepts were not significantly different from 0, $$\chi^2$$ values were not significant for 2     of the 5 grtoups, and adjusted *R^2* values varied from 0.60 to 0.99 (Table xx, Figure xx)
+
+- visually looks ok, but essentially a bimodal distrbution of high vs. low habtiat 
+
+
+```{r, k-fold du9, summer table, eval = T, echo = F}
+table.kfold.du9.s <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\summer\\table_kfold_summary_du9_s.csv")
+table.kfold.du9.s <- table.kfold.du9.s [-1]
+kable (table.kfold.du9.s)
+```
+
+
+![](plots/kfold_lm_du9_s_grp1.png)
+
+![](plots/rsf_preds_du9_s_train2.csv)
+
+![](plots/kfold_lm_du9_s_grp3.png)
+
+![](plots/kfold_lm_du9_s_grp4.png)
+
+![](plots/kfold_lm_du9_s_grp5.png)
+
+
 ## Conclusions
-In general, across DU's 'enduring' or 'permanenet' features of the ladnscape (i.e., wetladns, moutanin tops, BEC types) are most improtant to cariobu; they are storngly selecting these permanent features and then likely respondign to disuyrtabnces within and aroudn them, but not beign pushed oaway form them due to disturbance; repsonses to distubrances are not straightforward and often not strictly avoidance; likely they are exploiting forage value of some disturbed areas, but could be at teh expense of predation risk, which this model doesn't capture particularly well; moose model is cirtical to tellign the predtion risk aspect of the story, as forest or disturabnce management may actually have relatively small impact on caribou, or could even have opposite effect, e.g., cutblocks may provide forage for cariobu, bu the larger concern is that they also provide forage for moose, which brings wolves and icnreases predation rate 
+In general, across DU's 'enduring' or 'permanent' features of the ladnscape (i.e., wetladns, moutanin tops, BEC types) are most improtant to cariobu; they are storngly selecting these permanent features and then likely respondign to disuyrtabnces within and aroudn them, but not beign pushed oaway form them due to disturbance; repsonses to distubrances are not straightforward and often not strictly avoidance; likely they are exploiting forage value of some disturbed areas, but could be at the expense of predation risk, which this model may not capture particularly well; moose model is cirtical to tellign the predtion risk aspect of the story, as forest or disturabnce management may actually have relatively small impact on caribou, or could even have opposite effect, e.g., cutblocks may provide forage for cariobu, bu the larger concern is that they also provide forage for moose, which brings wolves and icnreases predation rate 
 
 
-Other issue is confounding factors. In particular, elevation (and BEC type) accounts for, and is confounded with climate and human disturbance features. It is likely diffcult for the statistical model to parse these effects.
+Other issue is confounded variables.  In particular, I consitently foudn that elevation (and BEC type) and is correlated with climate and human disturbance features and elevation likely inirectly accounts for various mechanistic processes realed to predator avoidance. It was likely diffcult for the statistical model to parse these effects.
 
 
 
 In DU6 , 
-- key habtiat features are wetlands; more 'permanent' features of the landscape; disturabnce features 
-  less imprtoant, although fire clearly has neagtive effetc, but forestry and beetel disturabnce has a   postive effect 
-- forage also important; especially broid cover
-- older, less productive (shorter) and densse forest stands also improtant
-- visually and statsically cosnsitent with Demars: overlap in defintion of high and low quality   
-  habitat pacthes; selected treed bogs and fens; avoid deciduous and upland types; avoid linear 
-  features and select early seral/immature forest
+- key habtiat features are wetlands; more 'permanent' features of the landscape; disturabnce features   less imprtoant, although fire clearly has a negative effetc, but forestry and beetle disturabnce 
+  had a postive effect 
+- forage, especially bryoid cover, and older, less productive (shorter) and dense forest stands 
+  improtant
+- visually and statistically cosnsitent with Demars: spatial overlap in definition of high and low 
+  quality habitat pacthes; selected treed bogs and fens; avoid deciduous and upland types; avoid 
+  linear features and select early seral/immature forest
 - but summer model not as good in validation
   - key differences are changes in use of BEC zone, from BWBSmk in winter to BWBSmw in summer, 
     greater avoidance of lakes in summer, and different climate variables, in particular use of 
@@ -3696,7 +3716,8 @@ In DU7,
 - terrain really important, particualrly high elevation across all seasons
 - effects of human disturbance are realtively weak; new (1 to 4 year old) cutblocks generally 
   selected, but mixed responses to older cutblocks; resoruce roads are avoided; mixed, but weak 
-  response to paved roads; storng aovidance of pipeliens in early witner aed mines in late winter, but   otherwise a mixed response
+  response to paved roads; storng aovidance of pipeliens in early witner aed mines in late winter, 
+  but otherwise a mixed response
 - selected colder patches with less snowfall in winter, but warmer patches with more ppt in 
   summer
 - selected younger aged stands across seasons, and more open and less prodcutive stands in winter
@@ -3709,28 +3730,38 @@ In DU8,
 - BEC and featrues related to BEC (elevation, slope and cliamte) are really important; climate could therefore drive cariobu habitat in the future
 - natural disturabnces (fire adn beetle) generally appear to be poor habtiat for cariobu with soem exceptions
 - roads adn agriculture always degrade habtiat quality, but eh efefct of cutbocks is ambiguous depednign on season and age, suggesting there may be some benefits of this disturabnce type 
-- some interesting switching in use of cutblocks over time; not necessarily always avoidingm adn sometimes selecting; sugegsts forestry coudl provide quality habtait for cariobu, but this mises the preadtion aspect. indeed it could be a synergistic negative effect by drawing cariobu into high predation risk areas - in this case, cutblocks coudl be a 'maladaptive sink', drawing cariobu to risky areas
+- some interesting switching in use of cutblocks over time; not necessarily always avoiding and sometimes selecting; sugegsts forestry coudl provide quality habtait for cariobu, but this misses the preadtion aspect. indeed it could be a synergistic negative effect by drawing cariobu into high predation risk areas - in this case, cutblocks coudl be a 'maladaptive sink', drawing cariobu to risky areas
 - select watercourses but avoid lakes; this may be more related to 'borader' topography (elevation adn slope), but coudl be that they use forage in riparian areas, but not lakes
 - seem to use drier and warmer areas, but this is in the context of selecting high elevation sites; likely a scale issue, and likely at larger scale use wetter and colder areas
 - consistently uses sites with more bryoids and herbs, but avoid shrubs; may be indicateive of niche seperation form moose
 - consistently use less productive forest stands, but not always older stands; seemed to select younger satdns in summer, perhaps attracted to forage value, but also needs to be considered int eh context of 'distuabnce' as may use yuonger stadns that have not recently been disturbaed by forestry, fire or beetles
 
 In DU9,
-- don't use early winter model
+- don't use early winter model because of poor valdiation and use late winter and summer models with 
+  some caution as they tend to show only 'high' or 'low' selection fo habitat and for all three 
+  becuase genrally the sample size was low and limited to a three herds (south slekirks, nakups and 
+  hart ranges)
+- consistent across seasons and with other motuanin cariobu, they predominantly select flat, high 
+  elevation habitat
+- they tend to strongly avoid burned areas year-round
+- effects of human activity are generally weak, but
+- some switching in use of cutblocks across seasons; but seem to consistently avoid cutblokcs 10 to 
+  29 years old; more consistent pattern of avoiding 'mid-aged' cutblocks, which could be indicating 
+  avoidance of predation risk; perhaps this behaviour is more consistent or estalished in southern 
+  herds
+- inconsistent seelction of roads and pipeliens across seasons; unique to this DU
+- climate;  strong selection for warmer sites in early winter; late winter weak selection of colder, 
+  wetter habitat
+- consistently select for older, closed canopy forest stands, that are more prodcutive; 
+  influence of shrubs and herbs are inconsistent across seasons, but realtively strong selection of  
+  herb cover and avoidance of shrub canopy closure in early witner
 
 
-
-
-
-
-
-
-- selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
+ selection of ctublocks may be maladaptive behaviour; cariobu may may selct for distyurbance, but not necessarily 'good' for cariobu if they are kileld there, e.g.,  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
 - or, they may also be selectign for 'old' forest, whcih foresters are also selcrting, resutls in overlap, and cariobu are nto adapting to this shift (or unabel to becuase lack of old forest elesewhere)
 
 
 remember cliamet is for 1990-2010; indicator of a long term trend not actual climatic conditions for a given year
-
 
 
 - predictive surfaces generally show left-skewed RSF scores, i.e., majority of the landbase is <.5 
