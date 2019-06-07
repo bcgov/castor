@@ -49,7 +49,7 @@ parameters <- list(
                          save_clusdb = TRUE,
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
-                         nameBoundary=c("08B", "08C"), 
+                         nameBoundary=c("08B","08C"), 
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.forest_tenure",
                          nameCompartmentTable = "forest_tenure_vat",
