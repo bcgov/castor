@@ -16,7 +16,7 @@ defineModule(sim, list(
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
-    person("Tyler", "Muhley", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
+    person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.1", dataLoaderCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -189,6 +189,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       pixels[,V1:= NULL]
       col_name<-data.table(colnames(compart_vat))[!V1 == "value"]
       setnames(pixels, col_name$V1 , "compartid")
+      #sort the pixels table so that pixelid is in order.
+      setorder(pixels, "pixelid")
     }else{
       pixels[, V1 := as.character(V1)]
       setnames(pixels, "V1", "compartid")
@@ -196,6 +198,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
 
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
     sim$rasVelo<-velox::velox(sim$ras)
+    writeRaster(sim$ras, "ras.tif", overwrite = TRUE)
     
   }else{
     message('.....compartment ids: default 1')
@@ -216,6 +219,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
     sim$rasVelo<-velox::velox(sim$ras)
+    
   }
   #------------
   #Set the Ownership

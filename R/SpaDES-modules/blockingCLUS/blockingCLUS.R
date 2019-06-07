@@ -117,13 +117,11 @@ blockingCLUS.createBlocksTable<-function(sim){
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
   
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer)")
-  #dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, area numeric, vol numeric, adj_const integer DEFAULT 0)")
-  
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   
   return(invisible(sim)) 
@@ -163,13 +161,6 @@ blockingCLUS.setBlocksTable <- function(sim) {
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
-
-  #dbExecute(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
-  #          (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
-  #          UNION 
-  #          SELECT b.adjblockid FROM 
-  #          (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-  #          LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
   
 return(invisible(sim))
 }
@@ -322,7 +313,7 @@ blockingCLUS.preBlock <- function(sim) {
   
   #store the block pixel raster
   sim$harvestUnits<-sim$ras
-  sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels')))
+  sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
   writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   rm(zones, result, blockids, max_blockid)
@@ -401,24 +392,6 @@ blockingCLUS.UpdateBlocks<-function(sim){
     rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
-  
-
-  #dbBegin(sim$clusdb)
-  #  rs<-dbSendQuery(sim$clusdb, "UPDATE blocks set adj_const = 0 WHERE adj_const =1")
-  #dbClearResult(rs)
-  #dbCommit(sim$clusdb)
-  
-  #dbBegin(sim$clusdb)
-  #rs<-dbSendQuery(sim$clusdb, "UPDATE blocks set adj_const = 1 WHERE blockid IN 
-   #         (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
-   #         UNION 
-   #         SELECT b.adjblockid FROM 
-   #         (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
-    #        LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ) ")
-  #dbClearResult(rs)
-  #dbCommit(sim$clusdb)
-  
-  #dbExecute(sim$clusdb, "VACUUM;")
   
   rm(new_blocks)
   gc()

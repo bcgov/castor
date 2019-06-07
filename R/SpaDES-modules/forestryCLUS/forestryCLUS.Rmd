@@ -46,7 +46,7 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
-times <- list(start = 0, end = 10)
+times <- list(start = 0, end = 2)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -102,10 +102,10 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport"))
 
 #Run the model 1 time
-system.time({mysimout<-spades(mySim)})
+#system.time({mysimout<-spades(mySim)})
 
 #Run the model with experiment
-#sims3 <- experiment(mySim, replicates = 2)
+sims3 <- experiment(mySim, replicates = 2)
 
 #Profile the model
 #profvis::profvis({system.time({mysimout<-spades(mySim)})})
