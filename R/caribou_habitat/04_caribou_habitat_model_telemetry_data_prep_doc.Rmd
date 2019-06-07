@@ -1161,9 +1161,9 @@ h=500 seemed to provide rasonable trade-off between capturing contiguous ranges 
 
 ![Example of home ranges exstimated using different smoothing factors (h) in DU7, early winter. ](caribou33_homerange_example_20181022.jpg) 
 
-![Example of home ranges exstimated uisng different smoothing factors (h) in DU8, summer.](caribou056_homerange_example_20181022.jpg) 
+![Example of home ranges exstimated using different smoothing factors (h) in DU8, summer.](caribou056_homerange_example_20181022.jpg) 
 
-![Example of home ranges exstimated uisng different smoothing factors (h) in DU6, late winter.](caribou143_homerange_example_20181022.jpg) 
+![Example of home ranges exstimated using different smoothing factors (h) in DU6, late winter.](caribou143_homerange_example_20181022.jpg) 
 
 ![Example of home ranges exstimated uisng different smoothing factors (h) in DU7, summer.](cariboutc009_homerange_example_20181022.jpg) 
 
