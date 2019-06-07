@@ -16,7 +16,7 @@ defineModule(sim, list(
   description = "This module calculates Resource Selection Functions within the simulation", 
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
-    person("Tyler", "Muhley", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
+    person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.2.3", rsfCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -77,7 +77,7 @@ rsfCLUS.Init <- function(sim) {
    #init a concatenated variable called 'rsf' that will report the population and season
   rsf_model_coeff[, rsf:= do.call(paste0, list(collapse = "_", .BY)), by = c("population", "season") ]
   rsf_model_coeff[layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("population", "season", "layer") ]
-  
+  sim$rsf<- data.table() #init the rsf table
   #Set all the static rasters - when rsfcovar does not exist in sim$clusdb  
   if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) {
     #init the rsfcovar table
@@ -175,7 +175,7 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
   
   for(i in 1:length(dt_sql)){ #Loop through each of the DT layers
     dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE ", dt_sql[i])))
-    if(nrow(dt_select) > 0){ message(paste0(dt_sql[i], ": TRUE"))
+    if(nrow(dt_select) > 0){ print(paste0(dt_sql[i], ": TRUE"))
       
       dt_select[,field := 0]
       #outPts contains pixelid, x, y, field, population
@@ -218,7 +218,7 @@ rsfCLUS.PredictRSF <- function(sim){
   #Loop through each population and season to predict its selection probability
   message("predicting RSF")
   rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf
-  sim$rsf<- data.table()
+  
   for(i in 1:length(rsfPops)){
     suppressWarnings(sim$rsf<-cbind(sim$rsf, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))))
     setnames(sim$rsf, "V1", paste0(rsfPops[i],"_", time(sim)))
