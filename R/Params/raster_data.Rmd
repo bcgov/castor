@@ -100,7 +100,7 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 ```
 
 
-## Tenure reduction
+## Tenure 
 
 Location for administrative layers used in TSR: \\Orbital\s63016\!Publish\TSR Documentation.
 The [Generalized Forest Ownership layer](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/data-management/standards/generalized_forest_cover_ownership_layer_2018.pdf) is used to arrive at a contributing forest landbase
