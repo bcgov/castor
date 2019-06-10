@@ -57,55 +57,6 @@ rsf.data.climate.summer <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habi
 rsf.data.climate.fall <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_fall.csv", header = T, sep = "")
 rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
 
-# load RSF data into postgres
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                     host = "DC052586", # Kyle's computer name
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
-                      port = "5432")
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-dbWriteDataFrame (df = rsf.data.forestry, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_forestry"))
-dbWriteDataFrame (df = rsf.data.ag, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_agriculture"))
-dbWriteDataFrame (df = rsf.data.mine, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_mine"))
-dbWriteDataFrame (df = rsf.data.energy, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_energy"))
-dbWriteDataFrame (df = rsf.data.natural.dist, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_natural_disturbance"))
-dbWriteDataFrame (df = rsf.data.human.dist, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_human_disturbance"))
-dbWriteDataFrame (df = rsf.data.climate.annual, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_annual"), overwrite = T)
-dbWriteDataFrame (df = rsf.data.climate.winter, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_winter"))
-dbWriteDataFrame (df = rsf.data.climate.spring, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_spring"))
-dbWriteDataFrame (df = rsf.data.climate.summer, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_summer"))
-dbWriteDataFrame (df = rsf.data.climate.fall, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_fall"))
-dbDisconnect (connKyle) 
-
-
 #########################
 ### A BIT OF CLEAN-UP ###
 ########################

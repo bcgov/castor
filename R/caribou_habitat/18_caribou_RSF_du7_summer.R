@@ -57,55 +57,6 @@ rsf.data.climate.summer <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habi
 rsf.data.climate.fall <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_climate_fall.csv", header = T, sep = "")
 rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
 
-# load RSF data into postgres
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                     host = "DC052586", # Kyle's computer name
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
-                      port = "5432")
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-dbWriteDataFrame (df = rsf.data.forestry, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_forestry"))
-dbWriteDataFrame (df = rsf.data.ag, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_agriculture"))
-dbWriteDataFrame (df = rsf.data.mine, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_mine"))
-dbWriteDataFrame (df = rsf.data.energy, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_energy"))
-dbWriteDataFrame (df = rsf.data.natural.dist, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_natural_disturbance"))
-dbWriteDataFrame (df = rsf.data.human.dist, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_human_disturbance"))
-dbWriteDataFrame (df = rsf.data.climate.annual, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_annual"), overwrite = T)
-dbWriteDataFrame (df = rsf.data.climate.winter, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_winter"))
-dbWriteDataFrame (df = rsf.data.climate.spring, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_spring"))
-dbWriteDataFrame (df = rsf.data.climate.summer, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_summer"))
-dbWriteDataFrame (df = rsf.data.climate.fall, 
-                  conn = connKyle, 
-                  name = c ("public", "rsf_data_climate_fall"))
-dbDisconnect (connKyle) 
-
-
 #########################
 ### A BIT OF CLEAN-UP ###
 ########################
@@ -3050,16 +3001,16 @@ rsf.data.combo.du7.s.avail <- dplyr::filter (rsf.data.combo.du7.s, pttype == 0)
 
 table.kfold [c (11:20), 1] <- 2
 
-table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.12")) * 0.15)
-table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.20")) * 0.25)
-table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.28")) * 0.35)
-table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.36")) * 0.45)
-table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.44")) * 0.55)
-table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.52")) * 0.65)
-table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.60")) * 0.75)
-table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.68")) * 0.85)
-table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.76")) * 0.95)
+table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.12")) * 0.12)
+table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.20")) * 0.20)
+table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.28")) * 0.28)
+table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.36")) * 0.36)
+table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.44")) * 0.44)
+table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.52")) * 0.52)
+table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.60")) * 0.60)
+table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.68")) * 0.68)
+table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train2.class == "0.76")) * 0.76)
 
 table.kfold [11, 4] <- table.kfold [11, 3] / sum  (table.kfold [c (11:20), 3]) 
 table.kfold [12, 4] <- table.kfold [12, 3] / sum  (table.kfold [c (11:20), 3]) 
@@ -3177,16 +3128,16 @@ rsf.data.combo.du7.s.avail <- dplyr::filter (rsf.data.combo.du7.s, pttype == 0)
 
 table.kfold [c (21:30), 1] <- 3
 
-table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.12")) * 0.15)
-table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.20")) * 0.25)
-table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.28")) * 0.35)
-table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.36")) * 0.45)
-table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.44")) * 0.55)
-table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.52")) * 0.65)
-table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.60")) * 0.75)
-table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.68")) * 0.85)
-table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.76")) * 0.95)
+table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.12")) * 0.12)
+table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.20")) * 0.20)
+table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.28")) * 0.28)
+table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.36")) * 0.36)
+table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.44")) * 0.44)
+table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.52")) * 0.52)
+table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.60")) * 0.60)
+table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.68")) * 0.68)
+table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train3.class == "0.76")) * 0.76)
 
 table.kfold [21, 4] <- table.kfold [21, 3] / sum  (table.kfold [c (21:30), 3]) 
 table.kfold [22, 4] <- table.kfold [22, 3] / sum  (table.kfold [c (21:30), 3]) 
@@ -3303,16 +3254,16 @@ rsf.data.combo.du7.s.avail <- dplyr::filter (rsf.data.combo.du7.s, pttype == 0)
 
 table.kfold [c (31:40), 1] <- 4
 
-table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.12")) * 0.15)
-table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.20")) * 0.25)
-table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.28")) * 0.35)
-table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.36")) * 0.45)
-table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.44")) * 0.55)
-table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.52")) * 0.65)
-table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.60")) * 0.75)
-table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.68")) * 0.85)
-table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.76")) * 0.95)
+table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.12")) * 0.12)
+table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.20")) * 0.20)
+table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.28")) * 0.28)
+table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.36")) * 0.36)
+table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.44")) * 0.44)
+table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.52")) * 0.52)
+table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.60")) * 0.60)
+table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.68")) * 0.68)
+table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train4.class == "0.76")) * 0.76)
 
 table.kfold [31, 4] <- table.kfold [31, 3] / sum  (table.kfold [c (31:40), 3]) 
 table.kfold [32, 4] <- table.kfold [32, 3] / sum  (table.kfold [c (31:40), 3]) 
@@ -3429,16 +3380,16 @@ rsf.data.combo.du7.s.avail <- dplyr::filter (rsf.data.combo.du7.s, pttype == 0)
 
 table.kfold [c (41:50), 1] <- 5
 
-table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.04")) * 0.05) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
-table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.12")) * 0.15)
-table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.20")) * 0.25)
-table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.28")) * 0.35)
-table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.36")) * 0.45)
-table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.44")) * 0.55)
-table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.52")) * 0.65)
-table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.60")) * 0.75)
-table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.68")) * 0.85)
-table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.76")) * 0.95)
+table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.04")) * 0.04) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.12")) * 0.12)
+table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.20")) * 0.20)
+table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.28")) * 0.28)
+table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.36")) * 0.36)
+table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.44")) * 0.44)
+table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.52")) * 0.52)
+table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.60")) * 0.60)
+table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.68")) * 0.68)
+table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.combo.du7.s.avail, preds.train5.class == "0.76")) * 0.76)
 
 table.kfold [41, 4] <- table.kfold [41, 3] / sum  (table.kfold [c (41:50), 3]) 
 table.kfold [42, 4] <- table.kfold [42, 3] / sum  (table.kfold [c (41:50), 3]) 
