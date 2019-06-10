@@ -156,7 +156,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, zone_const integer DEFAULT 0, thlb numeric , age numeric, vol numeric,
 crownclosure numeric, height numeric, eca numeric, roadyear integer)")
@@ -198,7 +198,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
 
     sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
     sim$rasVelo<-velox::velox(sim$ras)
-    writeRaster(sim$ras, "ras.tif", overwrite = TRUE)
+    #writeRaster(sim$ras, "ras.tif", overwrite = TRUE)
     
   }else{
     message('.....compartment ids: default 1')
@@ -264,12 +264,13 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #zone_constraint table
     if(!P(sim)$nameZoneTable == '99999'){
       
-      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable))
-      zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone")
-      zone_const<-merge(zone_const, zone, by = 'reference_zone')
-      #Need to select only those constraints that pertain to the study area
+      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable)) #get all zones across the province
+      zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") #select the name of the raster and its column name in pixels
+      #Select only those constraints that pertain to the study area
+      zone_const<-merge(zone_const, zone, by = 'reference_zone') #merge the two together so that the provincial constraints include the zonecolumn from pixels
       
-      zones<-lapply(zone$zone_column, function (x){
+      #for each constraint zone estimate the total area from which to apply the constraint
+      zones<-lapply(zone$zone_column, function (x){ 
         distinct_zones<-pixels[own == 1, .(t_area=uniqueN(pixelid)), by = x]
         distinct_zones[, zone_column:= x]
         setnames(distinct_zones, x, "zoneid")
@@ -281,8 +282,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
       
       dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, variable, threshold, type ,percentage, t_area ) 
-                      values (:zoneid, :reference_zone, :zone_column, :variable, :threshold, :type, :percentage, :t_area)", zones)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, t_area ) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :t_area)", zones)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
     }
