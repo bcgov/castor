@@ -48,7 +48,8 @@ defineModule(sim, list(
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "patchSizeDist", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA)
     ),
   outputObjects = bind_rows(
     createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA),
@@ -239,23 +240,29 @@ blockingCLUS.preBlock <- function(sim) {
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 group by ", patchSizeZone))))
-  #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
+  
+  #only select those zones to apply constraints that actually have thlb in them.
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 group by ", patchSizeZone)))) 
   resultset<-list()
- 
+  
   for(zone in zones){
     #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
     vertices<-as.matrix(dbGetQuery(sim$clusdb,
           paste0("SELECT pixelid FROM pixels where similar > 0 AND ",
                  patchSizeZone, " in ( '", zone, "')")))
-    
+    #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
     g.mst_sub<-mst(induced_subgraph(g, vids = vertices), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)]
       paths.matrix[, V2 := as.integer(V2)]
       #print(head(get.edgelist(g.mst_sub)))
-      resultset<-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
+      natDT<-dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
+      targetNum<- patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
+      targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
+      #sample(x=c(1,2,3), size=1000, replace=TRUE, prob=c(.04,.50,.46))
+      patchDist<-list(targetNum$sizeClass , targetNum$targetNum)
+      resultset<-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
     }else{
       message(paste0(zone, " has length<0"))
       next
@@ -400,31 +407,39 @@ blockingCLUS.UpdateBlocks<-function(sim){
 }
 
 ### additional functions
-getBlocksIDs<- function(x){
-  message(paste0("getBlocksID for zone: ", x[][[3]]))
-  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE)
-  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a forest hierarchy object
+getBlocksIDs<- function(x){ 
+  #---------------------------------------------------------------------------------
+  #This function uses resultset object as its input. 
+  #The resultset object is a list of lists: 1.the degree list.
+  #2. A list of edges (to and from) and weights; 3. The zone name; and
+  #4. The patch size distribution. These are accessed via x[][[1-4]]
+  #------------------------------------------------------------
+  message(paste0("getBlocksID for zone: ", x[][[3]])) #Let the user know what zone is being blocked
+  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
+  fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java
   
-  dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]])))
-  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(-1)))) #TODO: remove this dependancy in java where the index refers to the pixelid.
-  d<-convertToJava(as.integer(unlist(dg[,"V2"])))
+  dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]]))) #Sets the degree list
+  dg<- data.table(tidyr::complete(dg, V1= seq(1:as.integer(max(dg[,1]))),fill = list(V2 = as.integer(-1))))#this is needed for indexing
+  #TODO: remove this index dependancy in java where the index refers to the pixelid.
+  d<-convertToJava(as.integer(unlist(dg[,"V2"]))) #convert to a java object
   
-  h<-convertToJava(data.frame(size= c(40,320,400,1000), n = as.integer(c(1000000, 300000,10000,1000))), array.order = "column-major", data.frame.row.major = TRUE)
+  #Set the patchsize distribution as a java object
+  h<-convertToJava(data.frame(size= x[][[4]][[1]], n = as.integer(x[][[4]][[2]])), array.order = "column-major", data.frame.row.major = TRUE)
   h<-rJava::.jcast(h, getJavaClassName(h), convert.array = TRUE)
   
-  to<-.jarray(as.matrix(x[][[2]][,1]))
-  from<-.jarray(as.matrix(x[][[2]][,2]))
-  weight<-.jarray(as.matrix(x[][[2]][,3]))
-  fhClass$setRParms(to, from, weight, d, h) # sets the R parameters <Edges> <Degree> <Histogram>
-  fhClass$blockEdges() # creates the blocks
+  to<-.jarray(as.matrix(x[][[2]][,1])) #set the "to" list as a java object
+  from<-.jarray(as.matrix(x[][[2]][,2]))#set the "from" list as a java object
+  weight<-.jarray(as.matrix(x[][[2]][,3])) #set the "weight" list as a java object
+  fhClass$setRParms(to, from, weight, d, h) # sets the input R parameters <Edges> <Degree> <Histogram>
+  fhClass$blockEdges() # builds the blocks
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
-  fhClass$clearInfo()
+  fhClass$clearInfo() #This method clears the object so it can be sent for garbage collection
   
-  rm(fhClass, dg, h, to, from, weight)
-  gc()
-  jgc()
+  rm(fhClass, dg, h, to, from, weight) #remove from memory
+  gc() #call garbage collection in R
+  jgc() #call garbage collection in java
   
-  list(blockids)
+  list(blockids) #add the output of pixelid and the corresponding blockid in a list
 }
 
 worker.init <- function(packages) { #used for setting up the environments of the cores
