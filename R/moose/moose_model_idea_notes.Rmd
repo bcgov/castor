@@ -1,0 +1,179 @@
+---
+title: "Moose model ideas"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+- here are some ideas and lit. review about how to go about developing a 'moose model' for caribou recovery
+
+## Possible Approaches
+- Doug Lewis model:
+  - models moose forage supply (eg. kg/ha) as a function of forest age by BEC type
+  - could be used as an indicator of moose population carrying capacity (i.e., max density) in an area
+  - could be used to show 'bottom-up' efefct of forest harvest on moose density and consequently wolf 
+    density and ultimately predation risk for caribou
+  - general idea would be to calculate forage value of a ha based on BEC type and forest age, then sum 
+    those values for whatever area of interest to calculate total forage available
+    - then need some literature to covnert forage to moose density
+    - can use the Fuller and/or Kuzyk wolf modesl to convert moose biomass to wolf density 
+
+- Schneidman (2018) moose RSF model (http://web.unbc.ca/~michael/Pubs/Scheideman_MSc_Thesis.pdf)
+  - some study areas overlap/adjacent to caribou areas:
+    - PG South near Narrow Lake
+    - Entiako near Tweedsmuir/Itcha
+  - five seasons:
+    - late winter (Jan 15 to Apr 25)
+    - calving (Apr 26 to Jun 20)
+    - summer (June 21 to Sept 12)
+    - fall (Sept 13 to Nov 20)
+    - early winter (Nov 21 to Jan 14)
+  - fit second and third order models using logistic regression and evaluated model fit using AIC
+
+  - second-order models (note for multi-models: I've added the model weigth as a multiplier to the 
+    coefficient value):
+    - Entiako 
+      - Late Winter: wx = exp ((HR * 0.9))
+      - Calving: wx = exp ((HR * 0.72))
+      - Summer: wx = exp ((HR * 0.72))
+      - Fall: wx = exp ((CO * (13.08 * 0.45)) + (PI * (9.29 * 0.45)) + (D * (41.97 * 0.45)) +
+                        (W * (27.52 * 0.45)) + (NC * ((7.34 * 0.55) + (9.77 * 0.45))) + 
+                        (OC * (14 * 0.45)) + (FP * (16.96 * 0.45)) + (FO * (-23.23 * 0.45)) +
+                        (OF * (13.02 * 0.45)) + (RD * ((-0.91 * 0.55) + (0.63 * 0.45))) + 
+                        (HR * ((0.5 * 0.55) + (0.97 * 0.45))))  
+      - Early Winter:  wx = exp ((NC * (4.97 * 0.63)) + (RD * (0 * 0.63)) + 
+                                (HR * ((0.7 * 0.63) + (0.66 * 0.37))))
+    - PG South
+      - Late Winter: wx = exp ((CO * (2.97 * 0.31)) + (PI * (1.08 * 0.31)) + (D * (2.27 * 0.31)) +
+                               (W * (-3.12 * 0.31)) + (NC * ((2.57 * 0.31) + (0.38 * 0.19))) +
+                               (OC * (1.25 * 0.31)) + (FP * (5.25 * 0.31)) + (FO * (4.64 * 0.31)) +
+                               (OF * (37.32 * 0.31)) + (RD * ((-0.22 * 0.31) + (-0.26 * 0.19))) +
+                               (HR * ((0.73 * 0.31) + (0.55 * 0.5) + (0.57 * 0.19))))
+      - Calving: wx = exp ((RD * ((-0.29 * 0.32) + (-0.42 * 0.3))) + (MF * (-1.18 * 0.3)) +
+                           (W * (2.15 * 0.2)) + (HR * (0.12 * 0.18)))
+      - Summer: wx = exp ((NC * (1.52 * 0.39)) + (FP * (4.37 * 0.39)) + (FO * (-1.87 * 0.39)) +
+                          (RD * ((-0.44 * 0.39) + (-0.46 * 0.34) + (-0.6 * 0.27))) +
+                          (MF * (-1.21 * 0.27)))
+      - Fall: wx = exp ((CO * (15.13 * 0.64)) + (PI * (19.25 * 0.64)) + (D * (23.94 * 0.64)) +
+                               (W * (5.41 * 0.64)) + (NC * (18.23 * 0.64)) +
+                               (OC * (14.53 * 0.64)) + (FP * (26.02 * 0.64)) + (FO * (7.82 * 0.64)) +
+                               (OF * (-4 * 0.64)) + (RD * ((-0.6 * 0.64) + (-0.73 * 0.36))) +
+                               (HR * ((0.23 * 0.64))
+      - Early Winter:  wx = exp ((D * 3.98) + (W * -15.19) + (NC * 5.43) + (OC * -3.06) +
+                                 (FO * 4.78) + (OF * -630.91))                     
+            
+        - CO = Conifer = proportion of >50% leading non-pine conifer spp. in home range, from VRI
+        - PI = Pine = proportion of >50% leading pine spp. in home range, from VRI
+        - D = Deciduous = proportion of >50% leading deciduous or tall shrub spp. in home range, from 
+          VRI
+        - W = Water = proportion of water features and permanent wet areas (riparian areas, emergent 
+          and submergent veg, open water) in home range, from fwa_wetlands_poly and fwa_lakes_poly
+        - NC = New cutblock = proportion oflogged =< 15 years in home range
+        - OC = old cutblock = proportion oflogged > 15 years and <31 years in home range
+        - FP = Pine Fire = proportion ofpine leading and burned =< 15 years in home range
+        - FO = Other Fire = proportion ofnon-pine leading and burned =< 15 years in home range
+        - OF = Old Fire = proportion of burned > 15 years and <31 years in home range
+        - HR = habitat richness = number of distinct veg over classes except for road density and 
+          mature forest in home range
+        - RD = road density = km/km2 in home range
+        - MF = mature forest = proportion of CO + PI + D in home range
+     
+     - would need to calculate covariate values at home range scale (km2):
+         - Entiako 
+            - Late Winter: 12
+            - Calving: 20
+            - Summer: 42
+            - Fall: 37
+            - Early Winter: 37
+         - PG South
+            - Late Winter: 13
+            - Calving: 23
+            - Summer: 27
+            - Fall: 20
+            - Early Winter: 18
+
+  - third-order models (note for multi-models: I've added the model weigth as a multiplier to the 
+    coefficient value):
+     - Entiako 
+      - Late Winter: wx = exp (((-4.48 * 0.52) + (-4.54 * 0.48)) +
+                               (ELVkm * ((5.42 * 0.52) + (5.52 * 0.48))) + 
+                               (ELVkm2 * ((-2.46 * 0.52) + (-2.50 * 0.48))) +
+                               (east * ((-0.03 * 0.52) + (-0.03 * 0.48))) +
+                               (north * ((-0.06 * 0.52) + (-0.06 * 0.48))) +
+                               (conifer * ((0.11 * 0.52) + (0.11 * 0.48))) +
+                               (decid * ((0.32 * 0.52) + (0.32 * 0.48))) + 
+                               (fire_oth * ((0.26 * 0.52) + (0.26 * 0.48))) + 
+                               (fire_pine * ((-0.41 * 0.52) + (-0.41 * 0.48))) + 
+                               (herb * ((0.63 * 0.52) + (0.63 * 0.48))) + 
+                               (new_cut * ((-0.06 * 0.52) + (-0.06 * 0.48))) +
+                               (nonveg * ((0.47 * 0.52) + (0.47 * 0.48))) + 
+                               (old_cut * ((0.01 * 0.52) + (0.01 * 0.48))) +
+                               (old_fire * ((0.41 * 0.52) + (0.41 * 0.48))) +
+                               (pine * ((-0.22 * 0.52) + (-0.22 * 0.48))) + 
+                               (urban * ((-1.95 * 0.52) + (-1.95 * 0.48))) + 
+                               (dist_rd * (0.00 * 0.48)) + (wet * (0.44 * 0.52)) +
+                               (cover * ((0.02 * 0.52) + (0.02 * 0.48))))  
+
+
+
+
+
+
+
+
+
+- Mumma and Gillingham (2019) survival model (http://web.unbc.ca/~michael/Mumma_and_Gillingham_2019.pdf)
+  - similar conceptually to an RSF, except models mortality risk or survival probabibility of cow 
+    caribou (not resource selection probability) as a function of habitat
+      - Cox proportional hazards model that estimates survival as a function of habitat covariates     
+        using a hazard function
+        - coefficients are hazard ratios
+  - some study areas overlap/adjacent to caribou areas:
+    - Entiako near Tweedsmuir/Itcha
+    - PG South near Narrow Lake
+    - West Parsnip near Wolverine, Chase
+  - models fit for different mortality types:
+    - wolf predation
+    - hunting
+    - starvation
+    - other
+    
+  - Risk (wolf predation) = exp ((log (1.00) * RD200-1) + (log(0.56) * RD200-365) + 
+                                 (log(1.34) * NC400-7) + (log(0.21) * NC400-180)) 
+ 
+  - Risk (hunting) = exp ((log (1.62) * RD200-1) + (log(1.67) * RD200-365) + 
+                          (log(49.06) * NC400-7) + (log(31.69) * NC400-180))                                 
+  - Risk (starve) = exp ((log (0.97) * RD200-1) + (log(2.60) * RD200-365) + 
+                         (log(1.14) * NC400-7) + (log(555.70) * NC400-180))                                 
+  - Risk (other) = exp ((log (1.20) * RD200-1) + (log(1.60) * RD200-365) + 
+                        (log(0.98) * NC400-7) + (log(0.27) * NC400-180))                                  
+  - Surv (starve) = exp (-6.47 + (NC * 6.88))
+  
+    - RD = road density
+    - 200-1 = within a 200 m radius from the location within the previous day
+    - 200-365 = within a 200 m radius from the location within the previous year
+    - NC = new cutblock, cutblocks 1-8 years old
+    - 400-7 = within a 400 m radius from the location within the previous week
+    - 400-180 = within a 400 m radius from the location within the previous half-year
+
+  - RD is difficult to use in the framework of our model data, but we could do a work around where 
+    we assume a roaded pixel has a some amount of road that traverses it , e.g., at a diagonal: 141m;      so, count pixels in 200m  radius, mutliply by 0.141km and divivde by 0.126km2 (for 200m radius 
+    circle); that would only give you a max of ~21 pixels (I think, adn if we include partial pixels) 
+    and thus max road density of ~24km/km2, which is very high; so, we could be more conservative here     and use 100m road in a roaded ha, which is 17km/km2; minimum is 1 pixel = .79km/km2, which is still     high, and equals survival of 0.62, which is quite low so we may need to be more conservative with 
+    the road length assumption
+  - temporal covariates also need a work around, because they measure the mean value over a 1 to 1 year
+    period; 
+      - for daily, we could calculate the mean density of values within the radius of a 'typical' daily         movement distance
+      - for weekly, we could calculate the mean density of values within the radius of a 'typical'     
+        weekly movement distance
+      - for half year, we could calcuate the mean density of values within the radius of half a 
+        'typical' home range
+      - for annual, we could calcuate the mean density of values within the radius of a 'typical' home         range
+      - movement and home range data on some of these moose in Schneidman (2018), pg. 35
+
+
+
