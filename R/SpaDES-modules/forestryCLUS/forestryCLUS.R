@@ -17,7 +17,7 @@ defineModule(sim, list(
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
-              person("Tyler", "Muhley", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
+              person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.2.3", forestryCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -100,7 +100,7 @@ forestryCLUS.setConstraints<- function(sim) {
       query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
                                                         CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
                                                         ROUND((1-(percentage*1.0/100))*t_area, 0) END AS limits
-                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND percentage < 10;")))
+                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"';")))
       switch(
         as.character(query_parms[1, "type"]),
         ge = {
@@ -109,7 +109,7 @@ forestryCLUS.setConstraints<- function(sim) {
                       SET zone_const = 1
                       WHERE pixelid IN ( 
                       SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
-                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
+                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
                       LIMIT :limits);")
           
         },
