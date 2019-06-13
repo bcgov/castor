@@ -3689,12 +3689,15 @@ kable (table.kfold.du9.s)
 
 
 ## Conclusions
-In general, across DU's 'enduring' or 'permanent' features of the ladnscape (i.e., wetladns, high elevation plateaus) are most improtant to cariobu; they are storngly selecting these permanent features and then likely respondign to disuyrtabnces within and aroudn them, but not beign pushed away from them due to disturbance, with teh exception of firte, which seems to have a strong neagtive efefct in central adn southern moutani cariobu. Cariobu repsonses to human distubrance typess was not straightforward and often was not strictly avoidance; likely cariobu are exploiting forage value of some disturbed areas (i.e., cutblocks), but this could be at the expense of predation risk, which this model may not capture particularly well; caribou habitat selection is likely ideally evaluated within the context of moose habtiat or density to properly consider the efefct of predation on cariobu populations; forestry disturabnce may actually have a relatively small, and in soem cases  positive impact on caribou resoruce selection, e.g., cutblocks may provide forage for cariobu, but the larger concern is that this may facilitate overlap with higher moose desnities, which brings wolves and increase predation rate 
+In general, across DU's and seasons, caribou appear to most strongly select for specific 'permanent' features of the landscape (i.e., treed bogs or fens in the boreal forest or high elevation plateaus in the mountains); they are strongly selecting these permanent features and then less strongly responding to human and natural disturbances within and around them, perhaps with the exception of fire, which seems to have a strong negative effect in many areas and seasons. 
 
-Another issue or limtitation with the RSF approach are confounded variables.  In particular, I consitently found that elevation (or BEC type) was a key covariate in RSF models; however, elevation likely indirectly accounts for various mechanistic processes influecing cariobu habtait seleection, including  climate and human disturbance features. It was likely difficult for the statistical model to parse out these effects, and elevation may be a 'catch-all' for various ecological mechanisms.
+Caribou repsonses to human disturbance types was not straightforward and often was not strictly avoidance; caribou may be exploiting higher forage value of some disturbed areas (i.e., cutblocks may provide forage for caribou); if this is the case, the larger concern is that this may facilitate overlap with higher moose densities, which brings wolves and increases predation rate, i.e., selection of cutblocks may be maladaptive behaviour; caribou may may select for cutblocks, but 
+they arenot necessarily 'good' habitat for caribou if they are killed there, e.g.,    
+(https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700); alternatively, caribou may be selecting for 'old' forest, which foresters are also selecting, resulting in caribou use of old stands near cutblocks; in either case, caribou habitat selection is ideally evaluated within the context of moose and wolf habitat or density to properly consider the effect of predation on caribou populations 
+
 
 In DU6 , 
-- key habtiat features are wetlands; more 'permanent' features of the landscape; disturabnce features   less imprtoant, although fire clearly has a negative effetc, but forestry and beetle disturabnce 
+- key habitat features are wetlands; more 'permanent' features of the landscape; disturabnce features   less imprtoant, although fire clearly has a negative effetc, but forestry and beetle disturabnce 
   had a postive effect 
 - forage, especially bryoid cover, and older, less productive (shorter) and dense forest stands 
   improtant
@@ -3756,13 +3759,8 @@ In DU9,
   influence of shrubs and herbs are inconsistent across seasons, but relatively strong selection of  
   herb cover and avoidance of shrub canopy closure in early witner
 
+An issue or limtitation with the RSF approach are confounded variables.  In particular, I consitently found that elevation (or BEC type) was a key covariate in RSF models; however, elevation likely indirectly accounts for various mechanistic processes influecing caribou haibtat selection, including climate and human disturbance features that vary across elevational gradients. Elevation may be a 'catch-all' for various ecological mechanisms.
 
-- selection of cutblocks may be maladaptive behaviour; caribou may may select for disturbance, but 
-  not necessarily 'good' for caribou if they are kileld there, e.g.,    
-  (https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)
-- or, they may also be selecting for 'old' forest, which foresters are also selecting, resulting in 
-  caribou use of old stands near cutblocks, and cariobu are nto adapting to this shift (or unable to 
-  becuase lack of old forest habitat elsewhere)
 
 
 - results might indicate some interesting climate mechanisms 
