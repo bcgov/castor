@@ -412,7 +412,7 @@ library(data.table)
 data.table(uwr_tag = c('u-3-003',	'u-3-004',	'u-3-006',	'u-4-001',	'u-4-006',	'u-4-008',	'u-4-010',	'u-4-012',	'u-4-013',	'u-4-014',	'u-5-001',	'u-5-002',	'u-5-003',	'u-6-009',	'u-6-014',	'u-6-018',	'u-7-001',	'u-7-002',	'u-7-003',	'u-7-005',	'u-7-007',	'u-7-008',	'u-7-009',	'u-7-010',	'u-7-011',	'u-7-012',	'u-7-013',	'u-7-015',	'u-7-017',	'u-7-025',	'u-7-026',	'u-7-028',	'u-8-001',	'u-8-004',	'u-8-005',	'u-8-006',	'u-8-007',	'u-8-008',	'u-8-009',	'u-8-010',	'u-8-012',	'u-9-001',	'u-9-002',	'u-9-004',	'u-9-009',	'u-9-010'),
  aoi = c('Merritt',	'Headwaters',	'Merritt',	'Arrow, Kootney Lake',	'Cranbrook',	'Invermere TSA',	'Kinbasket Planning Unit',	'Southwest Kootenay Planning Unit',	'Southeast Kootenay Planning Unit',	'Central Kootenay Planning Unit',	'Quesnel TSA/Prince George TSA',	'Williams Lake TSA',	'100 Mile House TSA',	'Kalum,Cascadia, Pacific, TFL1, TFL4',	'North Coast TSA and TFL 225',	'Nass TSA',	'Kennedy Siding',	'Fort St. James',	'Upper Fraser, Hart Ranges and Mount Robson Planning Units',	'Peace Arm',	'Mackenzie',	'Ingenika',	'Mackenzie TSA',	'Robson Valley TSA',	'Vanderhoof',	'Prince George TSA',	'Prince George',	'Prince George TSA',	'Mackenzie TSA',	'Mackenzie',	'Prince George',	'Mackenzie',	'Okanagan TSA, TFL 15, 35 & 49',	'Revelsoke Shuswap and South Monashee Planning Units',	'Okanagan TSA, TFL 15, 35 & 49',	'Okanagan TSA, TFL 15, 35 & 49',	'Boundary TSA and TFL 8',	'Boundary TSA and TFL 8',	'Boundary TSA and TFL 8',	'Boundary TSA and TFL 8',	'South Monashee Planning Unit',	'Dawson Creek TSA',	'Dawson Creek TSA',	'Fort St. John TSA, Mackenzie TSA and TFL 48',	'Fort St. John TSA',	'Fort Nelson TSA'),
  species = c('Deer',	'Caribou',	'Goat',	'Elk, Deer, Moose',	'Elk, Deer, Moose, Goat',	'White-tailed Deer, Mule Deer, Moose, Elk, Bighorn Sheep, Mountain Goat',	'Mountain Caribou',	'Mountain Caribou',	'Mountain Caribou',	'Mountain Caribou',	'Mule Deer',	'Mule Deer',	'Mule Deer',	'Moose',	'Moose',	'Moose',	'Northern Caribou',	'Mule Deer',	'Mountain Caribou',	'Elk',	'Northern Caribou',	'Elk',	'Northern Caribou',	'Mule Deer',	'Mule Deer',	'Northern Caribou',	'Mule Deer',	'Northern Caribou',	'Moose, Mountain Goat and Elk',	'Northern caribou',	'Northern caribou',	'Stones sheep',	'Mule Deer',	'Mountain Caribou',	'Goat',	'Moose',	'Moose',	'Mule Deer',	'Mountain Goat',	'Sheep',	'Mountain Caribou',	'Elk, Mule Deer and Moose',	'Caribou, Mountain Goat, Bighorn Sheep',	'Northern Caribou and Stones Sheep',	'Boreal Caribou',	'Boreal Caribou'),
- complete = c('Y','Y','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','N','Y','N','Y','N','N','N','Y','Y','Y','Y','Y','Y','Y','Y','N','N','N','N','N','N','N','N','N','N','Y','N','N','N'),
+ complete = c('Y','Y','N','N','N','N','N','N','N','N','N','N','N','N','N','N','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','N','N','N','N','N','N','N','N','N','N','Y','N','N','N'),
  source = c('http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u3_003.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-3-004_GAR_rat.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-3-006_ORAM_Order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u4-001_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u4_006.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u4_008.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-010_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-012_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-013_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-014_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u5_001.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u5_002.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u5_003.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/UWR%206-009%20FRPA%20order_signed%20doc.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/UWR%206-014%20FRPA%20order_signed.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-018_GAR-order_Sept17.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_001.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_002.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-003_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_005.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_007.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_008.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_009.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_010.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_011.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_012.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_013.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_015.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-017_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-025_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-026_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-028_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-001_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-004_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-005_ORAM_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-006_ALAL_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-007_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-008_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-009_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-010_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-012_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u9_001.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-9-002_Order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-9-004_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/RATA_U-9-009_Order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/RATA_U-9-010_Ord_BoundariesOnly.pdf')
  )
 
@@ -487,6 +487,49 @@ u5<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM pub
 
 ```
 
+### u-6-018 Moose
+```{r, u6008}
+#Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-018_GAR-order_Sept17.pdf
+
+u6018<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-6-018' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#67 polygons
+
+```
+
+### u-7-001 Northern Caribou
+```{r, u-7-001}
+#Log approximately half the entire area at a time on a 100 year rotation so 45-55% is 0-50 years and 45-55 is 50-100 years old. Harvest in large patches (250 to 1400). see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_001.pdf. Equate this to 50% of the area ge 50 years
+
+u7001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+u7001_table<-data.table(u7001)[,c("ogc_fid")]
+u7001_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 50, ndt =0, label = 'u-7-001')]
+setnames(u7001_table, "ogc_fid", "zoneid")
+
+zone_uwr<-rbind(zone_uwr, u7001_table)
+rm(u7001_table, u7001)
+gc()
+```
+
+
+### u-7-002 Mule Deer
+```{r, u7002}
+#Within unit numbers 1:5,11,12,14 maintain a minum of 40% of the area in age class 8 with a crown closure of > 56%. Within unit numbers 9,10,15:18 maintain a minimum of 50% stans in age class 8 (> 140 years) with a crown closure of > 66% see - http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_002.pdf
+u7002<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-002' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#18 polygons
+
+u7002_table<-data.table(u7002)[,c("ogc_fid","unit_no")]
+u7002_table[unit_no %in% c("1","2","3","4","5","11","12","14"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-002')]
+#assign the 66%threshold
+u7002_table[unit_no %in% c("9","10","15","16","17","18"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 50, threshold = 66, ndt =0, label = 'u-7-002')]
+
+setnames(u7002_table, "ogc_fid", "zoneid")
+u7002_table[, unit_no:=NULL]
+zone_uwr<-rbind(zone_uwr, u7002_table)
+rm(u7002_table, u7002)
+gc()
+```
+
+
 ### u-7-003 Mountain Caribou
 ```{r, u3003}
 u7003<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-003' AND harvest = 'CONDITIONAL HARVEST ZONE'")
@@ -512,6 +555,18 @@ zone_uwr<-rbind(zone_uwr, u7003_table)
 rm(u7003_table,u7003, manage)
 gc()
 ```
+### u-7-005 ELk
+```{r, u7005}
+#Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_005.pdf
+u7005<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-005' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+u7005_table<-data.table(u7005)[,c("ogc_fid")]
+u7005_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt =0, label = 'u-7-005')]
+setnames(u7005_table, "ogc_fid", "zoneid")
+
+zone_uwr<-rbind(zone_uwr, u7005_table)
+rm(u7005_table, u7005)
+gc()
+```
 
 ### u-7-007 Northern Caribou
 ```{r, u7007}
@@ -534,9 +589,39 @@ gc()
 
 ```
 
+### u-7-008 Elk
+```{r, u7008}
+#Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_008.pdf
+u7008<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-008' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+u7008_table<-data.table(u7008)[,c("ogc_fid")]
+u7008_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt =0, label = 'u-7-008')]
+setnames(u7008_table, "ogc_fid", "zoneid")
+
+zone_uwr<-rbind(zone_uwr, u7008_table)
+rm(u7008_table, u7008)
+gc()
+
+```
+
+### u-7-009 Northern Caribou
+```{r, u7009}
+#GVM 1 - Corridor: Forest practices within this ungulate winter range will maintain a minimum of 20% of the forested stands as 100 years with no more than 20% of this unit being less than 3 m green up any time. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_009.pdf. The more constricting constraint is no more than 3 m green up at any time.
+
+u7009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+u7009_table<-data.table(u7009)[,c("ogc_fid")]
+u7009_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 80, threshold = 3, ndt =0, label = 'u-7-009')]
+setnames(u7009_table, "ogc_fid", "zoneid")
+
+zone_uwr<-rbind(zone_uwr, u7009_table)
+rm(u7009_table, u7009)
+gc()
+
+```
+
+
 ### u-7-010 Mule Deer
 ```{r, u7010}
-#Snow interception and Thermal Cover - maintain a minimum of 50% of the winter range area in age class 8 and 9 with a minimum of 66% canopy closure. This is suppose to be species specific with RDV-001 focusing on Cedar. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_010.pdf I equate all these zone to ge 66% crown closure for 50% of the area.
+#Snow interception and Thermal Cover - maintain a minimum of 50% of the winter range area in age class 8 and 9 with a minimum of 66% canopy closure. This is suppose to be species specific with RDV-001 focusing on Cedar. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_010.pdf I equate all these zone to ge 66% crown closure for 50% of the area.I'm biased to use crown cover over age -- much easier to measure
 
 u7010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 #3 polygons
