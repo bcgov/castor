@@ -72,7 +72,7 @@ knitr::opts_chunk$set(echo = TRUE)
           VRI
         - W = Water = proportion of water features and permanent wet areas (riparian areas, emergent 
           and submergent veg, open water) in home range, from fwa_wetlands_poly and fwa_lakes_poly
-        - NC = New cutblock = proportion oflogged =< 15 years in home range
+        - NC = New cutblock = proportion of logged =< 15 years in home range
         - OC = old cutblock = proportion oflogged > 15 years and <31 years in home range
         - FP = Pine Fire = proportion ofpine leading and burned =< 15 years in home range
         - FO = Other Fire = proportion ofnon-pine leading and burned =< 15 years in home range
@@ -117,6 +117,196 @@ knitr::opts_chunk$set(echo = TRUE)
                                (urban * ((-1.95 * 0.52) + (-1.95 * 0.48))) + 
                                (dist_rd * (0.00 * 0.48)) + (wet * (0.44 * 0.52)) +
                                (cover * ((0.02 * 0.52) + (0.02 * 0.48))))  
+      
+      - Calving: wx = exp (((-3.47 * 0.52) + (-3.50 * 0.48)) +
+                               (ELVkm * ((3.90 * 0.52) + (3.75 * 0.48))) + 
+                               (ELVkm2 * ((-1.80 * 0.52) + (-1.73 * 0.48))) +
+                               (east * ((0.11 * 0.52) + (0.11 * 0.48))) +
+                               (north * ((-0.11 * 0.52) + (-0.11 * 0.48))) +
+                               (conifer * ((-0.07 * 0.52) + (-0.07 * 0.48))) +
+                               (decid * ((0.59 * 0.52) + (0.60 * 0.48))) + 
+                               (fire_oth * ((0.24 * 0.52) + (0.22 * 0.48))) + 
+                               (fire_pine * ((-0.20 * 0.52) + (-0.24 * 0.48))) + 
+                               (herb * ((0.97 * 0.52) + (0.98 * 0.48))) + 
+                               (new_cut * ((-0.12 * 0.52) + (-0.12 * 0.48))) +
+                               (old_cut * ((-0.65 * 0.52) + (-0.65 * 0.48))) +
+                               (pine * ((-0.16 * 0.52) + (-0.16 * 0.48))) + 
+                               (urban * ((-0.55 * 0.52) + (-0.55 * 0.48))) + 
+                               (wet * ((-0.03 * 0.52) + (-0.03 * 0.48))) +
+                               (dist_mature * (-0.02 * 0.52)))  
+
+      - Summer: wx = exp (((-3.79 * 0.37) + (-3.83 * 0.36) + (-3.80 * 0.27)) +
+                               (ELVkm * ((3.83 * 0.37) + (3.92 * 0.36) + (3.85 * 0.27))) + 
+                               (ELVkm2 * ((-1.74 * 0.37) + (-1.78 * 0.36) + (-1.74 * 0.27))) +
+                               (east * ((0.00 * 0.37) + (0.00 * 0.36) + (0.00 * 0.27))) +
+                               (north * ((0.00 * 0.37) + (0.00 * 0.36) + (0.00 * 0.27))) +
+                               (alpine * ((-0.65 * 0.37) + (-0.64 * 0.36) + (-0.65 * 0.27))) +
+                               (conifer * ((0.29 * 0.37) + (0.28 * 0.36) + (0.29 * 0.27))) +
+                               (decid * ((0.20 * 0.37) + (0.20 * 0.36) + (0.20 * 0.27))) +
+                               (fire_oth * ((0.23 * 0.37) + (0.24 * 0.36) + (0.23 * 0.27))) +
+                               (fire_pine * ((-0.06 * 0.37) + (-0.03 * 0.36) + (-0.06 * 0.27))) +
+                               (herb * ((0.14 * 0.37) + (0.13 * 0.36) + (0.14 * 0.27))) +
+                               (new_cut * ((-0.30 * 0.37) + (-0.31 * 0.36) + (-0.30 * 0.27))) +
+                               (old_cut * ((-0.10 * 0.37) + (-0.11 * 0.36) + (-0.10 * 0.27))) +
+                               (fire_old * ((0.17 * 0.37) + (0.16 * 0.36) + (0.17 * 0.27))) +
+                               (pine * ((0.14 * 0.37) + (0.14 * 0.36) + (0.14 * 0.27))) +
+                               (wet * ((-0.06 * 0.37) + (-0.06 * 0.36) + (-0.06 * 0.27))) +
+                               (dist_mature * (0.01 * 0.37)) +
+                               (escape * (0.01 * 0.37)))
+      
+    - Fall: wx = exp (((-1.77 * 0.71) + (-1.72 * 0.29)) +
+                       (ELVkm * ((0.45 * 0.71) + (0.35 * 0.29))) + 
+                       (ELVkm2 * ((-0.27 * 0.71) + (-0.23 * 0.29))) +        
+                       (east * ((0.03 * 0.71) + (0.03 * 0.29))) +        
+                       (north * ((0.04 * 0.71) + (0.04 * 0.29))) +         
+                       (alpine * ((-0.16 * 0.71) + (-0.15 * 0.29))) +          
+                       (conifer * ((0.18 * 0.71) + (0.19 * 0.29))) +         
+                       (decid * ((0.28 * 0.71) + (0.28 * 0.29))) +        
+                       (fire_oth * ((0.21 * 0.71) + (0.21 * 0.29))) +        
+                       (fire_pine * ((-0.10 * 0.71) + (-0.10 * 0.29))) +         
+                       (herb * ((0.39 * 0.71) + (0.39 * 0.29))) +        
+                       (new_cut * ((0.01 * 0.71) + (0.00 * 0.29))) +  
+                       (old_cut * ((-0.31 * 0.71) + (-0.32 * 0.29))) +  
+                       (fire_old * ((-0.39 * 0.71) + (-0.40 * 0.29))) +  
+                       (pine * ((-0.04 * 0.71) + (-0.04 * 0.29))) + 
+                       (wet * -0.06) + 
+                       (dist_roadkm * 0.00)) 
+
+    - Early Winter: wx = exp (-3.97 +
+                               (ELVkm * 4.30) + 
+                               (ELVkm2 * -1.76) +        
+                               (east * 0.01) +        
+                               (north * 0.00) +         
+                               (conifer * -0.40) +         
+                               (decid * 0.18) +        
+                               (fire_oth * 0.13) +        
+                               (fire_pine * -0.76) +         
+                               (herb * 0.79) +        
+                               (new_cut * 0.08) +  
+                               (old_cut * -0.20) +  
+                               (fire_old * 0.33) +  
+                               (pine * -0.71) + 
+                               (wet * 0.56) + 
+                               (dist_roadkm * 0.01) +
+                               (dist_mature * 0.04)) 
+
+  - PG South 
+    -  Late Winter: wx = exp (((-2.54 * 0.47) + (-2.53 * 0.34) + (-2.53 * 0.19)) +
+                                (ELVkm * ((1.76 * 0.47) + (1.76 * 0.34) + (1.75 * 0.19))) +
+                                (ELVkm2 * ((-1.17 * 0.47) + (-1.16 * 0.34) + (-1.17 * 0.19))) +
+                                (east * ((-0.03 * 0.47) + (-0.03 * 0.34) + (-0.03 * 0.19))) +
+                                (north * ((0.11 * 0.47) + (0.11 * 0.34) + (0.11 * 0.19))) +
+                                (conifer * ((0.16 * 0.47) + (0.17 * 0.34) + (0.17 * 0.19))) +
+                                (decid * ((0.32 * 0.47) + (0.33 * 0.34) + (0.32 * 0.19))) +
+                                (fire_oth * ((-0.07 * 0.47) + (-0.08 * 0.34) + (-0.06 * 0.19))) +
+                                (fire_pine * ((0.11 * 0.47) + (0.11 * 0.34) + (0.11 * 0.19))) +
+                                (herb * ((-0.72 * 0.47) + (-0.73 * 0.34) + (-0.73 * 0.19))) +
+                                (new_cut * ((0.46 * 0.47) + (0.45 * 0.34) + (0.46 * 0.19))) +
+                                (old_cut * ((0.18 * 0.47) + (0.17 * 0.34) + (0.17 * 0.19))) +
+                                (fire_old * ((0.36 * 0.47) + (0.36 * 0.34) + (0.35 * 0.19))) +
+                                (pine * ((0.22 * 0.47) + (0.22 * 0.34) + (0.22 * 0.19))) +
+                                (urban * ((-1.40 * 0.47) + (-1.40 * 0.34) + (-1.41 * 0.19))) +
+                                (wet * ((0.39 * 0.47) + (0.40 * 0.34) + (0.39 * 0.19))) +
+                                (dist_roadkm * ((0.09 * 0.47) + (0.10 * 0.19))) +
+                                (dist_mature * ((0.05 * 0.47) + (0.05 * 0.34))) +
+                                (escape * 0.05)) 
+                      
+    - Calving: wx = exp (((-1.65 * 0.70) + (-1.73 * 0.30)) +           
+                          (ELVkm * ((-0.34 * 0.70) + (-0.19 * 0.30))) +
+                          (ELVkm2 * ((0.27 * 0.70) + (0.16 * 0.30))) +
+                          (east * ((0.03 * 0.70) + (0.03 * 0.30))) +
+                          (north * ((-0.06 * 0.70) + (-0.06 * 0.30))) +
+                          (conifer * ((0.25 * 0.70) + (0.24 * 0.30))) +
+                          (decid * ((0.28 * 0.70) + (0.27 * 0.30))) +
+                          (fire_oth * ((-0.13 * 0.70) + (-0.11 * 0.30))) +
+                          (fire_pine * ((0.13 * 0.70) + (0.12 * 0.30))) +
+                          (herb * ((-0.35 * 0.70) + (-0.34 * 0.30))) +
+                          (new_cut * ((0.05 * 0.70) + (0.07 * 0.30))) +
+                          (old_cut * ((-0.03 * 0.70) + (-0.01 * 0.30))) +
+                          (pine * ((0.07 * 0.70) + (0.05 * 0.30))) +
+                          (urban * ((-1.39 * 0.70) + (-1.38 * 0.30))) +
+                          (wet * ((1.12 * 0.70) + (1.09 * 0.30))) +
+                          (dist_roadkm * -0.17)) 
+
+      - Summer: wx = exp (((-2.57 * 0.61) + (-2.36 * 0.39)) +
+                           (ELVkm * ((1.40 * 0.61) + (0.93 * 0.39))) +
+                           (ELVkm2 * ((-0.84 * 0.61) + (-0.54 * 0.39))) +
+                           (east * ((0.01 * 0.61) + (0.01 * 0.39))) +
+                           (north * ((0.10 * 0.61) + (0.10 * 0.39))) +
+                           (conifer * ((0.51 * 0.61) + (0.52 * 0.39))) +
+                           (decid * ((0.39 * 0.61) + (0.39 * 0.39))) +
+                           (fire_oth * ((0.24 * 0.61) + (0.24 * 0.39))) +
+                           (fire_pine * ((0.22 * 0.61) + (0.23 * 0.39))) +
+                           (herb * ((-0.65 * 0.61) + (-0.65 * 0.39))) +
+                           (new_cut * ((-0.06 * 0.61) + (-0.08 * 0.39))) +
+                           (old_cut * ((0.34 * 0.61) + (0.32 * 0.39))) +
+                           (pine * ((0.38 * 0.61) + (0.39 * 0.39))) +
+                           (urban * ((-2.29 * 0.61) + (-2.30 * 0.39))) +
+                           (wet * ((0.92 * 0.61) + (0.93 * 0.39))) +
+                           (dist_roadkm * 0.12)) 
+
+    - Fall: wx = exp (((-1.41 * 0.65) + (-1.34 * 0.35)) +
+                       (ELVkm * ((-1.00 * 0.65) + (-1.15 * 0.35))) +
+                       (ELVkm2 * ((0.45 * 0.65) + (0.57 * 0.35))) +
+                       (east * ((0.00 * 0.65) + (0.00 * 0.35))) +
+                       (north * ((0.06 * 0.65) + (0.06 * 0.35))) +
+                       (conifer * ((0.34 * 0.65) + (0.35 * 0.35))) +
+                       (decid * ((0.24 * 0.65) + (0.25 * 0.35))) +
+                       (fire_oth * ((0.19 * 0.65) + (0.18 * 0.35))) +
+                       (fire_pine * ((0.84 * 0.65) + (0.85 * 0.35))) +
+                       (herb * ((-0.84 * 0.65) + (-0.84 * 0.35))) +
+                       (new_cut * ((0.51 * 0.65) + (0.49 * 0.35))) +
+                       (old_cut * ((-0.04 * 0.65) + (-0.06 * 0.35))) +
+                       (pine * ((0.28 * 0.65) + (0.30 * 0.35))) +
+                       (urban * ((-1.73 * 0.65) + (-1.74 * 0.35))) +
+                       (wet * ((0.21 * 0.65) + (0.23 * 0.35))) +
+                       (dist_roadkm * 0.12) +
+                       (dist_mature * ((-0.09 * 0.65) + (-0.09 * 0.35))))
+
+- Early Winter: wx = exp (((-1.01 * 0.51) + (-1.04 * 0.28) + (-1.01 * 0.21)) +
+                           (ELVkm * ((-2.21 * 0.51) + (-2.17 * 0.28) + (-2.26 * 0.21))) +
+                           (ELVkm2 * ((1.30 * 0.51) + (1.25 * 0.28) + (1.33 * 0.21))) +
+                           (east * ((0.03 * 0.51) + (0.03 * 0.28) + (0.03 * 0.21))) +
+                           (north * ((0.06 * 0.51) + (0.06 * 0.28) + (0.06 * 0.21))) +
+                           (conifer * ((-0.16 * 0.51) + (-0.17 * 0.28) + (-0.14 * 0.21))) +
+                           (decid * ((0.18 * 0.51) + (0.17 * 0.28) + (0.20 * 0.21))) +
+                           (fire_oth * ((0.40 * 0.51) + (0.41 * 0.28) + (0.33 * 0.21))) +
+                           (fire_pine * ((0.26 * 0.51) + (0.24 * 0.28) + (0.19 * 0.21))) +
+                           (herb * ((-0.33 * 0.51) + (-0.32 * 0.28) + (-0.31 * 0.21))) +
+                           (new_cut * ((0.97 * 0.51) + (0.99 * 0.28) + (0.99 * 0.21))) +
+                           (old_cut * ((-0.16 * 0.51) + (-0.13 * 0.28) + (-0.14 * 0.21))) +
+                           (pine * ((-0.10 * 0.51) + (-0.12 * 0.28) + (-0.08 * 0.21))) +
+                           (urban * ((-1.34 * 0.51) + (-1.33 * 0.28) + (-1.32 * 0.21))) +
+                           (wet * ((0.29 * 0.51) + (0.27 * 0.28))) +
+                           (dist_roadkm * ((-0.19 * 0.51) + (-0.19 * 0.28))) +
+                           (dist_mature * 0.04))
+
+CONTINUOUS:
+- ELVkm = elevation in km, measured from provincial 25m DEM
+- ELVkm2 = elevation in km, squared, measured from provincial 25m DEM
+- east = eastness = sine of aspect, slopes <5 = 0, derived from provincial 25m DEM
+- north = northness = cosine of aspect, slopes <5 = 0, derived from provincial 25m DEM
+- dist_roadkm = distance to road in km; roads data from mutiple sources, including dra, trim, petrlm 
+- dist_mature = distance to edge of mature conifer, pine or deciduous forest stands in km
+- escape = distance to edge of mature conifer, pine or deciduous forest stands in km, from 'open' (new   cutblock, pine fire and wet) sites
+
+CLASS:
+- alpine = above treeline, dominated by shrubs, measured from VRI????
+- conifer = non-pine conifer leading (>50%) stands, measured from VRI veg_comp_poly
+- pine = pine leading (>50%) stands, measured from VRI veg_comp_poly
+- decid = deciduous = deciduous and tall shrub leading (>50%) stands, 
+  measured from VRI veg_comp_poly
+- wet = permanent wet areas from fwa_wetlands_poly an fwa_lakes_poly
+- new_cut = logged =< 15 years ago; cutblocks from 'results' data
+- old_cut = logged > 15 years and <31 years ago; cutblocks from 'results' data
+- fire_pine = wildfires burned =< 15 years ago in pine leading stand; fire from historical 
+  fire polygons; pine type from VRI presumably?
+- fire_oth = wildfires burned =< 15 years ago in non-pine leading stands; fire from historical 
+  fire polygons
+- fire_old = wildfires burned > 15 years and <31 years ago; fire from historical 
+  fire polygons
+- urban = agricultural areas; from VRI???
+- herb = not clear for methods how this was measured; assume non-forest >50% herb cover from VRI???
 
 
 
