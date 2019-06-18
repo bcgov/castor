@@ -35,6 +35,7 @@ The module sets and updates the blocks table within `clusdb`. It requires - data
 
 ```{r module_usage}
 library(SpaDES.core)
+library(data.table)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
@@ -68,7 +69,18 @@ parameters <- list(
                       useSpreadProbRas=FALSE)
                         )
 modules <- list("dataLoaderCLUS","growingStockCLUS", "blockingCLUS")
-objects <- list()
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+objects <- list(patchSizeDist=patchSizeDist)
 paths <- list(
   cachePath = cacheDir,
   modulePath = moduleDir,
