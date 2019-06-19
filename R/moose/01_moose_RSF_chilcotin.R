@@ -32,6 +32,8 @@ require (fasterize)
 ### 1. Create Raster layers equivalent to Schneideman's model covariates ###
 ###########################################################################
 elev <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_elev_resample.tif") # used du7 data here to simplify processing; data clipped in arcgis (raster processing -> clip) because faster
+east <- raster ("C:\\Work\\caribou\\clus_data\\dem\\du7_eastness_all_bc_int_x1000.tif")
+north <- raster ("C:\\Work\\caribou\\clus_data\\dem\\du7_northness_all_bc_int_x1000.tif")
 urban <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\du7_vri_urban.tif") # non-vegetated, land, upland, explosed land, urban; bclcs_level_1 = 'N' AND bclcs_level_2 = 'L' AND bclcs_level_3 = 'U' AND bclcs_level_4 = 'EL' AND bclcs_level_5 = 'UR'
 nonveg <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\du7_vri_nonveg_land_no_urban.tif") # all BCLCS non-vegetated land types EXCEPT urban
 wet <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\du7_vri_nonveg_water.tif") # all BCLCS non-vegetated water
