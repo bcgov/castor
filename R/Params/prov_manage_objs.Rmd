@@ -463,7 +463,7 @@ u3004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 
 u3004_table<-data.table(u3004)[,c("ogc_fid", "feat_notes")]
 
-#Corridor - maintain 33% of suitable cariobu habitat. Equating to 33% of the area greater than 40 %canopy closure for incercepting snow
+#Corridor - maintain 33% of suitable caribou habitat. Equating to 33% of the area greater than 40 %canopy closure for incercepting snow
 u3004_table[feat_notes == "Corridor", `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 33, threshold = 40, ndt =0, label = 'u-3-004')]
 
 #Modified Harvest - can't access the old links in http://www.env.gov.bc.ca/wld/documents/uwr/u-3-004_order_09Dec09.pdf! From Kamloops LRMP: Maintain a minimum of 33% of the area to retain old growth attributes and to ensure sustained lichen productivity and availability.
