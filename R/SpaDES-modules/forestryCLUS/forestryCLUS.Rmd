@@ -102,10 +102,10 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport"))
 
 #Run the model 1 time
-#system.time({mysimout<-spades(mySim)})
+system.time({mysimout<-spades(mySim)})
 
 #Run the model with experiment
-sims3 <- experiment(mySim, replicates = 2)
+#sims3 <- experiment(mySim, replicates = 2)
 
 #Profile the model
 #profvis::profvis({system.time({mysimout<-spades(mySim)})})

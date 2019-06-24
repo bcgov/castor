@@ -95,12 +95,18 @@ forestryCLUS.setConstraints<- function(sim) {
   message("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   message("....assigning zone_const")
-  zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
-  for(i in 1:nrow(zones)){
+  zones<-dbGetQuery(clusdb, "SELECT zone_column FROM zone")
+  for(i in 1:nrow(zones)){ #for each of the specified zone rasters
+    numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
+                               zone_column = '",  zones[[1]][i] ,"'"))
+
+    for(k in 1:nrow(numConstraints)){
       query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
                                                         CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
                                                         ROUND((1-(percentage*1.0/100))*t_area, 0) END AS limits
-                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"';")))
+                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
+                                                            numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
+      print(as.character(query_parms[1, "type"]))
       switch(
         as.character(query_parms[1, "type"]),
         ge = {
@@ -129,19 +135,19 @@ forestryCLUS.setConstraints<- function(sim) {
         rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
       dbClearResult(rs)
       dbCommit(sim$clusdb)
-      
-      #Update pixels in clusdb for adjacency constraints
-      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
+    }  
+  }
+  #Update pixels in clusdb for adjacency constraints
+  query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
                                                             (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
                                                             UNION 
                                                             SELECT b.adjblockid FROM 
                                                             (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
                                                             LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ); ")))
-      dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
-      dbClearResult(rs)
-      dbCommit(sim$clusdb)
-  }
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
   
   dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim))
