@@ -486,6 +486,7 @@ u4001_table<-data.table(u4001)[,c("ogc_fid", "feat_notes")]
 
 # has forest age and crown closure requirements specific to BEC subzones and management units; mostly for snow interception, 20-40% of area in >60 to >100 years old and 10 to >39% crown closure; most common seems to be 30% >80 years old
 # but also has a 'general' age requirement for all units in Schedule A, i.e., <41% of forested land base (excluding broadleaf) <21 years old; not clear what Schedule A is
+#see http://www.env.gov.bc.ca/wld/documents/uwr/u4-001_ord_amend.pdf
 
 u4001_table[feat_notes == "Elk; ICHdw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 81, ndt =0, label = 'u-4-001')]
 
@@ -580,6 +581,8 @@ setnames(u4008_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u4008_table)
 
+#Check
+zone_uwr[label == 'u-4-008',]
 rm(u4008_table,u4008)
 gc()
 ```
@@ -605,7 +608,8 @@ u4010_table[,feat_notes:=NULL]
 setnames(u4010_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u4010_table)
-
+#Check
+zone_uwr[label == 'u-4-010',]
 rm(u4010_table,u4010)
 gc()
 ```
@@ -625,7 +629,8 @@ u4012_table[,feat_notes:=NULL]
 setnames(u4012_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u4012_table)
-
+#Check
+zone_uwr[label == 'u-4-012',]
 rm(u4012_table,u4012)
 gc()
 ```
@@ -645,7 +650,8 @@ u4013_table[,feat_notes:=NULL]
 setnames(u4013_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u4013_table)
-
+#Check
+zone_uwr[label == 'u-4-013',]
 rm(u4013_table,u4013)
 gc()
 ```
@@ -665,7 +671,8 @@ u4014_table[,feat_notes:=NULL]
 setnames(u4014_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u4014_table)
-
+#Check
+zone_uwr[label == 'u-4-014',]
 rm(u4014_table,u4014)
 gc()
 ```
@@ -673,7 +680,7 @@ gc()
 ### u-5-001, u-5-002, u-5-003
 ```{r, u-5}
 u5<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag IN ('u-5-001', 'u-5-002','u-5-003') AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u5_table<-data.table(u3004)[,c("ogc_fid", "feat_notes")]
+u5_table<-data.table(u5)[,c("ogc_fid", "feat_notes")]
 
 #87 polygons
 
@@ -683,13 +690,16 @@ u5_table<-data.table(u3004)[,c("ogc_fid", "feat_notes")]
 # aligning the UWR units with BEC units woudl take a lot of time
 # Suggest we 'compromise' and use the moderate habtait class target
 # The constraint is >21 m2/ha basal area of >12.5cm dbh stems, but there is no area target 
-u5_table[feat_notes == "Modified Harvest", `:=`(reference_zone = 'rast.zone_uwr', variable = 'basalarea125', type = 'ge', percentage = 100, threshold = 22, ndt =0, label = 'u-5-001, u-5-002, u-5-003')] # NOTE: Basal area constraint allowed?; if not, then let's classify this one as "can't be modeled"; I think as long as in the model thsat Doug Fir is replanted where it was harvested then we are meetign the intent of the order
+#Instead of tracking basal area -- set this to maxium percent of cutblocks area in age class 0-40 as 33 percent. Table 1 in http://www.env.gov.bc.ca/wld/documents/wha/Amendment_TransDeep_Feb07_ord.pdf
+
+u5_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 33, threshold = 40, ndt =0, label = 'u-5-001:3')] # NOTE: Basal area constraint allowed?; if not, then let's classify this one as "can't be modeled"; I think as long as in the model thsat Doug Fir is replanted where it was harvested then we are meetign the intent of the order
 
 u5_table[,feat_notes:=NULL]
 setnames(u5_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u5_table)
-
+#Check
+zone_uwr[label == 'u-5-001:3',]
 rm(u5_table,u5)
 gc()
 ```
