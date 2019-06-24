@@ -1116,7 +1116,7 @@ u8005_table<-data.table(u8005)[,c("ogc_fid", "unit_no")]
 # retain 50% pre-harvest basal area in stems >100 years
 # have different requirements 'upslope of the slope break', i.e., <34% of forested area <33 years of age
 # here using area as basal area
-u8005_table[`:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 100, ndt =0, label = 'u-8-005')]
+u8005_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 100, ndt =0, label = 'u-8-005')]
 
 u8005_table[,unit_no := NULL]
 setnames(u8005_table, "ogc_fid", "zoneid")
@@ -1124,6 +1124,8 @@ setnames(u8005_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u8005_table)
 rm(u8005_table, u8005)
 gc()
+#Check
+zone_uwr[label == 'u-8-005',]
 ```
 
 ### u-8-006 Moose
@@ -1134,7 +1136,7 @@ u8006_table<-data.table(u8006)[,c("ogc_fid", "unit_no")]
 
 # retain 33% of forested area as mature forest in stands >15m in height with canopy closure >5
 # use height constraint here
-u8006_table[`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 16, ndt =0, label = 'u-8-006')]
+u8006_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 16, ndt =0, label = 'u-8-006')]
 
 u8006_table[,unit_no := NULL]
 setnames(u8006_table, "ogc_fid", "zoneid")
@@ -1142,6 +1144,8 @@ setnames(u8006_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u8006_table)
 rm(u8006_table, u8006)
 gc()
+#Check
+zone_uwr[label == 'u-8-006',]
 ```
 
 ### u-8-007 Moose
@@ -1153,7 +1157,7 @@ u8007_table<-data.table(u8007)[,c("ogc_fid", "unit_no")]
 # minimum 20% in stands >16 m in height
 # minimum 60% >30 years old
 # could use either one; not sure which is more restrictive; used height for now
-u8007_table[`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 16, ndt =0, label = 'u-8-007')]
+u8007_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 16, ndt =0, label = 'u-8-007')]
 
 u8007_table[,unit_no := NULL]
 setnames(u8007_table, "ogc_fid", "zoneid")
@@ -1161,6 +1165,8 @@ setnames(u8007_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u8007_table)
 rm(u8007_table, u8007)
 gc()
+#Check
+zone_uwr[label == 'u-8-007',]
 ```
 
 ### u-8-008 Mule Deer
@@ -1174,7 +1180,7 @@ u8008_table<-data.table(u8008)[,c("ogc_fid", "unit_no")]
 u8008_table [feat_notes %in% c("pcell#6", "pcell#8", "pcell#10", "pcell#17", "pcell#30", "pcell#50", "pcell#53", "pcell#66"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 15, threshold = 101, ndt =0, label = 'u-6-01')]
 setnames (u8008_table, "ogc_fid", "zoneid")
 
-u8008_table [feat_notes %in% c("pcell#1", "pcell#2", "pcell#3", "pcell#4", "pcell#5", "pcell#7", "pcell#9", "pcell#11", "pcell#12", "pcell#13", "pcell#14", "pcell#15", "pcell#16", "pcell#20", "pcell#21", "pcell#22", "pcell#23", "pcell#24", "pcell#25", "pcell#26", "pcell#27", "pcell#28", "pcell#29", "pcell#31", "pcell#32", "pcell#33", "pcell#34", "pcell#35", "pcell#36", "pcell#37", "pcell#38", "pcell#39", "pcell#40", "pcell#41", "pcell#42", "pcell#43", "pcell#44", "pcell#46", "pcell#47", "pcell#48", "pcell#49", "pcell#52", "pcell#54", "pcell#60", "pcell#61", "pcell#63", "pcell#64", "pcell#65", "pcell#68", "pcell#70", "pcell#73", "pcell#74", "pcell#80", "pcell#81", "pcell#87", "pcell#88"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 101, ndt =0, label = 'u-6-01')]
+u8008_table [feat_notes %in% c("pcell#1", "pcell#2", "pcell#3", "pcell#4", "pcell#5", "pcell#7", "pcell#9", "pcell#11", "pcell#12", "pcell#13", "pcell#14", "pcell#15", "pcell#16", "pcell#20", "pcell#21", "pcell#22", "pcell#23", "pcell#24", "pcell#25", "pcell#26", "pcell#27", "pcell#28", "pcell#29", "pcell#31", "pcell#32", "pcell#33", "pcell#34", "pcell#35", "pcell#36", "pcell#37", "pcell#38", "pcell#39", "pcell#40", "pcell#41", "pcell#42", "pcell#43", "pcell#44", "pcell#46", "pcell#47", "pcell#48", "pcell#49", "pcell#52", "pcell#54", "pcell#60", "pcell#61", "pcell#63", "pcell#64", "pcell#65", "pcell#68", "pcell#70", "pcell#73", "pcell#74", "pcell#80", "pcell#81", "pcell#87", "pcell#88"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 101, ndt =0, label = 'u-8-008')]
 setnames (u8008_table, "ogc_fid", "zoneid")
 
 u8008_table [feat_notes %in% c("pcell#18", "pcell#56", "pcell#57", "pcell#58", "pcell#59", "pcell#62", "pcell#67", "pcell#72", "pcell#77", "pcell#78", "pcell#79", "pcell#84", "pcell#85", "pcell#86"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 25, threshold = 101, ndt =0, label = 'u-6-01')]
