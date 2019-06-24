@@ -1173,74 +1173,71 @@ zone_uwr[label == 'u-8-007',]
 ```{r, u8008}
 u8008<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-008' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u8008_table<-data.table(u8008)[,c("ogc_fid", "unit_no")]
+u8008_table<-data.table(u8008)[,c("ogc_fid", "feat_notes")]
 
 # this uwr has unit specific retention targets, to the decimal place (!!??); rather than define each one, I rounded into categories of 15%, 20%, 25%, 30% and 40%
 # age and canopy closure thresholds vary by snow pack zone, which depends on BEC subzone; here I  use 101 (shallow/moderate snow); could use 121 (moderate/deep snow)
-u8008_table [feat_notes %in% c("pcell#6", "pcell#8", "pcell#10", "pcell#17", "pcell#30", "pcell#50", "pcell#53", "pcell#66"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 15, threshold = 101, ndt =0, label = 'u-6-01')]
+u8008_table [feat_notes %in% c("pcell#6", "pcell#8", "pcell#10", "pcell#17", "pcell#30", "pcell#50", "pcell#53", "pcell#66"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 15, threshold = 101, ndt =0, label = 'u-8-008')]
 setnames (u8008_table, "ogc_fid", "zoneid")
 
 u8008_table [feat_notes %in% c("pcell#1", "pcell#2", "pcell#3", "pcell#4", "pcell#5", "pcell#7", "pcell#9", "pcell#11", "pcell#12", "pcell#13", "pcell#14", "pcell#15", "pcell#16", "pcell#20", "pcell#21", "pcell#22", "pcell#23", "pcell#24", "pcell#25", "pcell#26", "pcell#27", "pcell#28", "pcell#29", "pcell#31", "pcell#32", "pcell#33", "pcell#34", "pcell#35", "pcell#36", "pcell#37", "pcell#38", "pcell#39", "pcell#40", "pcell#41", "pcell#42", "pcell#43", "pcell#44", "pcell#46", "pcell#47", "pcell#48", "pcell#49", "pcell#52", "pcell#54", "pcell#60", "pcell#61", "pcell#63", "pcell#64", "pcell#65", "pcell#68", "pcell#70", "pcell#73", "pcell#74", "pcell#80", "pcell#81", "pcell#87", "pcell#88"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 101, ndt =0, label = 'u-8-008')]
-setnames (u8008_table, "ogc_fid", "zoneid")
 
-u8008_table [feat_notes %in% c("pcell#18", "pcell#56", "pcell#57", "pcell#58", "pcell#59", "pcell#62", "pcell#67", "pcell#72", "pcell#77", "pcell#78", "pcell#79", "pcell#84", "pcell#85", "pcell#86"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 25, threshold = 101, ndt =0, label = 'u-6-01')]
-setnames (u8008_table, "ogc_fid", "zoneid")
+u8008_table [feat_notes %in% c("pcell#18", "pcell#56", "pcell#57", "pcell#58", "pcell#59", "pcell#62", "pcell#67", "pcell#72", "pcell#77", "pcell#78", "pcell#79", "pcell#84", "pcell#85", "pcell#86"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 25, threshold = 101, ndt =0, label = 'u-8-008')]
 
-u8008_table [feat_notes %in% c("pcell#19", "pcell#55", "pcell#69", "pcell#71"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 101, ndt =0, label = 'u-6-01')]
-setnames (u8008_table, "ogc_fid", "zoneid")
+u8008_table [feat_notes %in% c("pcell#19", "pcell#55", "pcell#69", "pcell#71"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 101, ndt =0, label = 'u-8-008')]
 
-u8008_table [feat_notes %in% c("pcell#51", "pcell#82", "pcell#83"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 101, ndt =0, label = 'u-6-01')]
-setnames (u8008_table, "ogc_fid", "zoneid")
+u8008_table [feat_notes %in% c("pcell#51", "pcell#82", "pcell#83"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 101, ndt =0, label = 'u-8-008')]
 
 u8008_table[,feat_notes := NULL]
-setnames(u8008_table, "ogc_fid", "zoneid")
-
 zone_uwr<-rbind(zone_uwr, u8008_table)
 rm(u8008_table, u8008)
 gc()
+
+#Check
+zone_uwr[label == 'u-8-008',]
+
 ```
 
 ### u-8-009 Goat
 ```{r, u8009}
 u8009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u8009_table<-data.table(u8009)[,c("ogc_fid", "unit_no")]
+u8009_table<-data.table(u8009)[,c("ogc_fid")]
 
 # >50% of at least 16 metres in height
-u8009_table [ `:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 50, threshold = 16, ndt =0, label = 'u-6-01')]
+u8009_table [ ,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 50, threshold = 16, ndt =0, label = 'u-8-009')]
 setnames (u8009_table, "ogc_fid", "zoneid")
-
-u8009_table[,feat_notes := NULL]
-setnames(u8009_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u8009_table)
 rm(u8009_table, u8009)
 gc()
+#Check
+zone_uwr[label == 'u-8-009',]
+
 ```
 
 ### u-8-010 Sheep
 ```{r, u8010}
 u8010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u8010_table<-data.table(u8010)[,c("ogc_fid", "unit_no")]
+u8010_table<-data.table(u8010)[,c("ogc_fid")]
 
 # constraint is no road developemt, so set harvest to zero, unless timber accessed another way?
-u8010_table [ `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-6-01')]
+u8010_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-8-010')]
 setnames (u8010_table, "ogc_fid", "zoneid")
-
-u8010_table[,feat_notes := NULL]
-setnames(u8010_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u8010_table)
 rm(u8010_table, u8010)
 gc()
+#Check
+zone_uwr[label == 'u-8-010',]
 ```
 
 ### u-8-012 Caribou
 ```{r, u8012}
 u8012<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-012' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u8012_table<-data.table(u8012)[,c("ogc_fid", "unit_no")]
+u8012_table<-data.table(u8012)[,c("ogc_fid")]
 
 # constraints on mineral and ski development for future consideration
 # age retention targets depending on BEC zone
@@ -1249,35 +1246,35 @@ u8012_table<-data.table(u8012)[,c("ogc_fid", "unit_no")]
 # ICH >=70% >equal age class 8 
 # Here I used 100% retention
 
-u8012_table [ `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-6-01')] # no harvest
+u8012_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-8-012')] # no harvest
 setnames (u8012_table, "ogc_fid", "zoneid")
-
-u8012_table[,feat_notes := NULL]
-setnames(u8012_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u8012_table)
 rm(u8012_table, u8012)
 gc()
+#Check
+zone_uwr[label == 'u-8-012',]
 ```
 
 ### u-9-001 Elk, Mule Deer, Moose
 ```{r, u9001}
 u9001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u9001_table<-data.table(u9001)[,c("ogc_fid", "unit_no")]
+u9001_table<-data.table(u9001)[,c("ogc_fid")]
 
 # >=20% mature/old conifer-leading >=40% CC
 # mature/old = 100 in BWBS and 120 in ESSF
 # here I split the differnce and used 110 
 
-u9001_table [ `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 110, ndt =0, label = 'u-6-01')]
+u9001_table [ ,`:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 110, ndt =0, label = 'u-9-001')]
 
-u9001_table[,unit_no := NULL]
 setnames(u9001_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u9001_table)
 rm(u9001_table, u9001)
 gc()
+#Check
+zone_uwr[label == 'u-9-001',]
 
 ```
 
@@ -1299,55 +1296,30 @@ setnames(u9002_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u9002_table)
 rm(u9002_table, u9002)
 gc()
+#Check
+zone_uwr[label == 'u-9-002',]
 ```
 
 ### u-9-004 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9004}
-u9004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u9004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+# No real significant harvest contraints here and thus assumed via fine scale harvesting operations.
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-004',]
 
-u9004_table<-data.table(u9004)[,c("ogc_fid", "unit_no")]
-
-# No real significant harvest contraints here
-u9004_table[unit_no == "SPC-018", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-9-004')] # harvest allowed
-
-u9004_table[,unit_no := NULL]
-setnames(u9004_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u9004_table)
-rm(u9004_table, u9004)
-gc()
 ```
 
 ### u-9-009 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9009}
-u9009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u9009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+# No real significant harvest contraints here and thus removed via fine scale harvesting operations.
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-009',]
 
-u9009_table<-data.table(u9009)[,c("ogc_fid", "unit_no")]
-
-# No real significant harvest contraints here
-u9009_table[unit_no == "SPC-018", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-9-009')] # harvest allowed
-
-u9009_table[,unit_no := NULL]
-setnames(u9009_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u9009_table)
-rm(u9009_table, u9009)
-gc()
 ```
 
 ### u-9-010 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9010}
-u9010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u9010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u9010_table<-data.table(u9010)[,c("ogc_fid", "unit_no")]
-
-# No real significant harvest contraints here
-u9010_table[unit_no == "SPC-018", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-9-010')] # harvest allowed
-
-u9010_table[,unit_no := NULL]
-setnames(u9010_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u9010_table)
-rm(u9010_table, u9010)
-gc()
+# No real significant harvest contraints hereand thus removed via fine scale harvesting operations.
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-010',]
 ```
