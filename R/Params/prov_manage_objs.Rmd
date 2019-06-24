@@ -489,6 +489,8 @@ u4001_table<-data.table(u4001)[,c("ogc_fid", "feat_notes")]
 
 u4001_table[feat_notes == "Elk; ICHdw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 81, ndt =0, label = 'u-4-001')]
 
+u4001_table[feat_notes == "Elk; ICHmw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 101, ndt =0, label = 'u-4-001')]
+
 u4001_table[feat_notes == "Foraging area", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 81, ndt =0, label = 'u-4-001')]
 
 u4001_table[feat_notes == "Moose; moderate snow", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 61, ndt =0, label = 'u-4-001')]
@@ -828,6 +830,7 @@ zone_uwr<-rbind(zone_uwr, u7003_table)
 rm(u7003_table,u7003, manage)
 gc()
 ```
+
 ### u-7-005 ELk
 ```{r, u7005}
 #Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_005.pdf
@@ -1080,10 +1083,6 @@ rm(u8005_table, u8005)
 gc()
 ```
 
-
-
-
-
 ### u-8-006 Moose
 ```{r, u8006}
 u8006<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-006' AND harvest = 'CONDITIONAL HARVEST ZONE'")
@@ -1101,9 +1100,6 @@ zone_uwr<-rbind(zone_uwr, u8006_table)
 rm(u8006_table, u8006)
 gc()
 ```
-
-
-
 
 ### u-8-007 Moose
 ```{r, u8007}
@@ -1123,13 +1119,6 @@ zone_uwr<-rbind(zone_uwr, u8007_table)
 rm(u8007_table, u8007)
 gc()
 ```
-
-
-
-
-
-
-
 
 ### u-8-008 Mule Deer
 ```{r, u8008}
@@ -1161,12 +1150,6 @@ zone_uwr<-rbind(zone_uwr, u8008_table)
 rm(u8008_table, u8008)
 gc()
 ```
-
-
-
-
-
-
 
 ### u-8-009 Goat
 ```{r, u8009}
@@ -1228,11 +1211,6 @@ rm(u8012_table, u8012)
 gc()
 ```
 
-
-
-
-
-
 ### u-9-001 Elk, Mule Deer, Moose
 ```{r, u9001}
 u9001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
@@ -1253,7 +1231,6 @@ rm(u9001_table, u9001)
 gc()
 
 ```
-
 
 ### u-9-002 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9002}
@@ -1291,9 +1268,6 @@ zone_uwr<-rbind(zone_uwr, u9004_table)
 rm(u9004_table, u9004)
 gc()
 ```
-
-
-
 
 ### u-9-009 Caribou, Mountain Goat, Bighorn sheep
 ```{r, u9009}
