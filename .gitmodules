@@ -1,0 +1,3 @@
+[submodule "R\\SpaDES-modules\\scfm"]
+	path = R\\SpaDES-modules\\scfm
+	url = https://github.com/eliotmcintire/scfm.git
