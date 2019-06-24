@@ -719,12 +719,15 @@ u6009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 
 # we could implement the road 'constraint' elsewhere, as an assumption/rule of road removal in the roads module after some lag period post-harvest (though you could argue industrial activites never cease)
 
-u6009_table <- data.table (u6009) [,c("ogc_fid")]
+u6009_table <- data.table (u6009) [,c("ogc_fid", "feat_notes")]
 
-u6009_table [feat_notes %in% c("", "Island Habitat"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-01')]
+u6009_table [feat_notes %in% c(NA, "Island Habitat"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-009')]
 setnames (u6009_table, "ogc_fid", "zoneid")
+u6009_table[,feat_notes:=NULL]
 
 zone_uwr <- rbind (zone_uwr, u6009_table)
+#Check
+zone_uwr[label == 'u-6-009',]
 
 rm (u6009_table, u6009)
 gc()
@@ -746,11 +749,12 @@ u6014<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 # we could implement the road 'constraint' elsewhere, as an assumption/rule of road removal in the roads module after some lag period post-harvest (though you could argue industrial activites never cease)
 
 u6014_table <- data.table (u6014) [,c("ogc_fid")]
-u6014_table [feat_notes %in% c("", "Island Habitat"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-01')]
+u6014_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-014')]
 setnames (u6014_table, "ogc_fid", "zoneid")
 
 zone_uwr <- rbind (zone_uwr, u6014_table)
-
+#Check
+zone_uwr[label == 'u-6-014',]
 rm (u6014_table, u6014)
 gc()
 ```
@@ -771,11 +775,12 @@ u6018<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 # we could implement the road 'constraint' elsewhere, as an assumption/rule of road removal in the roads module after some lag period post-harvest (though you could argue industrial activites never cease)
 
 u6018_table <- data.table (u6018) [,c("ogc_fid")]
-u6018_table [feat_notes == "Ungulate Winter Range", `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-01')]
+u6018_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-018')]
 setnames (u6018_table, "ogc_fid", "zoneid")
 
 zone_uwr <- rbind (zone_uwr, u6018_table)
-
+#Check
+zone_uwr[label == 'u-6-01',]
 rm (u6018_table, u6018)
 gc()
 
@@ -791,6 +796,8 @@ u7001_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'g
 setnames(u7001_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u7001_table)
+#Check
+zone_uwr[label == 'u-7-001',]
 rm(u7001_table, u7001)
 gc()
 ```
@@ -810,6 +817,8 @@ u7002_table[unit_no %in% c("9","10","15","16","17","18"), `:=`(reference_zone = 
 setnames(u7002_table, "ogc_fid", "zoneid")
 u7002_table[, unit_no:=NULL]
 zone_uwr<-rbind(zone_uwr, u7002_table)
+#Check
+zone_uwr[label == 'u-7-002',]
 rm(u7002_table, u7002)
 gc()
 ```
@@ -839,6 +848,9 @@ zone_uwr<-rbind(zone_uwr, u7003_table)
 
 rm(u7003_table,u7003, manage)
 gc()
+
+#Check
+zone_uwr[label == 'u-7-003',]
 ```
 
 ### u-7-005 ELk
@@ -852,6 +864,8 @@ setnames(u7005_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u7005_table)
 rm(u7005_table, u7005)
 gc()
+#Check
+zone_uwr[label == 'u-7-005',]
 ```
 
 ### u-7-007 Northern Caribou
@@ -872,6 +886,8 @@ zone_uwr<-rbind(zone_uwr, u7007_table)
 
 rm(u7007_table,u7007)
 gc()
+#Check
+zone_uwr[label == 'u-7-007',]
 
 ```
 
@@ -886,6 +902,8 @@ setnames(u7008_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u7008_table)
 rm(u7008_table, u7008)
 gc()
+#Check
+zone_uwr[label == 'u-7-008',]
 
 ```
 
@@ -901,6 +919,8 @@ setnames(u7009_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u7009_table)
 rm(u7009_table, u7009)
 gc()
+#Check
+zone_uwr[label == 'u-7-009',]
 
 ```
 
@@ -919,6 +939,8 @@ setnames(u7010_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u7010_table)
 rm(u7010_table, u7010)
 gc()
+#Check
+zone_uwr[label == 'u-7-010',]
 
 ```
 
@@ -938,6 +960,8 @@ u7011_table[, unit_no:=NULL]
 zone_uwr<-rbind(zone_uwr, u7011_table)
 rm(u7011_table, u7011)
 gc()
+#Check
+zone_uwr[label == 'u-7-011',]
 ```
 
 ### u-7-012 Northern Caribou
@@ -955,6 +979,8 @@ setnames(u7012_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u7012_table)
 rm(u7012_table, u7012)
 gc()
+#Check
+zone_uwr[label == 'u-7-012',]
 ```
 
 ### u-7-013 Mule Deer
@@ -967,13 +993,15 @@ u7013_table<-data.table(u7013)[,c("ogc_fid","unit_no")]
 u7013_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-015')]
 #assign the 66%threshold
 u7013_table[unit_no %in% c("PGD-001","PGD-002","PGD-012","PGD-014","PGD-019","PGD-020",
-                           "PGD-021","PGD-022","PGD-035","PGD-054","PGD-066"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 66, ndt =0, label = 'u-7-015')]
+                           "PGD-021","PGD-022","PGD-035","PGD-054","PGD-066"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 66, ndt =0, label = 'u-7-013')]
 
 setnames(u7013_table, "ogc_fid", "zoneid")
 u7013_table[, unit_no:=NULL]
 zone_uwr<-rbind(zone_uwr, u7013_table)
 rm(u7013_table, u7013)
 gc()
+#Check
+zone_uwr[label == 'u-7-013',]
 
 ```
 
