@@ -94,12 +94,11 @@ ProvRast <- raster(
   crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
 )
 
+#Rasterize the bidodiversity emphasis options
 beo.ras<-fasterize::fasterize(sf= lu, raster = ProvRast , field = "beo2")
 luid.ras<-fasterize::fasterize(sf= lu, raster = ProvRast , field = "lu_id")
 
-#writeRaster(beo, file="beo.tif", format="GTiff", overwrite=TRUE)
-#writeRaster(luid, file="luid.tif", format="GTiff", overwrite=TRUE)
-
+#Get the natural disturbance types
 ndt<-getSpatialQuery("SELECT  wkb_geometry,
 case
   WHEN natural_disturbance = 'NDT1' then 1
@@ -108,9 +107,11 @@ case
   WHEN natural_disturbance = 'NDT4' then 4
   else 5
 end as ndt from public.bec_zone")
-ndt.ras<-fasterize::fasterize(sf= ndt, raster = ProvRast , field = "ndt")
-#writeRaster(ndt.ras, file="ndt.tif", format="GTiff", overwrite=TRUE)
 
+#Rasterize the NDT
+ndt.ras<-fasterize::fasterize(sf= ndt, raster = ProvRast , field = "ndt")
+
+#Get the bec zones and assign them a key called zone
 bec<- getSpatialQuery("SELECT wkb_geometry, 
 case
   WHEN zone = 'BWBS' then 1
@@ -126,14 +127,17 @@ case
   WHEN zone = 'SBS' then 11
   WHEN zone = 'SWB' then 12
 end as zone FROM public.bec_zone") #Alpine Tundra and Bunchgrass are not included?
+
+#Rasterize the BEC zone (key for BEC zones)
 bec.ras<-fasterize::fasterize(sf= bec, raster = ProvRast , field = "zone")
 
-rm(lu,bec,ndt)
-gc()
+rm(lu,bec,ndt) # free some memory
+gc()# Clean up
 
+#Make a stack raster with all the information needed for BEO contraints
 ogm<-stack(bec.ras, ndt.ras, luid.ras, beo.ras)
 names(ogm)<-c("BEC", "NDT", "LU_ID", "BEO")
-raster::plot(ogm)
+raster::plot(ogm) #plot the stack
 
 #Visual Quality Constraints on height
 vqo_all<-getSpatialQuery("SELECT evqo_cd, wkb_geometry FROM public.rec_vlnd_polygon WHERE evqo_cd <> 'SCO'")
@@ -143,7 +147,7 @@ fsw<-getSpatialQuery("SELECT fsw_id, wkb_geometry FROM public.wcp_f_s_ws_polygon
 
 ```
 
-### Step 2: Make unique zones
+### Step 2: Make unique zones within Landscape Units
 
 ```{r zoneStep2, echo=FALSE}
 library(data.table)
@@ -152,19 +156,19 @@ library(here)
 #------------------------------------
 #Biodiversity Emphasis Options on Age
 #------------------------------------
+ogm.table<-data.table(as.data.frame(ogm)) #ogn is the stacked raster of the BEO
+ogm.table[, id := seq_len(.N)]#assign a unique id for each pixel
 
-ogm.table<-data.table(as.data.frame(ogm))
-ogm.table[, id := seq_len(.N)]
-
-rm(ogm, bec.ras, beo.ras, ndt.ras, luid.ras)
-gc()
+rm(ogm, bec.ras, beo.ras, ndt.ras, luid.ras) #clear up some memory
+gc() # clean up
 
 #concactenate and join in old growth percentage
 print(head(ogm.table))
 ogm.table[, ogm := paste0(BEC, '_', NDT, '_', BEO)]
 #print(ogm.table[!is.na(BEC)])#CHECK
 
-#Create oldgrowth table to look up
+#Create oldgrowth look up table. Note for ndt 3 in the BWBS there is a further difference between conifer and deciduous. I omitted this level of precision and used the most conservative one -- the conifer percentage . This adds an extra 2-3 percent!!! see Table 3 in https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/policies-guides/old_growth_order_may18th_final.pdf
+
 NDT1<-data.table(BEC = c("CWH", "CWH", "CWH", 
                          "ICH", "ICH", "ICH",
                          "ESSF","ESSF","ESSF",
@@ -214,23 +218,26 @@ NDT4<-data.table(BEC = c("ICH", "ICH", "ICH",
                           19, 13, 13,
                           19, 13, 13), AGE = 250, NDT = 4, BEO = 1:3)
 
-p_OGR<-rbind(NDT1, NDT2, NDT3, NDT4)
+p_OGR<-rbind(NDT1, NDT2, NDT3, NDT4) #this is the lookup for geting the percentage of old growth required for retention by bec and ndt
+
+#Create a value attribute table which assigns an integer key called BEC2 to each BEC zone
 vat<-data.table(BEC  = 
-                c('BWBS', 'CDF', 'CWH', 'ESSF', 'ICH', 'IDF', 'MH', 'MS',       'PP','SBPS', 'SBS', 'SWB'),
+                c('BWBS', 'CDF', 'CWH', 'ESSF', 'ICH', 'IDF', 'MH', 'MS', 'PP','SBPS', 'SBS', 'SWB'),
                 BEC2 = 1:12)
 
-p_OGR<-merge(x=p_OGR, y=vat, by.x= "BEC", by.y= "BEC")
-p_OGR[, ogm := paste0(BEC2, '_', NDT, '_', BEO)]
-p_OGR<-p_OGR[, c(2:3,7)]
+p_OGR<-merge(x=p_OGR, y=vat, by.x= "BEC", by.y= "BEC") # join vat and p_OGR to get BEC2 key
+p_OGR[, ogm := paste0(BEC2, '_', NDT, '_', BEO)] # concatenate to get a unique constraint
+p_OGR<-p_OGR[, c(2:3,7)] #Keep only the unique constraint, the p_OGR and age threshold
 
-setkey(ogm.table, ogm)
-setkey(p_OGR, ogm)
+setkey(ogm.table, ogm) # assign a data.table key thats the unique constraint for joining
+setkey(p_OGR, ogm)# assign a data.table key thats the unique constraint for joining
 
-ogm.final<-merge(x=p_OGR, y=ogm.table, by="ogm", all.y=TRUE)
+ogm.final<-merge(x=p_OGR, y=ogm.table, by="ogm", all.y=TRUE) # merge the constraint with each spatial landscape unit
 
-rm(ogm.table)
-gc()
-print(ogm.final[!is.na(p_OGR)])
+rm(ogm.table) # clear memory
+gc() # clean up
+#----Checking----
+#print(ogm.final[!is.na(p_OGR)])
 #out<-data.frame(ogm.final[order(id)])
 #print(head(out[]))
 #ogm.ras<-ProvRast
@@ -243,16 +250,18 @@ ogm.final[, zone := .GRP, by=.(LU_ID,BEC,NDT)] #Creates a unique id for each zon
 out<-data.frame(ogm.final[order(id)])
 gc()
 zone.ras<-ProvRast
-zone.ras[]<-out[,9]
+zone.ras[]<-out[,9] #assign the zone to each pixel
 
 writeRaster(zone.ras, file=paste0(here(),"/zone_beo.tif"), format="GTiff", overwrite=TRUE)#print the raster
 rm(zone.ras, out)
 
+# Upload to postgres database
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_beo.tif -t 100x100 rast.zone_beo | psql -d clus'), show.output.on.console = FALSE, invisible = FALSE)
 
 library(RPostgreSQL)
 zone_beo_table<-setDT(ogm.final)[, .SD[which.max(AGE)], by=zone]
-print(head(zone_beo_table))
+print(head(zone_beo_table))# check
+
 zone_beo_table<-zone_beo_table[,c(1,3:4, 6)]
 zone_beo_table[, reference_zone := 'rast.zone_beo']
 zone_beo_table[, variable := 'age']
@@ -262,8 +271,9 @@ setnames(zone_beo_table, c("zoneid", "percentage",
                   "variable", "type"))
 zone_beo_table[, ndt := as.integer(ndt)]
 df<-as.data.frame(zone_beo_table)
+df$label<-'beo' #TODO: label this is as high/I/L ?
 
-
+#Upload the constraint table to the db
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
 DBI::dbWriteTable(conn, c("public", "zone_beo"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
@@ -275,9 +285,11 @@ gc()
 #Fisheries Sensitive Areas on Equivalent Clearcut Area
 #-----------------------------------------------------
 
+#Rasterize the fisher sensitive areas
 fsw.ras<-fasterize::fasterize(sf= fsw, raster = ProvRast , field = "fsw_id")
 writeRaster(fsw.ras, file=paste0(here(),"/zone_fsw.tif"), format="GTiff", overwrite=TRUE)
 
+#upload to db
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_fsw.tif -t 100x100 rast.zone_fsw | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 rm(fsw.ras)
@@ -292,7 +304,9 @@ df$ndt<-as.integer(0)
 df<-df[,c(1,3:8)]
 colnames(df) <- c("zoneid", "type", "variable", "threshold", "reference_zone", "percentage", "ndt")
 df$zoneid<-as.integer(df$zoneid)#assign integer
+df$label<-'fsw'
 
+#upload the constraint table for FSW to the db
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
 DBI::dbWriteTable(conn, c("public", "zone_fsw"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
@@ -327,6 +341,7 @@ df$ndt<-as.integer(0)
 colnames(df) <- c("percentage", "zoneid", "type", "variable", "threshold", "reference_zone", "ndt")
 df$zoneid<-as.integer(df$zoneid)#assign integer
 df$percentage<-as.numeric(df$percentage)#assign integer
+df$label<-'vqo'
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
 DBI::dbWriteTable(conn, c("public", "zone_vqo"), value= df, row.names = FALSE, overwrite = TRUE) 
