@@ -37,11 +37,11 @@ times <- list(start = 0, end = 10)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
-                  nameBoundaryFile="study_area_compart",
-                  nameBoundaryColumn="tsb_number",
-                  nameBoundary=c("08B","08C"), 
-                  nameBoundaryGeom='wkb_geometry',
+  dataLoaderCLUS = list(dbName='clus', # parameters passed here go to the the dataLoaderCLUS module;                                           dbname is name of postgres database
+                  nameBoundaryFile="study_area_compart", # spatial data of study area
+                  nameBoundaryColumn="tsb_number", # the column name from the study area dataset that                                                       you want to query
+                  nameBoundary=c("08B","08C"), # the name of the location (i.e., polygon) in the                                                     spatial dataset that you want to query 
+                  nameBoundaryGeom='wkb_geometry', #n ame of the geomtery column in the spatial                                                           dataset that you want to query
                   nameCompartmentRaster = "rast.forest_tenure",
                   nameCompartmentTable = "forest_tenure_vat",
                   save_clusdb = TRUE,
@@ -73,15 +73,15 @@ mysimout<-spades(mySim)
 First need an area of interest.
 +nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
 +nameBoundary<-The specific area of interest
-+nameBoundaryColumn<-The colume in the nameBoundaryFile that support the query for the area of interest
++nameBoundaryColumn<-The column in the nameBoundaryFile that support the query for the area of interest
 +nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
 
 The remaining files are:
 +nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
 +nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
-+nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Deflauts to 1 yield table
-+nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to a age of 120
-+nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaluts to a 0 crown closure
++nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Defaults to 1 yield table
++nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to an age of 120
++nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaults to 0 crown closure
 +nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaults to all of the area of interest being eligible for harvesting.
 
 # Events
