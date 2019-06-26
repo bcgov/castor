@@ -145,11 +145,11 @@ wha.prop.caribou.cond.harvest <- wha.prop.caribou [wha.prop.caribou$TIMBER_HARVE
 # Putting into Kyle's Postgres DB
 #=================================
 drv <- dbDriver ("PostgreSQL")
-con <- dbConnect(drv, 
-                 host = "DC052586", # Kyle's computer name
-                 user = "Tyler",
-                 dbname = "clus",
-                 password = "tyler",
+con <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                 host = key_get('dbhost', keyring = 'postgreSQL'),
+                 user = key_get('dbuser', keyring = 'postgreSQL'),
+                 dbname = key_get('dbname', keyring = 'postgreSQL'),
+                 password = key_get('dbpass', keyring = 'postgreSQL'),
                  port = "5432")
 rpostgis::pgInsert (conn = con,
                     name = "uwr_caribou_no_harvest_20180627",

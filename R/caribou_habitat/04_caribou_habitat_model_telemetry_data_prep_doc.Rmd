@@ -54,12 +54,12 @@ telemetry data compiled  from SPI (non-public version), BCOGRIS, and from region
 
 
 ```{r telemetry data summary, warning = F, include = F, message = F}
-# connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-#                      host = "DC052586", # Kyle's computer name
-#                      user = "Tyler",
-#                      dbname = "clus",
-#                      password = "tyler",
-#                      port = "5432")
+# connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
+# host = key_get('dbhost', keyring = 'postgreSQL'),
+# user = key_get('dbuser', keyring = 'postgreSQL'),
+# dbname = key_get('dbname', keyring = 'postgreSQL'),
+# password = key_get('dbpass', keyring = 'postgreSQL'),
+# port = "5432")
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
                    user = "postgres",
@@ -5416,11 +5416,11 @@ rm (raster.vri.herb.type)
 gc ()
 
 # look-up tables for categorical values
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                      host = "DC052586", 
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 vri.bclcs.vat <- dbReadTable (connKyle, 
                               "vri_tsa_att_bclcs_classes_vat")
@@ -5535,11 +5535,11 @@ rm (raster.vri.herb.type)
 gc ()
 
 # look-up tables for categorical values
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                      host = "DC052586", 
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 vri.bclcs.vat <- dbReadTable (connKyle, 
                               "vri_tsa_att_bclcs_classes_vat")
@@ -6775,12 +6775,12 @@ Sub-divided data into similar themes:
 
 ```{r, back-up to Kyle's postgres db, warning = F, include = F, message = F}
 
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                      host = "DC052586", # Kyle's computer name
-                     user = "Tyler",                      
-                     dbname = "clus",
-                     password = "tyler",
-                     port = "5432")
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
 st_write (obj = rsf.locations, 
           dsn = connKyle, 
           layer = c ("public", "rsf_locations_caribou_bc"))
