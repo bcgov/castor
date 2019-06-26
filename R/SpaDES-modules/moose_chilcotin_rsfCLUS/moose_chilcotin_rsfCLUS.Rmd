@@ -1,0 +1,188 @@
+---
+title: "moose_chilcotin_rsfCLUS"
+author: ""
+date: "25 June 2019"
+output:
+  html_document: 
+    keep_md: yes
+---
+
+<!--
+Copyright 2018 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+# Overview
+
+This module tracks moose Resource Selection Functions (RSFs) for the Entiako (Chilcotin) region of BC within a CLUS simulation. Moose RSFs were developed by Schneidman (2018) as part of Masters thesis at UNBC (http://web.unbc.ca/~michael/Pubs/Scheideman_MSc_Thesis.pdf). The RSF could theoretically be applied anywhere in BC, but is most appropriate for the Chilcotin region, which is adjacent to the TWeedsmuir/Itcha-Ilgachus caribou herds. Thus, it could be used to evaluate moose habitat in teh southern part of Designatable Unit (DU) 7. 
+
+Here I calculate Schneidman's (2018) third order (home range-scale) RSF models for five seasons:
+    - late winter (Jan 15 to Apr 25)
+    - calving (Apr 26 to Jun 20)
+    - summer (June 21 to Sept 12)
+    - fall (Sept 13 to Nov 20)
+    - early winter (Nov 21 to Jan 14)
+
+```{r module_usage}
+library(SpaDES.core)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R") # sevrral functions for querying a postgres database
+
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+times <- list(start = 0, end = 1)
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list(dbName='clus', # parameters passed here go to the the dataLoaderCLUS module;                                             dbname is name of postgres database
+                        nameBoundaryFile="study_area_compart", # spatial data of study area
+                        nameBoundaryColumn="tsb_number", # the column name from the study area                                                                 dataset that  you want to query
+                        nameBoundary=c("08B","08C"), # the name of the location (i.e., polygon) in                                                          the spatial dataset that you want to query 
+                        nameBoundaryGeom='wkb_geometry', # name of the geomtery column in the spatial                                                           dataset that you want to query
+                        nameCutblockRaster ="rast.cns_cut_bl", # cutblock raster from pgdb
+                        nameCutblockTable = "public.cns_cut_bl_polygon", # cutblock data table from                                                                             pgdb
+                        nameAgeRaster= "rast.vri2017_projage1", # raster of projected forest age from                                                                   VRI
+                        nameHeightRaster= "rast.vri2017_projheight1", # raster of projected forest                                                                           height from VRI
+                        nameCrownClosureRaster= "rast.vri2017_crownclosure"), # raster of projected                                                                                  forest crown closure                                                                                 from VRI
+                        moose_chilcotin_rsfCLUS = list(calculateInterval = 2) # simulation interval                                                                                  when RSF is                                                                                          calculated 
+                )
+modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "moose_chilcotin_rsfCLUS")
+
+moose_chilcotin_rsf_model_coeff <- data.table(population = c("DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7"),
+                            season =c("LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","S","S","S","S","S","S","S","S","S","S","S","S","S","F","F","F","F","F","F","F","F","F","F","F","F","F","F","F","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW"),
+                            bounds = c("rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds"),
+                            static = c('Y','Y','Y','Y','Y','N','N','Y','N','Y','Y','Y','N','N','N','N','N','Y','Y','Y','Y','Y','N','N','Y','N','Y','Y','N','N','N','N','Y','Y','Y','N','N','Y','N','Y','N','N','N','N','N','Y','Y','Y','Y','Y','N','N','Y','N','Y','N','N','N','N','N','Y','Y','Y','Y','N','N','Y','N','Y','N','N','N','N','N','N'),
+                            beta = c(-4.51,0.00547,-0.0000025,-0.00003,-0.00006,0.11,0.32,-1.95,-0.22,0.63,0.47,0.23,0.26,-0.41,0.41,-0.06,0.01,-3.48,0.00383,-0.0000018,0.11,-0.11,-0.07,0.59,-0.55,-0.16,0.97,-0.03,0.23,-0.22,-0.12,-0.65,-3.81,0.00387,-0.0000018,0.29,0.2,0.14,0.14,-0.06,0.23,-0.05,0.17,-0.3,-0.1,-1.76,0.00042,-0.0000003,0.03,0.04,0.18,0.28,0.39,-0.04,-0.06,0.01,-0.31,0.21,-0.1,-0.39,-3.97,0.0043,-0.0000018,0.01,-0.4,0.18,0.79,-0.71,0.56,0.13,-0.76,0.33,0.08,-0.2,0.00001),
+                            layer=c('int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_urban','vri_pine','vri_herb','vri_nonveg_land_no_urban','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_urban','vri_pine','vri_herb','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','int','elevation','elevation_squared','eastnessx1000','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','dist_crds_all_road'),
+                            type=c('','','','','','RC','RC','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','','','','','','RC','RC','RC','RC','RC','RC','UP','UP','UP','UP','','','','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','','','','','','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','','','','','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','DT'),
+                            sql=c('','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_urban','rast.vri_pine','rast.vri_herb','rast.vri_nonveg_land_no_urban','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',    
+                                  
+'','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_urban','rast.vri_pine','rast.vri_herb','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',                                 
+                                
+'','rast.elevation','rast.elevation_squared','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',
+
+'','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40',
+               
+'','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','rast.dist_crds_all_road'),
+                            reclass =c(
+                              
+                              
+                              
+                              
+                              
+                              '','','','','', '','','','','', '', '', '', '', '', '', 
+                                       '', '','','','','','',  "''20:0.05036, 17:-0.0345,
+                                    12:0.242, 11:0.3420, 15:0.69947, 22:-0.5054, 24:0.60678, 
+                                    [1-30]:0.60678''","''7:-0.1676, [1-129]:0''"),
+                            mean=c(NA,1.28, 1735., 8339.8, 82949,
+                                   44787, 24934, 96.5, 8.3, 
+                                   31,25318,603, 4011,0,0,0,0,0,
+                                   1150.6,68.9,17.2,12.6, 27,0,0),
+                            sdev=c(NA, 1.69, 1320, 5600.6, 62637.7,
+                                   35084, 24867, 37, 5.2,
+                                   18, 18921, 573.7820907, 4576,1,1,1,1,1,
+                                   80, 5.96,15, 12,19,1,1)
+                            )
+
+objects <- list(rsf_model_coeff=rsf_model_coeff)
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects, paths = paths)
+
+system.time({
+mysimout<-spades(mySim)
+})
+#eventDiagram(mySimOut)
+```
+
+# Events
+
+At each user defined time step, the `rsfCLUS` module calculates the resource selection function for the user defined population and season.
+
+# Data dependencies
+
+## Spatial Data Sources
+It was not always clear what spatial habitat data were used by Schneidman (2018) for fitting the RSF models, but I developed the best approximation based on the data cited and how it was described in the manuscript.
+
+Elevation was measured using the 25-m spatial resolution provincial digital elevation model (DEM). Aspect, eastness and northness were derived from the DEM using the aspect function (for the former) or the map calculator in ArcGIS 10.3. Eastness was calculated as the sine of aspect measured in radians and northness was calculated as cosine of aspect measured in radians. This used the same data as Schneidman (2018).
+
+Landcover types defined by Schneidman (2018) (i.e., conifer, deciduous, urban, pine, herbaceous, non-vegetated, and wet) were derived from VRI data. Conifer was defined as VRI polygons where the primary species was balsam, cedar, yellow cedar, fir, hemlock, larch, spruce or black spruce. Deciduous was defined as VRI polygons where the primary species was alder, birch, aspen, poplar, cottonwood, or deciduous shrub types.  Pine was defined as VRI polygons where the primary species was
+a pine species. Herbaceous was defined as VRI polygons where the BCLCS was vegetated, non-treed, wetland, herbaceous, or vegetated, non-treed, upland, herbaceous, or vegetated, non-treed, alpine, herbaceous. Wet areas were defined as VRI polygons where the BCLCS was non-vegetated, water. Urban areas were defined as VRI polygons where the BCLCS was non-vegetated, land, upland, exposed land, urban. Nonvegetated areas were defined as VRI polygons where the BCLCS was non-vegetated except for the urban type. It is likely that Schneidman (2018) used a similar rationale for defineing these classes, but it was not clear from the manuscript. There may have been other data he used (e.g., fwa_wetlands_poly, fwa_wetlands_lakes) to identify the 'wet' class. 
+
+Burned areas were defined using the historical and current wildfire polygons. The "fire.other" type was defined as areas burned in the last 15 years (e.g., 2003 to 2017), but not pine (i.e., in the 'pine' class defined above). The "fire.pine" type was defined as areas burned in the last 15 years in the pine class. The "fire.old" type was defined as areas burned between 15 and 40 years prior (e.g., 1977 to 2002). This used the same data as Schneidman (2018).
+
+Cutblocks were defined using the consolidated cutblocks data set (Schneidman (2018) used the results data only). The "new.cut" type was defined as areas cut in the last 15 years (e.g., 2003 to 2017) and the "old.cut" was defined as areas cut between 15 and 40 years prior (e.g., 1977 to 2002). This was slightly different from 
+
+Distance to roads was measured by calculating distance to all raod types as defined in the BC cumulative effects road dataset. Schneidman (2018) used a combination of data from digital road atlas, results, ften, trim and petroleum data sets. 
+
+I did not use the distance to mature forest stand or distance to escape cover, or the alpine type coefficents in the RSF model. The distance to measures were not included becuase of the potential complexity in re-calculating these measures in the simulation model, In addition, these coefficients had a relatively weak effect in the model (~0.01). The alpine cover type was difficult to define according to Schneidman (2018), i.e., above the treeline, dominated by shrubs, and therefore not included. 
+
+## Input objects
+
+The user provides the input object: `moose_chilcotin_rsf_model_coeff` that contains the resource selection function coefficients for the various covariates. In addition to the coefficients (beta column in the table): 
+
+>Note: Elevation and distance to road was measured in km. Thus, here coefficients are divided by 1,000 (or 1,000,000 in the case of the coefficient for elevation squared. Also, eastness and northness coefficients are divided by 1000, because east and north values were multiplied by 1000 to make integer rasters that take less storage space. 
+
+* static := declares Y/N (yes/no) if the covariate is static, meaning its value will remain static throughout the simulation or if no, the covariate will be updated as a result of the simulation
+
+* layer := the name of the raster stored in a psql database or the name of the updated variable in `clusdb`. 
+
+>Note: In layer column an 'int' is needed for each rsf. If the rsf is fit with no intercept, 'int' is required but with beta = 0.
+
+* type :=  declares the type of dynamic variable. A value in this column is needed if the static column = N. 
+
++ UP = 'Updatable' in `clusdb` 
+
++ DT = 'Distance To' 
+
++ RC = 'Reclass' 
+
+* sql := the `WHERE` clause of a sql statement describing the `clusdb` variables used in the dynamic layer
+
+* reclass := the SQL for [ST_Reclass](https://postgis.net/docs/RT_ST_Reclass.html) - follows the [reclassexpr](https://postgis.net/docs/reclassarg.html) where '(' means greater than, '[' means greater then or equal to. Ex. [a-b] = a <= x <= b in comparison to (a-b) = a < x < b
+
+* mean:= the mean of the layer within the scope of the rsf 
+
+* sdev := the standard deviation of the layer within the scope of the rsf 
+
+>Note: The mean and sdev are used to standardize covariates via $x_s = \frac{x - mean}{sdev}$ If standardization is not required use `NA`. Here, mean and sdev are all NA because covariates were not standardized by Schneidman (2018). 
+
+
+
+
+```{r, example_rsf_coeff}
+print(rsf_model_coeff)
+```
+
+## Output objects
+
+The following objects are instantiated via rsfCLUS:
+
+* pts:= A data.table of X,Y locations - used to find distances
+
+* rsfCovar:= A data.table of covariates used to calculate the RSF. This could be uploaded into clusdb? Not implemented.
+
+* rsfGLM:= Inherits a glm class used for prediction of the RSF
+
+* rsf:= A table within the `clusdb` SQLite database that stores RSFs.    
+
+# Links to other modules
+
+Requires dataLoaderCLUS to instantiate the `clusdb` SQLite database.
+

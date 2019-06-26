@@ -27,6 +27,7 @@
 options (scipen = 999)
 require (raster)
 require (fasterize)
+require (RPostgreSQL)
 
 #############################################################################
 ### 1. Create Raster layers equivalent to Schneideman's model covariates ###
@@ -200,3 +201,33 @@ rsf.moose.ew <- (exp (-3.97 + (elev * 4.30) + ((elev * elev) * -1.76) +
                            (dist.road * (0.01/1000))))      
 writeRaster (rsf.moose.ew, "C:\\Work\\caribou\\clus_data\\rsf\\moose\\rsf_moose_early_winter_chilcotin.tif", 
              format = "GTiff", overwrite = T)
+
+
+### RESAMPLE DATA TO HA BC ####
+
+
+urban <- raster ("C:\\Work\\caribou\\clus_data\\vegetation\\vri_urban.tif")
+
+
+
+
+elev <- raster ("C:\\Work\\caribou\\clus_data\\dem\\dem_all_bc_clip.tif")
+ProvRast <- raster (nrows = 15744, ncols = 17216,
+                    xmn = 159587.5, xmx = 1881187.5,
+                    ymn = 173787.5, ymx = 1748187.5,
+                    crs = 3005,
+                    resolution = c (100, 100), vals = 0)
+### Script to change resolution of some rasters ###
+elev <- resample (elev, ProvRast, method = 'bilinear')
+writeRaster (elev, "C:\\Work\\caribou\\clus_data\\dem\\dem_ha_bc.tif",
+             format = "GTiff", overwrite = T)
+gc ()
+raster::terrain (elev, opt = 'aspect', unit = 'degrees', neighbors = 8,
+                 filename = "C:\\Work\\caribou\\clus_data\\dem\\aspect_ha_bc.tif")
+gc ()
+raster::terrain (elev, opt = 'slope', unit = 'degrees', neighbors = 8,
+                 filename = "C:\\Work\\caribou\\clus_data\\dem\\slope_ha_bc.tif")
+
+
+
+
