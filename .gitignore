@@ -20,4 +20,6 @@ mercurial.ini
 /SELES
 /R/temp/
 /R/apps/alpha
+/R/credential_clusdb.R
+.Rprofile
 
