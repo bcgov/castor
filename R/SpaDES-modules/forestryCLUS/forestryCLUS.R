@@ -106,7 +106,7 @@ forestryCLUS.setConstraints<- function(sim) {
                                                         ROUND((1-(percentage*1.0/100))*t_area, 0) END AS limits
                                                         FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
                                                             numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-      print(as.character(query_parms[1, "type"]))
+      #TODO: Allow user to write own constraints according to many fields - right now only one variable
       switch(
         as.character(query_parms[1, "type"]),
         ge = {
