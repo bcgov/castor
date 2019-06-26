@@ -8,27 +8,29 @@ library(sqldf)
 library(DBI)
 library(sp)
 
+#Uses keyring to set the credentials
+
 #Simple database connectivity functions
 getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
 
 getTableQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
 
 getRasterQuery<-function(srcRaster, bb){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   on.exit(dbDisconnect(conn))
   pgGetRast(conn, unlist(strsplit(srcRaster, "[.]")), boundary = c(bb[4],bb[2],bb[3],bb[1]))
 }
 
 setCSVPostgresTable<-function(name, table){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   on.exit(dbDisconnect(conn))
   dbWriteTable(conn, name, table)
 }
@@ -57,7 +59,7 @@ GetPolygonText<-function(coords){
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------
 GetPostgresConn<-function(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432){
-  pgConn <- dbConnect(PostgreSQL(), dbname=dbName, user=dbUser, password=dbPass, host=dbHost, port=dbPort) 
+  pgConn <- dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   return(pgConn)  
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------
@@ -87,8 +89,7 @@ RASTER_FROM_VECTOR <- function(drawPoly, srcVect, whereClause="*", vatFld=NULL, 
   tmpRast = 'FAIB_RFV_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   }
   #--Build the query string to execute the function to generate temporary Raster
   if ((is.null(vat))&(is.null(vatFld))){
@@ -119,8 +120,7 @@ RASTER_FROM_RASTER <- function(drawPoly, srcRast, rastVal="*", rastVAT=NULL, mas
   tmpRast = 'FAIB_RFR_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   }
   #--Build the query string to execute the function to generate temporary Raster
   if (is.null(rastVAT)){
@@ -148,8 +148,7 @@ FC_TO_RASTER <- function(fc, valFld, vat=NULL, conn=NULL){
   tmpRast = 'FAIB_FTR_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   }
   #--Build the query string to execute the function to generate temporary Raster
   if (is.null(vat)){
@@ -177,8 +176,7 @@ RASTER_CLIP <- function(srcRaster, clipper, conn=NULL){
   tmpRast = 'FAIB_RCL_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   }
   #--Build the query string to execute the function to generate temporary Raster
   qry = sprintf("select FAIB_RASTER_CLIP('%s', '%s', '%s');", tmpRast, srcRaster, clipper)
@@ -200,8 +198,7 @@ RASTER_CLIP2 <- function(srcRaster, clipper, geom, where_clause, conn=NULL){
   tmpRast = 'FAIB_RCL_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   }
   #--Build the query string to execute the function to generate temporary Raster
   qry = sprintf("select public.faib_raster_clip2('%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause)
@@ -224,8 +221,7 @@ RASTER_CLIP_CAT <- function(srcRaster, clipper, geom, where_clause, out_reclass,
   tmpRast = 'FAIB_RCL_TEMPRAST'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   }
   #--Build the query string to execute the function to generate temporary Raster
   qry = sprintf("select public.faib_raster_clip_cat('%s', '%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause, out_reclass)
@@ -249,7 +245,7 @@ RunRasterTests<-function(){
   #--Local Connection
   #conn<-GetPostgresConn("postgres", "postgres", "postgres", "localhost")
   #--CLUS Connection
-  conn <- dbConnect("PostgreSQL", dbname = "postgres", host = "localhost", user = "postgres", password = "postgres")
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=key_get('dbhost', keyring = 'postgreSQL'), dbname = key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=key_get('dbuser', keyring = 'postgreSQL') ,password= key_get('dbpass', keyring = 'postgreSQL'))
   
   txtPoly = GetPolygonText(coordz[[1]])
   #C Polygon  
