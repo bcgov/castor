@@ -58,7 +58,7 @@ parameters <- list(
                          #Study Area
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
-                         nameBoundary=c("08B", "08C"), 
+                         nameBoundary=c("08A","08B","08C","08D","08E"), 
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.forest_tenure",
                          #Zones

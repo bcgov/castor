@@ -95,7 +95,7 @@ forestryCLUS.setConstraints<- function(sim) {
   message("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   message("....assigning zone_const")
-  zones<-dbGetQuery(clusdb, "SELECT zone_column FROM zone")
+  zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
     numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
                                zone_column = '",  zones[[1]][i] ,"'"))
