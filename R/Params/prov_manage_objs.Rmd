@@ -79,7 +79,7 @@ e) Write the rasters and lookups into postgres
 ### Step 1: Get data  
 ```{r zoneStep1, echo=FALSE}
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
-pswrd<-'clus'
+
 lu<-getSpatialQuery("SELECT lu_id, 
 case 
 	when beo = 'High' then 1 
@@ -274,7 +274,9 @@ df<-as.data.frame(zone_beo_table)
 df$label<-'beo' #TODO: label this is as high/I/L ?
 
 #Upload the constraint table to the db
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+ 
 DBI::dbWriteTable(conn, c("public", "zone_beo"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 
@@ -307,7 +309,9 @@ df$zoneid<-as.integer(df$zoneid)#assign integer
 df$label<-'fsw'
 
 #upload the constraint table for FSW to the db
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+ 
 DBI::dbWriteTable(conn, c("public", "zone_fsw"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 
@@ -343,7 +347,8 @@ df$zoneid<-as.integer(df$zoneid)#assign integer
 df$percentage<-as.numeric(df$percentage)#assign integer
 df$label<-'vqo'
 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
 DBI::dbWriteTable(conn, c("public", "zone_vqo"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 
@@ -357,7 +362,8 @@ PostgreSQL implements table inheritance. See [here]("https://www.postgresql.org/
 #----------------------------
 #Inheritability in PostgreSQL
 #----------------------------
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
 dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
 
 dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints")
