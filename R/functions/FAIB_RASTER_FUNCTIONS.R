@@ -22,8 +22,8 @@ GetPolygonText<-function(coords){
   txtPoly = paste(txtPoly, '))') 
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------
-GetPostgresConn<-function(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432){
-  pgConn <- dbConnect(PostgreSQL(), dbname=dbName, user=dbUser, password=dbPass, host=dbHost, port=dbPort) 
+GetPostgresConn<-function(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432){
+  pgConn <-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   return(pgConn)  
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------
@@ -64,8 +64,7 @@ RASTER_FROM_VECTOR <- function(drawPoly, srcVect, whereClause="*", vatFld=NULL, 
   bCloseConn = FALSE
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
     bCloseConn = TRUE
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -103,8 +102,7 @@ RASTER_FROM_RASTER <- function(drawPoly, srcRast, rastVal="*", rastVAT=NULL, mas
   bCloseConn = FALSE
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
     bCloseConn = TRUE
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -138,8 +136,7 @@ FC_TO_RASTER <- function(fc, valFld, vat=NULL, conn=NULL){
   bCloseConn = FALSE
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
     bCloseConn = TRUE
   }
   #--Build the query string to execute the function to generate temporary Raster
@@ -173,8 +170,7 @@ RASTER_CLIP <- function(srcRaster, clipper, conn=NULL){
   bCloseConn = FALSE
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
-    conn <- GetPostgresConn(dbName="clus", dbUser="postgres", dbPass="postgres", dbHost="DC052586", dbPort=5432)
-    #conn <- GetPostgresConn(dbName="postgres", dbUser="postgres", dbPass="postgres", dbHost="localhost", dbPort=5432)
+    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
     bCloseConn = TRUE
   }
   #--Build the query string to execute the function to generate temporary Raster
