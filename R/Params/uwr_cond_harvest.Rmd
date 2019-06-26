@@ -2,8 +2,10 @@
 title: "UWR_Conditional_Harvest"
 author: "Kyle Lochhead"
 date: "June 24, 2019"
-output: html_document
-  toc:true
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
 ---
 
 ```{r setup, include=FALSE}
@@ -19,10 +21,10 @@ Conditional harvesting means that there is some level of retention required duri
 ```{r, UWR_cond_harv}
 library(data.table)
 
-data.table(uwr_tag = c('u-3-003',	'u-3-004',	'u-3-006',	'u-4-001',	'u-4-006',	'u-4-008',	'u-4-010',	'u-4-012',	'u-4-013',	'u-4-014',	'u-5-001',	'u-5-002',	'u-5-003',	'u-6-009',	'u-6-014',	'u-6-018',	'u-7-001',	'u-7-002',	'u-7-003',	'u-7-005',	'u-7-007',	'u-7-008',	'u-7-009',	'u-7-010',	'u-7-011',	'u-7-012',	'u-7-013',	'u-7-015',	'u-7-017',	'u-7-025',	'u-7-026',	'u-7-028',	'u-8-001',	'u-8-004',	'u-8-005',	'u-8-006',	'u-8-007',	'u-8-008',	'u-8-009',	'u-8-010',	'u-8-012',	'u-9-001',	'u-9-002',	'u-9-004',	'u-9-009',	'u-9-010'),
+aoi_uwr<-data.table(uwr_tag = c('u-3-003',	'u-3-004',	'u-3-006',	'u-4-001',	'u-4-006',	'u-4-008',	'u-4-010',	'u-4-012',	'u-4-013',	'u-4-014',	'u-5-001',	'u-5-002',	'u-5-003',	'u-6-009',	'u-6-014',	'u-6-018',	'u-7-001',	'u-7-002',	'u-7-003',	'u-7-005',	'u-7-007',	'u-7-008',	'u-7-009',	'u-7-010',	'u-7-011',	'u-7-012',	'u-7-013',	'u-7-015',	'u-7-017',	'u-7-025',	'u-7-026',	'u-7-028',	'u-8-001',	'u-8-004',	'u-8-005',	'u-8-006',	'u-8-007',	'u-8-008',	'u-8-009',	'u-8-010',	'u-8-012',	'u-9-001',	'u-9-002',	'u-9-004',	'u-9-009',	'u-9-010'),
  aoi = c('Merritt TSA',	'Headwaters TSA',	'Merritt TSA',	'Arrow, Kootenay Lake, Revelstoke TSAs',	'Cranbrook TSA',	'Invermere TSA',	'Kinbasket Planning Unit',	'Southwest Kootenay Planning Unit',	'Southeast Kootenay Planning Unit',	'Central Kootenay Planning Unit',	'Quesnel TSA/Prince George TSA',	'Williams Lake TSA',	'100 Mile House TSA',	'Kalum,Cascadia, Pacific, TFL1, TFL4',	'North Coast TSA and TFL 225',	'Nass TSA',	'Kennedy Siding',	'Fort St. James',	'Upper Fraser, Hart Ranges and Mount Robson Planning Units',	'Peace Arm',	'Mackenzie',	'Ingenika',	'Mackenzie TSA',	'Robson Valley TSA',	'Vanderhoof',	'Prince George TSA',	'Prince George',	'Prince George TSA',	'Mackenzie TSA',	'Mackenzie',	'Prince George',	'Mackenzie',	'Okanagan TSA, TFL 15, 35 & 49',	'Revelsoke Shuswap and South Monashee Planning Units',	'Okanagan TSA, TFL 15, 35 & 49',	'Okanagan TSA, TFL 15, 35 & 49',	'Boundary TSA and TFL 8',	'Boundary TSA and TFL 8',	'Boundary TSA and TFL 8',	'Boundary TSA and TFL 8',	'South Monashee Planning Unit',	'Dawson Creek TSA',	'Dawson Creek TSA',	'Fort St. John TSA, Mackenzie TSA and TFL 48',	'Fort St. John TSA',	'Fort Nelson TSA'),
  species = c('Deer',	'Caribou',	'Goat',	'Elk, Deer, Moose',	'Elk, Deer, Moose, Sheep, Goat',	'Elk, Deer, Moose, Sheep, Goat',	'Mountain Caribou',	'Mountain Caribou',	'Mountain Caribou',	'Mountain Caribou',	'Mule Deer',	'Mule Deer',	'Mule Deer',	'Moose',	'Moose',	'Moose',	'Northern Caribou',	'Mule Deer',	'Mountain Caribou',	'Elk',	'Northern Caribou',	'Elk',	'Northern Caribou',	'Mule Deer',	'Mule Deer',	'Northern Caribou',	'Mule Deer',	'Northern Caribou',	'Moose, Mountain Goat and Elk',	'Northern caribou',	'Northern caribou',	'Stones sheep',	'Mule Deer',	'Mountain Caribou',	'Goat',	'Moose',	'Moose',	'Mule Deer',	'Mountain Goat',	'Sheep',	'Mountain Caribou',	'Elk, Mule Deer and Moose',	'Caribou, Mountain Goat, Bighorn Sheep',	'Northern Caribou and Stones Sheep',	'Boreal Caribou',	'Boreal Caribou'),
- complete = c('Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y'),
+ complete = c('Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y'),
  source = c('http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u3_003.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-3-004_GAR_rat.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-3-006_ORAM_Order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/Order_4-001_ddmwTFL3_Feb07.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u4_006.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u4_008.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-010_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-012_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-013_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-4-014_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u5_001.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u5_002.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u5_003.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/UWR%206-009%20FRPA%20order_signed%20doc.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/UWR%206-014%20FRPA%20order_signed.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-018_GAR-order_Sept17.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_001.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_002.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-003_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_005.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_007.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_008.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_009.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_010.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_011.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_012.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_013.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_015.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-017_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-025_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-026_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-7-028_order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-001_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-004_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-005_ORAM_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-006_ALAL_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-007_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-008_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-009_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-8-010_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-8-012_order_09Dec09.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u9_001.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/u-9-002_Order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/U-9-004_ord.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/RATA_U-9-009_Order.pdf',	'http://www.env.gov.bc.ca/wld/documents/uwr/RATA_U-9-010_Ord_BoundariesOnly.pdf')
  )
 
@@ -30,12 +32,16 @@ data.table(uwr_tag = c('u-3-003',	'u-3-004',	'u-3-006',	'u-4-001',	'u-4-006',	'u
 zone_uwr<-data.table(zoneid=integer(), type=character(), variable=character(), threshold=numeric(), reference_zone=character(), percentage=numeric(), ndt=integer(),
                      label = character())
 
-library(data.table)
+
 library(sf)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 pswrd<-'clus'
 #create zoneid raster for conditional harvesting in UWR
-uwr_cond_harvest<-getSpatialQuery("SELECT  ogc_fid, uwr_tag, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE harvest = 'CONDITIONAL HARVEST ZONE'")
+
+#Get the UWR that are in the aoi_uwr table. This is currently set to the interior UWRs
+uwr_cond_harvest<-getSpatialQuery(paste0("SELECT  ogc_fid, uwr_tag, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE harvest = 'CONDITIONAL HARVEST ZONE' AND uwr_tag IN ('",paste(aoi_uwr$uwr_tag, collapse="', '"),"') ORDER BY apprv_date ASC")) 
+#Note the order by will allow the raster to select the newest dates first
+
 
 ```
 
@@ -57,7 +63,9 @@ u3003<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 #As a general approximation we assume the entire u-3-003 will be managed as a moderate snowpack zone where 33% of the area must have deep snow pack attribute of > 46% crown closure for all planning cells. This means all u-3-003 planning cells will be called zoneid = min(ogc_fid) WHERE uwr_tage - 'u-3-003'.
 
 zoneid_new<-min(u3003$ogc_fid) #177783
-uwr_cond_harvest$ogc_fid= ifelse(uwr_cond_harvest$uwr_tag == 'u-3-003', zoneid_new, uwr_cond_harvest$ogc_fid)
+uwr_cond_harvest[uwr_cond_harvest$uwr_tag == 'u-3-003',]$ogc_fid<-zoneid_new
+
+
 u3003_table<-data.table(zoneid =zoneid_new, reference_zone ='rast.zone_uwr', variable ='crownclosure', type = 'ge', percentage = 33, threshold = 46, ndt = 0, label = 'u-3-003')
 
 zone_uwr<-rbind(zone_uwr, u3003_table)
@@ -90,6 +98,25 @@ gc()
 #Check
 zone_uwr[label == 'u-3-004',]
 ```
+### u-3-006 Goat
+```{r, u-3-006}
+u3006<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-3-006' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+u3006_table<-data.table(u3006)[,c("ogc_fid")]
+
+#Maintain 66 percent of the area ge than 30 years. See http://www.env.gov.bc.ca/wld/documents/uwr/u-3-006_ORAM_Order.pdf
+u3006_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 66, threshold = 30, ndt =0, label = 'u-3-006')]
+
+setnames(u3006_table, "ogc_fid", "zoneid")
+zone_uwr<-rbind(zone_uwr, u3006_table)
+rm(u3006_table,u3006)
+gc()
+
+#Check
+zone_uwr[label == 'u-3-006',]
+
+
+```
+
 
 ### u-4-001 Elk, Deer, Moose 
 ```{r, u4001}
@@ -151,11 +178,12 @@ u4006_table[feat_notes == "MANAGED FOREST TRANSITION", `:=`(reference_zone = 'ra
 
 u4006_table[feat_notes == "MANAGED FOREST WET", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 60, ndt =0, label = 'u-4-006')] 
 
-u4006_table[feat_notes == "OPEN FOREST", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-006')] # no constraint
+#Remove these planning cells
+uwr_cond_harvest<-uwr_cond_harvest[!(uwr_cond_harvest$feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
 
-u4006_table[feat_notes == "OPEN RANGE", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-006')] # no constraint
-
+u4006_table<-u4006_table[!(feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
 u4006_table[,feat_notes:=NULL]
+
 setnames(u4006_table, "ogc_fid", "zoneid")
 zone_uwr<-rbind(zone_uwr, u4006_table)
 rm(u4006_table,u4006)
@@ -187,10 +215,12 @@ u4008_table[feat_notes == "MANAGED FOREST TRANSITION", `:=`(reference_zone = 'ra
 
 u4008_table[feat_notes == "MANAGED FOREST WET", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 60, ndt =0, label = 'u-4-008')] 
 
-u4008_table[feat_notes == "OPEN FOREST", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-008')] # no constraint
+#Remove these planning cells
+#u4008_table[feat_notes == "OPEN FOREST", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-008')] # no constraint
+#u4008_table[feat_notes == "OPEN RANGE", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-008')] # no constraint
+uwr_cond_harvest<-uwr_cond_harvest[!(uwr_cond_harvest$feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
 
-u4008_table[feat_notes == "OPEN RANGE", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-008')] # no constraint
-
+u4008_table<-u4008_table[!(feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
 u4008_table[,feat_notes:=NULL]
 setnames(u4008_table, "ogc_fid", "zoneid")
 
@@ -211,7 +241,9 @@ u4010_table<-data.table(u4010)[,c("ogc_fid", "feat_notes")]
 # focus here is on forest retention
 # also has some constraints on mineral exploration and ski development: note for if/when that gets added to the land use sim
 # forest retention requirments vary across 'zones', from 100% retention to  10% retention of age classes 7 to 9
-u4010_table[feat_notes == "Caribou Management Zone 1", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-4-010')] # no harvest
+
+#Caribou Zone 1: Is already labeled as a no Harvest Zone- Removing
+#u4010_table[feat_notes == "Caribou Management Zone 1", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-4-010')] # no harvest
 
 u4010_table[feat_notes %in% c("Caribou Management Zone 5","Caribou Management Zone 6"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 70, threshold = 80, ndt =0, label = 'u-4-010')]
 
@@ -232,65 +264,42 @@ zone_uwr[label == 'u-4-010',]
 
 ### u-4-012 Caribou
 ```{r, u4012}
-u4012<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-012' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u4012<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-012' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u4012_table<-data.table(u4012)[,c("ogc_fid", "feat_notes")]
+#u4012_table<-data.table(u4012)[,c("ogc_fid", "feat_notes")]
 
 # most of this UWR is no harvest, but there are three units (6, 12 and 13) that allow for harvest up until 2028, and then no harvest
 # so, we can either treat this as no harvest now, or allow for harvest in the model until 2028 and 'switch' it off; the latter seems complicated, so for now set as no harvest
 
-u4012_table[feat_notes == "Restricted Harvest - amended November 2010", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-4-012')] #  no harvest
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-4-012',]
 
-u4012_table[,feat_notes:=NULL]
-setnames(u4012_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u4012_table)
-rm(u4012_table,u4012)
-gc()
-
-#Check
-zone_uwr[label == 'u-4-012',]
 ```
 
 ### u-4-013 Caribou
 ```{r, u4013}
-u4013<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-013' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u4013<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-013' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u4013_table<-data.table(u4013)[,c("ogc_fid", "feat_notes")]
+#u4013_table<-data.table(u4013)[,c("ogc_fid", "feat_notes")]
 
 # most of this UWR is no harvest, but there are seven units (15-18, 20-12 and 22) that allow for harvest up until 2028, and then no harvest
 # so, we can either treat this as no harvest now, or allow for harvest in the model until 2028 and 'switch' it off; the latter seems complicated, so for now set as no harvest
 
-u4013_table[feat_notes == "Restricted Harvest - amended November 2010", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-4-013')] #  no harvest
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-4-013',]
 
-u4013_table[,feat_notes:=NULL]
-setnames(u4013_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u4013_table)
-rm(u4013_table,u4013)
-gc()
-
-#Check
-zone_uwr[label == 'u-4-013',]
 ```
 
 ### u-4-014 Caribou
 ```{r, u4014}
-u4014<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-014' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u4014<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-014' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u4014_table<-data.table(u4014)[,c("ogc_fid", "feat_notes")]
+#u4014_table<-data.table(u4014)[,c("ogc_fid", "feat_notes")]
 
 # most of this UWR is no harvest, but there are six units (14-19) that allow for harvest up until 2028, and then no harvest
 # so, we can either treat this as no harvest now, or allow for harvest in the model until 2028 and 'switch' it off; the latter seems complicated, so for now set as no harvest
 
-u4014_table[feat_notes == "Restricted Harvest - amended November 2010", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-4-014')] #  no harvest
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-4-014',]
 
-u4014_table[,feat_notes:=NULL]
-setnames(u4014_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u4014_table)
-rm(u4014_table,u4014)
-gc()
 
-#Check
-zone_uwr[label == 'u-4-014',]
 ```
 
 ### u-5-001, u-5-002, u-5-003
@@ -441,10 +450,10 @@ zone_uwr[label == 'u-7-002',]
 
 
 ### u-7-003 Mountain Caribou
-```{r, u3003}
+```{r, u7003}
 u7003<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-003' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-#Caribou corridor and caribou medium are conditional harvesting. see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-003_order_09Dec09.pdf
+#Caribou corridor and medium are conditional harvesting. see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-003_order_09Dec09.pdf
 
 manage<-unlist(lapply(1:length(u7003$feat_notes),function(x) strsplit(u7003$feat_notes, "-", fixed=TRUE)[[x]][[1]]), use.names = FALSE)
 u7003<-cbind(u7003, manage)
@@ -494,8 +503,9 @@ u7007<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 #Terrestrial lichen habitat are generally found in pine dominated forests with site index less than 14.5. We equate this to having atleast 50 percent of this landbase greater than 70 years for the entire area
 
 # change the uwr to one unit (the min of the ogc_fid)
-zoneid_new<-min(u7007$ogc_fid) #177829
-uwr_cond_harvest$ogc_fid= ifelse(uwr_cond_harvest$uwr_tag == 'u-7-007', zoneid_new, uwr_cond_harvest$ogc_fid)
+zoneid_new2<-min(u7007$ogc_fid) #177829
+uwr_cond_harvest[uwr_cond_harvest$uwr_tag == 'u-7-007',]$ogc_fid<-zoneid_new2
+
 u7007_table<-data.table(zoneid =zoneid_new, reference_zone ='rast.zone_uwr', variable ='age', type = 'ge', percentage =50 , threshold = 70, ndt = 0, label = 'u-7-007')
 
 zone_uwr<-rbind(zone_uwr, u7007_table)
@@ -704,23 +714,14 @@ zone_uwr[label == 'u-8-001',]
 
 ### u-8-004 Caribou
 ```{r, u8004}
-u8004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u8004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u8004_table<-data.table(u8004)[,c("ogc_fid", "unit_no")]
+#u8004_table<-data.table(u8004)[,c("ogc_fid", "unit_no")]
 
 # no harvest in sub-alpine parkland ecosystems
 # also some mineral and ski development specific constraints to consider later
 # suggest we just make this no harvest
-u8004_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-8-004')]
-
-u8004_table[,unit_no := NULL]
-setnames(u8004_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8004_table)
-rm(u8004_table, u8004)
-gc()
-#Check
-zone_uwr[label == 'u-8-004',]
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-8-004',]
 ```
 
 ### u-8-005 Goat
@@ -834,19 +835,12 @@ zone_uwr[label == 'u-8-009',]
 
 ### u-8-010 Sheep
 ```{r, u8010}
-u8010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
+#u8010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
 
-u8010_table<-data.table(u8010)[,c("ogc_fid")]
+#u8010_table<-data.table(u8010)[,c("ogc_fid")]
 
 # constraint is no road developemt, so set harvest to zero, unless timber accessed another way?
-u8010_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-8-010')]
-setnames (u8010_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8010_table)
-rm(u8010_table, u8010)
-gc()
-#Check
-zone_uwr[label == 'u-8-010',]
+uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-8-010',]
 ```
 
 ### u-8-012 Caribou
@@ -860,9 +854,9 @@ u8012_table<-data.table(u8012)[,c("ogc_fid")]
 # ESSF Parkland = 100% retention
 # ESSF >=70% >equal age class 8 
 # ICH >=70% >equal age class 8 
-# Here I used 100% retention
+# Here I used 70% retention of age 100
 
-u8012_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-8-012')] # no harvest
+u8012_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 70, threshold = 100, ndt =0, label = 'u-8-012')] # no harvest
 setnames (u8012_table, "ogc_fid", "zoneid")
 
 zone_uwr<-rbind(zone_uwr, u8012_table)
@@ -962,5 +956,13 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/
 ```
 
 ## Commit the zone_uwr
-```{r, cond_ras}
+```{r, commit_uwr}
+df<-as.data.frame(zone_uwr)
+df$ndt<-as.integer(0)
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$percentage<-as.numeric(df$percentage)#assign integer
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password=pswrd)
+DBI::dbWriteTable(conn, c("public", "zone_uwr"), value= df, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
 ```
