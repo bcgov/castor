@@ -1,0 +1,51 @@
+---
+title: "keyring init"
+author: "Kyle Lochhead"
+date: "June 26, 2019"
+output: html_document
+---
+
+# Keyrings and keys
+
+Inside the credential store, there are keyrings that contain multiple keys. A keyring is secured with a single password, which then grants access to all of its keys. In the case of accessing a database this means we first create a key ring that holds all the information about the database (i.e., the keys). Second we unlock the key ring only once at the start of an R session. Lastly, in the code we then use `key_get()` to return the needed information like the host, dbname, user, password, etc.
+
+```{r, install_keyring}
+#install.packages("keyring")
+library(keyring)
+```
+
+## 1. Create the keyring
+
+You will be prompted to add a password that will be used to open the keyring. This will be the password you use at the start of an R session. I kept mine simple as I will be the primary user on my machine.
+
+```{r, create}
+keyring_create("postgreSQL") # I named this keyring postgreSQL which is the postgreSQL server information on my local machine. It is important to keep these names the same so we can hard code them in the CLUS code.
+```
+
+## 2. Unlock the keyring before your session
+```{r, unlock}
+#you will be prompted for your newly created password which opens the keyring
+keyring_unlock("postgreSQL")
+```
+
+## 3. Set the Credentials
+
+Here we set the keys (i.e., dbname, host, password, etc). A prompt will ask you for each of these values. It is important that we keep these keys to have the same name -- so we can hard code their calls in the CLUS code.
+
+```{r, set}
+key_set("dbhost", keyring ="postgreSQL") 
+key_set("dbname", keyring ="postgreSQL") 
+key_set("dbuser", keyring ="postgreSQL")
+key_set("dbpass", keyring ="postgreSQL")
+
+#to view the keys in the keyring use:
+key_list(keyring ="postgreSQL") # they will be labeled under 'service'
+```
+## Use the keyring in code
+
+To get the values of the keys use:
+```{r, use, echo =FALSE}
+key_get("dbhost", keyring="postgreSQL")
+key_get("dbuser", keyring="postgreSQL")
+key_get("dbpass", keyring="postgreSQL")
+```
