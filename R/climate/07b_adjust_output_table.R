@@ -1,7 +1,12 @@
 library(dplyr)
 
 ##Get a connection to the postgreSQL server (local instance)
-conn<-RPostgreSQL::dbConnect(dbDriver("PostgreSQL"), host='DC052586', dbname = 'clus', port='5432', user = 'postgres', password ='postgres')
+conn<-RPostgreSQL::dbConnect(dbDriver(drv = RPostgreSQL::PostgreSQL(), 
+                                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                                      port = "5432"))
 bec<-dbGetQuery(conn,"SELECT * FROM public.clim_plot_data_bec")
 
 ecoproportion <- bec %>%

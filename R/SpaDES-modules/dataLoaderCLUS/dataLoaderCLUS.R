@@ -39,15 +39,15 @@ defineModule(sim, list(
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
-    defineParameter("nameBoundaryFile", "character", "gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file"),
-    defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name"),
-    defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file"),
+    defineParameter("nameBoundaryFile", "character", "gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file. Here we are using caribou herd boudaries, could be something else (e.g., TSA)."),
+    defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
+    defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("save_clusdb", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
-    defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db?"),
+    defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., clus)."),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
-    defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represtents a compartment or supply block"),
-    defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represtents a compartment or supply block value attribute look up"),
+    defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
+    defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represents a compartment or supply block value attribute look up. CUrrently 'study_area_compart'?"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
     defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve"),
     defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
@@ -80,43 +80,43 @@ defineModule(sim, list(
 doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
-    init = {
+    init = { # initialization event
       #setBoundaries
-      sim$boundaryInfo <- list(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom"))
-      sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters"))
+      sim$boundaryInfo <- list(P(sim, "dataLoaderCLUS", "nameBoundaryFile"),P(sim, "dataLoaderCLUS", "nameBoundaryColumn"),P(sim, "dataLoaderCLUS", "nameBoundary"), P(sim, "dataLoaderCLUS", "nameBoundaryGeom")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataLoader 
+      sim$zone.length<-length(P(sim, "dataLoaderCLUS", "nameZoneRasters")) # used to define the number of different management constraint zones
       
       if(P(sim, "dataLoaderCLUS", "useCLUSdb") == "99999"){
         #build clusdb
-        sim <- dataLoaderCLUS.createCLUSdb(sim)
+        sim <- dataLoaderCLUS.createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
-        sim<-dataLoaderCLUS.setIndexesCLUSdb(sim)
+        sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         
        }else{
         message(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
          #TODO: Make a copy of the db here so that the clusdb is in memory
-        userdb<- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") )
-        sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:")
+        userdb<- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") ) # connext to pgdb
+        sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") # save the pgdb in memory (object in sim)
         RSQLite::sqliteCopyDatabase(userdb, sim$clusdb)
         dbDisconnect(userdb)
         
-        dbExecute(sim$clusdb, "PRAGMA synchronous = OFF")
+        dbExecute(sim$clusdb, "PRAGMA synchronous = OFF") # update the database
         dbExecute(sim$clusdb, "PRAGMA journal_mode = OFF")
         
-        sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
+        sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), # function sourced from R_Postgres file
                               clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                               geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                               where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                               conn=NULL)
         
-        sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
+        sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centoirds of raster boundary file; seems to be faster that rasterTopoints
         sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
         
-        pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
+        pixels<-data.table(c(t(raster::as.matrix(sim$ras)))) # turn raster into table of pixels and give them a sequential ID
         pixels[, pixelid := seq_len(.N)]
         
         sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
-        sim$rasVelo<-velox::velox(sim$ras)
+        sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
         #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
       }
@@ -176,8 +176,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           conn=NULL)
     
-    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
-    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
+    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster than rasterTopoints
+    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
     pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
@@ -253,19 +253,19 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
                              where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                              conn=NULL)
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
-      setnames(pixels, "V1", paste0('zone',i))#SET NAMES to RASTER layer
-      dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric'))
+      setnames(pixels, "V1", paste0('zone',i))#SET zone NAMES to RASTER layer
+      dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric')) # add teh zone id column and populate it with the zone names
       dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
 
-      #message(head(zones_aoi))
+      # message(head(zones_aoi))
       rm(ras.zone)
       gc()
     }
-    #zone_constraint table
+    # zone_constraint table
     if(!P(sim)$nameZoneTable == '99999'){
       
-      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable)) #get all zones across the province
-      zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") #select the name of the raster and its column name in pixels
+      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable)) # get all zones across the province from the zone table in the pgdb
+      zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") # select the name of the raster and its column name in pixels
       #Select only those constraints that pertain to the study area
       zone_const<-merge(zone_const, zone, by = 'reference_zone') #merge the two together so that the provincial constraints include the zonecolumn from pixels
       

@@ -135,10 +135,10 @@ setwd ('C:\\Work\\caribou\\clus_data\\')
 wetlands <- raster ("C:\\Work\\caribou\\clus_data\\wetland\\boreal\\Enhanced_Wetland_Classification\\wettype.ewcmosaic.tif")
 wetlands <- projectRaster (wetlands, crs = "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = "DC052586", # Kyle's computer name
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 conn <- dbConnect (drv = RPostgreSQL::PostgreSQL(), 
                    host = "",
@@ -633,11 +633,11 @@ st_write (obj = locs.caribou,
           layer = c ("caribou", "telemetry_caribou_all"))
 dbDisconnect (conn)
 
-connKyle <- dbConnect(drv = dbDriver ("PostgreSQL"), 
-                      host = "DC052586", # Kyle's computer name
-                      user = "Tyler",
-                      dbname = "clus",
-                      password = "tyler",
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 st_write (obj = locs.caribou, 
           dsn = connKyle, 

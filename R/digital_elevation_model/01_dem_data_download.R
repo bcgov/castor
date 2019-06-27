@@ -2537,12 +2537,12 @@ pgWriteRast (conn, "slope_all_bc", slope, overwrite = TRUE)
 
 
 drv <- dbDriver ("PostgreSQL")
-conn <- dbConnect(drv, 
-                 host = "DC052586", # Kyle's computer name
-                 user = "Tyler",
-                 dbname = "postgres",
-                 password = "tyler",
-                 port = "5432")
+conn <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                  host = key_get('dbhost', keyring = 'postgreSQL'),
+                  user = key_get('dbuser', keyring = 'postgreSQL'),
+                  dbname = key_get('dbname', keyring = 'postgreSQL'),
+                  password = key_get('dbpass', keyring = 'postgreSQL'),
+                  port = "5432")
 dbListTables (conn)
 
 rpostgispgWriteRast (conn = con, 
@@ -2555,7 +2555,12 @@ library(sf)
 library(RPostgreSQL)
 
 #Create a DB connection
-conn<-dbConnect(dbDriver("PostgreSQL"), host='DC052586.idir.bcgov', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
+conn<-dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                host = key_get('dbhost', keyring = 'postgreSQL'),
+                user = key_get('dbuser', keyring = 'postgreSQL'),
+                dbname = key_get('dbname', keyring = 'postgreSQL'),
+                password = key_get('dbpass', keyring = 'postgreSQL'),
+                port = "5432")
 
 
 
