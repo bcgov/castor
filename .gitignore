@@ -22,4 +22,5 @@ mercurial.ini
 /R/apps/alpha
 /R/credential_clusdb.R
 .Rprofile
+.sqlite
 
