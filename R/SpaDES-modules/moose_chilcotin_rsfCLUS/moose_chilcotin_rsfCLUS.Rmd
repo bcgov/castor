@@ -24,17 +24,18 @@ See the License for the specific language governing permissions and limitations 
 
 This module tracks moose Resource Selection Functions (RSFs) for the Entiako (Chilcotin) region of BC within a CLUS simulation. Moose RSFs were developed by Schneidman (2018) as part of Masters thesis at UNBC (http://web.unbc.ca/~michael/Pubs/Scheideman_MSc_Thesis.pdf). The RSF could theoretically be applied anywhere in BC, but is most appropriate for the Chilcotin region, which is adjacent to the TWeedsmuir/Itcha-Ilgachus caribou herds. Thus, it could be used to evaluate moose habitat in teh southern part of Designatable Unit (DU) 7. 
 
-Here I calculate Schneidman's (2018) third order (home range-scale) RSF models for five seasons:
+Here I use Schneidman's (2018) third order (home range-scale) RSF models for five seasons:
     - late winter (Jan 15 to Apr 25)
     - calving (Apr 26 to Jun 20)
     - summer (June 21 to Sept 12)
     - fall (Sept 13 to Nov 20)
     - early winter (Nov 21 to Jan 14)
 
+
 ```{r module_usage}
 library(SpaDES.core)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R") # sevrral functions for querying a postgres database
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R") # several functions for querying a postgres database
 
 moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
@@ -58,41 +59,26 @@ parameters <- list(
                 )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "moose_chilcotin_rsfCLUS")
 
+# following data.tabel can be loaded into clus db 
 moose_chilcotin_rsf_model_coeff <- data.table(population = c("DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7", "DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7","DU7", "DU7","DU7","DU7","DU7"),
-                            season =c("LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","S","S","S","S","S","S","S","S","S","S","S","S","S","F","F","F","F","F","F","F","F","F","F","F","F","F","F","F","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW"),
+                            season =c("LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","LW","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","S","S","S","S","S","S","S","S","S","S","S","S","S","F","F","F","F","F","F","F","F","F","F","F","F","F","F","F","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW","EW"), # LW = late winter; C = calving; S = summer; F = fall; EW = early winter
                             bounds = c("rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds", "rast.du7_bounds","rast.du7_bounds","rast.du7_bounds","rast.du7_bounds"),
                             static = c('Y','Y','Y','Y','Y','N','N','Y','N','Y','Y','Y','N','N','N','N','N','Y','Y','Y','Y','Y','N','N','Y','N','Y','Y','N','N','N','N','Y','Y','Y','N','N','Y','N','Y','N','N','N','N','N','Y','Y','Y','Y','Y','N','N','Y','N','Y','N','N','N','N','N','Y','Y','Y','Y','N','N','Y','N','Y','N','N','N','N','N','N'),
                             beta = c(-4.51,0.00547,-0.0000025,-0.00003,-0.00006,0.11,0.32,-1.95,-0.22,0.63,0.47,0.23,0.26,-0.41,0.41,-0.06,0.01,-3.48,0.00383,-0.0000018,0.11,-0.11,-0.07,0.59,-0.55,-0.16,0.97,-0.03,0.23,-0.22,-0.12,-0.65,-3.81,0.00387,-0.0000018,0.29,0.2,0.14,0.14,-0.06,0.23,-0.05,0.17,-0.3,-0.1,-1.76,0.00042,-0.0000003,0.03,0.04,0.18,0.28,0.39,-0.04,-0.06,0.01,-0.31,0.21,-0.1,-0.39,-3.97,0.0043,-0.0000018,0.01,-0.4,0.18,0.79,-0.71,0.56,0.13,-0.76,0.33,0.08,-0.2,0.00001),
-                            layer=c('int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_urban','vri_pine','vri_herb','vri_nonveg_land_no_urban','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_urban','vri_pine','vri_herb','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','int','elevation','elevation_squared','eastnessx1000','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','dist_crds_all_road'),
+                            layer=c('int','elevation','elevation_squared','eastnessx1000','northnessx1000', 'vri_conifer','vri_deciduous','vri_urban','vri_pine','vri_herb','vri_nonveg_land_no_urban','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','eastnessx1000','northnessx1000','vri_conifer','vri_deciduous','vri_urban','vri_pine','vri_herb','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','int','elevation','elevation_squared','eastnessx1000','northnessx1000','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','int','elevation','elevation_squared','eastnessx1000','vri_conifer','vri_deciduous','vri_herb','vri_pine','vri_nonveg_water','raster_fire_not_pine_2003to2017','raster_fire_pine_2003to2017','raster_fire_1978to2002_old','raster_cutblocks_2003_2017','raster_cutblocks_1978_2002','dist_crds_all_road'), ### LAYER NAMESS NEED TO BE CHANGED TO WHAT THEY BECOME IN PGDB ### 
                             type=c('','','','','','RC','RC','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','','','','','','RC','RC','RC','RC','RC','RC','UP','UP','UP','UP','','','','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','','','','','','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','','','','','RC','RC','RC','RC','RC','UP','UP','UP','UP','UP','DT'),
-                            sql=c('','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_urban','rast.vri_pine','rast.vri_herb','rast.vri_nonveg_land_no_urban','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',    
-                                  
-'','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_urban','rast.vri_pine','rast.vri_herb','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',                                 
-                                
-'','rast.elevation','rast.elevation_squared','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',
-
-'','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40',
-               
-'','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1','fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','rast.dist_crds_all_road'),
-                            reclass =c(
-                              
-                              
-                              
-                              
-                              
-                              '','','','','', '','','','','', '', '', '', '', '', '', 
-                                       '', '','','','','','',  "''20:0.05036, 17:-0.0345,
-                                    12:0.242, 11:0.3420, 15:0.69947, 22:-0.5054, 24:0.60678, 
-                                    [1-30]:0.60678''","''7:-0.1676, [1-129]:0''"),
-                            mean=c(NA,1.28, 1735., 8339.8, 82949,
-                                   44787, 24934, 96.5, 8.3, 
-                                   31,25318,603, 4011,0,0,0,0,0,
-                                   1150.6,68.9,17.2,12.6, 27,0,0),
-                            sdev=c(NA, 1.69, 1320, 5600.6, 62637.7,
-                                   35084, 24867, 37, 5.2,
-                                   18, 18921, 573.7820907, 4576,1,1,1,1,1,
-                                   80, 5.96,15, 12,19,1,1)
-                            )
+                            sql=c('','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_urban','rast.vri_pine','rast.vri_herb','rast.vri_nonveg_land_no_urban','rast.vri_nonveg_water',
+'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 0',### THIS SQL STATEMENT NEEDS WORK ###
+'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1', ### THIS SQL STATEMENT NEEDS WORK ###
+'fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_urban','rast.vri_pine','rast.vri_herb','rast.vri_nonveg_water',
+'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 0',### THIS SQL STATEMENT NEEDS WORK ###
+'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',### THIS SQL SATTEMENT NEEDS WORK ###
+'blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40',  '','rast.elevation','rast.elevation_squared','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1', ### THIS SQL SATTEMENT NEEDS WORK ###
+'fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',### THIS SQL SATTEMENT NEEDS WORK ###
+'fireid > 0 AND age BETWEEN 16 AND 40','','rast.elevation','rast.elevation_squared','rast.eastnessx1000','rast.vri_conifer','rast.vri_deciduous','rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15','fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',### THIS SQL SATTEMENT NEEDS WORK ###
+'fireid > 0 AND age BETWEEN 16 AND 40','blockid > 0 AND age BETWEEN 0 AND 15','blockid > 0 AND age BETWEEN 16 AND 40','rast.dist_crds_all_road'),
+                            reclass =c('','','','','','0:0, 1:0.11','0:0, 1:0.32','0:0, 1:-1.95','0:0, 1:-0.22','0:0, 1:0.63','0:0, 1:0.47','0:0, 1:0.23','','','','','','','','','','','0:0, 1:-0.07','0:0, 1:0.59','0:0, 1:-0.55','0:0, 1:-0.16','0:0, 1:0.97','0:0, 1:-0.03','','','','','','','','0:0, 1:0.29','0:0, 1:0.20','0:0, 1:0.14','0:0, 1:0.14','0:0, 1:-0.06','','','','','','','','','','','0:0, 1:0.18','0:0, 1:0.28','0:0, 1:0.39','0:0, 1:-0.04','0:0, 1:-0.06','','','','','','','','','','0:0, 1:-0.40','0:0, 1:0.18','0:0, 1:0.79','0:0, 1:-0.71','0:0, 1:0.56','','','','','','')
+)
 
 objects <- list(rsf_model_coeff=rsf_model_coeff)
 paths <- list(
