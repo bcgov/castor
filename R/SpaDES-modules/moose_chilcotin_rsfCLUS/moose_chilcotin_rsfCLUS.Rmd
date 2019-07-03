@@ -37,7 +37,7 @@ library(SpaDES.core)
 library(data.table)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R") # several functions for querying a postgres database
 
-moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+moduleDir <- file.path(paste0(here(),"/R/SpaDES-modules"))
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
@@ -50,12 +50,10 @@ parameters <- list(
                         nameBoundaryColumn="tsb_number", # the column name from the study area                                                                 dataset that  you want to query
                         nameBoundary=c("08B","08C"), # the name of the location (i.e., polygon) in                                                          the spatial dataset that you want to query 
                         nameBoundaryGeom='wkb_geometry', # name of the geomtery column in the spatial                                                           dataset that you want to query
-                        nameCutblockRaster ="rast.cns_cut_bl", # cutblock raster from pgdb
-                        nameCutblockTable = "public.cns_cut_bl_polygon", # cutblock data table from                                                                             pgdb
                         nameAgeRaster= "rast.vri2017_projage1", # raster of projected forest age from                                                                   VRI
                         nameHeightRaster= "rast.vri2017_projheight1", # raster of projected forest                                                                           height from VRI
                         nameCrownClosureRaster= "rast.vri2017_crownclosure"), # raster of projected                                                                                  forest crown closure                                                                                 from VRI
-                        moose_chilcotin_rsfCLUS = list(calculateInterval = 2) # simulation interval                                                                                  when RSF is                                                                                          calculated 
+  moose_chilcotin_rsfCLUS = list(calculateInterval = 2) # simulation interval                                                                                  when RSF is                                                                                          calculated 
                 )
 modules <- list("dataLoaderCLUS","cutblockSeqPrepCLUS", "moose_chilcotin_rsfCLUS")
 

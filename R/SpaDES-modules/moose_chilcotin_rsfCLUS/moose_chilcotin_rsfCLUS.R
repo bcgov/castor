@@ -57,15 +57,18 @@ doEvent.moose_chilcotin_rsfCLUS = function(sim, eventTime, eventType) {
       sim <- moose_chilcotin_rsfCLUS.Init(sim) # run a function that creates a data.table of RSF covariates (RSFcovar_moose_chilcotin) to be used in the RSF calculation
       sim <- moose_chilcotin_rsfCLUS.PredictRSF(sim) # predict the initial RSF using the covariates
       sim <- scheduleEvent(sim, time(sim) + P(sim, "moose_chilcotin_rsfCLUS", "calculateInterval"), "moose_chilcotin_rsfCLUS", "calculateRSF_moose_chilcotin", 8) # schedule the next time to update and calculate the RSF 
-    },
+      sim <- scheduleEvent(sim, end(sim),"moose_chilcotin_rsfCLUS", "save_RSF_moose_chilcotin", 8 )
+      },
     
     calculateRSF_moose_chilcotin = {
       sim <- moose_chilcotin_rsfCLUS.UpdateRSFCovar (sim) # fucntion that gets the RSF covariates that are dynamic rasters - ie., 'distance to' and simulation updatable variables (ex. height)
       # sim <- moose_chilcotin_rsfCLUS.StandardizeDynamicRSFCovar(sim) ### NOT NEEDED BECAUVE NOT STANDARDIZED 
       sim <- moose_chilcotin_rsfCLUS.PredictRSF (sim) # predict the initial RSF using the covariates
-            sim <- scheduleEvent(sim, time(sim) + P(sim, "moose_chilcotin_rsfCLUS", "calculateInterval"), "moose_chilcotin_rsfCLUS", "calculateRSF_moose_chilcotin", 8) # schedule the next time to update and calculate the RSF 
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "moose_chilcotin_rsfCLUS", "calculateInterval"), "moose_chilcotin_rsfCLUS", "calculateRSF_moose_chilcotin", 8) # schedule the next time to update and calculate the RSF 
     },
-    
+    save_RSF_moose_chilcotin = {
+      print('saving at the end of the sim')
+    },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -78,14 +81,15 @@ moose_chilcotin_rsfCLUS.Init <- function(sim) { # this function initializes the 
    #init a concatenated variable called 'rsf_moose_chilcotin' that will report the population and season
   moose_chilcotin_rsf_model_coeff[, rsf_moose_chilcotin:= do.call(paste0, list(collapse = "_", .BY)), by = c("population", "season") ] # what is this doing?
   moose_chilcotin_rsf_model_coeff[layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("population", "season", "layer") ] # what is this doing?
-  sim$rsf_moose_chilcotin <- data.table () #init the rsf table
+  
+  sim$rsf_moose_chilcotin <- data.table() #init the rsf table
   #Set all the static rasters - when rsfCovar_moose_chilcotin does not exist in sim$clusdb  
   if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfCovar_moose_chilcotin'")) == 0) { # I thought rsfCovar was an output? why being called form clus db?
     #init the rsfcovar_moose_chilcotin table
     sim$rsfcovar_moose_chilcotin <- data.table(sim$pts) # takes the centroid locations of the study area raster to paramterize the rsf table 
     
     # Upload the boundary where the rsf will be applied
-    rsf_list_moose_chilcotin <- unique (moose_chilcotin_rsf_model_coeff[, c ("population","bounds")])
+    rsf_list_moose_chilcotin <- unique(moose_chilcotin_rsf_model_coeff[, c ("population","bounds")])
     
     for(k in 1:nrow(rsf_list_moose_chilcotin)){ # for each boundary (i.e., RSF 'study area') 
       message(rsf_list_moose_chilcotin[k]$bounds) # say which boundary
@@ -100,6 +104,7 @@ moose_chilcotin_rsfCLUS.Init <- function(sim) { # this function initializes the 
     
     # load the static rasters for calculating the RSF
     static_list <- as.list (unlist(unique(moose_chilcotin_rsf_model_coeff[static == 'Y' & layer != 'int'])[,c("sql")], use.names = FALSE)) # query and create the list of static rasters
+    
     for(layer_name in static_list){ # for each static raster
       message(layer_name) # declare the static raster name
       if(moose_chilcotin_rsf_model_coeff[sql == layer_name & layer != 'int']$type == 'RC' ){ # if it's a reclass type of static raster
@@ -139,11 +144,11 @@ moose_chilcotin_rsfCLUS.Init <- function(sim) { # this function initializes the 
   }
   
   #Set the GLM objects so that inherits class 'glm' which is needed for predict.glm function/method
-  rsf_list_moose_chilcotin<-lapply(as.list(unique(rsfcovar_moose_chilcotin[,"rsf"])$rsf), function(x) {#prepare the list needed for lapply to get the glm objects  
-    rsfcovar_moose_chilcotin[rsf==x, c("rsf","beta", "layer_uni", "mean", "sdev")]
+  moose_chilcotin_rsf_list<-lapply(as.list(unique(moose_chilcotin_rsf_model_coeff[,"rsf_moose_chilcotin"])$rsf_moose_chilcotin), function(x) {#prepare the list needed for lapply to get the glm objects  
+    moose_chilcotin_rsf_model_coeff[rsf_moose_chilcotin==x, c("rsf_moose_chilcotin","beta", "layer_uni")]
   })
   
-  sim$rsfGLM_moose_chilcotin <- lapply(rsf_list_moose_chilcotin, getglmobj) # init the glm objects for each of the rsf population and season; # getglmobj is a function that creates a glm object for each rsf
+  sim$rsfGLM_moose_chilcotin <- lapply(moose_chilcotin_rsf_list, getglmobj) # init the glm objects for each of the rsf population and season; # getglmobj is a function that creates a glm object for each rsf
   
   return(invisible(sim))
 }
@@ -160,7 +165,8 @@ moose_chilcotin_rsfCLUS.UpdateRSFCovar<-function(sim){ # gets the RSF covariates
 
 getUpdatedLayers <- function (sim){ # gets the updateable (internal to sim$clusdb) raster variables for the rsf
   up_layers <- paste (unlist(unique(moose_chilcotin_rsf_model_coeff[type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ") # creates an SQL statement of the updateable raster names
-  newLayer<-dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels")) # take the sql statement and query the clus db for the raster data
+  newLayer<-dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels"))# take the sql statement and query the clus db for the raster data
+  #newLayer<-dbGetQuery(sim$clusdb,paste0( "SELECT pixelid FROM pixels WHERE ", dy_layers))
   sim$rsfcovar_moose_chilcotin [, (colnames(newLayer)) := as.data.table(newLayer)] # convert the raster to data.table and attach the values to the rsfcovar table; The '()' is need to evaluate the colnames function
   rm(newLayer)
   gc()
@@ -178,8 +184,8 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
   
   for(i in 1:length(dt_sql)){ #Loop through each of the DT layers
     dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE ", dt_sql[i])))
-    if(nrow(dt_select) > 0){ print(paste0(dt_sql[i], ": TRUE"))
-      
+    if(nrow(dt_select) > 0){ 
+      print(paste0(dt_sql[i], ": TRUE"))
       dt_select[,field := 0]
       #outPts contains pixelid, x, y, field, population
       #sim$rsfcovar contains: pixelid, x,y, population
