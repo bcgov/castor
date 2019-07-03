@@ -938,7 +938,9 @@ uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-010',]
 ```{r, cond_ras}
 library(here)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
-lu<-getSpatialQuery("SELECT lu_id
+
+uwr_cond_harvest
+lu<-getSpatialQuery("SELECT *
 FROM public.rmp_lu_sp_polygon LIMIT 1")
 
 #Get the raster and projection
@@ -948,10 +950,25 @@ ProvRast <- raster(
 )
 
 #fasterize 
+class(uwr_cond_harvest$ogc_fid)
 uwr.ras<-fasterize::fasterize(sf= uwr_cond_harvest, raster = ProvRast , field = "ogc_fid")
-writeRaster(uwr.ras, file="zone_uwr.tif", format="GTiff", overwrite=TRUE)
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/R/params/zone_uwr.tif -t 100x100 rast.zone_uwr | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+nharv<-raster("C:/Users/KLOCHHEA/clus/nharv.tif")
+uwr.pixels<-data.table(c(t(raster::as.matrix(uwr.ras))))
+class(uwr.pixels$V1)
+
+uwr.pixels$V1<-as.integer(uwr.pixels$V1)
+
+sett<-uwr.pixels[uwr.pixels$V1 == 194756,]
+test<-nharv
+test[]<-uwr.pixels$V1
+
+writeRaster(test, file=paste0(here(), "/uwr.tif"), format="GTiff", overwrite=TRUE)
+
+#upload to db
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/uwr.tif -t 100x100 rast.zone_cond_uwr | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
 ```
 
 ## Commit the zone_uwr
@@ -964,6 +981,18 @@ df$percentage<-as.numeric(df$percentage)#assign integer
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
 DBI::dbWriteTable(conn, c("public", "zone_uwr"), value= df, row.names = FALSE, overwrite = TRUE) 
-#dbDisconnect(conn)
+
+#clean up the constraint table
+dbExecute(conn, "DELETE FROM public.zone_uwr WHERE zoneid IN
+          (SELECT g.zoneid FROM (SELECT * FROM public.zone_uwr 
+FULL OUTER JOIN
+(SELECT (pvc).value as value, SUM((pvc).count) as count
+ FROM (SELECT ST_ValueCount(rast,1,true) AS pvc
+   FROM rast.zone_cond_uwr) AS f
+ GROUP BY value ORDER BY value) as h
+ ON zoneid = value
+ ORDER BY zoneid, value) as g WHERE g.value is NULL);")
+
+dbDisconnect(conn)
 ```
 
