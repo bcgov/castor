@@ -26,7 +26,7 @@ public class Forest_Hierarchy {
 	
 	public static void main(String[] arg) {
 		  if (arg.length != 3) {
-	            System.err.println("Usage: java forest_hierarchy <Edges> <degree> <histogram>");
+	            System.err.println("Usage: java forest_hierarchy <Edges> <degree> <histogram> <variation>");
 	            //System.out.println("Creating a test run...");
 	        	Forest_Hierarchy f = new Forest_Hierarchy();
 	        	f.createData();
@@ -194,7 +194,7 @@ public class Forest_Hierarchy {
 		}
 	}
 	
-	public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable ) {
+	public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable, double allowdiff ) {
 		//Instantiate the Edge objects from the R data.table
 		
 		//System.out.println("Linking to java...");
@@ -215,6 +215,8 @@ public class Forest_Hierarchy {
 		to = null;
 		from =null;
 		weight = null;
+		
+		this.allowableDiff = allowdiff;
 	}
 
 
