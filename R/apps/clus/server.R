@@ -6,5 +6,10 @@ server <- function(input, output) {
     data <- histdata[seq_len(input$slider)]
     hist(data)
   })
+  
+  
+
+  
+  output$count <- renderText(input$fileIn)
 }
 

@@ -20,16 +20,8 @@ ui <- dashboardPage(
     tabItems(
       #First upload tab
       tabItem(tabName = "upload",
-              h2("upload tab content")
-      ),
-      tabItem(tabName = "dashboard",
-              fluidRow(
-                box(plotOutput("plot1", height = 250)),
-                box(
-                  title = "Controls",
-                  sliderInput("slider", "Number of observations:", 1, 100, 50)
-                )
-              )
+          textInput("test", "clusdb", value = "", width = NULL, placeholder = NULL) 
+              
       ),
       # compare scenarios
       tabItem(tabName = "comparescenario",

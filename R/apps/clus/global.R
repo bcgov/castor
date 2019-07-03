@@ -1,10 +1,11 @@
 library(shiny)
 library(shinydashboard)
 library(shinyBS)
+library(shinyFiles)
 library(plotly)
 library(openxlsx)
 library(CaribouBC)
-
+library(RSQLite)
 
 
 ## initialize sliders for the different pen types

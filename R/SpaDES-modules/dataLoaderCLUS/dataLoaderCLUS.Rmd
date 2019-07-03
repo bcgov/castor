@@ -37,21 +37,22 @@ times <- list(start = 0, end = 10)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus', # parameters passed here go to the the dataLoaderCLUS module;                                           dbname is name of postgres database
-                  nameBoundaryFile="study_area_compart", # spatial data of study area
-                  nameBoundaryColumn="tsb_number", # the column name from the study area dataset that                                                       you want to query
-                  nameBoundary=c("08B","08C"), # the name of the location (i.e., polygon) in the                                                     spatial dataset that you want to query 
-                  nameBoundaryGeom='wkb_geometry', #n ame of the geomtery column in the spatial                                                           dataset that you want to query
-                  nameCompartmentRaster = "rast.forest_tenure",
-                  nameCompartmentTable = "forest_tenure_vat",
-                  save_clusdb = TRUE,
-                  nameOwnershipRaster='rast.f_own',
-                  nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                  nameZoneRasters=c("rast.zone_beo", "rast.zone_vqo"),
-                  nameZoneTable="zone_constraints",
-                  nameAgeRaster= "rast.vri2017_projage1",
-                  nameHeightRaster= "rast.vri2017_projheight1",
-                  nameCrownClosureRaster= "rast.vri2017_crownclosure"
+  dataLoaderCLUS = list(dbName='clus',
+                         save_clusdb = TRUE,
+                         nameBoundaryFile="study_area_compart",
+                         nameBoundaryColumn="tsb_number",
+                         nameBoundary=c("08B"), 
+                         nameBoundaryGeom='wkb_geometry',
+                         nameCompartmentRaster = "rast.forest_tenure",
+                         nameCompartmentTable = "forest_tenure_vat",
+                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameZoneRasters=c("rast.zone_beo"),
+                         nameZoneTable="zone_constraints",
+                         nameCutblockRaster ="rast.cns_cut_bl",
+                         nameAgeRaster= "rast.vri2017_projage1",
+                         nameHeightRaster= "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameYieldTable ="yield_ex"
                       )
                     )
 
