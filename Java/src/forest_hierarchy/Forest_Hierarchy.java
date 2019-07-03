@@ -159,11 +159,11 @@ public class Forest_Hierarchy {
 				if(blocksize > 1 && Math.abs(edge.weight-cwt)/cwt < allowableDiff){
 					this.edgeList.remove(edge);
 					break; //a match ha
-				}else{
-					//cwt = edge.weight;
-					//his.edgeList.remove(edge);
-					//break; //a match has been found so break out of the loop of the edges
-					continue;
+				}
+				if(blocksize <= 1){
+					cwt = edge.weight;
+					this.edgeList.remove(edge);
+					break; //a match has been found so break out of the loop of the edges
 				}
 				
 			}
