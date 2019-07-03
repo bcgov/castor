@@ -64,6 +64,7 @@ parameters <- list(
                          nameYieldTable ="yield_ex"),
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_beo',
+                      patchVariation = 0.5,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE)

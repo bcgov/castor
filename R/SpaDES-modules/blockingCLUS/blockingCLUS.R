@@ -320,14 +320,13 @@ blockingCLUS.preBlock <- function(sim) {
   #Any blockids previously loaded - respect their values
   max_blockid<- dbGetQuery(sim$clusdb, "SELECT max(blockid) FROM pixels")
   blockids[V1 > 0, V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
-  #print(max_blockid)
   
   #TODO:Add in any islands
-  #islands<-data.table(islands)
-  #islands<-islands[,num:=seq_len(.N)]
-  #max_blockid<-max(blockids$V1)
-  #print(max_blockid)
-  #blockids<-blockids[V2 %in% unlist(islands$islands), V1:= num + as.integer(max_blockid)]
+  islands<-data.table(islands)
+  islands<-islands[,num:=seq_len(.N)]
+  print(islands)
+  max_blockid<-max(blockids$V1)
+  blockids<-blockids[V2 %in% unlist(islands$islands), V1:= num + as.integer(max_blockid)]
   
   #add to the clusdb
   dbBegin(sim$clusdb)
@@ -431,7 +430,7 @@ getBlocksIDs<- function(x){
   #2. A list of edges (to and from) and weights; 3. The zone name; and
   #4. The patch size distribution. These are accessed via x[][[1-4]]
   #------------------------------------------------------------
-  message(paste0("getBlocksID for zone: ", x[][[3]], " useing a variation of:", x[][[5]])) #Let the user know what zone is being blocked
+  message(paste0("getBlocksID for zone: ", x[][[3]], " using a variation of:", x[][[5]])) #Let the user know what zone is being blocked
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java
   
