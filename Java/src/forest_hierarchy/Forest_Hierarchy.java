@@ -16,7 +16,7 @@ public class Forest_Hierarchy {
 	Integer[] degree;
 	Integer[] idegree;
 	int blockID = 0;
-	double cwt = 0.0, allowableDiff = 0.2;
+	double cwt = 1.0, allowableDiff = 0.2;
 	
 	private static final int EMPTY = -1;
 	
@@ -53,6 +53,7 @@ public class Forest_Hierarchy {
 			if(blockSize == 0){ //the first pixel in the block
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList));//get the largest degree?
 				//System.out.println("seed: " + seed);
+				cwt = 1.0;
 			}else{
 				if(this.degreeList.get(seed) > 0) { //if there are still edges from the seed to spawn
 					seedNew = findPixelToAdd(seed, blockSize); //get the lowest weighted edge. Note the first edge to be added will have the lowest weight because it is sorted 
