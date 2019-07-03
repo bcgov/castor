@@ -32,6 +32,7 @@ defineModule(sim, list(
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter("blockMethod", "character", "pre", NA, NA, "This describes the type of blocking method"),
     defineParameter("patchZone", "character", "99999", NA, NA, "Zones that pertain to the patch size distribution requirements"),
+    defineParameter("patchVariation", "numeric", 0.2, NA, NA, "The percent (fractional) difference between edges of the pre-blocking algorithm"),
     defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
@@ -137,19 +138,23 @@ blockingCLUS.getExistingCutblocks<-function(sim){
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                            conn=NULL)
-    exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
-    setnames(exist_cutblocks, "V1", "blockid")
-    exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
-    exist_cutblocks<-exist_cutblocks[blockid > 0, ]
- 
-    #add to the clusdb
-    dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
-    dbClearResult(rs)
-    dbCommit(sim$clusdb)
-    
-    rm(ras.blk,exist_cutblocks)
-    gc()
+    if(extent(sim$ras) == extent(ras.blk)){
+      exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
+      setnames(exist_cutblocks, "V1", "blockid")
+      exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
+      exist_cutblocks<-exist_cutblocks[blockid > 0, ]
+   
+      #add to the clusdb
+      dbBegin(sim$clusdb)
+        rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
+      
+      rm(ras.blk,exist_cutblocks)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "blockingCLUS", "nameCutblockRaster")))
+    }
   }
 return(invisible(sim))
 }
@@ -168,16 +173,14 @@ return(invisible(sim))
 
 blockingCLUS.setSimilarity <- function(sim) {
   #Calculate the similarity using Mahalanobis distance of similarity
-  
   dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels 
                             WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
   dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
-  
-  
   # attaching to the pixels table
   message("updating pixels table with similarity metric")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
   
+  #Upload to db
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
     dbClearResult(rs)
@@ -211,58 +214,67 @@ blockingCLUS.setSpreadProb<- function(sim) {
 }
 
 blockingCLUS.preBlock <- function(sim) {
-
+  
   edges<-sim$edgesAdj
 
   edges[, to := as.integer(to)]
+  edges[, from := as.integer(from)]
   edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
   edges<-unique(edges)#remove the duplicates
 
-  weight<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, similar FROM pixels Order by pixelid ASC')) # convert to a data.table - faster for large objects than data.frame
+  weight<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, similar FROM pixels ORDER BY pixelid ASC')) # convert to a data.table - faster for large objects than data.frame
 
-  edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid") #merge in the weights from a cost surface
+  edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1")) #reformat
-  edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="pixelid"))#merge in the weights to a cost surface
+  edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="pixelid", all.x= TRUE))#merge in the weights to a cost surface
   setnames(edges.w2, c("from", "to", "w1", "w2")) #reformat
+  
   edges.w2$weight<-abs(edges.w2$w2 - edges.w2$w1) #take the absolute cost between the two pixels
  
   #------get the edges list
-  edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
+  edges.weight<-edges.w2[complete.cases(edges.w2), c("from", "to", "weight")] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
   edges.weight<-as.matrix(edges.weight[, id := seq_len(.N)]) #set the ids of the edge list. Faster than using as.integer(row.names())
 
   #summary(edges.weight$weight)
   #------make the graph
-  g<-graph.lattice()#instantiate the igraph object
+  #g<-graph.lattice(c(nrow(sim$ras), ncol(sim$ras), 1))#instantiate the igraph object
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
+  check<<-V(g)$name
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
   
   #only select those zones to apply constraints that actually have thlb in them.
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(",patchSizeZone,") FROM pixels where thlb > 0 group by ", patchSizeZone)))) 
-  resultset<-list()
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels where thlb > 0 group by ", patchSizeZone)))) 
+  resultset<-list() #create an empty resultset to be appended within the for loop
+  islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
   
   for(zone in zones){
     #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
-    vertices<-as.matrix(dbGetQuery(sim$clusdb,
-          paste0("SELECT pixelid FROM pixels where similar > 0 AND ",
-                 patchSizeZone, " in ( '", zone, "')")))
+    vertices<-data.table(dbGetQuery(sim$clusdb,
+          paste0("SELECT pixelid FROM pixels where similar >= 0 AND ", patchSizeZone, " = ", zone, ";")))
+    
+    islands_new<-vertices[!(pixelid %in% V(g)$name),] #check to make sure all the verticies are in the graph
+    if(nrow(islands_new) > 0){
+      vertices<-vertices[!(pixelid %in% unlist(islands_new, use.names = FALSE)),] #grab only the verticies that are in the graph -- this means verticies that are 'islands' are not included. These are added in later in the algorithm
+      islands<-append(islands, islands_new)
+    }
+    
     #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
-    g.mst_sub<-mst(induced_subgraph(g, vids = vertices), weighted=TRUE)
+    g.mst_sub<-mst(induced_subgraph(g, vids = as.matrix(vertices)), weighted=TRUE)
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)]
       paths.matrix[, V2 := as.integer(V2)]
       #print(head(get.edgelist(g.mst_sub)))
-      natDT<-dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
-      targetNum<- patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
+      natDT <-dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
+      targetNum <- patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
       #sample(x=c(1,2,3), size=1000, replace=TRUE, prob=c(.04,.50,.46))
-      patchDist<-list(targetNum$sizeClass , targetNum$targetNum)
-      resultset<-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
+      patchDist <-list(targetNum$sizeClass , targetNum$targetNum)
+      resultset <-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist, P(sim)$patchVariation))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
     }else{
       message(paste0(zone, " has length<0"))
       next
@@ -305,12 +317,17 @@ blockingCLUS.preBlock <- function(sim) {
   
   blockids <- data.table(Reduce(function(...) merge(..., all=T), result))#join the list components
 
-  #blockids[with(blockids, order(V2)), ] #sort the table
-  #blockids<-data.table(tidyr::complete(blockids, V2= seq(1:as.integer(length(sim$ras))),fill = list(V1 = as.integer(-1))))
-  
   #Any blockids previously loaded - respect their values
   max_blockid<- dbGetQuery(sim$clusdb, "SELECT max(blockid) FROM pixels")
   blockids[V1 > 0, V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
+  #print(max_blockid)
+  
+  #TODO:Add in any islands
+  #islands<-data.table(islands)
+  #islands<-islands[,num:=seq_len(.N)]
+  #max_blockid<-max(blockids$V1)
+  #print(max_blockid)
+  #blockids<-blockids[V2 %in% unlist(islands$islands), V1:= num + as.integer(max_blockid)]
   
   #add to the clusdb
   dbBegin(sim$clusdb)
@@ -414,7 +431,7 @@ getBlocksIDs<- function(x){
   #2. A list of edges (to and from) and weights; 3. The zone name; and
   #4. The patch size distribution. These are accessed via x[][[1-4]]
   #------------------------------------------------------------
-  message(paste0("getBlocksID for zone: ", x[][[3]])) #Let the user know what zone is being blocked
+  message(paste0("getBlocksID for zone: ", x[][[3]], " useing a variation of:", x[][[5]])) #Let the user know what zone is being blocked
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java
   
@@ -430,7 +447,7 @@ getBlocksIDs<- function(x){
   to<-.jarray(as.matrix(x[][[2]][,1])) #set the "to" list as a java object
   from<-.jarray(as.matrix(x[][[2]][,2]))#set the "from" list as a java object
   weight<-.jarray(as.matrix(x[][[2]][,3])) #set the "weight" list as a java object
-  fhClass$setRParms(to, from, weight, d, h) # sets the input R parameters <Edges> <Degree> <Histogram>
+  fhClass$setRParms(to, from, weight, d, h, x[][[5]]) # sets the input R parameters <Edges> <Degree> <Histogram> <variation>
   fhClass$blockEdges() # builds the blocks
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
   fhClass$clearInfo() #This method clears the object so it can be sent for garbage collection
