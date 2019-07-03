@@ -156,8 +156,7 @@ public class Forest_Hierarchy {
 				if(edge.to == (seed + 1)) nextPixel = edge.from; //get the 'from' pixel because the seed is the 'to'
 				if(edge.from == (seed + 1)) nextPixel = edge.to; //get the 'to' pixel because the seed is the 'from'
 				
-				if(blocksize > 1 && Math.abs(edge.weight-cwt)/cwt < allowableDiff){
-					cwt = edge.weight;
+				if(blocksize > 1 && edge.weight < cwt + allowableDiff){
 					this.edgeList.remove(edge);
 					break; //a match ha
 				}
