@@ -252,6 +252,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #Set the zone IDs
   #----------------
   if(!(P(sim, "dataLoaderCLUS", "nameZoneRasters")[1] == "99999")){
+    message(paste0('.....zones: ',P(sim, "dataLoaderCLUS", "nameZoneRasters")))
     zones_aoi<-data.table(zoneid='', zone_column='')
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:sim$zone.length){
@@ -454,7 +455,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #Set the Crown Closure 
     #---------------------
     if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999")){
-      message(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
+      message(paste0('.....crownclosure: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
       ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
@@ -477,7 +478,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #Set the Height 
     #---------------------
     if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999")){
-      message(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
+      message(paste0('.....height: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
       ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
