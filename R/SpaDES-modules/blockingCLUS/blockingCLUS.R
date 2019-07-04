@@ -109,7 +109,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 blockingCLUS.Init <- function(sim) {
-  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 8, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
+  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
 return(invisible(sim))
 }
@@ -173,9 +173,14 @@ return(invisible(sim))
 
 blockingCLUS.setSimilarity <- function(sim) {
   #Calculate the similarity using Mahalanobis distance of similarity
-  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels 
-                            WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
-  dt[, mdist:= mahalanobis(dt[, 2:3], colMeans(dt[, 2:3]), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
+  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
+  dt<-dt[, height:=(height-mean(height))/sd(height)][, crownclosure:=(crownclosure-mean(crownclosure))/sd(crownclosure)] #scale the variables
+  #transloacte the graph to the right so that the smallest value is zero orientated
+  #dt<-dt[, height:=min(height) + height][, crownclosure:= min(crownclosure) + crownclosure]
+  #dt[, mdist:= mahalanobis(dt[, 2:4], colMeans(dt[, 2:4]), cov(dt[, 2:4])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
+  #dt<-dt[, height:=abs(min(height)) + height][, crownclosure:= abs(min(crownclosure)) + crownclosure]
+  dt[, mdist:= mahalanobis(dt[, 2:3], c(0,0), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
+  #dt[, mdist:= height] 
   # attaching to the pixels table
   message("updating pixels table with similarity metric")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
@@ -381,7 +386,7 @@ blockingCLUS.spreadBlock<- function(sim) {
       landings<-landings[!duplicated(landings$landings),]
     
       simBlocks<-SpaDES.tools::spread2(landscape=sim$aoi, spreadProb = sim$ras.spreadProbBlock, 
-                                         start = landings[,1], directions =4, 
+                                         start = landings[,1], directions =8, 
                                          maxSize= landings[,2], allowOverlap=FALSE)
   
       mV<-maxValue(simBlocks) 
@@ -430,7 +435,7 @@ getBlocksIDs<- function(x){
   #2. A list of edges (to and from) and weights; 3. The zone name; and
   #4. The patch size distribution. These are accessed via x[][[1-4]]
   #------------------------------------------------------------
-  message(paste0("getBlocksID for zone: ", x[][[3]], " using a variation of:", x[][[5]])) #Let the user know what zone is being blocked
+  message(paste0("getBlocksID for zone: ", x[][[3]])) #Let the user know what zone is being blocked
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java
   
