@@ -16,7 +16,7 @@ public class Forest_Hierarchy {
 	Integer[] degree;
 	Integer[] idegree;
 	int blockID = 0;
-	double cwt = 1.0, allowableDiff = 0.2;
+	double cwt = 1.0, allowableDiff = 2;
 	
 	private static final int EMPTY = -1;
 	
@@ -52,6 +52,7 @@ public class Forest_Hierarchy {
 		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 			if(blockSize == 0){ //the first pixel in the block
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList));//get the largest degree?
+				//seed = this.edgeList.get(0).to - 1;
 				//System.out.println("seed: " + seed);
 			}else{
 				if(this.degreeList.get(seed) > 0) { //if there are still edges from the seed to spawn
@@ -156,12 +157,11 @@ public class Forest_Hierarchy {
 				if(edge.to == (seed + 1)) nextPixel = edge.from; //get the 'from' pixel because the seed is the 'to'
 				if(edge.from == (seed + 1)) nextPixel = edge.to; //get the 'to' pixel because the seed is the 'from'
 				
-				//if(blocksize > 1 && (edge.weight - cwt) < allowableDiff){
+				//if(blocksize > 1 && edge.weight  < this.allowableDiff){
 					this.edgeList.remove(edge);
 					break; //a match ha
 				//}
 				//if(blocksize <= 1){
-				//	cwt = edge.weight;
 				//	this.edgeList.remove(edge);
 				//	break; //a match has been found so break out of the loop of the edges
 				//}
