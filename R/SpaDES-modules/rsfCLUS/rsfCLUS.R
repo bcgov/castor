@@ -13,7 +13,7 @@
 
 defineModule(sim, list(
   name = "rsfCLUS",
-  description = "This module calculates Resource Selection Functions within the simulation", 
+  description = "This module calculates Resource Selection Functions (RSFs) within the simulation.", 
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
     person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
@@ -36,27 +36,27 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput(objectName = "rsf_model_coeff", objectClass = "data.table", desc = 'A User supplied data.table containing the model coeffecients and their decription', sourceURL = NA),
+    expectsInput(objectName = "rsf_model_coeff", objectClass = "data.table", desc = 'A User supplied data.table, curently created in the .RMD file. Contains data on the types of model coefficients and their values, spatial boundary definitions, and SQL statements for querying data.', sourceURL = NA),
     expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "pts", objectClass = "data.table", desc = NA, sourceURL = NA)
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "A data.table of covariates used to calculate the RSF. This could be uploaded into clusdb?"),
-    createsOutput(objectName = "rsfGLM", objectClass = "list", desc = "A list of glm objects that describe the RSF. Gets created at Init"),
-    createsOutput(objectName = "rsf", objectClass = "data.table", desc = "A data.table of predicted rsf")
+    createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "A data.table object created in the RSQLite clusdb. Consists of covariates at each pixel used to calculate the RSF."),
+    createsOutput(objectName = "rsfGLM", objectClass = "list", desc = "A list of glm objects that describe the RSF. Gets created at Init. USed to predict the rsf scores based on the rsfCovar values."),
+    createsOutput(objectName = "rsf", objectClass = "data.table", desc = "A data.table object created in the RSQLite clusdb. Consists of predicted RSF scores for each pixel.")
     
   )
 ))
 
-doEvent.rsfCLUS = function(sim, eventTime, eventType) {
-  switch(
+doEvent.rsfCLUS = function(sim, eventTime, eventType) { # two event types, init and calculate the RSF 
+  switch (
     eventType,
     init = {
-      sim <- rsfCLUS.Init(sim)
-      sim <- rsfCLUS.PredictRSF(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8)
+      sim <- rsfCLUS.Init (sim) # this function inits two new data.tables in the RSQLite db: rsfCovar and rsf; clips the RSF boundary by the analysis area boundary (e.g., TSA); then clips each RSF area to the area of analysis (e.g., TSA)
+      sim <- rsfCLUS.PredictRSF (sim)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8)
     },
     
     calculateRSF = {
@@ -73,45 +73,40 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-rsfCLUS.Init <- function(sim) {
-   #init a concatenated variable called 'rsf' that will report the population and season
-  rsf_model_coeff[, rsf:= do.call(paste0, list(collapse = "_", .BY)), by = c("population", "season") ]
-  rsf_model_coeff[layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("population", "season", "layer") ]
-  sim$rsf<- data.table() #init the rsf table
+rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
+  rsf_model_coeff [, rsf:= do.call(paste0, list(collapse = "_", .BY)), by = c("species", "population", "season") ] # init a new column in rsf_model_coeff that is concatenated variable called 'rsf' that will report the species, population and season 
+  rsf_model_coeff [layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("species", "population", "season", "layer") ] # creates a new column, 'layer_uni' concatenating species-pop-season-layer 
+  sim$rsf <- data.table() # init the rsf table in the clusdb RSQLite db
   #Set all the static rasters - when rsfcovar does not exist in sim$clusdb  
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) {
-    #init the rsfcovar table
-    sim$rsfcovar<-data.table(sim$pts)
-    
-    #Upload the boundary from which the rsf will be applied
-    rsf_list<-unique(rsf_model_coeff[, c("population","bounds")])
-    
-    for(k in 1:nrow(rsf_list)){
-      message(rsf_list[k]$bounds)
-      bounds<-data.table(c(t(raster::as.matrix(
-        RASTER_CLIP2(srcRaster= paste0(rsf_list[k]$bounds), 
-                     clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                     geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                     where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn=NULL)))))
-      sim$rsfcovar[, (rsf_list[k]$population):= bounds$V1]
+  if (nrow (dbGetQuery (sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) { # if there is no rsfcovar table in the RSQLite db
+      sim$rsfcovar <- data.table (sim$pts) # init the rsfcovar table with the 'pts' object from dataLoader; consists of pixelid's and x,y location centroid of the pixel 
+      rsf_list <- unique (rsf_model_coeff [, c("species", "population", "bounds")]) # create a list of unique species, population, boundary types
+      for(k in 1:nrow (rsf_list)) { # loop through the unique list
+      message (rsf_list[k]$bounds) 
+      bounds <- data.table (c (t (raster::as.matrix( 
+        RASTER_CLIP2(srcRaster = paste0(rsf_list[k]$bounds), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
+                     clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # by the area of analysis (e.g., supply block/TSA)
+                     geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                     where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                     conn = NULL)))))
+      sim$rsfcovar[, (rsf_list[k]$population):= bounds$V1] # take the clipped, transposed, raster of each clipped RSF area (default defined as 'v1'), and create new column(s) in the rsfcovar table that indicates to which pixel each RSF applies (value = 1), or not (value = 0, NA)
     }
     
-    #load the static variables
-    static_list<-as.list(unlist(unique(rsf_model_coeff[static == 'Y' & layer != 'int'])[,c("sql")], use.names = FALSE))
-    for(layer_name in static_list){ 
-      message(layer_name)
-      if(rsf_model_coeff[sql == layer_name & layer != 'int']$type == 'RC' ){
-        rclass_text<- rsf_model_coeff[sql == layer_name & layer != 'int']$reclass
-        message(rclass_text)
-        layer<-data.table(c(t(raster::as.matrix(
-          RASTER_CLIP_CAT(srcRaster= layer_name, 
-                       clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                       geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+    # add the 'static' Covariates to the rsfcovar table
+    static_list <- as.list (unlist (unique (rsf_model_coeff[static == 'Y' & layer != 'int'])[,c("sql")], use.names = FALSE)) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+    for (layer_name in static_list){ # loop through the list of static covariates
+      message(layer_name) # CONFUSED HERE BY layer and layer_name?
+      if (rsf_model_coeff[sql == layer_name & layer != 'int']$type == 'RC' ){ # if the coefficient is also a reclass 'RC' type
+          rclass_text <- rsf_model_coeff[sql == layer_name & layer != 'int']$reclass # create a table of the reclass statement
+          message(rclass_text)
+          layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each 
+          RASTER_CLIP_CAT(srcRaster = layer_name, 
+                       clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                       geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                        where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                        out_reclass = rclass_text,
                        conn=NULL)))))
-      }else{
+      }else{ 
         layer<-data.table(c(t(raster::as.matrix(
           RASTER_CLIP2(srcRaster= layer_name, 
                        clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
@@ -119,7 +114,7 @@ rsfCLUS.Init <- function(sim) {
                        where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                        conn=NULL)))))
       }
-      sim$rsfcovar[, (layer_name):= layer$V1] 
+      sim$rsfcovar[, (layer_name):= layer$V1] # create a layer_name column that is 
     }
 
     rsfCLUS.UpdateRSFCovar(sim) # Complete the rsfcovar table with the dynamic variables
@@ -132,7 +127,7 @@ rsfCLUS.Init <- function(sim) {
     rsfCLUS.StandardizeDynamicRSFCovar(sim)
     rsfCLUS.StoreRSFCovar(sim) # store the current/initial rsfcovar for future use
      
-  }else{
+  }else{ # if there is rsfcovar data.table in the RSQLite db then grab teh table and load it into the sim
     sim$rsfcovar<-dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar")
   }
   
@@ -157,7 +152,7 @@ rsfCLUS.UpdateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie
 }
 
 getUpdatedLayers<-function(sim){ #gets the updateable (internal to sim$clusdb) variables for the rsf
-  up_layers<-paste(unlist(unique(rsf_model_coeff[type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ")
+  up_layers<-paste(unlist(unique(rsf_model_coeff[static == 'N' & type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ")
   newLayer<-dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels"))
   sim$rsfcovar[, (colnames(newLayer)) := as.data.table(newLayer)] # The '()' is need to evaluate the colnames function
   rm(newLayer)
