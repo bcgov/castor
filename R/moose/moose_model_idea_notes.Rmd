@@ -12,17 +12,75 @@ knitr::opts_chunk$set(echo = TRUE)
 - here are some ideas and lit. review about how to go about developing a 'moose model' for caribou recovery
 
 ## Possible Approaches
-- Doug Lewis model:
-  - models moose forage supply (eg. kg/ha) as a function of forest age by BEC type
-  - could be used as an indicator of moose population carrying capacity (i.e., max density) in an area
-  - could be used to show 'bottom-up' efefct of forest harvest on moose density and consequently wolf 
-    density and ultimately predation risk for caribou
-  - general idea would be to calculate forage value of a ha based on BEC type and forest age, then sum 
-    those values for whatever area of interest to calculate total forage available
-    - then need some literature to covnert forage to moose density
-    - can use the Fuller and/or Kuzyk wolf modesl to convert moose biomass to wolf density 
+### Doug Lewis model:
+  - models moose 'bioclimatic envelope' and forage supply (eg. kg/ha) 
+  - could be used as an indicator of moose population carrying capacity (i.e., max density) in an 
+    area
+  - could be used to show 'bottom-up' effect of forest harvest on moose density and consequently wolf     density and ultimately predation risk for caribou
+  - general idea would be to calculate forage value of a ha based on BEC and land cover type, then 
+    sum those values for whatever area of interest to calculate total forage available adn moose 
+    density
+    - then can use the Fuller and/or Kuzyk wolf models to convert moose biomass to wolf density 
+ 
+  - 'bioclimatic envelope model' (BEM) of moose occurence developed as a function of snow depth and       winter temperature
+    - moose occurence is indexed as a 'cimatic envelope score' (CES)
+    - CES = snow depth + winter temperature
+      - snow depth = probability March 1 snow depth is <120cm
+        - snow depth = ((PASwt + PASat)*0.35)/10
+          - PASwt = precipiationa as snow winter (Dec-Feb) from Climate BC
+          - PASat = precipiationa as snow autumn (Spet-Nov) from Climate BC
+          - 0.35 = 'snow bul density' adjustment parameter to 'convert' ppt to snow depth
+      - winter temperature (WT) = probability <-5C Dec-Feb
+      - probability is based on sample of PAS and WT in each BEC subzone/variant???
+      
+    - also used BEMs of aspen, birch and willow (to represent dry-cold, moist-cool and wet-cool 
+      climate zones) occurence, to get index of relative forage production, and then scaled to 
+      biomass (kg/ha)
+  
+  - BEC data used to define climate 
+    - to subzone/variant level
+    - several higher elevation Biogeoclimatic subzone variants (ESSF dc1-3, xc1-3, xcw, xcp,wk1,mh 
+      and BAFun) were removed as capable habitat based on the low number or lack of winter moose 
+      observations
+    - several lower elevation habitats including the ICHdw1,dw4,mw2 and IDFmw1 were manually included       in the capable habitat areas
+ 
+  - 'forage' land cover classes defined as:
+    - riparian forest (static)
+      - BC freshwater atlas stream layer (1:20,000) buffered by 5m
+    - wetlands (static)
+      - BC freshwater atlas wetland layer
+    - deciduous forest (static)
+      - aspen and birch leading stands (>30%) in VRI
+    - early seral conifer forest (dynamic)
+      - conifer forest <40 years old from VRI
+ 
+ - available forage biomass applied to each type  
+    - riparian forest = 50kg/ha
+    - wetland = 100kg/ha
+    - deciduous = 100kg/ha
+    - conifer forest follows age curve 
+      - peaks at 205kg/ha at age 20
+      - equation not provided....
+ 
+ - moose carrying capacity (K) estimates as:
+  - estimate amount of forage utilized (i.e., 50% of available)
+  - assume moose require 5kg dry biomass/day
+  - moose depend on winter browse for 210 days/year (mid-October to May)
+    - K (moose/km2) = (((FB x U)/FU)*FD)/A
+      - FB = forage biomass (kg/ha), estimated from are of land cover types and associate forage
+      - U = utiliation = 0.5
+      - FU = amount of forage used/day = 5 kg/day
+      - FD = # of days moose use witner browse = 221 days
+      - A = area of interest (km2) - don't use if don't need a density
+      
+    
+    
+    
+    
+    
+    
 
-- Schneidman (2018) moose RSF model (http://web.unbc.ca/~michael/Pubs/Scheideman_MSc_Thesis.pdf)
+### Schneidman (2018) moose RSF model (http://web.unbc.ca/~michael/Pubs/Scheideman_MSc_Thesis.pdf)
   - some study areas overlap/adjacent to caribou areas:
     - PG South near Narrow Lake
     - Entiako near Tweedsmuir/Itcha
@@ -34,7 +92,7 @@ knitr::opts_chunk$set(echo = TRUE)
     - early winter (Nov 21 to Jan 14)
   - fit second and third order models using logistic regression and evaluated model fit using AIC
 
-  - second-order models (note for multi-models: I've added the model weigth as a multiplier to the 
+#### second-order models (note for multi-models: I've added the model weigth as a multiplier to the 
     coefficient value):
     - Entiako 
       - Late Winter: wx = exp ((HR * 0.9))
@@ -96,7 +154,7 @@ knitr::opts_chunk$set(echo = TRUE)
             - Fall: 20
             - Early Winter: 18
 
-  - third-order models (note for multi-models: I've added the model weigth as a multiplier to the 
+#### third-order models (note for multi-models: I've added the model weigth as a multiplier to the 
     coefficient value):
      - Entiako 
       - Late Winter: wx = exp (((-4.48 * 0.52) + (-4.54 * 0.48)) +
@@ -316,7 +374,7 @@ CLASS:
 
 
 
-- Mumma and Gillingham (2019) survival model (http://web.unbc.ca/~michael/Mumma_and_Gillingham_2019.pdf)
+### Mumma and Gillingham (2019) survival model (http://web.unbc.ca/~michael/Mumma_and_Gillingham_2019.pdf)
   - similar conceptually to an RSF, except models mortality risk or survival probabibility of cow 
     caribou (not resource selection probability) as a function of habitat
       - Cox proportional hazards model that estimates survival as a function of habitat covariates     
