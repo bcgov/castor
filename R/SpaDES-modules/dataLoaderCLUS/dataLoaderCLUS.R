@@ -109,7 +109,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                               where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                               conn=NULL)
         
-        sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centoirds of raster boundary file; seems to be faster that rasterTopoints
+        sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centroids of raster boundary file; seems to be faster that rasterTopoints
         sim$pts <- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
         
         pixels <- data.table(c(t(raster::as.matrix(sim$ras)))) # turn raster into table of pixels and give them a sequential ID
