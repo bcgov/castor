@@ -18,6 +18,8 @@ public class Forest_Hierarchy {
 	int blockID = 0;
 	double cwt = 1.0, allowableDiff = 2;
 	
+	//allowableDiff: Sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
+	
 	private static final int EMPTY = -1;
 	
 	public Forest_Hierarchy() {
@@ -153,11 +155,12 @@ public class Forest_Hierarchy {
 	//double wt = 0.0;
 	int nextPixel = -1;
 		for(Edges edge : this.edgeList){ //find the next pixel from a seed
-			if (edge.to == (seed + 1) || edge.from == (seed + 1)) {
+			if ((edge.to == (seed + 1) || edge.from == (seed + 1)) && edge.weight  < this.allowableDiff) {
 				if(edge.to == (seed + 1)) nextPixel = edge.from; //get the 'from' pixel because the seed is the 'to'
 				if(edge.from == (seed + 1)) nextPixel = edge.to; //get the 'to' pixel because the seed is the 'from'
 				
 				//if(blocksize > 1 && edge.weight  < this.allowableDiff){
+				//if(edge.weight  < this.allowableDiff){
 					this.edgeList.remove(edge);
 					break; //a match ha
 				//}
