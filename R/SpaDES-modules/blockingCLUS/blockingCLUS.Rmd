@@ -47,7 +47,8 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list( dbName='clus',
-                         save_clusdb = TRUE,
+                         save_clusdb = FALSE,
+                         useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/clusdb.sqlite",
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
                          nameBoundary=c("08B"), 
@@ -64,12 +65,12 @@ parameters <- list(
                          nameYieldTable ="yield_ex"),
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_beo',
-                      patchVariation = 5,
+                      patchVariation =10,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE)
                         )
-modules <- list("dataLoaderCLUS","growingStockCLUS", "blockingCLUS")
+modules <- list("dataLoaderCLUS", "blockingCLUS")
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
                                   3,3,3,3,3,3,
@@ -88,7 +89,7 @@ paths <- list(
   inputPath = inputDir,
   outputPath = outputDir
 )
-
+#set.seed(86) # need to set a seed for solving the mst-can have many optimal solutions
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 

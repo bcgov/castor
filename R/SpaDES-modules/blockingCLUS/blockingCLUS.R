@@ -71,11 +71,9 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   
                   sim <- blockingCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
-                  sim <- blockingCLUS.setSimilarity(sim)# assigns a similarity distance 
                   sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
                   sim <- blockingCLUS.setAdjTable(sim)
                   sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
-                 
                }
                
                #Schedule the Update 
@@ -116,12 +114,12 @@ return(invisible(sim))
 
 blockingCLUS.createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer default 0 ")
   
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  #dbBegin(sim$clusdb)
+  #  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+  #dbClearResult(rs)
+  #dbCommit(sim$clusdb)
   
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
@@ -171,33 +169,6 @@ blockingCLUS.setBlocksTable <- function(sim) {
 return(invisible(sim))
 }
 
-blockingCLUS.setSimilarity <- function(sim) {
-  #Calculate the similarity using Mahalanobis distance of similarity
-  dt<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, height, crownclosure FROM pixels WHERE height >= 0 AND crownclosure >= 0 AND thlb > 0 AND blockid = 0'))
-  dt<-dt[, height:=(height-mean(height))/sd(height)][, crownclosure:=(crownclosure-mean(crownclosure))/sd(crownclosure)] #scale the variables
-  #transloacte the graph to the right so that the smallest value is zero orientated
-  #dt<-dt[, height:=min(height) + height][, crownclosure:= min(crownclosure) + crownclosure]
-  #dt[, mdist:= mahalanobis(dt[, 2:4], colMeans(dt[, 2:4]), cov(dt[, 2:4])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
-  #dt<-dt[, height:=abs(min(height)) + height][, crownclosure:= abs(min(crownclosure)) + crownclosure]
-  dt[, mdist:= mahalanobis(dt[, 2:3], c(0,0), cov(dt[, 2:3])) + runif(nrow(dt), 0, 0.0001)] #fuzzy the precision to get a better 'shape' in the blocks
-  #dt[, mdist:= height] 
-  # attaching to the pixels table
-  message("updating pixels table with similarity metric")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN similar numeric")
-  
-  #Upload to db
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET similar = :mdist WHERE pixelid = :pixelid", dt[,c(1,4)])
-    dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  
-  rm(dt)
-  gc()
-  
-  dbExecute(sim$clusdb, "VACUUM;")
-  return(invisible(sim))
-}
-
 blockingCLUS.setSpreadProb<- function(sim) {
   #Create a mask for the area of interst
   sim$aoi <- sim$ras #set the area of interest as the similarity raster
@@ -227,15 +198,24 @@ blockingCLUS.preBlock <- function(sim) {
   edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
   edges<-unique(edges)#remove the duplicates
 
-  weight<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, similar FROM pixels ORDER BY pixelid ASC')) # convert to a data.table - faster for large objects than data.frame
-
-  edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
-  setnames(edges.w1, c("from", "to", "w1")) #reformat
-  edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="pixelid", all.x= TRUE))#merge in the weights to a cost surface
-  setnames(edges.w2, c("from", "to", "w1", "w2")) #reformat
+  weight<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, crownclosure, height FROM pixels WHERE 
+                                thlb > 0 AND blockid = 0;')) # convert to a data.table - faster for large objects than data.frame
+  #scale the crownclosure and height between 0 and 1 to remove bias of distances towards a variable
+  weight<-weight[, height:=(height-mean(height))/sd(height)][, crownclosure:=(crownclosure-mean(crownclosure))/sd(crownclosure)] #scale the variables
   
-  edges.w2$weight<-abs(edges.w2$w2 - edges.w2$w1) #take the absolute cost between the two pixels
- 
+  #Get the inverse of the covariance-variance matrix or since its standarized correlation matrix
+  covm<-solve(cov(weight[,c("crownclosure", "height")]))
+  
+  edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
+  setnames(edges.w1, c("from", "to", "w1_cc", "w1_ht"))  #reformat
+  edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="pixelid", all.x= TRUE))#merge in the weights to a cost surface
+  setnames(edges.w2, c("from", "to", "w1_cc", "w1_ht", "w2_cc", "w2_ht")) #reformat
+  
+  #edges.w2$weight<-abs(edges.w2$w2 - edges.w2$w1) #take the absolute cost between the two pixels
+  edges.w2[, weight:= (w1_cc-w2_cc)*((w1_cc-w2_cc)*covm[1,1] + (w1_ht-w2_ht)*covm[1,2]) + 
+  (w1_ht-w2_ht)*((w1_cc-w2_cc)*covm[2,1] + (w1_ht-w2_ht)*covm[2,2]) + runif(nrow(edges.w2), 0, 0.0001)] #take the mahalanobic distance between the two pixels
+  #Note for the mahalanobis distance sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
+  
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c("from", "to", "weight")] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
   edges.weight<-as.matrix(edges.weight[, id := seq_len(.N)]) #set the ids of the edge list. Faster than using as.integer(row.names())
@@ -248,18 +228,17 @@ blockingCLUS.preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
-  check<<-V(g)$name
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
   
   #only select those zones to apply constraints that actually have thlb in them.
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels where thlb > 0 group by ", patchSizeZone)))) 
+  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels WHERE 
+                                 thlb > 0 group by ", patchSizeZone)))) 
   resultset<-list() #create an empty resultset to be appended within the for loop
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
   
   for(zone in zones){
-    #vertices<-as.matrix(dbGetQuery(sim$clusdb, paste0('SELECT pixelid FROM pixels where ? thlb > 0 and similar > 0')))
     vertices<-data.table(dbGetQuery(sim$clusdb,
-          paste0("SELECT pixelid FROM pixels where similar >= 0 AND ", patchSizeZone, " = ", zone, ";")))
+          paste0("SELECT pixelid FROM pixels where thlb > 0 AND blockid = 0 and ", patchSizeZone, " = ", zone, ";")))
     
     islands_new<-vertices[!(pixelid %in% V(g)$name),] #check to make sure all the verticies are in the graph
     if(nrow(islands_new) > 0){
