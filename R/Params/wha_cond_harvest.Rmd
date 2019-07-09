@@ -1,0 +1,314 @@
+---
+title: "WHA_Conditional_Harvest"
+author: "Kyle Lochhead"
+date: "June 24, 2019"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Conditional Harvesting Constraints
+
+Conditional harvesting means that there is some level of retention required during harvest operations. This may require a percentage of the harvest unit being retained according to a descriptive class - this can be age, crownclosure, height and even species specific. The table below provides a list of Wildlife habitat Area and ungulate winter range conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints that would impact caribou and thus this isn't an exaustive provincial list.
+
+## WHA
+
+```{r, WHA_cond_harv}
+library(data.table)
+getTableQuery("SELECT wha_tag FROM public.wcp_whaply_polygon WHERE harvest ='CONDITIONAL HARVEST ZONE' AND wha_tag IN 
+(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.study_area_tsa b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) GROUP by wha_tag ORDER BY wha_tag")
+
+aoi_uwr<-data.table(wha_tag = ,
+ aoi = c(),
+ species = c(),
+ complete = c(),
+ source = c()
+ )
+
+#Create empty zone constraint table
+zone_wha<-data.table(zoneid=integer(), type=character(), variable=character(), threshold=numeric(), reference_zone=character(), percentage=numeric(), ndt=integer(),
+                     label = character())
+
+
+library(sf)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+#create zoneid raster for conditional harvesting in UWR
+
+#Get the UWR that are in the aoi_uwr table. This is currently set to the interior UWRs
+wha_cond_harvest<-getSpatialQuery(paste0("SELECT  ogc_fid, wha_tag, feat_notes, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN ('",paste(aoi_uwr$wha_tag, collapse="', '"),"') ORDER BY apprv_date ASC")) 
+#Note the order by will allow the raster to select the newest dates first
+
+```
+
+### 3-071 to 3-088 Lewis Woodpecker, Kamloops
+When harvest is approved follow: Protect or retain all ponderosa pine and block cottonwood live or dead > 30 cm. Use partial cutting silvicutural systems to mainain widely spaced <25% later seral ponderosa pine and Douglas fir. Do not use pesticides. Do not construct roads unless there is not other practicable option. see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_3-071to088_ord.pdf
+
+### 3-117 to 3-120 and 3-122 Badger, Kamloops
+Do not construct roads. Do not use pesticides. Do not conduct timber harvesting, except when harvesting is required to support ecological restoration where stocking <75 tph
+see http://www.env.gov.bc.ca/wld/documents/wha/TATA_3_117to120_122_ord.pdf
+```{r, w3117}
+#No harvesting in these areas
+```
+
+### 3-147 American Badger
+Do not construct roads. Do not use pesticides. Do not conduct timber harvesting, except when harvesting is required to support ecological restoration where stocking <75 tph. see http://www.env.gov.bc.ca/wld/documents/wha/TATA_3-147_Order.pdf
+```{r, w3147}
+#No harvesting in these areas
+```
+
+### 3-171 to 3-181
+Data sensitve? Thompson Rivers
+
+### 4-011 to 4-045
+Data sensitve? Kootney Lake
+
+### 4-046 to 4-055 Rocky mountain tailed frog
+Do not harvest in the core area. Maintain atleast 70% basal area with the approprate structure. Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/ASMO-4-046-055.pdf
+```{r, w4046}
+#Maintain basal area of ? for 70% of the unit
+```
+
+### 4-056 to 4-064 Rocky mountain tailed frog
+Do not harvest in the core area. Maintain atleast 70% basal area with the approprate structure. Do not use pesticides.see http://www.env.gov.bc.ca/wld/documents/wha/ASMO-4-056-064.pdf
+```{r, w4056}
+#Maintain basal area of ? for 70% of the unit
+```
+
+### 4-077 to 4-085 Flammulated owl
+Do not salvage or harvest in the core area. Do not harvest on xeric sites. In mesic or subhydric sires use selective harvesting systems that retain 50% of the co-dominant trees.see http://www.env.gov.bc.ca/wld/documents/wha/FLOW-4-077-85.pdf
+```{r, w4077}
+#Assumed while harvesting? or mainain crownclosure > 50% for 50% of the area?
+```
+
+### 4-088 to 4-092, 4-102, 4-103 American Badger 
+Do not use pesticide. Harvest as required to support ecological restoration. Reduce stocking densities < 75 stems
+see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-088-092,102,103_ord.pdf
+```{r, w4088}
+#No harvesting in these areas
+```
+
+### 4-098 Western screech Owl 
+Do not harvest or salvage in the core area. Using selectin harvest < 20% basal area for PP, IDF and ICH zone. Retain deciduous trees. Retain > 60% of tree in riparian zones. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-098_ord.pdf
+```{r, w4098}
+#crownclosure > 60% in riparian. crown closure> 20 for other area 
+```
+
+### 4-099 to 4-101 Flammulated owl 
+Do not salvage or harvest in the core area. Do not harvest on xeric sites. In mesic or subhydric sires use selective harvesting systems that retain 50% of the co-dominant trees.see http://www.env.gov.bc.ca/wld/documents/wha/FLOW_4-099to101_ord.pdf
+```{r, w4099}
+#Assumed while harvesting? or mainain crownclosure > 50% for 50% of the area?
+```
+
+### 4-105  
+Data sensitive Kootney Lake
+
+### 4-107  American Badger
+see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-107_ord.pdf
+```{r, w4107}
+```
+
+### 4-109  American Badger
+Data sensitive Rocky Mountain
+```{r, w4109}
+```
+
+### 4-112  American Badger
+Data sensitive Rocky Mountain
+```{r, w4112}
+```
+
+### 4-113 to 4-115  Western Screech Owl
+see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-113to115_Order.pdf
+```{r, w4113}
+```
+### 4-121 to 4-126, 4-130 to 4-132, 4-134 to 4-135 Lewis Woodpecker
+see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_4-121_135_ord.pdf
+```{r, w4121}
+```
+
+### 4-151 to 4-170, 4-177 Gillettes Checkerspot
+http://www.env.gov.bc.ca/wld/documents/wha/EUPGIL_4-151to170_177_ord.pdf
+```{r, w4151}
+```
+
+### 4-178 to 4-179 Western Screech Owl
+see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-178_to_4-179_Order.pdf
+```{r, w4178}
+```
+
+### 4-180 Grizzly Bear
+see http://www.env.gov.bc.ca/wld/documents/wha/URAR_4-180_SA_Order.pdf
+```{r, w4180}
+```
+
+### 4-209 Interior Western Screech Owl–
+see http://www.env.gov.bc.ca/wld/documents/wha/WESO_4-205_4-209_Order.pdf
+```{r, w4209}
+```
+
+### 4-217 to 4-323, 4-234 to 4-242 Gillettes Checkerspot
+see http://www.env.gov.bc.ca/wld/documents/wha/EUGI_4-217_to_232_234_to242_GAR_Order.pdf
+```{r, w4217}
+```
+ 
+### 4-243 to 4-276 Western Screech Owl
+see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-243_to_276_GAR_Order.pdf
+```{r, w4243}
+```
+
+### 5-003 
+Data Sensitive? Chilcotin
+```{r, w5003}
+```
+
+### 5-007 - 5-035 American White Pelican
+Do Not harvest from April 1 to August 31 -- model assumes this. see http://www.env.gov.bc.ca/wld/documents/wha/AWPE-5-007_ord.pdf
+
+### 5-037 to 5-043 Grizzly Bear
+see http://www.env.gov.bc.ca/wld/documents/wha/URAR_5-037to043_CentalCariboo.pdf
+```{r, w5037}
+```
+
+### 5-072
+Data Sensitve Central Cariboo
+
+### 5-086 to 5-087, 5-118, 5-872 and 5-873 Caribou Northern
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-086-873_ord.pdf
+```{r, w5086}
+```
+
+### 5-088 to 5-117 Mountain Caribou 
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-088_%205-117_ord_09Dec09.pdf
+```{r, w5088}
+```
+
+### 5-120 to 5-123, 5-126 to 5-128, 5-131, 5-133 , 5-136 to 5-150, 5-168 to 5-171 + many more  Grizzly Bear
+see http://www.env.gov.bc.ca/wld/documents/wha/URAR-5-121to541_MidCoastTSA.pdf
+
+### 5-730
+Data Sensitive Quesnel
+
+### 5-752
+Data Sensitive Central Cariboo
+
+### 6-056 to 6-057 Coastal Tailed Frog
+see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-056-57_ord.pdf
+```{r, w6056}
+```
+
+### 6-060 to 6-067 Coastal Tailed Frog
+see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-060-067_ord.pdf
+```{r, w6060}
+```
+
+### 6-283 to 6-286
+Data Sensitive
+
+### 6-333 Caribou
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_ord_replaced_2018.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_amend_2018.pdf
+```{r, w6333}
+```
+
+### 8-003 to 8-004 Grasshopper Sparrow
+see http://www.env.gov.bc.ca/wld/documents/wha/GRSP_%208-003_8-004_ord.pdf
+```{r, w8003}
+```
+
+### 8-006 to 8-010 Bighorn Sheep
+see http://www.env.gov.bc.ca/wld/documents/wha/OVCC-8-006_ord.pdf
+```{r, w8006}
+```
+
+### 8-014 to 8-017 White-headed Woodpecker
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-014_ord.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-015_ord.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-016_ord.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-017_ord.pdf
+```{r, w8014}
+```
+
+### 8-047, 8-051, 8-319 to 8-324 Brewer's Sparrow
+Do not use pesticide - assumed in the model
+see http://www.env.gov.bc.ca/wld/documents/wha/BRSP_8-051_8-319_to_8-324_ord.pdf
+
+### 8-053 to 8-064
+Data Sensitive
+
+### 8-090 to 8-094 Blotched Tiger Salamander
+Do dont scarify harvested areas, do not place landings within management zone. Do not use pesticides
+see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_8-090_to_8-094_ord.pdf.
+
+### 8-124 to 8-126 Western Screech Owl
+see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-124_ord.pdf
+```{r, w8124}
+```
+
+### 8-232 Grizzly Bear
+see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-232_ord.pdf
+```{r, w8232}
+```
+
+### 8-233 Caribou 
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_8-233_ord.pdf
+```{r, w8233}
+```
+
+### 8-261 to 8-262 Western Screech Owl
+see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-261,8-262_ord.pdf
+```{r, w8261}
+```
+
+### 8-325 Grasshopper Sparrow
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/GRSP_8-325_ord.pdf
+
+### 8-328 and 8-331 American badger
+see http://www.env.gov.bc.ca/wld/documents/wha/TATA_8_328and331_ord.pdf
+```{r, w8328}
+```
+
+### 8-332, 8-333, 8-357 to 8-361 Half-moon Hairstreak
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SATSEM_%208-332_8-333_8-357_to_8-361_ord.pdf
+
+### 8-335, 8-336 Great Basin Spadefoot
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SPIN_8-335_8-336_ord.pdf
+
+### 8-368 to 8-372
+Data Sensitive
+
+### 8-373 Grizzly Bear
+see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-373_Ord.pdf
+```{r, w8373}
+```
+
+### 8-416 to 8-420 Great Basin Spadefoot
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_SPIN_8-416_ord.pdf
+
+### 8-424 Lewis' Woodpecker
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_8-424_ord.pdf
+
+### 8-426 to 8-433 Half-moon Hairstreak
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SATSEM_%208-426_to_8-433_ord.pdf
+
+### 9-003 to 9-017 Mountain Goat
+see http://www.env.gov.bc.ca/wld/documents/wha/ORAM-9-003_ord.pdf
+```{r, w9003}
+```
+### 9-025 to 9-031
+Data Sensitive 
+
+### 9-032 to 9-034, 9-041 to 9-073, 9-104 to 9-106, 9-144 to 9-145 Caribou
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-032_034_041_073,104_106,144,145_ord.pdf
+```{r, w9032}
+```
+
+### 9-035 to 9-040, 9-102, 9-103 Caribou
+see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-035_040,102,103_ord.pdf
+```{r, w9035}
+```
