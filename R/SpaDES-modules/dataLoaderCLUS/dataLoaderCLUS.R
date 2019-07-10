@@ -58,7 +58,10 @@ defineModule(sim, list(
     defineParameter("nameOwnershipRaster", "character", "99999", NA, NA, desc = "Name of the raster from GENERALIZED FOREST OWNERSHIP"),
     defineParameter("nameForestInventoryTable", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
     defineParameter("nameForestInventoryRaster", "character", "99999", NA, NA, desc = "Name of the veg comp - the forest inventory raster of the primary key"),
-    defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster")
+    defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster"),
+    defineParameter("nameForestInventoryAge", "character", "99999", NA, NA, desc = "Name of the veg comp age"),
+    defineParameter("nameForestInventoryHeight", "character", "99999", NA, NA, desc = "Name of the veg comp height"),
+    defineParameter("nameForestInventoryCrownClosure", "character", "99999", NA, NA, desc = "Name of the veg comp crown closure")
     ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -378,132 +381,134 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
   
   if(!P(sim,"dataLoaderCLUS", "nameForestInventoryRaster") == '99999'){
-    dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN fid integer'))
-    fid<-c('fid,',':fid,') # used in the query to set the pixels table
+    print("clipping inventory key")
+    #dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN fid integer'))
+    #fid<-c('fid,',':fid,') # used in the query to set the pixels table
     ras.fid<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameForestInventoryRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                            conn=NULL)
     if(aoi == extent(ras.fid)){#need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.fid)))))
-      setnames(pixels, "V1", "fid")
+      inv_id<-data.table(c(t(raster::as.matrix(ras.fid))))
+      setnames(inv_id, "V1", "fid")
+      inv_id[, pixelid:= seq_len(.N)]
+      inv_id[, fid:= as.integer(fid)] #make sure the fid is an integer for merging later on
       rm(ras.fid)
       gc()
     }else{
       stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameForestInventoryRaster")))
     }
-    if(!P(sim,"dataLoaderCLUS", "nameForestInventoryTable") == '99999'){
-      test<-getTableQuery(paste0("SELECT " , P(sim, "dataLoaderCLUS", "nameForestInventoryKey"), " age, height, crownclosure FROM ",
-             P(sim,"dataLoaderCLUS", "nameForestInventoryTable")))
-        
-      } else { 
-        message('No inventory table')
-      }  
-  } else {
     
-    fid<-c('','')
-    #----------------
-    #Set the blockids see blockingCLUS
-    #----------------
-      #blockid table
-      #if(!(P(sim, "dataLoaderCLUS", "nameCutblockTable") == "99999")){
-       # message('......getting blocks information')
-       # blocks<- getTableQuery(paste0("SELECT t.blockid, t.area, openingid, (1) as state, (20-(2018 - harvestyr)) as regendelay FROM 
-       # (SELECT (col1).value::int as blockid, (col1).count::int as area  FROM (
-       #                               SELECT ST_ValueCount(st_union(ST_Clip(rast, 1, foo.",P(sim, "dataLoaderCLUS", "nameBoundaryGeom") ,", -9999, true)),1,true)  as col1 FROM 
-        #                              (SELECT st_union(rast) as rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," FROM ",P(sim, "dataLoaderCLUS", "nameCutblockRaster"),", ",P(sim, "dataLoaderCLUS", "nameBoundaryFile"),
-        #                              " WHERE ",P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '"),"')" ," AND ST_Intersects(rast, ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom"),") group by ",P(sim, "dataLoaderCLUS", "nameBoundaryGeom")," ) as foo) as k) as t
-        #                              INNER JOIN ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),"
-        #                              ON t.blockid = ",P(sim, "dataLoaderCLUS", "nameCutblockTable"),".cutblockid;"))
-        #
-        #Set the table in clusdb
-        #dbBegin(sim$clusdb)
-        #rs<-dbSendQuery(sim$clusdb, "INSERT INTO blocks (blockid, openingid, state, regendelay, t_area) 
-        #                values (:blockid, :openingid, :state, :regendelay, :area)", blocks)
-        #dbClearResult(rs)
-        #dbCommit(sim$clusdb)
-      #}else{
-      #  message('nameCutblockTable = 99999 ')
-      #}
+    if(!P(sim,"dataLoaderCLUS", "nameForestInventoryTable") == '99999'){
       
-
-    #-----------
-    #Set the Age 
-    #-----------
-    if(!(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999")){
-      message(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameAgeRaster")))
-      ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), 
+      forest_attributes_clusdb<-sapply(c("Age","Height", "CrownClosure"), function(x){
+        if(!(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)) == '99999')){
+          return(paste0(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)), " as ", tolower(x)))
+        }
+      })
+      
+      if(length(forest_attributes_clusdb) > 0){
+        print(paste0("getting inventory attributes: ", paste(forest_attributes_clusdb, collapse = ",")))
+        fids<-unique(inv_id[!(is.na(fid)), fid])
+        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "dataLoaderCLUS", "nameForestInventoryKey"), " as fid, ", paste(forest_attributes_clusdb, collapse = ","), " FROM ",
+                                                    P(sim,"dataLoaderCLUS", "nameForestInventoryTable"), " WHERE ", P(sim, "dataLoaderCLUS", "nameForestInventoryKey") ," IN (",
+                                                    paste(fids, collapse = ","),");" )))
+        #TODO: merge this with the raster to get all the values?
+        print("...merging with fid")
+        inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
+        inv[,fid:=NULL] #remove the fid key
+        pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
+        
+        rm(inv, attrib_inv,inv_id, fids)
+      }else{
+        stop("No forest attributes from the inventory specified")
+      }
+    } else { 
+      stop(paste0('nameForestInventoryTable = ', P(sim,"dataLoaderCLUS", "nameForestInventoryTable")))
+    }  
+  } 
+  
+  #-----------
+  #Set the Age 
+  #-----------
+  if(!(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryAge") == "99999"){
+    message(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameAgeRaster")))
+    ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                             conn=NULL)
-      if(aoi == extent(ras.age)){#need to check that each of the extents are the same
-        pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.age)))))
-        setnames(pixels, "V1", "age")
-        rm(ras.age)
-        gc()
-      }else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameAgeRaster")))
-      }
+    if(aoi == extent(ras.age)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.age)))))
+      setnames(pixels, "V1", "age")
+      rm(ras.age)
+      gc()
     }else{
-      message('.....age: default 120')
-      pixels[, age := 120]
-    }
-  
-    #---------------------
-    #Set the Crown Closure 
-    #---------------------
-    if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999")){
-      message(paste0('.....crownclosure: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
-      ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), 
-                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-      if(aoi == extent(ras.cc)){#need to check that each of the extents are the same
-        pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.cc)))))
-        setnames(pixels, "V1", "crownclosure")
-        rm(ras.cc)
-        gc()
-      }else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
-      }
-    }else{
-      message('.....crown closure: default 60')
-      pixels[, crownclosure := 60]
-    }
-    
-    #---------------------
-    #Set the Height 
-    #---------------------
-    if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999")){
-      message(paste0('.....height: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
-      ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), 
-                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-      if(aoi == extent(ras.ht)){#need to check that each of the extents are the same
-        pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ht)))))
-        setnames(pixels, "V1", "height")
-        rm(ras.ht)
-        gc()
-      }else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameHeightRaster")))
-      }
-    }else{
-      message('.....height: default 10')
-      pixels[, height := 10]
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameAgeRaster")))
     }
   }
+  
+  if(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999" & P(sim, "dataLoaderCLUS", "nameForestInventoryAge") == "99999"){
+    message('.....age: default 120')
+    pixels[, age := 120]
+  }
+  
+  #---------------------
+  #Set the Crown Closure 
+  #---------------------
+  if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryCrownClosure") == "99999"){
+    message(paste0('.....crownclosure: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
+    ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    if(aoi == extent(ras.cc)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.cc)))))
+      setnames(pixels, "V1", "crownclosure")
+      rm(ras.cc)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
+    }
+  }
+  if(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999" & P(sim, "dataLoaderCLUS", "nameForestInventoryCrownClosure") == "99999"){
+    message('.....crown closure: default 60')
+    pixels[, crownclosure := 60]
+  }
+    
+  #---------------------
+  #Set the Height 
+  #---------------------
+  if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryHeight") == "99999"){
+    message(paste0('.....height: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
+    ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    if(aoi == extent(ras.ht)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ht)))))
+      setnames(pixels, "V1", "height")
+      rm(ras.ht)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameHeightRaster")))
+    }
+  }
+  if(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999" & P(sim, "dataLoaderCLUS", "nameForestInventoryHeight") == "99999"){
+    message('.....height: default 10')
+    pixels[, height := 10]
+  }
+  
   #*************************#
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, ', fid[1] , ' age, crownclosure, height, roadyear, zone',
+  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, age, crownclosure, height, roadyear, zone',
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
-               values (:pixelid, :compartid, :yieldid, :own,  :thlb, ', fid[2], ' :age, :crownclosure, :height, NULL, :zone', 
+               values (:pixelid, :compartid, :yieldid, :own,  :thlb, :age, :crownclosure, :height, NULL, :zone', 
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
   
   #pixels table

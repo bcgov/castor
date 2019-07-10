@@ -48,10 +48,15 @@ parameters <-  list(
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                          nameZoneRasters=c("rast.zone_beo"),
                          nameZoneTable="zone_constraints",
-                         nameCutblockRaster ="rast.cns_cut_bl",
-                         nameAgeRaster= "rast.vri2017_projage1",
-                         nameHeightRaster= "rast.vri2017_projheight1",
-                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameForestInventoryRaster ="rast.vri2002_id",
+                         nameForestInventoryKey = "feature_id",
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly_finalv3_deliveryv2",
+                         nameForestInventoryAge = "proj_age_1",
+                         nameForestInventoryHeight = "proj_height_1",
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         #nameAgeRaster= "rast.vri2017_projage1",
+                         #nameHeightRaster= "rast.vri2017_projheight1",
+                         #nameCrownClosureRaster = "rast.vri2017_crownclosure",
                          nameYieldTable ="yield_ex"
                       )
                     )
@@ -69,7 +74,7 @@ mysimout<-spades(mySim)
 })
 ```
 
-#Dependendices
+# Dependendices
 
 First need an area of interest.
 +nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
