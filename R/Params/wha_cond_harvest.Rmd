@@ -12,9 +12,9 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Conditional Harvesting Constraints
+# Conditional harvesting: Land cover Constraints
 
-Conditional harvesting means that there is some level of retention required during harvest operations. This may require a percentage of the harvest unit being retained according to a descriptive class - this can be age, crownclosure, height and even species specific. The table below provides a list of Wildlife habitat Area and ungulate winter range conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints that would impact caribou and thus this isn't an exaustive provincial list.
+Conditional harvesting means that there is some level of retention required during harvest operations. This may require a percentage of the management unit being retained according to a descriptive class - this can be age, crownclosure, height and even species specific. The table below provides a list of Wildlife habitat Area and ungulate winter range conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints at a landscape unit scale - not a cutblock level - that would impact caribou.
 
 ## WHA
 
@@ -96,7 +96,7 @@ see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-088-092,102,103_ord.pdf
 ### 4-098 Western screech Owl 
 Do not harvest or salvage in the core area. Using selectin harvest < 20% basal area for PP, IDF and ICH zone. Retain deciduous trees. Retain > 60% of tree in riparian zones. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-098_ord.pdf
 ```{r, w4098}
-#crownclosure > 60% in riparian. crown closure> 20 for other area 
+#crownclosure > 60% in riparian. crown closure > 20 for other area 
 ```
 
 ### 4-099 to 4-101 Flammulated owl 
@@ -109,87 +109,93 @@ Do not salvage or harvest in the core area. Do not harvest on xeric sites. In me
 Data sensitive Kootney Lake
 
 ### 4-107  American Badger
-see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-107_ord.pdf
+Do not use pesticide. Harvest as required to support ecological restoration. Reduce stocking densities < 75 stems. see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-107_ord.pdf
 ```{r, w4107}
+#No harvesting in these areas
 ```
 
 ### 4-109  American Badger
 Data sensitive Rocky Mountain
-```{r, w4109}
-```
 
 ### 4-112  American Badger
 Data sensitive Rocky Mountain
-```{r, w4112}
-```
 
 ### 4-113 to 4-115  Western Screech Owl
-see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-113to115_Order.pdf
+Do not cross streams or construct roads. Do not conduct timber harvesting or salvage within the core area. Within the management zone use selective harvest of < 20% basal area. Retain deciduous trees and retain > 60% of trees within riparian management zones. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-113to115_Order.pdf
 ```{r, w4113}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
 ```
+
 ### 4-121 to 4-126, 4-130 to 4-132, 4-134 to 4-135 Lewis Woodpecker
-see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_4-121_135_ord.pdf
+Do not construct roads. Do not use pesticides. Do not harvest unless to adess ecosystem restoration. Ponderos pine and dead trees > 30 cm dbh are maintained. Treatments are managed to promote shrub structure for berry and nut production. see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_4-121_135_ord.pdf
 ```{r, w4121}
+#No harvest in these areas
 ```
 
 ### 4-151 to 4-170, 4-177 Gillettes Checkerspot
-http://www.env.gov.bc.ca/wld/documents/wha/EUPGIL_4-151to170_177_ord.pdf
+Do not construct roads except in 4-160, 4-162, 4-166 and 4-169. Do not use pesticides/herbicides. Avoid silviculture that would result in closed canopies. see http://www.env.gov.bc.ca/wld/documents/wha/EUPGIL_4-151to170_177_ord.pdf
 ```{r, w4151}
+#Harvest 50% crownclosure for 50% of the area?
 ```
 
 ### 4-178 to 4-179 Western Screech Owl
-see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-178_to_4-179_Order.pdf
+In the core area do not construct roads or stream crossings. Do not conduct harvesting or salvage within the core area. When conducting harvesting in the management zone use selective harvesting <= 20% basal area removal. Do not remove deciduous. In riparian areas retain > 60% of trees. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-178_to_4-179_Order.pdf
 ```{r, w4178}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
 ```
 
 ### 4-180 Grizzly Bear
-see http://www.env.gov.bc.ca/wld/documents/wha/URAR_4-180_SA_Order.pdf
-```{r, w4180}
-```
+Enhance Vaccinium spp which include ICDdw1, ICHdm, ESSFdm (table 2). Ratain large CWD (> 30 cm dbh). Do not use pesticides, see http://www.env.gov.bc.ca/wld/documents/wha/URAR_4-180_SA_Order.pdf
+S--Assume the model does this at an operational scale.
+
 
 ### 4-209 Interior Western Screech Owl–
-see http://www.env.gov.bc.ca/wld/documents/wha/WESO_4-205_4-209_Order.pdf
+Do not construct roads or crossings in the core area. Do not timber harvest or salvage in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WESO_4-205_4-209_Order.pdf
 ```{r, w4209}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
 ```
 
 ### 4-217 to 4-323, 4-234 to 4-242 Gillettes Checkerspot
-see http://www.env.gov.bc.ca/wld/documents/wha/EUGI_4-217_to_232_234_to242_GAR_Order.pdf
+Do not construct roads. Avoid closed canopies. see http://www.env.gov.bc.ca/wld/documents/wha/EUGI_4-217_to_232_234_to242_GAR_Order.pdf
 ```{r, w4217}
+#Harvest 50% crownclosure for 50% of the area? Maybe I can implement a partial harvesting constraint? Remove this from the cover constraints and put into a harvesting system constraint?
 ```
  
 ### 4-243 to 4-276 Western Screech Owl
-see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-243_to_276_GAR_Order.pdf
+Do not construct roads or crossings in the core area. Do not timber harvest or salvage in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-243_to_276_GAR_Order.pdf
 ```{r, w4243}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
 ```
 
 ### 5-003 
 Data Sensitive? Chilcotin
-```{r, w5003}
-```
 
 ### 5-007 - 5-035 American White Pelican
 Do Not harvest from April 1 to August 31 -- model assumes this. see http://www.env.gov.bc.ca/wld/documents/wha/AWPE-5-007_ord.pdf
 
 ### 5-037 to 5-043 Grizzly Bear
-see http://www.env.gov.bc.ca/wld/documents/wha/URAR_5-037to043_CentalCariboo.pdf
+Do not use pesticides. Protect forest cover and plant communities. see http://www.env.gov.bc.ca/wld/documents/wha/URAR_5-037to043_CentalCariboo.pdf
 ```{r, w5037}
+#Harvest 50% crownclosure for 50% of the area?
 ```
 
 ### 5-072
 Data Sensitve Central Cariboo
 
 ### 5-086 to 5-087, 5-118, 5-872 and 5-873 Caribou Northern
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-086-873_ord.pdf
+Retain all forest in 5-118. In caribou modified harvest zone (table 1) - Age >80 for 45%. Age > 100 for 37%. Age 120 for 30%. Age 140 for 25%. In caribou modified harvest for wha 5-086 retain lichen sites where 33% of the area on arboreal sites is on an 80 year cutting cycle. In caribou modified harvest for wha 5-086 retain lichen sites where 50% of the area on terrestrial lichen sites is on an 70 year cutting cycle. Caribou enhanced conventional harvest - in wha 5-872 and 5-873, 25% is left unlogged with an age > 100 years. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-086-873_ord.pdf
 ```{r, w5086}
+# lots here to add. For now just consider the cover constraints for  5-086 Age >80 for 45%. Age > 100 for 37%. Age 120 for 30%. Age 140 for 25%. Caribou enhanced conventional harvest - in wha 5-872 and 5-873, 25% is left unlogged with an age > 100 years
 ```
 
 ### 5-088 to 5-117 Mountain Caribou 
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-088_%205-117_ord_09Dec09.pdf
+Do not harvest in the caribou No-harvest. Caribou modified harvest in wha 5-088, 5-091, 5-093, 5-111 and 5-116 use group selection harvesting up to 33% of each stand area on a 80 year cutting cycle.  see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-088_%205-117_ord_09Dec09.pdf
 ```{r, w5088}
+#For the wha's that have modfied harvesting --consider harvesting constraints not cover constraints?
 ```
 
 ### 5-120 to 5-123, 5-126 to 5-128, 5-131, 5-133 , 5-136 to 5-150, 5-168 to 5-171 + many more  Grizzly Bear
-see http://www.env.gov.bc.ca/wld/documents/wha/URAR-5-121to541_MidCoastTSA.pdf
+Primary forestry activites will result in protections of the forest cover and plant communities within the boundaries of the wha. Pesticides shall not be used. Salvage harvesting shall not be used. see http://www.env.gov.bc.ca/wld/documents/wha/URAR-5-121to541_MidCoastTSA.pdf
 
 ### 5-730
 Data Sensitive Quesnel
@@ -198,41 +204,42 @@ Data Sensitive Quesnel
 Data Sensitive Central Cariboo
 
 ### 6-056 to 6-057 Coastal Tailed Frog
-see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-056-57_ord.pdf
+For wha 6-056: do not harvest within the core area of special management zone.For what 6-057: Use partial harvesting system that maintain 70% basal area with the apropriate structure. No salavage should be carried out. see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-056-57_ord.pdf
 ```{r, w6056}
+#for 6-057 maintain 70% crownclosure for 100%
 ```
 
 ### 6-060 to 6-067 Coastal Tailed Frog
-see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-060-067_ord.pdf
+Use a silvicutlural system that maintains 70% residual stand volume and attributes of the natural stand structure profile. see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-060-067_ord.pdf
 ```{r, w6060}
+#maintain 70% crownclosure for 100%
 ```
 
 ### 6-283 to 6-286
 Data Sensitive
 
 ### 6-333 Caribou
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_ord_replaced_2018.pdf
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_amend_2018.pdf
+Primary forestry activties will focus in-block retention to include keey cariobu features and provide sufficient forest retantion to proviode visual screening. Within the Bulkley TSA: >60% of the SBSmc > 80 years,  < 28% of SBSmc < 40 year, > 45 % of SBSdk > 80 years, < 39% of SBSdk < 40 years. Within the Morice TSA: > 17% of SBSmc > 140 years, < 48 SBSmc < 40 years, > 8 % of SBSdk > 140 years, < 64% of SBSdk < 40 years  see http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_ord_replaced_2018.pdf and http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_amend_2018.pdf
 ```{r, w6333}
+#Bulkley TSA: >60% of the SBSmc > 80 years,  < 28% of SBSmc < 40 year, > 45 % of SBSdk > 80 years, < 39% of SBSdk < 40 years. 
+
+#Morice TSA: > 17% of SBSmc > 140 years, < 48 SBSmc < 40 years, > 8 % of SBSdk > 140 years, < 64% of SBSdk < 40 years
 ```
 
 ### 8-003 to 8-004 Grasshopper Sparrow
 see http://www.env.gov.bc.ca/wld/documents/wha/GRSP_%208-003_8-004_ord.pdf
-```{r, w8003}
-```
+Do not construct roads. Do not use pesticides.
 
 ### 8-006 to 8-010 Bighorn Sheep
-see http://www.env.gov.bc.ca/wld/documents/wha/OVCC-8-006_ord.pdf
-```{r, w8006}
-```
+Follow a guide : https://www.for.gov.bc.ca/tasb/legsregs/fpc/fpcguide/other/wild/part2-21.htm#P1655_118642. For bighorn sheep there are no forestry constraints. see http://www.env.gov.bc.ca/wld/documents/wha/OVCC-8-006_ord.pdf
 
 ### 8-014 to 8-017 White-headed Woodpecker
+Do not salvage timber. Protect and retain all ponderosa pine and douglas-fir >60cm. Use a partial cutting silvicultural system to maintain widely spaced late seral ponderosa pine and douglas fir. Group, single tree are recommended
 see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-014_ord.pdf
 see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-015_ord.pdf
 see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-016_ord.pdf
 see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-017_ord.pdf
-```{r, w8014}
-```
+
 
 ### 8-047, 8-051, 8-319 to 8-324 Brewer's Sparrow
 Do not use pesticide - assumed in the model
@@ -246,31 +253,36 @@ Do dont scarify harvested areas, do not place landings within management zone. D
 see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_8-090_to_8-094_ord.pdf.
 
 ### 8-124 to 8-126 Western Screech Owl
-see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-124_ord.pdf
+Do not use pesticides. Do not salvage or harvest in core area. Do not construct roads or crossings in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-124_ord.pdf
 ```{r, w8124}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
 ```
 
 ### 8-232 Grizzly Bear
-see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-232_ord.pdf
+Forest practices will result in at least 10% of each management unit containing forest stands that exhibit a height of at least 19.5 m in patches that are at least 5 ha in size. Management units are defined as the area of each BEC subsonze within each landscape unit. see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-232_ord.pdf
 ```{r, w8232}
+#10% of the area > 19.5 m height. 
 ```
 
 ### 8-233 Caribou 
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_8-233_ord.pdf
+GWM 1: Forest practises will result in a minimum of 30% of the timber exhibiting heights of at least 14 m, or have undergone self-pruning of the loer branches to allow for suitable securituy and movement between winter ranges. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_8-233_ord.pdf
 ```{r, w8233}
+# > 30 % having height > 14 m
 ```
 
 ### 8-261 to 8-262 Western Screech Owl
-see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-261,8-262_ord.pdf
+Do not use pesticides. Do not salvage or harvest in core area. Do not construct roads or crossings in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas.see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-261,8-262_ord.pdf
 ```{r, w8261}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
 ```
 
 ### 8-325 Grasshopper Sparrow
 Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/GRSP_8-325_ord.pdf
 
 ### 8-328 and 8-331 American badger
-see http://www.env.gov.bc.ca/wld/documents/wha/TATA_8_328and331_ord.pdf
+Do not ocnstruct roads, Do not harvest unless required to support ecological restoration. Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/TATA_8_328and331_ord.pdf
 ```{r, w8328}
+# do not harvest 
 ```
 
 ### 8-332, 8-333, 8-357 to 8-361 Half-moon Hairstreak
@@ -283,9 +295,8 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 Data Sensitive
 
 ### 8-373 Grizzly Bear
-see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-373_Ord.pdf
-```{r, w8373}
-```
+Do not conduct primary forest activities between May 1 and June 20th. Do not plant trees within a 500 m specified area of polygons. Do not construct roads within 50 m of habitat features. Primary forest activities adjacent to avalanche tracks must retain forest cover that is at least 15 meters in ehight for a width of 100 meters. Do not use herbicide. see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-373_Ord.pdf
+S-- Assuming these are operational ground rules. 
 
 ### 8-416 to 8-420 Great Basin Spadefoot
 Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_SPIN_8-416_ord.pdf
@@ -297,18 +308,16 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SATSEM_%208-426_to_8-433_ord.pdf
 
 ### 9-003 to 9-017 Mountain Goat
-see http://www.env.gov.bc.ca/wld/documents/wha/ORAM-9-003_ord.pdf
-```{r, w9003}
-```
+Refer to a guidebook: https://www.for.gov.bc.ca/tasb/legsregs/fpc/fpcguide/other/wild/index.htm. For Mountain goat: Do not construct roads. http://www.env.gov.bc.ca/wld/documents/wha/ORAM-9-003_ord.pdf
+
 ### 9-025 to 9-031
 Data Sensitive 
 
 ### 9-032 to 9-034, 9-041 to 9-073, 9-104 to 9-106, 9-144 to 9-145 Caribou
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-032_034_041_073,104_106,144,145_ord.pdf
-```{r, w9032}
-```
+For 9-032 to 9-034, 9-041 to 9-048, 9-050 to 9-072 and 9-106 No Harvest, no roads no pesticides. For remaining whas: Will no adversely effect lichen productivity, result in a network of conencted forest cover, result in pre-harvest pine leading stands to be established as pine leading stands. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-032_034_041_073,104_106,144,145_ord.pdf
 
 ### 9-035 to 9-040, 9-102, 9-103 Caribou
-see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-035_040,102,103_ord.pdf
+No Harvest. No roads. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-035_040,102,103_ord.pdf
 ```{r, w9035}
+# no harvest
 ```
