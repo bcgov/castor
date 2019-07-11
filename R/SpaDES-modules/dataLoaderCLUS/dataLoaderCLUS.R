@@ -417,9 +417,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
         #TODO: merge this with the raster to get all the values?
         print("...merging with fid")
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
-        inv[,fid:=NULL] #remove the fid key
+        #inv[,fid:=NULL] 
         pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
-        
+        pixels<-pixels[, fid:=NULL]#remove the fid key
         rm(inv, attrib_inv,inv_id, fids)
       }else{
         stop("No forest attributes from the inventory specified")
