@@ -1,4 +1,5 @@
 ---
+title: "blockingCLUS examples and comparison"
 output: 
   html_document: 
     keep_md: yes
@@ -6,128 +7,85 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(data.table)
+library(VGAM)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 ```
-## Introduction
 
-The size of a harvest unit (ie. a cutblock) and its spatial boundaries have important implications for forest management. Economic feasiblity, patch size distribution objectives and metrics important to wildlife habitat (Ie. distance to a cutblock) are all influenced by cutblock size, shape and location. While forest attributes information is often represented as polygons or pixels (depending on the data structure) and can be assumed as a harvest unit there are many cases where polygons or pixels will require aggregation or disaggregation to meet management assumptions. For example, the aggregation of forest polygons or pixels is often required given operations can capture economies of scale resulting from harvesting a number of stands in a spatially contiguous manner. Conversely, forest cover polygons may require disaggragation when the size of the polygon is too large to meet size restrictions on harvest units. Aggregating or disaggregating polygons or pixels into operational units is one of the intital steps for making deciions in forest management planning. Largely, becuase forest mangement activites (i.e., harvseting, silvicuture) are often prescribed and implemented on a harvest unit. Thus, how do we simulate the formation of harvesting units (including the size, shape and location) into the future? 
+# Introduction
 
-First, the size of a cutblock is generally predicated by law. The Forest Practices Code of British Columbia Act ["Operation and Site Planning Regulation"](http://www.bclaws.ca/civix/document/id/loo60/loo60/107_98) states (11(1)) - the maximum size of a harvest unit must not exceed 40 ha for coast forest region and some areas within the South interior region and 60 ha for the northern interior region and some areas within the south interior region. These maximal sizes can be increased further under a number of caveats including: objectives from a high level forest plan for the purposes of salvaging timber from natural disturbances; the cutblock retains 40% or more of the pre-harvest basal area; or at the discretion of the district manager. Given these spatial bounds, we need a block building alogirthum for segmenting information from forest cover polygons and other remote sensing products into harvest units or blocks that result in a shape that would emulate actual harvest units.
+The size of a harvest unit (ie. a cutblock) and its spatial boundaries have important implications for forest management. Economic feasiblity, patch size distribution objectives and metrics important to wildlife habitat (i.e., distance to a cutblock) are all influenced by cutblock size, shape and location. The information used to guide the design of cutblocks often entails forest inventory attrbutes which can be represented as either vector (polygons) or raster (pixels) data structures. Often, individual polygons (typicaly from photo-interpreation) are assumed to represent harvest units, however, there are many cases where polygons or pixels will require aggregation or disaggregation to meet management assumptions. For example, the aggregation of forest polygons or pixels is often required given operations can capture economies of scale resulting from harvesting a number of stands in a spatially contiguous manner. Conversely, forest cover polygons may require disaggragation when the size of the polygon is too large to meet size constraints on harvest units. Aggregating or disaggregating polygons or pixels into operational units is one of the intital steps for making decisions in forest management planning. Largely, because forest mangement activites (i.e., harvesting, silvicuture) are often prescribed and implemented at the scale of a harvest unit. Thus, the simulation of harvesting units (including the size, shape and location) is an important step required by many strategic forest management models. 
 
-Two approaches to the block building algorithum can taken based on the assumption of information. Note that the term block here does not convey any information concerning the geometry of the harvest unit but rather the term is used to describe the operational harvesting boundary which can take on many shapes and include alternative harvesting systems to  clearcutting. The two approaches are: i) 'pre-blocking' which assumes perfect information into the future and ii) 'dynamic blocking' which assumes almost nill information about the future. Under a pre-blocking approach, the entire landscape is divided into blocks before the harvest schedule is determined. This assumption can be limiting given harvest unit configurations are known _a_ _priori_ and evidently restrict the flexibility of the modelled outcome. Conversely, dynamic blocking assigns harvest unit size and its geometry during the harvest scheduling simulation. This dynamic behaviour may better emulate flexible management strategies like salavage operations but is harder to achieve optimality by the blocking method. Typically, the choice of assumptions are made in concordance with the proposed harvest scheduling approach. Various harvest scheduling approaches can be linked with a blocking algorthuim, however, the various advantages and disadvantages will be left for another module.
+The goal of the blockingCLUS module within the caribou and land use simulator (CLUS) is to provide a means for segmenting information from forest cover polygons and other remote sensing products into harvest units or blocks that result in a shape that would emulate actual harvest units. Note that the term block here does not convey any information concerning the geometry of the harvest unit but rather the term is used to describe the operational harvesting boundary which can take on many shapes and include alternative harvesting systems to clearcutting.
 
-In reality a combination of approaches is implemeneted (given the flexiblity of management and spectrum of future insight given to the model) which allows advantages from both approaches to be realized. For the caribou and land use simulator (CLUS), our interest is in the automated process of simulating the size and shape of future harvest units for purposes of tracking forestry landuses. We are interested in how future forestry landuses could impact the habitat of caribou across British Columbia. In particular, disturbed area, including harvesting can negatively impact caribou habitat through a vareity of pathways. As such harvest blocks are often buffered by 500 m or more to account for the degradation of caribou habitat that results from harvesting operations. Thus, the size, shape and location of harvest units are particulary sensitive to projections of caribou habitat. The following sections describes in greater detail the blocking algorithums considered in CLUS modelling efforts. 
+## CLUS Block Building Approaches
+
+Two approaches to the block building algorithm within CLUS can be taken: i) 'pre-blocking' which assumes perfect information into the future and ii) 'dynamic blocking' which assumes very little information about the future harvest units. Using a pre-blocking approach, the entire landscape is divided into blocks before the harvest schedule is determined. This assumption can be limiting given harvest unit configurations are known _a_ _priori_ which may evidently restrict the flexibility of the modelled outcome. Conversely, dynamic blocking assigns harvest unit size and its geometry during the harvest scheduling simulation. This dynamic behaviour may better emulate flexible management strategies like salavage operations but is harder to achieve optimality by the blocking method due to the lack of forward or proactive use of information. Typically, the choice of assumptions are made in concordance with the proposed harvest scheduling approach. Various harvest scheduling approaches are linked with a blocking algorthuim, however, the various advantages and disadvantages will be left for another module.
+
+In reality a combination of approaches is implemeneted (given the flexiblity of management and spectrum of future insight given to the model) which allows advantages from both approaches to be realized. For CLUS applications, our interest is in the automated process of simulating the size, shape and location of future harvest units for purposes of tracking forestry landuses. We are interested in how future forestry landuses could impact the habitat supply for caribou across British Columbia. In particular, disturbed area, including harvesting can negatively impact caribou habitat through a variety of direct and indirect pathways. As such harvest blocks are often buffered by 500 m or more to account for the degradation of caribou habitat that results from harvesting operations. Thus, the size, shape and location of harvest units may be sensitive outcome impacting the projections of caribou habitat. The following sections describes in greater detail the blocking algorithms considered in CLUS modelling efforts. 
 
 ### Dynamic blocking
 
-The general dynamic blocking algorithum is as follows from Murray and Weintraub (2002):
-1. the area is randomly seeded with harvest units 'growing' around these seeds 
+The general dynamic blocking algorithm is as follows from Murray and Weintraub (2002):
+1. the area is seeded with harvest units 'growing' around these seeds. These "seeds" may be conditional on forest attribute information or randomly choosen
 2. polygons/pixels are then aggregated into harvest units based on the 'closest' seed point (i.e., 'closest' can mean both real and variable space)
 3. the harvest unit size is thus controlled by the number of initial seed points or some target size
 
-In particular, 'emergent processes' like salvage operations can be included to dictate harvest unit size. Further, this approach presents the ability of the simulation to account for reactive decision making when modelling land uses under uncertainty. When more than one harvest unit is needed, this algorthium is very similar to a [k-means clustering](https://en.wikipedia.org/wiki/K-means_clustering) which partions _n_ pixels into _k_ clusters with each pixel belonging to a cluster with the nearest mean. The result of this process is the ability to partition the data space into [Voronoi cells](https://en.wikipedia.org/wiki/Voronoi_diagram) which can be used to represent objects like harvest units. Various modifications to this approach have been made with consideration to i) randomly sampling a harvest unit size target distribution and ii) including various priorities for aggregating various layers of information (e.g., stand type, age, and terrain) while achieving objectives of harvest unit homogeneity. However, both pre-blocking and dynamic blocking approches can be implemented with this simple algorithum.
-
+Various modifications to this approach have been made with consideration to i) randomly sampling a harvest unit size target distribution and ii) including various priorities for aggregating various layers of information (e.g., stand type, age, and terrain) while achieving objectives of harvest unit homogeneity. It should be noted that both pre-blocking and dynamic blocking approches can be implemented with this simple algorithm.
 
 ### Pre-blocking 
 
-In cases where the total number of harvest units is known, the dynamic blocking algorithum can be run to provide a census of harvest units. The advantages of 'pre-blocking' are often a cost saving during run time of the simulation and leveraging _a_ _priori_ assumptions to support formulations of spatially exact optimization harvest schedulling problems. In particular, these assumptions allow the model to have greater insights into future outcomes and can be argued to result in improved decisions (intertemporal decision making). The unit restriction model (URM) is an example of an exact spatial harvest scheduling formulation that leverages the outputs of a pre-blocking algorithum (Murray 1999). This model is a spatial extension of a Model 1 aspatial formulation (Johnson and Scheurman 1977) which declares the decision variable as a binary represnting wheather a block is to be harvested or not (Murray 1999). Note that the URM has a similar formulation known as the Area restriction model (ARM) which endogenously includes the process of blocking. However, ARM are known to be very difficult to solve for large problems given the 'adjacency' and area restriction constraints impose a large amount of 'branching' in the solving algorithums. 
+Conversely, harvest units can be pre-blocked during the intial step of the model. The advantages of 'pre-blocking' are often a cost saving during run time of the simulation and the ability to support formulations of spatially exact optimization harvest scheduling problems. In particular, these assumptions allow the model to have greater insights into future outcomes and can be argued to result in improved decisions (intertemporal decision making). The unit restriction model (URM) is an example of an exact spatial harvest scheduling formulation that leverages the outputs of a pre-blocking algorithm (Murray 1999). This model is a spatial extension of a Model 1 aspatial formulation (Johnson and Scheurman 1977) which declares the decision variable as a binary representing wheather a block is to be harvested or not (Murray 1999). Note that the URM has a similar formulation known as the Area restriction model (ARM) which endogenously includes the process of blocking. However, ARM are known to be very difficult to solve for large problems given the 'adjacency' and area restriction constraints impose a large amount of 'branching' in the solving algorithms. 
 
-Various approaches to 'pre-blocking' have included optimization formulations and near optimal solutions via heuristics. Lu and Eriksson (1999) used a genetic algorithum to build harvest units and applied applied the algorithum to a 20 ha landscape with realtively long run-times. Boyland (2004) used simulated annealing to group polygons into harvest units based on area, age, species and shape criteria for the Invermere Timber Supply Area in British Columbia. Hueristic alorgithums offer a near optimal solution while accounting for the complexity of the problem. These characteristics are vitally important to the caribou and landscape simulator, which requires the simulation of land use events across very large spatial and temporal scales in a timely manner.  
+Various approaches to 'pre-blocking' have included optimization formulations and near optimal solutions via heuristics. Lu and Eriksson (1999) used a genetic algorithm to build harvest units and applied applied the algorithm to a 20 ha landscape with realtively long run-times. Boyland (2004) used simulated annealing to group polygons into harvest units based on area, age, species and shape criteria for the Invermere Timber Supply Area in British Columbia. Heuristic alorgithums offer a near optimal solution while accounting for the complexity of the problem. These characteristics are vitally important to the caribou and landscape simulator, which requires the simulation of land use events across very large spatial and temporal scales in a timely manner.  
 
-A disadvantage with heuristic alogorithums is their inability to leave a local optimum and achieve a global optimum. For pre-blocking this means being able to accomodate variability in the forest which is often viewed as an image or photograph of the forest. Thus, the process of 'pre-blocking' for purposes of creating spatially contigous harvesting units has some similarities to the image segementation problem. The goal of image segmentation is to partion or cluster pixels into regions that represent meaningful objects or parts of objects. The problem of segementing an image into objects has been posed for many  applications ranging from improving the stratification of the forest which is needed in some forest inventory sampling regimes to  interpreting biomedical images (e.g., delineating oragans or tumours). Typically, image segmentation involves either top-down or bottom-up perspectives.
+Creating spatially contigous harvesting units has some similarities to the image segementation problem. The goal of image segmentation is to partition or cluster pixels into regions that represent meaningful objects or parts of objects. The problem of segementing an image has been posed for many applications ranging from improving the stratification of the forest which is needed in some forest inventory sampling regimes to  interpreting biomedical images (e.g., delineating oragans or tumours). Typically, image segmentation involves region merging which can be approached using either top-down or bottom-up workflows.
 
 Keeping in line with forestry applications- a common commercial software used for image segemetnation is [eCognition](http://www.ecognition.com/). This software is proprietary, and uses a bottom-up region merging technique (Baatz and Schape 2000), that merges indiviudal pixels into larger objects based on a 'scale' parameter. However, as shown by Blaschke and Hay (2001), finding any relationship between this 'scale' parameter and spatial indicators is complicated, which forces a trial and error approach for meeting segementation objectives (i.e., size and homogenity). Hay et al. (2005) attempted to overcome this issue by developing multiscale object-specific segmentation (MOSS) which uses an integrative three-part approach. For purposes of blocking harvest units, the size constrained region merging (SCRM) part of the approach is of importance.
 
-SCRM concept stems from the topographic view of a watershed. Watersheds define a network of 'ridges' that represent the boundaries of where each drop of rain would drain towards. In the harvest blocking problem these ridges are boundaries of stand types. To complete the region merging, the idea is to find sinks where the rain would drain to and then assume these areas are springs from which uplift of water would fill these areas. As water fills a sink, these areas represent contiguous areas with similar features (i.e., elevation). Various size constraints can then be used to stop the process of merging which allows objects to be delineated.
+The SCRM can be conceptualized using a topographic view of a watershed. Watersheds define a network of 'ridges' that represent the boundaries where water would drain towards. In the harvest blocking problem these ridges are boundaries of homogenous harvest untis. To complete the region merging, the idea is to find sinks across the image where the rain would drain towards. Assuming these sink areas are 'water springs' from which the uplift of water would fill these areas, object instantiation becomes apparent. As water fills a sink, these areas represent contiguous areas with similar features (i.e., elevation). Various size constraints can then be used to stop the process of merging which allows objects to be delineated.
 
-In blockingCLUS, we leverage ideas from image based segementation (Felzenszwalb and Huttenlocher 2004) and SCRM (Hay et al. 2005) to develop a graph based image segementation approach that spatialy clusters pixels into harvest units based on similarity between adjacent pixels and size constraints. 
+In blockingCLUS, we leverage ideas from image based segementation (Felzenszwalb and Huttenlocher 2004) and SCRM (Hay et al. 2005) to develop a graph based image segementation approach that spatialy clusters pixels into harvest units based on similarity between adjacent pixels and size constraints. The goal of this approach is to produce homogenous harvest units subject to size constraints.
 
 The following steps are used:
-1. Estimate the similarity of a vector of forest attributes into an image
-2. Convert the similarity image into a undirected graph
+
+1. Convert the raster image into a undirected weighted graph
+2. Calculate the weights between pixels (i.e., edges) as a multivarate distance (e.g., [mahalanobis](https://en.wikipedia.org/wiki/Mahalanobis_distance))
 3. Solve the minnimum spanning tree of the graph to get a list of edges (i.e., ridge lines)
-4. Sort the edgelist according to the metric of similarity (i.e., multivariate distance)
-5. Starting with the pixel with the largest [degree](https://en.wikipedia.org/wiki/Degree_(graph_theory)), cluster surounding pixels until the largest size constraint has been met
-6. When there are no more adjacent pixels or the size has been met, go on to the next block
+4. Sort the edgelist according to a metric of similarity (i.e., multivariate distance)
+5. Starting with the pixel with the largest [degree](https://en.wikipedia.org/wiki/Degree_(graph_theory)), cluster surounding pixels
+6. When there are no more adjacent pixels or the size has been met or till the allowable amount of variation within the block has been exceeded, go on to the next block
 7. Complete 5-6 until the target distribution is achieved
 
-The following is an example from using this algorithum
+>Note: Since a MST is used as an input into this algorithm -more than one solution can exist. Hence there is a need for a seed variable to make the solution reproducible. After running the blocking algorithm 10 times on the same area of interest the number of harvest units changed by 2%.
 
-```{r, echo =FALSE, message=FALSE}
-library(raster)
-plot(raster("test.tif"))
-title("Example 'homogenous' harvest units with some random variability")
+# Objectives
 
-plot(raster("simulated.tif"))
-title("Simulated harvest unit boundaries")
-```
+"When interpreting decision support system output, as in all models, the major issue is whether the abstractions that the data and algorithms represent are sufficiently reliable to suffer the treatment of generalization from model output to practice in the real world" (Bunnell and Boyland 1999).
 
-Note: two improvements to this algorithum are needed for future work: i) if a size constraint is not met then determine if the current harvest unit could be 'placed' in the next largest size constraint; ii) rather than the degree of the graph, use the weights of the edges to determine the order from which to add pixels. For instance, the 'islands' within a harvest unit is a unintended result of this issue. 
+Our goal for blockingCLUS is to provide a degree of confidence that the logic of the algorithm could reproduce historical harvest units - including the size and shape as it pertains to the historical harvest disturbance for caribou. Note: this obejctive differs from trying to simultaneously optimize the size, shape and location of harvest units, as described earler by an ARM. Further, it is important to note that the number of cutblocks and their respective sizes are largely related. If the size of a harvest unit is artifically set too small, a greater footprint could result from the scheduler, as it looks to find more fibre for harvesting. 
 
-## Objectives
+We used historic harvest unit locations to compare the ability of blocking methods to reproduce the historical harvest disturbance for caribou. As stated earlier, this disturbance metric is the total area of harvest units with a buffer of 500 m. Since pre-blocking takes into account forest attribute information used to design cutblock shape we hypothesize that the pre-blocking alogrothuinm will produce cutblock shapes that better ressemble historical cutblock shapes and thus be more accurate in estimating the historical disturbance for caribou. 
 
-"When interpreting decisions support system output, as in all models, the major issue is whether the abstractions that the data and algorithms represent are sufficiently reliable to suffer the treatment of generalization from model output to practice in the real world" (Bunnell and Boyland 1999).
-
-Our goal for blockingCLUS is to be able to reproduce historical harvest units - including the size and shape that would impact the historical harvest disturbance for caribou. Note: this obejctive differs from trying to simultaneously optimize the size, shape and location of harvest units, as described earler by an area restiction model. The location of harvest units commonly includes a temporal decision making process which is determined by the harvest scheduler. It is important to note that the number of cutblocks and their respective sizes are largely related. If the size of a harvest unit is artifically set too small, a greater footprint could result from the scheduler, as it looks to find more fibre for harvesting. Thus, we used historic harvest unit locations to test the ability of blocking methods to reproduce the historical harvest disturbance for caribou. As stated earlier, this disturbance metric is the total of area of harvest units with a buffer of 500 m. 
-
-1. What forest attributes information (i.e., crown closure, ) directs the formation of historic harvest unit shape? 
-
-2. Based on: 1, the historical harvest unit size distribution, and the centroid of historical harvest units which approach (i.e., dynamic or pre-blocking) best reproduces historical harvest disturbance for caribou.
-
-3. Which approach is computationally faster?
+# Methods
 
 ## Case Study
-### Study Areas
 
-The study areas included various [caribou herd locations](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc) around the province. In the north-west, the herd locations are relatively large in area but with little forestry activity. Conversely, the south-eastern herd locations are smaller in area but with a greater density of harvest units.
+### Study Area
+The study area was set to Fort Nelson [supply block](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-managed-licence) 08B. This supply block was chosen at random. 
+```{r, study_area}
 
-```{r, echo = FALSE, message=FALSE,warning=FALSE}
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
-
-library(ggplot2)
-library(ggpmisc)
-library(rpostgis)
-library(sf)
-library(bcmaps)
-library(ggrepel)
-library(dplyr)
-library(purrr)
-library(here)
-
-print(paste0(here::here(),"/R/SpaDES-modules/roadCLUS/data/validated.csv"))
-data<-read.table(paste0(here::here(),"/R/SpaDES-modules/roadCLUS/data/validated.csv"), sep = ",", head = TRUE)
-data$METHOD <- factor(data$METHOD,levels=c('snap', 'lcp', 'mst'))
-data2<-data[data$METHOD == 'snap',]
-
-getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user' ,password='clus')
-  on.exit(dbDisconnect(conn))
-  st_read(conn, query = sql)
-}
-#hrds<-cat(paste(shQuote(data2$BOUNDARY, type="cmd"), collapse=", "))
-bc<-st_geometry(get_layer("bc_bound_hres"))
-hrd_names<-c('Barkerville', 'Central Rockies', 'Chase', 'Chinchaga', 'Columbia North', 'Finlay', 'Graham', 'Groundhog', 'Horseranch', 'Itcha-Ilgachuz', 'Moberly', 'Muskwa', 'Nakusp', 'Narraway', 'North Cariboo', 'Quintette', 'Rainbows', 'Scott', 'South Selkirks', 'Takla', 'Telkwa', 'Tweedsmuir', 'Wells Gray', 'Wolverine')
-carb<-getSpatialQuery("SELECT * FROM public.gcbp_carib_polygon WHERE herd_name IN ('Barkerville', 'Central Rockies', 'Chase', 'Chinchaga', 'Columbia North', 'Finlay', 'Graham', 'Groundhog', 'Horseranch', 'Itcha-Ilgachuz', 'Moberly', 'Muskwa', 'Nakusp', 'Narraway', 'North Cariboo', 'Quintette', 'Rainbows', 'Scott', 'South Selkirks', 'Takla', 'Telkwa', 'Tweedsmuir', 'Wells Gray', 'Wolverine')")
-
-carb<-merge(carb, data2, by.x = 'herd_name', by.y = 'BOUNDARY' )
-carb2<-st_zm(carb) %>%
- filter(carb$herd_name %in% hrd_names) %>% # filter to just the counties we want
-  mutate(lon=map_dbl(geometry, ~st_centroid(.x)[[1]]), # add centroid values for labels
-         lat=map_dbl(geometry, ~st_centroid(.x)[[2]])) # add centroid values for labels
- 
-ggplot() +
-  geom_sf(data=bc)+
-  geom_sf(data = carb2, aes(fill= AREA)) +
-  geom_text_repel(data=carb2, aes(x= lon, y= lat, label=herd_name), cex=2) 
-
-ggplot() +
-  geom_sf(data=bc)+
-  geom_sf(data = carb2, aes(fill= LANDINGS))+
-  geom_text_repel(data=carb2, aes(x= lon, y= lat, label=herd_name), cex=2) 
 ```
 
-### Historical Harvest Unit Size Distribution
+### Forest attributes information
 
-The cutblock polygons were sourced from [cns_cut_bl_polygon](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-). The following query was used to select harvest unit size, shape and location.
+The 2003 VRI infromation was used to set the similarity metric for the pre-blocking alogrithum. Both 2003 VRI photo-interpreted crown closure and height were used to calcualte the mahalanobis distance for determing the similarity metric. Both crown closure and height were scaled (mean subtracted and divided by the standard deviation) to remove any variable dominance in the distance calucaltion. The mahalanobis distance ($D^2$) was calculated  as
+
+$$D_{i,j}^2=(x_{i} - x_{j})^{'}\Sigma^{-1}(x_i - x_j)$$
+where $x$ is a vector containing the scaled crown closure and height for the ${i}$ and its spatially adjacent ${j}$ pixel; $\Sigma^{-1}$ is the inverse of the correlation matrix (since these are scaled) between crown closure and height. The mahalanobis distance ($D^2$) has a chi-square distrubution ($\chi_n^2$) with *n* degrees of freedom equal to the number of dimensions (here it is 2 for crown closure and height). Using the associated cummulative distribution function of $\chi_n^2$ when $x > 0$ the values of $D^2$ can be converted into probabilities which is useful to test the null hypothesis of no difference between the two pixels. By specifying the signficance level $\alpha$ this process has been used to detect outliers (see [Etherington 2019](https://peerj.com/articles/6678.pdf) ) or in the blocking algorithm the amount of allowable difference between pixels. Thus, the larger the $D^2$ the greater the allowable difference with a significant difference being left to the user as described by  $\alpha$. For example at $\alpha$ = 0.05 would correspond to a $D^2 = 6$ which means the two pixels have a 1 in 20 chance of being different. Given the smaller the allowable difference the greater the number of harvest units, we used a few allowable differences to see which best match the
+
+Cutblocks older than 2003 were queried from the [consolidated cutblock dataset](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) which represents the observed cutblock locations, size and shape. The following query was used to select harvest unit size, shape and location.
 
 ```{sql, eval=FALSE}
 Create Table cutseq_Centroid as
@@ -136,20 +94,83 @@ Create Table cutseq_Centroid as
   FROM cns_cut_bl_polygon where areaha >= 1) a 
 ```
 
-Below is a histogram of the historical (1908-2018) cutblock size. The negative "J" shaped curve is often similar to natural distrubance size - frequency which provides some empirical evidence of cutblock size emulating natural disturbances. This is useful because forested area lacking a comprehensive historical cutblock dataset could sample from this natural disturbance size distribution.
+Below is a histogram of the historical (1908-2018) cutblock size. The negative "J" shaped curve is often similar to natural distrubance size - frequency which provides some empirical evidence of cutblock size emulating natural disturbances. 
 
-```{r}
+```{r, echo = FALSE}
 dist.cutblk.size<-getTableQuery("select width_bucket(areaha, 0, 100, 100) as sizebin, count(*)
     from cns_cut_bl_polygon where harvestyr >= 1980 and datasource != 'Landsat'
     group by sizebin 
-    order by sizebin;") 
+    order by sizebin;")
 
+dist.cutblk.size$p <- (dist.cutblk.size$count/sum(dist.cutblk.size$count))* dist.cutblk.size$sizebin
+mean<-sum(dist.cutblk.size$p)
+
+locat<-(sum(dist.cutblk.size$count)+1)/2
+dist.cutblk.size$cumCount <- cumsum(dist.cutblk.size$count)
+median<-max(dist.cutblk.size[dist.cutblk.size$cumCount<=locat, "sizebin"])
 ggplot(dist.cutblk.size, aes(x = sizebin,y =count)) +
   geom_bar(stat="identity") +
   xlab("Cutblock Size (ha)") + 
-  ylab("Frequency")
+  ylab("Frequency") +
+  ggtitle("Historical harvest unit distribution")+
+  geom_vline(aes(xintercept = mean), linetype = "dashed") +
+  geom_text(aes(mean,0,label = "mean", vjust = -20))+
+  geom_vline(aes(xintercept = median), color ="red")+
+  geom_text(aes(median,0,label = "median", vjust = -20))
+
+#Fit a negative binomial using VGAM
+fit = vglm(sizebin ~ 1, posnegbinomial, control = vglm.control(maxit = 1000), weights=count,
+           data=dist.cutblk.size)
+ceoffit<-Coef(fit)
+pdf2 = dposnegbin(x=with(dist.cutblk.size, sizebin), munb=ceoffit[1], size=ceoffit[2])
+test<- data.frame(with(dist.cutblk.size, cbind(sizebin, count, fitted=pdf2*sum(count))), dig=9)
+
+#mu_nb is the mean = n(1-p)/p, variance=n(1-p)/p2 with p = probability
+# p can also equal size_nb/(size_nb + mu_nb)
+#size_nb is the dispersion parameter = 1/size_nb. As size approches infinity the negative binomial approaches the Poisson distribution
+
+ggplot(test, aes(x = sizebin)) +
+  geom_bar(aes(y= count), stat="identity") +
+  geom_line(aes(y= fitted), stat="identity", colour = "red") +
+  ggtitle("Fitted historical harvest unit distribution")+
+  xlab("Cutblock Size (ha)") + 
+  ylab("Frequency")+
+  geom_text(aes(25,0,label = paste0("mu_nb:", round(ceoffit[1],3)), vjust = -20))+
+  geom_text(aes(25,0,label = paste0("size_nb:", round(ceoffit[2],3)), vjust = -19))
+
+#get all the bins to due the integration of the pdf into a cdf
+patch<-data.table(sizeClass = seq(1:2000))
+patch$pdf3 <- dposnegbin(x=with(patch, sizeClass), munb=ceoffit[1], size=ceoffit[2])
+#sum(patch$pdf3)# 1
+
+patch[sizeClass <= 40, size :=40]
+patch[sizeClass <= 80 & sizeClass > 40, size :=80]
+patch[sizeClass <= 120 & sizeClass > 80, size :=120]
+patch[sizeClass <= 160 & sizeClass > 120, size :=160]
+patch[sizeClass <= 220 & sizeClass > 160, size :=220]
+patch[sizeClass >= 220, size :=240]
+
+patch1<-patch[, sum(pdf3), by = size]
+setNames(patch1, c("size","fitted.p"))
+
 ```
 
+To provide a comparison to the proccess that mimicks timber supply review assumptions, we used a patch size distribution from the [biodiversity handbook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf) which provides a unique target distribution for each natural disturbance type. 
+```{r patchsize, echo = FALSE}
+patchNatural<-data.table(ndt= c(1,1,1,1,1,1, 2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4, 5,5,5,5,5,5), 
+          sizeClass = c(40,80,120,160,200,240), 
+          freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                  0.3,0.3,0.1,0.1,0.1, 0.1,
+                  0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                  0.1,0.02,0.02,0.02,0.02,0.8,
+                  0.3,0.3,0.1,0.1,0.1, 0.1))
+ggplot(patchNatural, aes(x = sizeClass, y= freq, fill = factor(ndt))) +
+  geom_bar(stat="identity",position="dodge") +
+  ggtitle("Natural size disturbance distribution")+
+  xlab("Size (ha)") + 
+  ylab("Relative frequency (%)")
+
+```
 
 
 #References
