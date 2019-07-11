@@ -136,6 +136,14 @@ writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl | psql -d clus")
 
+#Harvest locations for vri 2002
+layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 AND harvestyr < 2002 ORDER BY cutblockid")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "cutblockid")
+writeRaster(layer.ras, file="cns_cutblk2002.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk2002.tif -t 100x100 rast.cns_cut_bl2002 | psql -d clus")
+
 ```
 
 ## VEG COMP 2002 feature id
