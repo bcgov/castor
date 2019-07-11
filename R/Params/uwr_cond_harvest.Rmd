@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Conditional Harvesting Constraints
 
-Conditional harvesting means that there is some level of retention required during harvest operations. This may require a percentage of the harvest unit being retained according to a descriptive class - this can be age, crownclosure, height and even species specific. The table below provides a list of Wildlife habitat Area and ungulate winter range conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints that would impact caribou and thus this isn't an exaustive provincial list.
+Conditional harvesting means that there is some level of retention required during harvest operations. This may require a percentage of the harvest unit being retained according to a descriptive class - this can be age, crownclosure, height and even species specific. The table below provides a list of ungulate winter range harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints that would impact caribou and thus this isn't an exaustive provincial list.
 
 ## UWR
 
@@ -29,9 +29,7 @@ aoi_uwr<-data.table(uwr_tag = c('u-3-003',	'u-3-004',	'u-3-006',	'u-4-001',	'u-4
  )
 
 #Create empty zone constraint table
-zone_uwr<-data.table(zoneid=integer(), type=character(), variable=character(), threshold=numeric(), reference_zone=character(), percentage=numeric(), ndt=integer(),
-                     label = character())
-
+zone_uwr<-data.table(zoneid=0, type='nh', variable='', threshold=0, reference_zone='rast.zone_uwr', percentage=0, ndt=0, label = 'uwr no harvest')
 
 library(sf)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
@@ -41,7 +39,6 @@ source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 #Get the UWR that are in the aoi_uwr table. This is currently set to the interior UWRs
 uwr_cond_harvest<-getSpatialQuery(paste0("SELECT  ogc_fid, uwr_tag, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE harvest = 'CONDITIONAL HARVEST ZONE' AND uwr_tag IN ('",paste(aoi_uwr$uwr_tag, collapse="', '"),"') ORDER BY apprv_date ASC")) 
 #Note the order by will allow the raster to select the newest dates first
-
 
 ```
 
@@ -65,7 +62,6 @@ u3003<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM 
 zoneid_new<-min(u3003$ogc_fid) #177783
 uwr_cond_harvest[uwr_cond_harvest$uwr_tag == 'u-3-003',]$ogc_fid<-zoneid_new
 
-
 u3003_table<-data.table(zoneid =zoneid_new, reference_zone ='rast.zone_uwr', variable ='crownclosure', type = 'ge', percentage = 33, threshold = 46, ndt = 0, label = 'u-3-003')
 
 zone_uwr<-rbind(zone_uwr, u3003_table)
@@ -74,7 +70,6 @@ gc()
 
 #Check
 zone_uwr[label == 'u-3-003',]
-
 ```
 
 ### u-3-004 Caribou 
@@ -939,7 +934,6 @@ uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-010',]
 library(here)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
-uwr_cond_harvest
 lu<-getSpatialQuery("SELECT *
 FROM public.rmp_lu_sp_polygon LIMIT 1")
 
@@ -952,21 +946,16 @@ ProvRast <- raster(
 #fasterize 
 class(uwr_cond_harvest$ogc_fid)
 uwr.ras<-fasterize::fasterize(sf= uwr_cond_harvest, raster = ProvRast , field = "ogc_fid")
+#writeRaster(test, file="uwr.tif", format="GTiff", overwrite=TRUE)
 
-nharv<-raster("C:/Users/KLOCHHEA/clus/nharv.tif")
-uwr.pixels<-data.table(c(t(raster::as.matrix(uwr.ras))))
-class(uwr.pixels$V1)
-
-uwr.pixels$V1<-as.integer(uwr.pixels$V1)
-
-sett<-uwr.pixels[uwr.pixels$V1 == 194756,]
-test<-nharv
-test[]<-uwr.pixels$V1
-
-writeRaster(test, file=paste0(here(), "/uwr.tif"), format="GTiff", overwrite=TRUE)
+no_harv<-getSpatialQuery("SELECT  ogc_fid, uwr_tag, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE harvest = 'NO HARVEST ZONE'  ORDER BY apprv_date ASC")
+uwr_nh.ras<-fasterize::fasterize(sf= no_harv, raster = ProvRast , field = "ogc_fid")
+#writeRaster(uwr_nh.ras, file="uwr_nh.tif", format="GTiff", overwrite=TRUE)
+uwr.ras[uwr_nh.ras[]> 0 ]<-0
+writeRaster(uwr.ras, file="uwr.tif", format="GTiff", overwrite=TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/uwr.tif -t 100x100 rast.zone_cond_uwr | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/R/params/uwr.tif -t 100x100 rast.zone_cond_uwr | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
 ```
@@ -983,15 +972,7 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 DBI::dbWriteTable(conn, c("public", "zone_uwr"), value= df, row.names = FALSE, overwrite = TRUE) 
 
 #clean up the constraint table
-dbExecute(conn, "DELETE FROM public.zone_uwr WHERE zoneid IN
-          (SELECT g.zoneid FROM (SELECT * FROM public.zone_uwr 
-FULL OUTER JOIN
-(SELECT (pvc).value as value, SUM((pvc).count) as count
- FROM (SELECT ST_ValueCount(rast,1,true) AS pvc
-   FROM rast.zone_cond_uwr) AS f
- GROUP BY value ORDER BY value) as h
- ON zoneid = value
- ORDER BY zoneid, value) as g WHERE g.value is NULL);")
+#dbExecute(conn, "DELETE FROM public.zone_uwr WHERE zoneid IN (SELECT g.zoneid FROM (SELECT * FROM public.zone_uwr FULL OUTER JOIN (SELECT (pvc).value as value, SUM((pvc).count) as count FROM (SELECT ST_ValueCount(rast,1,true) AS pvc FROM rast.zone_cond_uwr) AS f GROUP BY value ORDER BY value) as h ON zoneid = value ORDER BY zoneid, value) as g WHERE g.value is NULL);")
 
 dbDisconnect(conn)
 ```
