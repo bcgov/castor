@@ -295,21 +295,30 @@ DBI::dbWriteTable(conn, c("public", "zone_fsw"), value= df, row.names = FALSE, o
 dbDisconnect(conn)
 ```
 
-# Visual Quality Constraints On Height
+# Visual Quality Constraints
 ```{r, vqo}
-#Visual Quality Constraints on height
-vqo_all<-getSpatialQuery("SELECT evqo_cd, wkb_geometry FROM public.rec_vlnd_polygon WHERE evqo_cd <> 'SCO'")
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
+lu<-getSpatialQuery("SELECT wkb_geometry 
+FROM public.rmp_lu_sp_polygon limit 1")
+
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
+)
+#Visual Quality Constraints on height
+#see https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/visual-resource-mgmt/vrm_a_guide_to_visual_quality_objectives.pdf
 vqo<-getSpatialQuery("SELECT 
 case
-  WHEN evqo_cd = 'R' then 1
-  WHEN evqo_cd = 'PR' then 2
-  WHEN evqo_cd = 'M' then 3
-  WHEN evqo_cd = 'MM' then 4
+  WHEN evqo_cd = 'P' then 0
+  WHEN evqo_cd = 'R' then 2
+  WHEN evqo_cd = 'PR' then 7
+  WHEN evqo_cd = 'M' then 18
+  WHEN evqo_cd = 'MM' then 30
 end as vqo, 
-vli_id, wkb_geometry FROM public.rec_vlnd_polygon WHERE evqo_cd <> 'SCO' AND evqo_cd <> 'P'")
-
-plot(vqo["vqo"])
+case
+WHEN evqo_cd = 'P' then 0 else vli_id
+end as vli_id, wkb_geometry FROM public.rec_vlnd_polygon WHERE evqo_cd <> 'SCO'")
 
 vqo.ras<-fasterize::fasterize(sf= vqo, raster = ProvRast , field = "vli_id")
 writeRaster(vqo.ras, file=paste0(here(),"/zone_vqo.tif"), format="GTiff", overwrite=TRUE)
@@ -323,10 +332,13 @@ df$variable<-'height'
 df$threshold<-5
 df$reference_zone<-'rast.zone_vqo'
 df$ndt<-as.integer(0)
-colnames(df) <- c("percentage", "zoneid", "type", "variable", "threshold", "reference_zone", "ndt")
+colnames(df) <- c("percentage", "zoneid", "type", "variable", "threshold", "reference_zone", "ndt") # the vqo column gets labeled as percentage
 df$zoneid<-as.integer(df$zoneid)#assign integer
 df$percentage<-as.numeric(df$percentage)#assign integer
 df$label<-'vqo'
+
+df<-data.table(unique(df))# get rid of the multiple zoneid = 0 )
+df[zoneid == 0, type := 'nh']
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
