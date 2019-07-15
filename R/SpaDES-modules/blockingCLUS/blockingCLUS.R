@@ -205,7 +205,6 @@ blockingCLUS.preBlock <- function(sim) {
   weight[, height:=scale(height)][, crownclosure:=scale(crownclosure)] #scale the variables
 
   #Get the inverse of the covariance-variance matrix or since its standarized correlation matrix
-  print(head(weight))
   covm<-solve(cov(weight[,c("crownclosure", "height")], use= 'complete.obs'))
 
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
@@ -286,7 +285,7 @@ blockingCLUS.preBlock <- function(sim) {
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
-  rm(resultset, g)
+  rm(resultset, g, covm)
   gc()
   
   #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
