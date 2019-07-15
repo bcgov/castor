@@ -90,7 +90,7 @@ forestryCLUS.Init <- function(sim) {
                        by.x = "reference_zone", by.y = "reference_zone"))
   if(nrow(nhConstraints) > 0 ){
     nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " AND ")))
+    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
   
   return(invisible(sim))
