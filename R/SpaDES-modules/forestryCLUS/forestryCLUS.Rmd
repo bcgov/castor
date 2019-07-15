@@ -54,37 +54,25 @@ parameters <- list(
                          #Database connection
                          dbName='clus',
                          save_clusdb = FALSE,
-                         useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/clusdb.sqlite",
+                         useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/blockingCLUS/clusdb.sqlite",
                          #Study Area
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
-                         nameBoundary=c("08A","08B","08C","08D","08E"), 
+                         nameBoundary=c("08B"), 
                          nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "rast.forest_tenure",
-                         #Zones
-                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.zone_beo", "rast.zone_vqo"),
-                         nameZoneTable ="zone_constraints",
-                         #VRI info
-                         nameAgeRaster= "rast.vri2017_projage1",
-                         #nameHeightRaster= "rast.vri2017_projheight1",
-                         #nameCrownClosureRaster = "rast.vri2017_crownclosure",
-                         #Yield info
-                         #nameYieldIDRaster ="rast.yieldid",
-                         nameYieldTable ="yield_ex"
-                      ),  
+                         nameCompartmentRaster = "rast.forest_tenure"),  
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_beo',
-                      nameCutblockRaster ="rast.cns_cut_bl",
+                      nameCutblockRaster ="rast.cns_cut_bl2002",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
   forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC")
                 )
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS")
-harvestFlow<- data.table(compartment = c('08B','08B','08B','08B','08B','08B','08B','08B','08B','08B', '08C','08C','08C','08C','08C','08C','08C','08C','08C','08C'),
+harvestFlow<- data.table(compartment = c('08B','08B','08B','08B','08B','08B','08B','08B','08B','08B'),
                                    partition = 'vol > 50',
                                    year = rep(seq(from = 2018, to=2027, by = 
-                                                    1),2), 
+                                                    1),1), 
                                    flow = 100000)
 objects <- list(harvestFlow = harvestFlow 
                 )
