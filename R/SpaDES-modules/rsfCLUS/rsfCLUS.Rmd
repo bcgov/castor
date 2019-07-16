@@ -373,153 +373,185 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                      0.56000,0.13000,-0.76000,0.33000,0.08000,-0.20000,0.00001,
                                      0.00001
                                      ),
-                            layer = c ( "int","bc_ha_slope","dt_waterbodies","dt_watercourses",
-                                        "blocks_0_4", "blocks_5_9","blocks_10_60",
-"dt_crds_paved","dt_resource_road",
-                                     "dt_pipelines","beetle_1_5","beetle_6_9","fire_1_5","fire_6_25",
-                                     "fire_gt_25","grow_deg_day","ppt_snow_winter","bec_current",
-                                     "demars_wetland","vri2017_bryoidcoverpct","vri2017_herbcoverpct",
-                                     "age","vri2017_shrubcrownclosure","height",
-                                     "crownCover","int","bc_ha_slope","dt_waterbodies",
-                                     "dt_watercourses",
-"blocks_0_4", "blocks_5_9","blocks_10_60",
-"dt_crds_paved","dt_resource_road",
-                                     "dt_pipelines","beetle_1_5","beetle_6_9","fire_1_5","fire_6_25",
-                                     "fire_gt_25","grow_deg_day","ppt_snow_winter",
-                                     "bec_current","demars_wetland","vri2017_bryoidcoverpct",
-                                     "vri2017_herbcoverpct","age","vri2017_shrubcrownclosure",
-                                     "height","crownCover","int","bc_ha_slope",
-                                     "dt_waterbodies","dt_watercourses","blocks_0_4", "blocks_5_9","blocks_10_60","dt_crds_paved",
-                                     "dt_resource_road","dt_pipelines","beetle_1_5","beetle_6_9",
-                                     "fire_1_5","fire_6_25","fire_gt_25",
-"ppt_as_snow_annual", # needs rename?
-"ppt_summer", # needs rename?
-"mean_temp_summer",# needs rename?
-                                "bec_current","demars_wetland","vri2017_bryoidcoverpct","vri2017_herbcoverpct","age",
-                                     "vri2017_shrubcrownclosure","height","crownCover",
-                                     "int","bec_current","blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
-                                     "dt_resource_road","beetle_1_5","beetle_6_9","fire_1_5",
-                                     "fire_6_25","fire_gt_25","vri2017_shrubcrownclosure",
-                                     "vri2017_bryoidcoverpct","int","bc_ha_slope","dt_watercourses",
-                                     "dt_waterbodies",
-"elevation",# needs rename?
-"blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60","dt_resource_road","dt_pipelines",
-"dt_agriculture", # needs rename?
-"beetle_1_5","beetle_6_9","fire_1_5",
-                                     "fire_6_25","fire_gt_25","age",
-"vri_siteindex",# needs rename?
-                                     "vri2017_herbcoverpct","vri2017_shrubcrownclosure","ppt_snow_winter",
-                                    
- "temp_winter", # needs rename?
-
-"int","bc_ha_slope","dt_watercourses","dt_waterbodies",
-                                     "blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
-                                     "dt_resource_road","dt_pipelines","beetle_1_5","beetle_6_9",
-                                     "fire_1_5","fire_6_25","fire_gt_25","age",
+                            layer = c ("int", # model intercept
+                                       "bc_ha_slope", # slope, from DEM
+                                       "dt_waterbodies", # distance to lakes
+                                       "dt_watercourses", # distance to rivers
+                                       "blocks_0_4", # distance to cutblocks 0 to 4 years old
+                                       "blocks_5_9", # distance to cutblocks 5 to 9 years old
+                                       "blocks_10_60", # distance to cutblocks 10 to 60 years old
+                                       "dt_crds_paved", # distance to paved road
+                                       "dt_crds_resource", # distance to resource road (gravel/dirt)
+                                       "dt_pipelines", # distance to pipeline
+                                       "beetle_1_to_5", # beetle disturbed stand 1 to 5 years old
+                                       "beetle_6_to_9", # beetle disturbed stand 6 to 9 years old
+                                       "fire_1_to_5", # burned stand 1 to 5 years old
+                                       "fire_6_to_25", # burned stand 6 to 25 years old
+                                       "fire_gt_25", # burned stand greater than 25 years old
+                                       "grow_deg_day", # number of growing degree days
+                                       "ppt_snow_winter", # winter precipitation as snow
+                                       "bec_current", # current biogeoclimatic subzone
+                                       "demars_wetland", # wetland class, as defined by Demars using 
+                                                         # Ducks Unlimited wetland data
+                                       "vri2017_bryoidcoverpct", # % bryoid cover, from vegetation 
+                                                                # resource inventory 
+                                       "vri2017_herbcoverpct", # % herb cover, from vegetation 
+                                                               # resource inventory 
+                                       "age", # forest stand age
+                                       "vri2017_shrubcrownclosure", # shrub crown closure, from 
+                                                                    # vegetation resource inventory 
+                                       "height", # forest stand height
+                                       "crownCover", # forest stand crown closure
+                                       "int","bc_ha_slope","dt_waterbodies","dt_watercourses",
+                                       "blocks_0_4","blocks_5_9","blocks_10_60","dt_crds_paved",
+                                       "dt_crds_resource","dt_pipelines","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_1_to_5","fire_6_to_25","fire_gt_25",
+                                       "grow_deg_day","ppt_snow_winter", "bec_current",
+                                       "demars_wetland","vri2017_bryoidcoverpct",
+                                       "vri2017_herbcoverpct","age","vri2017_shrubcrownclosure",
+                                       "height","crownCover",
+                                       
+                                       "int","bc_ha_slope","dt_waterbodies","dt_watercourses",
+                                       "blocks_0_4", "blocks_5_9","blocks_10_60","dt_crds_paved",
+                                       "dt_crds_resource","dt_pipelines","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_1_to_5","fire_6_to_25","fire_gt_25",
+                                       "pas", # annual ppt as snow 
+                                       "ppt_sm", # summer precipitation
+                                       "tave_sm",# mean summer temp
+                                       "bec_current","demars_wetland","vri2017_bryoidcoverpct",
+                                       "vri2017_herbcoverpct","age","vri2017_shrubcrownclosure",
+                                       "height","crownCover",
+                                       
+                                       "int","bec_current","blocks_0_4","blocks_5_9","blocks_10_29",
+                                       "blocks_30_60","dt_crds_resource","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_1_to_5","fire_6_to_25","fire_gt_25",
+                                       "vri2017_shrubcrownclosure","vri2017_bryoidcoverpct",
                                      
-"vri_siteindex", # needs rename?
-"vri2017_herbcoverpct","vri2017_shrubcrownclosure","bec_current",
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem",# elevation, from Digital elevation model
+                                       "blocks_0_4","blocks_5_9","blocks_10_29",
+                                       "blocks_30_60","dt_crds_resource","dt_pipelines",
+                                       "raster_dist_to_agriculture_bcalbers_ce_2015", # distance to 
+                                                                                      # agricultural 
+                                                                                      # area
+                                       "beetle_1_to_5","beetle_6_to_9","fire_1_to_5",
+                                       "fire_6_to_25","fire_gt_25","age",
+                                       "vri_siteindex",# site index, from vegetation 
+                                                       # resource inventory 
+                                       "vri2017_herbcoverpct","vri2017_shrubcrownclosure",
+                                       "ppt_snow_winter",
+                                       "tave_wt", # mean winter temperature 
 
-"ppt_annual", # needs rename?
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
+                                       "dt_crds_resource","dt_pipelines","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_1_to_5","fire_6_to_25",
+                                       "fire_gt_25","age","vri_siteindex","vri2017_herbcoverpct",
+                                       "vri2017_shrubcrownclosure","bec_current",
+                                       "map", # mean annual precipitation
 
-"int","bc_ha_slope","dt_watercourses",
-                                     "dt_waterbodies",
-"elevation", # needs rename?
-"blocks_0_4","blocks_5_9","blocks_10_60",
-                                     "dt_crds_paved","dt_resource_road","dt_pipelines",
-"dt_mine", # needs rename?
-                                     "beetle_1_5","beetle_6_9","fire_1_5","fire_6_25","fire_gt_25",
-                                     "ppt_snow_winter",
-"mean_winter_temp", # needs rename?
-                                     "age",
-                                     "crownCover",
-"vri_site_index", # needs rename?
-"vri2017_herbcoverpct","vri2017_shrubcrownclosure","vri2017_bryoidcoverpct","int","bc_ha_slope",
-                                     "dt_watercourses","dt_waterbodies",
-"elevation",# needs rename?
-                                     "blocks_0_4","blocks_5_60",
-                                     "dt_resource_road","dt_crds_paved","dt_pipelines",
-"dt_mine",# needs rename?
-                                     "beetle_1_5","beetle_6_9","fire_1_5","fire_6_25","fire_gt_25",
-                                     "age","vri_site_index","crownCover",
-"mean_winter_temp",# needs rename?
-"ppt_snow_winter","int","bc_ha_slope",
-                                     "dt_watercourses","dt_waterbodies",
-"elevation",# needs rename?
-                                     "blocks_0_4","blocks_5_60",
-                                     "dt_resource_road","dt_crds_paved","dt_pipelines",
-"dt_mine",# needs rename?
-                                     "beetle_1_5","beetle_6_9","fire_1_5","fire_6_25","fire_gt_25",
-                                     "age","vri2017_bryoidcoverpct","vri2017_shrubcrownclosure",
-                                     
-"mean_annual_temp",# needs rename?
-"mean_annual_ppt",# needs rename?
-"int","bc_ha_slope",
-                                     "dt_watercourses","dt_waterbodies",
-"elevation",# needs rename?
-                                     "blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
-                                     "dt_resource_road","dt_pipelines","beetle_1_5","beetle_6_9",
-                                     "fire_6_25","fire_gt_25",
-"mean_annual_temp",# needs rename?
-"age",
-                                     "crownCover",
-"vri_siteindex", # needs rename?
-                                      "vri2017_herbcoverpct",
-                                     "vri2017_shrubcrownclosure","int","bc_ha_slope","dt_watercourses",
-                                     "dt_waterbodies",
-"elevation", # needs rename?
-"blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60","dt_resource_road","beetle_1_5",
-                                     "beetle_6_9","fire_6_25","fire_gt_25","age",
-"vri_siteindex", # needs rename?
-                                      "vri2017_herbcoverpct","vri2017_shrubcrownclosure",
-                                     "crownCover","ppt_snow_winter",
-"temp_winter",# needs rename?
-"int",
-                                     "bc_ha_slope","dt_watercourses","dt_waterbodies",
-"elevation", # needs rename?
-                                     "blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
-                                     "dt_resource_road","dt_pipelines",
-"dt_mine", # needs rename?
-                                      "fire_6_25",
-                                     "fire_gt_25","age",
-"vri_siteindex", # needs rename?
-                                     "vri2017_herbcoverpct","vri2017_shrubcrownclosure","int",
-"elevation",# needs rename?
-"elevation_squared",# needs rename?
-                                     "eastnessx1000","northnessx1000","vri_conifer","vri_deciduous",
-                                     "vri_urban","vri_pine","vri_herb","vri_nonveg_land_no_urban",
-                                     "vri_nonveg_water",
-"fire_not_pine_1_15","fire_pine_1_15","fire_16_40",# needs rename?
-"blocks_1_15","blocks_16_40","int",
-                                     
-"elevation", # needs rename?
-"elevation_squared",# needs rename?
-                                  "eastnessx1000","northnessx1000",
-                                     "vri_conifer","vri_deciduous","vri_urban","vri_pine","vri_herb",
-                                     "vri_nonveg_water",
-"fire_not_pine_1_15","fire_pine_1_15",# needs rename?
-                                     "blocks_1_15","blocks_16_40","int",
-"elevation", # needs rename?
-"elevation_squared",# needs rename?
-                                      "vri_conifer","vri_deciduous","vri_herb",
-                                     "vri_pine","vri_nonveg_water",
-"fire_not_pine_1_15","fire_pine_1_15","fire_16_40",# needs rename?
-"blocks_1_15","blocks_16_40","int",
-"elevation",# needs rename?
-"elevation_squared",# needs rename?
-                                     "eastnessx1000","northnessx1000","vri_conifer","vri_deciduous","vri_herb",
-                                     "vri_pine","vri_nonveg_water","blocks_1_15",
-                                     "blocks_16_40",
-"fire_not_pine_1_15","fire_pine_1_15","fire_16_40",# needs rename?
-"int",
-"elevation", # needs rename?
-"elevation_squared", # needs rename?
-    "eastnessx1000",
-                                     "vri_conifer","vri_deciduous","vri_herb","vri_pine",
-                                     "vri_nonveg_water",
-"fire_pine_1_15","fire_not_pine_1_15","fire_16_40",# needs rename?
-"blocks_1_15","blocks_16_40","dt_crds_paved","dt_resource_road"
-                                     ),
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem","blocks_0_4","blocks_5_9","blocks_10_60",
+                                       "dt_crds_paved","dt_crds_resource","dt_pipelines",
+                                       "raster_distance_to_mines_ce_2015_bcalbers", # distance to 
+                                                                                    # mine
+                                       "beetle_1_to_5","beetle_6_to_9","fire_1_to_5",
+                                       "fire_6_to_25","fire_gt_25","ppt_snow_winter",
+                                       "tave_wt","age","crownCover","vri_site_index",
+                                       "vri2017_herbcoverpct","vri2017_shrubcrownclosure",
+                                       "vri2017_bryoidcoverpct",
+
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem","blocks_0_4","blocks_5_60",
+                                       "dt_crds_resource","dt_crds_paved","dt_pipelines",
+                                       "raster_distance_to_mines_ce_2015_bcalbers","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_1_to_5","fire_6_to_25","fire_gt_25",
+                                       "age","vri_site_index","crownCover",
+                                       "tave_wt","ppt_snow_winter",
+
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem","blocks_0_4","blocks_5_60",
+                                       "dt_crds_resource","dt_crds_paved","dt_pipelines",
+                                       "raster_distance_to_mines_ce_2015_bcalbers",
+                                       "beetle_1_to_5","beetle_6_to_9","fire_1_to_5",
+                                       "fire_6_to_25","fire_gt_25","age","vri2017_bryoidcoverpct",
+                                       "vri2017_shrubcrownclosure","mat",# mean annual temperature
+                                       "map",
+
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem","blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
+                                       "dt_crds_resource","dt_pipelines","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_6_to_25","fire_gt_25","mat","age",
+                                       "crownCover","vri_siteindex","vri2017_herbcoverpct",
+                                       "vri2017_shrubcrownclosure",
+                                       
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem","blocks_0_4","blocks_5_9","blocks_10_29",
+                                       "blocks_30_60","dt_crds_resource","beetle_1_to_5",
+                                       "beetle_6_to_9","fire_6_to_25","fire_gt_25","age",
+                                       "vri_siteindex","vri2017_herbcoverpct",
+                                       "vri2017_shrubcrownclosure","crownCover","ppt_snow_winter",
+                                       "tave_wt",
+
+                                       "int","bc_ha_slope","dt_watercourses","dt_waterbodies",
+                                       "dem","blocks_0_4","blocks_5_9","blocks_10_29","blocks_30_60",
+                                       "dt_crds_resource","dt_pipelines",
+                                       "raster_distance_to_mines_ce_2015_bcalbers",
+                                       "fire_6_to_25","fire_gt_25","age","vri_siteindex",
+                                       "vri2017_herbcoverpct","vri2017_shrubcrownclosure",
+                                       
+                                       "int","dem","elevation_sq",# elevation, squared
+                                       "eastness_all_bc_int_x1000", # aspect 'eastness' (-1, west to 
+                                                                    # 1, east)
+                                       "northnessx1000", # aspect 'northness' (-1, south to 1, north)
+                                       "vri_conifer", # conifer (except pine) land cover class,   
+                                                      # defined using vegetation resource inventory
+                                       "vri_deciduous", # deciduous land cover class, defined using
+                                                        # vegetation resource inventory
+                                       "vri_urban", # urban land cover class, defined                                                                    # using vegetation resource inventory
+                                       "vri_pine", # pine land cover class, defined using
+                                                    # vegetation resource inventory
+                                       "vri_herb", # herbaceous land cover class, defined using
+                                                    # vegetation resource inventory
+                                       "vri_nonveg_land_no_urban", # non-vegetated (except urban)                                                                       # land cover class, defined using
+                                                                   # vegetation resource inventory
+                                       "vri_nonveg_water", # water land cover class, defined using
+                                                           # vegetation resource inventory
+                                       "fire_not_pine_1_15",# needs rename?
+                                       "fire_pine_1_15",# needs rename?
+                                       "fire_16_40",# needs rename?
+                                       "blocks_1_15", # cutblocks 1 to 15 years old
+                                       "blocks_16_40",# cutblocks 16 to 40 years old
+
+                                       "int","dem","elevation_sq","eastness_all_bc_int_x1000",
+                                       "northnessx1000","vri_conifer","vri_deciduous",
+                                       "vri_urban","vri_pine","vri_herb","vri_nonveg_water",
+                                       "fire_not_pine_1_15",# needs rename?
+                                       "fire_pine_1_15",# needs rename?
+                                       "blocks_1_15","blocks_16_40",
+
+                                       "int","dem","elevation_sq","vri_conifer","vri_deciduous",
+                                       "vri_herb","vri_pine","vri_nonveg_water",
+                                       "fire_not_pine_1_15",# needs rename?
+                                       "fire_pine_1_15",# needs rename?
+                                       "fire_16_40",# needs rename?
+                                       "blocks_1_15","blocks_16_40",
+
+                                       "int","dem","elevation_sq","eastness_all_bc_int_x1000",
+                                       "northnessx1000","vri_conifer","vri_deciduous","vri_herb",
+                                       "vri_pine","vri_nonveg_water","blocks_1_15","blocks_16_40",
+                                       "fire_not_pine_1_15",# needs rename?
+                                       "fire_pine_1_15",# needs rename?
+                                       "fire_16_40",# needs rename?
+
+                                       "int","dem","elevation_sq","eastness_all_bc_int_x1000",
+                                       "vri_conifer","vri_deciduous","vri_herb","vri_pine",
+                                       "vri_nonveg_water",
+                                       "fire_pine_1_15",# needs rename?
+                                       "fire_not_pine_1_15",# needs rename?
+                                       "fire_16_40",# needs rename?
+                                       "blocks_1_15","blocks_16_40","dt_crds_paved",
+                                       "dt_crds_resource"),
                             type =c("","","DT","DT","DT","DT","DT","DT","DT","DT","UP","UP","UP",
                                     "UP","UP","UP","UP","RC","RC","UP","UP","UP","UP","UP","UP",
                                     "","","DT","DT","DT","DT","DT","DT","DT","DT","UP","UP","UP",
@@ -556,6 +588,7 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                      'rast.ppt_snow_winter','rast.bec_current','rast.demars_wetland',
                                      'rast.vri2017_bryoidcoverpct','rast.vri2017_herbcoverpct',
                                      'age','rast.vri2017_shrubcrownclosure','height','crownCover',
+                                     
                                      '','rast.bc_ha_slope','rast.dt_waterbodies',
                                      'rast.dt_watercourses','blockid > 0 AND age BETWEEN 0 AND 4',
                                      'blockid > 0 AND age BETWEEN 5 AND 9',
@@ -566,157 +599,166 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                      'rast.ppt_snow_winter','rast.bec_current','rast.demars_wetland',
                                      'rast.vri2017_bryoidcoverpct','rast.vri2017_herbcoverpct',
                                      'age','rast.vri2017_shrubcrownclosure','height','crownCover',
+                                     
                                      '','rast.bc_ha_slope','rast.dt_waterbodies',
                                      'rast.dt_watercourses','blockid > 0 AND age BETWEEN 0 AND 4',
                                      'blockid > 0 AND age BETWEEN 5 AND 9',
                                      'blockid > 0 AND age BETWEEN 10 AND 60','rast.dt_crds_paved',
                                      'roadYear > 0','rast.dt_pipelines',
                                      'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
-                                     'rast.fire_6_25','rast.fire_gt_25',
-                                     'NEEDS TO BE LOADED: ppt_as_snow_annual',
-                                     'NEEDS TO BE LOADED: ppt_summer',
-                                     'NEEDS TO BE LOADED: mean_temp_summer','rast.bec_current',
-                                     'rast.demars_wetland','rast.vri2017_bryoidcoverpct',
-                                     'rast.vri2017_herbcoverpct','age',
-                                     'rast.vri2017_shrubcrownclosure','height','crownCover','',
-                                     'rast.bec_current','blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'rast.fire_6_25','rast.fire_gt_25','rast.pas','rast.ppt_sm',
+                                     'rast.tave_sm','rast.bec_current','rast.demars_wetland',
+                                     'rast.vri2017_bryoidcoverpct','rast.vri2017_herbcoverpct','age',
+                                     'rast.vri2017_shrubcrownclosure','height','crownCover',
+                                     
+                                     '','rast.bec_current','blockid > 0 AND age BETWEEN 0 AND 4',
                                      'blockid > 0 AND age BETWEEN 5 AND 9',
                                      'blockid > 0 AND age BETWEEN 10 AND 29',
                                      'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
                                      'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
                                      'rast.fire_6_25','rast.fire_gt_25',
                                      'rast.vri2017_shrubcrownclosure','rast.vri2017_bryoidcoverpct',
+                                     
                                      '','rast.bc_ha_slope','rast.dt_watercourses',
-                                     'rast.dt_waterbodies',
-                                     'NEEDS TO BE LOADED: dem_all_bc_clip',
+                                     'rast.dt_waterbodies','rast.dem',
                                      'blockid > 0 AND age BETWEEN 0 AND 4',
                                      'blockid > 0 AND age BETWEEN 5 AND 9',
                                      'blockid > 0 AND age BETWEEN 10 AND 29',
                                      'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
                                      'rast.dt_pipelines',
-                                    'NEEDS TO BELOADED:raster_dist_agriculture_bcalbers_ce_2015',
+                                     'rast.raster_dist_agriculture_bcalbers_ce_2015',
                                      'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
-                                    'rast.fire_6_25','rast.fire_gt_25','age',
-                                    'NEEDS TO BE LOADED: vri_siteindex','rast.vri2017_herbcoverpct',
-                                    'rast.vri2017_shrubcrownclosure','rast.ppt_snow_winter',
-                                    'NEEDS TO BE LOADED: mean_temp_winter','','rast.bc_ha_slope',
-                                    'rast.dt_watercourses','rast.dt_waterbodies',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 9',
-                                    'blockid > 0 AND age BETWEEN 10 AND 29',
-                                    'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
-                                    'rast.dt_pipelines','rast.beetle_1_5','rast.beetle_6_9',
-                                    'rast.fire_1_5','rast.fire_6_25','rast.fire_gt_25','age',
-                                    'NEEDS TO BE LOADED: vri_siteindex','rast.vri2017_herbcoverpct',
-                                    'rast.vri2017_shrubcrownclosure','rast.bec_current',
-                                    'NEEDS TO BE LOADED: ppt_annual','','rast.bc_ha_slope',
-                                    'rast.dt_watercourses','rast.dt_waterbodies',
-                                    'NEEDS TO BE LOADED: dem_all_bc_clip',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 9',
-                                    'blockid > 0 AND age BETWEEN 10 AND 60',
-                                    'rast.dt_crds_paved','roadYear > 0','rast.dt_pipelines',
-                                    'NEEDS TO BE LOADED: raster_distance_mines_ce_2015_bcalbers',
-                                    'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
-                                    'rast.fire_6_25','rast.fire_gt_25','rast.ppt_snow_winter',
-                                    'NEEDS TO BE LOADED: mean_temp_winter','age','crownCover',
-                                    'NEEDS TO BE LOADED: vri_siteindex','rast.vri2017_herbcoverpct',
-                                    'rast.vri2017_shrubcrownclosure','rast.vri2017_bryoidcoverpct',
-                                    '','rast.bc_ha_slope','rast.dt_watercourses','
-                                    rast.dt_waterbodies','NEEDS TO BE LOADED: dem_all_bc_clip',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 60','roadYear > 0',
-                                    'rast.dt_crds_paved','rast.dt_pipelines',
-                                    'NEEDS TO BE LOADED: raster_distance_mines_ce_2015_bcalbers',
-                                    'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
-                                    'rast.fire_6_25','rast.fire_gt_25','age',
-                                    'NEEDS TO BE LOADED: vri_siteindex','crownCover',
-                                    'NEEDS TO BE LOADED: mean_temp_winter','rast.ppt_snow_winter','',
-                                    'rast.bc_ha_slope','rast.dt_watercourses','rast.dt_waterbodies',
-                                    'NEEDS TO BE LOADED: dem_all_bc_clip',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 60','roadYear > 0',
-                                    'rast.dt_crds_paved','rast.dt_pipelines',
-                                    'NEEDS TO BE LOADED: raster_distance_mines_ce_2015_bcalbers',
-                                    'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
-                                    'rast.fire_6_25','rast.fire_gt_25','age',
-                                    'rast.vri2017_bryoidcoverpct','rast.vri2017_shrubcrownclosure',
-                                    'NEEDS TO BE LOADED: mean_temp_annual',
-                                    'NEEDS TO BE LOADED: ppt_annual','','rast.bc_ha_slope',
-                                    'rast.dt_watercourses','rast.dt_waterbodies',
-                                    'NEEDS TO BE LOADED: dem_all_bc_clip',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 9',
-                                    'blockid > 0 AND age BETWEEN 10 AND 29',
-                                    'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
-                                    'rast.dt_pipelines','rast.beetle_1_5','rast.beetle_6_9',
-                                    'rast.fire_6_25','rast.fire_gt_25',
-                                    'NEEDS TO BE LOADED: mean_temp_annual','age','crownCover',
-                                    'NEEDS TO BE LOADED: vri_siteindex',
-                                    'rast.vri2017_bryoidcoverpct','rast.vri2017_shrubcrownclosure',
-                                    '','rast.bc_ha_slope','rast.dt_watercourses',
-                                    'rast.dt_waterbodies',
-                                    'NEEDS TO BE LOADED: dem_all_bc_clip',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 9',
-                                    'blockid > 0 AND age BETWEEN 10 AND 29',
-                                    'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
-                                    'rast.beetle_1_5','rast.beetle_6_9','rast.fire_6_25',
-                                    'rast.fire_gt_25','age',
-                                    'NEEDS TO BE LOADED: vri_siteindex','rast.vri2017_herbcoverpct',
-                                    'rast.vri2017_shrubcrownclosure','crownCover',
-                                    'rast.ppt_snow_winter',
-                                    'NEEDS TO BE LOADED: mean_temp_winter','','rast.bc_ha_slope',
-                                    'rast.dt_watercourses','rast.dt_waterbodies',
-                                    'NEEDS TO BE LOADED: dem_all_bc_clip',
-                                    'blockid > 0 AND age BETWEEN 0 AND 4',
-                                    'blockid > 0 AND age BETWEEN 5 AND 9',
-                                    'blockid > 0 AND age BETWEEN 10 AND 29',
-                                    'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
-                                    'rast.dt_pipelines',
-                                    'NEEDS TO BE LOADED: raster_distance_mines_ce_2015_bcalbers',
-                                    'rast.fire_6_25','rast.fire_gt_25','age',
-                                    'NEEDS TO BE LOADED: vri_siteindex','rast.vri2017_herbcoverpct',
-                                    'rast.vri2017_shrubcrownclosure','','rast.elevation',
-                                    'rast.elevation_squared','rast.eastnessx1000',
-                                    'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
-                                    'rast.vri_urban','rast.vri_pine','rast.vri_herb',
-                                    'rast.vri_nonveg_land_no_urban','rast.vri_nonveg_water',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                    'fireid > 0 AND age BETWEEN 16 AND 40',
-                                    'blockid > 0 AND age BETWEEN 0 AND 15',
-                                    'blockid > 0 AND age BETWEEN 16 AND 40','','rast.elevation',
-                                    'rast.elevation_squared','rast.eastnessx1000',
-                                    'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
-                                    'rast.vri_urban','rast.vri_pine','rast.vri_herb',
-                                    'rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                    'blockid > 0 AND age BETWEEN 0 AND 15',
-                                    'blockid > 0 AND age BETWEEN 16 AND 40','','rast.elevation',
-                                    'rast.elevation_squared','rast.vri_conifer','rast.vri_deciduous',
-                                    'rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                    'fireid > 0 AND age BETWEEN 16 AND 40',
-                                    'blockid > 0 AND age BETWEEN 0 AND 15',
-                                    'blockid > 0 AND age BETWEEN 16 AND 40','','rast.elevation',
-                                    'rast.elevation_squared','rast.eastnessx1000',
-                                    'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
-                                    'rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water',
-                                    'blockid > 0 AND age BETWEEN 0 AND 15',
-                                    'blockid > 0 AND age BETWEEN 16 AND 40',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                    'fireid > 0 AND age BETWEEN 16 AND 40','','rast.elevation',
-                                    'rast.elevation_squared','rast.eastnessx1000','rast.vri_conifer',
-                                    'rast.vri_deciduous','rast.vri_herb','rast.vri_pine',
-                                    'rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15',
-                                    'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                    'fireid > 0 AND age BETWEEN 16 AND 40',
-                                    'blockid > 0 AND age BETWEEN 0 AND 15',
-                                    'blockid > 0 AND age BETWEEN 16 AND 40','rast.dt_crds_paved',
-                                    'roadYear > 0'
+                                     'rast.fire_6_25','rast.fire_gt_25','age',
+                                     'rast.vri_siteindex','rast.vri2017_herbcoverpct',
+                                     'rast.vri2017_shrubcrownclosure','rast.ppt_snow_winter',
+                                     'rast.tave_wt',
+                                    
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies','blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 9',
+                                     'blockid > 0 AND age BETWEEN 10 AND 29',
+                                     'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
+                                     'rast.dt_pipelines','rast.beetle_1_5','rast.beetle_6_9',
+                                     'rast.fire_1_5','rast.fire_6_25','rast.fire_gt_25','age',
+                                     'rast.vri_siteindex','rast.vri2017_herbcoverpct',
+                                     'rast.vri2017_shrubcrownclosure','rast.bec_current',
+                                     'rast.map',
+                                    
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies','rast.dem',
+                                     'blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 9',
+                                     'blockid > 0 AND age BETWEEN 10 AND 60',
+                                     'rast.dt_crds_paved','roadYear > 0','rast.dt_pipelines',
+                                     'rast.raster_distance_mines_ce_2015_bcalbers',
+                                     'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
+                                     'rast.fire_6_25','rast.fire_gt_25','rast.ppt_snow_winter',
+                                     'rast.tave_wt','age','crownCover', 'rast.vri_siteindex',
+                                     'rast.vri2017_herbcoverpct','rast.vri2017_shrubcrownclosure',
+                                     'rast.vri2017_bryoidcoverpct',
+                                    
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies','rast.dem',
+                                     'blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 60','roadYear > 0',
+                                     'rast.dt_crds_paved','rast.dt_pipelines',
+                                     'rast.raster_distance_mines_ce_2015_bcalbers',
+                                     'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
+                                     'rast.fire_6_25','rast.fire_gt_25','age',
+                                     'rast.vri_siteindex','crownCover',
+                                     'rast.tave_wt','rast.ppt_snow_winter',
+                                     
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies', 'rast.dem',
+                                     'blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 60','roadYear > 0',
+                                     'rast.dt_crds_paved','rast.dt_pipelines',
+                                     'rast.raster_distance_mines_ce_2015_bcalbers',
+                                     'rast.beetle_1_5','rast.beetle_6_9','rast.fire_1_5',
+                                     'rast.fire_6_25','rast.fire_gt_25','age',
+                                     'rast.vri2017_bryoidcoverpct','rast.vri2017_shrubcrownclosure',
+                                     'rast.mat','rast.map',
+                                    
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies','rast.dem',
+                                     'blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 9',
+                                     'blockid > 0 AND age BETWEEN 10 AND 29',
+                                     'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
+                                     'rast.dt_pipelines','rast.beetle_1_5','rast.beetle_6_9',
+                                     'rast.fire_6_25','rast.fire_gt_25','rast.mat',
+                                     'age','crownCover','rast.vri_siteindex',
+                                     'rast.vri2017_bryoidcoverpct','rast.vri2017_shrubcrownclosure',
+                                    
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies','rast.dem',
+                                     'blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 9',
+                                     'blockid > 0 AND age BETWEEN 10 AND 29',
+                                     'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
+                                     'rast.beetle_1_5','rast.beetle_6_9','rast.fire_6_25',
+                                     'rast.fire_gt_25','age','rast.vri_siteindex',
+                                     'rast.vri2017_herbcoverpct','rast.vri2017_shrubcrownclosure',
+                                     'crownCover','rast.ppt_snow_winter',
+                                     'rast.tave_wt',
+                                     
+                                     '','rast.bc_ha_slope','rast.dt_watercourses',
+                                     'rast.dt_waterbodies','rast.dem',
+                                     'blockid > 0 AND age BETWEEN 0 AND 4',
+                                     'blockid > 0 AND age BETWEEN 5 AND 9',
+                                     'blockid > 0 AND age BETWEEN 10 AND 29',
+                                     'blockid > 0 AND age BETWEEN 30 AND 60','roadYear > 0',
+                                     'rast.dt_pipelines',
+                                     'rast.raster_distance_mines_ce_2015_bcalbers',
+                                     'rast.fire_6_25','rast.fire_gt_25','age',
+                                     'rast.vri_siteindex','rast.vri2017_herbcoverpct',
+                                     'rast.vri2017_shrubcrownclosure',
+                                     
+                                     '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
+                                     'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
+                                     'rast.vri_urban','rast.vri_pine','rast.vri_herb',
+                                     'rast.vri_nonveg_land_no_urban','rast.vri_nonveg_water',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
+                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'blockid > 0 AND age BETWEEN 16 AND 40',
+                                    
+                                     '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
+                                     'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
+                                     'rast.vri_urban','rast.vri_pine','rast.vri_herb',
+                                     'rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
+                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'blockid > 0 AND age BETWEEN 16 AND 40',
+                                    
+                                     '','rast.dem','rast.elevation_sq',
+                                     'rast.vri_conifer','rast.vri_deciduous',
+                                     'rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
+                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'blockid > 0 AND age BETWEEN 16 AND 40',
+                                     
+                                     '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
+                                     'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
+                                     'rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water',
+                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'blockid > 0 AND age BETWEEN 16 AND 40',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
+                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                    
+                                     '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
+                                     'rast.vri_conifer','rast.vri_deciduous','rast.vri_herb',
+                                     'rast.vri_pine','rast.vri_nonveg_water',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15',
+                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
+                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'blockid > 0 AND age BETWEEN 16 AND 40','rast.dt_crds_paved',
+                                     'roadYear > 0'
                                     ),
                             reclass = c ('','','','','','','','','','','','','','','','','',
                                          "'1-6:0,7:-0.1676, 8-129:0'",
