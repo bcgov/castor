@@ -58,15 +58,14 @@ parameters <- list(
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                          nameZoneRasters=c("rast.zone_beo"),
                          nameZoneTable="zone_constraints",
-                         nameCutblockRaster ="rast.cns_cut_bl",
                          nameAgeRaster= "rast.vri2017_projage1",
                          nameHeightRaster= "rast.vri2017_projheight1",
                          nameCrownClosureRaster = "rast.vri2017_crownclosure",
                          nameYieldTable ="yield_ex"),
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_beo',
-                      patchVariation =10,
-                      nameCutblockRaster ="rast.cns_cut_bl",
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl2002",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE)
                         )
@@ -89,7 +88,7 @@ paths <- list(
   inputPath = inputDir,
   outputPath = outputDir
 )
-#set.seed(86) # need to set a seed for solving the mst-can have many optimal solutions
+set.seed(86) # need to set a seed for solving the mst-can have many optimal solutions
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 

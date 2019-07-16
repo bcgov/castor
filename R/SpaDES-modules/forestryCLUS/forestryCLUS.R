@@ -83,6 +83,16 @@ forestryCLUS.Init <- function(sim) {
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(time = integer(), compartment = character(), area= numeric(), volume = numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
+  
+  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
+  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+                       dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+                       by.x = "reference_zone", by.y = "reference_zone"))
+  if(nrow(nhConstraints) > 0 ){
+    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  }
+  
   return(invisible(sim))
 }
 
@@ -98,8 +108,8 @@ forestryCLUS.setConstraints<- function(sim) {
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
     numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
-                               zone_column = '",  zones[[1]][i] ,"'"))
-
+                               zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
+    if(nrow(numConstraints) > 0){
     for(k in 1:nrow(numConstraints)){
       query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
                                                         CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
@@ -110,7 +120,6 @@ forestryCLUS.setConstraints<- function(sim) {
       switch(
         as.character(query_parms[1, "type"]),
         ge = {
-          
           sql<-paste0("UPDATE pixels 
                       SET zone_const = 1
                       WHERE pixelid IN ( 
@@ -128,14 +137,15 @@ forestryCLUS.setConstraints<- function(sim) {
                       LIMIT :limits);")
           
         },
-        warning(paste("Undefined 'type' in zoneConstraints"))
+        warning(paste0("Undefined 'type' in zoneConstraints: ", query_parms[1, "type"]))
       )
       #Update pixels in clusdb for zonal constraints
       dbBegin(sim$clusdb)
         rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
       dbClearResult(rs)
       dbCommit(sim$clusdb)
-    }  
+    } 
+    }
   }
   #Update pixels in clusdb for adjacency constraints
   query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 

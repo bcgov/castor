@@ -68,7 +68,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
              
              pre= {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
-                  
+                  message('Creating blocks...')
                   sim <- blockingCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
                   sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
                   sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
@@ -114,12 +114,12 @@ return(invisible(sim))
 
 blockingCLUS.createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer default 0 ")
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
   
-  #dbBegin(sim$clusdb)
-  #  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
-  #dbClearResult(rs)
-  #dbCommit(sim$clusdb)
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
   
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
@@ -200,12 +200,13 @@ blockingCLUS.preBlock <- function(sim) {
 
   weight<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, crownclosure, height FROM pixels WHERE 
                                 thlb > 0 AND blockid = 0;')) # convert to a data.table - faster for large objects than data.frame
+
   #scale the crownclosure and height between 0 and 1 to remove bias of distances towards a variable
-  weight<-weight[, height:=(height-mean(height))/sd(height)][, crownclosure:=(crownclosure-mean(crownclosure))/sd(crownclosure)] #scale the variables
-  
+  weight[, height:=scale(height)][, crownclosure:=scale(crownclosure)] #scale the variables
+
   #Get the inverse of the covariance-variance matrix or since its standarized correlation matrix
-  covm<-solve(cov(weight[,c("crownclosure", "height")]))
-  
+  covm<-solve(cov(weight[,c("crownclosure", "height")], use= 'complete.obs'))
+
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1_cc", "w1_ht"))  #reformat
   edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="pixelid", all.x= TRUE))#merge in the weights to a cost surface
@@ -284,7 +285,7 @@ blockingCLUS.preBlock <- function(sim) {
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
-  rm(resultset, g)
+  rm(resultset, g, covm)
   gc()
   
   #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
@@ -300,7 +301,6 @@ blockingCLUS.preBlock <- function(sim) {
   })
   
   blockids <- data.table(Reduce(function(...) merge(..., all=T), result))#join the list components
-
   #Any blockids previously loaded - respect their values
   max_blockid<- dbGetQuery(sim$clusdb, "SELECT max(blockid) FROM pixels")
   blockids[V1 > 0, V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
