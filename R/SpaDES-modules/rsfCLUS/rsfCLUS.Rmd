@@ -517,40 +517,32 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                                                    # vegetation resource inventory
                                        "vri_nonveg_water", # water land cover class, defined using
                                                            # vegetation resource inventory
-                                       "fire_not_pine_1_15",# needs rename?
-                                       "fire_pine_1_15",# needs rename?
-                                       "fire_16_40",# needs rename?
+                                       "fire_not_pine_1_15",# burned non-pine stand 1 to 15 years old
+                                       "fire_pine_1_15",# burned pine stand 1 to 15 years old
+                                       "fire_16_40",# burned non-pine stand 16 to 40 years old
                                        "blocks_1_15", # cutblocks 1 to 15 years old
                                        "blocks_16_40",# cutblocks 16 to 40 years old
 
                                        "int","dem","elevation_sq","eastness_all_bc_int_x1000",
                                        "northnessx1000","vri_conifer","vri_deciduous",
                                        "vri_urban","vri_pine","vri_herb","vri_nonveg_water",
-                                       "fire_not_pine_1_15",# needs rename?
-                                       "fire_pine_1_15",# needs rename?
-                                       "blocks_1_15","blocks_16_40",
+                                       "fire_not_pine_1_15","fire_pine_1_15","blocks_1_15",
+                                       "blocks_16_40",
 
                                        "int","dem","elevation_sq","vri_conifer","vri_deciduous",
                                        "vri_herb","vri_pine","vri_nonveg_water",
-                                       "fire_not_pine_1_15",# needs rename?
-                                       "fire_pine_1_15",# needs rename?
-                                       "fire_16_40",# needs rename?
+                                       "fire_not_pine_1_15","fire_pine_1_15","fire_16_40",
                                        "blocks_1_15","blocks_16_40",
 
                                        "int","dem","elevation_sq","eastness_all_bc_int_x1000",
                                        "northnessx1000","vri_conifer","vri_deciduous","vri_herb",
                                        "vri_pine","vri_nonveg_water","blocks_1_15","blocks_16_40",
-                                       "fire_not_pine_1_15",# needs rename?
-                                       "fire_pine_1_15",# needs rename?
-                                       "fire_16_40",# needs rename?
+                                       "fire_not_pine_1_15","fire_pine_1_15","fire_16_40",
 
                                        "int","dem","elevation_sq","eastness_all_bc_int_x1000",
                                        "vri_conifer","vri_deciduous","vri_herb","vri_pine",
-                                       "vri_nonveg_water",
-                                       "fire_pine_1_15",# needs rename?
-                                       "fire_not_pine_1_15",# needs rename?
-                                       "fire_16_40",# needs rename?
-                                       "blocks_1_15","blocks_16_40","dt_crds_paved",
+                                       "vri_nonveg_water","fire_pine_1_15","fire_not_pine_1_15",
+                                       "fire_16_40","blocks_1_15","blocks_16_40","dt_crds_paved",
                                        "dt_crds_resource"),
                             type =c("","","DT","DT","DT","DT","DT","DT","DT","DT","UP","UP","UP",
                                     "UP","UP","UP","UP","RC","RC","UP","UP","UP","UP","UP","UP",
@@ -718,27 +710,24 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                      'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
                                      'rast.vri_urban','rast.vri_pine','rast.vri_herb',
                                      'rast.vri_nonveg_land_no_urban','rast.vri_nonveg_water',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                     'fire_not_pine_2003to2017',
+                                     'fire_pine_2003to2017',
+                                     'fire_1978to2002_old',
                                      'blockid > 0 AND age BETWEEN 0 AND 15',
                                      'blockid > 0 AND age BETWEEN 16 AND 40',
                                     
                                      '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
                                      'rast.northnessx1000','rast.vri_conifer','rast.vri_deciduous',
                                      'rast.vri_urban','rast.vri_pine','rast.vri_herb',
-                                     'rast.vri_nonveg_water','fireid > 0 AND age BETWEEN 0 AND 15',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'rast.vri_nonveg_water','fire_not_pine_2003to2017',
+                                     'fire_pine_2003to2017','blockid > 0 AND age BETWEEN 0 AND 15',
                                      'blockid > 0 AND age BETWEEN 16 AND 40',
                                     
                                      '','rast.dem','rast.elevation_sq',
                                      'rast.vri_conifer','rast.vri_deciduous',
                                      'rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                     'fireid > 0 AND age BETWEEN 16 AND 40',
-                                     'blockid > 0 AND age BETWEEN 0 AND 15',
+                                     'fire_not_pine_2003to2017','fire_pine_2003to2017',
+                                     'fire_1978to2002_old','blockid > 0 AND age BETWEEN 0 AND 15',
                                      'blockid > 0 AND age BETWEEN 16 AND 40',
                                      
                                      '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
@@ -746,16 +735,14 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                      'rast.vri_herb','rast.vri_pine','rast.vri_nonveg_water',
                                      'blockid > 0 AND age BETWEEN 0 AND 15',
                                      'blockid > 0 AND age BETWEEN 16 AND 40',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                     'fire_not_pine_2003to2017','fire_pine_2003to2017',
+                                     'fire_1978to2002_old',
                                     
                                      '','rast.dem','rast.elevation_sq','eastness_all_bc_int_x1000',
                                      'rast.vri_conifer','rast.vri_deciduous','rast.vri_herb',
                                      'rast.vri_pine','rast.vri_nonveg_water',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15',
-                                     'fireid > 0 AND age BETWEEN 0 AND 15 AND rast.vri_pine = 1',
-                                     'fireid > 0 AND age BETWEEN 16 AND 40',
+                                     'fire_not_pine_2003to2017','fire_pine_2003to2017',
+                                     'fire_1978to2002_old',
                                      'blockid > 0 AND age BETWEEN 0 AND 15',
                                      'blockid > 0 AND age BETWEEN 16 AND 40','rast.dt_crds_paved',
                                      'roadYear > 0'
@@ -798,7 +785,7 @@ rsf_model_coeff <- data.table (species = c("caribou","caribou","caribou","caribo
                                       10.33,348.79,-9.81,0.00,17.61,4635.76,3687.11,11967.97,
                                       7648.06,3984.84,7812.35,2054.78,9981.83,0.00,0.00,0.00,0.00,
                                       0.00,125.61,6.13,13.70,12.51,0.00,1271.48,0.00,8.96,12265.56,
-                                      3228.73,1365.56,40506.96,22820.57,13974.75,20824.17,5981.60,                                        84103.35,37553.03,0.00,0.00,0.00,0.00,0.00,145.52,-8.83,
+                                      3228.73,1365.56,40506.96,22820.57,13974.75,20824.17,5981.60,                                         84103.35,37553.03,0.00,0.00,0.00,0.00,0.00,145.52,-8.83,
                                       118.68,26.55,7.01,14.92,12.81,5.64,0.00,10.38,7503.31,3721.39,
                                       1253.91,40847.28,17357.50,4305.23,17758.43,74169.20,33168.18,
                                       0.00,0.00,
@@ -878,7 +865,7 @@ mysimout <- spades (mySim)
 
 # Events
 
-At each user defined time step, the `rsfCLUS` module calculates the resource selection function for the user defined population and season.
+At each user defined time step, the `rsfCLUS` module calculates the resource selection function for the user defined species, population and season.
 
 # Data dependencies
 
@@ -888,29 +875,30 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
 
 * species = declares the wildlife species for which the RSF applies (e.g., moose, caribou, wolf)
 
-* static := declares Y/N (yes/no) if the covariate is static, meaning its value will remain static throughout the simulation or if no, the covariate will be updated as a result of the simulation
+* static := declares Y/N (yes/no) whether the covariate is static, yes meaning its value will remain the same (not updated) throughout the simulation or if no, the covariate is consiered 'dynamic' and will be updated as a result of the simulation
 
 * layer := the name of the raster stored in a psql database or the name of the updated variable in `clusdb`. 
 
 >Note: In layer column an 'int' (i.e., intercept) is needed for each rsf. If the rsf is fit with no intercept, 'int' is required but with beta = 0.
 
-* type :=  declares the type of dynamic variable. A value in this column is needed if the static column = N. 
+* type :=  declares the type of dynamic variable. A value in this column is needed if the static column = N. The following types are used in the model: 
 
-+ UP = 'Updatable' in `clusdb` 
+    + UP = 'Updatable' in `clusdb`, meaning the model 'calls' a variable (e.g., forest stand age) 
+           that is updated in the RSQLite db 
 
-+ DT = 'Distance To' 
+    + DT = 'Distance To', meaning the model recalculates a DT variable (e.g., distance to cutblock or             road) based on an updated variable  
 
-+ RC = 'Reclass' 
+    + RC = 'Reclass' meaning the model recalculates coefficient values as classes of the covariate
 
-* sql := the `WHERE` clause of a sql statement describing the `clusdb` variables used in the dynamic layer
+* sql := the `WHERE` clause of a sql statement describing the RSQLite `clusdb` variables used in the dynamic layer, or used to call the 'static' variable from the postgres clusdb 
 
-* reclass := the SQL for [ST_Reclass](https://postgis.net/docs/RT_ST_Reclass.html) - follows the [reclassexpr](https://postgis.net/docs/reclassarg.html) where '(' means greater than, '[' means greater then or equal to. Ex. [a-b] = a <= x <= b in comparison to (a-b) = a < x < b
+* reclass := the SQL for [ST_Reclass](https://postgis.net/docs/RT_ST_Reclass.html), where type = 'RC'. used to convert the reclass covariate to the beta coefficent value - follows the [reclassexpr](https://postgis.net/docs/reclassarg.html) where '(' means greater than, '[' means greater then or equal to. Ex. [a-b] = a <= x <= b in comparison to (a-b) = a < x < b
 
-* mean:= the mean of the layer within the scope of the rsf 
+* mean:= the mean of the covariate data used to calculate the rsf; this is used where data were standardized i.e., (x-mean)/sdev, to calculate standardized model coefficents and to faciliate fitting the logistic regression model; this is used to 'standardize' the covariatescalled to calcualte the rsf; set to 0 where covariates were not standardized 
 
-* sdev := the standard deviation of the layer within the scope of the rsf 
+* sdev := the standard deviation of the covariate data used to calculate the rsf; this is used where data were standardized i.e., (x-mean)/sdev; set to 1 where covariates were not standardized 
 
->Note: The mean and sdev are used to standardize covariates via $x_s = \frac{x - mean}{sdev}$ If standardization is not required use `"",`
+>Note: The mean and sdev are used to standardize covariates via $x_s = \frac{x - mean}{sdev}$
 
 
 ```{r, example_rsf_coeff}
@@ -921,15 +909,15 @@ print(rsf_model_coeff)
 
 The following objects are instantiated via rsfCLUS:
 
-* pts:= A data.table of X,Y locations - used to find distances
+* pts:= A data.table of X,Y locations - used to find distances; joined to the rsfCovar data.table (below)
 
-* rsfCovar:= A data.table of covariates used to calculate the RSF. This could be uploaded into clusdb? Not implemented.
+* rsfCovar:= A data.table of covariates used to calculate the RSF. Includes the pixelid from the provincial raster so that covariate locations can be spatially identified and is joined to the 'pts' data. This could be uploaded into clusdb? Not implemented.
 
-* rsfGLM:= Inherits a glm class used for prediction of the RSF
+* rsfGLM:= Inherits a glm class used for prediction of the RSF; creates a 'dummy' glm class object for each RSF and then overides it with the coefficient values; simplifies the rsf 'prediction' calculation by taking advantage of the 'predict' function.
 
-* rsf:= A table within the `clusdb` SQLite database that stores RSFs.    
+* rsf:= A table within the `clusdb` RSQLite database that stores the RSF scores for each pixelid.    
 
 # Links to other modules
 
-Requires dataLoaderCLUS to instantiate the `clusdb` SQLite database.
+Requires dataLoaderCLUS to instantiate the `clusdb` RSQLite database.
 
