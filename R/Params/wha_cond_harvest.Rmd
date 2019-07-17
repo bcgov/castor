@@ -145,7 +145,7 @@ Do not salvage or harvest in the core area except partial harvesting systems. Do
 
 wha_tags<-c('4-077','4-078','4-079','4-080','4-081','4-082','4-083','4-084','4-085')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 50, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -183,7 +183,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # could use height threshold as above (or age) instead?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 50, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -703,7 +703,7 @@ zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', 
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 
 # I would keep these two as the same for now; both require connected forest cover adn lichen
-
+#TYLER: I think we could change caribou 9-073, 9-144 and 9-145  to the early seral constrain as well to keep connected forest
 #9-073, 9-144 and 9-145; Reduce early seral foreage. >40 years for 50% of the area
 wha_tags<-c('9-073',	'9-144',	'9-145')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
@@ -723,9 +723,9 @@ wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 
 ### Clean up and Commit data
 ```{r, clean_commit}
-writeRaster(wha.ras, file=paste0(here(), "/wha.tif"), format="GTiff", overwrite=TRUE)
+#writeRaster(wha.ras, file=paste0(here(), "/wha.tif"), format="GTiff", overwrite=TRUE)
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha.tif -t 100x100 rast.zone_wha | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+#system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha.tif -t 100x100 rast.zone_wha | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 df<-as.data.frame(zone_wha)
 df$ndt<-as.integer(0)
