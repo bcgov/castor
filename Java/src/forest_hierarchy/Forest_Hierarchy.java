@@ -54,7 +54,7 @@ public class Forest_Hierarchy {
 		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 			if(blockSize == 0){ //the first pixel in the block
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList));//get the largest degree?
-				//seed = this.edgeList.get(0).to - 1;
+				//seed = this.edgeList.get(0).from - 1;
 				//System.out.println("seed: " + seed);
 			}else{
 				if(this.degreeList.get(seed) > 0) { //if there are still edges from the seed to spawn
