@@ -78,7 +78,7 @@ Init <- function(sim) {
   #ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
 
   #Note with any linear interpolation there is a bias for higher yields at younger ages (before cMAI) and lower yields at older ages (past cMAI)
-  dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol, height FROM yields"))
+  dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol, height, eca FROM yields"))
   tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
   tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                                            dat[yieldid == .BY]$tvol, 
@@ -86,10 +86,23 @@ Init <- function(sim) {
   tab1[, ht:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$height, 
                                               xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  if(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1") == 'eca'){
+    print("Apply ECA")
+    tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
+                                              dat[yieldid == .BY]$eca, 
+                                              xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }else{
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)  
+    }
+  
+
   
   sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
   
@@ -115,10 +128,21 @@ growingStockCLUS.Update<- function(sim) {
   dbExecute(sim$clusdb, "DROP INDEX index_age")
   dbExecute(sim$clusdb, "DROP INDEX index_height")
   
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, age = :age where pixelid = :pixelid", tab1[,c("age", "vol", "ht", "pixelid")])
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  
+  if(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1") == 'eca'){
+    tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
+                                                 dat[yieldid == .BY]$eca, 
+                                                 xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }else{
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)  
+  }
   
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
   dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")

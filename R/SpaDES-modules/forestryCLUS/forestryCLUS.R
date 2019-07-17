@@ -110,41 +110,75 @@ forestryCLUS.setConstraints<- function(sim) {
     numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
                                zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
     if(nrow(numConstraints) > 0){
-    for(k in 1:nrow(numConstraints)){
-      query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
-                                                        CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0) ELSE 
-                                                        ROUND((1-(percentage*1.0/100))*t_area, 0) END AS limits
+      for(k in 1:nrow(numConstraints)){
+        query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, 
+                                                        CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0)
+                                                             ELSE ROUND((1-(percentage*1.0/100))*t_area, 0)
+                                                        END AS limits
                                                         FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
                                                             numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-      #TODO: Allow user to write own constraints according to many fields - right now only one variable
-      switch(
-        as.character(query_parms[1, "type"]),
-        ge = {
-          sql<-paste0("UPDATE pixels 
+       #TODO: Allow user to write own constraints according to many fields - right now only one variable
+       switch(
+          as.character(query_parms[1, "type"]),
+            ge = {
+              sql<-paste0("UPDATE pixels 
                       SET zone_const = 1
                       WHERE pixelid IN ( 
                       SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                       " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
                       LIMIT :limits);")
+              
+              #Update pixels in clusdb for zonal constraints
+              dbBegin(sim$clusdb)
+              rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+              dbClearResult(rs)
+              dbCommit(sim$clusdb)
           
-        },
-        le = {
-          sql<-paste0("UPDATE pixels 
+            },
+            le = {
+              if(as.character(query_parms[1, "variable"]) == 'eca' ){
+                #get the correct limits -- currently assuming the entire area is at the threshold
+                eca_current<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT ",as.character(query_parms[1, "zone_column"]),", sum(eca*thlb) as eca FROM pixels WHERE ",
+                                                         as.character(query_parms[1, "zone_column"]), " IN (",
+                                                         paste(query_parms$zoneid, collapse=", "),") GROUP BY ",as.character(query_parms[1, "zone_column"]), 
+                                                         " ORDER BY ",as.character(query_parms[1, "zone_column"])) ))
+      
+                query_parms<-merge(query_parms, eca_current, by.x ="zoneid", by.y =as.character(query_parms[1, "zone_column"]) , all.x =TRUE )
+                query_parms[,limits:=as.integer((1-(threshold/100 - eca/t_area))*t_area)]
+
+                sql<-paste0("UPDATE pixels 
+                      SET zone_const = 1
+                            WHERE pixelid IN ( 
+                            SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
+                            " ORDER BY thlb, zone_const DESC, eca DESC 
+                            LIMIT :limits);") #limits equal the area that needs preservation 
+                #Preserve the non thlb, and areas already zone constrainted
+                #Update pixels in clusdb for zonal constraints
+                dbBegin(sim$clusdb)
+                rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "limits")])
+                dbClearResult(rs)
+                dbCommit(sim$clusdb)
+                
+              }else{
+                sql<-paste0("UPDATE pixels 
                       SET zone_const = 1
                       WHERE pixelid IN ( 
                       SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
                       " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," < :threshold THEN 1 ELSE 0 END, thlb, zone_const DESC,", as.character(query_parms[1, "variable"])," 
-                      LIMIT :limits);")
-          
-        },
+                      LIMIT :limits);") 
+                
+                #Update pixels in clusdb for zonal constraints
+                dbBegin(sim$clusdb)
+                rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+                dbClearResult(rs)
+                dbCommit(sim$clusdb)
+              }
+            },
         warning(paste0("Undefined 'type' in zoneConstraints: ", query_parms[1, "type"]))
-      )
-      #Update pixels in clusdb for zonal constraints
-      dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
-      dbClearResult(rs)
-      dbCommit(sim$clusdb)
-    } 
+        )
+        
+
+      } 
     }
   }
   #Update pixels in clusdb for adjacency constraints

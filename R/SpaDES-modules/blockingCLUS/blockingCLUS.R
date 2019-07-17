@@ -230,7 +230,9 @@ blockingCLUS.preBlock <- function(sim) {
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
-  
+  if(nrow(patchSizeZone) == 0){
+    stop(paste0("check ", P(sim, "blockingCLUS", "patchZone")))
+  }
   #only select those zones to apply constraints that actually have thlb in them.
   zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels WHERE 
                                  thlb > 0 group by ", patchSizeZone)))) 

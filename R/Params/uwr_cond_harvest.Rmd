@@ -961,7 +961,7 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 ```
 
 ## Commit the zone_uwr
-```{r, commit_uwr}
+```{r, commit_uwr, eval=FALSE}
 df<-as.data.frame(zone_uwr)
 df$ndt<-as.integer(0)
 df$zoneid<-as.integer(df$zoneid)#assign integer

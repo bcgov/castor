@@ -370,7 +370,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
                        tvol = seq(1:20)**2, 
                        con = 100, 
                        height = seq(1:20), 
-                       eca = 0)
+                       eca = round(1-(seq(1:20)**2/20**2), 2))
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, con, height, eca ) 
                       values (:yieldid, :age, :tvol, :con, :height, :eca)", yields)
