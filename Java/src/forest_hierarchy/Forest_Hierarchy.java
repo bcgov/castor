@@ -16,10 +16,7 @@ public class Forest_Hierarchy {
 	Integer[] degree;
 	Integer[] idegree;
 	int blockID = 0;
-	double cwt = 1.0, allowableDiff = 2;
-	
-	//allowableDiff: Sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
-	
+	double cwt = 1.0, allowableDiff = 2; //allowableDiff: Sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
 	private static final int EMPTY = -1;
 	
 	public Forest_Hierarchy() {
@@ -27,14 +24,15 @@ public class Forest_Hierarchy {
 	}
 	
 	public static void main(String[] arg) {
-		  if (arg.length != 3) {
+		  if (arg.length != 4) {
 	            System.err.println("Usage: java forest_hierarchy <Edges> <degree> <histogram> <variation>");
-	            //System.out.println("Creating a test run...");
+	            System.out.println("Creating a test run...");
 	        	Forest_Hierarchy f = new Forest_Hierarchy();
 	        	f.createData();
-	        }else{
-	        	Forest_Hierarchy f = new Forest_Hierarchy();
-	        	f.createData();
+	        	for(int i =0; i < f.blockPixels.length; i++){
+	        		System.out.println(f.blockPixels[i]);
+	        	}
+	        	
 	        }
 	}
 
@@ -126,6 +124,7 @@ public class Forest_Hierarchy {
 		for (int r = 0; r < blockPixels.length ; r++){ //assign the remaining blocks their own blockID
 			//System.out.println("idegree[" + r + "]:" + this.idegree[r]);
 			if(this.blockPixels[r]==EMPTY && this.idegree[r] >= 0){
+				//TODO: add remainder pixels to closest block?
 				this.blockID++;
 				this.blockPixels[r] = this.blockID ;
 			}
@@ -145,10 +144,8 @@ public class Forest_Hierarchy {
             this.blockPixels[x-1] = this.blockID;
             removeEdges(x); //remove all remaining edges in the edgeList. So that each block has a unique set of pixels
             itr.remove(); 
-        } 
-        
-        this.blockList.clear();
-		
+        }   
+        this.blockList.clear();	
 	}
 
 	private  int findPixelToAdd(int seed, int blocksize) {
@@ -168,7 +165,6 @@ public class Forest_Hierarchy {
 				//	this.edgeList.remove(edge);
 				//	break; //a match has been found so break out of the loop of the edges
 				//}
-				
 			}
 		}
 		if(nextPixel > 0){ //remove degrees from each of the pixels
@@ -200,7 +196,6 @@ public class Forest_Hierarchy {
 	
 	public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable, double allowdiff ) {
 		//Instantiate the Edge objects from the R data.table
-		
 		//System.out.println("Linking to java...");
 		for(int i =0;  i < to.length; i++){
 			 this.edgeList.add( new Edges((int)to[i], (int)from[i], (double)weight[i]));
@@ -282,7 +277,7 @@ public class Forest_Hierarchy {
     /**
      * Private class for tracking Edges of a Minimum Spanning Tree.
      */
-	private  class Edges implements java.io.Serializable {
+	private class Edges implements java.io.Serializable {
 		int to, from;
 		double weight;
 		private static final long serialVersionUID = 10L;
@@ -372,8 +367,7 @@ public class Forest_Hierarchy {
     }
     
 	public double getEdgeListWeight(int i){
-		return this.edgeList.get(i).weight;
-		
+		return this.edgeList.get(i).weight;	
 	}
 	
 	
