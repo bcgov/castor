@@ -66,8 +66,12 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl2002",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
-  forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC")
+  forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC"),
+  roadCLUS = list(roadMethod = 'snap', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.pre_roads')
                 )
+
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS")
 harvestFlow<- data.table(compartment = c('24E','24E','24E','24E','24E','24E','24E','24E','24E','24E'),
                                    partition = 'vol > 50',

@@ -39,7 +39,9 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
-    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA)
+    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA)
     
     ),
   outputObjects = bind_rows(
@@ -234,7 +236,15 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         sim$harvestReport<- rbindlist(list(sim$harvestReport, list(time(sim), compart, sum(queue$thlb) , sum(queue$vol_h))))
       
         #Create landings
-      
+        #pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
+        land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
+        land_coord<-sim$pts[pixelid %in% land_pixels, ]
+        
+        #convert to class SpatialPoints
+        sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
+        
+        #clean up
+        rm(land_coord, land_pixels)
       }
     } else{
       next #No volume demanded in this compartment
