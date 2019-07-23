@@ -368,17 +368,25 @@ ProvRast <- raster(
   crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
 )
 
+#ogma
 ogma<-getSpatialQuery("SELECT ogma_type, wkb_geometry FROM public.ogma_legal_polygon WHERE rt_dt Is NOT NULL")
 ogma$harvest<-1
 ogma.ras<-fasterize::fasterize(sf= ogma, raster = ProvRast , field = "harvest")
 ogma.ras[is.na(ogma.ras)]<-0
 
+#parks
 parks<-getSpatialQuery("SELECT wkb_geometry FROM public.ta_pep_svw_polygon")
 parks$harvest<-1
 parks.ras<-fasterize::fasterize(sf= parks, raster = ProvRast , field = "harvest")
 parks.ras[is.na(parks.ras)]<-0
 
-nharv.ras<- ogma.ras + parks.ras
+#conservancies
+conserv<-getSpatialQuery("SELECT wkb_geometry FROM public.ta_ca_svw_polygon")
+conserv$harvest<-1
+conserv.ras<-fasterize::fasterize(sf= conserv, raster = ProvRast , field = "harvest")
+conserv.ras[is.na(conserv.ras)]<-0
+
+nharv.ras<- ogma.ras + parks.ras+ conserv.ras
 plot(nharv.ras)
 nharv.ras[nharv.ras[] == 0 ] <- NA
 nharv.ras[nharv.ras[] > 0 ] <- 0
