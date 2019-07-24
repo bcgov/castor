@@ -1,10 +1,18 @@
 ---
-title: "Provincail Caribou Habtiat Model"
-output: word_document
+title: "Provincial Caribou Habtiat Model"
+output:
+  
+  html_document:
+    pdf_print: paged
+    self_contained: no
+  pdf_document: 
+    self_contained: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+file.edit ("~/.Renviron")
+R_USER = "C:/Users/tmuhly"
 ```
 
 ## Introduction
