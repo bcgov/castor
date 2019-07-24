@@ -72,7 +72,7 @@ parameters <- list(
                   nameRoads =  'rast.pre_roads')
                 )
 
-modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS")
+modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS")
 harvestFlow<- data.table(compartment = c('24E','24E','24E','24E','24E','24E','24E','24E','24E','24E'),
                                    partition = 'vol > 50',
                                    year = rep(seq(from = 2018, to=2027, by = 

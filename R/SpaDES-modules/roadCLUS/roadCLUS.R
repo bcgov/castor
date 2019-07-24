@@ -29,7 +29,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "roadCLUS.Rmd"),
-  reqdPkgs = list("raster", "sf", "latticeExtra", "SpaDES.tools", "rgeos", "velox", "RANN"),
+  reqdPkgs = list("raster", "sf", "latticeExtra", "SpaDES.tools", "rgeos", "velox", "RANN", "dplyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
@@ -197,7 +197,7 @@ roadCLUS.getCostSurface<- function(sim){
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
   
   sim$costSurface[sim$costSurface[] == 0]<-0.00000000001 #giving some weight to roaded areas
-  writeRaster(sim$costSurface, file="cost.tif", format="GTiff", overwrite=TRUE)
+  #writeRaster(sim$costSurface, file="cost.tif", format="GTiff", overwrite=TRUE)
   
   rm(rds, costSurf)
   gc()
@@ -224,10 +224,13 @@ roadCLUS.buildSnapRoads <- function(sim){
   landings$id<-as.numeric(row.names(landings))
   coodMatrix<-rbind(rdptsXY,landings)
   coodMatrix$attr_data<-100
+ 
   mt<-coodMatrix %>% 
     st_as_sf(coords=c("x","y"))%>% 
     group_by(id) %>% summarize(m=mean(attr_data)) %>% 
+    filter(st_is(. , "MULTIPOINT")) %>% # Fixed. returns an error because the nearest road point is the landing point.
     st_cast("LINESTRING")
+  
   sim$paths.v<-unlist(sim$rasVelo$extract(mt), use.names = FALSE)
   sim$roads[sim$ras[] %in% sim$paths.v] <- (time(sim)+1)
   rm(rdptsXY, landings, mt, coodMatrix)
@@ -279,7 +282,7 @@ roadCLUS.getGraph<- function(sim){
   sim$g<-graph.edgelist(as.matrix(edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(sim$g)$weight<-as.matrix(edges.weight)[,3]#assign weights to the graph. Requires a matrix input
   V(sim$g)$name<-V(sim$g)
-  sim$g<-delete.vertices(sim$g, degree(sim$g) == 0) #remove non-connected verticies
+  #sim$g<-delete.vertices(sim$g, degree(sim$g) == 0) #remove non-connected verticies
  
   #------clean up
   rm(edges.w1,edges.w2, edges, weight)#remove unused objects

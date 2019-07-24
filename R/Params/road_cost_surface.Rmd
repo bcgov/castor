@@ -1,0 +1,149 @@
+---
+title: "BC Roading Cost Surface"
+author: "Kyle Lochhead"
+date: "July 18, 2019"
+output: html_document
+---
+
+<!--
+Copyright 2019 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Purpose
+
+The simulation of roads using a least cost paths approach requires a map of the cost surface.The interior and coast appraisal mannuals document simple linear models (SLM) that are conditional on TSA, BEC zones and various crossings of lakes, rivers, pipelines. The following code spatially maps the cost estimates from these SLMs at the provincial scale. 
+
+```{r, table_roadCostTSA, echo = FALSE}
+roadCost.lookUp<-read.table("C:/Users/KLOCHHEA/clus/R/roads/roadCostTSA.csv", sep = ",", head = TRUE)
+roadCost.lookUp
+```
+
+> In this table: Road_cost is the identifier for the SLM to use; Inter is the intercept; SlpCoef is the coeffeicent for topographic slope; and ESSFCoef is the intercept modifier that indicates if the area within the ESSF.
+
+```{r, costsurf}
+#Cost Surface for igraph
+library(sf)
+library(rpostgis)
+library(dplyr)
+library(raster)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+#Get the TSA numbers that match in the lookup table above
+tsa<-getSpatialQuery("SELECT * FROM public.forest_tenure;")
+tsa.rc<-tsa %>% 
+        right_join(roadCost.lookUp, by = "tsa_number") #join in the lookup table
+
+#build a default/empty provincial raster
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(tsa.rc)$proj4string, resolution = c(100, 100), vals = 0)
+
+#assigning road group 1 to any TSA outside the polygons
+tsa.rc$Road_Cost[is.na(tsa.rc$Road_Cost)] <- 1
+tsa.rc$Inter[is.na(tsa.rc$Inter)] <- 37130 #assign default intercept
+tsa.rc$SlpCoef[is.na(tsa.rc$SlpCoef)] <- 156.68 #assign default slope
+tsa.rc$ESSFCoef[is.na(tsa.rc$ESSFCoef)] <- 0 #assig default essf indicator flag
+#---check
+plot(tsa.rc["SlpCoef"])
+slope.rc10<-tsa.rc[tsa.rc$Road_Cost == 10,]
+
+#Make rasters of the equation components
+ras.slope.rc10<-fasterize::fasterize(slope.rc10, prov.rast, field = "Road_Cost") #this is a special road cost group because it squares the slope
+tsa.ras.int<-fasterize::fasterize(tsa.rc, prov.rast, field = "Inter")
+tsa.ras.slpCoef<-fasterize::fasterize(tsa.rc, prov.rast, field = "SlpCoef")
+tsa.ras.essfCoef<-fasterize::fasterize(tsa.rc, prov.rast, field = "ESSFCoef")
+```
+
+
+#Slope
+
+For road group 10 the slope is a squared slope.
+```{r, slope}
+#mask for road group 10 -- it has slope**2
+ras.slope.rc10[ras.slope.rc10[]== 10]<-1
+ras.slope.rc10[is.na(ras.slope.rc10[])]<-0
+#plot(ras.slope.rc10)
+
+# get the slope
+slope<-raster("//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/dem/all_bc/bc_ha_slope2.tif") #this file was modified by gdalwarp to put it in the correct alignment
+#ras.slope.rc10<-resample(ras.slope.rc10, slope, method = 'bilinear')
+
+rc10.slope<-slope*ras.slope.rc10 #get the slope for road group 10
+rc10.slope2<-rc10.slope*rc10.slope #square the slope
+
+rc10.mask<-ras.slope.rc10
+rc10.mask[ras.slope.rc10[]==1]<-0
+rc10.mask[ras.slope.rc10[]==0]<-1
+
+#plot(rc10.mask)
+slope.cost<- rc10.mask*slope + rc10.slope2 #add the slope and the square slope for road group 10
+
+#writeRaster(slope.cost, file="//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/Roads/slope_rc10.tif", format="GTiff", overwrite=TRUE)
+
+#free up some memory
+rm(rc10,rc10.slope2,rc10.slope)
+```
+
+## Crossings
+
+Crossings include pipeline crossings and water crossings.
+```{r, other}
+#pipeline crossings
+pipelines <-raster("//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/pipelines/raster_pipelines_20180815.tif") 
+
+pipe.cost<- pipelines*1911 #cost to cross a multiple pipeline per pipe
+
+#watercrossings
+waterx <-raster("//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/water/raster_watercourses_20180816.tif") 
+waterx.cost<-waterx*2130 #assuming a 0.8 diameter at 14 m
+```
+
+## Barriers
+```{r, barriers}
+#Lake barriers
+lake <-raster("//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/water/raster_lakes_20180816.tif") 
+```
+
+## Other costs
+```{r, other}
+#ESSF
+#Call Mikes raster functions???
+essf<-getSpatialQuery("SELECT * FROM public.bec_zone WHERE zone = 'ESSF'")
+essf$zoneInt<-1
+essf.ras<- fasterize::fasterize(essf, prov.rast, field = "zoneInt")
+```
+
+## Calculate road cost
+```{r, cost}
+#Calcualte the road cost
+#tsa.ras.slpCoef2<-resample(tsa.ras.slpCoef, slope.cost, method = 'bilinear')
+#tsa.ras.int2<-resample(tsa.ras.int, slope.cost, method = 'bilinear')
+#tsa.ras.essfCoef2<-resample(tsa.ras.essfCoef, slope.cost, method = 'bilinear')
+#lake2<-resample(lake, slope.cost, method = 'bilinear')
+#pipe.cost2<-resample(pipe.cost, slope.cost, method = 'bilinear')
+#waterx.cost2<-resample(waterx.cost, slope.cost, method = 'bilinear')
+#essf2<-resample(essf.ras, slope.cost, method = 'bilinear')
+essf.ras[is.na(essf.ras[])]<-0
+cost.surface<-waterx.cost + pipe.cost + tsa.ras.int + slope.cost*tsa.ras.slpCoef + tsa.ras.essfCoef*essf.ras #estimate the cost surface
+cost.surface[lake==1]<-NA # add the barriers
+plot(cost.surface) #check the raster
+
+library(here)
+writeRaster(cost.surface, file=paste0(here(), "/cost_surface.tif"), format="GTiff", overwrite=TRUE) #print to disk
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/cost_surface.tif -t 100x100 rast.rd_cost_surface | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
