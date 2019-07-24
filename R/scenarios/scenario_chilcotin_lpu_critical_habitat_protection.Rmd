@@ -1,7 +1,7 @@
 ---
-title: "Chilcotin Cariobu Local Population Unit (LPU) Canada critical habitat scenario."
-author: "Kyle Lochhead"
-date: "June 24, 2019"
+title: "Chilcotin Cariobu Local Population Unit (LPU) critical habitat protection scenario."
+author: "Tyler Muhly"
+date: "July 22, 2019"
 output: 
   html_document:
     toc: true
@@ -13,42 +13,90 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Scenario Background
-This habitat protection scenario tests the influence of 
+This habitat protection scenario tests the influence of protecting newly designated and currently incompletely proctedt critical habitat for caribou on timber harvest flows, i.e., allowable annual cut (AAC), caribou habitat quality, moose habitat quality, moose density (?) and wolf density (?) over time, using the caribou and land use simulator (CLUS). Critical habitat for caribou is as spatially defined by the government of British Columbia (source). Provincial wildlife biologists and caribou recovery program area leads defined how each type of critical habitat would be protected from forestry activity within the context of this scenario and CLUS model parameters. Outputs from this scenario, i.e., the impacts on AAC and wildlife habitat, should be evaluated relative to a scenario without the protections defined here (i.e., a "business-as-usual" scenario) rather than as an absolute representation of impacts to AAC and habitat. The CLUS model in general was designed to support caribou recovery planning, as a tool to explore and discuss the implications of alternative management scenarios to caribou and other resource values. The tool does not necessarily provide accurate or optimal solutions for caribou recovery but can help identify preferred recovery actions.  
+
+# Scenario Study Area
+This scenario was developed to support caribou recovery planning in the Chilcotin local population unit (LPU) of caribou. This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *threatened* under Canada's *Species at Risk Act*. 
+
+The Itcha-Ilgachuz herd is considered significant provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd has declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, associated road development, wildfire and mountain pine beetle infestations over the past two decades (cite herd plan). The 2019 population census showed a 40% decline from 2018, adn with that rate of decline, the herd would be functionally extirpated (i..e, less than 20 animals) in eight years (Carolyn Shores, pers. comm.).
+
+The Chilcotin LPU overlaps the following timber supply areas (TSAs) and timber supply blocks (TSBs):
+* Great Bear Rainforest (GBR) North TSA
+* GBR South TSA, TSB V 47C
+* Prince George TSA, TSB 24D
+* Quesnel TSA, TSBs 26B and 26A
+* Williams Lake TSA, TSBs 29A, 29B, 29C, 29E and 29I
+The overlap with the Prince George TSA is minimal and most of the GBR North TSA that overlaps the   LPU is in Tweedsmuir Park. Thus, the impacts of new caribou habitat protections to timber supply in these TSAs are expected to be minimal or null. The AAC's in the GBR South and GBR North TSAs were established through legislation. Thus, they are unlikely to be quickly changed if new caribou protection orders were established in those areas. Therefore, the focus of this scenario is on AAC impacts to the Quesnel TSA and Williams Lake TSA.
+ 
+Existing habitat protections for caribou specifically (e.g., caribou-specific ungulate winter ranges) and to wildlife and ecosystems more broadly (e.g., provincial parks), are addressed in this scenario as other parameters in the CLUS model. These primarily include 219,152 ha designated as conditional harvest and 193,470 ha as no-harvest zones within provincial parks or “no harvest” WHAs (cite herd plan). These existing protections are implemented in all model scenarios, including a scenario without the critical habtiat protections considred here. 
+
+# Scenario Habitat Protections
+Critical habitat for caribou in the Chiltoin LPU consists of five types:
+* high elevation winter range (HEWR)
+* high elevation summer range (HESR)
+* low elevation winter range (LEWR)
+* low elevation summer range (LESR)
+* matrix
+Each of these types corresponds to a specific habitat protection definition, based on its understood importance to caribou population sustainability. They are also intended to be consistent with the federal recopvery strategy for southern mountain caribou ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)), although the protection designations for some types are ambiguous within this plan.     
+
+HEWR and HESR critical habitat types (often referred to as 'core' habitat) typically consist of areas heavily and regularly used by caribou. Existing parks, wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are in place over many of these areas to protect this habitat. Management plans for caribou typically recommned full protection of these types form forest harvest [Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf); herd plan). 
+
+LEWR and LESR are also often regulalrly used by caribou, but may not be as protected by existing orders and regulations. Indeed, the priority proposed recovery actions for the Itcha-Ilgachuz herd are to protect LEWR and LESR critical habitat from further timber harvesting and development (cite herd plan). However, currently, 97% of the Itcha-Ilgachuz herd’s LEWR is available for timber harvesting (cite herd plan), and thus there is uncertainty and concern over how these proposed actions may influence forest harvest and the AAC in the Williams Lake and Quesnel TSA's. In addition, predator removal has been proposed for the Chilcotin LPU, but it's long-term effectiveness as a recovery action depends on effective habitat protection.  
+
+Matrix habitat is typically not heavily or regularly used by caribou, and thus there are typically little or no protections in place for this habitat type. Matrix habitat areas are typically large and adjacent to HEWR, HESR, LEWR or LESR habitat types. The intent of matrix is to provide a 'buffer' against high predator density or use of HEWR, HESR, LEWR or LESR habitat types, allowing these types to function more effectively as refugia from predators. Some level of rdcution in forest harvest in matrix habitat is typically recommend in cariobu plans. The federal recovery plan for southern moutnain cariobu recommends maintatining habitat that supports less than 3 wolves per 1,000 km2. The Itcha-Ilgachuz herd plan recommends maintaining the level of disturbance from industrial development and fire below 35% of the area.
+
+How 'disturbance' is defined is somewhat ambiguous and requires clarification here. Disturbance and the 35% 'management threshold' were originally defined in the federal boreal caribou recovery strategy [Environment Canada 2012](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_caribou_boreal_caribou_0912_e1.pdf). A scientific assessment was completed to support this strategy [Environment Canada 2011](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/ri_boreal_caribou_science_0811_eng.pdf), and included a regression model relating habitat disturbance in caribou popualtion ranges to probability that boreal caribou populations are stable or gwowing (i.e., $\lambda$ $\geq$ 1). There, habitat disturbance was defined as anthropoegnic disturbances (i.e., 'human footprint', such as cutblocks and roads) clearly visible using 1:50,000 resolution satellite imagery, and burnt areas less than 40 years old, as defined in the national fire database [link](http://cwfis.cfs.nrcan.gc.ca/ha/nfdb?wbdisable=true). Human footprint was also buffered by 500m. The relationship between disturbance and probability of $\lambda$ $\geq$ 1 is continuous, but a 35% disturbance threshold was identified as a reasonable threshold to achieve a sustainable caribou population. This model and threshold has since been applied to some critical habitat types for southern mountain cariobu. the model has not been tested or validated in the 
+
+Here we define the following forest harvest constraints for each habitat type for this scenario:
 
 
-
-# Scenario "Study Area" 
-
-CHilctoin LPU - set these Params in dataloader?
- - This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands cariobu herds (need to 
-   load LPU boudnary into clusdb)
- - The Chilcotin LPU overlaps the following timber supply areas (TSAs) and timber supply blocks 
-   (TSBs):
-    - GBR North TSA
-    - GBR South TSA, TSB# V 47C
-    - Prince George TSA, TSB# 24D
-    - Quesnel TSA, TSB# 26B and 26A
-    - Williams Lake TSA, TSB# 29A, 29B, 29C, 29E and 29I
- - The overlap with the Prince George TSA is minimal and most of the GBR North TSA that overlaps the 
-   LPU is in Tweedsmuir Park, therefore, the timber 
-
-critical habtit as defined in fereal recoveyr stratgye for southern moutnain cariob 
-
-Types of protections (from Leo DeGroot/ federal recovery strategy):
-
+Here we define the following forest harvest constraints for each habitat type for this scenario:
 ```{r, create the protection type data.table}
 library (data.table)
 library (kableExtra)
-tab_protection_type <- data.table (type = c('High Elevation All Seasons', 'Low Elevation Summer 
-                                            Range', 'Low Elevation Winter Range', 'Matrix Type 1', 
-                                            'Matrix Type 2'),
-                                   constraint = c('No Harvest', 'No Harvest', 'No Harvest', ' Less 
-                                                  than 35% forest age less than 40 years old', 'Less 
-                                                  than 35% forest age less than 40 years old')
+tab_protection_type <- data.table (Type = c ('High Elevation Summer Range (HESR)', 
+                                             'High Elevation Winter (HEWR)', 
+                                             'Low Elevation Summer Range (LESR)', 
+                                             'Low Elevation Winter Range (LEWR)', 
+                                             'Matrix'),
+                                  Constraint = c ('No Harvest', 
+                                                  'No Harvest', 
+                                                  'No Harvest', 
+                                                  'No Harvest',                                                                                       'Less than 20% forest age less than 40 years old')
                                    )
 kable (tab_protection_type)
 ```
 
+
+
+
+
+
+   
+   
+- short-term recommended recovery actions for Itcha-Ilgachuz,  relevant to the current cariobu and land use simualtor (CLUS) model, are to:
+
+    
+  - Once a disturbance threshold of 35% has been restored, allow timber harvesting in low elevation 
+    and matrix range at a rate of cut that maintains the 35% disturbance threshold
+  - Prioritize reducing or halting timber harvest in ECCC critical habitat that shows high use by 
+    caribou, demonstrated by Itcha-Ilgachuz caribou VHF and GPS collar data
+  - the B.C. Chief Forester’s office may have to reduce the Annual Allowable Cut (AAC) for the 
+    Quesnel and William’s Lake Timber Supply Areas (TSAs)
+  - Undertake a habitat supply model to quantify the amount of mature plus old forest (productive 
+    forest landbase) currently available to caribou
+  - a cumulative effects assessment, uncluding:
+    - current condition of Itcha-Ilgachuz caribou habitat
+    - impacts to caribou habitat since 2003
+    - future effects of resource development on caribou habitat
+  - translate the target wolf density of 3/1000 km2 (or 0.07 moose/km2) in matrix habitat to a 
+    system tangible to the forest industry, such as a cap on the amount of early seral forest 
+
+
+
+critical habtit as defined by British COlumbia; simiamlar to federal recovery strategy, but matrix habtat has been added and soem types have switched  
+
+Types of protections (from Leo DeGroot/Carolyn SHores - pers. comm. July 22, 2019):
 
 
 
@@ -61,9 +109,11 @@ corresdontd to spatial data (- Nicola...)
 
 ## UWR
 
-```{r, UWR_cond_harv}
+```{r, Chilctoin LPU critical habitat}
 
-
+### load critical habtiat to postgres db ###
+  
+  
 
 
 #Create empty zone constraint table
