@@ -3487,16 +3487,10 @@ writeRaster (ppt.annual, "C:\\Work\\caribou\\clus_data\\rsf\\all_rasters\\mean_a
              format = "GTiff", overwrite = T)
 
 ## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
-beginCluster ()
-
 slope <- resample (slope, dist.lake, method = 'bilinear')
 ppt.annual <- resample (ppt.annual, dist.lake, method = 'bilinear')
 
-endCluster ()
-
 ### Adjust the raster data for 'standardized' model covariates ###
-beginCluster ()
-
 slope <- (slope - 18) / 11 # rounded these numbers to facilitate faster processing; decreases processing time substantially
 dist.water <- (dist.water - 4636) / 2482 
 dist.lake <- (dist.lake - 3687) / 2314 
@@ -3512,12 +3506,8 @@ vri.herb <- (vri.herb - 14) / 18
 vri.shrub <- (vri.shrub - 13) / 16
 ppt.annual <- (ppt.annual - 1271) / 304
 
-endCluster ()
-
 ### CALCULATE RSF RASTER ###
-beginCluster ()
-
-raster.rsf <- exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) + 
+raster.rsf <- (exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) + 
                            (dist.lake * 0.14) + 
                            (std.dist.cut.1to4 * -0.01) + (std.dist.cut.5to9 * 0.06) +
                            (dist.cut.10to29 * -0.18) + (dist.cut.30over * 0.02) +
@@ -3531,8 +3521,8 @@ raster.rsf <- exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) +
                            (bec.bwbs.mw * -0.93) + (bec.bwbs.wk1 * -0.90) +
                            (bec.essf.mv2 * 0.09) + (bec.essf.mvp * 0.13) +
                            (bec.essf.wcp * 0.08) + (bec.essf.wk2 * -0.75) +
-                           (bec.sbs.wk2 * -0.50)) /
-           1 + exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) + 
+                           (bec.sbs.wk2 * -0.50))) /
+           (1 + exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) + 
                       (dist.lake * 0.14) + 
                       (std.dist.cut.1to4 * -0.01) + (std.dist.cut.5to9 * 0.06) +
                       (dist.cut.10to29 * -0.18) + (dist.cut.30over * 0.02) +
@@ -3546,9 +3536,7 @@ raster.rsf <- exp (-1.34 + (slope * -0.37) + (dist.water * -0.14) +
                       (bec.bwbs.mw * -0.93) + (bec.bwbs.wk1 * -0.90) +
                       (bec.essf.mv2 * 0.09) + (bec.essf.mvp * 0.13) +
                       (bec.essf.wcp * 0.08) + (bec.essf.wk2 * -0.75) +
-                      (bec.sbs.wk2 * -0.50))      
+                      (bec.sbs.wk2 * -0.50)))      
                 
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\summer\\rsf_du8_s.tif", 
              format = "GTiff", overwrite = T)
-
-endCluster ()

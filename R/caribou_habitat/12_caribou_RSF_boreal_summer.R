@@ -3570,8 +3570,6 @@ ppt.summer <- crop (ppt.summer, extent (caribou.boreal.sa))
 mean.temp.summer <- crop (mean.temp.summer, extent (caribou.boreal.sa))
 
 ## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
-beginCluster ()
-
 slope <- resample (slope, dist.lake, method = 'bilinear')
 writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\summer\\slope_resample.tif", 
              format = "GTiff")
@@ -3611,11 +3609,8 @@ writeRaster (wet.rich.fen, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\summer\\rich
 bec.bwbs.mw <- resample (bec.bwbs.mw, dist.lake, method = 'ngb')
 writeRaster (bec.bwbs.mw, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\summer\\bec_bwbs_mw.tif", 
              format = "GTiff", overwrite = T)
-endCluster ()
 
 ### Adjust the raster data for 'standardized' model covariates ###
-beginCluster ()
-
 std.slope <- (slope - 1.31) / 1.79 # rounded these numbers to facilitate faster processing; decreases processing time substantially
 std.dist.lake <- (dist.lake - 2078) / 1616
 std.dist.water <- (dist.water - 8417) / 5902
@@ -3635,22 +3630,14 @@ std.vri.shrub <- (vri.shrub - 26) / 18
 std.vri.height <- (vri.height - 9) / 5
 std.vri.crown.close <- (vri.crown.close - 26) / 18
 
-endCluster ()
-
 ### CALCULATE RASTER OF STATIC VARIABLES ###
-beginCluster ()
-
-raster.rsf.static <- (-1.79 + (std.slope * -0.06) + (std.dist.lake * 0.07) +
-                        (std.dist.water * 0.05) + (std.vri.bryoid * 0.15) +
-                        (std.vri.herb * 0.07) + (std.vri.shrub * 0.13) + 
-                        (wet.conifer.swamp * 0.33) + (wet.decid.swamp * -0.09) +
-                        (wet.poor.fen * 0.49) + (wet.rich.fen * 0.19) +
-                        (wet.other * 0.34) + (wet.tree.bog * 0.58) + 
-                        (wet.upland.decid * -0.73))
-writeRaster (raster.rsf.static, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\summer\\rsf_static_du6_s.tif", 
-             format = "GTiff")
-
-raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.11) + 
+raster.rsf <- (exp (-1.79 + (std.slope * -0.06) + (std.dist.lake * 0.07) +
+                     (std.dist.water * 0.05) + (std.vri.bryoid * 0.15) +
+                     (std.vri.herb * 0.07) + (std.vri.shrub * 0.13) + 
+                     (wet.conifer.swamp * 0.33) + (wet.decid.swamp * -0.09) +
+                     (wet.poor.fen * 0.49) + (wet.rich.fen * 0.19) +
+                     (wet.other * 0.34) + (wet.tree.bog * 0.58) + 
+                     (wet.upland.decid * -0.73) + (std.dist.cut.1to4 * -0.11) + 
                      (std.dist.cut.5to9 * -0.27) + (std.dist.cut.10over * -0.16) +
                      (std.dist.paved.rd * 0.02) + (std.dist.resource.rd * 0.06) +
                      (std.dist.pipeline * 0.11) + (beetle.1to5 * 0.07) + 
@@ -3659,8 +3646,14 @@ raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.11) +
                      (std.ppt_as_snow_annual * 0.31) + (std.ppt_summer * 0.09) +
                      (std.mean.temp.summer * 0.08) +
                      (bec.bwbs.mw * 0.02)  + (std.vri.age * 0.11) + 
-                     (std.vri.height * -0.13) + (std.vri.crown.close * 0.14)) / 
-  1 + exp (raster.rsf.static + (std.dist.cut.1to4 * -0.11) + 
+                     (std.vri.height * -0.13) + (std.vri.crown.close * 0.14))) / 
+  (1 + exp (-1.79 + (std.slope * -0.06) + (std.dist.lake * 0.07) +
+             (std.dist.water * 0.05) + (std.vri.bryoid * 0.15) +
+             (std.vri.herb * 0.07) + (std.vri.shrub * 0.13) + 
+             (wet.conifer.swamp * 0.33) + (wet.decid.swamp * -0.09) +
+             (wet.poor.fen * 0.49) + (wet.rich.fen * 0.19) +
+             (wet.other * 0.34) + (wet.tree.bog * 0.58) + 
+             (wet.upland.decid * -0.73) + (std.dist.cut.1to4 * -0.11) + 
              (std.dist.cut.5to9 * -0.27) + (std.dist.cut.10over * -0.16) +
              (std.dist.paved.rd * 0.02) + (std.dist.resource.rd * 0.06) +
              (std.dist.pipeline * 0.11) + (beetle.1to5 * 0.07) + 
@@ -3669,6 +3662,6 @@ raster.rsf <- exp (raster.rsf.static + (std.dist.cut.1to4 * -0.11) +
              (std.ppt_as_snow_annual * 0.31) + (std.ppt_summer * 0.09) +
              (std.mean.temp.summer * 0.08) +
              (bec.bwbs.mw * 0.02)  + (std.vri.age * 0.11) + 
-             (std.vri.height * -0.13) + (std.vri.crown.close * 0.14))
+             (std.vri.height * -0.13) + (std.vri.crown.close * 0.14)))
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du6\\summer\\rsf_du6_s.tif", 
-             format = "GTiff")
+             format = "GTiff", overwrite = T)

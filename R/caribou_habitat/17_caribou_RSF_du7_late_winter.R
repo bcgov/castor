@@ -3628,8 +3628,6 @@ elev <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_elev_resample.tif")
 slope <- raster ("C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_slope_resample.tif")
 
 ### Adjust the raster data for 'standardized' model covariates ###
-beginCluster ()
-
 slope <- (slope - 10) / 11 # rounded these numbers to facilitate faster processing; decreases processing time substantially
 dist.water <- (dist.water - 7503) / 6691 
 dist.lake <- (dist.lake - 3721) / 3578 
@@ -3646,12 +3644,8 @@ vri.cc <- (vri.cc - 25) / 20
 pas.winter <- (pas.winter - 127) / 56
 temp.winter <- (temp.winter - -9) / 2
 
-endCluster ()
-
 ### CALCULATE RASTER OF STATIC VARIABLES ###
-beginCluster ()
-
-raster.rsf <- exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) + 
+raster.rsf <- (exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) + 
                            (dist.lake * 0.06) + (elev * 0.62) +
                            (dist.cut.1to4 * -0.23) + (dist.cut.5over * -0.12) +
                            (dist.resource.rd * 0.05) + (dist.paved.rd * -0.04) +
@@ -3661,8 +3655,8 @@ raster.rsf <- exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) +
                            (fire.6to25 * -0.28) + (fire.over25 * 0.01) +
                            (vri.age * -0.05) + (vri.site.index * -0.04) +
                            (vri.cc * -0.12) + 
-                           (pas.winter * -0.46) + (temp.winter * -0.10)) /
-           (1 + exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) + 
+                           (pas.winter * -0.46) + (temp.winter * -0.10))) /
+           ((1 + exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) + 
                       (dist.lake * 0.06) + (elev * 0.62) +
                       (dist.cut.1to4 * -0.23) + (dist.cut.5over * -0.12) +
                       (dist.resource.rd * 0.05) + (dist.paved.rd * -0.04) +
@@ -3672,9 +3666,7 @@ raster.rsf <- exp (-1.64 + (slope * -0.33) + (dist.water * -0.14) +
                       (fire.6to25 * -0.28) + (fire.over25 * 0.01) +
                       (vri.age * -0.05) + (vri.site.index * -0.04) +
                       (vri.cc * -0.12) + 
-                      (pas.winter * -0.46) + (temp.winter * -0.10)))      
+                      (pas.winter * -0.46) + (temp.winter * -0.10))))      
                 
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\rsf_du7_lw.tif", 
              format = "GTiff", overwrite = T)
-
-endCluster ()
