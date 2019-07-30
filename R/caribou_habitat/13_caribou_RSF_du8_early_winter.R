@@ -3921,8 +3921,6 @@ vri.shrub <- crop (vri.shrub, extent (caribou.boreal.sa))
 # growing.degree.day <- projectRaster (growing.degree.day, crs = proj.crs, method = "bilinear")
 
 ### Adjust the raster data for 'standardized' model covariates ###
-beginCluster ()
-
 std.dist.cut.1to4 <- (dist.cut.1to4 - 9648) / 6560 # rounded these numbers to facilitate faster processing; decreases processing time substantially
 std.dist.cut.5to9 <- (dist.cut.5to9 - 6604) / 4833
 dist.cut.10to29 <- (dist.cut.10to29 - 3176) / 2656
@@ -3931,12 +3929,8 @@ std.dist.resource.rd <- (dist.resource.rd - 1295) / 1550
 std.vri.bryoid <- (vri.bryoid - 5) / 10
 std.vri.shrub <- (vri.shrub - 10) / 14
 
-endCluster ()
-
 ### CALCULATE RASTER OF STATIC VARIABLES ###
-beginCluster ()
-
-raster.rsf <- exp (-2.88 + (bec.bafa.un * 1.86) + (bec.bwbs.mw * 0.94) + 
+raster.rsf <- (exp (-2.88 + (bec.bafa.un * 1.86) + (bec.bwbs.mw * 0.94) + 
                            (bec.bwbs.wk1 * 0.86) + (bec.essf.mv2 * 0.55) +
                            (bec.essf.mvp * 0.96) + (bec.essf.wcp * 0.78) +
                            (bec.essf.wk2 * 0.21) + (bec.sbs.wk1 * 0.01) +
@@ -3946,8 +3940,8 @@ raster.rsf <- exp (-2.88 + (bec.bafa.un * 1.86) + (bec.bwbs.mw * 0.94) +
                            (std.dist.resource.rd * 0.002) +
                            (beetle.1to5 * 0.13) + (beetle.6to9 * -0.05) +
                            (fire.1to5 * -1.02) + (fire.6to25 * -0.10) + (fire.over25 * -0.21) +
-                           (std.vri.shrub * -0.06) + (std.vri.bryoid * 0.43)) /
-           1 + exp (-2.88 + (bec.bafa.un * 1.86) + (bec.bwbs.mw * 0.94) + 
+                           (std.vri.shrub * -0.06) + (std.vri.bryoid * 0.43))) /
+           (1 + exp (-2.88 + (bec.bafa.un * 1.86) + (bec.bwbs.mw * 0.94) + 
                            (bec.bwbs.wk1 * 0.86) + (bec.essf.mv2 * 0.55) +
                            (bec.essf.mvp * 0.96) + (bec.essf.wcp * 0.78) +
                            (bec.essf.wk2 * 0.21) + (bec.sbs.wk1 * 0.01) +
@@ -3957,9 +3951,8 @@ raster.rsf <- exp (-2.88 + (bec.bafa.un * 1.86) + (bec.bwbs.mw * 0.94) +
                            (std.dist.resource.rd * 0.002) +
                            (beetle.1to5 * 0.13) + (beetle.6to9 * -0.05) +
                            (fire.1to5 * -1.02) + (fire.6to25 * -0.10) + (fire.over25 * -0.21) +
-                           (std.vri.shrub * -0.06) + (std.vri.bryoid * 0.43))       
+                           (std.vri.shrub * -0.06) + (std.vri.bryoid * 0.43)))       
                 
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\early_winter\\rsf_du8_ew.tif", 
              format = "GTiff", overwrite = T)
 
-endCluster ()

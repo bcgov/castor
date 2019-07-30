@@ -3682,8 +3682,6 @@ writeRaster (temp.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\du7_tave_wt_r
              format = "GTiff", overwrite = T)
 
 ### Adjust the raster data for 'standardized' model covariates ###
-beginCluster ()
-
 std.slope <- (slope - 9) / 10 # rounded these numbers to facilitate faster processing; decreases processing time substantially
 std.dist.water <- (dist.water - 12266) / 9652 
 std.dist.lake <- (dist.lake - 3229) / 3137 
@@ -3704,12 +3702,8 @@ std.vri.herb <- (vri.herb - 15) / 18
 std.vri.shrub <- (vri.shrub - 13) / 15
 std.vri.bryoid <- (vri.bryoid - 6) / 10
 
-endCluster ()
-
 ### CALCULATE RASTER OF RSF ###
-beginCluster ()
-
-raster.rsf <- exp (-2.07 + (std.slope * -0.35) + (std.dist.water * -0.18) +
+raster.rsf <- (exp (-2.07 + (std.slope * -0.35) + (std.dist.water * -0.18) +
                            (std.dist.lake * 0.02) + (std.elev * 0.54) +
                            (std.dist.cut.1to4 * -0.23) + (std.dist.cut.5to9 * 0.05) +
                            (std.dist.cut.10over * -0.14) + (std.dist.paved.rd * 0.05) +
@@ -3720,8 +3714,8 @@ raster.rsf <- exp (-2.07 + (std.slope * -0.35) + (std.dist.water * -0.18) +
                            (std.pas.winter * -0.40) + (std.temp.winter * -0.16) +
                            (std.vri.age * -0.02) + (std.vri.cc * -0.12) +
                            (std.vri.site.index * -0.05) + (std.vri.herb * 0.08) +
-                           (std.vri.shrub * -0.01) + (std.vri.bryoid * 0.12)) /
-                      1 + exp (-2.07 + (std.slope * -0.35) + (std.dist.water * -0.18) +
+                           (std.vri.shrub * -0.01) + (std.vri.bryoid * 0.12))) /
+                      (1 + exp (-2.07 + (std.slope * -0.35) + (std.dist.water * -0.18) +
                                 (std.dist.lake * 0.02) + (std.elev * 0.54) +
                                 (std.dist.cut.1to4 * -0.23) + (std.dist.cut.5to9 * 0.05) +
                                 (std.dist.cut.10over * -0.14) + (std.dist.paved.rd * 0.05) +
@@ -3732,9 +3726,7 @@ raster.rsf <- exp (-2.07 + (std.slope * -0.35) + (std.dist.water * -0.18) +
                                 (std.pas.winter * -0.40) + (std.temp.winter * -0.16) +
                                 (std.vri.age * -0.02) + (std.vri.cc * -0.12) +
                                 (std.vri.site.index * -0.05) + (std.vri.herb * 0.08) +
-                                (std.vri.shrub * -0.01) + (std.vri.bryoid * 0.12))      
+                                (std.vri.shrub * -0.01) + (std.vri.bryoid * 0.12)))      
                 
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\rsf_du7_ew.tif", 
              format = "GTiff", overwrite = T)
-
-endCluster ()

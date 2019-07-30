@@ -3809,8 +3809,6 @@ ppt.as.snow.winter <- crop (ppt.as.snow.winter, extent (caribou.sa))
 temp.winter <- crop (temp.winter, extent (caribou.sa))
 
 ## MAKE RASTERS THE SAME RESOLUTION FOR CALC ###
-beginCluster ()
-
 slope <- resample (slope, dist.lake, method = 'bilinear')
 writeRaster (slope, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\slope_resample.tif", 
              format = "GTiff")
@@ -3818,17 +3816,13 @@ elev <- resample (elev, dist.lake, method = 'bilinear')
 writeRaster (elev, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\elevation_resample.tif", 
              format = "GTiff")
 ppt.as.snow.winter <- resample (ppt.as.snow.winter, dist.lake, method = 'bilinear')
-writeRaster (ppt.as.snow.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\ppt_snow_winter.tif", 
+writeRaster (ppt.as.snow.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\du_8ppt_snow_winter.tif", 
              format = "GTiff")
 temp.winter <- resample (temp.winter, dist.lake, method = 'bilinear')
-writeRaster (temp.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\temp_winter.tif", 
+writeRaster (temp.winter, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\du8_temp_winter.tif", 
              format = "GTiff", overwrite = TRUE)
 
-endCluster ()
-
 ### Adjust the raster data for 'standardized' model covariates ###
-beginCluster ()
-
 slope <- (slope - 17) / 12 # rounded these numbers to facilitate faster processing; decreases processing time substantially
 dist.water <- (dist.water - 5000) / 2149 
 dist.lake <- (dist.lake - 3420) / 2253 
@@ -3847,12 +3841,8 @@ vri.shrub <- (vri.shrub - 10) / 15
 ppt.as.snow.winter <- (ppt.as.snow.winter - 349) / 128
 temp.winter <- (temp.winter - -10) / 0.5
 
-endCluster ()
-
-### CALCULATE RASTER OF STATIC VARIABLES ###
-beginCluster ()
-
-raster.rsf <- exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) + 
+### CALCULATE RASTER OF RSF ###
+raster.rsf <- (exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) + 
                            (dist.lake * 0.02) + (elev * 1.36) +
                            (std.dist.cut.1to4 * -0.02) + (std.dist.cut.5to9 * -0.20) +
                            (dist.cut.10to29 * -0.01) + (dist.cut.30over * -0.04) +
@@ -3862,8 +3852,8 @@ raster.rsf <- exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) +
                            (fire.6to25 * -0.09) + (fire.over25 * -0.45) +
                            (vri.age * 0.09) + (vri.site.index * -0.27) +
                            (vri.herb * 0.06) + (vri.shrub * -0.07) + 
-                           (ppt.as.snow.winter * -1.14) + (temp.winter * 0.21)) /
-           1 + exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) + 
+                           (ppt.as.snow.winter * -1.14) + (temp.winter * 0.21))) /
+              (1 + exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) + 
                       (dist.lake * 0.02) + (elev * 1.36) +
                       (std.dist.cut.1to4 * -0.02) + (std.dist.cut.5to9 * -0.20) +
                       (dist.cut.10to29 * -0.01) + (dist.cut.30over * -0.04) +
@@ -3873,9 +3863,7 @@ raster.rsf <- exp (-1.94 + (slope * -0.6) + (dist.water * -0.06) +
                       (fire.6to25 * -0.09) + (fire.over25 * -0.45) +
                       (vri.age * 0.09) + (vri.site.index * -0.27) +
                       (vri.herb * 0.06) + (vri.shrub * -0.07) + 
-                      (ppt.as.snow.winter * -1.14) + (temp.winter * 0.21))      
+                      (ppt.as.snow.winter * -1.14) + (temp.winter * 0.21)))      
                 
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du8\\late_winter\\rsf_du8_lw.tif", 
              format = "GTiff", overwrite = T)
-
-endCluster ()

@@ -1,0 +1,38 @@
+---
+title: "Chilcotin Moose Density Analysis"
+author: "Tyler Muhly"
+date: "25/07/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Here I am analyzing the statistical relationship between landscape and forest attributes and moose density in wildlife management units (WMUs) in the Chilcotin region of British Columbia.  The purpose of this analysis is to identify forest and forestry-related features that may influence the density of moose in WMUs. If a useful (i.e., ecoligically sensible and good fit) statistical model can be indetied, the intent is to use the model as part of simualtion model (i.e., teh cariobu land use simualor - CLUS) to model how alterantive cariobu recovery management regimes infleunce moose desnity. Moose density is critical to cariobu managment, as moose are an apparent competitior of cariobu., i.e., they share wovles as a predator, and higher moose dnesities support higher wolf densiites, increasing predation on cariobu. 
+
+
+
+
+
+## Methods
+The analysis includes WMU's 
+
+
+### Source Data
+- hunting boundaries: https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-boundaries-1-20-000
+- watercourses: https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm
+- wetlands: https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-wetlands
+- roads: https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-demographic-partially-attributed-roads
+- historic fire: https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical
+- 2018 fire: https://catalogue.data.gov.bc.ca/dataset/fire-locations-current
+- cutblocks https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-
+- vegetation inventory: https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1
+- lakes: https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-lakes
+- winter ppt as snow, summer ppt, summer avg temp, witner avg temp and mean attnual temp all form UBC data
+- elevation: provincial dem
+
+- each dataset clipped ot study area (list wmus) adn Unioned to WMU using CLipe and Union functions in ArcGIS 10.6
+- for raster - sumamrized stst using zonal polygon tool in arcgis, exporting as table and joining to WMU dnesity data
+  - ideally script the above....

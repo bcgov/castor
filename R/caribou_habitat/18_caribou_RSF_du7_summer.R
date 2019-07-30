@@ -3529,7 +3529,7 @@ ppt <- (ppt - 851) / 274
 temp <- (temp - -0) / 2
 
 ### CALCULATE RSF RASTER ###
-raster.rsf <- exp (-1.02 + (slope * -0.41) + (dist.water * -0.26) + 
+raster.rsf <- (exp (-1.02 + (slope * -0.41) + (dist.water * -0.26) + 
                            (dist.lake * 0.01) + (elev * 0.75) +
                            (dist.cut.1to4 * -0.03) + (dist.cut.5over * 0.03) +
                            (dist.resource.rd * 0.04) + (dist.paved.rd * -0.02) +
@@ -3539,8 +3539,8 @@ raster.rsf <- exp (-1.02 + (slope * -0.41) + (dist.water * -0.26) +
                            (fire.6to25 * -0.38) + (fire.over25 * 0.07) +
                            (vri.age * -0.14) + 
                            (vri.bryoid * 0.05) + (vri.shrub * 0.10) + 
-                           (ppt * 0.01) + (temp * 0.45)) /
-           1 + exp (-1.02 + (slope * -0.41) + (dist.water * -0.26) + 
+                           (ppt * 0.01) + (temp * 0.45))) /
+              (1 + exp (-1.02 + (slope * -0.41) + (dist.water * -0.26) + 
                             (dist.lake * 0.01) + (elev * 0.75) +
                             (dist.cut.1to4 * -0.03) + (dist.cut.5over * 0.03) +
                             (dist.resource.rd * 0.04) + (dist.paved.rd * -0.02) +
@@ -3550,7 +3550,7 @@ raster.rsf <- exp (-1.02 + (slope * -0.41) + (dist.water * -0.26) +
                             (fire.6to25 * -0.38) + (fire.over25 * 0.07) +
                             (vri.age * -0.14) + 
                             (vri.bryoid * 0.05) + (vri.shrub * 0.10) + 
-                            (ppt * 0.01) + (temp * 0.45))     
+                            (ppt * 0.01) + (temp * 0.45)))     
                 
 writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\du7\\rsf_du7_s.tif", 
              format = "GTiff", overwrite = T)

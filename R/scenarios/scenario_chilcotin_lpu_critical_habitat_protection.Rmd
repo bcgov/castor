@@ -11,14 +11,15 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 # Scenario Background
-This habitat protection scenario tests the influence of protecting newly designated and currently incompletely proctedt critical habitat for caribou on timber harvest flows, i.e., allowable annual cut (AAC), caribou habitat quality, moose habitat quality, moose density (?) and wolf density (?) over time, using the caribou and land use simulator (CLUS). Critical habitat for caribou is as spatially defined by the government of British Columbia (source). Provincial wildlife biologists and caribou recovery program area leads defined how each type of critical habitat would be protected from forestry activity within the context of this scenario and CLUS model parameters. Outputs from this scenario, i.e., the impacts on AAC and wildlife habitat, should be evaluated relative to a scenario without the protections defined here (i.e., a "business-as-usual" scenario) rather than as an absolute representation of impacts to AAC and habitat. The CLUS model in general was designed to support caribou recovery planning, as a tool to explore and discuss the implications of alternative management scenarios to caribou and other resource values. The tool does not necessarily provide accurate or optimal solutions for caribou recovery but can help identify preferred recovery actions.  
+This habitat protection scenario tests the influence of protecting newly designated and incompletely protected critical habitat for caribou on timber harvest flows, i.e., allowable annual cut (AAC), caribou habitat quality, moose habitat quality, moose density (?) and wolf density (?), over time, using the caribou and land use simulator (CLUS). Critical habitat for caribou is as spatially defined by the government of British Columbia (source). Provincial wildlife biologists and caribou recovery program area leads defined how each type of critical habitat would be protected from forestry activity within the context of this scenario and the functionality of the CLUS model. 
+
+The CLUS model in general was designed to support caribou recovery planning, as a tool to explore and discuss the implications of alternative management scenarios to caribou and other resource values. The tool does not necessarily provide accurate or optimal solutions for caribou recovery but can help identify preferred recovery actions.  
 
 # Scenario Study Area
-This scenario was developed to support caribou recovery planning in the Chilcotin local population unit (LPU) of caribou. This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *threatened* under Canada's *Species at Risk Act*. 
+This scenario was developed to support caribou recovery planning in the Chilcotin local population unit (LPU) of caribou. This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *Threatened* under Canada's *Species at Risk Act*. 
 
-The Itcha-Ilgachuz herd is considered significant provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd has declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, associated road development, wildfire and mountain pine beetle infestations over the past two decades (cite herd plan). The 2019 population census showed a 40% decline from 2018, adn with that rate of decline, the herd would be functionally extirpated (i..e, less than 20 animals) in eight years (Carolyn Shores, pers. comm.).
+The Itcha-Ilgachuz herd is considered to be of significant conservation importance provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, associated road development, wildfire and mountain pine beetle infestations (cite herd plan). In addition, the 2019 population census showed a 40% popualion decline from 2018, and at that rate of decline, the herd would be functionally extirpated (i.e., less than 20 animals) in eight years (Carolyn Shores, pers. comm.). There is an increasingly urgent need to develop an effective recovery plan for these caribou. 
 
 The Chilcotin LPU overlaps the following timber supply areas (TSAs) and timber supply blocks (TSBs):
 * Great Bear Rainforest (GBR) North TSA
@@ -26,9 +27,9 @@ The Chilcotin LPU overlaps the following timber supply areas (TSAs) and timber s
 * Prince George TSA, TSB 24D
 * Quesnel TSA, TSBs 26B and 26A
 * Williams Lake TSA, TSBs 29A, 29B, 29C, 29E and 29I
-The overlap with the Prince George TSA is minimal and most of the GBR North TSA that overlaps the   LPU is in Tweedsmuir Park. Thus, the impacts of new caribou habitat protections to timber supply in these TSAs are expected to be minimal or null. The AAC's in the GBR South and GBR North TSAs were established through legislation. Thus, they are unlikely to be quickly changed if new caribou protection orders were established in those areas. Therefore, the focus of this scenario is on AAC impacts to the Quesnel TSA and Williams Lake TSA.
+The overlap with the Prince George TSA is minimal, and most of the GBR North TSA that overlaps the  LPU is in Tweedsmuir Park. Thus, the impacts of new caribou habitat protections to timber supply in these TSAs are expected to be minimal or null. The AAC's in the GBR South and GBR North TSAs were established through legislation. Thus, they are unlikely to be quickly changed if new caribou protection orders were established in those areas. Therefore, the focus of this scenario is on AAC impacts to the Quesnel TSA and Williams Lake TSA.
  
-Existing habitat protections for caribou specifically (e.g., caribou-specific ungulate winter ranges) and to wildlife and ecosystems more broadly (e.g., provincial parks), are addressed in this scenario as other parameters in the CLUS model. These primarily include 219,152 ha designated as conditional harvest and 193,470 ha as no-harvest zones within provincial parks or “no harvest” WHAs (cite herd plan). These existing protections are implemented in all model scenarios, including a scenario without the critical habtiat protections considred here. 
+Existing habitat protections for caribou (e.g., caribou-specific ungulate winter ranges) and for wildlife and ecosystems more broadly (e.g., provincial parks), are addressed in this scenario as parameters in the CLUS model. These primarily include 219,152 ha designated as 'conditional harvest' and 193,470 ha as 'no-harvest' zones within provincial parks or WHAs (cite herd plan). These existing protections are implemented in all model scenarios. 
 
 # Scenario Habitat Protections
 Critical habitat for caribou in the Chiltoin LPU consists of five types:
@@ -37,20 +38,17 @@ Critical habitat for caribou in the Chiltoin LPU consists of five types:
 * low elevation winter range (LEWR)
 * low elevation summer range (LESR)
 * matrix
-Each of these types corresponds to a specific habitat protection definition, based on its understood importance to caribou population sustainability. They are also intended to be consistent with the federal recopvery strategy for southern mountain caribou ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)), although the protection designations for some types are ambiguous within this plan.     
+Each of these types corresponds to a specific habitat protection definition, based on its understood importance to caribou population sustainability. They are consistent with the federal recovery strategy for southern mountain caribou ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)), although the protection definitions for some types are ambiguous within the federal plan.     
 
-HEWR and HESR critical habitat types (often referred to as 'core' habitat) typically consist of areas heavily and regularly used by caribou. Existing parks, wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are in place over many of these areas to protect this habitat. Management plans for caribou typically recommned full protection of these types form forest harvest [Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf); herd plan). 
+HEWR and HESR critical habitat types (often referred to as 'core' habitat) typically consist of areas heavily and regularly used by caribou. Parks, wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) already exist over many of these areas to protect this habitat. Management plans for caribou typically recommend full protection of these types from forest harvest [Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf); also cite herd plan). 
 
-LEWR and LESR are also often regulalrly used by caribou, but may not be as protected by existing orders and regulations. Indeed, the priority proposed recovery actions for the Itcha-Ilgachuz herd are to protect LEWR and LESR critical habitat from further timber harvesting and development (cite herd plan). However, currently, 97% of the Itcha-Ilgachuz herd’s LEWR is available for timber harvesting (cite herd plan), and thus there is uncertainty and concern over how these proposed actions may influence forest harvest and the AAC in the Williams Lake and Quesnel TSA's. In addition, predator removal has been proposed for the Chilcotin LPU, but it's long-term effectiveness as a recovery action depends on effective habitat protection.  
+LEWR and LESR are also regularly used by caribou, but may not be as protected by existing orders and regulations. Indeed, the current priority proposed recovery actions for the Itcha-Ilgachuz herd are to protect LEWR and LESR critical habitat from further timber harvesting and development (cite herd plan). However, currently, 97% of the Itcha-Ilgachuz herd’s LEWR is available for timber harvesting (cite herd plan), and thus there is uncertainty and concern over how these proposed actions may influence forest harvest and the AAC in the Williams Lake and Quesnel TSA's. In addition, predator removal has been proposed for the Chilcotin LPU, but it's long-term effectiveness as a recovery action depends on effective habitat protection.  
 
-Matrix habitat is typically not heavily or regularly used by caribou, and thus there are typically little or no protections in place for this habitat type. Matrix habitat areas are typically large and adjacent to HEWR, HESR, LEWR or LESR habitat types. The intent of matrix is to provide a 'buffer' against high predator density or use of HEWR, HESR, LEWR or LESR habitat types, allowing these types to function more effectively as refugia from predators. Some level of rdcution in forest harvest in matrix habitat is typically recommend in cariobu plans. The federal recovery plan for southern moutnain cariobu recommends maintatining habitat that supports less than 3 wolves per 1,000 km2. The Itcha-Ilgachuz herd plan recommends maintaining the level of disturbance from industrial development and fire below 35% of the area.
+Matrix habitat is not regularly used by caribou, and thus there are typically little or no protections for caribou in this habitat type. Matrix habitat areas are typically large and adjacent to HEWR, HESR, LEWR or LESR habitat types. The intent of matrix is to provide a 'buffer' against high predator density or use of HEWR, HESR, LEWR or LESR habitat types, allowing these types to function more effectively as refugia from predators. Some level of redcution in forest harvest in matrix habitat is recommend in caribou plans. Specifically, the federal recovery plan for southern mountain caribou recommends maintaining matrix habitat that supports less than 3 wolves per 1,000km^2^, and the Itcha-Ilgachuz herd plan recommends maintaining habitat 'disturbance' below 35% within matrix areas.
 
-How 'disturbance' is defined is somewhat ambiguous and requires clarification here. Disturbance and the 35% 'management threshold' were originally defined in the federal boreal caribou recovery strategy [Environment Canada 2012](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_caribou_boreal_caribou_0912_e1.pdf). A scientific assessment was completed to support this strategy [Environment Canada 2011](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/ri_boreal_caribou_science_0811_eng.pdf), and included a regression model relating habitat disturbance in caribou popualtion ranges to probability that boreal caribou populations are stable or gwowing (i.e., $\lambda$ $\geq$ 1). There, habitat disturbance was defined as anthropoegnic disturbances (i.e., 'human footprint', such as cutblocks and roads) clearly visible using 1:50,000 resolution satellite imagery, and burnt areas less than 40 years old, as defined in the national fire database [link](http://cwfis.cfs.nrcan.gc.ca/ha/nfdb?wbdisable=true). Human footprint was also buffered by 500m. The relationship between disturbance and probability of $\lambda$ $\geq$ 1 is continuous, but a 35% disturbance threshold was identified as a reasonable threshold to achieve a sustainable caribou population. This model and threshold has since been applied to some critical habitat types for southern mountain cariobu. the model has not been tested or validated in the 
+How habitat 'disturbance' is defined is somewhat ambiguous and requires clarification here. Disturbance and the 35% 'management threshold' were originally defined in the federal boreal caribou recovery strategy [Environment Canada 2012](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_caribou_boreal_caribou_0912_e1.pdf). A scientific assessment was completed to support this strategy [Environment Canada 2011](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/ri_boreal_caribou_science_0811_eng.pdf), and included a regression model relating habitat disturbance in caribou popualtion ranges to probability that boreal caribou populations are stable or gwowing (i.e., $\lambda$ $\geq$ 1). There, habitat disturbance was defined as anthropoegnic disturbances (i.e., 'human footprint', such as cutblocks and roads) clearly visible using 1:50,000 resolution satellite imagery, and burnt areas less than 40 years old, as defined in the national fire database [link](http://cwfis.cfs.nrcan.gc.ca/ha/nfdb?wbdisable=true). Human footprint was also buffered by 500m. The relationship between disturbance and probability of $\lambda$ $\geq$ 1 is continuous, but a 35% disturbance threshold was identified as a reasonable threshold to achieve a sustainable caribou population. This model and management threshold has since been applied to some critical habitat types for southern mountain caribou. However, the model has not been tested or validated for southern mountain caribou habtiat, and often disturbance is measured differently from how it was definened in the boreal analysis. Thus, the disturbance model and managmen threshold should be used caution and under the assumption that it is highly uncertain. 
 
-Here we define the following forest harvest constraints for each habitat type for this scenario:
-
-
-Here we define the following forest harvest constraints for each habitat type for this scenario:
+Here we define the following forest harvest constraints for each critical habitat type for this scenario:
 ```{r, create the protection type data.table}
 library (data.table)
 library (kableExtra)
@@ -66,524 +64,84 @@ tab_protection_type <- data.table (Type = c ('High Elevation Summer Range (HESR)
                                    )
 kable (tab_protection_type)
 ```
+HESR, HEWR, LESR and LEWR habitat types are defined as 'no harvest' areas, with the intent of protecting habitats heavily or regularly used by caribou. Matrix areas allow for some forest harvest. We use a 20% area threshold of 40 year old forest definition as a means to limit the amount of early seral forest in matrix habitat. Early seral forest is thought to be a critical driver of moose popualtions, where higher amounts of early seral forest is thought to contribute to increased moose forage and moose densities (Wam et al. 2010; Bjørneraas et al. 2011; Serrouya et al. 2011). This subsequently is thought to support higher predator (ie.. wolf) densities and higher predation rates on caribou (Wittmer et al. 2007; Lesmerises et al. 2012). The 20% area threshold is based on a statistical relationship calculated between 'disturbed' habitat (defined as areas within 500 m of less than 40 year old cutblocks or roads, or within less than 40 year old burns) and the density of roads and cutblocks less than 40 years old with landscape units [Muhly 2016](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/pg_tsr_caribou_20161128.pdf). The statistical model indicated that a cutblock area of 18.5% was equivalent to 35% habitat disturbance.
 
 
 
+Alternatives:
+ - use Doug LEwis model to calculate moose density and
+ - develop model of raltionshp between moose dnesity and ealy seral habtiat 
 
 
 
-   
-   
-- short-term recommended recovery actions for Itcha-Ilgachuz,  relevant to the current cariobu and land use simualtor (CLUS) model, are to:
+# Scenario Outputs
+Outputs from CLUS relevant to this scenario include AAC, caribou habitat quality and moose habitat quality. AAC outptus can be used to evaluate how new protections might impact forest harvest oeprations ability to achieve AAC targets in the William's Lake and Quesnel TSA's. Habitat quality outputs for wildlife are indicated by resource selection function (RSF) scores, which can be used to indicate quality of habitat available to caribou. 
 
-    
-  - Once a disturbance threshold of 35% has been restored, allow timber harvesting in low elevation 
-    and matrix range at a rate of cut that maintains the 35% disturbance threshold
-  - Prioritize reducing or halting timber harvest in ECCC critical habitat that shows high use by 
-    caribou, demonstrated by Itcha-Ilgachuz caribou VHF and GPS collar data
-  - the B.C. Chief Forester’s office may have to reduce the Annual Allowable Cut (AAC) for the 
-    Quesnel and William’s Lake Timber Supply Areas (TSAs)
-  - Undertake a habitat supply model to quantify the amount of mature plus old forest (productive 
-    forest landbase) currently available to caribou
-  - a cumulative effects assessment, uncluding:
-    - current condition of Itcha-Ilgachuz caribou habitat
-    - impacts to caribou habitat since 2003
-    - future effects of resource development on caribou habitat
-  - translate the target wolf density of 3/1000 km2 (or 0.07 moose/km2) in matrix habitat to a 
-    system tangible to the forest industry, such as a cap on the amount of early seral forest 
+Outputs should be evaluated relative to a scenario without the protections defined here (i.e., a "business-as-usual" scenario) rather than as an absolute representation of impacts to AAC and habitat.
 
 
-
-critical habtit as defined by British COlumbia; simiamlar to federal recovery strategy, but matrix habtat has been added and soem types have switched  
-
-Types of protections (from Leo DeGroot/Carolyn SHores - pers. comm. July 22, 2019):
-
-
-
-
-
-corresdontd to spatial data (- Nicola...)
- 
  
 
 
-## UWR
+## Create Scenario Habitat Data
 
 ```{r, Chilctoin LPU critical habitat}
 
-### load critical habtiat to postgres db ###
-  
-  
+####
+### load critical habtiat to postgres db as 'rast.zone_crit_habitat' ###
+####
 
 
-#Create empty zone constraint table
-zone_uwr<-data.table(zoneid=0, type='nh', variable='', threshold=0, reference_zone='rast.zone_uwr', percentage=0, ndt=0, label = 'uwr no harvest')
+library (here)
+library (sf)
+library (fasterize)
+source (paste0 (here(),"/R/functions/R_Postgres.R")) # postgres functions
 
-library(sf)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+# call the critical habitat polygon data from the postgres db
+critical_habitat_poly <- getSpatialQuery ("SELECT ogc_fid, wha_tag, feat_notes, aprv_date, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN 
+(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.study_area_tsa b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
 
-#create zoneid raster for conditional harvesting in UWR
+# Create the hectares bc raster 
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(getSpatialQuery ("SELECT * FROM public.rmp_lu_sp_polygon LIMIT 1"))$proj4string, # getting the spatial projection from existing data 
+  resolution = c(100, 100), vals = 0
+)
 
-#Get the UWR that are in the aoi_uwr table. This is currently set to the interior UWRs
-uwr_cond_harvest<-getSpatialQuery(paste0("SELECT  ogc_fid, uwr_tag, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE harvest = 'CONDITIONAL HARVEST ZONE' AND uwr_tag IN ('",paste(aoi_uwr$uwr_tag, collapse="', '"),"') ORDER BY apprv_date ASC")) 
-#Note the order by will allow the raster to select the newest dates first
+# fasterize - convert the polygon to the provincal raster
+crit.habitat.ras <- fasterize::fasterize (sf = critical_habitat_poly, 
+                                          raster = ProvRast, 
+                                          field = "ogc_fid")
+
+# Create empty zone constraint table
+zone_crit_habitat <- data.table (zoneid = integer (), type = character (), variable = character (), 
+                                 threshold = numeric (), reference_zone = character (), 
+                                 percentage = numeric (), ndt = integer (), label = character ())
+
+#get the ogc_fid from raster
+ogc_fids < -data.table (unique (c (t (raster::as.matrix (crit.habitat.ras)))))
+ogc_fids <- ogc_fids [!(is.na (V1)),]
+crit_habitat_cond <- getTableQuery (paste0 ("SELECT ogc_fid, harvest,wha_tag, feat_notes, aprv_date FROM public.wcp_whaply_polygon WHERE ogc_fid IN(",paste(ogc_fids$V1, collapse = ","), ") ORDER BY wha_tag"))
+
+# assign all no harvest as 0 -- pertains to 3-030 -- this can be any number that has no harvest
+ogc_fids_noharv <- crit_habitat_cond[crit_habitat_cond$harvest == 'NO HARVEST ZONE', "ogc_fid"]
+zone_crit_habitat <- data.table(zoneid = 0, type = 'nh', variable = '', threshold = 0, 
+                                reference_zone ='zone_crit_habitat', percentage = 0, ndt = 0, 
+                                label = 'no_harvest')
+#set all to 0 in the raster as no harvest
+crit.habitat.ras [crit.habitat.ras [] %in% ogc_fids_noharv] <- 0
+
+crit_habitat_cond <- crit_habitat_cond [!(wha_cond$harvest == 'NO HARVEST ZONE'), ] # get only the conditional harvesting ones now.
+
 
 ```
 
-### u-3-003
+### Conditional Harvest
 ```{r, u3003}
 library(data.table)
 library(sf)
-#temp <- tempfile()
-#temp2 <- tempfile()
-#download.file("http://www.env.gov.bc.ca/esd/distdata/ecosystems/frpa/uwr/r3/tuwra_u-3-003.zip",temp)
-#unzip(zipfile = temp, exdir = temp2)
-#shape_u3003 <- st_read(file.path(temp2, "tuwra_u-3-003.shp"))
-#plot(shape_u3003)
 
-u3003<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-3-003' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#In this UWR there are many planning cells that correspond to snow interception cover (SIC) with retention classes of shallow (15%), moderate (33%) and deep (40%). The minimum snow interception cover pertains to BEC units, tree species, stand age and crown closure. This detail would arbitrarily increase the time in the model. http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u3_003.pdf
-
-#As a general approximation we assume the entire u-3-003 will be managed as a moderate snowpack zone where 33% of the area must have deep snow pack attribute of > 46% crown closure for all planning cells. This means all u-3-003 planning cells will be called zoneid = min(ogc_fid) WHERE uwr_tage - 'u-3-003'.
-
-zoneid_new<-min(u3003$ogc_fid) #177783
-uwr_cond_harvest[uwr_cond_harvest$uwr_tag == 'u-3-003',]$ogc_fid<-zoneid_new
-
-u3003_table<-data.table(zoneid =zoneid_new, reference_zone ='rast.zone_uwr', variable ='crownclosure', type = 'ge', percentage = 33, threshold = 46, ndt = 0, label = 'u-3-003')
-
-zone_uwr<-rbind(zone_uwr, u3003_table)
-rm(u3003_table,u3003)
-gc()
-
-#Check
-zone_uwr[label == 'u-3-003',]
-```
-
-### u-3-004 Caribou 
-```{r, u3004}
-u3004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-3-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u3004_table<-data.table(u3004)[,c("ogc_fid", "feat_notes")]
-
-#Corridor - maintain 33% of suitable caribou habitat. Equating to 33% of the area greater than 40 %canopy closure for incercepting snow
-u3004_table[feat_notes == "Corridor", `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 33, threshold = 40, ndt =0, label = 'u-3-004')]
-
-#Modified Harvest - can't access the old links in http://www.env.gov.bc.ca/wld/documents/uwr/u-3-004_order_09Dec09.pdf! From Kamloops LRMP: Maintain a minimum of 33% of the area to retain old growth attributes and to ensure sustained lichen productivity and availability.
-u3004_table[feat_notes == "Modified Harvest", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 33, threshold = 140, ndt =0, label = 'u-3-004')]
-
-u3004_table[,feat_notes:=NULL]
-setnames(u3004_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u3004_table)
-rm(u3004_table,u3004)
-gc()
-
-#Check
-zone_uwr[label == 'u-3-004',]
-```
-### u-3-006 Goat
-```{r, u-3-006}
-u3006<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-3-006' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u3006_table<-data.table(u3006)[,c("ogc_fid")]
-
-#Maintain 66 percent of the area ge than 30 years. See http://www.env.gov.bc.ca/wld/documents/uwr/u-3-006_ORAM_Order.pdf
-u3006_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 66, threshold = 30, ndt =0, label = 'u-3-006')]
-
-setnames(u3006_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u3006_table)
-rm(u3006_table,u3006)
-gc()
-
-#Check
-zone_uwr[label == 'u-3-006',]
-
-
-```
-
-
-### u-4-001 Elk, Deer, Moose 
-```{r, u4001}
-u4001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u4001_table<-data.table(u4001)[,c("ogc_fid", "feat_notes")]
-
-# has forest age and crown closure requirements specific to BEC subzones and management units; mostly for snow interception, 20-40% of area in >60 to >100 years old and 10 to >39% crown closure; most common seems to be 30% >80 years old
-# but also has a 'general' age requirement for all units in Schedule A, i.e., <41% of forested land base (excluding broadleaf) <21 years old; not clear what Schedule A is
-#see http://www.env.gov.bc.ca/wld/documents/uwr/u4-001_ord_amend.pdf
-
-u4001_table[feat_notes == "Elk; ICHdw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 81, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Elk; ICHmw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 101, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Foraging area", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 81, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Moose; moderate snow", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 61, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Mule Deer; ICHdw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 81, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Mule Deer; ICHmw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 101, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Mule Deer; ICHwk", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 101, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "Mule Deer; ICHxw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 81, ndt =0, label = 'u-4-001')]
-
-u4001_table[feat_notes == "White-tailed Deer; ICHdw", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 81, ndt =0, label = 'u-4-001')]
-
-u4001_table[,feat_notes:=NULL]
-setnames(u4001_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u4001_table)
-rm(u4001_table,u4001)
-gc()
-
-#Check
-zone_uwr[label == 'u-4-001',]
-```
-
-### u-4-006 Elk, Deer, Moose, Sheep, Goat
-```{r, u4006}
-u4006<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-006' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u4006_table<-data.table(u4006)[,c("ogc_fid", "feat_notes")]
-
-# requires stand stocking standards and forest cover retention
-# can't really deal with stocking standards here, so focus on retention
-# has a 'general' age requirement for all units in Schedule A, i.e., <34% of each 'managed forest type' <21 years old; not clear what Schedule A is, but I think all units
-# habitat type specific requirements range from minimum 10% to 30% >60 or >100 years old and canopy closure >19% or >39%
-# used least restictive option here
-
-u4006_table[feat_notes == "MANAGED FOREST DRY", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 99, ndt =0, label = 'u-4-006')]
-
-u4006_table[feat_notes == "MANAGED FOREST MESIC", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 60, ndt =0, label = 'u-4-006')] # if want to be more restrictive use 20% >100 years
-
-u4006_table[feat_notes == "MANAGED FOREST MOIST", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 60, ndt =0, label = 'u-4-006')] 
-
-u4006_table[feat_notes == "MANAGED FOREST TRANSITION", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 60, ndt =0, label = 'u-4-006')] # if want to be more restrictive use >100 years
-
-u4006_table[feat_notes == "MANAGED FOREST WET", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 60, ndt =0, label = 'u-4-006')] 
-
-#Remove these planning cells
-uwr_cond_harvest<-uwr_cond_harvest[!(uwr_cond_harvest$feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
-
-u4006_table<-u4006_table[!(feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
-u4006_table[,feat_notes:=NULL]
-
-setnames(u4006_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u4006_table)
-rm(u4006_table,u4006)
-gc()
-
-#Check
-zone_uwr[label == 'u-4-006',]
-```
-
-### u-4-008 Elk, Deer, Moose, Sheep, Goat
-```{r, u4008}
-u4008<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-008' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u4008_table<-data.table(u4008)[,c("ogc_fid", "feat_notes")]
-
-# requires stand stocking standards and forest cover retention
-# can't really deal with stocking standards here, so focus on retention
-# has a 'general' age requirement for all units in Schedule A, i.e., <34% of each 'managed forest type' <21 years old; not clear what Schedule A is, or 'managed forest types'
-# habitat type specific requirements range from minimum 10% to 30% >60 or >100 years old and canopy closure >19% or >39%
-# used least restictive option here
-
-u4008_table[feat_notes == "MANAGED FOREST DRY", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 99, ndt =0, label = 'u-4-008')]
-
-u4008_table[feat_notes == "MANAGED FOREST MESIC", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 60, ndt =0, label = 'u-4-008')] # if want to be more restrictive use 20% >100 years
-
-u4008_table[feat_notes == "MANAGED FOREST MOIST", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 60, ndt =0, label = 'u-4-008')] 
-
-u4008_table[feat_notes == "MANAGED FOREST TRANSITION", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 10, threshold = 60, ndt =0, label = 'u-4-008')] # if want to be more restrictive use >100 years
-
-u4008_table[feat_notes == "MANAGED FOREST WET", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 60, ndt =0, label = 'u-4-008')] 
-
-#Remove these planning cells
-#u4008_table[feat_notes == "OPEN FOREST", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-008')] # no constraint
-#u4008_table[feat_notes == "OPEN RANGE", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 0, ndt =0, label = 'u-4-008')] # no constraint
-uwr_cond_harvest<-uwr_cond_harvest[!(uwr_cond_harvest$feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
-
-u4008_table<-u4008_table[!(feat_notes %in% c('OPEN RANGE','OPEN FOREST' )),]
-u4008_table[,feat_notes:=NULL]
-setnames(u4008_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u4008_table)
-rm(u4008_table,u4008)
-gc()
-
-#Check
-zone_uwr[label == 'u-4-008',]
-```
-
-### u-4-010 Caribou
-```{r, u4010}
-u4010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u4010_table<-data.table(u4010)[,c("ogc_fid", "feat_notes")]
-
-# focus here is on forest retention
-# also has some constraints on mineral exploration and ski development: note for if/when that gets added to the land use sim
-# forest retention requirments vary across 'zones', from 100% retention to  10% retention of age classes 7 to 9
-
-#Caribou Zone 1: Is already labeled as a no Harvest Zone- Removing
-#u4010_table[feat_notes == "Caribou Management Zone 1", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 100, threshold = 1, ndt =0, label = 'u-4-010')] # no harvest
-
-u4010_table[feat_notes %in% c("Caribou Management Zone 5","Caribou Management Zone 6"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 70, threshold = 80, ndt =0, label = 'u-4-010')]
-
-u4010_table[feat_notes == "Caribou Management Zone 7", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 80, ndt =0, label = 'u-4-010')]
-
-u4010_table[feat_notes == "Caribou Management Zone 8", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 80, ndt =0, label = 'u-4-010')]
-
-u4010_table[,feat_notes:=NULL]
-setnames(u4010_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u4010_table)
-rm(u4010_table,u4010)
-gc()
-#Check
-zone_uwr[label == 'u-4-010',]
-
-```
-
-### u-4-012 Caribou
-```{r, u4012}
-#u4012<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-012' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#u4012_table<-data.table(u4012)[,c("ogc_fid", "feat_notes")]
-
-# most of this UWR is no harvest, but there are three units (6, 12 and 13) that allow for harvest up until 2028, and then no harvest
-# so, we can either treat this as no harvest now, or allow for harvest in the model until 2028 and 'switch' it off; the latter seems complicated, so for now set as no harvest
-
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-4-012',]
-
-```
-
-### u-4-013 Caribou
-```{r, u4013}
-#u4013<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-013' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#u4013_table<-data.table(u4013)[,c("ogc_fid", "feat_notes")]
-
-# most of this UWR is no harvest, but there are seven units (15-18, 20-12 and 22) that allow for harvest up until 2028, and then no harvest
-# so, we can either treat this as no harvest now, or allow for harvest in the model until 2028 and 'switch' it off; the latter seems complicated, so for now set as no harvest
-
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-4-013',]
-
-```
-
-### u-4-014 Caribou
-```{r, u4014}
-#u4014<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag ='u-4-014' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#u4014_table<-data.table(u4014)[,c("ogc_fid", "feat_notes")]
-
-# most of this UWR is no harvest, but there are six units (14-19) that allow for harvest up until 2028, and then no harvest
-# so, we can either treat this as no harvest now, or allow for harvest in the model until 2028 and 'switch' it off; the latter seems complicated, so for now set as no harvest
-
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-4-014',]
-
-
-```
-
-### u-5-001, u-5-002, u-5-003
-```{r, u-5}
-u5<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag IN ('u-5-001', 'u-5-002','u-5-003') AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u5_table<-data.table(u5)[,c("ogc_fid", "feat_notes")]
-
-#87 polygons
-
-# These UWR are organized into Low, Moderate and High snow interception habitat types.
-# the intent of the GWM here seems to be to promote Douglas Fir regen (e.g., on sites ecologically capable of growing Douglas-fir, achieve at least an additional 20% in post-harvest Doug fir composition)
-# The most practical way to model this I think is via the basal area constraints (Table 1), although it's not clear to me if that applies to harvested stands only or all DOug Fir stands that can potentially be harvested in the whole UWR; assume the latter. 
-# aligning the UWR units with BEC units woudl take a lot of time
-# Suggest we 'compromise' and use the moderate habtait class target
-# The constraint is >21 m2/ha basal area of >12.5cm dbh stems, but there is no area target 
-#Instead of tracking basal area -- set this to maxium percent of cutblocks area in age class 0-40 as 33 percent. Table 1 in http://www.env.gov.bc.ca/wld/documents/wha/Amendment_TransDeep_Feb07_ord.pdf
-
-u5_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 33, threshold = 40, ndt =0, label = 'u-5-001:3')] # NOTE: Basal area constraint allowed?; if not, then let's classify this one as "can't be modeled"; I think as long as in the model thsat Doug Fir is replanted where it was harvested then we are meetign the intent of the order
-
-u5_table[,feat_notes:=NULL]
-setnames(u5_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u5_table)
-rm(u5_table,u5)
-gc()
-
-#Check
-zone_uwr[label == 'u-5-001:3',]
-```
-
-### u-6-009 Moose
-```{r, u6009}
-#Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-009_GAR-order_Sept17.pdf
-
-u6009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-6-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#67 polygons
-# general wildlife measures (GWMs) are very complex here: e.g., <20% of cutblock area can be >100m from mature forest and 80% of security cover must be no greater than 200m from other areas of security cover, etc.
-# simplest criteria for our model here appears to be:
-# 1. retain >30% mature and old forest canopy for snow interception
-# 2. all roads must be deactivated in UWR within 1 year of cessation of industrial activities
-# what is considered 'mature' is not clearly defined, but there is a recommended canopy closure of >50% (preferably >65%) for snow interception
-# I suggest we use 30% of area with canopy closure >50% as the criteria (but not sure if >50% canopy closure is likely for 'young' forest? If yes, then maybe use an age constraint instead...)
-
-# we could implement the road 'constraint' elsewhere, as an assumption/rule of road removal in the roads module after some lag period post-harvest (though you could argue industrial activites never cease)
-
-u6009_table <- data.table (u6009) [,c("ogc_fid", "feat_notes")]
-
-u6009_table [feat_notes %in% c(NA, "Island Habitat"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-009')]
-setnames (u6009_table, "ogc_fid", "zoneid")
-u6009_table[,feat_notes:=NULL]
-zone_uwr <- rbind (zone_uwr, u6009_table)
-rm (u6009_table, u6009)
-gc()
-
-#Check
-zone_uwr[label == 'u-6-009',]
-```
-
-### u-6-014 Moose
-```{r, u6014}
-#Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-014_GAR-order_Sept17.pdf
-
-u6014<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-6-014' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#67 polygons
-# general wildlife measures (GWMs) are very complex here: e.g., <20% of cutblock area can be >100m from mature forest and 80% of security cover must be no greater than 200m from other areas of security cover, etc.
-# simplest criteria for our model here appears to be:
-# 1. retain >30% mature and old forest canopy for snow interception
-# 2. all roads must be deactivated in UWR within 1 year of cessation of industrial activities
-# what is considered 'mature' is not clearly defined, but there is a recommended canopy closure of >50% (preferably >65%) for snow interception
-# I suggest we use 30% of area with canopy closure >50% as the criteria (but not sure if >50% canopy closure is likely for 'young' forest? If yes, then maybe use an age constraint instead...)
-
-# we could implement the road 'constraint' elsewhere, as an assumption/rule of road removal in the roads module after some lag period post-harvest (though you could argue industrial activites never cease)
-
-u6014_table <- data.table (u6014) [,c("ogc_fid")]
-u6014_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-014')]
-setnames (u6014_table, "ogc_fid", "zoneid")
-zone_uwr <- rbind (zone_uwr, u6014_table)
-rm (u6014_table, u6014)
-gc()
-
-#Check
-zone_uwr[label == 'u-6-014',]
-```
-
-### u-6-018 Moose
-```{r, u6018}
-#Retain > 30 mature forest canopy for snow interception. see http://www.env.gov.bc.ca/wld/documents/uwr/UWR6-018_GAR-order_Sept17.pdf
-
-u6018<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-6-018' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#67 polygons
-# general wildlife measures (GWMs) are very complex here: e.g., <20% of cutblock area can be >100m from mature forest and 10% of mature forest must be within 100m of mapped forage areas and 80% of security cover must be no greater than 200m from other areas of security cover, etc.
-# simplest criteria for our model here appears to be:
-# 1. retain >30% mature and old forest canopy for snow interception
-# 2. all roads must be deactivated in UWR within 1 year of cessation of industrial activities
-# what is considered 'mature' is not clearly defined, but there is a recommended canopy closure of >50% (preferably >65%) for snow interception
-# I suggest we use 30% of area with canopy closure >50% as the criteria (but not sure if >50% canopy closure is likely for 'young' forest? If yes, then maybe use an age constraint instead...)
-
-# we could implement the road 'constraint' elsewhere, as an assumption/rule of road removal in the roads module after some lag period post-harvest (though you could argue industrial activites never cease)
-
-u6018_table <- data.table (u6018) [,c("ogc_fid")]
-u6018_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 30, threshold = 51, ndt =0, label = 'u-6-018')]
-setnames (u6018_table, "ogc_fid", "zoneid")
-zone_uwr <- rbind (zone_uwr, u6018_table)
-rm (u6018_table, u6018)
-gc()
-
-#Check
-zone_uwr[label == 'u-6-018',]
-
-```
-
-### u-7-001 Northern Caribou
-```{r, u-7-001}
-#Log approximately half the entire area at a time on a 100 year rotation so 45-55% is 0-50 years and 45-55 is 50-100 years old. Harvest in large patches (250 to 1400). see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_001.pdf. Equate this to 50% of the area ge 50 years
-
-u7001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7001_table<-data.table(u7001)[,c("ogc_fid")]
-u7001_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 50, ndt =0, label = 'u-7-001')]
-setnames(u7001_table, "ogc_fid", "zoneid")
-zone_uwr<-rbind(zone_uwr, u7001_table)
-rm(u7001_table, u7001)
-gc()
-
-#Check
-zone_uwr[label == 'u-7-001',]
-```
-
-
-### u-7-002 Mule Deer
-```{r, u7002}
-#Within unit numbers 1:5,11,12,14 maintain a minum of 40% of the area in age class 8 with a crown closure of > 56%. Within unit numbers 9,10,15:18 maintain a minimum of 50% stans in age class 8 (> 140 years) with a crown closure of > 66% see - http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_002.pdf
-u7002<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-002' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#18 polygons
-
-u7002_table<-data.table(u7002)[,c("ogc_fid","unit_no")]
-u7002_table[unit_no %in% c("1","2","3","4","5","11","12","14"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-002')]
-#assign the 66%threshold
-u7002_table[unit_no %in% c("9","10","15","16","17","18"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 50, threshold = 66, ndt =0, label = 'u-7-002')]
-
-setnames(u7002_table, "ogc_fid", "zoneid")
-u7002_table[, unit_no:=NULL]
-zone_uwr<-rbind(zone_uwr, u7002_table)
-rm(u7002_table, u7002)
-gc()
-
-#Check
-zone_uwr[label == 'u-7-002',]
-```
-
-
-### u-7-003 Mountain Caribou
-```{r, u7003}
-u7003<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-003' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#Caribou corridor and medium are conditional harvesting. see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-003_order_09Dec09.pdf
-
-manage<-unlist(lapply(1:length(u7003$feat_notes),function(x) strsplit(u7003$feat_notes, "-", fixed=TRUE)[[x]][[1]]), use.names = FALSE)
-u7003<-cbind(u7003, manage)
-u7003_table<-data.table(u7003)[,c("ogc_fid", "manage")]
-u7003_table[, manage:=gsub("^\\s+|\\s+$", "",manage)]
-
-#GWM 3 - Caribou Medium: Forestry will result in le 30% volume removal every 80 years
-u7003_table[manage == "Medium", `:=`(variable = 'height', type = 'ge', reference_zone = 'rast.zone_uwr', percentage =70, threshold = 5, ndt = 0, label = 'u-7-003' )]
-setnames(u7003_table, "ogc_fid", "zoneid")
-
-#GWM 1 - Caribou Corridor: Forestry will result in a minimum of 20% ge 100 years
-#TODO: could add in a second contraint for the 3 m green up?
-u7003_table[manage == "Corridor", `:=`(variable = 'age', type = 'ge', reference_zone = 'rast.zone_uwr', percentage =20, threshold = 100, ndt = 0, label = 'u-7-003' )]
-
-u7003_table[,manage:=NULL]
-zone_uwr<-rbind(zone_uwr, u7003_table)
-
-rm(u7003_table,u7003, manage)
-gc()
-
-#Check
-zone_uwr[label == 'u-7-003',]
-```
-
-### u-7-005 ELk
-```{r, u7005}
-#Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_005.pdf
-u7005<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-005' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7005_table<-data.table(u7005)[,c("ogc_fid")]
-u7005_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt =0, label = 'u-7-005')]
-setnames(u7005_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u7005_table)
-rm(u7005_table, u7005)
-gc()
-#Check
-zone_uwr[label == 'u-7-005',]
-```
-
-### u-7-007 Northern Caribou
-```{r, u7007}
 u7007<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-007' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#100 polygons
-
-#This UWR has three main General Wildlife Measures: Prevent displacement of caribou, reduce predator effectiveness and maintain forage biomass. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_007.pdf
-
-#Terrestrial lichen habitat are generally found in pine dominated forests with site index less than 14.5. We equate this to having atleast 50 percent of this landbase greater than 70 years for the entire area
 
 # change the uwr to one unit (the min of the ogc_fid)
 zoneid_new2<-min(u7007$ogc_fid) #177829
@@ -597,425 +155,9 @@ rm(u7007_table,u7007)
 gc()
 #Check
 zone_uwr[label == 'u-7-007',]
-
 ```
 
-### u-7-008 Elk
-```{r, u7008}
-#Habitat condition Maintiang a minimum of 40% winter range are forested stands in age class 6 (>100 years) or greater with a crown closure > 40% see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_008.pdf
-u7008<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-008' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7008_table<-data.table(u7008)[,c("ogc_fid")]
-u7008_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 40, ndt =0, label = 'u-7-008')]
-setnames(u7008_table, "ogc_fid", "zoneid")
 
-zone_uwr<-rbind(zone_uwr, u7008_table)
-rm(u7008_table, u7008)
-gc()
-#Check
-zone_uwr[label == 'u-7-008',]
-
-```
-
-### u-7-009 Northern Caribou
-```{r, u7009}
-#GVM 1 - Corridor: Forest practices within this ungulate winter range will maintain a minimum of 20% of the forested stands as 100 years with no more than 20% of this unit being less than 3 m green up any time. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_009.pdf. The more constricting constraint is no more than 3 m green up at any time.
-
-u7009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7009_table<-data.table(u7009)[,c("ogc_fid")]
-u7009_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 80, threshold = 3, ndt =0, label = 'u-7-009')]
-setnames(u7009_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u7009_table)
-rm(u7009_table, u7009)
-gc()
-#Check
-zone_uwr[label == 'u-7-009',]
-
-```
-
-### u-7-010 Mule Deer
-```{r, u7010}
-#Snow interception and Thermal Cover - maintain a minimum of 50% of the winter range area in age class 8 and 9 with a minimum of 66% canopy closure. This is suppose to be species specific with RDV-001 focusing on Cedar. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_010.pdf I equate all these zone to ge 66% crown closure for 50% of the area.I'm biased to use crown cover over age -- much easier to measure
-
-u7010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#3 polygons
-
-u7010_table<-data.table(u7010)[,c("ogc_fid")]
-u7010_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 50, threshold = 66, ndt =0, label = 'u-7-010')]
-
-setnames(u7010_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u7010_table)
-rm(u7010_table, u7010)
-gc()
-#Check
-zone_uwr[label == 'u-7-010',]
-
-```
-
-### u-7-011 Mule Deer
-```{r, u7011}
-#Under GVM 1: maintain crown closure >56%, cc > 66% for stands > 140. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_011.pdf Equating to crown closure > 56% and >66
-
-u7011<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-011' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7011_table<-data.table(u7011)[,c("ogc_fid","unit_no")]
-#assign all
-u7011_table[unit_no %in% c("VD-004","VD-003","VD-007"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-011')]
-#assign the 66%threshold
-u7011_table[unit_no %in% c("VD-005","VD-006","VD-001","VD-002"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 66, ndt =0, label = 'u-7-011')]
-
-setnames(u7011_table, "ogc_fid", "zoneid")
-u7011_table[, unit_no:=NULL]
-zone_uwr<-rbind(zone_uwr, u7011_table)
-rm(u7011_table, u7011)
-gc()
-#Check
-zone_uwr[label == 'u-7-011',]
-```
-
-### u-7-012 Northern Caribou
-```{r, u7012}
-#Manage using a two pass 140 year rotation such that 50% +/- 20% is harvested. This will be interpreted as 50% of the area has to be greater than 140 years. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_012.pdf
-
-u7012<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-012' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7012_table<-data.table(u7012)[,c("ogc_fid")]
-
-#SPC-009 - Primary forestry activites will all for 33% of area less than 3 meters
-u7012_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 140, ndt =0, label = 'u-7-012')]
-
-setnames(u7012_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u7012_table)
-rm(u7012_table, u7012)
-gc()
-#Check
-zone_uwr[label == 'u-7-012',]
-```
-
-### u-7-013 Mule Deer
-```{r, u7013}
-#Under GVM 1: maintain crown closure >56%, cc > 66% for stands > 140. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_013.pdf. Equating to crown closure > 56% 
-
-u7013<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-013' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7013_table<-data.table(u7013)[,c("ogc_fid","unit_no")]
-#assign all
-u7013_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 56, ndt =0, label = 'u-7-015')]
-#assign the 66%threshold
-u7013_table[unit_no %in% c("PGD-001","PGD-002","PGD-012","PGD-014","PGD-019","PGD-020",
-                           "PGD-021","PGD-022","PGD-035","PGD-054","PGD-066"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 40, threshold = 66, ndt =0, label = 'u-7-013')]
-
-setnames(u7013_table, "ogc_fid", "zoneid")
-u7013_table[, unit_no:=NULL]
-zone_uwr<-rbind(zone_uwr, u7013_table)
-rm(u7013_table, u7013)
-gc()
-#Check
-zone_uwr[label == 'u-7-013',]
-
-```
-
-### u-7-015 Northern Caribou
-```{r, u7015}
-#Under GVM 1: harvesting is not to occur in the winter. GVM 2: manage using a two pass 140 year rotation such that 50% +/- 20% is harvested. This will be interpreted as 50% of the area has to be greater than 140 years. see http://www.env.gov.bc.ca/wld/documents/uwr/uwr_u7_015.pdf
-
-u7015<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-015' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-u7015_table<-data.table(u7015)[,c("ogc_fid")]
-
-#SPC-009 - Primary forestry activites will all for 33% of area less than 3 meters
-u7015_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 140, ndt =0, label = 'u-7-015')]
-
-setnames(u7015_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u7015_table)
-rm(u7015_table, u7015)
-gc()
-#Check
-zone_uwr[label == 'u-7-015',]
-
-```
-
-### u-7-017 Moose, Mountain Goat and Elk
-```{r, u7017}
-u7017<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-7-017' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-017_order.pdf. Requires under GVM 1 - > 20% ge 100 year, > 25% ge 80 years and < 20 le 20 years
-#Equating to crown closure ge than 40 % for 45% of the area
-u7017_table<-data.table(u7017)[,c("ogc_fid")]
-u7017_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'crownclosure', type = 'ge', percentage = 45, threshold = 40, ndt =0, label = 'u-7-017')]
-
-setnames(u7017_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u7017_table)
-rm(u7017_table, u7017)
-gc()
-#Check
-zone_uwr[label == 'u-7-017',]
-
-```
-
-### u-7-025 Northern Caribou
-```{r, u7025}
-#The UWR conditional harvesting zone is inacted under GWM 5 which limits moose browse to not more than 8 percent cover see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-025_order.pdf. This will be assumed and thus removed via fine scale harvesting operations.
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-7-025',]
-```
-
-### u-7-026 Northern Caribou
-```{r, u7026}
-#The UWR conditional harvesting zone is enacted under GWM 5 which limits moose browse see http://www.env.gov.bc.ca/wld/documents/uwr/u-7-026_order.pdf. This will be assumed and thus removed via fine scale harvesting operations.
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-7-026',]
-```
-
-### u-7-028 Stone's Sheep
-```{r, u7028}
-#All of the conditional harvesting area is assumed to refer to cattle range. Not primary timber activities -- these are netted out as no harvest zones
-#simply remove the u-7-028 uwr_tag from the zone_uwr 
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-7-028',]
-```
-
-### u-8-001 Mule Deer
-```{r, u8001}
-u8001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8001_table<-data.table(u8001)[,c("ogc_fid", "unit_no")]
-
-# foucs here is on retention of snow interception cover
-# there are minimum stand age thresholds for snow pack zones, but no defintion or area targets except moderate snow pack zones, which reuqire 33% area reserved form timber harvest
-# otherwise, the rules are too complex to model from what I can tell
-# for now, use the modearate snowpack zone constraint
-
-u8001_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 140, ndt =0, label = 'u-8-001')]
-
-u8001_table[,unit_no := NULL]
-setnames(u8001_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8001_table)
-rm(u8001_table, u8001)
-gc()
-#Check
-zone_uwr[label == 'u-8-001',]
-
-```
-
-### u-8-004 Caribou
-```{r, u8004}
-#u8004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#u8004_table<-data.table(u8004)[,c("ogc_fid", "unit_no")]
-
-# no harvest in sub-alpine parkland ecosystems
-# also some mineral and ski development specific constraints to consider later
-# suggest we just make this no harvest
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-8-004',]
-```
-
-### u-8-005 Goat
-```{r, u8005}
-u8005<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-005' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8005_table<-data.table(u8005)[,c("ogc_fid", "unit_no")]
-
-# retain 50% pre-harvest basal area in stems >100 years
-# have different requirements 'upslope of the slope break', i.e., <34% of forested area <33 years of age
-# here using area as basal area
-u8005_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 50, threshold = 100, ndt =0, label = 'u-8-005')]
-
-u8005_table[,unit_no := NULL]
-setnames(u8005_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8005_table)
-rm(u8005_table, u8005)
-gc()
-#Check
-zone_uwr[label == 'u-8-005',]
-```
-
-### u-8-006 Moose
-```{r, u8006}
-u8006<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-006' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8006_table<-data.table(u8006)[,c("ogc_fid", "unit_no")]
-
-# retain 33% of forested area as mature forest in stands >15m in height with canopy closure >5
-# use height constraint here
-u8006_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 16, ndt =0, label = 'u-8-006')]
-
-u8006_table[,unit_no := NULL]
-setnames(u8006_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8006_table)
-rm(u8006_table, u8006)
-gc()
-#Check
-zone_uwr[label == 'u-8-006',]
-```
-
-### u-8-007 Moose
-```{r, u8007}
-u8007<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-007' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8007_table<-data.table(u8007)[,c("ogc_fid", "unit_no")]
-
-# minimum 20% in stands >16 m in height
-# minimum 60% >30 years old
-# could use either one; not sure which is more restrictive; used height for now
-u8007_table[,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 16, ndt =0, label = 'u-8-007')]
-
-u8007_table[,unit_no := NULL]
-setnames(u8007_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8007_table)
-rm(u8007_table, u8007)
-gc()
-#Check
-zone_uwr[label == 'u-8-007',]
-```
-
-### u-8-008 Mule Deer
-```{r, u8008}
-u8008<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-008' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8008_table<-data.table(u8008)[,c("ogc_fid", "feat_notes")]
-
-# this uwr has unit specific retention targets, to the decimal place (!!??); rather than define each one, I rounded into categories of 15%, 20%, 25%, 30% and 40%
-# age and canopy closure thresholds vary by snow pack zone, which depends on BEC subzone; here I  use 101 (shallow/moderate snow); could use 121 (moderate/deep snow)
-u8008_table [feat_notes %in% c("pcell#6", "pcell#8", "pcell#10", "pcell#17", "pcell#30", "pcell#50", "pcell#53", "pcell#66"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 15, threshold = 101, ndt =0, label = 'u-8-008')]
-setnames (u8008_table, "ogc_fid", "zoneid")
-
-u8008_table [feat_notes %in% c("pcell#1", "pcell#2", "pcell#3", "pcell#4", "pcell#5", "pcell#7", "pcell#9", "pcell#11", "pcell#12", "pcell#13", "pcell#14", "pcell#15", "pcell#16", "pcell#20", "pcell#21", "pcell#22", "pcell#23", "pcell#24", "pcell#25", "pcell#26", "pcell#27", "pcell#28", "pcell#29", "pcell#31", "pcell#32", "pcell#33", "pcell#34", "pcell#35", "pcell#36", "pcell#37", "pcell#38", "pcell#39", "pcell#40", "pcell#41", "pcell#42", "pcell#43", "pcell#44", "pcell#46", "pcell#47", "pcell#48", "pcell#49", "pcell#52", "pcell#54", "pcell#60", "pcell#61", "pcell#63", "pcell#64", "pcell#65", "pcell#68", "pcell#70", "pcell#73", "pcell#74", "pcell#80", "pcell#81", "pcell#87", "pcell#88"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 101, ndt =0, label = 'u-8-008')]
-
-u8008_table [feat_notes %in% c("pcell#18", "pcell#56", "pcell#57", "pcell#58", "pcell#59", "pcell#62", "pcell#67", "pcell#72", "pcell#77", "pcell#78", "pcell#79", "pcell#84", "pcell#85", "pcell#86"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 25, threshold = 101, ndt =0, label = 'u-8-008')]
-
-u8008_table [feat_notes %in% c("pcell#19", "pcell#55", "pcell#69", "pcell#71"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 30, threshold = 101, ndt =0, label = 'u-8-008')]
-
-u8008_table [feat_notes %in% c("pcell#51", "pcell#82", "pcell#83"), `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 40, threshold = 101, ndt =0, label = 'u-8-008')]
-
-u8008_table[,feat_notes := NULL]
-zone_uwr<-rbind(zone_uwr, u8008_table)
-rm(u8008_table, u8008)
-gc()
-
-#Check
-zone_uwr[label == 'u-8-008',]
-
-```
-
-### u-8-009 Goat
-```{r, u8009}
-u8009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8009_table<-data.table(u8009)[,c("ogc_fid")]
-
-# >50% of at least 16 metres in height
-u8009_table [ ,`:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 50, threshold = 16, ndt =0, label = 'u-8-009')]
-setnames (u8009_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8009_table)
-rm(u8009_table, u8009)
-gc()
-#Check
-zone_uwr[label == 'u-8-009',]
-
-```
-
-### u-8-010 Sheep
-```{r, u8010}
-#u8010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-#u8010_table<-data.table(u8010)[,c("ogc_fid")]
-
-# constraint is no road developemt, so set harvest to zero, unless timber accessed another way?
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-8-010',]
-```
-
-### u-8-012 Caribou
-```{r, u8012}
-u8012<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-8-012' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u8012_table<-data.table(u8012)[,c("ogc_fid")]
-
-# constraints on mineral and ski development for future consideration
-# age retention targets depending on BEC zone
-# ESSF Parkland = 100% retention
-# ESSF >=70% >equal age class 8 
-# ICH >=70% >equal age class 8 
-# Here I used 70% retention of age 100
-
-u8012_table [, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 70, threshold = 100, ndt =0, label = 'u-8-012')] # no harvest
-setnames (u8012_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u8012_table)
-rm(u8012_table, u8012)
-gc()
-#Check
-zone_uwr[label == 'u-8-012',]
-```
-
-### u-9-001 Elk, Mule Deer, Moose
-```{r, u9001}
-u9001<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-001' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-u9001_table<-data.table(u9001)[,c("ogc_fid")]
-
-# >=20% mature/old conifer-leading >=40% CC
-# mature/old = 100 in BWBS and 120 in ESSF
-# here I split the differnce and used 110 
-
-u9001_table [ ,`:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 20, threshold = 110, ndt =0, label = 'u-9-001')]
-
-setnames(u9001_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u9001_table)
-rm(u9001_table, u9001)
-gc()
-#Check
-zone_uwr[label == 'u-9-001',]
-
-```
-
-### u-9-002 Caribou, Mountain Goat, Bighorn sheep
-```{r, u9002}
-u9002<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-002' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-#2 polygons - spc009(redwillow) and spc-018 (chinook ridge) see http://www.env.gov.bc.ca/wld/documents/uwr/u-9-002_Order.pdf
-u9002_table<-data.table(u9002)[,c("ogc_fid", "unit_no")]
-
-#SPC-009 - Primary forestry activites will all for 33% of area less than 3 meters
-u9002_table[unit_no == "SPC-009", `:=`(reference_zone = 'rast.zone_uwr', variable = 'height', type = 'ge', percentage = 33, threshold = 3, ndt =0, label = 'u-9-002')]
-
-#SPC-018 - Retain 60% of pine stands > 60 years. Making this equalvent to keep 60% of the zone > 60 years
-u9002_table[unit_no == "SPC-018", `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 60, threshold = 60, ndt =0, label = 'u-9-002')]
-
-u9002_table[,unit_no := NULL]
-setnames(u9002_table, "ogc_fid", "zoneid")
-
-zone_uwr<-rbind(zone_uwr, u9002_table)
-rm(u9002_table, u9002)
-gc()
-#Check
-zone_uwr[label == 'u-9-002',]
-```
-
-### u-9-004 Caribou, Mountain Goat, Bighorn sheep
-```{r, u9004}
-#u9004<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-004' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-# No real significant harvest contraints here and thus assumed via fine scale harvesting operations.
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-004',]
-
-```
-
-### u-9-009 Caribou, Mountain Goat, Bighorn sheep
-```{r, u9009}
-#u9009<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-009' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-# No real significant harvest contraints here and thus removed via fine scale harvesting operations.
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-009',]
-
-```
-
-### u-9-010 Caribou, Mountain Goat, Bighorn sheep
-```{r, u9010}
-#u9010<-getSpatialQuery("SELECT  ogc_fid, unit_no, feat_notes, wkb_geometry FROM public.wcp_uwr_sp_polygon WHERE uwr_tag = 'u-9-010' AND harvest = 'CONDITIONAL HARVEST ZONE'")
-
-# No real significant harvest contraints hereand thus removed via fine scale harvesting operations.
-uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-9-010',]
-```
 
 ## UWR conditional harvest raster
 ```{r, cond_ras}
@@ -1065,3 +207,14 @@ DBI::dbWriteTable(conn, c("public", "zone_uwr"), value= df, row.names = FALSE, o
 dbDisconnect(conn)
 ```
 
+
+# Literature Cited
+Bjørneraas, K., Solberg, E. J., Herfindal, I., Van Moorter, B., Rolandsen, C. M., Tremblay, J. P., ... & Astrup, R. (2011). Moose Alces alces habitat use at multiple temporal scales in a human-altered landscape. Wildlife Biology, 17(1), 44-54.
+
+Lesmerises, F., Dussault, C., & St-Laurent, M. H. (2012). Wolf habitat selection is shaped by human activities in a highly managed boreal forest. Forest ecology and management, 276, 125-131.
+
+Serrouya, R., McLellan, B. N., Boutin, S., Seip, D. R., & Nielsen, S. E. (2011). Developing a population target for an overabundant ungulate for ecosystem restoration. Journal of Applied Ecology, 48(4), 935-942.
+
+Wam, H. K., Hjeljord, O., & Solberg, E. J. (2010). Differential forage use makes carrying capacity equivocal on ranges of Scandinavian moose (Alces alces). Canadian Journal of Zoology, 88(12), 1179-1191.
+
+Wittmer, H. U., McLellan, B. N., Serrouya, R., & Apps, C. D. (2007). Changes in landscape composition influence the decline of a threatened woodland caribou population. Journal of animal ecology, 76(3), 568-579.
