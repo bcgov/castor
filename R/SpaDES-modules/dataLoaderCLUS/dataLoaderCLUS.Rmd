@@ -46,8 +46,8 @@ parameters <-  list(
                          nameCompartmentRaster = "rast.forest_tenure",
                          nameCompartmentTable = "forest_tenure_vat",
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.beo_const", "rast.vqo_const",  "rast.uwr_const", "rast.fsw_const", "rast.nharv_const"),
-                         nameZoneTable="zone_constraints",
+                         nameZoneRasters=c("rast.beo_const", "rast.vqo_const",  "rast.uwr_const", "rast.fsw_const", "rast.nharv_const"), # scenario rasters needs to be specified here too, e.g., rast.zone_crit_habitat_chilcotin
+                         nameZoneTable="zone_constraints", # scenario table needs to be specified here too, e.g., zone_crit_habitat_chilcotin
                          nameForestInventoryRaster ="rast.vri2002_id",
                          nameForestInventoryKey = "feature_id",
                          nameForestInventoryTable = "veg_comp_lyr_r1_poly_finalv3_deliveryv2",
