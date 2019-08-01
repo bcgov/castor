@@ -205,7 +205,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     
   }else{
     message('.....compartment ids: default 1')
-    #Set the empty table for values not supplied in the parmaters
+    #Set the empty table for values not supplied in the parameters
     sim$ras<-RASTER_CLIP2(srcRaster= 'rast.bc_bound', 
                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 

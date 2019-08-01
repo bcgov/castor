@@ -10,29 +10,699 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction
-Here I am analyzing the statistical relationship between landscape and forest attributes and moose density in wildlife management units (WMUs) in the Chilcotin region of British Columbia.  The purpose of this analysis is to identify forest and forestry-related features that may influence the density of moose in WMUs. If a useful (i.e., ecoligically sensible and good fit) statistical model can be indetied, the intent is to use the model as part of simualtion model (i.e., teh cariobu land use simualor - CLUS) to model how alterantive cariobu recovery management regimes infleunce moose desnity. Moose density is critical to cariobu managment, as moose are an apparent competitior of cariobu., i.e., they share wovles as a predator, and higher moose dnesities support higher wolf densiites, increasing predation on cariobu. 
+Here I analyze the statistical relationship between landscape and forest attributes and moose density in wildlife management units (WMUs) in the Chilcotin region of British Columbia.  The purpose of this analysis is to identify forest and forestry-related features that may influence the density of moose in WMUs. If a useful statistical model (i.e., an ecologically sensible model with a good fit) can be identified, the intent is to use the model as module in a simulation model (i.e., the cariobu land use simualor - CLUS) to model how alternative caribou recovery management regimes influence moose density. Moose density is critical to caribou management, as moose are an apparent competitor of caribou, i.e., they share wolves as a predator and higher moose densities support higher wolf densities, increasing predation on caribou. 
 
-
-
-
+Need some background lit on moose ecology, e.g., use wet areas, snow and temp limits, shrubs, fire, cutblocks
 
 ## Methods
-The analysis includes WMU's 
+The analysis includes data from WMU's 5-01, 5-02A, 5-02B, 5-02C. 5-02D, 5-03, 5-04, 5-06, 5-10, 5-12B, 5-13A, 5-13B, 5-13C, 5-14, 5-15A, 5-15B, 5-15C and 5-15D (Table 1). Here sightability-adjusted densities of moose were esitmated between 1994 and 2019 using aerial survey detection methods (cite ref). Each WMU had a unique survey history, for example, 5-04 was surveyed the most frequently, including in 1994, 1995, 1998, 2005, 2012 and 2017, whereas other units were surveyed once. Density estimates ranged from 0.10 moose/km^2^ (WMU 5-02A in 1996) to 1.42 moose/km^2^ (WMU 5-02B in 1994). 
 
 
-### Source Data
-- hunting boundaries: https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-boundaries-1-20-000
-- watercourses: https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm
-- wetlands: https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-wetlands
-- roads: https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-demographic-partially-attributed-roads
-- historic fire: https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical
-- 2018 fire: https://catalogue.data.gov.bc.ca/dataset/fire-locations-current
-- cutblocks https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-
-- vegetation inventory: https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1
-- lakes: https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-lakes
-- winter ppt as snow, summer ppt, summer avg temp, witner avg temp and mean attnual temp all form UBC data
-- elevation: provincial dem
+```{r, wmu survey history, echo = F}
+require (kableExtra)
+require (data.table)
+wmu.history <- data.table (
+WMU = c ("5-01", "5-01", "5-01", "5-02A", "5-02A", "5-02A", "5-02A", "5-02B", "5-02B", "5-02B", "5-02B", "5-02B", "5-02C", "5-02C", "5-02C", "5-02C", "5-02C", "5-02D", "5-02D", "5-02D", "5-03", "5-03", "5-04", "5-04", "5-04", "5-04", "5-04", "5-04", "5-06", "5-10", "5-12B", "5-12B", "5-13A", "5-13A", "5-13A", "5-13A", "5-13B", "5-13B", "5-13C", "5-13C", "5-13C", "5-14", "5-14", "5-14", "5-14", "5-15A", "5-15B", "5-15C", "5-15D"),
 
-- each dataset clipped ot study area (list wmus) adn Unioned to WMU using CLipe and Union functions in ArcGIS 10.6
-- for raster - sumamrized stst using zonal polygon tool in arcgis, exporting as table and joining to WMU dnesity data
-  - ideally script the above....
+Year = c ("2015", "2000", "1996", "2014", "2001", "1998", "1996", "2018", "2006", "2000", "1996", "1994", "2019", "2011", "2001", "1997", "1994", "2014", "1999", "1994", "2019", "1997", "2017", "2012", "2005", "1998", "1995", "1994", "1995", "1995", "2012", "2002", "2017", "2003", "1998", "1995", "2018", "1999", "2019", "2008", "1997", "2019", "2013", "2001", "1994", "2008", "2008", "2008", "2004"),
+ 
+Density = c (0.36, 0.32, 0.44, 0.33, 0.22, 0.26, 0.10, 0.46, 0.39, 0.59, 0.73, 1.42, 0.37, 0.51, 0.62, 0.30, 0.56, 0.86, 0.67, 1.19, 0.23, 0.35, 0.22, 0.14, 0.29, 0.41, 0.39, 0.71, 0.18, 0.26, 0.23, 0.58, 0.17, 0.30, 0.44, 0.32, 0.37, 0.31, 0.27, 0.49, 0.40, 0.26, 0.25, 0.46, 0.33, 0.29, 0.17, 0.11, 0.13)                            
+                             )
+kable (wmu.history, 
+       caption = "Table 1. Chilcotin Wildlife Management Unit (WMU) Estimated Moose Density",
+       align = "c")
+```
+
+### Statistical Model
+I fit a generalized linear mixed effects (GLME) regression model (Zuur et al. 2009) to statistically identify relationships between landscape features within WMUs (see eblow) and density estimates. WMUs were modeled as a random effect (intercept) to account for multi-year estimaets within WMUs. 
+
+- slope?
+
+First, I tested whether habitat covariates were correlated using a Spearman correlation, where a correlation coefficient greater than 0.7 was used as criteria to consider the covariates as confounded, and one of the covariates was removed from analysis. In addition, I fit a generlaized linear model (GLM) to the data and estiametd variance infaltion factors (VIFs) for each covariate, where a VIF greater than 10 was considered confounded with other data and removed from the analysis. 
+
+
+
+### Spatial Landscape Data and Sources
+I fit models that included spatial data on moose habitat features measured within each WMU. WMU boundaries were obtained from the DataBC catalogue: [WMU boundaries](https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-boundaries-1-20-000). 
+
+I measured minimum, maximum, mean, range, majority, minority and standard deviation values of habitat features estimated in each WMU from raster data using the zonal stistics table tool in ArcGIS 10.6.
+Mean and majority values provide an indicator of 'typical' habitat conditions within the WMU. Minimum, maximum and minority values provide an indicator of 'extreme' habitat conditions, and range and standard deviation values provide an indicator of variabaility in habitat conditions within the WMU. These values were measured for [elevation](https://catalogue.data.gov.bc.ca/dataset/digital-elevation-model-for-british-columbia-cded-1-250-000) and climate variables estimated by [Wang et al. 2016](http://www.climatewna.com/ClimateBC_Map.aspx), including [mean annual temperature and annual precipitation as snow](http://raster.climatebc.ca/download/Normal_1981_2010MSY/Normal_1981_2010_annual.zip), and [winter precipitation as snow, summer precipitation, average summer temperature and average winter temperature](http://raster.climatebc.ca/download/Normal_1981_2010MSY/Normal_1981_2010_seasonal.zip). 
+
+Data on polygonal spatial habitat datasets were combined with WMU boundary data usign the "Union" tool in ArcGIS 10.6. Unioned data were outputted and summarized in prorgam R (see below).
+
+I estimated the total area of waterbodies in each WMU by calculating the area of [lakes](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-lakes), [wetlands](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-wetlands) and [watercourses](https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm)). I estimated the total length of [roads](https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-demographic-partially-attributed-roads) in each WMU, by type, including, paved, loose, rough and unknown surface roads. 
+
+Fire and cutblock data included the year that the burn or forest harvest occurred, and thus I estimated the total area burnt or cut in 5 year periods, from 5 years to 40 years prior to the moose density estimate. Data on [historic](https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical) and [2018](https://catalogue.data.gov.bc.ca/dataset/fire-locations-current) fire perimeters and [consolidated cutblock](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) polygons using data from the DataBC catalogue. 
+
+I used the provincial [vegetation inventory](https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1) dataset to estimate vegetation characteristics in each WMU. I estimated the area of shrub cover by multiplying estimated percent shrub cover in each polygon by the polygon area and summing those values across the WMU. I calculated the area of each bioegeclimatic (BEC) variant and landcover type, including: non-vegetated water, non-vegetated land, vegetated non-treed alpine tall shrub, vegetated non-treed alpine low shrub, vegetated non-treed upland tall shrub, vegetated non-treed upland low shrub, vegetated wetland upland tall shrub, vegetated wetland upland low shrub, vegetated treed wetland conifer, vegetated treed wetland deciduous, vegetated treed wetland mixed, vegetated treed upland conifer, vegetated treed upland deciduous and vegetated treed upland mixed. I estimated the area of leading tree species types in each WMU by calculating area of each species identified as the most common in each polygon. I calculated the minimum, maximum, mean, range, and standard deviation values of site index, projected age, and projected height of polygons in each WMU.
+
+```{r, load and manipulate data top create data for analysis, message = F error = F}
+require (sf)
+require (data.table)
+require (dplyr)
+
+data.moose.density <- data.table (read.csv ("C:\\Work\\caribou\\clus_data\\moose\\analysis_moose_chilcotin_density\\data_moose_chilcotin_density.csv", header = T, sep = ","))
+
+data.moose.habitat <- data.table(sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\analysis_moose_chilcotin_density\\chilcotin_moose_habitat.gdb", layer = "wmu_moose_analysis_units_veg_cut_fire_wet_lake_water"))
+
+data.moose.roads <- data.table (sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\analysis_moose_chilcotin_density\\chilcotin_moose_habitat.gdb", layer = "wmu_moose_analysis_units_roads"))
+
+
+### AREA OF LANDCOVER BY WMU: 
+data.moose.habitat.lc <- data.table (data.moose.habitat) [, .(wmu, BCLCS_LEVEL_1, BCLCS_LEVEL_2, BCLCS_LEVEL_3, BCLCS_LEVEL_4, BCLCS_LEVEL_5, area_ha)]
+
+data.moose.habitat.lc <-  data.table (data.moose.habitat.lc) [wmu != "5-12-A"]
+
+# area of non-vegetated, water
+data.moose.habitat.lc.nw <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "N" & BCLCS_LEVEL_2 == "W",
+                                                   .(N_W_area_ha = sum (area_ha)), 
+                                                   by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.nw,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.nw)
+gc ()
+
+# area of non-vegetated, land
+data.moose.habitat.lc.nl <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "N" & BCLCS_LEVEL_2 == "L",
+                                                   .(N_L_area_ha = sum (area_ha)), 
+                                                   by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.nl,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.nl)
+gc ()
+
+# area of vegetated, non-treed, alpine, tall shrub
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "N" & 
+                                                   BCLCS_LEVEL_3 == "A" &  BCLCS_LEVEL_4 == "ST",
+                                                   .(V_NT_A_ST_area_ha = sum (area_ha)), 
+                                                   by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, non-treed, alpine, low shrub 
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "N" & 
+                                                    BCLCS_LEVEL_3 == "A" &  BCLCS_LEVEL_4 == "SL",
+                                                    .(V_NT_A_SL_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, non-treed, upland, tall shrub
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "N" & 
+                                                    BCLCS_LEVEL_3 == "U" &  BCLCS_LEVEL_4 == "ST",
+                                                    .(V_NT_U_ST_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, non-treed, upland, low shrub
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "N" & 
+                                                    BCLCS_LEVEL_3 == "U" &  BCLCS_LEVEL_4 == "SL",
+                                                    .(V_NT_U_SL_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, non-treed, wetland, tall shrub
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "N" & 
+                                                    BCLCS_LEVEL_3 == "W" &  BCLCS_LEVEL_4 == "ST",
+                                                    .(V_NT_W_ST_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, non-treed, wetland, low shrub
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "N" & 
+                                                    BCLCS_LEVEL_3 == "W" &  BCLCS_LEVEL_4 == "SL",
+                                                    .(V_NT_W_SL_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, treed, wetland, conifer
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "T" & 
+                                                    BCLCS_LEVEL_3 == "W" &  BCLCS_LEVEL_4 == "TC",
+                                                    .(V_T_W_TC_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, treed, wetland, deciduous
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "T" & 
+                                                    BCLCS_LEVEL_3 == "W" &  BCLCS_LEVEL_4 == "TB",
+                                                    .(V_T_W_TB_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, treed, wetland, mixed stand
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "T" & 
+                                                    BCLCS_LEVEL_3 == "W" &  BCLCS_LEVEL_4 == "TM",
+                                                    .(V_T_W_TM_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, treed, upland, conifer
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "T" & 
+                                                    BCLCS_LEVEL_3 == "U" &  BCLCS_LEVEL_4 == "TC",
+                                                    .(V_T_U_TC_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated, treed, upland, deciduous
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "T" & 
+                                                    BCLCS_LEVEL_3 == "U" &  BCLCS_LEVEL_4 == "TB",
+                                                    .(V_T_U_TB_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub)
+gc ()
+
+# area of vegetated treed upland mixed
+data.moose.habitat.lc.sub <- data.moose.habitat.lc [BCLCS_LEVEL_1 == "V" & BCLCS_LEVEL_2 == "T" & 
+                                                    BCLCS_LEVEL_3 == "U" &  BCLCS_LEVEL_4 == "TM",
+                                                    .(V_T_U_TM_area_ha = sum (area_ha)), 
+                                                    by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.lc.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.lc.sub, data.moose.habitat.lc)
+gc ()
+
+
+
+### AREA of BEC:
+data.moose.habitat.bec <- data.table (data.moose.habitat) [, .(wmu, BEC_ZONE_CODE, BEC_SUBZONE, BEC_VARIANT, area_ha)]
+data.moose.habitat.bec [, bec_class := paste0 (BEC_ZONE_CODE, BEC_SUBZONE, BEC_VARIANT)]
+unique (data.moose.habitat.bec$bec_class)
+
+# Alpine
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "BAFAunNA" | bec_class == "BAFAunpNA" | bec_class == "CMAunNA" | bec_class == "CMAunpNA" | bec_class == "IMAunpNA" | bec_class == "IMAunNA",
+                                                      .(Alpine_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# BG
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "BGxh3" | bec_class == "BGxw2",
+                                                      .(BG_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# CWH
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "CWHws2" | bec_class == "CWHms1" | bec_class == "CWHds2",
+                                                      .(CWH_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ICHdry
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ICHdkNA" | bec_class == "ICHdw3",
+                                                      .(ICHdry_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ICHmoist
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ICHmk3" | bec_class == "ICHmw3",
+                                                      .(ICHmoist_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ICHwetcool
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ICHwk2" | bec_class == "ICHwk4" | bec_class == "ICHwk1",
+                                                      .(ICHwetcool_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# IDFdry
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "IDFdk4" | bec_class == "IDFdwNA" | bec_class == "IDFdk3",
+                                                      .(IDFdry_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# IDFverydry
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "IDFxmNA" | bec_class == "IDFxwNA",
+                                                      .(IDFverydry_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# IDFmoistwet
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "IDFwwNA" | bec_class == "IDFmw2",
+                                                      .(IDFmoistwet_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# MHmm2
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "MHmm2",
+                                                      .(MHmm2_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# MSverydry
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "MSxvNA" | bec_class == "MSxk3",
+                                                      .(MSverydry_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# MSdry
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "MSdvNA" | bec_class == "MSdc2",
+                                                      .(MSdry_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# SBSdry
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "SBSdw2" | bec_class == "SBSdw1" | bec_class == "SBSdkNA",
+                                                      .(SBSdry_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# SBSmoistcold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "SBSmc1" | bec_class == "SBSmc2" | bec_class == "SBSmc3",
+                                                      .(SBSmoistcold_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# SBSmoistmildhot
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "SBSmmNA" | bec_class == "SBSmwNA" | bec_class == "SBSmhNA",
+                                                      .(SBSmoistmildhot_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# SBSwk1
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "SBSwk1",
+                                                      .(SBSwk1_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# SBPSdryverydrycold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "SBPSdcNA" | "SBPSxcNA",
+                                                      .(SBPSdryverydrycold_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# SBPSmoistcoolcold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "SBPSmkNA" | bec_class == "SBPSmcNA",
+                                                      .(SBPSmoistcoolcold_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ESSFmoistmildwarm
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ESSFmwNA" | bec_class == "ESSFmwpNA" | bec_class == "ESSFmmpNA" | bec_class == "ESSFmm1",
+                                                      .(ESSFmoistmildwarm_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ESSFmoistcoldverycold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ESSFmv1" | bec_class == "ESSFmvpNA" | bec_class == "ESSFmcNA" | bec_class == "ESSFmcpNA",
+                                                      .(ESSFmoistcoldverycold_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ESSFverydryverycold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ESSFxv2" | bec_class == "ESSFxvpNA" | bec_class == "ESSFxv1" | bec_class == "ESSFxvwNA",
+                                                      .(ESSFverydryverycold_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ESSFverydrycold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ESSFxcpNA" | bec_class == "ESSFxcwNA" | bec_class == "ESSFxc3",
+                                                      .(ESSFverydrycold_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ESSFdrycoldverycold
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ESSFdvwNA" | bec_class == "ESSFdvpNA" | bec_class == "ESSFdc3",
+                                                      .(ESSFdvw_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub)
+gc ()
+
+# ESSFwetcoldcool
+data.moose.habitat.bec.sub <- data.moose.habitat.bec [bec_class == "ESSFwk1" | bec_class == "ESSFwc3" | bec_class == "ESSFwcwNA" | bec_class == "ESSFwcpNA",
+                                                      .(ESSFwk1_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.bec.sub,
+                                        by = "wmu")
+rm (data.moose.habitat.bec.sub, data.moose.habitat.bec)
+gc ()
+
+
+### Shrub cover by WMU
+data.moose.habitat.shrub <- na.omit (data.moose.habitat, 
+                                     cols = ("SHRUB_CROWN_CLOSURE"), 
+                                     invert = FALSE)
+data.moose.habitat.shrub <- data.moose.habitat.shrub [, .(shrub_area_ha = sum (area_ha *     
+                                                                              SHRUB_CROWN_CLOSURE)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.shrub,
+                                        by = "wmu")
+rm (data.moose.habitat.shrub)
+gc ()
+
+
+### Site index by WMU
+data.moose.habitat.site.index <- na.omit (data.moose.habitat, 
+                                           cols = ("SITE_INDEX"), 
+                                           invert = FALSE)
+
+data.moose.habitat.site.index.min <- data.moose.habitat.site.index [, .(site_index_min = min (SITE_INDEX)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.site.index.min,
+                                        by = "wmu")
+rm (data.moose.habitat.site.index.min)
+gc ()
+
+data.moose.habitat.site.index.max <- data.moose.habitat.site.index [, .(site_index_max = max (SITE_INDEX)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.site.index.max,
+                                        by = "wmu")
+rm (data.moose.habitat.site.index.max)
+gc ()
+
+data.moose.habitat.site.index.mean <- data.moose.habitat.site.index [, .(site_index_mean = mean (SITE_INDEX)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.site.index.mean,
+                                        by = "wmu")
+rm (data.moose.habitat.site.index.mean)
+gc ()
+
+data.moose.density$site_index_range <-  data.moose.density$site_index_max - data.moose.density$site_index_min
+
+data.moose.habitat.site.index.sd <- data.moose.habitat.site.index [, .(site_index_sd = sd (SITE_INDEX)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.site.index.sd,
+                                        by = "wmu")
+rm (data.moose.habitat.site.index.sd, data.moose.habitat.site.index)
+gc ()
+
+### Stand height by WMU
+data.moose.habitat.height <- na.omit (data.moose.habitat, 
+                                           cols = ("PROJ_HEIGHT_1"), 
+                                           invert = FALSE)
+
+data.moose.habitat.height.min <- data.moose.habitat.height [, .(height_min = min (PROJ_HEIGHT_1)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.height.min,
+                                        by = "wmu")
+rm (data.moose.habitat.height.min)
+gc ()
+
+data.moose.habitat.height.max <- data.moose.habitat.height [, .(height_max = max (PROJ_HEIGHT_1)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.height.max,
+                                        by = "wmu")
+rm (data.moose.habitat.height.max)
+gc ()
+
+data.moose.habitat.height.mean <- data.moose.habitat.height [, .(height_mean = mean (PROJ_HEIGHT_1)),                                                                by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.height.mean,
+                                        by = "wmu")
+rm (data.moose.habitat.height.mean)
+gc ()
+
+data.moose.density$height_range <-  data.moose.density$height_max - data.moose.density$height_min
+
+data.moose.habitat.height.sd <- data.moose.habitat.height [, .(height_sd = sd (PROJ_HEIGHT_1)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.height.sd,
+                                        by = "wmu")
+rm (data.moose.habitat.height.sd, data.moose.habitat.height)
+gc ()
+
+### Stand age by WMU
+data.moose.habitat.age <- na.omit (data.moose.habitat, 
+                                           cols = ("PROJ_AGE_1"), 
+                                           invert = FALSE)
+
+data.moose.habitat.age.min <- data.moose.habitat.age [, .(age_min = min (PROJ_AGE_1)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.age.min,
+                                        by = "wmu")
+rm (data.moose.habitat.age.min)
+gc ()
+
+data.moose.habitat.age.max <- data.moose.habitat.age [, .(age_max = max (PROJ_AGE_1)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.age.max,
+                                        by = "wmu")
+rm (data.moose.habitat.age.max)
+gc ()
+
+data.moose.habitat.age.mean <- data.moose.habitat.age [, .(age_mean = mean (PROJ_AGE_1)),                                                                by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.age.mean,
+                                        by = "wmu")
+rm (data.moose.habitat.age.mean)
+gc ()
+
+data.moose.density$age_range <-  data.moose.density$age_max - data.moose.density$age_min
+
+data.moose.habitat.age.sd <- data.moose.habitat.age [, .(age_sd = sd (PROJ_AGE_1)), 
+                                                              by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.age.sd,
+                                        by = "wmu")
+rm (data.moose.habitat.site.index.sd, data.moose.habitat.age)
+gc ()
+
+
+### LEADING TREE SPECIES AREA
+data.moose.habitat.tree.spp <- data.table (data.moose.habitat) [, .(wmu, SPECIES_CD_1, area_ha)]
+unique (data.moose.habitat.tree.spp$SPECIES_CD_1)
+# Fir
+data.moose.habitat.tree.spp.fir <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "B" | SPECIES_CD_1 == "BL" | SPECIES_CD_1 == "BA",
+                                                      .(Fir_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.fir,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.fir)
+gc ()
+
+# Cedar
+data.moose.habitat.tree.spp.cedar <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "CW" | SPECIES_CD_1 == "YC",
+                                                      .(Cedar_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.cedar,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.cedar)
+gc ()
+
+# Populus spp.
+data.moose.habitat.tree.spp.poplar <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "AT" | SPECIES_CD_1 == "ACT",
+                                                      .(Populus_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.poplar,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.poplar)
+gc ()
+
+# Birch
+data.moose.habitat.tree.spp.birch <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "E" | SPECIES_CD_1 == "EP",
+                                                      .(Birch_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.birch,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.birch)
+gc ()
+
+# Douglas Fir
+data.moose.habitat.tree.spp.dougfir <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "FD" | SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC",
+                                                      .(DougFir_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.dougfir,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.dougfir)
+gc ()
+
+# Hemlock
+data.moose.habitat.tree.spp.hemlock <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "H" | SPECIES_CD_1 == "HW" | SPECIES_CD_1 == "HM",
+                                                      .(Hemlock_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.hemlock,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.hemlock)
+gc ()
+
+# Larch
+data.moose.habitat.tree.spp.larch <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "L" | SPECIES_CD_1 == "LT",
+                                                      .(Larch_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.larch,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.larch)
+gc ()
+
+# Pine
+data.moose.habitat.tree.spp.pine <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "PL" | SPECIES_CD_1 == "PLI" | SPECIES_CD_1 == "PA" | SPECIES_CD_1 == "PY" | SPECIES_CD_1 == "PLC",
+                                                      .(Pine_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.pine,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.pine)
+gc ()
+
+# Spruce
+data.moose.habitat.tree.spp.spruce <- data.moose.habitat.tree.spp [SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SXL",
+                                                      .(Spruce_area_ha = sum (area_ha)), 
+                                                      by = .(wmu)] 
+data.moose.density <- dplyr::full_join (data.moose.density, data.moose.habitat.tree.spp.spruce,
+                                        by = "wmu")
+rm (data.moose.habitat.tree.spp.spruce)
+gc ()
+
+
+
+
+head (data.moose.habitat.tree.spp.spruce)
+
+
+
+
+
+
+```
+
+
+  
+  
+```{r, correaltion}
+require (ggcorrplot)
+
+dist.cut.1.10.corr <- rsf.data.cut.age [c (10:19)]
+corr.1.10 <- round (cor (dist.cut.1.10.corr, method = "spearman"), 3)
+p.mat.1.10 <- round (cor_pmat (dist.cut.1.10.corr), 2)
+ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "All Data Distance to Cutblock Correlation Years 1 to 10")
+### VIF ###
+glm.terrain.du7.s <- glm (pttype ~ elevation + slope + distance_to_lake + distance_to_watercourse, 
+                            data = rsf.data.terrain.water.du7.s,
+                            family = binomial (link = 'logit'))
+car::vif (glm.terrain.du7.s)
+
+### OUTLIERS ###
+ggplot (rsf.data.terrain.water.du7.s, aes (x = pttype, y = slope)) +
+        geom_boxplot (outlier.colour = "red") +
+        labs (title = "Boxplot DU7, Summer Slope at Available (0) and Used (1) Locations",
+              x = "Available (0) and Used (1) Locations",
+              y = "Slope")
+### HISTOGRAMS ###
+ggplot (rsf.data.terrain.water.du7.s, aes (x = slope, fill = pttype)) + 
+          geom_histogram (position = "dodge", binwidth = 5) +
+          labs (title = "Histogram DU7, Summer Slope at Available (0) and Used (1) Locations",
+                x = "Slope",
+                y = "Count") +
+          scale_fill_discrete (name = "Location Type")
+```
+  
+
+
+```{r}
+require (lme4)
+
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (table.aic) <- c ("DU", "Season", "Model Type", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+
+## SLOPE ##
+model.lme4.du7.s.slope <- glmer (pttype ~ std.slope + (1 | uniqueID), 
+                                   data = rsf.data.terrain.water.du7.s, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+# AIC
+table.aic [1, 1] <- "DU7"
+table.aic [1, 2] <- "Summer"
+table.aic [1, 3] <- "GLMM with Individual and Year (UniqueID) Random Effect"
+table.aic [1, 4] <- "Slope"
+table.aic [1, 5] <- "(1 | UniqueID)"
+table.aic [1, 6] <-  AIC (model.lme4.du7.s.slope)
+
+
+```
+
