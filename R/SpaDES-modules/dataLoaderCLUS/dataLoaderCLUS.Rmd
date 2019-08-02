@@ -61,9 +61,9 @@ parameters <-  list(
 
                          nameZoneRasters=c("rast.beo_const", "rast.vqo_const",  "rast.uwr_const", "rast.fsw_const", "rast.nharv_const"), # scenario rasters needs to be specified here too, e.g., rast.zone_crit_habitat_chilcotin
                          nameZoneTable="zone_constraints", # scenario table needs to be specified here too, e.g., zone_crit_habitat_chilcotin
-                         nameForestInventoryRaster ="rast.vri2002_id",
-                         nameForestInventoryKey = "feature_id",
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly_finalv3_deliveryv2",
+                         #nameForestInventoryRaster ="rast.vri2002_id",
+                         #nameForestInventoryKey = "feature_id",
+                         #nameForestInventoryTable = "veg_comp_lyr_r1_poly_finalv3_deliveryv2_2002",
                          nameForestInventoryAge = "proj_age_1",
                          nameForestInventoryHeight = "proj_height_1",
                          nameForestInventoryCrownClosure = "crown_closure",
