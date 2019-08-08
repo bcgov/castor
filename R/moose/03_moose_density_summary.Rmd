@@ -1,0 +1,135 @@
+---
+title: "Review of Wolf Density Models and Moose Density and Habtiat Thresholds Needed to Achieve Low Predation on Caribou"
+author: "Tyler Muhly"
+date: "07/08/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Federal recovery strategies for caribou have recommended wolf density thresholds for certain types of critical habitat. Specifcally, a threshold of less than 3 wolves per 1000 km ^2^ has been recommended for some southern moutnain cariobu 'matrix' habtiat types ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)). In addition, habtiat 'disturbance' threholds have been recommended for other types of ctritical habitat, with the implict assumption that staying below these thresholds will maintain habitats with low enough predator densities as to allow for stable or increasing cariobu popualtions. Specifically, a threshold of 35% 'disturbance' (i.e., area of cutblocks and roads buffered by 500m and burns) has been recommended for low elevation witner range and some matrix habtiat types ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)).
+
+Here I attempt to estimate what moose density we likely need to acheieve to hit a target of 3 wolves per 1,000 km^2^ using exisitng pulbished wolf density models. I also review current moose density in teh CHilctoin region of British COlumbia and estimate wolf densities using these models. I then use a statiscial model that estimates mosose density as a fucntion fo variosu types of habtiat disturabnces (i.e., cutblocks, fires and roads) to estimate habitat conditions necesary to acheieve these moose densities. 
+
+## Estimating Wolf Density from Moose Density
+Seevral models have been developed to estimate wolf density from ungulate biomass or density. HEre I review some commonly cited and relevant models to British Columbia. 
+
+### The [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) Model 
+[Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) developed an equation to estimate wolf density from an ungulate biomass index based on a variety of resarch studies form across North America. The equation applies an index factor to measured or estimated ungulate densities (animals/km^2^), where larger factors are applied to ungulates (i.e., moose density is multiplied by 6, elk density is multiplied by 3 and deer density is multiplied by 1). Wolf density (wolves/1,000 km ^2^) is then calculated with the equation: $W = 3.5 + (UB * 3.3)$, where W = wolf desnity and UB euqals total estimated ungulate biomass in the area of interest. The estiamted moose density to achieve estimated wolf density targets, assumign no oither ungulates are available in teh system, (or that wolves are not predating on other ungulates there) is illustrated in Figure 1. However, explicit in the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model is that there are a minimum of 3.5 wolves/1,000km^2^, regardless of ungulate biomass. This models suggests a very low, essentially near 0 ungulate density is necessary to achieve threhsolds below 3 wolves/1,000km^2^.
+```{r, Fuller Wolf Density Equation, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 1. Estimated Wolf Density as a Function of Moose Density Using the Fuller et al. (2003) Model"}
+library (ggplot2)
+
+data <- data.frame ("area.km2" = 1000, # 'simulated' dataset 
+                    "moose.km2" = seq (0, 1.5, 0.01), "elk.km2" = 0, "white.tailed.deer.km2" = 0,
+                    "mule.deer.km2" = 0,
+                     stringsAsFactors = FALSE)
+
+data$ungulate.biomass <- ((data$moose.km2 * 6) + (data$elk.km2 * 3) + # density input is animals/km2
+                          (data$white.tailed.deer.km2 * 1) + (data$mule.deer.km2 * 1))
+
+data$wolf.dens.fuller <- 3.5 + (data$ungulate.biomass * 3.3)
+
+ggplot (data, aes (x = moose.km2, y = wolf.dens.fuller))  +
+  geom_line () + 
+  labs (x = expression ("Moose Density - moose per"~km^2), 
+        y = expression ("Wolf Density - wolves per 1,000"~km^2)) +
+  scale_x_continuous (breaks = seq (0, 1.5, 0.1)) +
+  scale_y_continuous (breaks = seq (0, 35, 1)) +
+  theme_classic () 
+```
+
+### The [Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475) Model 
+[Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475) developed a statistical model of wolf density based on estiamted ungulate biomasss in regions of British COlumiba. Similar to [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html), they calcualted wolf density as a fucntion of ungualte biomass, using the same ungulate biomass index. Wolf density (wolves/1,000 km ^2^) is calculated with the equation: $W = (UB * 5.4) - (UB^2^ * 3.3)$, where W = wolf desnity and UB euqals total estimated ungulate biomass in the area of interest. The estiamted moose density to achieve estimated wolf density targets, assumign no oither ungulates are available in the region, (or that wolves are not predating on other ungulates there) is illustrated in Figure 2. This model is perhaps more practical than the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model for estimatign wolf density in low ungulaet biomass regions because areas with no unglate biomass would have no wolves. This models suggests a density of approximately 0.09 moose/km^2^ is necessary to achieve thresholds below 3 wolves/1,000km^2^.
+```{r, Kuzyk and Hatter Wolf Density Equation, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 2. Estimated Wolf Density as a Function of Moose Density Using the Kuzyk and Hatter (2014) Model"}
+library (ggplot2)
+
+data <- data.frame ("area.km2" = 1000, # 'simulated' dataset 
+                    "moose.km2" = seq (0, 1.5, 0.01), "elk.km2" = 0, "white.tailed.deer.km2" = 0,
+                    "mule.deer.km2" = 0,
+                     stringsAsFactors = FALSE)
+
+data$ungulate.biomass <- ((data$moose.km2 * 6) + (data$elk.km2 * 3) + # density input is animals/km2
+                          (data$white.tailed.deer.km2 * 1) + (data$mule.deer.km2 * 1))
+
+data$wolf.dens.kuzyk <- (data$ungulate.biomass * 5.4) - (data$ungulate.biomass^2 * 0.166)
+
+ggplot (data, aes (x = moose.km2, y = wolf.dens.kuzyk))  +
+  geom_line () + 
+  labs (x = expression ("Moose Density - moose per"~km^2), 
+        y = expression ("Wolf Density - wolves per 1,000"~km^2)) +
+  scale_x_continuous (breaks = seq (0, 1.5, 0.1)) +
+  scale_y_continuous (breaks = seq (0, 35, 1)) +
+  theme_classic () 
+```
+
+### The [Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) Model 
+[Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) developed a statistical model of wolf density from moose desnity using data from across North America where moose were the primary prey of wolves. He calcualted wolf density as a function of moose density using a hyperbolic, Michaelis-Menten functio, using the equation: $W = (58.7 * (M - 0.03)) / (M + 0.76)$, where W = wolf density (wolves/1,000km^2^)and M = estimated moose density (moose/km^2^).The estiamted moose density to achieve estimated wolf density targets is illustrated in Figure 3.
+
+This model allows for negative wolf densities at very low mosoe desnities, and requires a moose desnity greater than 0.03 moose/km^2^ to sustain wolves. THis model is also useful for estimatign wolf density in low ungulate biomass areas, also in areas where moose are known to be the doimannt prey of wolves. It is likely not useful in areas where otehr ungulaets are hte primary prey for wolves. This models suggests a density of less than approximately 0.08 moose/km^2^ is necessary to achieve thresholds below 3 wolves/1,000km^2^.
+
+```{r, Messier 1994 wolf density model, val = T, echo = F, fig.align = "left", fig.cap = "Figure 3. Estimated Wolf Density as a Function of Moose Density Using the Messier (1994) Model"}
+
+library (ggplot2)
+
+data <- data.frame ("area.km2" = 1000, # 'simulated' dataset 
+                    "moose.km2" = seq (0, 1.5, 0.01),
+                     stringsAsFactors = FALSE)
+
+data$wolf.dens.messier <- (58.7 * (data$moose.km2 - 0.03))/(0.76 + data$moose.km2)
+
+ggplot (data, aes (x = moose.km2, y = wolf.dens.messier))  +
+  geom_line () + 
+  labs (x = expression ("Moose Density - moose per"~km^2), 
+        y = expression ("Wolf Density - wolves per 1,000"~km^2)) +
+  scale_x_continuous (breaks = seq (0, 1.5, 0.1)) +
+  scale_y_continuous (breaks = seq (0, 40, 2)) +
+  theme_classic ()
+
+```
+
+### Estimated Wolf Densities in the Chilcotin Region of British Columbia
+Caribou recovery planning has begun in the Chilcotin local population unit (LPU). This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *Threatened* under Canada's *Species at Risk Act*. 
+
+The Itcha-Ilgachuz herd is considered to be of significant conservation importance provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, associated road development, wildfire and mountain pine beetle infestations (cite herd plan). In addition, the 2019 population census showed a 40% popualion decline from 2018, and at that rate of decline, the herd would be functionally extirpated (i.e., less than 20 animals) in eight years (Carolyn Shores, Provincial Cariobu Biologist, pers. comm.). 
+
+There is an  urgent need to develop an effective recovery plan for the Chilcotin LPU caribou. A critical component of this is managing wolf density directly (i.e., culling), but also indireclty by managing moose via their habitat. Addtional habtiat protections might be considered with the intent of minimizing habitat disturabnce so that moose densities adn ultimately wolf densiites are maitnained at low levels. 
+
+Estimated moose desnities form aerial surveys done in wildlife managmen units (WMUs) of the Chilcotin region are described in Table 1. I estimated wolf densities using the three models described above and averaged them. The models suggest that wolf densities were never below 3 wolves/1,000km^2^ in any of the WMUs over the periods that they were surveyed. The lowest averaged estimates of wolf density were in WMUs 5-02-A in 1996 (4 wolves/1,000km^2^), 5-04 in 2012 (6 wolves/1,000km^2^), and 5-15-C in 2008 (5 wolves/1,000km^2^). The median wolf density estimate in the region throughout the surbvey period was 16 wolves/1,000km^2^, suggesting that wolf densities have generally been pretty high.  
+
+```{r, Chilcotin moose desnites and estimated wolf densites Table, val = T, echo = F, warning = F}
+
+library (data.table)
+library (kableExtra)
+tab_density_est <- data.table (WMU = c ("5-01", "5-01", "5-01", "5-02-A", "5-02-A", "5-02-A", "5-02-A", "5-02-B", "5-02-B", "5-02-B", "5-02-B", "5-02-B", "5-02-C", "5-02-C", "5-02-C", "5-02-C", "5-02-C", "5-02-D", "5-02-D", "5-02-D", "5-03", "5-03", "5-04", "5-04", "5-04", "5-04", "5-04", "5-04", "5-06", "5-10", "5-12-B", "5-12-B", "5-13-A", "5-13-A", "5-13-A", "5-13-A", "5-13-B", "5-13-B", "5-13-C", "5-13-C", "5-13-C", "5-14", "5-14", "5-14", "5-14", "5-15-A", "5-15-B", "5-15-C", "5-15-D"),
+                                   SurveyYear = c (2015, 2000, 1996, 2014, 2001, 1998, 1996, 2018, 2006, 2000, 1996, 1994, 2019, 2011, 2001, 1997, 1994, 2014, 1999, 1994, 2019, 1997, 2017, 2012, 2005, 1998, 1995, 1994, 1995, 1995, 2012, 2002, 2017, 2003, 1998, 1995, 2018, 1999, 2019, 2008, 1997, 2019, 2013, 2001, 1994, 2008, 2008, 2008, 2004),
+                                   MooseDensityKm2 = c (0.36, 0.32, 0.44, 0.33, 0.22, 0.26, 0.10, 0.46, 0.39, 0.59, 0.73, 1.42, 0.37, 0.51, 0.62, 0.30, 0.56, 0.86, 0.67, 1.19, 0.231, 0.35, 0.22, 0.14, 0.29, 0.41, 0.39, 0.71, 0.18, 0.26, 0.23, 0.58, 0.17, 0.30, 0.44, 0.32, 0.37, 0.31, 0.27, 0.49, 0.40, 0.261, 0.25, 0.46, 0.33, 0.29, 0.17, 0.11, 0.13)
+                                  )
+tab_density_est [, WolfDensityFuller := round (3.5 + ((MooseDensityKm2 * 6) * 3.3))] # FUller wolf density
+tab_density_est [, WolfDensityKuzyk := round (((MooseDensityKm2 * 6) * 5.4) - ((MooseDensityKm2 * 6)^2 * 0.166))] # Kuzyk density
+tab_density_est [, WolfDensityMessier := round ((58.7 * (MooseDensityKm2 - 0.03))/(0.76 + MooseDensityKm2))] # MEssier density
+tab_density_est [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
+
+kable (tab_density_est,
+       caption = "Table 1. Wolf desnity esitmates calcualted from pulbished modles and estimated moose densities form aerial surveys in teh CHilctoin region of Brtisih Columbia.") %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover", "condensed"),
+                 fixed_thead = T,
+                 full_width = F) 
+
+```
+
+### Estimated Moose Densities in Undisturbed Habitat in the Chilcotin Region
+Moose density estimates were calculated from survey data collected between 1994 and 2019, a period during which disturabnce (i.e., forest harvest, fire and insect infestation) signfcianly inlfuenced the landscape. In apritcualr, these disturabnces likely influenced the availability and amount of forage available to moose. I fit a model 
+
+
+
+
+
+
+
+
+
+
