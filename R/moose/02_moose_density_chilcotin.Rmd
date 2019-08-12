@@ -2273,7 +2273,7 @@ colnames (data.moose.density)
 data.moose.density <- data.table (data.moose.density)
 data.moose.density [is.na (data.moose.density)] <- 0
 
-### Summarize fire and cut into 10 years intervals
+### Summarize fire and cut into 5 years intervals
 sort (unique (data.moose.density$survey_year))
 
 # Cuts 1 to 5 years old
@@ -2651,6 +2651,9 @@ data.moose.density [is.na (data.moose.density)] <- 0
 
 
 
+
+
+
 ### Spearman correlation between covariates  
   
 ```{r, correlation}
@@ -2819,7 +2822,7 @@ data.moose.density [, Cut_21_30_area_ha := Cut_21_25_area_ha + Cut_26_30_area_ha
 # combine cedar and hemlock
 data.moose.density [, Cedar_Hemlock_area_ha := Cedar_area_ha + Hemlock_area_ha]
 data.moose.density <- data.table (data.moose.density)
-data.lme <- data.moose.density [, .(adj_density_est_km2, wmu, survey_year,
+data.lme <- data.moose.density [, .(adj_density_est_km2, wmu, survey_year, wmu_area_ha,
                                     mat_mean, pas_ann_mean, 
                                     wetland_area_ha, lake_area_ha, river_area_ha,
                                     N_W_area_ha, N_L_area_ha, V_NT_A_ST_area_ha, V_NT_A_SL_area_ha,
@@ -2851,6 +2854,46 @@ data.lme <- data.moose.density [, .(adj_density_est_km2, wmu, survey_year,
   
   
   
+  
+  
+  
+  
+### Areas to Densities  
+  
+```{r areas to densities}
+
+data.lme [, prop_wetland := wetland_area_ha / wmu_area_ha]
+data.lme [, prop_lake := lake_area_ha / wmu_area_ha]
+data.lme [, prop_river := river_area_ha / wmu_area_ha]
+data.lme [, prop_shrub := shrub_area_ha / wmu_area_ha]
+data.lme [, prop_cut_1_5 := Cut_1_5_area_ha / wmu_area_ha]
+data.lme [, prop_cut_6_10 := Cut_6_10_area_ha / wmu_area_ha]
+data.lme [, prop_cut_11_20 := Cut_11_20_area_ha / wmu_area_ha]
+data.lme [, prop_cut_21_30 := Cut_21_30_area_ha / wmu_area_ha]                        
+data.lme [, prop_fire_1_5 := Fire_1_5_area_ha / wmu_area_ha]                        
+data.lme [, prop_fire_6_10 := Fire_6_10_area_ha / wmu_area_ha]                        
+data.lme [, prop_fire_11_15 := Fire_11_15_area_ha / wmu_area_ha]                        
+data.lme [, prop_fire_16_20 := Fire_16_20_area_ha / wmu_area_ha]   
+data.lme [, prop_fire_21_25 := Fire_21_25_area_ha / wmu_area_ha]                        
+data.lme [, prop_fire_26_30 := Fire_26_30_area_ha / wmu_area_ha]                        
+data.lme [, prop_fir := Fir_area_ha / wmu_area_ha]                        
+data.lme [, prop_populus := Populus_area_ha / wmu_area_ha]                        
+data.lme [, prop_birch := Birch_area_ha / wmu_area_ha]                        
+data.lme [, prop_dougfir := DougFir_area_ha / wmu_area_ha]                        
+data.lme [, prop_larch := Larch_area_ha / wmu_area_ha]                        
+data.lme [, prop_pine := Pine_area_ha / wmu_area_ha]                        
+data.lme [, prop_spruce := Spruce_area_ha / wmu_area_ha]                        
+data.lme [, prop_cedar := Cedar_Hemlock_area_ha / wmu_area_ha]                        
+data.lme [, dens_road_loose := road_loose_km / (wmu_area_ha / 100)]                        
+data.lme [, dens_road_paved := road_paved_km / (wmu_area_ha / 100)]                        
+data.lme [, dens_road_rough := road_rough_km / (wmu_area_ha / 100)]                        
+data.lme [, dens_road_overgrown := road_overgrown_km / (wmu_area_ha / 100)]                        
+
+```
+
+  
+  
+  
 ### Outliers....
 
 ```{r, outliers}
@@ -2859,9 +2902,9 @@ data.lme <- data.moose.density [, .(adj_density_est_km2, wmu, survey_year,
 dotchart (data.lme$adj_density_est_km2) # two potential outliers - surveys of 5-02-B and 5-02-D in 1994
 dotchart (data.lme$mat_mean)
 dotchart (data.lme$pas_ann_mean) # wmu 5-06 a bit of an outlier; only surveyed once, very high snowfall area
-dotchart (data.lme$wetland_area_ha)
-dotchart (data.lme$lake_area_ha)
-dotchart (data.lme$river_area_ha) # wmu 5-02D has double river area than other units
+dotchart (data.lme$prop_wetland)
+dotchart (data.lme$prop_lake )
+dotchart (data.lme$prop_river ) # wmu 5-02D has double river area than other units
 dotchart (data.lme$N_W_area_ha)
 dotchart (data.lme$N_L_area_ha) # problematic; lots of zeros
 dotchart (data.lme$V_NT_A_ST_area_ha) # problematic; lots of zeros
@@ -2888,47 +2931,57 @@ dotchart (data.lme$ESSFverydrycold_area_ha) # problematic; lots of zeros
 dotchart (data.lme$ESSFdvw_area_ha) # problematic; lots of zeros
 dotchart (data.lme$ICHwetmoist_area_ha) # a few zero's.....
 dotchart (data.lme$IDFdryverydry_area_ha)
-dotchart (data.lme$shrub_area_ha) # 5-13C had significantly more shrubs
+dotchart (data.lme$prop_shrub ) # 5-13C had significantly more shrubs
 dotchart (data.lme$site_index_mean)
 dotchart (data.lme$site_index_sd)
 dotchart (data.lme$age_mean)
 dotchart (data.lme$age_sd)
-dotchart (data.lme$Cut_1_5_area_ha)
-dotchart (data.lme$Cut_6_10_area_ha)
-dotchart (data.lme$Cut_11_20_area_ha)
-dotchart (data.lme$Cut_21_30_area_ha)
-dotchart (data.lme$Fire_1_5_area_ha)
-dotchart (data.lme$Fire_6_10_area_ha)
-dotchart (data.lme$Fire_11_15_area_ha)
-dotchart (data.lme$Fire_16_20_area_ha)
-dotchart (data.lme$Fire_21_25_area_ha)
-dotchart (data.lme$Fire_26_30_area_ha)
-dotchart (data.lme$Fir_area_ha)
-dotchart (data.lme$Populus_area_ha)
-dotchart (data.lme$Birch_area_ha) # a few zero's.....
-dotchart (data.lme$DougFir_area_ha)
-dotchart (data.lme$Larch_area_ha) # problematic; lots of zeros
-dotchart (data.lme$Pine_area_ha)
-dotchart (data.lme$Spruce_area_ha)
-dotchart (data.lme$Cedar_Hemlock_area_ha) # a few zero's.....
-dotchart (data.lme$road_loose_km)                          
-dotchart (data.lme$road_paved_km)                          
-dotchart (data.lme$road_overgrown_km)    # lots of zero's                      
-dotchart (data.lme$road_rough_km)                          
+dotchart (data.lme$prop_cut_1_5)
+dotchart (data.lme$prop_cut_6_10 )
+dotchart (data.lme$prop_cut_11_20 )
+dotchart (data.lme$prop_cut_21_30 )
+dotchart (data.lme$prop_fire_1_5)
+dotchart (data.lme$prop_fire_6_10 )
+dotchart (data.lme$prop_fire_11_15)
+dotchart (data.lme$prop_fire_16_20 )
+dotchart (data.lme$prop_fire_21_25 )
+dotchart (data.lme$prop_fire_26_30 )
+dotchart (data.lme$prop_fir)
+dotchart (data.lme$prop_populus )
+dotchart (data.lme$prop_birch) # a few zero's.....
+dotchart (data.lme$prop_dougfir)
+dotchart (data.lme$prop_larch) # problematic; lots of zeros
+dotchart (data.lme$prop_pine)
+dotchart (data.lme$prop_spruce)
+dotchart (data.lme$prop_cedar) # a few zero's.....
+dotchart (data.lme$dens_road_loose)                          
+dotchart (data.lme$dens_road_paved)                          
+dotchart (data.lme$dens_road_overgrown)    # lots of zero's                      
+dotchart (data.lme$dens_road_rough )                          
 
-# thinking about dropping the landcover covairates - most are problematic
-# drop bec covariates; soem problematic, correalted with cliamte anyway
+# dropping the landcover covairates - most are problematic
+# dropping bec covariates; soem problematic, correalted with cliamte anyway
 
+# combining wet area types (river, wetland, lake)
+data.lme [, prop_wet := prop_wetland + prop_lake + prop_river]
 
+# combining forest cutblock ages (cut 1 to 10, cut 11-30, fire 1 to 15, fire 16 to 30)
+data.lme [, prop_cut_1_10 := prop_cut_1_5 + prop_cut_6_10]
+data.lme [, prop_cut_11_30 := prop_cut_11_20 + prop_cut_21_30]
+data.lme [, prop_fire_1_15 := prop_fire_1_5 + prop_fire_6_10 + prop_fire_11_15]
+data.lme [, prop_fire_16_30 := prop_fire_16_20 + prop_fire_21_25 + prop_fire_26_30]
+
+# combining road types
+data.lme [, dens_road_unpaved := dens_road_loose + dens_road_rough]
 
 # start with:
-# mat_mean, pas_ann_mean, wetland_area_ha, lake_area_ha, river_area_ha, shrub_area_ha,
-# site_index_mean, site_index_sd, age_mean, age_sd, Cut_1_5_area_ha, Cut_6_10_area_ha,
-# Cut_11_20_area_ha, Cut_21_30_area_ha, Fire_1_5_area_ha, Fire_6_10_area_ha, Fire_11_15_area_ha,
-# Fire_16_20_area_ha, Fire_21_25_area_ha, Fire_26_30_area_ha, Populus_area_ha, Pine_area_ha, 
-# Spruce_area_ha, DougFir_area_ha, road_loose_km, road_paved_km, road_rough_km
+# mat_mean, pas_ann_mean, prop_wet, prop_shrub, site_index_mean, site_index_sd, age_mean, age_sd, 
+# prop_cut_1_10, prop_cut_11_30, prop_fire_1_15, prop_fire_16_30, prop_populus, prop_pine,
+# prop_spruce, prop_dougfir, dens_road_paved, dens_road_unpaved
 
 # 5-06 and 5-02D appear to be 'outlier' units; 5-06 high elevation and snowy; 5-02D lots of broadleaf, riparian, hot; keep for now
+
+data.lme <- data.lme [wmu != "5-12-A"]
 
 ```
 
@@ -2937,119 +2990,52 @@ dotchart (data.lme$road_rough_km)
 ### CHeck VIFs for correlation 
           
 ```{r, simple GLM model, with VIF}
-glm.moose.density <- glm (adj_density_est_km2 ~ mat_mean + pas_ann_mean + wetland_area_ha + 
-                                                lake_area_ha + river_area_ha + shrub_area_ha +
-                                                site_index_mean + site_index_sd + age_mean + 
-                                                age_sd + Cut_1_5_area_ha + Cut_6_10_area_ha +
-                                                Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                Populus_area_ha + Pine_area_ha + Spruce_area_ha +
-                                                DougFir_area_ha + road_loose_km +road_paved_km +
-                                                road_rough_km, 
+glm.moose.density <- glm (adj_density_est_km2 ~ mat_mean + pas_ann_mean + prop_wet + prop_shrub +
+                                                site_index_mean + site_index_sd + age_mean +
+                                                age_sd + prop_cut_1_10 + prop_cut_11_30 +
+                                                prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                prop_pine + prop_spruce + prop_dougfir +
+                                                dens_road_paved + dens_road_unpaved, 
                             data = data.lme,
                             family = gaussian (link = 'identity'))
 summary (glm.moose.density)
 car::vif (glm.moose.density) # many covaraites iwth VIF >10; removed highest first iteratively until all <10
 
-glm.moose.density <- glm (adj_density_est_km2 ~ mat_mean + 
-                                                pas_ann_mean + wetland_area_ha + 
-                                                lake_area_ha + river_area_ha + 
-                                                # shrub_area_ha +
-                                                site_index_mean + site_index_sd + age_mean + 
-                                                age_sd + Cut_1_5_area_ha + Cut_6_10_area_ha +
-                                                Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                Populus_area_ha + Pine_area_ha + Spruce_area_ha +
-                                                DougFir_area_ha + road_loose_km +road_paved_km +
-                                                road_rough_km, 
+glm.moose.density <- glm (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
+                                                # mat_mean + 
+                                                site_index_mean + site_index_sd + age_mean +
+                                                age_sd + prop_cut_1_10 + prop_cut_11_30 +
+                                                prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                prop_pine + prop_spruce + prop_dougfir +
+                                                dens_road_paved + dens_road_unpaved, 
                             data = data.lme,
                             family = gaussian (link = 'identity'))
 car::vif (glm.moose.density)
 
-glm.moose.density <- glm (adj_density_est_km2 ~ # mat_mean + 
-                                                pas_ann_mean + wetland_area_ha + 
-                                                lake_area_ha + river_area_ha + 
-                                                # shrub_area_ha +
-                                                site_index_mean + site_index_sd + age_mean + 
-                                                age_sd + 
-                                                Cut_1_5_area_ha + Cut_6_10_area_ha +
-                                                Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                Populus_area_ha + Pine_area_ha + Spruce_area_ha +
-                                                DougFir_area_ha + road_loose_km +road_paved_km +
-                                                road_rough_km, 
+glm.moose.density <- glm (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
+                                                # mat_mean + 
+                                                site_index_mean + site_index_sd + 
+                                                # age_mean + age_sd + 
+                                                prop_cut_1_10 + prop_cut_11_30 +
+                                                prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                prop_pine + prop_spruce + prop_dougfir +
+                                                dens_road_paved + dens_road_unpaved, 
                             data = data.lme,
                             family = gaussian (link = 'identity'))
 car::vif (glm.moose.density)
 
-glm.moose.density <- glm (adj_density_est_km2 ~ # mat_mean + 
-                                                pas_ann_mean + wetland_area_ha + 
-                                                lake_area_ha + river_area_ha + 
-                                                # shrub_area_ha +
-                                                # site_index_mean + 
-                                                site_index_sd + age_mean + 
-                                                age_sd + 
-                                                Cut_1_5_area_ha + Cut_6_10_area_ha +
-                                                Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                Populus_area_ha + Pine_area_ha + Spruce_area_ha +
-                                                DougFir_area_ha + road_loose_km +road_paved_km +
-                                                road_rough_km, 
+glm.moose.density <- glm (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
+                                                # mat_mean + 
+                                                # site_index_mean + site_index_sd + 
+                                                # age_mean + age_sd + 
+                                                prop_cut_1_10 + prop_cut_11_30 +
+                                                prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                prop_pine + prop_spruce + prop_dougfir +
+                                                dens_road_paved + dens_road_unpaved, 
                             data = data.lme,
                             family = gaussian (link = 'identity'))
 car::vif (glm.moose.density)
-
-glm.moose.density <- glm (adj_density_est_km2 ~ # mat_mean + 
-                                                pas_ann_mean + wetland_area_ha + 
-                                                lake_area_ha + river_area_ha + 
-                                                # shrub_area_ha +
-                                                # site_index_mean + 
-                                                site_index_sd + 
-                                                # age_mean + 
-                                                # age_sd + 
-                                                Cut_1_5_area_ha + Cut_6_10_area_ha +
-                                                Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                Populus_area_ha + 
-                                                Pine_area_ha + 
-                                                Spruce_area_ha +
-                                                DougFir_area_ha + road_loose_km +road_paved_km +
-                                                road_rough_km, 
-                            data = data.lme,
-                            family = gaussian (link = 'identity'))
-car::vif (glm.moose.density)
-
-glm.moose.density <- glm (adj_density_est_km2 ~ # mat_mean + 
-                                                pas_ann_mean + wetland_area_ha + 
-                                                lake_area_ha + river_area_ha + 
-                                                # shrub_area_ha +
-                                                # site_index_mean + 
-                                                site_index_sd + 
-                                                # age_mean + 
-                                                # age_sd + 
-                                                Cut_1_5_area_ha + Cut_6_10_area_ha +
-                                                Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                Populus_area_ha + 
-                                                # Pine_area_ha + 
-                                                Spruce_area_ha +
-                                                DougFir_area_ha + road_loose_km +road_paved_km +
-                                                road_rough_km, 
-                            data = data.lme,
-                            family = gaussian (link = 'identity'))
-car::vif (glm.moose.density) # this model is ok
+summary (glm.moose.density)
 
 ```
           
@@ -3062,18 +3048,12 @@ require (ggplot2)
 require (lattice)
 
 # Fit the LME model
-lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + wetland_area_ha + 
-                                                 lake_area_ha + river_area_ha + 
-                                                 site_index_sd + Cut_1_5_area_ha + 
-                                                 Cut_6_10_area_ha + Cut_11_20_area_ha + 
-                                                 Cut_21_30_area_ha +
-                                                 Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                 Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                 Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                 Populus_area_ha + Spruce_area_ha +
-                                                 DougFir_area_ha + road_loose_km +road_paved_km +
-                                                 road_rough_km +
-                                                 (1 | wmu), 
+lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
+                                                  prop_cut_1_10 + prop_cut_11_30 +
+                                                  prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                  prop_pine + prop_spruce + prop_dougfir +
+                                                  dens_road_paved + dens_road_unpaved +
+                                                  (1 | wmu), 
                             data = data.lme,
                             family = gaussian (link = 'identity'),
                             verbose = T)
@@ -3090,19 +3070,16 @@ ggplot (data.lme, aes (x = lme.predicted, y = adj_density_est_km2)) + # predicte
                    check_overlap = T,
                    size = 3) # 5-02B in 1994 is an outlier; removed this data point from analysis
 
+
+
+# 5-02B in 1994 is an outlier; removed this data point from analysis
 data.lme.final <- data.lme [!12]
 
-lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + wetland_area_ha + 
-                                                 lake_area_ha + river_area_ha + 
-                                                 site_index_sd + Cut_1_5_area_ha + 
-                                                 Cut_6_10_area_ha + Cut_11_20_area_ha + 
-                                                 Cut_21_30_area_ha +
-                                                 Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                 Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                 Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                 Populus_area_ha + Spruce_area_ha +
-                                                 DougFir_area_ha + road_loose_km +road_paved_km +
-                                                 road_rough_km +
+lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
+                                                  prop_cut_1_10 + prop_cut_11_30 +
+                                                  prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                  prop_pine + prop_spruce + prop_dougfir +
+                                                  dens_road_paved + dens_road_unpaved +
                                                  (1 | wmu), 
                             data = data.lme.final,
                             family = gaussian (link = 'identity'),
@@ -3130,180 +3107,49 @@ ggplot (data.lme.final, aes (x = lme.predicted, y = lme.residuals)) + # fitted v
 ggplot (data.lme.final, aes(lme.residuals)) + # normality of residuals
         geom_histogram (binwidth = 0.05) # there is some skewness here, but not terrible
 
-qqnorm (residuals (lme.moose.density)) # some deviation, but this seems ok too
+qqnorm (residuals (lme.moose.density)) # some deviation at high values
 qqline (residuals (lme.moose.density)) 
 
-# compare fit to x variables
-ggplot (data.lme.final, aes(x = pas_ann_mean, y = adj_density_est_km2)) + # ppt. as snow
-  geom_segment (aes (xend = pas_ann_mean, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # WMU 5-02-D 1994 likely high leverage, but model fits it
 
-ggplot (data.lme.final, aes(x = wetland_area_ha, y = adj_density_est_km2)) + # wetland_area_ha
-  geom_segment (aes (xend = wetland_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # wetlands have a weak effect, remove from model?
+# removed 5-02-D 1999 because seems to be a problematic outlier
+data.lme.final <- data.lme.final [!18]
 
-ggplot (data.lme.final, aes(x = lake_area_ha, y = adj_density_est_km2)) + # lake_area_ha 
-  geom_segment (aes (xend = lake_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # lakes have a weak effect, remove from model?
+lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
+                                                  prop_cut_1_10 + prop_cut_11_30 +
+                                                  prop_fire_1_15 + prop_fire_16_30 + prop_populus +
+                                                  prop_pine + prop_spruce + prop_dougfir +
+                                                  dens_road_paved + dens_road_unpaved +
+                                                  (1 | wmu), 
+                            data = data.lme.final,
+                            family = gaussian (link = 'identity'),
+                            verbose = T)
+summary (lme.moose.density)
 
-ggplot (data.lme.final, aes(x = river_area_ha, y = adj_density_est_km2)) + # river_area_ha  
-  geom_segment (aes (xend = river_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # really driven by wmu 5-02-D; is this a real effect?
+data.lme.final$lme.predicted <- predict (lme.moose.density)   # Save the predicted values
+data.lme.final$lme.residuals <- residuals (lme.moose.density) # Save the residual values
 
-ggplot (data.lme.final, aes(x = shrub_area_ha, y = adj_density_est_km2)) + # shrub_area_ha  
-  geom_segment (aes (xend = shrub_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+ggplot (data.lme.final, aes (x = lme.predicted, y = adj_density_est_km2)) + # predicted vs. actual values
+        geom_point() +
+        scale_x_continuous (breaks = seq(0, 1.6, 0.2)) +
+        scale_y_continuous (breaks = seq(0, 1.6, 0.2)) +
+        geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
+                   size = 3) # looks good
 
-ggplot (data.lme.final, aes(x = site_index_sd, y = adj_density_est_km2)) + # site_index_sd  
-  geom_segment (aes (xend = site_index_sd, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+ggplot (data.lme.final, aes (x = lme.predicted, y = lme.residuals)) + # fitted vs. residual values
+        geom_point () +
+        geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 1, vjust = 0, 
                    check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # weak effect.....
+                   size = 3) # these look ok; few obs at high predicted densities, but residuals are
+                             # not overly large there
 
-ggplot (data.lme.final, aes(x = Cut_1_5_area_ha, y = adj_density_est_km2)) + # Cut_1_5_area_ha  
-  geom_segment (aes (xend = Cut_1_5_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # wmu 5-02-D could be driving this a bit; combine with cut 6 to 10
+ggplot (data.lme.final, aes(lme.residuals)) + # normality of residuals
+        geom_histogram (binwidth = 0.05) # there is some skewness here, but not terrible
+plot (density (data.lme.final$lme.residuals))
+shapiro.test(data.lme.final$lme.residuals) # p-value = 0.2132, so is normal statistically
 
-ggplot (data.lme.final, aes(x = Cut_6_10_area_ha, y = adj_density_est_km2)) + # Cut_6_10_area_ha  
-  geom_segment (aes (xend = Cut_6_10_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm)
-
-ggplot (data.lme.final, aes(x = Cut_11_20_area_ha, y = adj_density_est_km2)) + # Cut_11_20_area_ha  
-  geom_segment (aes (xend = Cut_11_20_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm)
-
-ggplot (data.lme.final, aes(x = Cut_21_30_area_ha, y = adj_density_est_km2)) + # Cut_21_30_area_ha  
-  geom_segment (aes (xend = Cut_21_30_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm)
-
-ggplot (data.lme.final, aes(x = Fire_1_5_area_ha, y = adj_density_est_km2)) + # Fire_1_5_area_ha  
-  geom_segment (aes (xend = Fire_1_5_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # lot of zeros, although doesn't appear to be a huge problem with residuals (above)
-
-ggplot (data.lme.final, aes(x = Fire_6_10_area_ha, y = adj_density_est_km2)) + # Fire_6_10_area_ha  
-  geom_segment (aes (xend = Fire_6_10_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) #l ot of zeros, although doesn't appear to be a huge problem with residuals (above)
-
-ggplot (data.lme.final, aes(x = Fire_11_15_area_ha, y = adj_density_est_km2)) + # Fire_11_15_area_ha  
-  geom_segment (aes (xend = Fire_11_15_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # lot of zeros, although doesn't appear to be a huge problem with residuals (above)
-
-ggplot (data.lme.final, aes(x = Fire_16_20_area_ha, y = adj_density_est_km2)) + # Fire_16_20_area_ha  
-  geom_segment (aes (xend = Fire_16_20_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_21_25_area_ha, y = adj_density_est_km2)) + # Fire_21_25_area_ha  
-  geom_segment (aes (xend = Fire_21_25_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_26_30_area_ha, y = adj_density_est_km2)) + # Fire_26_30_area_ha  
-  geom_segment (aes (xend = Fire_26_30_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Populus_area_ha, y = adj_density_est_km2)) + # Populus_area_ha  
-  geom_segment (aes (xend = Populus_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # nice fit here
-
-ggplot (data.lme.final, aes(x = Spruce_area_ha, y = adj_density_est_km2)) + # Spruce_area_ha  
-  geom_segment (aes (xend = Spruce_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = DougFir_area_ha, y = adj_density_est_km2)) + # DougFir_area_ha  
-  geom_segment (aes (xend = DougFir_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # weak effect
+qqnorm (residuals (lme.moose.density)) 
+qqline (residuals (lme.moose.density)) 
 
 # compare residuals to x variables
 ggplot (data.lme.final, aes(x = pas_ann_mean, y = lme.residuals)) +
@@ -3313,152 +3159,89 @@ ggplot (data.lme.final, aes(x = pas_ann_mean, y = lme.residuals)) +
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = wetland_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_wet, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = lake_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_shrub, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = river_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_cut_1_10, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = shrub_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_cut_11_30, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = site_index_sd, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_fire_1_15, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = Cut_1_5_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_fire_16_30, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = Cut_6_10_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_populus, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)  # looks fine
+
+ggplot (data.lme.final, aes(x = prop_pine, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = Cut_11_20_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_spruce, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
-                   size = 3)  # higher deviation at lower cut area
+                   size = 3)# looks fine
 
-ggplot (data.lme.final, aes(x = Cut_21_30_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # higher deviation at lower cut area
-
-ggplot (data.lme.final, aes(x = Fire_1_5_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # high deviation around low burnt area
-
-ggplot (data.lme.final, aes(x = Fire_6_10_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # high deviation around low burnt area
-
-ggplot (data.lme.final, aes(x = Fire_11_15_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # high deviation around low burnt area
-
-ggplot (data.lme.final, aes(x = Fire_16_20_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # high deviation around low burnt area
-
-ggplot (data.lme.final, aes(x = Fire_21_25_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_dougfir, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = Fire_26_30_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = dens_road_paved, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
                    size = 3) # looks fine
 
-ggplot (data.lme.final, aes(x = Populus_area_ha, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = dens_road_unpaved, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
-                   size = 3) # looks good
-
-ggplot (data.lme.final, aes(x = Spruce_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # looks good
-
-ggplot (data.lme.final, aes(x = DougFir_area_ha, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # looks good
-
-ggplot (data.lme.final, aes(x = road_loose_km, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # looks good
-
-ggplot (data.lme.final, aes(x = road_paved_km, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # looks good
-
-ggplot (data.lme.final, aes(x = road_rough_km, y = lme.residuals)) +
-  geom_point () +
-  geom_point (aes (y = lme.residuals), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) # looks good
+                   size = 3) # looks fine
 
 ```
 
@@ -3473,434 +3256,84 @@ require (lme4)
 require (MuMIn)
 require (cAIC4)
 
-### Compare models using AIC and R-sq ###
-table.model.compare <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.model.compare) <- c ("Fixed Effects Covariates", "R-squared", "AICc", "AICcw")
+# NOTE: # 5-02B in 1994 and 5-02-D 1999 seemed to be a problematic outliers; removed these data points from analysis, ABOVE
+
+# removed 5-12-B 2002 because model had trouble predicting and produced non-normal residuals
+data.lme.final <- data.lme.final [!30]
+
 
 ## GLOBAL MODEL ##
-lme.moose.density.global <- glmer (adj_density_est_km2 ~ pas_ann_mean + wetland_area_ha + 
-                                                         lake_area_ha + river_area_ha + 
-                                                         site_index_sd + Cut_1_5_area_ha + 
-                                                         Cut_6_10_area_ha + Cut_11_20_area_ha + 
-                                                         Cut_21_30_area_ha +
-                                                         Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                         Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                         Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                         Populus_area_ha + Spruce_area_ha +
-                                                         DougFir_area_ha + road_loose_km + 
-                                                         road_paved_km +
-                                                         road_rough_km +
-                                                       (1 | wmu), 
+lme.moose.density.global <- glmer (adj_density_est_km2 ~ pas_ann_mean + 
+                                                          # prop_wet + 
+                                                          prop_wetland + 
+                                                          prop_river +
+                                                          prop_shrub +
+                                                          prop_cut_1_10 + prop_cut_11_30 +
+                                                          prop_fire_1_15 + prop_fire_16_30 + 
+                                                          prop_populus +
+                                                          prop_pine + prop_spruce + prop_dougfir +
+                                                          dens_road_paved + dens_road_unpaved +
+                                                          (1 | wmu), 
                                   data = data.lme.final,
                                   family = gaussian (link = 'identity'),
                                   REML = FALSE,
                                   verbose = T)
-table.model.compare [1, 1] <- "Mean Ppt as Snow, Wetland Area, Lake Area, River Area, S.Dev.Site Index, Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old,  Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., Area Spruce Spp., Area Douglas Fir, Loose Roads, Paved Roads, Rough Roads"
-table.model.compare [1, 2] <- r.squaredGLMM (lme.moose.density.global)
-table.model.compare [1, 3] <- cAIC (lme.moose.density.global)$caic
+summary (lme.moose.density.global)
+## Use MuMin 'dredge' function to fit combos of global model ##
+table.dredge <- dredge (lme.moose.density.global,
+                        beta = "none",
+                        rank = "AICc",
+                        subset = ("dens_road_paved" & "dens_road_unpaved")) # subset to make sure paved and unpaved road types are considered in models together (i.e., not considrred independently)
+table.dredge.aic.2 <- subset (table.dredge, delta < 2) # subset of top models
+model.avg.lme.moose.density <- model.avg (table.dredge, subset = delta < 2)
+summary (model.avg.lme.moose.density)
 
-## Snow ##
-lme.moose.density.snow <- glmer (adj_density_est_km2 ~ pas_ann_mean +
-                                                       (1 | wmu), 
-                                  data = data.lme.final,
-                                  family = gaussian (link = 'identity'),
-                                  REML = FALSE,
-                                 verbose = T)
-table.model.compare [2, 1] <- "Mean Ppt as Snow"
-table.model.compare [2, 2] <- r.squaredGLMM (lme.moose.density.snow)
-table.model.compare [2, 3] <-  cAIC (lme.moose.density.snow)$caic
+table.avg.coeff.est <- data.table ("Coefficient Name" = c ("Intercept", 
+                                                           
+                                                           
+                                                           
+                                                           "Proportion Burnt 16 to 30 years old", "Density Paved Roads", "Density Unpaved Roads",  "Proportion Pine spp.", "Proportion Poplar spp.",  "Proportion Douglas Fir", "Proportion Spruce spp.", "Proportion Cutblocks 1 to 10 years old", "Proportion Cutblocks 11 to 30 years old"),
+                                   "Coefficient Estimate" = c (0.15, 
+                                                               
+                                                               18.58, -5.94, -3.59, 0.14,
+                                                               3.10, 0.02, -0.03, 0.76, -0.31),
+                                   "Adjusted Std. Error" = c (0.06, 
+                                                              
+                                                              
+                                                              3.66, 6.35, 1.91, 0.15, 
+                                                              0.83, 0.07, 0.10, 0.90, 0.46),
+                                   "z-value" = c (2.39, 
+                                                  
+                                                  
+                                                  5.07, 0.94, 1.88, 0.91, 3.75, 
+                                                  0.30, 0.27, 0.84, 0.67),
+                                   "Pr(>|z|)" = c (0.02, 
+                                                   
+                                                   
+                                                   "<0.01", 0.06, 0.01, 0.04, "<0.01", 
+                                                   0.13, 0.20, 0.05, 0.06)
+                                  )
 
-## Wetlands ##
-lme.moose.density.wetland <- glmer (adj_density_est_km2 ~ wetland_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [3, 1] <- "Wetland Area"
-table.model.compare [3, 2] <- r.squaredGLMM (lme.moose.density.wetland)
-table.model.compare [3, 3] <-  cAIC (lme.moose.density.wetland)$caic
-
-## Lakes ##
-lme.moose.density.lake <- glmer (adj_density_est_km2 ~ lake_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [4, 1] <- "Lake Area"
-table.model.compare [4, 2] <- r.squaredGLMM (lme.moose.density.lake)
-table.model.compare [4, 3] <-  cAIC (lme.moose.density.lake)$caic
-
-## Rivers ##
-lme.moose.density.river <- glmer (adj_density_est_km2 ~ river_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [5, 1] <- "River Area"
-table.model.compare [5, 2] <- r.squaredGLMM (lme.moose.density.river)
-table.model.compare [5, 3] <-  cAIC (lme.moose.density.river)$caic
-
-## Roads ##
-lme.moose.density.roads <- glmer (adj_density_est_km2 ~  road_loose_km + 
-                                                         road_paved_km +
-                                                         road_rough_km +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [6, 1] <- "Loose Roads, Paved Roads, Rough Roads"
-table.model.compare [6, 2] <- r.squaredGLMM (lme.moose.density.roads)
-table.model.compare [6, 3] <-  cAIC (lme.moose.density.roads)$caic
-
-## Site Index ##
-lme.moose.density.si <- glmer (adj_density_est_km2 ~ site_index_sd +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [7, 1] <- "S.Dev.Site Index"
-table.model.compare [7, 2] <- r.squaredGLMM (lme.moose.density.si)
-table.model.compare [7, 3] <-  cAIC (lme.moose.density.si)$caic
-
-## Area Cut ##
-lme.moose.density.cut <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + Cut_6_10_area_ha + 
-                                                      Cut_11_20_area_ha + Cut_21_30_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [8, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old,  
-Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old"
-table.model.compare [8, 2] <- r.squaredGLMM (lme.moose.density.cut)
-table.model.compare [8, 3] <-  cAIC (lme.moose.density.cut)$caic
-
-## Area Burned ##
-lme.moose.density.fire <- glmer (adj_density_est_km2 ~ Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                      Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                      Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [9, 1] <- "Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, 
-Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old"
-table.model.compare [9, 2] <- r.squaredGLMM (lme.moose.density.fire)
-table.model.compare [9, 3] <-  cAIC (lme.moose.density.fire)$caic
-
-## Poplar spp. ##
-lme.moose.density.poplar <- glmer (adj_density_est_km2 ~ Populus_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [10, 1] <- "Area Populus Spp."
-table.model.compare [10, 2] <- r.squaredGLMM (lme.moose.density.poplar)
-table.model.compare [10, 3] <-  cAIC (lme.moose.density.poplar)$caic
-
-## Spruce spp. ##
-lme.moose.density.spruce <- glmer (adj_density_est_km2 ~ Spruce_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [11, 1] <- "Area Spruce Spp."
-table.model.compare [11, 2] <- r.squaredGLMM (lme.moose.density.spruce)
-table.model.compare [11, 3] <-  cAIC (lme.moose.density.spruce)$caic
-
-## Douglas Fir spp. ##
-lme.moose.density.fir <- glmer (adj_density_est_km2 ~ DougFir_area_ha +
-                                                       (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [11, 1] <- "Area Douglas Fir"
-table.model.compare [11, 2] <- r.squaredGLMM (lme.moose.density.fir)
-table.model.compare [11, 3] <-  cAIC (lme.moose.density.fir)$caic
-
-
-### COMBINED LOWEST AIC MODELS SEQUNTIALLY ####
-## Area Burned and Area Cut ##
-lme.moose.density.cut.burn <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + 
-                                                           Cut_6_10_area_ha + Cut_11_20_area_ha + 
-                                                           Cut_21_30_area_ha +
-                                                           Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                           Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                           Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                           (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [12, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old"
-table.model.compare [12, 2] <- r.squaredGLMM (lme.moose.density.cut.burn)
-table.model.compare [12, 3] <-  cAIC (lme.moose.density.cut.burn)$caic
-
-## Area Burned and Area Cut and Area Poplar ##
-lme.moose.density.cut.burn.poplar <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + 
-                                                           Cut_6_10_area_ha + Cut_11_20_area_ha + 
-                                                           Cut_21_30_area_ha +
-                                                           Fire_1_5_area_ha + Fire_6_10_area_ha +
-                                                           Fire_11_15_area_ha + Fire_16_20_area_ha +
-                                                           Fire_21_25_area_ha + Fire_26_30_area_ha +
-                                                           Populus_area_ha + 
-                                                           (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [13, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp."
-table.model.compare [13, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar)
-table.model.compare [13, 3] <-  cAIC (lme.moose.density.cut.burn.poplar)$caic
-
-## Area Burned and Area Cut and Area Poplar and AREA RIVER ##
-lme.moose.density.cut.burn.poplar.riv <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + 
-                                                               Cut_6_10_area_ha + 
-                                                               Cut_11_20_area_ha + 
-                                                               Cut_21_30_area_ha +
-                                                               Fire_1_5_area_ha + 
-                                                               Fire_6_10_area_ha +
-                                                               Fire_11_15_area_ha + 
-                                                               Fire_16_20_area_ha +
-                                                               Fire_21_25_area_ha + 
-                                                               Fire_26_30_area_ha +
-                                                               Populus_area_ha +
-                                                               river_area_ha +
-                                                               (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [14, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., River Area"
-table.model.compare [14, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar.riv)
-table.model.compare [14, 3] <-  cAIC (lme.moose.density.cut.burn.poplar.riv)$caic
-
-## Area Burned, Cut, Poplar, RIVER, wetland ##
-lme.moose.density.cut.burn.poplar.riv.wet <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + 
-                                                               Cut_6_10_area_ha + 
-                                                               Cut_11_20_area_ha + 
-                                                               Cut_21_30_area_ha +
-                                                               Fire_1_5_area_ha + 
-                                                               Fire_6_10_area_ha +
-                                                               Fire_11_15_area_ha + 
-                                                               Fire_16_20_area_ha +
-                                                               Fire_21_25_area_ha + 
-                                                               Fire_26_30_area_ha +
-                                                               Populus_area_ha +
-                                                               river_area_ha +
-                                                               wetland_area_ha +
-                                                               (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [15, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., River Area, Wetland Area"
-table.model.compare [15, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar.riv.wet)
-table.model.compare [15, 3] <-  cAIC (lme.moose.density.cut.burn.poplar.riv.wet)$caic
-
-## Area Burned, Cut, Poplar, RIVER, wetland, Fir ##
-lme.moose.density.cut.burn.poplar.riv.wet.fir <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + 
-                                                               Cut_6_10_area_ha + 
-                                                               Cut_11_20_area_ha + 
-                                                               Cut_21_30_area_ha +
-                                                               Fire_1_5_area_ha + 
-                                                               Fire_6_10_area_ha +
-                                                               Fire_11_15_area_ha + 
-                                                               Fire_16_20_area_ha +
-                                                               Fire_21_25_area_ha + 
-                                                               Fire_26_30_area_ha +
-                                                               Populus_area_ha +
-                                                               river_area_ha +
-                                                               wetland_area_ha +
-                                                               DougFir_area_ha +
-                                                              (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-
-table.model.compare [16, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., River Area, Wetland Area, Area Douglas Fir"
-table.model.compare [16, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar.riv.wet.fir)
-table.model.compare [16, 3] <-  cAIC (lme.moose.density.cut.burn.poplar.riv.wet.fir)$caic
-
-## Area Burned, Cut, Poplar, RIVER, wetland, Fir, Roads ##
-lme.moose.density.cut.burn.poplar.riv.wet.fir.rds <- glmer (adj_density_est_km2 ~ Cut_1_5_area_ha + 
-                                                               Cut_6_10_area_ha + 
-                                                               Cut_11_20_area_ha + 
-                                                               Cut_21_30_area_ha +
-                                                               Fire_1_5_area_ha + 
-                                                               Fire_6_10_area_ha +
-                                                               Fire_11_15_area_ha + 
-                                                               Fire_16_20_area_ha +
-                                                               Fire_21_25_area_ha + 
-                                                               Fire_26_30_area_ha +
-                                                               Populus_area_ha +
-                                                               river_area_ha +
-                                                               wetland_area_ha +
-                                                               DougFir_area_ha +
-                                                               road_loose_km + 
-                                                               road_paved_km +
-                                                               road_rough_km +
-                                                               (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-
-table.model.compare [17, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., River Area, Wetland Area, Area Douglas Fir, Loose Roads, Paved Roads, Rough Roads"
-table.model.compare [17, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds)
-table.model.compare [17, 3] <-  cAIC (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds)$caic
-
-## Area Burned, Cut, Poplar, RIVER, wetland, Fir, Roads, Lake ##
-lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk <- glmer (adj_density_est_km2 ~ 
-                                                                 Cut_1_5_area_ha + 
-                                                                 Cut_6_10_area_ha + 
-                                                                 Cut_11_20_area_ha + 
-                                                                 Cut_21_30_area_ha +
-                                                                 Fire_1_5_area_ha + 
-                                                                 Fire_6_10_area_ha +
-                                                                 Fire_11_15_area_ha + 
-                                                                 Fire_16_20_area_ha +
-                                                                 Fire_21_25_area_ha + 
-                                                                 Fire_26_30_area_ha +
-                                                                 Populus_area_ha +
-                                                                 river_area_ha +
-                                                                 wetland_area_ha +
-                                                                 DougFir_area_ha +
-                                                                 road_loose_km + 
-                                                                 road_paved_km +
-                                                                 road_rough_km +
-                                                                 lake_area_ha +
-                                                                  (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-
-table.model.compare [18, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., River Area, Wetland Area, Area Douglas Fir, Loose Roads, Paved Roads, Rough Roads, Lake Area"
-table.model.compare [18, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk)
-table.model.compare [18, 3] <-  cAIC (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk)$caic
-
-## Area Burned, Cut, Poplar, RIVER, wetland, Fir, Roads, Lake, PPt as Snow ##
-lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk.pas <- glmer (adj_density_est_km2 ~ 
-                                                                 Cut_1_5_area_ha + 
-                                                                 Cut_6_10_area_ha + 
-                                                                 Cut_11_20_area_ha + 
-                                                                 Cut_21_30_area_ha +
-                                                                 Fire_1_5_area_ha + 
-                                                                 Fire_6_10_area_ha +
-                                                                 Fire_11_15_area_ha + 
-                                                                 Fire_16_20_area_ha +
-                                                                 Fire_21_25_area_ha + 
-                                                                 Fire_26_30_area_ha +
-                                                                 Populus_area_ha +
-                                                                 river_area_ha +
-                                                                 wetland_area_ha +
-                                                                 DougFir_area_ha +
-                                                                 road_loose_km + 
-                                                                 road_paved_km +
-                                                                 road_rough_km +
-                                                                 lake_area_ha +
-                                                                 pas_ann_mean +
-                                                                 (1 | wmu), 
-                                    data = data.lme.final,
-                                    family = gaussian (link = 'identity'),
-                                    REML = FALSE,
-                                    verbose = T)
-table.model.compare [19, 1] <- "Area Cutblocks 1 to 5 years old, Area Cutblocks 6 to 10 years old, Area Cutblocks 11 to 20 years old, Area Cutblocks 21 to 30 years old, Area Burnt 1 to 5 years old, Area Burnt 6 to 10 years old, Area Burnt 11 to 15 years old, Area Burnt 16 to 20 years old, Area Burnt 21 to 25 years old, Area Burnt 26 to 30 years old, Area Populus Spp., River Area, Wetland Area, Area Douglas Fir, Loose Roads, Paved Roads, Rough Roads, Lake Area, Mean Ppt as Snow"
-table.model.compare [19, 2] <- r.squaredGLMM (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk.pas)
-table.model.compare [19, 3] <-  cAIC (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk.pas)$caic
-
-# Calc AIC weights #
-table.model.compare$AICc <- as.numeric (table.model.compare$AICc)
-list.aic.like <- c ((exp (-0.5 * (table.model.compare [1, 3] - min (table.model.compare [c (1:19), 3])))), 
-                    (exp (-0.5 * (table.model.compare [2, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [3, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [4, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [5, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [6, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [7, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [8, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [9, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [10, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [11, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [12, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [13, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [14, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [15, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [16, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [17, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [18, 3] - min (table.model.compare [c (1:19), 3])))),
-                    (exp (-0.5 * (table.model.compare [19, 3] - min (table.model.compare [c (1:19), 3])))))
-
-table.model.compare [1, 4] <- round ((exp (-0.5 * (table.model.compare [1, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [2, 4] <- round ((exp (-0.5 * (table.model.compare [2, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [3, 4] <- round ((exp (-0.5 * (table.model.compare [3, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [4, 4] <- round ((exp (-0.5 * (table.model.compare [4, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [5, 4] <- round ((exp (-0.5 * (table.model.compare [5, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [6, 4] <- round ((exp (-0.5 * (table.model.compare [6, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [7, 4] <- round ((exp (-0.5 * (table.model.compare [7, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [8, 4] <- round ((exp (-0.5 * (table.model.compare [8, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [9, 4] <- round ((exp (-0.5 * (table.model.compare [9, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [10, 4] <- round ((exp (-0.5 * (table.model.compare [10, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [11, 4] <- round ((exp (-0.5 * (table.model.compare [11, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [12, 4] <- round ((exp (-0.5 * (table.model.compare [12, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [13, 4] <- round ((exp (-0.5 * (table.model.compare [13, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [14, 4] <- round ((exp (-0.5 * (table.model.compare [14, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [15, 4] <- round ((exp (-0.5 * (table.model.compare [15, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [16, 4] <- round ((exp (-0.5 * (table.model.compare [16, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [17, 4] <- round ((exp (-0.5 * (table.model.compare [17, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [18, 4] <- round ((exp (-0.5 * (table.model.compare [18, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-table.model.compare [19, 4] <- round ((exp (-0.5 * (table.model.compare [19, 3] - min (table.model.compare [c (1:19), 3])))) / sum (list.aic.like), 3)
-
-kable (table.model.compare)
+kable (table.avg.coeff.est,
+       caption = "Table xx. Moose density model coefficient values for the Chilcotin region of British Columbia.") %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover", "condensed"),
+                 fixed_thead = T,
+                 full_width = F)
 ```
 
 
-averaged top-three model coefficients
+averaged top model coefficients
 
-
-```{r, model averaged coefficients}
-
-table.fixef.top <- data.frame (names (fixef(lme.moose.density.cut.burn.poplar.riv.wet.fir.rds)))
-table.fixef.top [, 2] <- data.frame ((0.486 * fixef (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds)))
-names (table.fixef.top)[1] <- "Coefficient Name"
-names (table.fixef.top)[2] <- "Coefficient Value Top"
-
-table.fixef.second <- data.frame (names (fixef(lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk)))
-table.fixef.second [, 2] <- data.frame ((0.239 * fixef (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds.lk)))
-names (table.fixef.second)[1] <- "Coefficient Name"
-names (table.fixef.second)[2] <- "Coefficient Value Second"
-
-table.avg.coeffs <- dplyr::full_join (table.fixef.top, table.fixef.second, by = "Coefficient Name")
-
-table.avg.coeffs [is.na (table.avg.coeffs)] <- 0
-
-table.avg.coeffs [, 4] <- table.avg.coeffs[, 2] + table.avg.coeffs[, 3] 
-names (table.avg.coeffs)[4] <- "Average Coefficient Value"
-round (table.avg.coeffs [, 4], 10)
-
-kable (table.avg.coeffs [, c(1,4)], digits = 10)
-
-```
 
 
 ### Double-check some of the diagnostics of the top model
 
 ```{r, diagnostics of top model}
-
-data.lme.final$lme.predicted <- predict (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds)   
-data.lme.final$lme.residuals <- residuals (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds) 
-
+# predicted and residual values
+data.lme.final$lme.predicted <- predict (model.avg (table.dredge, subset = delta < 2, evaluate = F))
+data.lme.final$lme.residuals <- data.lme.final$adj_density_est_km2 - data.lme.final$lme.predicted
+  
 ggplot (data.lme.final, aes (x = lme.predicted, y = adj_density_est_km2)) + # predicted vs. actual values
         geom_point() +
         scale_x_continuous (breaks = seq(0, 1.6, 0.2)) +
@@ -3913,172 +3346,33 @@ ggplot (data.lme.final, aes (x = lme.predicted, y = lme.residuals)) + # fitted v
         geom_point () +
         geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 1, vjust = 0, 
                    check_overlap = T,
-                   size = 3) # these look ok; few obs at high predicted densities, but residuals are
-                             # not overly large there; 5-12-B a bit of an outlier
+                   size = 3) # looks ok
 
 ggplot (data.lme.final, aes(lme.residuals)) + # normality of residuals
         geom_histogram (binwidth = 0.1) 
-plot (density (data.lme.final$lme.residuals)) # there is some skewness here, but not terrible
-shapiro.test(data.lme.final$lme.residuals) # p-value = 0.6149, so is normal statistically
+plot (density (data.lme.final$lme.residuals)) # there is some skewness here
+shapiro.test(data.lme.final$lme.residuals) # p-value = 0.44, so is not normal statistically
 
-qqnorm (residuals (lme.moose.density)) # some deviation, but this seems ok too
-qqline (residuals (lme.moose.density)) 
+qqnorm (data.lme.final$lme.residuals) # some deviation in upper quantile; 5-04 1994 could be hte problem
+qqline (data.lme.final$lme.residuals) 
 
-# compare fit to x variables
-ggplot (data.lme.final, aes(x = Cut_1_5_area_ha, y = adj_density_est_km2)) + # ppt. as snow
-  geom_segment (aes (xend = Cut_1_5_area_ha, yend = lme.predicted)) +
+# WMU's 5-12-B 2002, 5-04 1994 and 5-02-D 2014 appear to be the problems; these are under-predicted by the model
+# started by removing 5-12-B 2002; seems to be the worst offender
+
+
+
+ggplot (data.lme.final, aes(x = prop_spruce, y = lme.residuals)) +
   geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
+  geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
                    check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # WMU 5-02-D 1994 might be high leverage; effect might be more positive without it?
+                   size = 3)# looks fine
 
-ggplot (data.lme.final, aes(x = Cut_6_10_area_ha, y = adj_density_est_km2)) + # ppt. as snow
-  geom_segment (aes (xend = Cut_6_10_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # WMU 5-02-D 1994 might be high leverage; effect might be more positive without it?
 
-ggplot (data.lme.final, aes(x = Cut_11_20_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Cut_11_20_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Cut_21_30_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Cut_21_30_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_1_5_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Fire_1_5_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_6_10_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Fire_6_10_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_11_15_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Fire_11_15_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_16_20_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Fire_16_20_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_21_25_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Fire_21_25_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Fire_26_30_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Fire_26_30_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = Populus_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = Populus_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = river_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = river_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = wetland_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = wetland_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) # WMU 5-02-D 1994 might be high leverage; effect might be positive without it?
-
-ggplot (data.lme.final, aes(x = DougFir_area_ha, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = DougFir_area_ha, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = road_loose_km, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = road_loose_km, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = road_paved_km, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = road_paved_km, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
-
-ggplot (data.lme.final, aes(x = road_rough_km, y = adj_density_est_km2)) + 
-  geom_segment (aes (xend = road_rough_km, yend = lme.predicted)) +
-  geom_point () +
-  geom_point (aes (y = lme.predicted), shape = 1) +
-  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
-                   check_overlap = T,
-                   size = 3) +
-  geom_smooth (method = lm) 
 
 ```
+
+
 
 ## How Does Forestry Relate to Moose and Wolf Desnity?
 
@@ -4479,5 +3773,11 @@ ggplot (table.density.pred.cut.1.5, aes (x = Cut_1_5_area_ha, y = Predicted_Dens
 
 
 ```
+
+
+
+
+### Convert Areas to Densities
+
 
 

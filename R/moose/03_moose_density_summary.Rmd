@@ -124,11 +124,1311 @@ kable (tab_density_est,
 ```
 
 ### Estimated Moose Densities in Undisturbed Habitat in the Chilcotin Region
-Moose density estimates were calculated from survey data collected between 1994 and 2019, a period during which disturabnce (i.e., forest harvest, fire and insect infestation) signfcianly inlfuenced the landscape. In apritcualr, these disturabnces likely influenced the availability and amount of forage available to moose. I fit a model 
+Moose density estimates in teh CHilcotin region were calculated from survey data collected between 1994 and 2019, a period during which disturabnce (i.e., forest harvest, fire and insect infestation) signfcianly inlfuenced the landscape. In apritcualr, these disturabnces likely influenced the availability and amount of forage available to moose. 
+
+I fit a statistical model of moose density, estimated in the CHilcotin region, as a function of habitat features that may influence the density of moose in WMUs (see [here](https://github.com/bcgov/clus/blob/master/R/moose/02_moose_density_chilcotin.Rmd) for details). Habitat features were estimated in WMUs using spatial datasets, and tested in the model, including: amount of wetlands, lakes and riparian areas, climate averages (i.e., temperature and precipitation), elevation averages, area burned and forestry cutblocks, area of leading tree species, and amount of roads. 
+
+Results of the model (Table 2) indicated that the area of disturbance (i.e., foresty cutblocks and fire), permament wet areas (i.e., rivers, wetlands and lakes), *Populus* species, Douglas fir, and length of roads in WMUs influenced moose density estimates. Increased road length in WMUs, particularly paved (road_paved_km) and rough roads (road_rough_km), negatively influenced moose density. Increased area of permanent wet areas (river_area_ha, wetland_area_ha, lake_area_ha), *Populus* species (Populus_area_ha) and Douglas fir (DougFir_area_ha) positively influenced moose density. The infleunce of burned and cut areas varied by age. The area of younger cutblocks (1 to 10 years old) positively influenced moose density, whereas the area of older cutblocks (11 to 30 years old) negatively influenced moose density. The influence of fire over time was more varied, as the area of burns 1 to 5 years old, 11 to 15 years old, and 26 to 30 years old negatively influenced moose density, whereas the area of burns 6 to 10 years old and 16 to 25 years old positively influenced moose density. 
+
+```{r, moose desnity model results, val = T, echo = F, warning = F}
+options (scipen = 999)
+table.avg.coeff.est <- data.table ("Coefficient Name" = c ("Intercept", "Proportion Burnt 16 to 30 years old", "Density Paved Roads", "Density Unpaved Roads",  "Proportion Pine spp.", "Proportion Poplar spp.",  "Proportion Douglas Fir", "Proportion Spruce spp.", "Proportion Cutblocks 1 to 10 years old", "Proportion Cutblocks 11 to 30 years old"),
+                                   "Coefficient Estimate" = c (0.15, 18.58, -5.94, -3.59, 0.14,
+                                                               3.10, 0.02, -0.03, 0.76, -0.31),
+                                   "Adjusted Std. Error" = c (0.06, 3.66, 6.35, 1.91, 0.15, 
+                                                              0.83, 0.07, 0.10, 0.90, 0.46),
+                                   "z-value" = c (2.39, 5.07, 0.94, 1.88, 0.91, 3.75, 
+                                                  0.30, 0.27, 0.84, 0.67),
+                                   "Pr(>|z|)" = c (0.02, "<0.01", 0.06, 0.01, 0.04, "<0.01", 
+                                                   0.13, 0.20, 0.05, 0.06)
+                                  )
+
+kable (table.avg.coeff.est,
+       caption = "Table xx. Moose density model coefficient values for the Chilcotin region of British Columbia.") %>%
+  kable_styling (position = "center",
+                 bootstrap_options = c("striped", "hover", "condensed"),
+                 fixed_thead = T,
+                 full_width = F)
+```
+
+I used this model to estimate moose densites if WMUs in the Chilcotin region were undisturbed (i.e., no roads or cutblocks) or minimally disturbed (i.e., 15% of the WMU was cutblocks aged 1 to 30 years old). This information was used to estimate potential minimum moose adn wolf densites that coudl be achieved in minimally disturbed habtaits and provide some indication of what wolf densities coudl be achieved with ahbtatio recovery. Density estiamtes are based on habiat conditosn estimated in the latest moose survey (where habitat was dynamic).  
+
+Results are rough estiamets only, and should be used with a high degree of caution. The varaiability in factors that influence wildlfei popualtion dynmics is ginfcaint adn highyl complex. Estimaets here greatly oversimplify that complexity. However, these estimaets can be used ot provide some guidance aroudn management thresholds, which can be used in an adaptive managment appraoch where moose and wolf densites are diretcly monitroed during implemntation fo managment actions. 
+
+Results show that estimated wolf densites are relatively low in the majority of WMUs at current levels of habitat disturbance, compared to disturbed or minimally disturbed levels of habitat (Fig. 3). These results were counterintuitive to what was expected, as current undesrtadning is that forestry activity is supporting higher wolf densites but providing forage for moose. However, our moose density model shows a strign negative efefct of roads (form forestry adn oteh types of developements) on moose densities, and an overall negative efefct of older cutblocks 11 to 30 years old 
 
 
 
 
+
+```{r, estimated moose desnites form recovery of distrabed habtiat, val = T, echo = F, fig.align = "left", fig.cap = "Figure 3. Estimated Wolf Density in Wildlife Management Units (WMUs) as a Function of Habitat Disturbance at Current, Undisturbed (i.e, no roads or cutblocks) and Minimally Disturbed (15% of the WMU was cutblocks aged 1 to 30 years old) Conditions"}
+
+library (ggplot2)
+
+table.moose.density.pred <- data.frame (matrix (ncol = 21, nrow = 10))
+colnames (table.moose.density.pred) <- c ("Cut_1_5_area_ha", "Cut_6_10_area_ha",  "Cut_11_20_area_ha",  "Cut_21_30_area_ha", "Fire_1_5_area_ha", "Fire_6_10_area_ha", "Fire_11_15_area_ha", "Fire_16_20_area_ha", "Fire_21_25_area_ha", "Fire_26_30_area_ha", "Populus_area_ha", "river_area_ha", "wetland_area_ha", "DougFir_area_ha", "road_loose_km", "road_paved_km", "road_rough_km", "lake_area_ha", "scenario", "wmu", "wmu_area_ha")
+
+table.moose.density.pred [1, 1] <- 0 
+table.moose.density.pred [1, 2] <- 0         
+table.moose.density.pred [1, 3] <- 0        
+table.moose.density.pred [1, 4] <- 0        
+table.moose.density.pred [1, 5] <- 28        
+table.moose.density.pred [1, 6] <- 791         
+table.moose.density.pred [1, 7] <- 16         
+table.moose.density.pred [1, 8] <- 0         
+table.moose.density.pred [1, 9] <- 0         
+table.moose.density.pred [1, 10] <- 72         
+table.moose.density.pred [1, 11] <- 41909
+table.moose.density.pred [1, 12] <- 78
+table.moose.density.pred [1, 13] <- 7799
+table.moose.density.pred [1, 14] <- 82920
+table.moose.density.pred [1, 15] <- 0
+table.moose.density.pred [1, 16] <- 0
+table.moose.density.pred [1, 17] <- 0
+table.moose.density.pred [1, 18] <- 23675
+table.moose.density.pred [1, 19] <-"Undisturbed"
+table.moose.density.pred [1, 20] <- "5-01"
+table.moose.density.pred [1, 21] <- 232000
+
+table.moose.density.pred [2, 1] <- 0 
+table.moose.density.pred [2, 2] <- 0         
+table.moose.density.pred [2, 3] <- 0        
+table.moose.density.pred [2, 4] <- 0        
+table.moose.density.pred [2, 5] <- 8693        
+table.moose.density.pred [2, 6] <- 375         
+table.moose.density.pred [2, 7] <- 12         
+table.moose.density.pred [2, 8] <- 12         
+table.moose.density.pred [2, 9] <- 19         
+table.moose.density.pred [2, 10] <- 154         
+table.moose.density.pred [2, 11] <- 13848
+table.moose.density.pred [2, 12] <- 1294
+table.moose.density.pred [2, 13] <- 13200
+table.moose.density.pred [2, 14] <- 271868
+table.moose.density.pred [2, 15] <- 0
+table.moose.density.pred [2, 16] <- 0
+table.moose.density.pred [2, 17] <- 0
+table.moose.density.pred [2, 18] <- 14664
+table.moose.density.pred [2, 19] <-"Undisturbed"
+table.moose.density.pred [2, 20] <- "5-02-A"
+table.moose.density.pred [2, 21] <- 342400
+
+table.moose.density.pred [3, 1] <- 0 
+table.moose.density.pred [3, 2] <- 0         
+table.moose.density.pred [3, 3] <- 0        
+table.moose.density.pred [3, 4] <- 0        
+table.moose.density.pred [3, 5] <- 8        
+table.moose.density.pred [3, 6] <- 664         
+table.moose.density.pred [3, 7] <- 224         
+table.moose.density.pred [3, 8] <- 24         
+table.moose.density.pred [3, 9] <- 43         
+table.moose.density.pred [3, 10] <- 188         
+table.moose.density.pred [3, 11] <- 36027
+table.moose.density.pred [3, 12] <- 315
+table.moose.density.pred [3, 13] <- 8980
+table.moose.density.pred [3, 14] <- 84461
+table.moose.density.pred [3, 15] <- 0
+table.moose.density.pred [3, 16] <- 0
+table.moose.density.pred [3, 17] <- 0
+table.moose.density.pred [3, 18] <- 24022
+table.moose.density.pred [3, 19] <-"Undisturbed"
+table.moose.density.pred [3, 20] <- "5-02-B"
+table.moose.density.pred [3, 21] <- 334400
+
+table.moose.density.pred [4, 1] <- 0 
+table.moose.density.pred [4, 2] <- 0         
+table.moose.density.pred [4, 3] <- 0        
+table.moose.density.pred [4, 4] <- 0        
+table.moose.density.pred [4, 5] <- 21559        
+table.moose.density.pred [4, 6] <- 46         
+table.moose.density.pred [4, 7] <- 103         
+table.moose.density.pred [4, 8] <- 87         
+table.moose.density.pred [4, 9] <- 92         
+table.moose.density.pred [4, 10] <- 71         
+table.moose.density.pred [4, 11] <- 38292
+table.moose.density.pred [4, 12] <- 922
+table.moose.density.pred [4, 13] <- 13860
+table.moose.density.pred [4, 14] <- 137221
+table.moose.density.pred [4, 15] <- 0
+table.moose.density.pred [4, 16] <- 0
+table.moose.density.pred [4, 17] <- 0
+table.moose.density.pred [4, 18] <- 10870
+table.moose.density.pred [4, 19] <-"Undisturbed"
+table.moose.density.pred [4, 20] <- "5-02-C"
+table.moose.density.pred [4, 21] <- 315200
+
+table.moose.density.pred [5, 1] <- 0 
+table.moose.density.pred [5, 2] <- 0         
+table.moose.density.pred [5, 3] <- 0        
+table.moose.density.pred [5, 4] <- 0        
+table.moose.density.pred [5, 5] <- 178        
+table.moose.density.pred [5, 6] <- 5         
+table.moose.density.pred [5, 7] <- 0         
+table.moose.density.pred [5, 8] <- 0         
+table.moose.density.pred [5, 9] <- 0         
+table.moose.density.pred [5, 10] <- 37         
+table.moose.density.pred [5, 11] <- 47521
+table.moose.density.pred [5, 12] <- 5655
+table.moose.density.pred [5, 13] <- 6525
+table.moose.density.pred [5, 14] <- 80398
+table.moose.density.pred [5, 15] <- 0
+table.moose.density.pred [5, 16] <- 0
+table.moose.density.pred [5, 17] <- 0
+table.moose.density.pred [5, 18] <- 3836
+table.moose.density.pred [5, 19] <-"Undisturbed"
+table.moose.density.pred [5, 20] <- "5-02-D"
+table.moose.density.pred [5, 21] <- 329600
+
+table.moose.density.pred [6, 1] <- 0 
+table.moose.density.pred [6, 2] <- 0         
+table.moose.density.pred [6, 3] <- 0        
+table.moose.density.pred [6, 4] <- 0        
+table.moose.density.pred [6, 5] <- 37126        
+table.moose.density.pred [6, 6] <- 420         
+table.moose.density.pred [6, 7] <- 139         
+table.moose.density.pred [6, 8] <- 164         
+table.moose.density.pred [6, 9] <- 0         
+table.moose.density.pred [6, 10] <- 0         
+table.moose.density.pred [6, 11] <- 4887
+table.moose.density.pred [6, 12] <- 791
+table.moose.density.pred [6, 13] <- 7388
+table.moose.density.pred [6, 14] <- 105901
+table.moose.density.pred [6, 15] <- 0
+table.moose.density.pred [6, 16] <- 0
+table.moose.density.pred [6, 17] <- 0
+table.moose.density.pred [6, 18] <- 1476
+table.moose.density.pred [6, 19] <-"Undisturbed"
+table.moose.density.pred [6, 20] <- "5-03"
+table.moose.density.pred [6, 21] <- 257600
+
+table.moose.density.pred [7, 1] <- 0 
+table.moose.density.pred [7, 2] <- 0         
+table.moose.density.pred [7, 3] <- 0        
+table.moose.density.pred [7, 4] <- 0        
+table.moose.density.pred [7, 5] <- 82        
+table.moose.density.pred [7, 6] <- 55761         
+table.moose.density.pred [7, 7] <- 27498         
+table.moose.density.pred [7, 8] <- 508         
+table.moose.density.pred [7, 9] <- 192         
+table.moose.density.pred [7, 10] <- 864         
+table.moose.density.pred [7, 11] <- 21373
+table.moose.density.pred [7, 12] <- 2019
+table.moose.density.pred [7, 13] <- 23805
+table.moose.density.pred [7, 14] <- 93135
+table.moose.density.pred [7, 15] <- 0
+table.moose.density.pred [7, 16] <- 0
+table.moose.density.pred [7, 17] <- 0
+table.moose.density.pred [7, 18] <- 23179
+table.moose.density.pred [7, 19] <-"Undisturbed"
+table.moose.density.pred [7, 20] <- "5-04"
+table.moose.density.pred [7, 21] <- 515200
+
+table.moose.density.pred [8, 1] <- 0 
+table.moose.density.pred [8, 2] <- 0         
+table.moose.density.pred [8, 3] <- 0        
+table.moose.density.pred [8, 4] <- 0        
+table.moose.density.pred [8, 5] <- 862        
+table.moose.density.pred [8, 6] <- 404         
+table.moose.density.pred [8, 7] <- 31         
+table.moose.density.pred [8, 8] <- 48         
+table.moose.density.pred [8, 9] <- 0         
+table.moose.density.pred [8, 10] <- 106         
+table.moose.density.pred [8, 11] <- 4825
+table.moose.density.pred [8, 12] <- 1597
+table.moose.density.pred [8, 13] <- 10495
+table.moose.density.pred [8, 14] <- 16181
+table.moose.density.pred [8, 15] <- 0
+table.moose.density.pred [8, 16] <- 0
+table.moose.density.pred [8, 17] <- 0
+table.moose.density.pred [8, 18] <- 15724
+table.moose.density.pred [8, 19] <-"Undisturbed"
+table.moose.density.pred [8, 20] <- "5-06"
+table.moose.density.pred [8, 21] <- 96000
+
+table.moose.density.pred [9, 1] <- 0 
+table.moose.density.pred [9, 2] <- 0         
+table.moose.density.pred [9, 3] <- 0        
+table.moose.density.pred [9, 4] <- 0        
+table.moose.density.pred [9, 5] <- 506        
+table.moose.density.pred [9, 6] <- 2489         
+table.moose.density.pred [9, 7] <- 5370         
+table.moose.density.pred [9, 8] <- 10         
+table.moose.density.pred [9, 9] <- 0         
+table.moose.density.pred [9, 10] <- 421         
+table.moose.density.pred [9, 11] <- 14140
+table.moose.density.pred [9, 12] <- 578
+table.moose.density.pred [9, 13] <- 11351
+table.moose.density.pred [9, 14] <- 920
+table.moose.density.pred [9, 15] <- 0
+table.moose.density.pred [9, 16] <- 0
+table.moose.density.pred [9, 17] <- 0
+table.moose.density.pred [9, 18] <- 10856
+table.moose.density.pred [9, 19] <-"Undisturbed"
+table.moose.density.pred [9, 20] <- "5-10"
+table.moose.density.pred [9, 21] <- 127300
+
+table.moose.density.pred [10, 1] <- 0 
+table.moose.density.pred [10, 2] <- 0         
+table.moose.density.pred [10, 3] <- 0        
+table.moose.density.pred [10, 4] <- 0        
+table.moose.density.pred [10, 5] <- 7331        
+table.moose.density.pred [10, 6] <- 13734         
+table.moose.density.pred [10, 7] <- 122         
+table.moose.density.pred [10, 8] <- 0         
+table.moose.density.pred [10, 9] <- 311         
+table.moose.density.pred [10, 10] <- 208         
+table.moose.density.pred [10, 11] <- 3563
+table.moose.density.pred [10, 12] <- 594
+table.moose.density.pred [10, 13] <- 22319
+table.moose.density.pred [10, 14] <- 2718
+table.moose.density.pred [10, 15] <- 0
+table.moose.density.pred [10, 16] <- 0
+table.moose.density.pred [10, 17] <- 0
+table.moose.density.pred [10, 18] <- 7415
+table.moose.density.pred [10, 19] <-"Undisturbed"
+table.moose.density.pred [10, 20] <- "5-12-B"
+table.moose.density.pred [10, 21] <- 267200
+
+table.moose.density.pred [11, 1] <- 0 
+table.moose.density.pred [11, 2] <- 0         
+table.moose.density.pred [11, 3] <- 0        
+table.moose.density.pred [11, 4] <- 0        
+table.moose.density.pred [11, 5] <- 1508        
+table.moose.density.pred [11, 6] <- 24709         
+table.moose.density.pred [11, 7] <- 193         
+table.moose.density.pred [11, 8] <- 0         
+table.moose.density.pred [11, 9] <- 45         
+table.moose.density.pred [11, 10] <- 140         
+table.moose.density.pred [11, 11] <- 18453
+table.moose.density.pred [11, 12] <- 207
+table.moose.density.pred [11, 13] <- 27521
+table.moose.density.pred [11, 14] <- 27643
+table.moose.density.pred [11, 15] <- 0
+table.moose.density.pred [11, 16] <- 0
+table.moose.density.pred [11, 17] <- 0
+table.moose.density.pred [11, 18] <- 8122
+table.moose.density.pred [11, 19] <-"Undisturbed"
+table.moose.density.pred [11, 20] <- "5-13-A"
+table.moose.density.pred [11, 21] <- 500800
+
+table.moose.density.pred [12, 1] <- 0 
+table.moose.density.pred [12, 2] <- 0         
+table.moose.density.pred [12, 3] <- 0        
+table.moose.density.pred [12, 4] <- 0        
+table.moose.density.pred [12, 5] <- 14665        
+table.moose.density.pred [12, 6] <- 8782         
+table.moose.density.pred [12, 7] <- 8080         
+table.moose.density.pred [12, 8] <- 0         
+table.moose.density.pred [12, 9] <- 18         
+table.moose.density.pred [12, 10] <- 501         
+table.moose.density.pred [12, 11] <- 32060
+table.moose.density.pred [12, 12] <- 1592
+table.moose.density.pred [12, 13] <- 13835
+table.moose.density.pred [12, 14] <- 42625
+table.moose.density.pred [12, 15] <- 0
+table.moose.density.pred [12, 16] <- 0
+table.moose.density.pred [12, 17] <- 0
+table.moose.density.pred [12, 18] <- 3969
+table.moose.density.pred [12, 19] <-"Undisturbed"
+table.moose.density.pred [12, 20] <- "5-13-B"
+table.moose.density.pred [12, 21] <- 456000
+
+table.moose.density.pred [13, 1] <- 0 
+table.moose.density.pred [13, 2] <- 0         
+table.moose.density.pred [13, 3] <- 0        
+table.moose.density.pred [13, 4] <- 0        
+table.moose.density.pred [13, 5] <- 239046        
+table.moose.density.pred [13, 6] <- 41271         
+table.moose.density.pred [13, 7] <- 13867         
+table.moose.density.pred [13, 8] <- 152         
+table.moose.density.pred [13, 9] <- 2340         
+table.moose.density.pred [13, 10] <- 537         
+table.moose.density.pred [13, 11] <- 22991
+table.moose.density.pred [13, 12] <- 712
+table.moose.density.pred [13, 13] <- 28689
+table.moose.density.pred [13, 14] <- 8046
+table.moose.density.pred [13, 15] <- 0
+table.moose.density.pred [13, 16] <- 0
+table.moose.density.pred [13, 17] <- 0
+table.moose.density.pred [13, 18] <- 9660
+table.moose.density.pred [13, 19] <-"Undisturbed"
+table.moose.density.pred [13, 20] <- "5-13-C"
+table.moose.density.pred [13, 21] <- 468800
+
+table.moose.density.pred [14, 1] <- 0 
+table.moose.density.pred [14, 2] <- 0         
+table.moose.density.pred [14, 3] <- 0        
+table.moose.density.pred [14, 4] <- 0        
+table.moose.density.pred [14, 5] <- 133342        
+table.moose.density.pred [14, 6] <- 61750         
+table.moose.density.pred [14, 7] <- 87         
+table.moose.density.pred [14, 8] <- 106         
+table.moose.density.pred [14, 9] <- 238         
+table.moose.density.pred [14, 10] <- 60         
+table.moose.density.pred [14, 11] <- 35202
+table.moose.density.pred [14, 12] <- 2152
+table.moose.density.pred [14, 13] <- 16762
+table.moose.density.pred [14, 14] <- 196485
+table.moose.density.pred [14, 15] <- 0
+table.moose.density.pred [14, 16] <- 0
+table.moose.density.pred [14, 17] <- 0
+table.moose.density.pred [14, 18] <- 8856
+table.moose.density.pred [14, 19] <-"Undisturbed"
+table.moose.density.pred [14, 20] <- "5-14"
+table.moose.density.pred [14, 21] <- 404800
+
+table.moose.density.pred [15, 1] <- 0 
+table.moose.density.pred [15, 2] <- 0         
+table.moose.density.pred [15, 3] <- 0        
+table.moose.density.pred [15, 4] <- 0        
+table.moose.density.pred [15, 5] <- 2        
+table.moose.density.pred [15, 6] <- 0         
+table.moose.density.pred [15, 7] <- 24         
+table.moose.density.pred [15, 8] <- 80         
+table.moose.density.pred [15, 9] <- 245         
+table.moose.density.pred [15, 10] <- 563         
+table.moose.density.pred [15, 11] <- 2981
+table.moose.density.pred [15, 12] <- 305
+table.moose.density.pred [15, 13] <- 2561
+table.moose.density.pred [15, 14] <- 25105
+table.moose.density.pred [15, 15] <- 0
+table.moose.density.pred [15, 16] <- 0
+table.moose.density.pred [15, 17] <- 0
+table.moose.density.pred [15, 18] <- 6750
+table.moose.density.pred [15, 19] <-"Undisturbed"
+table.moose.density.pred [15, 20] <- "5-15-A"
+table.moose.density.pred [15, 21] <- 95800
+
+table.moose.density.pred [16, 1] <- 0 
+table.moose.density.pred [16, 2] <- 0         
+table.moose.density.pred [16, 3] <- 0        
+table.moose.density.pred [16, 4] <- 0        
+table.moose.density.pred [16, 5] <- 931        
+table.moose.density.pred [16, 6] <- 0         
+table.moose.density.pred [16, 7] <- 14         
+table.moose.density.pred [16, 8] <- 173         
+table.moose.density.pred [16, 9] <- 207         
+table.moose.density.pred [16, 10] <- 0         
+table.moose.density.pred [16, 11] <- 115
+table.moose.density.pred [16, 12] <- 584
+table.moose.density.pred [16, 13] <- 1461
+table.moose.density.pred [16, 14] <- 10746
+table.moose.density.pred [16, 15] <- 0
+table.moose.density.pred [16, 16] <- 0
+table.moose.density.pred [16, 17] <- 0
+table.moose.density.pred [16, 18] <- 13348
+table.moose.density.pred [16, 19] <-"Undisturbed"
+table.moose.density.pred [16, 20] <- "5-15-B"
+table.moose.density.pred [16, 21] <- 84500
+
+table.moose.density.pred [17, 1] <- 0 
+table.moose.density.pred [17, 2] <- 0         
+table.moose.density.pred [17, 3] <- 0        
+table.moose.density.pred [17, 4] <- 0        
+table.moose.density.pred [17, 5] <- 2        
+table.moose.density.pred [17, 6] <- 34         
+table.moose.density.pred [17, 7] <- 0         
+table.moose.density.pred [17, 8] <- 0         
+table.moose.density.pred [17, 9] <- 315         
+table.moose.density.pred [17, 10] <- 129         
+table.moose.density.pred [17, 11] <- 1167
+table.moose.density.pred [17, 12] <- 78
+table.moose.density.pred [17, 13] <- 831
+table.moose.density.pred [17, 14] <- 14274
+table.moose.density.pred [17, 15] <- 0
+table.moose.density.pred [17, 16] <- 0
+table.moose.density.pred [17, 17] <- 0
+table.moose.density.pred [17, 18] <- 10131
+table.moose.density.pred [17, 19] <-"Undisturbed"
+table.moose.density.pred [17, 20] <- "5-15-C"
+table.moose.density.pred [17, 21] <- 80100
+
+table.moose.density.pred [18, 1] <- 0 
+table.moose.density.pred [18, 2] <- 0         
+table.moose.density.pred [18, 3] <- 0        
+table.moose.density.pred [18, 4] <- 0        
+table.moose.density.pred [18, 5] <- 0        
+table.moose.density.pred [18, 6] <- 142         
+table.moose.density.pred [18, 7] <- 198         
+table.moose.density.pred [18, 8] <- 949         
+table.moose.density.pred [18, 9] <- 687         
+table.moose.density.pred [18, 10] <- 270         
+table.moose.density.pred [18, 11] <- 7077
+table.moose.density.pred [18, 12] <- 897
+table.moose.density.pred [18, 13] <- 4182
+table.moose.density.pred [18, 14] <- 3685
+table.moose.density.pred [18, 15] <- 0
+table.moose.density.pred [18, 16] <- 0
+table.moose.density.pred [18, 17] <- 0
+table.moose.density.pred [18, 18] <- 1530
+table.moose.density.pred [18, 19] <-"Undisturbed"
+table.moose.density.pred [18, 20] <- "5-15-D"
+table.moose.density.pred [18, 21] <- 311500
+
+# Current conditions
+table.moose.density.pred [19, 1] <- 13029 
+table.moose.density.pred [19, 2] <- 12180         
+table.moose.density.pred [19, 3] <- 10631        
+table.moose.density.pred [19, 4] <- 8816        
+table.moose.density.pred [19, 5] <- 28        
+table.moose.density.pred [19, 6] <- 791         
+table.moose.density.pred [19, 7] <- 16         
+table.moose.density.pred [19, 8] <- 0         
+table.moose.density.pred [19, 9] <- 0         
+table.moose.density.pred [19, 10] <- 72         
+table.moose.density.pred [19, 11] <- 41909
+table.moose.density.pred [19, 12] <- 78
+table.moose.density.pred [19, 13] <- 7799
+table.moose.density.pred [19, 14] <- 82920
+table.moose.density.pred [19, 15] <- 123
+table.moose.density.pred [19, 16] <- 66
+table.moose.density.pred [19, 17] <- 0
+table.moose.density.pred [19, 18] <- 23675
+table.moose.density.pred [19, 19] <-"Current"
+table.moose.density.pred [19, 20] <- "5-01"
+table.moose.density.pred [19, 21] <- 232000
+
+table.moose.density.pred [20, 1] <- 8893 
+table.moose.density.pred [20, 2] <- 12342         
+table.moose.density.pred [20, 3] <- 23143        
+table.moose.density.pred [20, 4] <- 24303        
+table.moose.density.pred [20, 5] <- 8693        
+table.moose.density.pred [20, 6] <- 375         
+table.moose.density.pred [20, 7] <- 12         
+table.moose.density.pred [20, 8] <- 12         
+table.moose.density.pred [20, 9] <- 19         
+table.moose.density.pred [20, 10] <- 154         
+table.moose.density.pred [20, 11] <- 13848
+table.moose.density.pred [20, 12] <- 1294
+table.moose.density.pred [20, 13] <- 13200
+table.moose.density.pred [20, 14] <- 271868
+table.moose.density.pred [20, 15] <- 82
+table.moose.density.pred [20, 16] <- 24
+table.moose.density.pred [20, 17] <- 2
+table.moose.density.pred [20, 18] <- 14664
+table.moose.density.pred [20, 19] <-"Current"
+table.moose.density.pred [20, 20] <- "5-02-A"
+table.moose.density.pred [20, 21] <- 342400
+
+table.moose.density.pred [21, 1] <- 8412 
+table.moose.density.pred [21, 2] <- 17797         
+table.moose.density.pred [21, 3] <- 32888        
+table.moose.density.pred [21, 4] <- 19300        
+table.moose.density.pred [21, 5] <- 8        
+table.moose.density.pred [21, 6] <- 664         
+table.moose.density.pred [21, 7] <- 224         
+table.moose.density.pred [21, 8] <- 24         
+table.moose.density.pred [21, 9] <- 43         
+table.moose.density.pred [21, 10] <- 188         
+table.moose.density.pred [21, 11] <- 36027
+table.moose.density.pred [21, 12] <- 315
+table.moose.density.pred [21, 13] <- 8980
+table.moose.density.pred [21, 14] <- 84461
+table.moose.density.pred [21, 15] <- 68
+table.moose.density.pred [21, 16] <- 6
+table.moose.density.pred [21, 17] <- 3
+table.moose.density.pred [21, 18] <- 24022
+table.moose.density.pred [21, 19] <-"Current"
+table.moose.density.pred [21, 20] <- "5-02-B"
+table.moose.density.pred [21, 21] <- 334400
+
+table.moose.density.pred [22, 1] <- 5088 
+table.moose.density.pred [22, 2] <- 6964         
+table.moose.density.pred [22, 3] <- 42780        
+table.moose.density.pred [22, 4] <- 13163        
+table.moose.density.pred [22, 5] <- 21559        
+table.moose.density.pred [22, 6] <- 46         
+table.moose.density.pred [22, 7] <- 103         
+table.moose.density.pred [22, 8] <- 87         
+table.moose.density.pred [22, 9] <- 92         
+table.moose.density.pred [22, 10] <- 71         
+table.moose.density.pred [22, 11] <- 38292
+table.moose.density.pred [22, 12] <- 922
+table.moose.density.pred [22, 13] <- 13860
+table.moose.density.pred [22, 14] <- 137221
+table.moose.density.pred [22, 15] <- 77
+table.moose.density.pred [22, 16] <- 37
+table.moose.density.pred [22, 17] <- 0
+table.moose.density.pred [22, 18] <- 10870
+table.moose.density.pred [22, 19] <-"Current"
+table.moose.density.pred [22, 20] <- "5-02-C"
+table.moose.density.pred [22, 21] <- 315200
+
+table.moose.density.pred [23, 1] <- 7876 
+table.moose.density.pred [23, 2] <- 29809         
+table.moose.density.pred [23, 3] <- 31926        
+table.moose.density.pred [23, 4] <- 13732        
+table.moose.density.pred [23, 5] <- 178        
+table.moose.density.pred [23, 6] <- 5         
+table.moose.density.pred [23, 7] <- 0         
+table.moose.density.pred [23, 8] <- 0         
+table.moose.density.pred [23, 9] <- 0         
+table.moose.density.pred [23, 10] <- 37         
+table.moose.density.pred [23, 11] <- 47521
+table.moose.density.pred [23, 12] <- 5655
+table.moose.density.pred [23, 13] <- 6525
+table.moose.density.pred [23, 14] <- 80398
+table.moose.density.pred [23, 15] <- 28
+table.moose.density.pred [23, 16] <- 27
+table.moose.density.pred [23, 17] <- 0
+table.moose.density.pred [23, 18] <- 3836
+table.moose.density.pred [23, 19] <-"Current"
+table.moose.density.pred [23, 20] <- "5-02-D"
+table.moose.density.pred [23, 21] <- 329600
+
+table.moose.density.pred [24, 1] <- 14032 
+table.moose.density.pred [24, 2] <- 18023         
+table.moose.density.pred [24, 3] <- 23639        
+table.moose.density.pred [24, 4] <- 14532        
+table.moose.density.pred [24, 5] <- 37126        
+table.moose.density.pred [24, 6] <- 420         
+table.moose.density.pred [24, 7] <- 139         
+table.moose.density.pred [24, 8] <- 164         
+table.moose.density.pred [24, 9] <- 0         
+table.moose.density.pred [24, 10] <- 0         
+table.moose.density.pred [24, 11] <- 4887
+table.moose.density.pred [24, 12] <- 791
+table.moose.density.pred [24, 13] <- 7388
+table.moose.density.pred [24, 14] <- 105901
+table.moose.density.pred [24, 15] <- 18
+table.moose.density.pred [24, 16] <- 0
+table.moose.density.pred [24, 17] <- 0
+table.moose.density.pred [24, 18] <- 1476
+table.moose.density.pred [24, 19] <-"Current"
+table.moose.density.pred [24, 20] <- "5-03"
+table.moose.density.pred [24, 21] <- 257600
+
+table.moose.density.pred [25, 1] <- 22045 
+table.moose.density.pred [25, 2] <- 18346         
+table.moose.density.pred [25, 3] <- 15830        
+table.moose.density.pred [25, 4] <- 38039        
+table.moose.density.pred [25, 5] <- 82        
+table.moose.density.pred [25, 6] <- 55761         
+table.moose.density.pred [25, 7] <- 27498         
+table.moose.density.pred [25, 8] <- 508         
+table.moose.density.pred [25, 9] <- 192         
+table.moose.density.pred [25, 10] <- 864         
+table.moose.density.pred [25, 11] <- 21373
+table.moose.density.pred [25, 12] <- 2019
+table.moose.density.pred [25, 13] <- 23805
+table.moose.density.pred [25, 14] <- 93135
+table.moose.density.pred [25, 15] <- 134
+table.moose.density.pred [25, 16] <- 0
+table.moose.density.pred [25, 17] <- 61
+table.moose.density.pred [25, 18] <- 23179
+table.moose.density.pred [25, 19] <-"Current"
+table.moose.density.pred [25, 20] <- "5-04"
+table.moose.density.pred [25, 21] <- 515200
+
+table.moose.density.pred [26, 1] <- 5869 
+table.moose.density.pred [26, 2] <- 4059         
+table.moose.density.pred [26, 3] <- 777        
+table.moose.density.pred [26, 4] <- 136        
+table.moose.density.pred [26, 5] <- 862        
+table.moose.density.pred [26, 6] <- 404         
+table.moose.density.pred [26, 7] <- 31         
+table.moose.density.pred [26, 8] <- 48         
+table.moose.density.pred [26, 9] <- 0         
+table.moose.density.pred [26, 10] <- 106         
+table.moose.density.pred [26, 11] <- 4825
+table.moose.density.pred [26, 12] <- 1597
+table.moose.density.pred [26, 13] <- 10495
+table.moose.density.pred [26, 14] <- 16181
+table.moose.density.pred [26, 15] <- 22
+table.moose.density.pred [26, 16] <- 12
+table.moose.density.pred [26, 17] <- 3
+table.moose.density.pred [26, 18] <- 15724
+table.moose.density.pred [26, 19] <-"Current"
+table.moose.density.pred [26, 20] <- "5-06"
+table.moose.density.pred [26, 21] <- 96000
+
+table.moose.density.pred [27, 1] <- 0 
+table.moose.density.pred [27, 2] <- 0         
+table.moose.density.pred [27, 3] <- 0        
+table.moose.density.pred [27, 4] <- 0        
+table.moose.density.pred [27, 5] <- 506        
+table.moose.density.pred [27, 6] <- 2489         
+table.moose.density.pred [27, 7] <- 5370         
+table.moose.density.pred [27, 8] <- 10         
+table.moose.density.pred [27, 9] <- 0         
+table.moose.density.pred [27, 10] <- 421         
+table.moose.density.pred [27, 11] <- 14140
+table.moose.density.pred [27, 12] <- 578
+table.moose.density.pred [27, 13] <- 11351
+table.moose.density.pred [27, 14] <- 920
+table.moose.density.pred [27, 15] <- 0
+table.moose.density.pred [27, 16] <- 0
+table.moose.density.pred [27, 17] <- 0
+table.moose.density.pred [27, 18] <- 10856
+table.moose.density.pred [27, 19] <-"Current"
+table.moose.density.pred [27, 20] <- "5-10"
+table.moose.density.pred [27, 21] <- 127300
+
+table.moose.density.pred [28, 1] <- 1177 
+table.moose.density.pred [28, 2] <- 6624         
+table.moose.density.pred [28, 3] <- 14901        
+table.moose.density.pred [28, 4] <- 4609        
+table.moose.density.pred [28, 5] <- 7331        
+table.moose.density.pred [28, 6] <- 13734         
+table.moose.density.pred [28, 7] <- 122         
+table.moose.density.pred [28, 8] <- 0         
+table.moose.density.pred [28, 9] <- 311         
+table.moose.density.pred [28, 10] <- 208         
+table.moose.density.pred [28, 11] <- 3563
+table.moose.density.pred [28, 12] <- 594
+table.moose.density.pred [28, 13] <- 22319
+table.moose.density.pred [28, 14] <- 2718
+table.moose.density.pred [28, 15] <- 15
+table.moose.density.pred [28, 16] <- 10
+table.moose.density.pred [28, 17] <- 5
+table.moose.density.pred [28, 18] <- 7415
+table.moose.density.pred [28, 19] <-"Current"
+table.moose.density.pred [28, 20] <- "5-12-B"
+table.moose.density.pred [28, 21] <- 267200
+
+table.moose.density.pred [29, 1] <- 28562 
+table.moose.density.pred [29, 2] <- 14806         
+table.moose.density.pred [29, 3] <- 24076        
+table.moose.density.pred [29, 4] <- 50930        
+table.moose.density.pred [29, 5] <- 1508        
+table.moose.density.pred [29, 6] <- 24709         
+table.moose.density.pred [29, 7] <- 193         
+table.moose.density.pred [29, 8] <- 0         
+table.moose.density.pred [29, 9] <- 45         
+table.moose.density.pred [29, 10] <- 140         
+table.moose.density.pred [29, 11] <- 18453
+table.moose.density.pred [29, 12] <- 207
+table.moose.density.pred [29, 13] <- 27521
+table.moose.density.pred [29, 14] <- 27643
+table.moose.density.pred [29, 15] <- 82
+table.moose.density.pred [29, 16] <- 8
+table.moose.density.pred [29, 17] <- 26
+table.moose.density.pred [29, 18] <- 8122
+table.moose.density.pred [29, 19] <-"Current"
+table.moose.density.pred [29, 20] <- "5-13-A"
+table.moose.density.pred [29, 21] <- 500800
+
+table.moose.density.pred [30, 1] <- 23001 
+table.moose.density.pred [30, 2] <- 45440         
+table.moose.density.pred [30, 3] <- 66667        
+table.moose.density.pred [30, 4] <- 33029        
+table.moose.density.pred [30, 5] <- 14665        
+table.moose.density.pred [30, 6] <- 8782         
+table.moose.density.pred [30, 7] <- 8080         
+table.moose.density.pred [30, 8] <- 0         
+table.moose.density.pred [30, 9] <- 18         
+table.moose.density.pred [30, 10] <- 501         
+table.moose.density.pred [30, 11] <- 32060
+table.moose.density.pred [30, 12] <- 1592
+table.moose.density.pred [30, 13] <- 13835
+table.moose.density.pred [30, 14] <- 42625
+table.moose.density.pred [30, 15] <- 57
+table.moose.density.pred [30, 16] <- 29
+table.moose.density.pred [30, 17] <- 0
+table.moose.density.pred [30, 18] <- 3969
+table.moose.density.pred [30, 19] <-"Current"
+table.moose.density.pred [30, 20] <- "5-13-B"
+table.moose.density.pred [30, 21] <- 456000
+
+table.moose.density.pred [31, 1] <- 25770 
+table.moose.density.pred [31, 2] <- 30890         
+table.moose.density.pred [31, 3] <- 38870        
+table.moose.density.pred [31, 4] <- 21097        
+table.moose.density.pred [31, 5] <- 239046        
+table.moose.density.pred [31, 6] <- 41271         
+table.moose.density.pred [31, 7] <- 13867         
+table.moose.density.pred [31, 8] <- 152         
+table.moose.density.pred [31, 9] <- 2340         
+table.moose.density.pred [31, 10] <- 537         
+table.moose.density.pred [31, 11] <- 22991
+table.moose.density.pred [31, 12] <- 712
+table.moose.density.pred [31, 13] <- 28689
+table.moose.density.pred [31, 14] <- 8046
+table.moose.density.pred [31, 15] <- 248
+table.moose.density.pred [31, 16] <- 11
+table.moose.density.pred [31, 17] <- 0
+table.moose.density.pred [31, 18] <- 9660
+table.moose.density.pred [31, 19] <-"Current"
+table.moose.density.pred [31, 20] <- "5-13-C"
+table.moose.density.pred [31, 21] <- 468800
+
+table.moose.density.pred [32, 1] <- 6896 
+table.moose.density.pred [32, 2] <- 10939         
+table.moose.density.pred [32, 3] <- 40059        
+table.moose.density.pred [32, 4] <- 27517        
+table.moose.density.pred [32, 5] <- 133342        
+table.moose.density.pred [32, 6] <- 61750         
+table.moose.density.pred [32, 7] <- 87         
+table.moose.density.pred [32, 8] <- 106         
+table.moose.density.pred [32, 9] <- 238         
+table.moose.density.pred [32, 10] <- 60         
+table.moose.density.pred [32, 11] <- 35202
+table.moose.density.pred [32, 12] <- 2152
+table.moose.density.pred [32, 13] <- 16762
+table.moose.density.pred [32, 14] <- 196485
+table.moose.density.pred [32, 15] <- 178
+table.moose.density.pred [32, 16] <- 54
+table.moose.density.pred [32, 17] <- 13
+table.moose.density.pred [32, 18] <- 8856
+table.moose.density.pred [32, 19] <-"Current"
+table.moose.density.pred [32, 20] <- "5-14"
+table.moose.density.pred [32, 21] <- 404800
+
+table.moose.density.pred [33, 1] <- 4171 
+table.moose.density.pred [33, 2] <- 2297         
+table.moose.density.pred [33, 3] <- 9739        
+table.moose.density.pred [33, 4] <- 6906        
+table.moose.density.pred [33, 5] <- 2        
+table.moose.density.pred [33, 6] <- 0         
+table.moose.density.pred [33, 7] <- 24         
+table.moose.density.pred [33, 8] <- 80         
+table.moose.density.pred [33, 9] <- 245         
+table.moose.density.pred [33, 10] <- 563         
+table.moose.density.pred [33, 11] <- 2981
+table.moose.density.pred [33, 12] <- 305
+table.moose.density.pred [33, 13] <- 2561
+table.moose.density.pred [33, 14] <- 25105
+table.moose.density.pred [33, 15] <- 12
+table.moose.density.pred [33, 16] <- 0
+table.moose.density.pred [33, 17] <- 0
+table.moose.density.pred [33, 18] <- 6750
+table.moose.density.pred [33, 19] <-"Current"
+table.moose.density.pred [33, 20] <- "5-15-A"
+table.moose.density.pred [33, 21] <- 95800
+
+table.moose.density.pred [34, 1] <- 688 
+table.moose.density.pred [34, 2] <- 936         
+table.moose.density.pred [34, 3] <- 2739        
+table.moose.density.pred [34, 4] <- 3915        
+table.moose.density.pred [34, 5] <- 931        
+table.moose.density.pred [34, 6] <- 0         
+table.moose.density.pred [34, 7] <- 14         
+table.moose.density.pred [34, 8] <- 173         
+table.moose.density.pred [34, 9] <- 207         
+table.moose.density.pred [34, 10] <- 0         
+table.moose.density.pred [34, 11] <- 115
+table.moose.density.pred [34, 12] <- 584
+table.moose.density.pred [34, 13] <- 1461
+table.moose.density.pred [34, 14] <- 10746
+table.moose.density.pred [34, 15] <- 0
+table.moose.density.pred [34, 16] <- 0
+table.moose.density.pred [34, 17] <- 0
+table.moose.density.pred [34, 18] <- 13348
+table.moose.density.pred [34, 19] <-"Current"
+table.moose.density.pred [34, 20] <- "5-15-B"
+table.moose.density.pred [34, 21] <- 84500
+
+table.moose.density.pred [35, 1] <- 2331 
+table.moose.density.pred [35, 2] <- 1540         
+table.moose.density.pred [35, 3] <- 6267        
+table.moose.density.pred [35, 4] <- 7959        
+table.moose.density.pred [35, 5] <- 2        
+table.moose.density.pred [35, 6] <- 34         
+table.moose.density.pred [35, 7] <- 0         
+table.moose.density.pred [35, 8] <- 0         
+table.moose.density.pred [35, 9] <- 315         
+table.moose.density.pred [35, 10] <- 129         
+table.moose.density.pred [35, 11] <- 1167
+table.moose.density.pred [35, 12] <- 78
+table.moose.density.pred [35, 13] <- 831
+table.moose.density.pred [35, 14] <- 14274
+table.moose.density.pred [35, 15] <- 11
+table.moose.density.pred [35, 16] <- 0
+table.moose.density.pred [35, 17] <- 0
+table.moose.density.pred [35, 18] <- 10131
+table.moose.density.pred [35, 19] <-"Current"
+table.moose.density.pred [35, 20] <- "5-15-C"
+table.moose.density.pred [35, 21] <- 80100
+
+table.moose.density.pred [36, 1] <- 5776 
+table.moose.density.pred [36, 2] <- 7930         
+table.moose.density.pred [36, 3] <- 21985        
+table.moose.density.pred [36, 4] <- 16567        
+table.moose.density.pred [36, 5] <- 0        
+table.moose.density.pred [36, 6] <- 142         
+table.moose.density.pred [36, 7] <- 198         
+table.moose.density.pred [36, 8] <- 949         
+table.moose.density.pred [36, 9] <- 687         
+table.moose.density.pred [36, 10] <- 270         
+table.moose.density.pred [36, 11] <- 7077
+table.moose.density.pred [36, 12] <- 897
+table.moose.density.pred [36, 13] <- 4182
+table.moose.density.pred [36, 14] <- 3685
+table.moose.density.pred [36, 15] <- 18
+table.moose.density.pred [36, 16] <- 4
+table.moose.density.pred [36, 17] <- 0
+table.moose.density.pred [36, 18] <- 1530
+table.moose.density.pred [36, 19] <-"Current"
+table.moose.density.pred [36, 20] <- "5-15-D"
+table.moose.density.pred [36, 21] <- 311500
+
+# Forestry 15% area < 30 years old conditions
+table.moose.density.pred [37, 1] <- 8700 # 3.75% of total area (232000*0.0375)
+table.moose.density.pred [37, 2] <- 8700         
+table.moose.density.pred [37, 3] <- 8700        
+table.moose.density.pred [37, 4] <- 8700        
+table.moose.density.pred [37, 5] <- 28        
+table.moose.density.pred [37, 6] <- 791         
+table.moose.density.pred [37, 7] <- 16         
+table.moose.density.pred [37, 8] <- 0         
+table.moose.density.pred [37, 9] <- 0         
+table.moose.density.pred [37, 10] <- 72         
+table.moose.density.pred [37, 11] <- 41909
+table.moose.density.pred [37, 12] <- 78
+table.moose.density.pred [37, 13] <- 7799
+table.moose.density.pred [37, 14] <- 82920
+table.moose.density.pred [37, 15] <- 123
+table.moose.density.pred [37, 16] <- 66
+table.moose.density.pred [37, 17] <- 0
+table.moose.density.pred [37, 18] <- 23675
+table.moose.density.pred [37, 19] <-"Forestry 15%"
+table.moose.density.pred [37, 20] <- "5-01"
+table.moose.density.pred [37, 21] <- 232000
+
+table.moose.density.pred [38, 1] <- 12840 # 3.75% of total area (342400*0.0375)
+table.moose.density.pred [38, 2] <- 12840         
+table.moose.density.pred [38, 3] <- 12840        
+table.moose.density.pred [38, 4] <- 12840        
+table.moose.density.pred [38, 5] <- 8693        
+table.moose.density.pred [38, 6] <- 375         
+table.moose.density.pred [38, 7] <- 12         
+table.moose.density.pred [38, 8] <- 12         
+table.moose.density.pred [38, 9] <- 19         
+table.moose.density.pred [38, 10] <- 154         
+table.moose.density.pred [38, 11] <- 13848
+table.moose.density.pred [38, 12] <- 1294
+table.moose.density.pred [38, 13] <- 13200
+table.moose.density.pred [38, 14] <- 271868
+table.moose.density.pred [38, 15] <- 82
+table.moose.density.pred [38, 16] <- 24
+table.moose.density.pred [38, 17] <- 2
+table.moose.density.pred [38, 18] <- 14664
+table.moose.density.pred [38, 19] <-"Forestry 15%"
+table.moose.density.pred [38, 20] <- "5-02-A"
+table.moose.density.pred [38, 21] <- 342400
+
+table.moose.density.pred [39, 1] <- 12540 # 3.75% of total area (334400*0.0375)
+table.moose.density.pred [39, 2] <- 12540         
+table.moose.density.pred [39, 3] <- 12540        
+table.moose.density.pred [39, 4] <- 12540        
+table.moose.density.pred [39, 5] <- 8        
+table.moose.density.pred [39, 6] <- 664         
+table.moose.density.pred [39, 7] <- 224         
+table.moose.density.pred [39, 8] <- 24         
+table.moose.density.pred [39, 9] <- 43         
+table.moose.density.pred [39, 10] <- 188         
+table.moose.density.pred [39, 11] <- 36027
+table.moose.density.pred [39, 12] <- 315
+table.moose.density.pred [39, 13] <- 8980
+table.moose.density.pred [39, 14] <- 84461
+table.moose.density.pred [39, 15] <- 68
+table.moose.density.pred [39, 16] <- 6
+table.moose.density.pred [39, 17] <- 3
+table.moose.density.pred [39, 18] <- 24022
+table.moose.density.pred [39, 19] <-"Forestry 15%"
+table.moose.density.pred [39, 20] <- "5-02-B"
+table.moose.density.pred [39, 21] <- 334400
+
+table.moose.density.pred [40, 1] <- 11820 # 3.75% of total area (315200*0.0375)
+table.moose.density.pred [40, 2] <- 11820         
+table.moose.density.pred [40, 3] <- 11820        
+table.moose.density.pred [40, 4] <- 11820        
+table.moose.density.pred [40, 5] <- 21559        
+table.moose.density.pred [40, 6] <- 46         
+table.moose.density.pred [40, 7] <- 103         
+table.moose.density.pred [40, 8] <- 87         
+table.moose.density.pred [40, 9] <- 92         
+table.moose.density.pred [40, 10] <- 71         
+table.moose.density.pred [40, 11] <- 38292
+table.moose.density.pred [40, 12] <- 922
+table.moose.density.pred [40, 13] <- 13860
+table.moose.density.pred [40, 14] <- 137221
+table.moose.density.pred [40, 15] <- 77
+table.moose.density.pred [40, 16] <- 37
+table.moose.density.pred [40, 17] <- 0
+table.moose.density.pred [40, 18] <- 10870
+table.moose.density.pred [40, 19] <-"Forestry 15%"
+table.moose.density.pred [40, 20] <- "5-02-C"
+table.moose.density.pred [40, 21] <- 315200
+
+table.moose.density.pred [41, 1] <- 12360 # 3.75% of total area (329600*0.0375)
+table.moose.density.pred [41, 2] <- 12360         
+table.moose.density.pred [41, 3] <- 12360        
+table.moose.density.pred [41, 4] <- 12360        
+table.moose.density.pred [41, 5] <- 178        
+table.moose.density.pred [41, 6] <- 5         
+table.moose.density.pred [41, 7] <- 0         
+table.moose.density.pred [41, 8] <- 0         
+table.moose.density.pred [41, 9] <- 0         
+table.moose.density.pred [41, 10] <- 37         
+table.moose.density.pred [41, 11] <- 47521
+table.moose.density.pred [41, 12] <- 5655
+table.moose.density.pred [41, 13] <- 6525
+table.moose.density.pred [41, 14] <- 80398
+table.moose.density.pred [41, 15] <- 28
+table.moose.density.pred [41, 16] <- 27
+table.moose.density.pred [41, 17] <- 0
+table.moose.density.pred [41, 18] <- 3836
+table.moose.density.pred [41, 19] <-"Forestry 15%"
+table.moose.density.pred [41, 20] <- "5-02-D"
+table.moose.density.pred [41, 21] <- 329600
+
+table.moose.density.pred [42, 1] <- 9660 # 3.75% of total area (257600*0.0375)
+table.moose.density.pred [42, 2] <- 9660         
+table.moose.density.pred [42, 3] <- 9660        
+table.moose.density.pred [42, 4] <- 9660        
+table.moose.density.pred [42, 5] <- 37126        
+table.moose.density.pred [42, 6] <- 420         
+table.moose.density.pred [42, 7] <- 139         
+table.moose.density.pred [42, 8] <- 164         
+table.moose.density.pred [42, 9] <- 0         
+table.moose.density.pred [42, 10] <- 0         
+table.moose.density.pred [42, 11] <- 4887
+table.moose.density.pred [42, 12] <- 791
+table.moose.density.pred [42, 13] <- 7388
+table.moose.density.pred [42, 14] <- 105901
+table.moose.density.pred [42, 15] <- 18
+table.moose.density.pred [42, 16] <- 0
+table.moose.density.pred [42, 17] <- 0
+table.moose.density.pred [42, 18] <- 1476
+table.moose.density.pred [42, 19] <-"Forestry 15%"
+table.moose.density.pred [42, 20] <- "5-03"
+table.moose.density.pred [42, 21] <- 257600
+
+table.moose.density.pred [43, 1] <- 19320 # 3.75% of total area (515200*0.0375)
+table.moose.density.pred [43, 2] <- 19320         
+table.moose.density.pred [43, 3] <- 19320        
+table.moose.density.pred [43, 4] <- 19320        
+table.moose.density.pred [43, 5] <- 82        
+table.moose.density.pred [43, 6] <- 55761         
+table.moose.density.pred [43, 7] <- 27498         
+table.moose.density.pred [43, 8] <- 508         
+table.moose.density.pred [43, 9] <- 192         
+table.moose.density.pred [43, 10] <- 864         
+table.moose.density.pred [43, 11] <- 21373
+table.moose.density.pred [43, 12] <- 2019
+table.moose.density.pred [43, 13] <- 23805
+table.moose.density.pred [43, 14] <- 93135
+table.moose.density.pred [43, 15] <- 134
+table.moose.density.pred [43, 16] <- 0
+table.moose.density.pred [43, 17] <- 61
+table.moose.density.pred [43, 18] <- 23179
+table.moose.density.pred [43, 19] <-"Forestry 15%"
+table.moose.density.pred [43, 20] <- "5-04"
+table.moose.density.pred [43, 21] <- 515200
+
+table.moose.density.pred [44, 1] <- 3600 # 3.75% of total area (96000*0.0375)
+table.moose.density.pred [44, 2] <- 3600         
+table.moose.density.pred [44, 3] <- 3600        
+table.moose.density.pred [44, 4] <- 3600        
+table.moose.density.pred [44, 5] <- 862        
+table.moose.density.pred [44, 6] <- 404         
+table.moose.density.pred [44, 7] <- 31         
+table.moose.density.pred [44, 8] <- 48         
+table.moose.density.pred [44, 9] <- 0         
+table.moose.density.pred [44, 10] <- 106         
+table.moose.density.pred [44, 11] <- 4825
+table.moose.density.pred [44, 12] <- 1597
+table.moose.density.pred [44, 13] <- 10495
+table.moose.density.pred [44, 14] <- 16181
+table.moose.density.pred [44, 15] <- 22
+table.moose.density.pred [44, 16] <- 12
+table.moose.density.pred [44, 17] <- 3
+table.moose.density.pred [44, 18] <- 15724
+table.moose.density.pred [44, 19] <-"Forestry 15%"
+table.moose.density.pred [44, 20] <- "5-06"
+table.moose.density.pred [44, 21] <- 96000
+
+table.moose.density.pred [45, 1] <- 4773 # 3.75% of total area (127300*0.0375)
+table.moose.density.pred [45, 2] <- 4773         
+table.moose.density.pred [45, 3] <- 4773        
+table.moose.density.pred [45, 4] <- 4773        
+table.moose.density.pred [45, 5] <- 506        
+table.moose.density.pred [45, 6] <- 2489         
+table.moose.density.pred [45, 7] <- 5370         
+table.moose.density.pred [45, 8] <- 10         
+table.moose.density.pred [45, 9] <- 0         
+table.moose.density.pred [45, 10] <- 421         
+table.moose.density.pred [45, 11] <- 14140
+table.moose.density.pred [45, 12] <- 578
+table.moose.density.pred [45, 13] <- 11351
+table.moose.density.pred [45, 14] <- 920
+table.moose.density.pred [45, 15] <- 0
+table.moose.density.pred [45, 16] <- 0
+table.moose.density.pred [45, 17] <- 0
+table.moose.density.pred [45, 18] <- 10856
+table.moose.density.pred [45, 19] <-"Forestry 15%"
+table.moose.density.pred [45, 20] <- "5-10"
+table.moose.density.pred [45, 21] <- 127300
+
+table.moose.density.pred [46, 1] <- 10020 # 3.75% of total area (267200*0.0375)
+table.moose.density.pred [46, 2] <- 10020         
+table.moose.density.pred [46, 3] <- 10020        
+table.moose.density.pred [46, 4] <- 10020        
+table.moose.density.pred [46, 5] <- 7331        
+table.moose.density.pred [46, 6] <- 13734         
+table.moose.density.pred [46, 7] <- 122         
+table.moose.density.pred [46, 8] <- 0         
+table.moose.density.pred [46, 9] <- 311         
+table.moose.density.pred [46, 10] <- 208         
+table.moose.density.pred [46, 11] <- 3563
+table.moose.density.pred [46, 12] <- 594
+table.moose.density.pred [46, 13] <- 22319
+table.moose.density.pred [46, 14] <- 2718
+table.moose.density.pred [46, 15] <- 15
+table.moose.density.pred [46, 16] <- 10
+table.moose.density.pred [46, 17] <- 5
+table.moose.density.pred [46, 18] <- 7415
+table.moose.density.pred [46, 19] <-"Forestry 15%"
+table.moose.density.pred [46, 20] <- "5-12-B"
+table.moose.density.pred [46, 21] <- 267200
+
+table.moose.density.pred [47, 1] <- 18780 # 3.75% of total area (500800*0.0375)
+table.moose.density.pred [47, 2] <- 18780         
+table.moose.density.pred [47, 3] <- 18780        
+table.moose.density.pred [47, 4] <- 18780        
+table.moose.density.pred [47, 5] <- 1508        
+table.moose.density.pred [47, 6] <- 24709         
+table.moose.density.pred [47, 7] <- 193         
+table.moose.density.pred [47, 8] <- 0         
+table.moose.density.pred [47, 9] <- 45         
+table.moose.density.pred [47, 10] <- 140         
+table.moose.density.pred [47, 11] <- 18453
+table.moose.density.pred [47, 12] <- 207
+table.moose.density.pred [47, 13] <- 27521
+table.moose.density.pred [47, 14] <- 27643
+table.moose.density.pred [47, 15] <- 82
+table.moose.density.pred [47, 16] <- 8
+table.moose.density.pred [47, 17] <- 26
+table.moose.density.pred [47, 18] <- 8122
+table.moose.density.pred [47, 19] <-"Forestry 15%"
+table.moose.density.pred [47, 20] <- "5-13-A"
+table.moose.density.pred [47, 21] <- 500800
+
+table.moose.density.pred [48, 1] <- 17100 # 3.75% of total area (456000*0.0375)
+table.moose.density.pred [48, 2] <- 17100         
+table.moose.density.pred [48, 3] <- 17100        
+table.moose.density.pred [48, 4] <- 17100        
+table.moose.density.pred [48, 5] <- 14665        
+table.moose.density.pred [48, 6] <- 8782         
+table.moose.density.pred [48, 7] <- 8080         
+table.moose.density.pred [48, 8] <- 0         
+table.moose.density.pred [48, 9] <- 18         
+table.moose.density.pred [48, 10] <- 501         
+table.moose.density.pred [48, 11] <- 32060
+table.moose.density.pred [48, 12] <- 1592
+table.moose.density.pred [48, 13] <- 13835
+table.moose.density.pred [48, 14] <- 42625
+table.moose.density.pred [48, 15] <- 57
+table.moose.density.pred [48, 16] <- 29
+table.moose.density.pred [48, 17] <- 0
+table.moose.density.pred [48, 18] <- 3969
+table.moose.density.pred [48, 19] <-"Forestry 15%"
+table.moose.density.pred [48, 20] <- "5-13-B"
+table.moose.density.pred [48, 21] <- 456000
+
+table.moose.density.pred [49, 1] <- 17580 # 3.75% of total area (468800*0.0375)
+table.moose.density.pred [49, 2] <- 17580         
+table.moose.density.pred [49, 3] <- 17580        
+table.moose.density.pred [49, 4] <- 17580        
+table.moose.density.pred [49, 5] <- 239046        
+table.moose.density.pred [49, 6] <- 41271         
+table.moose.density.pred [49, 7] <- 13867         
+table.moose.density.pred [49, 8] <- 152         
+table.moose.density.pred [49, 9] <- 2340         
+table.moose.density.pred [49, 10] <- 537         
+table.moose.density.pred [49, 11] <- 22991
+table.moose.density.pred [49, 12] <- 712
+table.moose.density.pred [49, 13] <- 28689
+table.moose.density.pred [49, 14] <- 8046
+table.moose.density.pred [49, 15] <- 248
+table.moose.density.pred [49, 16] <- 11
+table.moose.density.pred [49, 17] <- 0
+table.moose.density.pred [49, 18] <- 9660
+table.moose.density.pred [49, 19] <-"Forestry 15%"
+table.moose.density.pred [49, 20] <- "5-13-C"
+table.moose.density.pred [49, 21] <- 468800
+
+table.moose.density.pred [50, 1] <- 15180 # 3.75% of total area (404800*0.0375)
+table.moose.density.pred [50, 2] <- 15180         
+table.moose.density.pred [50, 3] <- 15180        
+table.moose.density.pred [50, 4] <- 15180        
+table.moose.density.pred [50, 5] <- 133342        
+table.moose.density.pred [50, 6] <- 61750         
+table.moose.density.pred [50, 7] <- 87         
+table.moose.density.pred [50, 8] <- 106         
+table.moose.density.pred [50, 9] <- 238         
+table.moose.density.pred [50, 10] <- 60         
+table.moose.density.pred [50, 11] <- 35202
+table.moose.density.pred [50, 12] <- 2152
+table.moose.density.pred [50, 13] <- 16762
+table.moose.density.pred [50, 14] <- 196485
+table.moose.density.pred [50, 15] <- 178
+table.moose.density.pred [50, 16] <- 54
+table.moose.density.pred [50, 17] <- 13
+table.moose.density.pred [50, 18] <- 8856
+table.moose.density.pred [50, 19] <-"Forestry 15%"
+table.moose.density.pred [50, 20] <- "5-14"
+table.moose.density.pred [50, 21] <- 404800
+
+table.moose.density.pred [51, 1] <- 3592 # 3.75% of total area (95800*0.0375)
+table.moose.density.pred [51, 2] <- 3592         
+table.moose.density.pred [51, 3] <- 3592        
+table.moose.density.pred [51, 4] <- 3592        
+table.moose.density.pred [51, 5] <- 2        
+table.moose.density.pred [51, 6] <- 0         
+table.moose.density.pred [51, 7] <- 24         
+table.moose.density.pred [51, 8] <- 80         
+table.moose.density.pred [51, 9] <- 245         
+table.moose.density.pred [51, 10] <- 563         
+table.moose.density.pred [51, 11] <- 2981
+table.moose.density.pred [51, 12] <- 305
+table.moose.density.pred [51, 13] <- 2561
+table.moose.density.pred [51, 14] <- 25105
+table.moose.density.pred [51, 15] <- 12
+table.moose.density.pred [51, 16] <- 0
+table.moose.density.pred [51, 17] <- 0
+table.moose.density.pred [51, 18] <- 6750
+table.moose.density.pred [51, 19] <-"Forestry 15%"
+table.moose.density.pred [51, 20] <- "5-15-A"
+table.moose.density.pred [51, 21] <- 95800
+
+table.moose.density.pred [52, 1] <- 3168 # 3.75% of total area (84500*0.0375)
+table.moose.density.pred [52, 2] <- 3168         
+table.moose.density.pred [52, 3] <- 3168        
+table.moose.density.pred [52, 4] <- 3168        
+table.moose.density.pred [52, 5] <- 931        
+table.moose.density.pred [52, 6] <- 0         
+table.moose.density.pred [52, 7] <- 14         
+table.moose.density.pred [52, 8] <- 173         
+table.moose.density.pred [52, 9] <- 207         
+table.moose.density.pred [52, 10] <- 0         
+table.moose.density.pred [52, 11] <- 115
+table.moose.density.pred [52, 12] <- 584
+table.moose.density.pred [52, 13] <- 1461
+table.moose.density.pred [52, 14] <- 10746
+table.moose.density.pred [52, 15] <- 0
+table.moose.density.pred [52, 16] <- 0
+table.moose.density.pred [52, 17] <- 0
+table.moose.density.pred [52, 18] <- 13348
+table.moose.density.pred [52, 19] <-"Forestry 15%"
+table.moose.density.pred [52, 20] <- "5-15-B"
+table.moose.density.pred [52, 21] <- 84500
+
+table.moose.density.pred [53, 1] <- 3003 # 3.75% of total area (80100*0.0375)
+table.moose.density.pred [53, 2] <- 3003         
+table.moose.density.pred [53, 3] <- 3003        
+table.moose.density.pred [53, 4] <- 3003        
+table.moose.density.pred [53, 5] <- 2        
+table.moose.density.pred [53, 6] <- 34         
+table.moose.density.pred [53, 7] <- 0         
+table.moose.density.pred [53, 8] <- 0         
+table.moose.density.pred [53, 9] <- 315         
+table.moose.density.pred [53, 10] <- 129         
+table.moose.density.pred [53, 11] <- 1167
+table.moose.density.pred [53, 12] <- 78
+table.moose.density.pred [53, 13] <- 831
+table.moose.density.pred [53, 14] <- 14274
+table.moose.density.pred [53, 15] <- 11
+table.moose.density.pred [53, 16] <- 0
+table.moose.density.pred [53, 17] <- 0
+table.moose.density.pred [53, 18] <- 10131
+table.moose.density.pred [53, 19] <-"Forestry 15%"
+table.moose.density.pred [53, 20] <- "5-15-C"
+table.moose.density.pred [53, 21] <- 80100
+
+table.moose.density.pred [54, 1] <- 11681 # 3.75% of total area (311500*0.0375)
+table.moose.density.pred [54, 2] <- 11681         
+table.moose.density.pred [54, 3] <- 11681        
+table.moose.density.pred [54, 4] <- 11681        
+table.moose.density.pred [54, 5] <- 0        
+table.moose.density.pred [54, 6] <- 142         
+table.moose.density.pred [54, 7] <- 198         
+table.moose.density.pred [54, 8] <- 949         
+table.moose.density.pred [54, 9] <- 687         
+table.moose.density.pred [54, 10] <- 270         
+table.moose.density.pred [54, 11] <- 7077
+table.moose.density.pred [54, 12] <- 897
+table.moose.density.pred [54, 13] <- 4182
+table.moose.density.pred [54, 14] <- 5485
+table.moose.density.pred [54, 15] <- 18
+table.moose.density.pred [54, 16] <- 4
+table.moose.density.pred [54, 17] <- 0
+table.moose.density.pred [54, 18] <- 1530
+table.moose.density.pred [54, 19] <-"Forestry 15%"
+table.moose.density.pred [54, 20] <- "5-15-D"
+table.moose.density.pred [54, 21] <- 311500
+
+table.moose.density.pred$moose.density.estimate <- 0.084 + 
+                        (table.moose.density.pred$Cut_1_5_area_ha * 0.00000093) + 
+                        (table.moose.density.pred$Cut_6_10_area_ha * 0.0000018) + 
+                        (table.moose.density.pred$Cut_11_20_area_ha * -0.0000018) + 
+                        (table.moose.density.pred$Cut_21_30_area_ha * -0.0000028) + 
+                        (table.moose.density.pred$Fire_1_5_area_ha * -0.00000055) + 
+                        (table.moose.density.pred$Fire_6_10_area_ha * 0.00000064) + 
+                        (table.moose.density.pred$Fire_11_15_area_ha * -0.0000022) + 
+                        (table.moose.density.pred$Fire_16_20_area_ha * 0.000032) + 
+                        (table.moose.density.pred$Fire_21_25_area_ha * 0.000022) + 
+                        (table.moose.density.pred$Fire_26_30_area_ha * -0.000012) + 
+                        (table.moose.density.pred$Populus_area_ha * 0.0000081) + 
+                        (table.moose.density.pred$river_area_ha * 0.000031) + 
+                        (table.moose.density.pred$wetland_area_ha * 0.0000048) + 
+                        (table.moose.density.pred$DougFir_area_ha * 0.00000014) + 
+                        (table.moose.density.pred$road_loose_km * -0.00024) + 
+                        (table.moose.density.pred$road_paved_km * -0.0028) + 
+                        (table.moose.density.pred$road_rough_km * -0.0030) + 
+                        (table.moose.density.pred$lake_area_ha * 0.00000060)
+
+table.moose.density.pred <- data.table (table.moose.density.pred)
+
+table.moose.density.pred [, WolfDensityFuller := round (3.5 + ((moose.density.estimate * 6) * 3.3))] # FUller wolf density
+table.moose.density.pred [, WolfDensityKuzyk := round (((moose.density.estimate * 6) * 5.4) - ((moose.density.estimate * 6)^2 * 0.166))] # Kuzyk density
+table.moose.density.pred [, WolfDensityMessier := round ((58.7 * (moose.density.estimate - 0.03))/(0.76 + moose.density.estimate))] # MEssier density
+table.moose.density.pred [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
+
+table.moose.density.pred$wmu <- as.factor(table.moose.density.pred$wmu)
+
+# ggplot (table.moose.density.pred,
+#         aes (x = scenario, y = moose.density.estimate,
+#              label = wmu)) +
+#   geom_point (aes (x = scenario, # classify points by wmu
+#                    y = moose.density.estimate,
+#                    group = wmu,
+#                    colour = wmu)) +
+#   geom_line (aes (x = scenario, # classify lines by wmu
+#                   y = moose.density.estimate,
+#                   group = wmu,
+#                   colour = wmu)) +
+#   geom_text (aes(label = wmu), # label the points
+#              hjust = 0, vjust = 1,
+#              check_overlap = TRUE, # make sure the labels don't overlap
+#              size = 3) +
+#   theme_classic () + 
+#   theme (legend.position = "none") + # turn off the legend
+#   labs (x = expression ("Scenario"), 
+#         y = expression ("Predicted Moose Density - moose per"~km^2)) +
+#   scale_y_continuous (breaks = seq (0, 1, 0.1))
+
+ggplot (table.moose.density.pred,
+        aes (x = scenario, y = WolfDensityAverage,
+             label = wmu)) +
+  geom_point (aes (x = scenario, # classify points by wmu
+                   y = WolfDensityAverage,
+                   group = wmu,
+                   colour = wmu)) +
+  geom_line (aes (x = scenario, # classify lines by wmu
+                  y = WolfDensityAverage,
+                  group = wmu,
+                  colour = wmu)) +
+  geom_text (aes(label = wmu), # label the points
+             hjust = 0, vjust = 1,
+             check_overlap = TRUE, # make sure the labels don't overlap
+             size = 3) +
+  theme_classic () + 
+  theme (legend.position = "none") + # turn off the legend
+  labs (x = expression ("Scenario"), 
+        y = expression ("Predicted Wolf Density - wolves per 1,000"~km^2)) +
+  scale_y_continuous (breaks = seq (0, 22, 1))
+```
 
 
 

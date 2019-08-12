@@ -509,11 +509,112 @@ Estimated moose desnities form aerial surveys done in wildlife managmen units (W
 </table>
 
 ### Estimated Moose Densities in Undisturbed Habitat in the Chilcotin Region
-Moose density estimates were calculated from survey data collected between 1994 and 2019, a period during which disturabnce (i.e., forest harvest, fire and insect infestation) signfcianly inlfuenced the landscape. In apritcualr, these disturabnces likely influenced the availability and amount of forage available to moose. I fit a model 
+Moose density estimates in teh CHilcotin region were calculated from survey data collected between 1994 and 2019, a period during which disturabnce (i.e., forest harvest, fire and insect infestation) signfcianly inlfuenced the landscape. In apritcualr, these disturabnces likely influenced the availability and amount of forage available to moose. 
+
+I fit a statistical model of moose density, estimated in the CHilcotin region, as a function of habitat features that may influence the density of moose in WMUs (see [here](https://github.com/bcgov/clus/blob/master/R/moose/02_moose_density_chilcotin.Rmd) for details). Habitat features were estimated in WMUs using spatial datasets, and tested in the model, including: amount of wetlands, lakes and riparian areas, climate averages (i.e., temperature and precipitation), elevation averages, area burned and forestry cutblocks, area of leading tree species, and amount of roads. 
+
+Results of the model (Table 2) indicated that the area of disturbance (i.e., foresty cutblocks and fire), permament wet areas (i.e., rivers, wetlands and lakes), *Populus* species, Douglas fir, and length of roads in WMUs influenced moose density estimates. Increased road length in WMUs, particularly paved (road_paved_km) and rough roads (road_rough_km), negatively influenced moose density. Increased area of permanent wet areas (river_area_ha, wetland_area_ha, lake_area_ha), *Populus* species (Populus_area_ha) and Douglas fir (DougFir_area_ha) positively influenced moose density. The infleunce of burned and cut areas varied by age. The area of younger cutblocks (1 to 10 years old) positively influenced moose density, whereas the area of older cutblocks (11 to 30 years old) negatively influenced moose density. The influence of fire over time was more varied, as the area of burns 1 to 5 years old, 11 to 15 years old, and 26 to 30 years old negatively influenced moose density, whereas the area of burns 6 to 10 years old and 16 to 25 years old positively influenced moose density. 
+
+<table class="table table-striped table-hover table-condensed" style="width: auto !important; ">
+<caption>Table 2. Moose density model coefficeint values for the Chilcotin region of British Columbia.</caption>
+ <thead>
+  <tr>
+   <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;"> Coefficient_Name </th>
+   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> Coefficient_Value </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> Intercept </td>
+   <td style="text-align:right;"> 0.0840000 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Cut_1_5_area_ha </td>
+   <td style="text-align:right;"> 0.0000009 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Cut_6_10_area_ha </td>
+   <td style="text-align:right;"> 0.0000018 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Cut_11_20_area_ha </td>
+   <td style="text-align:right;"> -0.0000018 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Cut_21_30_area_ha </td>
+   <td style="text-align:right;"> -0.0000028 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Fire_1_5_area_ha </td>
+   <td style="text-align:right;"> -0.0000006 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Fire_6_10_area_ha </td>
+   <td style="text-align:right;"> 0.0000006 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Fire_11_15_area_ha </td>
+   <td style="text-align:right;"> -0.0000022 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Fire_16_20_area_ha </td>
+   <td style="text-align:right;"> 0.0000320 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Fire_21_25_area_ha </td>
+   <td style="text-align:right;"> 0.0000220 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Fire_26_30_area_ha </td>
+   <td style="text-align:right;"> -0.0000120 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Populus_area_ha </td>
+   <td style="text-align:right;"> 0.0000081 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> river_area_ha </td>
+   <td style="text-align:right;"> 0.0000310 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> wetland_area_ha </td>
+   <td style="text-align:right;"> 0.0000048 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> DougFir_area_ha </td>
+   <td style="text-align:right;"> 0.0000001 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> road_loose_km </td>
+   <td style="text-align:right;"> -0.0002400 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> road_paved_km </td>
+   <td style="text-align:right;"> -0.0028000 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> road_rough_km </td>
+   <td style="text-align:right;"> -0.0030000 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> lake_area_ha </td>
+   <td style="text-align:right;"> 0.0000006 </td>
+  </tr>
+</tbody>
+</table>
+
+I used this model to estimate moose densites if WMUs in the Chilcotin region were undisturbed (i.e., no roads or cutblocks) or minimally disturbed (i.e., 15% of teh WMU was cutblocks aged 1 to 30 years old). This information was used to estimate potential minimum moose adn wolf densites that coudl be achieved in minimally disturbed habtaits and provide some indication of what wolf densities coudl be achieved with ahbtatio recovery. Density estiamtes are based on habiat conditosn estimated in the latest moose survey (where habitat was dynamic).  
+
+Results are rough estiamets only, and should be used with a high degree of caution. The varaiability in factors that influence wildlfei popualtion dynmics is ginfcaint adn highyl complex. Estimaets here greatly oversimplify that complexity. However, these estimaets can be used ot provide some guidance aroudn management trhsholds, which can be used in an adaptive managment appraoch where moose and wolf densites are diretcly monitroed during implemntation fo managment actions. 
+
+Results show that 
 
 
 
-
+<div class="figure" style="text-align: left">
+<img src="03_moose_density_summary_files/figure-html/estimated moose desnites form recovery of distrabed habtiat-1.png" alt="Figure 3. Estimated Wolf Density as a Function of Moose Density Using the Messier (1994) Model"  />
+<p class="caption">Figure 3. Estimated Wolf Density as a Function of Moose Density Using the Messier (1994) Model</p>
+</div>
 
 
 
