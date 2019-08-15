@@ -106,6 +106,7 @@ rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
                        where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                        out_reclass = rclass_text,
                        conn=NULL)))))
+            layer[is.na(V1), V1:=0] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
         }else{  # if the covariate is not a reclass type, clip the raster to the study area and convert the covariate values to a data.table
           layer<-data.table(c(t(raster::as.matrix(
               RASTER_CLIP2(srcRaster= layer_name, 
@@ -115,7 +116,7 @@ rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
                        conn=NULL)))))
         }
       sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the clusdb
-    }
+      }
 
     rsfCLUS.UpdateRSFCovar(sim) # update the 'dynmaic' Covariates to the rsfcovar table
      

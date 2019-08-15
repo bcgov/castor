@@ -12,8 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction
 Here I analyze the statistical relationship between landscape and forest attributes and moose density in wildlife management units (WMUs) in the Chilcotin region of British Columbia.  The purpose of this analysis is to identify forest and forestry-related features that may influence the density of moose in WMUs. If a useful statistical model (i.e., an ecologically sensible model with a good fit) can be identified, the intent is to use the model as module in a simulation model (i.e., the cariobu land use simualor - CLUS) to model how alternative caribou recovery management regimes influence moose density. Moose density is critical to caribou management, as moose are an apparent competitor of caribou, i.e., they share wolves as a predator and higher moose densities support higher wolf densities, increasing predation on caribou. 
 
-Need some background lit on moose ecology, e.g., use wet areas, snow and temp limits, shrubs, fire, cutblocks
-
 ## Methods
 The analysis includes data from WMU's 5-01, 5-02A, 5-02B, 5-02C. 5-02D, 5-03, 5-04, 5-06, 5-10, 5-12B, 5-13A, 5-13B, 5-13C, 5-14, 5-15A, 5-15B, 5-15C and 5-15D (Table 1). Here sightability-adjusted densities of moose were esitmated between 1994 and 2019 using aerial survey detection methods (cite ref). Each WMU had a unique survey history, for example, 5-04 was surveyed the most frequently, including in 1994, 1995, 1998, 2005, 2012 and 2017, whereas other units were surveyed once. Density estimates ranged from 0.10 moose/km^2^ (WMU 5-02A in 1996) to 1.42 moose/km^2^ (WMU 5-02B in 1994). 
 
@@ -36,11 +34,7 @@ kable (wmu.history,
 ### Statistical Model
 I fit a generalized linear mixed effects (GLME) regression model (Zuur et al. 2009) to statistically identify relationships between landscape features within WMUs (see eblow) and density estimates. WMUs were modeled as a random effect (intercept) to account for multi-year estimaets within WMUs. 
 
-- slope?
-
 First, I tested whether habitat covariates were correlated using a Spearman correlation, where a correlation coefficient greater than 0.7 was used as criteria to consider the covariates as confounded, and one of the covariates was removed from analysis. In addition, I fit a generlaized linear model (GLM) to the data and estiametd variance infaltion factors (VIFs) for each covariate, where a VIF greater than 10 was considered confounded with other data and removed from the analysis. 
-
-
 
 ### Spatial Landscape Data and Sources
 I fit models that included spatial data on moose habitat features measured within each WMU. WMU boundaries were obtained from the DataBC catalogue: [WMU boundaries](https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-boundaries-1-20-000). 
@@ -2855,9 +2849,6 @@ data.lme <- data.moose.density [, .(adj_density_est_km2, wmu, survey_year, wmu_a
   
   
   
-  
-  
-  
 ### Areas to Densities  
   
 ```{r areas to densities, eval = T, warning = F}
@@ -3405,7 +3396,7 @@ ggplot (data.lme.final, aes (x = lme.predicted, y = lme.residuals)) + # fitted v
 ggplot (data.lme.final, aes(lme.residuals)) + # normality of residuals
         geom_histogram (binwidth = 0.1) 
 plot (density (data.lme.final$lme.residuals)) # there is some skewness here
-shapiro.test(data.lme.final$lme.residuals) # p-value = 0.44, so is not normal statistically
+shapiro.test(data.lme.final$lme.residuals) # p-value = 0.44, so is normal statistically
 
 qqnorm (data.lme.final$lme.residuals) # some deviation in upper quantile; 5-04 1994 could be the problem
 qqline (data.lme.final$lme.residuals) 
@@ -3478,7 +3469,3 @@ ggplot (data.lme.final, aes(x = prop_dougfir, y = lme.residuals)) +
 
 
 ```
-
-
-
-
