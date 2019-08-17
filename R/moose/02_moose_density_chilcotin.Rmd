@@ -12,8 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction
 Here I analyze the statistical relationship between landscape and forest attributes and moose density in wildlife management units (WMUs) in the Chilcotin region of British Columbia.  The purpose of this analysis is to identify forest and forestry-related features that may influence the density of moose in WMUs. If a useful statistical model (i.e., an ecologically sensible model with a good fit) can be identified, the intent is to use the model as module in a simulation model (i.e., the cariobu land use simualor - CLUS) to model how alternative caribou recovery management regimes influence moose density. Moose density is critical to caribou management, as moose are an apparent competitor of caribou, i.e., they share wolves as a predator and higher moose densities support higher wolf densities, increasing predation on caribou. 
 
-Need some background lit on moose ecology, e.g., use wet areas, snow and temp limits, shrubs, fire, cutblocks
-
 ## Methods
 The analysis includes data from WMU's 5-01, 5-02A, 5-02B, 5-02C. 5-02D, 5-03, 5-04, 5-06, 5-10, 5-12B, 5-13A, 5-13B, 5-13C, 5-14, 5-15A, 5-15B, 5-15C and 5-15D (Table 1). Here sightability-adjusted densities of moose were esitmated between 1994 and 2019 using aerial survey detection methods (cite ref). Each WMU had a unique survey history, for example, 5-04 was surveyed the most frequently, including in 1994, 1995, 1998, 2005, 2012 and 2017, whereas other units were surveyed once. Density estimates ranged from 0.10 moose/km^2^ (WMU 5-02A in 1996) to 1.42 moose/km^2^ (WMU 5-02B in 1994). 
 
@@ -36,11 +34,7 @@ kable (wmu.history,
 ### Statistical Model
 I fit a generalized linear mixed effects (GLME) regression model (Zuur et al. 2009) to statistically identify relationships between landscape features within WMUs (see eblow) and density estimates. WMUs were modeled as a random effect (intercept) to account for multi-year estimaets within WMUs. 
 
-- slope?
-
 First, I tested whether habitat covariates were correlated using a Spearman correlation, where a correlation coefficient greater than 0.7 was used as criteria to consider the covariates as confounded, and one of the covariates was removed from analysis. In addition, I fit a generlaized linear model (GLM) to the data and estiametd variance infaltion factors (VIFs) for each covariate, where a VIF greater than 10 was considered confounded with other data and removed from the analysis. 
-
-
 
 ### Spatial Landscape Data and Sources
 I fit models that included spatial data on moose habitat features measured within each WMU. WMU boundaries were obtained from the DataBC catalogue: [WMU boundaries](https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-boundaries-1-20-000). 
@@ -2855,12 +2849,9 @@ data.lme <- data.moose.density [, .(adj_density_est_km2, wmu, survey_year, wmu_a
   
   
   
-  
-  
-  
 ### Areas to Densities  
   
-```{r areas to densities}
+```{r areas to densities, eval = T, warning = F}
 
 data.lme [, prop_wetland := wetland_area_ha / wmu_area_ha]
 data.lme [, prop_lake := lake_area_ha / wmu_area_ha]
@@ -2896,7 +2887,7 @@ data.lme [, dens_road_overgrown := road_overgrown_km / (wmu_area_ha / 100)]
   
 ### Outliers....
 
-```{r, outliers}
+```{r, outliers, eval = T, warning = F}
 
 # Cleveland dotcharts
 dotchart (data.lme$adj_density_est_km2) # two potential outliers - surveys of 5-02-B and 5-02-D in 1994
@@ -2989,7 +2980,7 @@ data.lme <- data.lme [wmu != "5-12-A"]
               
 ### CHeck VIFs for correlation 
           
-```{r, simple GLM model, with VIF}
+```{r, simple GLM model with VIF, eval = T, warning = F}
 glm.moose.density <- glm (adj_density_est_km2 ~ mat_mean + pas_ann_mean + prop_wet + prop_shrub +
                                                 site_index_mean + site_index_sd + age_mean +
                                                 age_sd + prop_cut_1_10 + prop_cut_11_30 +
@@ -3030,7 +3021,8 @@ glm.moose.density <- glm (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_s
                                                 # age_mean + age_sd + 
                                                 prop_cut_1_10 + prop_cut_11_30 +
                                                 prop_fire_1_15 + prop_fire_16_30 + prop_populus +
-                                                prop_pine + prop_spruce + prop_dougfir +
+                                                prop_pine + prop_spruce + 
+                                                prop_dougfir +
                                                 dens_road_paved + dens_road_unpaved, 
                             data = data.lme,
                             family = gaussian (link = 'identity'))
@@ -3042,7 +3034,7 @@ summary (glm.moose.density)
 
 ### Check Model Fit: Heterogeneity, Normailty and Independence of Residuals 
 
-```{r, random effects model; check for heterogeneity, normality and independence fo residuals }
+```{r, random effects model; check for heterogeneity, normality and independence fo residuals, eval = T,  warning = F }
 require (lme4)
 require (ggplot2)
 require (lattice)
@@ -3055,8 +3047,7 @@ lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop
                                                   dens_road_paved + dens_road_unpaved +
                                                   (1 | wmu), 
                             data = data.lme,
-                            family = gaussian (link = 'identity'),
-                            verbose = T)
+                            family = gaussian (link = 'identity'))
 summary (lme.moose.density)
 
 data.lme$lme.predicted <- predict (lme.moose.density)   # Save the predicted values
@@ -3075,6 +3066,9 @@ ggplot (data.lme, aes (x = lme.predicted, y = adj_density_est_km2)) + # predicte
 # 5-02B in 1994 is an outlier; removed this data point from analysis
 data.lme.final <- data.lme [!12]
 
+
+
+
 lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
                                                   prop_cut_1_10 + prop_cut_11_30 +
                                                   prop_fire_1_15 + prop_fire_16_30 + prop_populus +
@@ -3082,8 +3076,7 @@ lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop
                                                   dens_road_paved + dens_road_unpaved +
                                                  (1 | wmu), 
                             data = data.lme.final,
-                            family = gaussian (link = 'identity'),
-                            verbose = T)
+                            family = gaussian (link = 'identity'))
 summary (lme.moose.density)
 
 data.lme.final$lme.predicted <- predict (lme.moose.density)   # Save the predicted values
@@ -3111,8 +3104,12 @@ qqnorm (residuals (lme.moose.density)) # some deviation at high values
 qqline (residuals (lme.moose.density)) 
 
 
+
+
 # removed 5-02-D 1999 because seems to be a problematic outlier
 data.lme.final <- data.lme.final [!18]
+
+
 
 lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop_shrub +
                                                   prop_cut_1_10 + prop_cut_11_30 +
@@ -3121,8 +3118,7 @@ lme.moose.density <- glmer (adj_density_est_km2 ~ pas_ann_mean + prop_wet + prop
                                                   dens_road_paved + dens_road_unpaved +
                                                   (1 | wmu), 
                             data = data.lme.final,
-                            family = gaussian (link = 'identity'),
-                            verbose = T)
+                            family = gaussian (link = 'identity'))
 summary (lme.moose.density)
 
 data.lme.final$lme.predicted <- predict (lme.moose.density)   # Save the predicted values
@@ -3248,19 +3244,21 @@ ggplot (data.lme.final, aes(x = dens_road_unpaved, y = lme.residuals)) +
 
 
 ### Model Selection based on R-squared and AIC weights
-The top-ranked model had an AIC weight (AIC~w~) of 0.486, and included covariates for area of *Populus* spp., area of rivers, area of wetlands, length of roads area burnt and area cut, and had an *R^2^* value of 0.798 (Table xx). The second ranked-model (AIC~w~ = 0.239; *R^2^* = 0.800) included these same covariates and area of lakes. All other models had an AIC~w~ < 0.09.
+The top-ranked model had an AIC weight (AIC~w~) of 0.526, and included covariates for proportion of area of *Populus* leading tree species, proportion of area of rivers, proportion of area burnt 16 to 30 years ago, proportion of area cut 1 to 10 and 11 to 30 years ago, and desnity of paved and unpaved roads, and had an *R^2^* value of 0.830 (Table xx). The second ranked-model (AIC~w~ = 0.267; *R^2^* = 0.830) included these same covariates and  proportion of area burnt 1 to 15 years ago. The third ranked-model (AIC~w~ = 0.207; *R^2^* = 0.828) included these same covariates as the top model and  proportion of area that is Douglas fir leading. 
 
 
-```{r, model selection}
+```{r, model selection, eval = T, warning = F}
 require (lme4)
 require (MuMIn)
 require (cAIC4)
+require (kableExtra)
 
 # NOTE: # 5-02B in 1994 and 5-02-D 1999 seemed to be a problematic outliers; removed these data points from analysis, ABOVE
 
 # removed 5-12-B 2002 because model had trouble predicting and produced non-normal residuals
 data.lme.final <- data.lme.final [!30]
-
+data.lme.save <- data.lme.final [, c (1:4, 6, 63, 65:66, 78, 80, 82:83, 86, 90:94)]
+write.csv (data.lme.save, "C:\\Work\\caribou\\clus_github\\R\\moose\\data_moose_density_chilcotin.csv")
 
 ## GLOBAL MODEL ##
 lme.moose.density.global <- glmer (adj_density_est_km2 ~ pas_ann_mean + 
@@ -3277,7 +3275,7 @@ lme.moose.density.global <- glmer (adj_density_est_km2 ~ pas_ann_mean +
                                   data = data.lme.final,
                                   family = gaussian (link = 'identity'),
                                   REML = FALSE,
-                                  verbose = T)
+                                  na.action = "na.fail")
 summary (lme.moose.density.global)
 ## Use MuMin 'dredge' function to fit combos of global model ##
 table.dredge <- dredge (lme.moose.density.global,
@@ -3285,45 +3283,92 @@ table.dredge <- dredge (lme.moose.density.global,
                         rank = "AICc",
                         subset = ("dens_road_paved" & "dens_road_unpaved")) # subset to make sure paved and unpaved road types are considered in models together (i.e., not considrred independently)
 table.dredge.aic.2 <- subset (table.dredge, delta < 2) # subset of top models
-model.avg.lme.moose.density <- model.avg (table.dredge, subset = delta < 2)
-summary (model.avg.lme.moose.density)
 
-table.avg.coeff.est <- data.table ("Coefficient Name" = c ("Intercept", 
-                                                           
-                                                           
-                                                           
-                                                           "Proportion Burnt 16 to 30 years old", "Density Paved Roads", "Density Unpaved Roads",  "Proportion Pine spp.", "Proportion Poplar spp.",  "Proportion Douglas Fir", "Proportion Spruce spp.", "Proportion Cutblocks 1 to 10 years old", "Proportion Cutblocks 11 to 30 years old"),
-                                   "Coefficient Estimate" = c (0.15, 
-                                                               
-                                                               18.58, -5.94, -3.59, 0.14,
-                                                               3.10, 0.02, -0.03, 0.76, -0.31),
-                                   "Adjusted Std. Error" = c (0.06, 
-                                                              
-                                                              
-                                                              3.66, 6.35, 1.91, 0.15, 
-                                                              0.83, 0.07, 0.10, 0.90, 0.46),
-                                   "z-value" = c (2.39, 
-                                                  
-                                                  
-                                                  5.07, 0.94, 1.88, 0.91, 3.75, 
-                                                  0.30, 0.27, 0.84, 0.67),
-                                   "Pr(>|z|)" = c (0.02, 
-                                                   
-                                                   
-                                                   "<0.01", 0.06, 0.01, 0.04, "<0.01", 
-                                                   0.13, 0.20, 0.05, 0.06)
-                                  )
+table.aic <- data.frame ()
+table.aic [1, 1] <- "Density Paved Road, Density Unpaved Roads, Proportion Cutblocks 1 to 10 years old, Proportion Cutblocks 11 to 30 years old, Proportion Burnt 16 to 30 years old, Proportion Populus Spp., Proportion River Area"
+table.aic [2, 1] <- "Density Paved Road, Density Unpaved Roads, Proportion Cutblocks 1 to 10 years old, Proportion Cutblocks 11 to 30 years old, Proportion Burnt 1 to 15 years old, Proportion Burnt 16 to 30 years old, Proportion Populus Spp., Proportion River Area"
+table.aic [3, 1] <- "Density Paved Road, Density Unpaved Roads, Proportion Cutblocks 1 to 10 years old, Proportion Cutblocks 11 to 30 years old, Proportion Burnt 16 to 30 years old, Proportion Populus Spp., Proportion River Area, Proportion Douglas Fir"
+colnames (table.aic) <- "Model Covariates"
 
-kable (table.avg.coeff.est,
-       caption = "Table xx. Moose density model coefficient values for the Chilcotin region of British Columbia.") %>%
+table.aic.2 <- dplyr::select (table.dredge.aic.2,
+                             "AICc", "delta", "weight")
+colnames (table.aic.2) <- c ("AICc", "delta AIC", "AIC weight")
+
+table.aic <- dplyr::bind_cols (table.aic, table.aic.2)
+
+table.aic [1, 5] <- r.squaredGLMM (glmer (adj_density_est_km2 ~ dens_road_paved + 
+                                                                dens_road_unpaved +
+                                                                prop_cut_1_10 + prop_cut_11_30 + 
+                                                                prop_fire_16_30 +
+                                                                prop_populus +
+                                                                prop_river +
+                                                                (1 | wmu), 
+                                            data = data.lme.final,
+                                            family = gaussian (link = 'identity'),
+                                            REML = FALSE,
+                                            verbose = T)) [1,1]
+
+table.aic [2, 5] <- r.squaredGLMM (glmer (adj_density_est_km2 ~ dens_road_paved + 
+                                                                dens_road_unpaved +
+                                                                prop_cut_1_10 + prop_cut_11_30 + 
+                                                                prop_fire_1_15 + prop_fire_16_30 +
+                                                                prop_populus +
+                                                                prop_river +
+                                                                (1 | wmu), 
+                                            data = data.lme.final,
+                                            family = gaussian (link = 'identity'),
+                                            REML = FALSE,
+                                            verbose = T)) [1,1]
+
+table.aic [3, 5] <- r.squaredGLMM (glmer (adj_density_est_km2 ~ dens_road_paved + 
+                                                                dens_road_unpaved +
+                                                                prop_cut_1_10 + prop_cut_11_30 + 
+                                                                prop_fire_16_30 +
+                                                                prop_populus +
+                                                                prop_river +
+                                                                prop_dougfir +
+                                                                (1 | wmu), 
+                                            data = data.lme.final,
+                                            family = gaussian (link = 'identity'),
+                                            REML = FALSE,
+                                            verbose = T)) [1,1]
+table.aic [, c (2:5)] <- round (table.aic [, c (2:5)], digits = 3)
+colnames (table.aic) [5] <- "R-squared"
+
+kable (table.aic,
+       caption = "Table xx. Moose density model selection using Akaike Information Criteria (AIC).") %>%
   kable_styling (position = "left",
-                 bootstrap_options = c("striped", "hover", "condensed"),
+                 bootstrap_options = c ("striped", "hover", "condensed"),
                  fixed_thead = T,
                  full_width = F)
 ```
 
 
-averaged top model coefficients
+### averaged top model coefficients
+
+
+```{r, model coefficient average}
+model.avg.lme.moose.density <- model.avg (table.dredge, subset = delta < 2)
+summary (model.avg.lme.moose.density)
+
+table.avg.coeff.est <- data.table ("Coefficient Name" = c ("Intercept", "Density Paved Roads", "Density Unpaved Roads", "Proportion Cutblocks 1 to 10 years old", "Proportion Cutblocks 11 to 30 years old", "Proportion Burnt 1 to 15 years old", "Proportion Burnt 16 to 30 years old", "Proportion Poplar spp.", "Proportion River", "Proportion Douglas Fir"),
+                                   "Coefficient Estimate" = c (0.14, -13.84, -0.28, 1.28, -0.97,
+                                                               -0.05, 12.16, 3.34, 17.84, 0.02),
+                                   "Adjusted Std. Error" = c (0.04, 4.06, 1.31, 0.53, 0.36, 0.11,
+                                                              3.18, 0.54, 5.25, 0.06),
+                                   "z-value" = c (3.91, 3.41, 0.22, 2.39, 2.68, 0.47, 3.82, 
+                                                  6.13, 3.40, 0.38),
+                                   "Pr(>|z|)" = c ("<0.01", "<0.01", 0.83, 0.02, 0.01, 0.64,
+                                                   "<0.01", "<0.01", "<0.01", 0.71)
+                                  )
+
+kable (table.avg.coeff.est,
+       caption = "Table xx. Averaged moose density model coefficient values for the Chilcotin region of British Columbia.") %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover", "condensed"),
+                 fixed_thead = T,
+                 full_width = F)
+```
 
 
 
@@ -3351,17 +3396,71 @@ ggplot (data.lme.final, aes (x = lme.predicted, y = lme.residuals)) + # fitted v
 ggplot (data.lme.final, aes(lme.residuals)) + # normality of residuals
         geom_histogram (binwidth = 0.1) 
 plot (density (data.lme.final$lme.residuals)) # there is some skewness here
-shapiro.test(data.lme.final$lme.residuals) # p-value = 0.44, so is not normal statistically
+shapiro.test(data.lme.final$lme.residuals) # p-value = 0.44, so is normal statistically
 
-qqnorm (data.lme.final$lme.residuals) # some deviation in upper quantile; 5-04 1994 could be hte problem
+qqnorm (data.lme.final$lme.residuals) # some deviation in upper quantile; 5-04 1994 could be the problem
 qqline (data.lme.final$lme.residuals) 
 
 # WMU's 5-12-B 2002, 5-04 1994 and 5-02-D 2014 appear to be the problems; these are under-predicted by the model
 # started by removing 5-12-B 2002; seems to be the worst offender
 
+ggplot (data.lme.final, aes(x = dens_road_paved, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
 
+ggplot (data.lme.final, aes(x = dens_road_unpaved, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
 
-ggplot (data.lme.final, aes(x = prop_spruce, y = lme.residuals)) +
+ggplot (data.lme.final, aes(x = prop_cut_1_10, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
+
+ggplot (data.lme.final, aes(x = prop_cut_11_30, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
+
+ggplot (data.lme.final, aes(x = prop_fire_1_15, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
+
+ggplot (data.lme.final, aes(x = prop_fire_16_30, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
+
+ggplot (data.lme.final, aes(x = prop_populus, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
+
+ggplot (data.lme.final, aes(x = prop_river, y = lme.residuals)) +
+  geom_point () +
+  geom_point (aes (y = lme.residuals), shape = 1) +
+  geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
+                   check_overlap = T,
+                   size = 3)# looks fine
+
+ggplot (data.lme.final, aes(x = prop_dougfir, y = lme.residuals)) +
   geom_point () +
   geom_point (aes (y = lme.residuals), shape = 1) +
   geom_text (aes (label = paste (wmu, survey_year, sep = "_")), hjust = 0, vjust = 0, 
@@ -3369,415 +3468,4 @@ ggplot (data.lme.final, aes(x = prop_spruce, y = lme.residuals)) +
                    size = 3)# looks fine
 
 
-
 ```
-
-
-
-## How Does Forestry Relate to Moose and Wolf Desnity?
-
-```{r, calculate moose and wolf density as a function of cutblock area, by year}
-
-table.moose.density.pred <- data.frame (matrix (ncol = 18, nrow = 10))
-colnames (table.moose.density.pred) <- c ("Cut_1_5_area_ha", "Cut_6_10_area_ha",  "Cut_11_20_area_ha",  "Cut_21_30_area_ha", "Fire_1_5_area_ha", "Fire_6_10_area_ha", "Fire_11_15_area_ha", "Fire_16_20_area_ha", "Fire_21_25_area_ha", "Fire_26_30_area_ha", "Populus_area_ha", "river_area_ha", "wetland_area_ha", "DougFir_area_ha", "road_loose_km", "road_paved_km", "road_rough_km", "group")
-                                     
-table.moose.density.pred [1:11, 1] <- seq (from = 0, to = 30000, by = 3000) 
-table.moose.density.pred [1:11, 2] <- mean (data.lme.final$Cut_6_10_area_ha)         
-table.moose.density.pred [1:11, 3] <- mean (data.lme.final$Cut_11_20_area_ha)         
-table.moose.density.pred [1:11, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [1:11, 5] <- mean (data.lme.final$Fire_1_5_area_ha)         
-table.moose.density.pred [1:11, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [1:11, 7] <- mean (data.lme.final$Fire_11_15_area_ha)         
-table.moose.density.pred [1:11, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [1:11, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [1:11, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [1:11, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [1:11, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [1:11, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [1:11, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [1:11, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [1:11, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [1:11, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [1:11, 18] <- 1
-
-table.moose.density.pred [12:22, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [12:22, 2] <- seq (from = 0, to = 45000, by = 4500)         
-table.moose.density.pred [12:22, 3] <- mean (data.lme.final$Cut_11_20_area_ha)         
-table.moose.density.pred [12:22, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [12:22, 5] <- mean (data.lme.final$Fire_1_5_area_ha)         
-table.moose.density.pred [12:22, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [12:22, 7] <- mean (data.lme.final$Fire_11_15_area_ha)         
-table.moose.density.pred [12:22, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [12:22, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [12:22, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [12:22, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [12:22, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [12:22, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [12:22, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [12:22, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [12:22, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [12:22, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [12:22, 18] <- 2
-
-table.moose.density.pred [23:33, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [23:33, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [23:33, 3] <- seq (from = 0, to = 65000, by = 6500)          
-table.moose.density.pred [23:33, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [23:33, 5] <- mean (data.lme.final$Fire_1_5_area_ha)         
-table.moose.density.pred [23:33, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [23:33, 7] <- mean (data.lme.final$Fire_11_15_area_ha)         
-table.moose.density.pred [23:33, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [23:33, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [23:33, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [23:33, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [23:33, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [23:33, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [23:33, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [23:33, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [23:33, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [23:33, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [23:33, 18] <- 3
-
-table.moose.density.pred [34:44, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [34:44, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [34:44, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [34:44, 4] <- seq (from = 0, to = 50000, by = 5000)         
-table.moose.density.pred [34:44, 5] <- mean (data.lme.final$Fire_1_5_area_ha)         
-table.moose.density.pred [34:44, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [34:44, 7] <- mean (data.lme.final$Fire_11_15_area_ha)         
-table.moose.density.pred [34:44, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [34:44, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [34:44, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [34:44, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [34:44, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [34:44, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [34:44, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [34:44, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [34:44, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [34:44, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [34:44, 18] <- 4
-
-table.moose.density.pred [45:55, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [45:55, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [45:55, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [45:55, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [45:55, 5] <- c (0, 5000, 10000, 15000, 20000, 30000, 50000, 70000, 100000, 150000, 250000)      
-table.moose.density.pred [45:55, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [45:55, 7] <- mean (data.lme.final$Fire_11_15_area_ha)         
-table.moose.density.pred [45:55, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [45:55, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [45:55, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [45:55, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [45:55, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [45:55, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [45:55, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [45:55, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [45:55, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [45:55, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [45:55, 18] <- 5
-
-table.moose.density.pred [56:66, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [56:66, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [56:66, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [56:66, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [56:66, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [56:66, 6] <- seq (from = 0, to = 60000, by = 6000)         
-table.moose.density.pred [56:66, 7] <- mean (data.lme.final$Fire_11_15_area_ha)         
-table.moose.density.pred [56:66, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [56:66, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [56:66, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [56:66, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [56:66, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [56:66, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [56:66, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [56:66, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [56:66, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [56:66, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [56:66, 18] <- 6
-
-table.moose.density.pred [67:77, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [67:77, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [67:77, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [67:77, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [67:77, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [67:77, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [67:77, 7] <- seq (from = 0, to = 27500, by = 2750)          
-table.moose.density.pred [67:77, 8] <- mean (data.lme.final$Fire_16_20_area_ha)         
-table.moose.density.pred [67:77, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [67:77, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [67:77, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [67:77, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [67:77, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [67:77, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [67:77, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [67:77, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [67:77, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [67:77, 18] <- 7
-
-table.moose.density.pred [78:88, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [78:88, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [78:88, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [78:88, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [78:88, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [78:88, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [78:88, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [78:88, 8] <- seq (from = 0, to = 3500, by = 350)       
-table.moose.density.pred [78:88, 9] <- mean (data.lme.final$Fire_21_25_area_ha)         
-table.moose.density.pred [78:88, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [78:88, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [78:88, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [78:88, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [78:88, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [78:88, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [78:88, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [78:88, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [78:88, 18] <- 8
-
-table.moose.density.pred [89:99, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [89:99, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [89:99, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [89:99, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [89:99, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [89:99, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [89:99, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [89:99, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [89:99, 9] <- seq (from = 0, to = 7500, by = 750)           
-table.moose.density.pred [89:99, 10] <- mean (data.lme.final$Fire_26_30_area_ha)         
-table.moose.density.pred [89:99, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [89:99, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [89:99, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [89:99, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [89:99, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [89:99, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [89:99, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [89:99, 18] <- 9
-
-table.moose.density.pred [100:110, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [100:110, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [100:110, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [100:110, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [100:110, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [100:110, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [100:110, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [100:110, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [100:110, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [100:110, 10] <- seq (from = 0, to = 7500, by = 750)          
-table.moose.density.pred [100:110, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [100:110, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [100:110, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [100:110, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [100:110, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [100:110, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [100:110, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [100:110, 18] <- 10
-
-table.moose.density.pred [111:121, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [111:121, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [111:121, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [111:121, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [111:121, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [111:121, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [111:121, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [111:121, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [111:121, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [111:121, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [111:121, 11] <- seq (from = 0, to = 47500, by = 4750)
-table.moose.density.pred [111:121, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [111:121, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [111:121, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [111:121, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [111:121, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [111:121, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [111:121, 18] <- 11
-
-table.moose.density.pred [122:132, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [122:132, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [122:132, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [122:132, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [122:132, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [122:132, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [122:132, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [122:132, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [122:132, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [122:132, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [122:132, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [122:132, 12] <- seq (from = 0, to = 5500, by = 550)
-table.moose.density.pred [122:132, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [122:132, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [122:132, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [122:132, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [122:132, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [122:132, 18] <- 12
-
-table.moose.density.pred [133:143, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [133:143, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [133:143, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [133:143, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [133:143, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [133:143, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [133:143, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [133:143, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [133:143, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [133:143, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [133:143, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [133:143, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [133:143, 13] <- seq (from = 0, to = 30000, by = 3000)
-table.moose.density.pred [133:143, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [133:143, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [133:143, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [133:143, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [133:143, 18] <- 13
-
-table.moose.density.pred [144:154, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [144:154, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [144:154, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [144:154, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [144:154, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [144:154, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [144:154, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [144:154, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [144:154, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [144:154, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [144:154, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [144:154, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [144:154, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [144:154, 14] <- seq (from = 0, to = 275000, by = 27500)
-table.moose.density.pred [144:154, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [144:154, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [144:154, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [144:154, 18] <- 14
-
-table.moose.density.pred [155:165, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [155:165, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [155:165, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [155:165, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [155:165, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [155:165, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [155:165, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [155:165, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [155:165, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [155:165, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [155:165, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [155:165, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [155:165, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [155:165, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [155:165, 15] <- seq (from = 0, to = 250, by = 25)
-table.moose.density.pred [155:165, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [155:165, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [155:165, 18] <- 15
-
-table.moose.density.pred [166:176, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [166:176, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [166:176, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [166:176, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [166:176, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [166:176, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [166:176, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [166:176, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [166:176, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [166:176, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [166:176, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [166:176, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [166:176, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [166:176, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [166:176, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [166:176, 16] <- seq (from = 0, to = 70, by = 7)
-table.moose.density.pred [166:176, 17] <- mean (data.lme.final$road_rough_km)
-table.moose.density.pred [166:176, 18] <- 16
-
-table.moose.density.pred [177:187, 1] <- mean (data.lme.final$Cut_1_5_area_ha)  
-table.moose.density.pred [177:187, 2] <- mean (data.lme.final$Cut_6_10_area_ha)          
-table.moose.density.pred [177:187, 3] <- mean (data.lme.final$Cut_11_20_area_ha)          
-table.moose.density.pred [177:187, 4] <- mean (data.lme.final$Cut_21_30_area_ha)         
-table.moose.density.pred [177:187, 5] <- mean (data.lme.final$Fire_1_5_area_ha)       
-table.moose.density.pred [177:187, 6] <- mean (data.lme.final$Fire_6_10_area_ha)         
-table.moose.density.pred [177:187, 7] <- mean (data.lme.final$Fire_11_15_area_ha)          
-table.moose.density.pred [177:187, 8] <- mean (data.lme.final$Fire_16_20_area_ha)       
-table.moose.density.pred [177:187, 9] <- mean (data.lme.final$Fire_21_25_area_ha)           
-table.moose.density.pred [177:187, 10] <- mean (data.lme.final$Fire_26_30_area_ha)          
-table.moose.density.pred [177:187, 11] <- mean (data.lme.final$Populus_area_ha)
-table.moose.density.pred [177:187, 12] <- mean (data.lme.final$river_area_ha)
-table.moose.density.pred [177:187, 13] <- mean (data.lme.final$wetland_area_ha)
-table.moose.density.pred [177:187, 14] <- mean (data.lme.final$DougFir_area_ha)
-table.moose.density.pred [177:187, 15] <- mean (data.lme.final$road_loose_km)
-table.moose.density.pred [177:187, 16] <- mean (data.lme.final$road_paved_km)
-table.moose.density.pred [177:187, 17] <- seq (from = 0, to = 60, by = 6)
-table.moose.density.pred [177:187, 18] <- 17
-
-table.moose.density.pred$pred.moose.density <- predict (lme.moose.density.cut.burn.poplar.riv.wet.fir.rds,
-                                               newdata = table.moose.density.pred,
-                                               allow.new.levels = T,
-                                               re.form = NA)
-
-
-### Fuller et al. 2003 ungulate biomass equation; function to calculate ungulate biomass from density
-table.moose.density.pred$moose.biomass.km2 <- table.moose.density.pred$pred.moose.density * 6
-
-# Fuller et al. 2003 wolf density equation; function to calculate wolf density from ungulate biomass index
-table.moose.density.pred$wolf.dens.fuller <- 3.5 + (table.moose.density.pred$moose.biomass.km2 * 3.3)
-
-# Kuzyk and Hatter 2014 wolf density equation; function to calculate wolf density from ungulate biomass index
-table.moose.density.pred$wolf.dens.kuzyk <- (table.moose.density.pred$moose.biomass.km2 * 5.4) - (table.moose.density.pred$moose.biomass.km2^2 * 0.166)
-
-# Messier 1994 wolf density equation; function to calculate wolf density from moose density
-table.moose.density.pred$wolf.dens.messier <- (58.7 * (table.moose.density.pred$pred.moose.density - 0.03))/(0.76 + table.moose.density.pred$pred.moose.density)
-
-### Plots of relationships ###
-## Cutblocks 1 to 5 years old ##
-table.moose.density.pred.cut.1.5 <- table.moose.density.pred %>%
-                                        slice (1:11) %>%
-                                        select (Cut_1_5_area_ha, pred.moose.density)
-table.moose.density.pred.cut.1.5$pred.moose.density <- table.moose.density.pred.cut.1.5$pred.moose.density * 100
-names (table.moose.density.pred.cut.1.5)[2] <- "Predicted_Density"
-table.moose.density.pred.cut.1.5$type <- "Moose per 100km2 - Muhly"
-
-table.fuller.wolf.density.pred.cut.1.5 <- table.moose.density.pred %>%
-                                     slice (1:11) %>%
-                                     select (Cut_1_5_area_ha, wolf.dens.fuller)
-names (table.fuller.wolf.density.pred.cut.1.5)[2] <- "Predicted_Density"
-table.fuller.wolf.density.pred.cut.1.5$type <- "Wolves per 1000km2 - Fuller"
-
-table.density.pred.cut.1.5 <- bind_rows (table.moose.density.pred.cut.1.5, table.fuller.wolf.density.pred.cut.1.5)
-
-table.kuzyk.wolf.density.pred.cut.1.5 <- table.moose.density.pred %>%
-                                           slice (1:11) %>%
-                                           select (Cut_1_5_area_ha, wolf.dens.kuzyk)
-names (table.kuzyk.wolf.density.pred.cut.1.5)[2] <- "Predicted_Density"
-table.kuzyk.wolf.density.pred.cut.1.5$type <- "Wolves per 1000km2 - Kuzyk"
-
-table.density.pred.cut.1.5 <- bind_rows (table.density.pred.cut.1.5, table.kuzyk.wolf.density.pred.cut.1.5)
-
-rm (table.moose.density.pred.cut.1.5, table.fuller.wolf.density.pred.cut.1.5, table.kuzyk.wolf.density.pred.cut.1.5)
-gc ()
-
-
-ggplot (table.density.pred.cut.1.5, aes (x = Cut_1_5_area_ha, y = Predicted_Density)) +
-  geom_line (aes (linetype = type, color = type)) +
-  labs (x = "Area of 1 to 5 year old cutblocks", 
-        y = expression ("Estimated Density per 100 (moose) or 1,000 (wolf)"~km^2)) +
-  scale_x_continuous (breaks = seq (0, 30000, 5000)) +
-  scale_y_continuous (breaks = seq (10, 40, 2)) +
-  theme_classic () +
-  theme (legend.title = element_blank()) +
-  theme (legend.position = c(0.8, 0.3))
-  
-  
-
-
-
-
-
-
-
-
-
-
-```
-
-
-
-
-### Convert Areas to Densities
-
-
-

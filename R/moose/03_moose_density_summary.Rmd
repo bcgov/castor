@@ -1,7 +1,7 @@
 ---
-title: "Review of Wolf Density Models and Moose Density and Habtiat Thresholds Needed to Achieve Low Predation on Caribou"
+title: "Review of Wolf and Moose Density Models and their Use in Caribou Recovery Planning in the Chilcotin Region"
 author: "Tyler Muhly"
-date: "07/08/2019"
+date: "14/08/2019"
 output: 
   html_document:
     keep_md: true
@@ -12,16 +12,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction
-Federal recovery strategies for caribou have recommended wolf density thresholds for certain types of critical habitat. Specifcally, a threshold of less than 3 wolves per 1000 km ^2^ has been recommended for some southern moutnain cariobu 'matrix' habtiat types ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)). In addition, habtiat 'disturbance' threholds have been recommended for other types of ctritical habitat, with the implict assumption that staying below these thresholds will maintain habitats with low enough predator densities as to allow for stable or increasing cariobu popualtions. Specifically, a threshold of 35% 'disturbance' (i.e., area of cutblocks and roads buffered by 500m and burns) has been recommended for low elevation witner range and some matrix habtiat types ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)).
+Federal recovery strategies for woodland caribou have recommended wolf density thresholds for some types of caribou critical habitat. Specifically, a threshold of less than 3 wolves per 1,000 km^2^ has been recommended for some southern mountain caribou habitat types ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)). In addition, habitat 'disturbance' thresholds have been recommended for other types of critical habitat, with the assumption that staying below these thresholds will maintain sustainable caribou populations. Specifically, a threshold of 35% 'disturbance' (i.e., percentage of area that is cutblocks and roads buffered by 500 m and burns) has been recommended for low elevation winter range and some matrix critical habitat types for southern mountain caribou ([Environment Canada 2014](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf)). Thus, to support effective caribou recovery planning there is a need to estimate predator (primarily wolf) densities in caribou recovery areas, and understand how habitat disturbances might influence wolf densities. 
 
-Here I attempt to estimate what moose density we likely need to acheieve to hit a target of 3 wolves per 1,000 km^2^ using exisitng pulbished wolf density models. I also review current moose density in teh CHilctoin region of British COlumbia and estimate wolf densities using these models. I then use a statiscial model that estimates mosose density as a fucntion fo variosu types of habtiat disturabnces (i.e., cutblocks, fires and roads) to estimate habitat conditions necesary to acheieve these moose densities. 
+Here I use existing, published wolf density models, and data on moose densities obtained from aerial surveys, to estimate wolf densities in wildlife management units (WMUs) in the Chilcotin region of British Columbia. I also use these models to estimate the moose densities necessary to achieve a target of 3 wolves per 1,000 km^2^. I then use the moose density data to develop a statistical model of moose density as a function of habitat, including 'disturbances' (i.e., cutblocks, burnt areas and roads). I use this model to estimate the influence of changing habitat disturbance conditions on moose and wolf densities. I discuss how these moose and wolf density models may be used to inform caribou recovery planning in the Chilcotin region of British Columbia.  
 
 ## Estimating Wolf Density from Moose Density
-Seevral models have been developed to estimate wolf density from ungulate biomass or density. HEre I review some commonly cited and relevant models to British Columbia. 
+Several models have been developed to estimate wolf density from ungulate biomass or density data. Here I review some commonly cited and relevant models to British Columbia. 
 
 ### The [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) Model 
-[Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) developed an equation to estimate wolf density from an ungulate biomass index based on a variety of resarch studies form across North America. The equation applies an index factor to measured or estimated ungulate densities (animals/km^2^), where larger factors are applied to ungulates (i.e., moose density is multiplied by 6, elk density is multiplied by 3 and deer density is multiplied by 1). Wolf density (wolves/1,000 km ^2^) is then calculated with the equation: $W = 3.5 + (UB * 3.3)$, where W = wolf desnity and UB euqals total estimated ungulate biomass in the area of interest. The estiamted moose density to achieve estimated wolf density targets, assumign no oither ungulates are available in teh system, (or that wolves are not predating on other ungulates there) is illustrated in Figure 1. However, explicit in the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model is that there are a minimum of 3.5 wolves/1,000km^2^, regardless of ungulate biomass. This models suggests a very low, essentially near 0 ungulate density is necessary to achieve threhsolds below 3 wolves/1,000km^2^.
-```{r, Fuller Wolf Density Equation, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 1. Estimated Wolf Density as a Function of Moose Density Using the Fuller et al. (2003) Model"}
+[Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) developed a model to estimate wolf density from ungulate biomass using data collected across North America. The model applies a factor to calculate ungulate biomass from estimated ungulate densities (i.e., individuals/km^2^), where larger factors are applied to larger ungulates (i.e., moose density is multiplied by 6, elk density is multiplied by 3 and deer density is multiplied by 1). Wolf density (wolves/1,000 km ^2^) is then calculated with the equation: $$W = 3.5 + (UB * 3.3)$$ 
+Here W = wolf density and UB = total estimated ungulate biomass in the area of interest. 
+
+The modeled relationship between moose density and wolf density is illustrated in Figure 1 (assuming no other ungulates occur in the system or are hunted by wolves). Explicit in the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model is that there is a minimum threshold of 3.5 wolves/1,000 km^2^ in any wolf-ungulate system (i.e., the model intercept, at an ungulate biomass of 0, is 3.5 wolves/1,000 km^2^). Thus, this model suggests a very low, essentially 0 moose density is necessary to achieve landscapes with less than 3 wolves/1,000 km^2^.
+
+```{r, Fuller Wolf Density Equation, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 1. Estimated wolf density as a function of moose density using the Fuller et al. (2003) model."}
+
 library (ggplot2)
 
 data <- data.frame ("area.km2" = 1000, # 'simulated' dataset 
@@ -44,8 +49,14 @@ ggplot (data, aes (x = moose.km2, y = wolf.dens.fuller))  +
 ```
 
 ### The [Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475) Model 
-[Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475) developed a statistical model of wolf density based on estiamted ungulate biomasss in regions of British COlumiba. Similar to [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html), they calcualted wolf density as a fucntion of ungualte biomass, using the same ungulate biomass index. Wolf density (wolves/1,000 km ^2^) is calculated with the equation: $W = (UB * 5.4) - (UB^2^ * 3.3)$, where W = wolf desnity and UB euqals total estimated ungulate biomass in the area of interest. The estiamted moose density to achieve estimated wolf density targets, assumign no oither ungulates are available in the region, (or that wolves are not predating on other ungulates there) is illustrated in Figure 2. This model is perhaps more practical than the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model for estimatign wolf density in low ungulaet biomass regions because areas with no unglate biomass would have no wolves. This models suggests a density of approximately 0.09 moose/km^2^ is necessary to achieve thresholds below 3 wolves/1,000km^2^.
-```{r, Kuzyk and Hatter Wolf Density Equation, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 2. Estimated Wolf Density as a Function of Moose Density Using the Kuzyk and Hatter (2014) Model"}
+[Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475) developed a model to estimate wolf density from ungulate biomass using data collected in regions of British Columbia, using the same ungulate biomass index developed by [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html). Wolf density (wolves/1,000 km^2^) is calculated with the equation: $$W = (UB * 5.4) - (UB^2 * 0.166)$$
+
+Here W = wolf density and UB = total estimated ungulate biomass in the area of interest. 
+
+The modeled relationship between moose density and wolf density is illustrated in Figure 2 (assuming no other ungulates occur in the system or are hunted by wolves). This model is more useful than the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model for estimating wolf densities in low moose density areas, as the model has an intercept of zero, allowing for wolf density estimates of less than 3.5 wolves/1,000 km^2^ in regions with low ungulate biomass. This models suggests a density of approximately 0.09 moose/km^2^ is necessary to achieve thresholds below 3 wolves/1,000km^2^.
+
+```{r, Kuzyk and Hatter Wolf Density Equation, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 2. Estimated wolf density as a function of moose density using the Kuzyk and Hatter (2014) model."}
+
 library (ggplot2)
 
 data <- data.frame ("area.km2" = 1000, # 'simulated' dataset 
@@ -68,11 +79,13 @@ ggplot (data, aes (x = moose.km2, y = wolf.dens.kuzyk))  +
 ```
 
 ### The [Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) Model 
-[Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) developed a statistical model of wolf density from moose desnity using data from across North America where moose were the primary prey of wolves. He calcualted wolf density as a function of moose density using a hyperbolic, Michaelis-Menten functio, using the equation: $W = (58.7 * (M - 0.03)) / (M + 0.76)$, where W = wolf density (wolves/1,000km^2^)and M = estimated moose density (moose/km^2^).The estiamted moose density to achieve estimated wolf density targets is illustrated in Figure 3.
+[Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) developed a model of wolf density exclusively from moose density, using data collected from areas across North America where moose were the primary prey of wolves. He calculated wolf density as a function of moose density using a hyperbolic, Michaelis-Menten function, using the equation: $$W = (58.7 * (M - 0.03)) / (M + 0.76)$$
 
-This model allows for negative wolf densities at very low mosoe desnities, and requires a moose desnity greater than 0.03 moose/km^2^ to sustain wolves. THis model is also useful for estimatign wolf density in low ungulate biomass areas, also in areas where moose are known to be the doimannt prey of wolves. It is likely not useful in areas where otehr ungulaets are hte primary prey for wolves. This models suggests a density of less than approximately 0.08 moose/km^2^ is necessary to achieve thresholds below 3 wolves/1,000km^2^.
+Here W = wolf density (wolves/1,000 km^2^) and M = moose density (moose/km^2^). 
 
-```{r, Messier 1994 wolf density model, val = T, echo = F, fig.align = "left", fig.cap = "Figure 3. Estimated Wolf Density as a Function of Moose Density Using the Messier (1994) Model"}
+The modeled relationship between moose density and wolf density is illustrated in Figure 3. Notably, this model allows for negative wolf densities at very low moose densities, and requires a moose density greater than 0.03 moose/km^2^ to sustain wolves. Thus, similar to [Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475), this model is useful for estimating wolf density in low moose density areas. This model may also be more appropriate than the [Fuller et al. (2003)](https://www.press.uchicago.edu/ucp/books/book/chicago/W/bo3641392.html) model or [Kuzyk and Hatter (2014)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/wsb.475) model for estimating wolf densites in areas where moose are known to be the primary prey of wolves. This model suggests a density of approximately 0.08 moose/km^2^ is necessary to achieve thresholds below 3 wolves/1,000 km^2^.
+
+```{r, Messier 1994 wolf density model, val = T, echo = F, fig.align = "left", fig.cap = "Figure 3. Estimated wolf density as a function of moose density using the Messier (1994) model."}
 
 library (ggplot2)
 
@@ -92,22 +105,20 @@ ggplot (data, aes (x = moose.km2, y = wolf.dens.messier))  +
 
 ```
 
-### Estimated Wolf Densities in the Chilcotin Region of British Columbia
-Caribou recovery planning has begun in the Chilcotin local population unit (LPU). This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *Threatened* under Canada's *Species at Risk Act*. 
+## Estimated Wolf Densities in the Chilcotin Region of British Columbia
+Caribou recovery planning has begun in the Chilcotin local population unit (LPU) of caribou. This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *Threatened* under Canada's *Species at Risk Act*. The Itcha-Ilgachuz herd is considered to be of significant conservation importance provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, road development, wildfire and mountain pine beetle infestations (cite herd plan). In addition, the 2019 caribou population census showed a 40% population decline from 2018, and at that rate of decline, the herd would be functionally extirpated (i.e., less than 20 animals) in eight years (Carolyn Shores, Provincial Caribou Biologist, pers. comm.). Thus, there is an urgent need to develop a recovery plan for the Chilcotin LPU. A critical component of this plan will be identifying ways to effectively minimize wolf density in the region, both directly (i.e., culling) and indirectly (by managing moose populations and moose and wolf habitat). 
 
-The Itcha-Ilgachuz herd is considered to be of significant conservation importance provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, associated road development, wildfire and mountain pine beetle infestations (cite herd plan). In addition, the 2019 population census showed a 40% popualion decline from 2018, and at that rate of decline, the herd would be functionally extirpated (i.e., less than 20 animals) in eight years (Carolyn Shores, Provincial Cariobu Biologist, pers. comm.). 
+Estimated moose densities from aerial surveys done in WMUs in the Chilcotin region are provided in Table 1. I estimated wolf densities from this data using the three models described above. 
 
-There is an  urgent need to develop an effective recovery plan for the Chilcotin LPU caribou. A critical component of this is managing wolf density directly (i.e., culling), but also indireclty by managing moose via their habitat. Addtional habtiat protections might be considered with the intent of minimizing habitat disturabnce so that moose densities adn ultimately wolf densiites are maitnained at low levels. 
+The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in any of the WMUs over the periods that they were surveyed. The lowest averaged estimates of wolf density were in WMUs 5-02-A in 1996 (4 wolves/1,000 km^2^), 5-04 in 2012 (6 wolves/1,000 km^2^), and 5-15-C in 2008 (5 wolves/1,000 km^2^). The median wolf density estimate in the region throughout the survey period was 12 wolves/1,000 km^2^.  
 
-Estimated moose desnities form aerial surveys done in wildlife managmen units (WMUs) of the Chilcotin region are described in Table 1. I estimated wolf densities using the three models described above and averaged them. The models suggest that wolf densities were never below 3 wolves/1,000km^2^ in any of the WMUs over the periods that they were surveyed. The lowest averaged estimates of wolf density were in WMUs 5-02-A in 1996 (4 wolves/1,000km^2^), 5-04 in 2012 (6 wolves/1,000km^2^), and 5-15-C in 2008 (5 wolves/1,000km^2^). The median wolf density estimate in the region throughout the surbvey period was 16 wolves/1,000km^2^, suggesting that wolf densities have generally been pretty high.  
-
-```{r, Chilcotin moose desnites and estimated wolf densites Table, val = T, echo = F, warning = F}
+```{r, table of Chilcotin moose densities and estimated wolf densities, eval = T, echo = F, warning = F}
 
 library (data.table)
 library (kableExtra)
-tab_density_est <- data.table (WMU = c ("5-01", "5-01", "5-01", "5-02-A", "5-02-A", "5-02-A", "5-02-A", "5-02-B", "5-02-B", "5-02-B", "5-02-B", "5-02-B", "5-02-C", "5-02-C", "5-02-C", "5-02-C", "5-02-C", "5-02-D", "5-02-D", "5-02-D", "5-03", "5-03", "5-04", "5-04", "5-04", "5-04", "5-04", "5-04", "5-06", "5-10", "5-12-B", "5-12-B", "5-13-A", "5-13-A", "5-13-A", "5-13-A", "5-13-B", "5-13-B", "5-13-C", "5-13-C", "5-13-C", "5-14", "5-14", "5-14", "5-14", "5-15-A", "5-15-B", "5-15-C", "5-15-D"),
-                                   SurveyYear = c (2015, 2000, 1996, 2014, 2001, 1998, 1996, 2018, 2006, 2000, 1996, 1994, 2019, 2011, 2001, 1997, 1994, 2014, 1999, 1994, 2019, 1997, 2017, 2012, 2005, 1998, 1995, 1994, 1995, 1995, 2012, 2002, 2017, 2003, 1998, 1995, 2018, 1999, 2019, 2008, 1997, 2019, 2013, 2001, 1994, 2008, 2008, 2008, 2004),
-                                   MooseDensityKm2 = c (0.36, 0.32, 0.44, 0.33, 0.22, 0.26, 0.10, 0.46, 0.39, 0.59, 0.73, 1.42, 0.37, 0.51, 0.62, 0.30, 0.56, 0.86, 0.67, 1.19, 0.231, 0.35, 0.22, 0.14, 0.29, 0.41, 0.39, 0.71, 0.18, 0.26, 0.23, 0.58, 0.17, 0.30, 0.44, 0.32, 0.37, 0.31, 0.27, 0.49, 0.40, 0.261, 0.25, 0.46, 0.33, 0.29, 0.17, 0.11, 0.13)
+tab_density_est <- data.table ("Wildlife Management Unit (WMU)" = c ("5-01", "5-01", "5-01", "5-02-A", "5-02-A", "5-02-A", "5-02-A", "5-02-B", "5-02-B", "5-02-B", "5-02-B", "5-02-B", "5-02-C", "5-02-C", "5-02-C", "5-02-C", "5-02-C", "5-02-D", "5-02-D", "5-02-D", "5-03", "5-03", "5-04", "5-04", "5-04", "5-04", "5-04", "5-04", "5-06", "5-10", "5-12-B", "5-12-B", "5-13-A", "5-13-A", "5-13-A", "5-13-A", "5-13-B", "5-13-B", "5-13-C", "5-13-C", "5-13-C", "5-14", "5-14", "5-14", "5-14", "5-15-A", "5-15-B", "5-15-C", "5-15-D"),
+                               "Survey Year" = c (2015, 2000, 1996, 2014, 2001, 1998, 1996, 2018, 2006, 2000, 1996, 1994, 2019, 2011, 2001, 1997, 1994, 2014, 1999, 1994, 2019, 1997, 2017, 2012, 2005, 1998, 1995, 1994, 1995, 1995, 2012, 2002, 2017, 2003, 1998, 1995, 2018, 1999, 2019, 2008, 1997, 2019, 2013, 2001, 1994, 2008, 2008, 2008, 2004),
+                               MooseDensityKm2 = c (0.36, 0.32, 0.44, 0.33, 0.22, 0.26, 0.10, 0.46, 0.39, 0.59, 0.73, 1.42, 0.37, 0.51, 0.62, 0.30, 0.56, 0.86, 0.67, 1.19, 0.231, 0.35, 0.22, 0.14, 0.29, 0.41, 0.39, 0.71, 0.18, 0.26, 0.23, 0.58, 0.17, 0.30, 0.44, 0.32, 0.37, 0.31, 0.27, 0.49, 0.40, 0.261, 0.25, 0.46, 0.33, 0.29, 0.17, 0.11, 0.13)
                                   )
 tab_density_est [, WolfDensityFuller := round (3.5 + ((MooseDensityKm2 * 6) * 3.3))] # FUller wolf density
 tab_density_est [, WolfDensityKuzyk := round (((MooseDensityKm2 * 6) * 5.4) - ((MooseDensityKm2 * 6)^2 * 0.166))] # Kuzyk density
@@ -115,1277 +126,179 @@ tab_density_est [, WolfDensityMessier := round ((58.7 * (MooseDensityKm2 - 0.03)
 tab_density_est [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
 
 kable (tab_density_est,
-       caption = "Table 1. Wolf desnity esitmates calcualted from pulbished modles and estimated moose densities form aerial surveys in teh CHilctoin region of Brtisih Columbia.") %>%
+       caption = "<b>Table 1. Estimated moose densities from aerial survey data and wolf densities from published wolf density models in the Chilcotin region of British Columbia.<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover", "condensed"),
                  fixed_thead = T,
-                 full_width = F) 
+                 full_width = F,
+                 font_size = 11) 
 
 ```
 
-### Estimated Moose Densities in Undisturbed Habitat in the Chilcotin Region
-Moose density estimates in teh CHilcotin region were calculated from survey data collected between 1994 and 2019, a period during which disturabnce (i.e., forest harvest, fire and insect infestation) signfcianly inlfuenced the landscape. In apritcualr, these disturabnces likely influenced the availability and amount of forage available to moose. 
+## Estimating Moose Densities from Habitat in the Chilcotin Region
+I fit a statistical model of moose density in the Chilcotin region (Table 1) as a function of habitat features measured in WMUs. Habitat features considered in the model included: climate (i.e., temperature and precipitation), elevation, forest age and site productivity, road density, and area of wetlands, lakes, rivers, burns, forestry cutblocks, and stands of different types of leading tree species. Habitat features were estimated using publically available spatial datasets and geographic information systems software (see [here](https://github.com/bcgov/clus/blob/master/R/moose/02_moose_density_chilcotin.Rmd) for details).
 
-I fit a statistical model of moose density, estimated in the CHilcotin region, as a function of habitat features that may influence the density of moose in WMUs (see [here](https://github.com/bcgov/clus/blob/master/R/moose/02_moose_density_chilcotin.Rmd) for details). Habitat features were estimated in WMUs using spatial datasets, and tested in the model, including: amount of wetlands, lakes and riparian areas, climate averages (i.e., temperature and precipitation), elevation averages, area burned and forestry cutblocks, area of leading tree species, and amount of roads. 
+I tested for collinearity among estimated habitat covariates using Spearman's correlation ($\rho$) and variance inflation factors (VIFs) ([Montgomery et al. 2012](https://www.wiley.com/en-ca/Introduction+to+Linear+Regression+Analysis%2C+5th+Edition-p-9780470542811); [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1)). If two or more covariates were correlated, i.e., $\rho$ $\ge$ 0.7, I removed at least one of them from the analysis. Then, I fit a generalized linear model (GLM) with all the remaining covariates and iteratively removed covariates with the largest VIFs and re-fit the model until all covariates had VIFs less than 10. After this procedure, the remaining covariates tested in the model were: mean precipitation as snow, proportion of wetland area, proportion of river area, proportion of lake area, proportion of shrub area, proportion of area cut 1 to 10 years old and 11 to 30 years old, proportion of area burnt 1 to 15 years old and 16 to 30 years old, proportion of *Populus* species leading tree stands, proportion of pine species leading tree stands, proportion of spruce species leading tree stands, proportion of Douglas fir leading tree stands, and density of paved and unpaved roads. 
 
-Results of the model (Table 2) indicated that the area of disturbance (i.e., foresty cutblocks and fire), permament wet areas (i.e., rivers, wetlands and lakes), *Populus* species, Douglas fir, and length of roads in WMUs influenced moose density estimates. Increased road length in WMUs, particularly paved (road_paved_km) and rough roads (road_rough_km), negatively influenced moose density. Increased area of permanent wet areas (river_area_ha, wetland_area_ha, lake_area_ha), *Populus* species (Populus_area_ha) and Douglas fir (DougFir_area_ha) positively influenced moose density. The infleunce of burned and cut areas varied by age. The area of younger cutblocks (1 to 10 years old) positively influenced moose density, whereas the area of older cutblocks (11 to 30 years old) negatively influenced moose density. The influence of fire over time was more varied, as the area of burns 1 to 5 years old, 11 to 15 years old, and 26 to 30 years old negatively influenced moose density, whereas the area of burns 6 to 10 years old and 16 to 25 years old positively influenced moose density. 
+I fit a generalized linear mixed model (GLMM) with the remaining covariates (i.e., a 'global' model) using the 'glmer' function in the lme4 package in R ([Bates et al. 2015](https://www.jstatsoft.org/article/view/v067i01)). I fit this model with a random intercept for WMU to account for potential correlation of multiple moose density estimates obtained from the same WMU. I then used the 'dredge' function in the MuMin package ([Barton 2019](https://cran.r-project.org/web/packages/MuMIn/MuMIn.pdf)) to fit models with all combinations of covariates in the global model. I compared these models based on their parsimonious fit to the data by calculating corrected Akaike Information Criteria (AIC~c~) scores. I considered models with a difference in AIC~c~ score of less than 2 from the top model (i.e., the model with the minimum AIC~c~ score) as good candidate models of moose density (Table 2). I then calculated weighted averaged model coefficients from this candidate set of models using AIC weights (AIC~w~), and used these coefficients to estimate moose density under varying habitat conditions in the Chilcotin WMUs. 
+
+The top-ranked moose density model had AIC~w~ = 0.526 and *R^2^* = 0.830, and included covariates for proportion of area of *Populus* leading forest stands, proportion of area of rivers, proportion of area burnt 16 to 30 years ago, proportion of area cut 1 to 10 and 11 to 30 years ago, and density of paved and unpaved roads (Table 2). The second ranked-model (AIC~w~ = 0.267; *R^2^* = 0.830) included these same covariates and proportion of area burnt 1 to 15 years ago. The third ranked-model (AIC~w~ = 0.207; *R^2^* = 0.828) included the same covariates as the top model and proportion of area that was Douglas fir leading forest stands. 
+
+```{r, AIC model selection table, eval = T, echo = F, warning = F}
+require (kableExtra)
+require (data.table)
+
+table.aic <- data.table ("Model Covariates" = c ("Density Paved Road, Density Unpaved Roads, Proportion Cutblocks 1 to 10 years old, Proportion Cutblocks 11 to 30 years old, Proportion Burnt 16 to 30 years old, Proportion Populus Spp., Proportion River", "Density Paved Road, Density Unpaved Roads, Proportion Cutblocks 1 to 10 years old, Proportion Cutblocks 11 to 30 years old, Proportion Burnt 1 to 15 years old, Proportion Burnt 16 to 30 years old, Proportion Populus Spp., Proportion River", "Density Paved Road, Density Unpaved Roads, Proportion Cutblocks 1 to 10 years old, Proportion Cutblocks 11 to 30 years old, Proportion Burnt 16 to 30 years old, Proportion Populus Spp., Proportion River, Proportion Douglas Fir"),
+                         "AICc" = c (-67.92, -66.56, -66.05),
+                         "delta AIC" = c (0.00, 1.36, 1.87),
+                         "AIC weight" = c (0.53, 0.27, 0.21),
+                         "R-squared" = c (0.82, 0.83, 0.83)
+                         )
+
+kable (table.aic, 
+       caption = "<b>Table 2. Top moose density models as determined using corrected Akaike Information Criteria (AICc) scores and weights<b>") %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover", "condensed"),
+                 full_width = F)
+```
+
+Coefficients (\( \beta \ \)) of the averaged moose density model (Table 3) indicated that the proportion of area of the WMU that was river (\( \beta \ \) = 17.84), burned 16 to 30 years ago  (\( \beta \ \) = 12.16) and *Populus* species leading forest stands (\( \beta \ \) = 3.34) had a statistically significant, positive influence on moose density. The proportion of area of the WMU that was younger (1 to 10 year old) cutblocks  positively influenced moose density (\( \beta \ \) = 1.28) and the proportion of area of older (11 to 30 year old) cutblocks negatively influenced moose density (\( \beta \ \) = -0.97). The density of paved roads in the WMU had a statistically siginificant, negative influence on moose density (\( \beta \ \) = -13.84) and the density of unpaved roads had a weak negative influence on moose density (\( \beta \ \) = -0.28). The proportion of area of the WMU that was Douglas fir leading forest stands had a very weak, positive influence on moose density (\( \beta \ \) = 0.02) and the proportion of the WMU that was burned 1 to 15 years ago  had a very weak, negative influence on moose density (\( \beta \ \) = -0.05) .  
 
 ```{r, moose desnity model results, val = T, echo = F, warning = F}
 options (scipen = 999)
-table.avg.coeff.est <- data.table ("Coefficient Name" = c ("Intercept", "Proportion Burnt 16 to 30 years old", "Density Paved Roads", "Density Unpaved Roads",  "Proportion Pine spp.", "Proportion Poplar spp.",  "Proportion Douglas Fir", "Proportion Spruce spp.", "Proportion Cutblocks 1 to 10 years old", "Proportion Cutblocks 11 to 30 years old"),
-                                   "Coefficient Estimate" = c (0.15, 18.58, -5.94, -3.59, 0.14,
-                                                               3.10, 0.02, -0.03, 0.76, -0.31),
-                                   "Adjusted Std. Error" = c (0.06, 3.66, 6.35, 1.91, 0.15, 
-                                                              0.83, 0.07, 0.10, 0.90, 0.46),
-                                   "z-value" = c (2.39, 5.07, 0.94, 1.88, 0.91, 3.75, 
-                                                  0.30, 0.27, 0.84, 0.67),
-                                   "Pr(>|z|)" = c (0.02, "<0.01", 0.06, 0.01, 0.04, "<0.01", 
-                                                   0.13, 0.20, 0.05, 0.06)
+table.avg.coeff.est <- data.table ("Coefficient Name" = c ("Intercept", "Density Paved Roads", "Density Unpaved Roads", "Proportion Cutblocks 1 to 10 years old", "Proportion Cutblocks 11 to 30 years old", "Proportion Burnt 1 to 15 years old", "Proportion Burnt 16 to 30 years old", "Proportion Poplar spp.", "Proportion River", "Proportion Douglas Fir"),
+                                   "Coefficient Estimate" = c (0.14, -13.84, -0.28, 1.28, -0.97,
+                                                               -0.05, 12.16, 3.34, 17.84, 0.02),
+                                   "Adjusted Std. Error" = c (0.04, 4.06, 1.31, 0.53, 0.36, 0.11,
+                                                              3.18, 0.54, 5.25, 0.06),
+                                   "z-value" = c (3.91, 3.41, 0.22, 2.39, 2.68, 0.47, 3.82, 
+                                                  6.13, 3.40, 0.38),
+                                   "Pr(>|z|)" = c ("<0.01", "<0.01", 0.83, 0.02, 0.01, 0.64,
+                                                   "<0.01", "<0.01", "<0.01", 0.71)
                                   )
 
 kable (table.avg.coeff.est,
-       caption = "Table xx. Moose density model coefficient values for the Chilcotin region of British Columbia.") %>%
-  kable_styling (position = "center",
+       caption = "<b>Table 3. Coefficient values of an averaged moose density model for the Chilcotin region of British Columbia.<b>") %>%
+  kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover", "condensed"),
                  fixed_thead = T,
                  full_width = F)
 ```
 
-I used this model to estimate moose densites if WMUs in the Chilcotin region were undisturbed (i.e., no roads or cutblocks) or minimally disturbed (i.e., 15% of the WMU was cutblocks aged 1 to 30 years old). This information was used to estimate potential minimum moose adn wolf densites that coudl be achieved in minimally disturbed habtaits and provide some indication of what wolf densities coudl be achieved with ahbtatio recovery. Density estiamtes are based on habiat conditosn estimated in the latest moose survey (where habitat was dynamic).  
+## Estimating Moose Densities Under Varying Habitat Disturbance Conditions in the Chilcotin Region
+I used the averaged moose density model to estimate moose densities in WMUs in the Chilcotin region if they were undisturbed (i.e., had no roads or cutblocks) or disturbed at different proportions of forest harvest (i.e., no harvest, 10%, 20%, 30% or 40% of the area of the WMU was cutblocks aged 1 to 30 years old), assuming all other habitat conditions (e.g., area of *Populus* species leading forest stands) remained the same as current conditions. Moose density estimates were then used to estimate  wolf densities taking the average estimates of the three wolf desnity models described above. 
 
-Results are rough estiamets only, and should be used with a high degree of caution. The varaiability in factors that influence wildlfei popualtion dynmics is ginfcaint adn highyl complex. Estimaets here greatly oversimplify that complexity. However, these estimaets can be used ot provide some guidance aroudn management thresholds, which can be used in an adaptive managment appraoch where moose and wolf densites are diretcly monitroed during implemntation fo managment actions. 
+Estimated moose and wolf densities should be used with a high degree of caution. Many complex factors influence wildlife population dynamics, and the estimates provided here greatly oversimplify that complexity. For example, here I do not directly consider the effects of hunting or trapping on moose and wolf populations. However, the estimates provided here can be used to inform management decisions within an adaptive management approach.
 
-Results show that estimated wolf densites are relatively low in the majority of WMUs at current levels of habitat disturbance, compared to disturbed or minimally disturbed levels of habitat (Fig. 3). These results were counterintuitive to what was expected, as current undesrtadning is that forestry activity is supporting higher wolf densites but providing forage for moose. However, our moose density model shows a strign negative efefct of roads (form forestry adn oteh types of developements) on moose densities, and an overall negative efefct of older cutblocks 11 to 30 years old 
+### Effects of Roads and Cutblocks on Moose and Wolf Densities
+In the majority of WMUs, estimated wolf densities were higher when habitat was undisturbed compared to current habitat disturbance (Fig. 4). This result is perhaps counterintuitive, as current understanding of wolf-caribou-moose population dynamics is that forestry disturbance positively influences moose and wolf densities. However, the moose density model includes a strong negative effect of roads (particularly paved roads), and a negative effect of cutblocks 11 to 30 years old. Therefore, removal of roads and cutblocks from WMUs had a strong positive influence on moose, and ultimately wolf density estimates. The negative effect of roads on moose density may be indicative of high human hunting pressure on moose ([Mumma and Gillingham 2019](http://web.unbc.ca/~michael/Mumma_and_Gillingham_2019.pdf)), or that roads degrade the quality of moose habitat by displacing moose.
 
+```{r, estimated wolf densites from recovery of disturbed habitat, warning = F, message = F, eval = T, echo = F, fig.align = "left", fig.cap = "Figure 4. Estimated wolf density in wildlife management units (WMUs) as a function of habitat disturbance at varying levels of disturbance."}
 
+require (ggplot2)
+invisible (require (here))
+options (scipen = 999)
 
+data <- data.frame (read.csv (paste0 (here (), "/R/moose/data_moose_density_chilcotin.csv")))
+data <- dplyr::select (data, "dens_road_paved", "dens_road_unpaved",  "prop_cut_1_10",  "prop_cut_11_30", "prop_fire_16_30", "prop_populus", "prop_river", "prop_fire_1_15", "prop_dougfir", "wmu", "survey_year")
+  
+data <- dplyr::slice (data, c(1, 4, 8, 12, 17, 19, 21, 27:30, 34, 36, 39, 43:46))
+data$scenario <- "Current"
 
+# create 'undisturbed' scenario
+data.undisturb <- data
+data.undisturb$scenario <- "Undisturbed"
 
-```{r, estimated moose desnites form recovery of distrabed habtiat, val = T, echo = F, fig.align = "left", fig.cap = "Figure 3. Estimated Wolf Density in Wildlife Management Units (WMUs) as a Function of Habitat Disturbance at Current, Undisturbed (i.e, no roads or cutblocks) and Minimally Disturbed (15% of the WMU was cutblocks aged 1 to 30 years old) Conditions"}
+data.undisturb [, 1] <- 0
+data.undisturb [, 2] <- 0
+data.undisturb [, 3] <- 0
+data.undisturb [, 4] <- 0
 
-library (ggplot2)
+data <- dplyr::bind_rows (data, data.undisturb)
+rm (data.undisturb)
+invisible (gc ())
 
-table.moose.density.pred <- data.frame (matrix (ncol = 21, nrow = 10))
-colnames (table.moose.density.pred) <- c ("Cut_1_5_area_ha", "Cut_6_10_area_ha",  "Cut_11_20_area_ha",  "Cut_21_30_area_ha", "Fire_1_5_area_ha", "Fire_6_10_area_ha", "Fire_11_15_area_ha", "Fire_16_20_area_ha", "Fire_21_25_area_ha", "Fire_26_30_area_ha", "Populus_area_ha", "river_area_ha", "wetland_area_ha", "DougFir_area_ha", "road_loose_km", "road_paved_km", "road_rough_km", "lake_area_ha", "scenario", "wmu", "wmu_area_ha")
+# create 'Forestry 10%' scenario
+data.forestry.10 <- dplyr::slice (data, 1:18)
+data.forestry.10$scenario <- "Forestry 10%"
 
-table.moose.density.pred [1, 1] <- 0 
-table.moose.density.pred [1, 2] <- 0         
-table.moose.density.pred [1, 3] <- 0        
-table.moose.density.pred [1, 4] <- 0        
-table.moose.density.pred [1, 5] <- 28        
-table.moose.density.pred [1, 6] <- 791         
-table.moose.density.pred [1, 7] <- 16         
-table.moose.density.pred [1, 8] <- 0         
-table.moose.density.pred [1, 9] <- 0         
-table.moose.density.pred [1, 10] <- 72         
-table.moose.density.pred [1, 11] <- 41909
-table.moose.density.pred [1, 12] <- 78
-table.moose.density.pred [1, 13] <- 7799
-table.moose.density.pred [1, 14] <- 82920
-table.moose.density.pred [1, 15] <- 0
-table.moose.density.pred [1, 16] <- 0
-table.moose.density.pred [1, 17] <- 0
-table.moose.density.pred [1, 18] <- 23675
-table.moose.density.pred [1, 19] <-"Undisturbed"
-table.moose.density.pred [1, 20] <- "5-01"
-table.moose.density.pred [1, 21] <- 232000
+data.forestry.10 [, 3] <- 0.033 # assuming equal proportion in 1-0 and 11-30 ages classes
+data.forestry.10 [, 4] <- 0.067
 
-table.moose.density.pred [2, 1] <- 0 
-table.moose.density.pred [2, 2] <- 0         
-table.moose.density.pred [2, 3] <- 0        
-table.moose.density.pred [2, 4] <- 0        
-table.moose.density.pred [2, 5] <- 8693        
-table.moose.density.pred [2, 6] <- 375         
-table.moose.density.pred [2, 7] <- 12         
-table.moose.density.pred [2, 8] <- 12         
-table.moose.density.pred [2, 9] <- 19         
-table.moose.density.pred [2, 10] <- 154         
-table.moose.density.pred [2, 11] <- 13848
-table.moose.density.pred [2, 12] <- 1294
-table.moose.density.pred [2, 13] <- 13200
-table.moose.density.pred [2, 14] <- 271868
-table.moose.density.pred [2, 15] <- 0
-table.moose.density.pred [2, 16] <- 0
-table.moose.density.pred [2, 17] <- 0
-table.moose.density.pred [2, 18] <- 14664
-table.moose.density.pred [2, 19] <-"Undisturbed"
-table.moose.density.pred [2, 20] <- "5-02-A"
-table.moose.density.pred [2, 21] <- 342400
+data <- dplyr::bind_rows (data, data.forestry.10)
+rm (data.forestry.10)
+invisible (gc ())
 
-table.moose.density.pred [3, 1] <- 0 
-table.moose.density.pred [3, 2] <- 0         
-table.moose.density.pred [3, 3] <- 0        
-table.moose.density.pred [3, 4] <- 0        
-table.moose.density.pred [3, 5] <- 8        
-table.moose.density.pred [3, 6] <- 664         
-table.moose.density.pred [3, 7] <- 224         
-table.moose.density.pred [3, 8] <- 24         
-table.moose.density.pred [3, 9] <- 43         
-table.moose.density.pred [3, 10] <- 188         
-table.moose.density.pred [3, 11] <- 36027
-table.moose.density.pred [3, 12] <- 315
-table.moose.density.pred [3, 13] <- 8980
-table.moose.density.pred [3, 14] <- 84461
-table.moose.density.pred [3, 15] <- 0
-table.moose.density.pred [3, 16] <- 0
-table.moose.density.pred [3, 17] <- 0
-table.moose.density.pred [3, 18] <- 24022
-table.moose.density.pred [3, 19] <-"Undisturbed"
-table.moose.density.pred [3, 20] <- "5-02-B"
-table.moose.density.pred [3, 21] <- 334400
+# create 'Forestry 20%' scenario
+data.forestry.20 <- dplyr::slice (data, 1:18)
+data.forestry.20$scenario <- "Forestry 20%"
 
-table.moose.density.pred [4, 1] <- 0 
-table.moose.density.pred [4, 2] <- 0         
-table.moose.density.pred [4, 3] <- 0        
-table.moose.density.pred [4, 4] <- 0        
-table.moose.density.pred [4, 5] <- 21559        
-table.moose.density.pred [4, 6] <- 46         
-table.moose.density.pred [4, 7] <- 103         
-table.moose.density.pred [4, 8] <- 87         
-table.moose.density.pred [4, 9] <- 92         
-table.moose.density.pred [4, 10] <- 71         
-table.moose.density.pred [4, 11] <- 38292
-table.moose.density.pred [4, 12] <- 922
-table.moose.density.pred [4, 13] <- 13860
-table.moose.density.pred [4, 14] <- 137221
-table.moose.density.pred [4, 15] <- 0
-table.moose.density.pred [4, 16] <- 0
-table.moose.density.pred [4, 17] <- 0
-table.moose.density.pred [4, 18] <- 10870
-table.moose.density.pred [4, 19] <-"Undisturbed"
-table.moose.density.pred [4, 20] <- "5-02-C"
-table.moose.density.pred [4, 21] <- 315200
+data.forestry.20 [, 3] <- 0.067
+data.forestry.20 [, 4] <- 0.133
 
-table.moose.density.pred [5, 1] <- 0 
-table.moose.density.pred [5, 2] <- 0         
-table.moose.density.pred [5, 3] <- 0        
-table.moose.density.pred [5, 4] <- 0        
-table.moose.density.pred [5, 5] <- 178        
-table.moose.density.pred [5, 6] <- 5         
-table.moose.density.pred [5, 7] <- 0         
-table.moose.density.pred [5, 8] <- 0         
-table.moose.density.pred [5, 9] <- 0         
-table.moose.density.pred [5, 10] <- 37         
-table.moose.density.pred [5, 11] <- 47521
-table.moose.density.pred [5, 12] <- 5655
-table.moose.density.pred [5, 13] <- 6525
-table.moose.density.pred [5, 14] <- 80398
-table.moose.density.pred [5, 15] <- 0
-table.moose.density.pred [5, 16] <- 0
-table.moose.density.pred [5, 17] <- 0
-table.moose.density.pred [5, 18] <- 3836
-table.moose.density.pred [5, 19] <-"Undisturbed"
-table.moose.density.pred [5, 20] <- "5-02-D"
-table.moose.density.pred [5, 21] <- 329600
+data <- dplyr::bind_rows (data, data.forestry.20)
+rm (data.forestry.20)
+invisible (gc ())
 
-table.moose.density.pred [6, 1] <- 0 
-table.moose.density.pred [6, 2] <- 0         
-table.moose.density.pred [6, 3] <- 0        
-table.moose.density.pred [6, 4] <- 0        
-table.moose.density.pred [6, 5] <- 37126        
-table.moose.density.pred [6, 6] <- 420         
-table.moose.density.pred [6, 7] <- 139         
-table.moose.density.pred [6, 8] <- 164         
-table.moose.density.pred [6, 9] <- 0         
-table.moose.density.pred [6, 10] <- 0         
-table.moose.density.pred [6, 11] <- 4887
-table.moose.density.pred [6, 12] <- 791
-table.moose.density.pred [6, 13] <- 7388
-table.moose.density.pred [6, 14] <- 105901
-table.moose.density.pred [6, 15] <- 0
-table.moose.density.pred [6, 16] <- 0
-table.moose.density.pred [6, 17] <- 0
-table.moose.density.pred [6, 18] <- 1476
-table.moose.density.pred [6, 19] <-"Undisturbed"
-table.moose.density.pred [6, 20] <- "5-03"
-table.moose.density.pred [6, 21] <- 257600
+# create 'Forestry 30%' scenario
+data.forestry.30 <- dplyr::slice (data, 1:18)
+data.forestry.30$scenario <- "Forestry 30%"
 
-table.moose.density.pred [7, 1] <- 0 
-table.moose.density.pred [7, 2] <- 0         
-table.moose.density.pred [7, 3] <- 0        
-table.moose.density.pred [7, 4] <- 0        
-table.moose.density.pred [7, 5] <- 82        
-table.moose.density.pred [7, 6] <- 55761         
-table.moose.density.pred [7, 7] <- 27498         
-table.moose.density.pred [7, 8] <- 508         
-table.moose.density.pred [7, 9] <- 192         
-table.moose.density.pred [7, 10] <- 864         
-table.moose.density.pred [7, 11] <- 21373
-table.moose.density.pred [7, 12] <- 2019
-table.moose.density.pred [7, 13] <- 23805
-table.moose.density.pred [7, 14] <- 93135
-table.moose.density.pred [7, 15] <- 0
-table.moose.density.pred [7, 16] <- 0
-table.moose.density.pred [7, 17] <- 0
-table.moose.density.pred [7, 18] <- 23179
-table.moose.density.pred [7, 19] <-"Undisturbed"
-table.moose.density.pred [7, 20] <- "5-04"
-table.moose.density.pred [7, 21] <- 515200
+data.forestry.30 [, 3] <- 0.10
+data.forestry.30 [, 4] <- 0.20
 
-table.moose.density.pred [8, 1] <- 0 
-table.moose.density.pred [8, 2] <- 0         
-table.moose.density.pred [8, 3] <- 0        
-table.moose.density.pred [8, 4] <- 0        
-table.moose.density.pred [8, 5] <- 862        
-table.moose.density.pred [8, 6] <- 404         
-table.moose.density.pred [8, 7] <- 31         
-table.moose.density.pred [8, 8] <- 48         
-table.moose.density.pred [8, 9] <- 0         
-table.moose.density.pred [8, 10] <- 106         
-table.moose.density.pred [8, 11] <- 4825
-table.moose.density.pred [8, 12] <- 1597
-table.moose.density.pred [8, 13] <- 10495
-table.moose.density.pred [8, 14] <- 16181
-table.moose.density.pred [8, 15] <- 0
-table.moose.density.pred [8, 16] <- 0
-table.moose.density.pred [8, 17] <- 0
-table.moose.density.pred [8, 18] <- 15724
-table.moose.density.pred [8, 19] <-"Undisturbed"
-table.moose.density.pred [8, 20] <- "5-06"
-table.moose.density.pred [8, 21] <- 96000
+data <- dplyr::bind_rows (data, data.forestry.30)
+rm (data.forestry.30)
+invisible (gc ())
 
-table.moose.density.pred [9, 1] <- 0 
-table.moose.density.pred [9, 2] <- 0         
-table.moose.density.pred [9, 3] <- 0        
-table.moose.density.pred [9, 4] <- 0        
-table.moose.density.pred [9, 5] <- 506        
-table.moose.density.pred [9, 6] <- 2489         
-table.moose.density.pred [9, 7] <- 5370         
-table.moose.density.pred [9, 8] <- 10         
-table.moose.density.pred [9, 9] <- 0         
-table.moose.density.pred [9, 10] <- 421         
-table.moose.density.pred [9, 11] <- 14140
-table.moose.density.pred [9, 12] <- 578
-table.moose.density.pred [9, 13] <- 11351
-table.moose.density.pred [9, 14] <- 920
-table.moose.density.pred [9, 15] <- 0
-table.moose.density.pred [9, 16] <- 0
-table.moose.density.pred [9, 17] <- 0
-table.moose.density.pred [9, 18] <- 10856
-table.moose.density.pred [9, 19] <-"Undisturbed"
-table.moose.density.pred [9, 20] <- "5-10"
-table.moose.density.pred [9, 21] <- 127300
+# create 'Forestry 40%' scenario
+data.forestry.40 <- dplyr::slice (data, 1:18)
+data.forestry.40$scenario <- "Forestry 40%"
 
-table.moose.density.pred [10, 1] <- 0 
-table.moose.density.pred [10, 2] <- 0         
-table.moose.density.pred [10, 3] <- 0        
-table.moose.density.pred [10, 4] <- 0        
-table.moose.density.pred [10, 5] <- 7331        
-table.moose.density.pred [10, 6] <- 13734         
-table.moose.density.pred [10, 7] <- 122         
-table.moose.density.pred [10, 8] <- 0         
-table.moose.density.pred [10, 9] <- 311         
-table.moose.density.pred [10, 10] <- 208         
-table.moose.density.pred [10, 11] <- 3563
-table.moose.density.pred [10, 12] <- 594
-table.moose.density.pred [10, 13] <- 22319
-table.moose.density.pred [10, 14] <- 2718
-table.moose.density.pred [10, 15] <- 0
-table.moose.density.pred [10, 16] <- 0
-table.moose.density.pred [10, 17] <- 0
-table.moose.density.pred [10, 18] <- 7415
-table.moose.density.pred [10, 19] <-"Undisturbed"
-table.moose.density.pred [10, 20] <- "5-12-B"
-table.moose.density.pred [10, 21] <- 267200
+data.forestry.40 [, 3] <- 0.133
+data.forestry.40 [, 4] <- 0.267
 
-table.moose.density.pred [11, 1] <- 0 
-table.moose.density.pred [11, 2] <- 0         
-table.moose.density.pred [11, 3] <- 0        
-table.moose.density.pred [11, 4] <- 0        
-table.moose.density.pred [11, 5] <- 1508        
-table.moose.density.pred [11, 6] <- 24709         
-table.moose.density.pred [11, 7] <- 193         
-table.moose.density.pred [11, 8] <- 0         
-table.moose.density.pred [11, 9] <- 45         
-table.moose.density.pred [11, 10] <- 140         
-table.moose.density.pred [11, 11] <- 18453
-table.moose.density.pred [11, 12] <- 207
-table.moose.density.pred [11, 13] <- 27521
-table.moose.density.pred [11, 14] <- 27643
-table.moose.density.pred [11, 15] <- 0
-table.moose.density.pred [11, 16] <- 0
-table.moose.density.pred [11, 17] <- 0
-table.moose.density.pred [11, 18] <- 8122
-table.moose.density.pred [11, 19] <-"Undisturbed"
-table.moose.density.pred [11, 20] <- "5-13-A"
-table.moose.density.pred [11, 21] <- 500800
+data <- dplyr::bind_rows (data, data.forestry.40)
+rm (data.forestry.40)
+invisible (gc ())
 
-table.moose.density.pred [12, 1] <- 0 
-table.moose.density.pred [12, 2] <- 0         
-table.moose.density.pred [12, 3] <- 0        
-table.moose.density.pred [12, 4] <- 0        
-table.moose.density.pred [12, 5] <- 14665        
-table.moose.density.pred [12, 6] <- 8782         
-table.moose.density.pred [12, 7] <- 8080         
-table.moose.density.pred [12, 8] <- 0         
-table.moose.density.pred [12, 9] <- 18         
-table.moose.density.pred [12, 10] <- 501         
-table.moose.density.pred [12, 11] <- 32060
-table.moose.density.pred [12, 12] <- 1592
-table.moose.density.pred [12, 13] <- 13835
-table.moose.density.pred [12, 14] <- 42625
-table.moose.density.pred [12, 15] <- 0
-table.moose.density.pred [12, 16] <- 0
-table.moose.density.pred [12, 17] <- 0
-table.moose.density.pred [12, 18] <- 3969
-table.moose.density.pred [12, 19] <-"Undisturbed"
-table.moose.density.pred [12, 20] <- "5-13-B"
-table.moose.density.pred [12, 21] <- 456000
+# create 'roads only' scenario
+data.roads <- dplyr::slice (data, 1:18)
+data.roads$scenario <- "No Cutblocks"
 
-table.moose.density.pred [13, 1] <- 0 
-table.moose.density.pred [13, 2] <- 0         
-table.moose.density.pred [13, 3] <- 0        
-table.moose.density.pred [13, 4] <- 0        
-table.moose.density.pred [13, 5] <- 239046        
-table.moose.density.pred [13, 6] <- 41271         
-table.moose.density.pred [13, 7] <- 13867         
-table.moose.density.pred [13, 8] <- 152         
-table.moose.density.pred [13, 9] <- 2340         
-table.moose.density.pred [13, 10] <- 537         
-table.moose.density.pred [13, 11] <- 22991
-table.moose.density.pred [13, 12] <- 712
-table.moose.density.pred [13, 13] <- 28689
-table.moose.density.pred [13, 14] <- 8046
-table.moose.density.pred [13, 15] <- 0
-table.moose.density.pred [13, 16] <- 0
-table.moose.density.pred [13, 17] <- 0
-table.moose.density.pred [13, 18] <- 9660
-table.moose.density.pred [13, 19] <-"Undisturbed"
-table.moose.density.pred [13, 20] <- "5-13-C"
-table.moose.density.pred [13, 21] <- 468800
 
-table.moose.density.pred [14, 1] <- 0 
-table.moose.density.pred [14, 2] <- 0         
-table.moose.density.pred [14, 3] <- 0        
-table.moose.density.pred [14, 4] <- 0        
-table.moose.density.pred [14, 5] <- 133342        
-table.moose.density.pred [14, 6] <- 61750         
-table.moose.density.pred [14, 7] <- 87         
-table.moose.density.pred [14, 8] <- 106         
-table.moose.density.pred [14, 9] <- 238         
-table.moose.density.pred [14, 10] <- 60         
-table.moose.density.pred [14, 11] <- 35202
-table.moose.density.pred [14, 12] <- 2152
-table.moose.density.pred [14, 13] <- 16762
-table.moose.density.pred [14, 14] <- 196485
-table.moose.density.pred [14, 15] <- 0
-table.moose.density.pred [14, 16] <- 0
-table.moose.density.pred [14, 17] <- 0
-table.moose.density.pred [14, 18] <- 8856
-table.moose.density.pred [14, 19] <-"Undisturbed"
-table.moose.density.pred [14, 20] <- "5-14"
-table.moose.density.pred [14, 21] <- 404800
+data.roads [, 3] <- 0
+data.roads [, 4] <- 0
 
-table.moose.density.pred [15, 1] <- 0 
-table.moose.density.pred [15, 2] <- 0         
-table.moose.density.pred [15, 3] <- 0        
-table.moose.density.pred [15, 4] <- 0        
-table.moose.density.pred [15, 5] <- 2        
-table.moose.density.pred [15, 6] <- 0         
-table.moose.density.pred [15, 7] <- 24         
-table.moose.density.pred [15, 8] <- 80         
-table.moose.density.pred [15, 9] <- 245         
-table.moose.density.pred [15, 10] <- 563         
-table.moose.density.pred [15, 11] <- 2981
-table.moose.density.pred [15, 12] <- 305
-table.moose.density.pred [15, 13] <- 2561
-table.moose.density.pred [15, 14] <- 25105
-table.moose.density.pred [15, 15] <- 0
-table.moose.density.pred [15, 16] <- 0
-table.moose.density.pred [15, 17] <- 0
-table.moose.density.pred [15, 18] <- 6750
-table.moose.density.pred [15, 19] <-"Undisturbed"
-table.moose.density.pred [15, 20] <- "5-15-A"
-table.moose.density.pred [15, 21] <- 95800
+data <- dplyr::bind_rows (data, data.roads)
+rm (data.roads)
+invisible (gc ())
 
-table.moose.density.pred [16, 1] <- 0 
-table.moose.density.pred [16, 2] <- 0         
-table.moose.density.pred [16, 3] <- 0        
-table.moose.density.pred [16, 4] <- 0        
-table.moose.density.pred [16, 5] <- 931        
-table.moose.density.pred [16, 6] <- 0         
-table.moose.density.pred [16, 7] <- 14         
-table.moose.density.pred [16, 8] <- 173         
-table.moose.density.pred [16, 9] <- 207         
-table.moose.density.pred [16, 10] <- 0         
-table.moose.density.pred [16, 11] <- 115
-table.moose.density.pred [16, 12] <- 584
-table.moose.density.pred [16, 13] <- 1461
-table.moose.density.pred [16, 14] <- 10746
-table.moose.density.pred [16, 15] <- 0
-table.moose.density.pred [16, 16] <- 0
-table.moose.density.pred [16, 17] <- 0
-table.moose.density.pred [16, 18] <- 13348
-table.moose.density.pred [16, 19] <-"Undisturbed"
-table.moose.density.pred [16, 20] <- "5-15-B"
-table.moose.density.pred [16, 21] <- 84500
 
-table.moose.density.pred [17, 1] <- 0 
-table.moose.density.pred [17, 2] <- 0         
-table.moose.density.pred [17, 3] <- 0        
-table.moose.density.pred [17, 4] <- 0        
-table.moose.density.pred [17, 5] <- 2        
-table.moose.density.pred [17, 6] <- 34         
-table.moose.density.pred [17, 7] <- 0         
-table.moose.density.pred [17, 8] <- 0         
-table.moose.density.pred [17, 9] <- 315         
-table.moose.density.pred [17, 10] <- 129         
-table.moose.density.pred [17, 11] <- 1167
-table.moose.density.pred [17, 12] <- 78
-table.moose.density.pred [17, 13] <- 831
-table.moose.density.pred [17, 14] <- 14274
-table.moose.density.pred [17, 15] <- 0
-table.moose.density.pred [17, 16] <- 0
-table.moose.density.pred [17, 17] <- 0
-table.moose.density.pred [17, 18] <- 10131
-table.moose.density.pred [17, 19] <-"Undisturbed"
-table.moose.density.pred [17, 20] <- "5-15-C"
-table.moose.density.pred [17, 21] <- 80100
+# Calculate predictions on the scenario data
+data$moose.density.estimate <- (0.14 + (data$dens_road_paved * -13.84) + 
+                                       (data$dens_road_unpaved * -0.28) +
+                                       (data$prop_cut_1_10 * 1.28) +
+                                       (data$prop_cut_11_30 * -0.97) +
+                                       (data$prop_fire_1_15 * -0.05) +
+                                       (data$prop_fire_16_30 * 12.16) +
+                                       (data$prop_populus * 3.34) +
+                                       (data$prop_river * 17.84) +
+                                       (data$prop_dougfir * 0.02)
+                                )
 
-table.moose.density.pred [18, 1] <- 0 
-table.moose.density.pred [18, 2] <- 0         
-table.moose.density.pred [18, 3] <- 0        
-table.moose.density.pred [18, 4] <- 0        
-table.moose.density.pred [18, 5] <- 0        
-table.moose.density.pred [18, 6] <- 142         
-table.moose.density.pred [18, 7] <- 198         
-table.moose.density.pred [18, 8] <- 949         
-table.moose.density.pred [18, 9] <- 687         
-table.moose.density.pred [18, 10] <- 270         
-table.moose.density.pred [18, 11] <- 7077
-table.moose.density.pred [18, 12] <- 897
-table.moose.density.pred [18, 13] <- 4182
-table.moose.density.pred [18, 14] <- 3685
-table.moose.density.pred [18, 15] <- 0
-table.moose.density.pred [18, 16] <- 0
-table.moose.density.pred [18, 17] <- 0
-table.moose.density.pred [18, 18] <- 1530
-table.moose.density.pred [18, 19] <-"Undisturbed"
-table.moose.density.pred [18, 20] <- "5-15-D"
-table.moose.density.pred [18, 21] <- 311500
+data <- data.table (data)
 
-# Current conditions
-table.moose.density.pred [19, 1] <- 13029 
-table.moose.density.pred [19, 2] <- 12180         
-table.moose.density.pred [19, 3] <- 10631        
-table.moose.density.pred [19, 4] <- 8816        
-table.moose.density.pred [19, 5] <- 28        
-table.moose.density.pred [19, 6] <- 791         
-table.moose.density.pred [19, 7] <- 16         
-table.moose.density.pred [19, 8] <- 0         
-table.moose.density.pred [19, 9] <- 0         
-table.moose.density.pred [19, 10] <- 72         
-table.moose.density.pred [19, 11] <- 41909
-table.moose.density.pred [19, 12] <- 78
-table.moose.density.pred [19, 13] <- 7799
-table.moose.density.pred [19, 14] <- 82920
-table.moose.density.pred [19, 15] <- 123
-table.moose.density.pred [19, 16] <- 66
-table.moose.density.pred [19, 17] <- 0
-table.moose.density.pred [19, 18] <- 23675
-table.moose.density.pred [19, 19] <-"Current"
-table.moose.density.pred [19, 20] <- "5-01"
-table.moose.density.pred [19, 21] <- 232000
+data [, WolfDensityFuller := round (3.5 + ((moose.density.estimate * 6) * 3.3))] # FUller wolf density
+data [, WolfDensityKuzyk := round (((moose.density.estimate * 6) * 5.4) - ((moose.density.estimate * 6)^2 * 0.166))] # Kuzyk density
+data [, WolfDensityMessier := round ((58.7 * (moose.density.estimate - 0.03))/(0.76 + moose.density.estimate))] # MEssier density
+data [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
 
-table.moose.density.pred [20, 1] <- 8893 
-table.moose.density.pred [20, 2] <- 12342         
-table.moose.density.pred [20, 3] <- 23143        
-table.moose.density.pred [20, 4] <- 24303        
-table.moose.density.pred [20, 5] <- 8693        
-table.moose.density.pred [20, 6] <- 375         
-table.moose.density.pred [20, 7] <- 12         
-table.moose.density.pred [20, 8] <- 12         
-table.moose.density.pred [20, 9] <- 19         
-table.moose.density.pred [20, 10] <- 154         
-table.moose.density.pred [20, 11] <- 13848
-table.moose.density.pred [20, 12] <- 1294
-table.moose.density.pred [20, 13] <- 13200
-table.moose.density.pred [20, 14] <- 271868
-table.moose.density.pred [20, 15] <- 82
-table.moose.density.pred [20, 16] <- 24
-table.moose.density.pred [20, 17] <- 2
-table.moose.density.pred [20, 18] <- 14664
-table.moose.density.pred [20, 19] <-"Current"
-table.moose.density.pred [20, 20] <- "5-02-A"
-table.moose.density.pred [20, 21] <- 342400
+data$wmu <- as.factor(data$wmu)
 
-table.moose.density.pred [21, 1] <- 8412 
-table.moose.density.pred [21, 2] <- 17797         
-table.moose.density.pred [21, 3] <- 32888        
-table.moose.density.pred [21, 4] <- 19300        
-table.moose.density.pred [21, 5] <- 8        
-table.moose.density.pred [21, 6] <- 664         
-table.moose.density.pred [21, 7] <- 224         
-table.moose.density.pred [21, 8] <- 24         
-table.moose.density.pred [21, 9] <- 43         
-table.moose.density.pred [21, 10] <- 188         
-table.moose.density.pred [21, 11] <- 36027
-table.moose.density.pred [21, 12] <- 315
-table.moose.density.pred [21, 13] <- 8980
-table.moose.density.pred [21, 14] <- 84461
-table.moose.density.pred [21, 15] <- 68
-table.moose.density.pred [21, 16] <- 6
-table.moose.density.pred [21, 17] <- 3
-table.moose.density.pred [21, 18] <- 24022
-table.moose.density.pred [21, 19] <-"Current"
-table.moose.density.pred [21, 20] <- "5-02-B"
-table.moose.density.pred [21, 21] <- 334400
-
-table.moose.density.pred [22, 1] <- 5088 
-table.moose.density.pred [22, 2] <- 6964         
-table.moose.density.pred [22, 3] <- 42780        
-table.moose.density.pred [22, 4] <- 13163        
-table.moose.density.pred [22, 5] <- 21559        
-table.moose.density.pred [22, 6] <- 46         
-table.moose.density.pred [22, 7] <- 103         
-table.moose.density.pred [22, 8] <- 87         
-table.moose.density.pred [22, 9] <- 92         
-table.moose.density.pred [22, 10] <- 71         
-table.moose.density.pred [22, 11] <- 38292
-table.moose.density.pred [22, 12] <- 922
-table.moose.density.pred [22, 13] <- 13860
-table.moose.density.pred [22, 14] <- 137221
-table.moose.density.pred [22, 15] <- 77
-table.moose.density.pred [22, 16] <- 37
-table.moose.density.pred [22, 17] <- 0
-table.moose.density.pred [22, 18] <- 10870
-table.moose.density.pred [22, 19] <-"Current"
-table.moose.density.pred [22, 20] <- "5-02-C"
-table.moose.density.pred [22, 21] <- 315200
-
-table.moose.density.pred [23, 1] <- 7876 
-table.moose.density.pred [23, 2] <- 29809         
-table.moose.density.pred [23, 3] <- 31926        
-table.moose.density.pred [23, 4] <- 13732        
-table.moose.density.pred [23, 5] <- 178        
-table.moose.density.pred [23, 6] <- 5         
-table.moose.density.pred [23, 7] <- 0         
-table.moose.density.pred [23, 8] <- 0         
-table.moose.density.pred [23, 9] <- 0         
-table.moose.density.pred [23, 10] <- 37         
-table.moose.density.pred [23, 11] <- 47521
-table.moose.density.pred [23, 12] <- 5655
-table.moose.density.pred [23, 13] <- 6525
-table.moose.density.pred [23, 14] <- 80398
-table.moose.density.pred [23, 15] <- 28
-table.moose.density.pred [23, 16] <- 27
-table.moose.density.pred [23, 17] <- 0
-table.moose.density.pred [23, 18] <- 3836
-table.moose.density.pred [23, 19] <-"Current"
-table.moose.density.pred [23, 20] <- "5-02-D"
-table.moose.density.pred [23, 21] <- 329600
-
-table.moose.density.pred [24, 1] <- 14032 
-table.moose.density.pred [24, 2] <- 18023         
-table.moose.density.pred [24, 3] <- 23639        
-table.moose.density.pred [24, 4] <- 14532        
-table.moose.density.pred [24, 5] <- 37126        
-table.moose.density.pred [24, 6] <- 420         
-table.moose.density.pred [24, 7] <- 139         
-table.moose.density.pred [24, 8] <- 164         
-table.moose.density.pred [24, 9] <- 0         
-table.moose.density.pred [24, 10] <- 0         
-table.moose.density.pred [24, 11] <- 4887
-table.moose.density.pred [24, 12] <- 791
-table.moose.density.pred [24, 13] <- 7388
-table.moose.density.pred [24, 14] <- 105901
-table.moose.density.pred [24, 15] <- 18
-table.moose.density.pred [24, 16] <- 0
-table.moose.density.pred [24, 17] <- 0
-table.moose.density.pred [24, 18] <- 1476
-table.moose.density.pred [24, 19] <-"Current"
-table.moose.density.pred [24, 20] <- "5-03"
-table.moose.density.pred [24, 21] <- 257600
-
-table.moose.density.pred [25, 1] <- 22045 
-table.moose.density.pred [25, 2] <- 18346         
-table.moose.density.pred [25, 3] <- 15830        
-table.moose.density.pred [25, 4] <- 38039        
-table.moose.density.pred [25, 5] <- 82        
-table.moose.density.pred [25, 6] <- 55761         
-table.moose.density.pred [25, 7] <- 27498         
-table.moose.density.pred [25, 8] <- 508         
-table.moose.density.pred [25, 9] <- 192         
-table.moose.density.pred [25, 10] <- 864         
-table.moose.density.pred [25, 11] <- 21373
-table.moose.density.pred [25, 12] <- 2019
-table.moose.density.pred [25, 13] <- 23805
-table.moose.density.pred [25, 14] <- 93135
-table.moose.density.pred [25, 15] <- 134
-table.moose.density.pred [25, 16] <- 0
-table.moose.density.pred [25, 17] <- 61
-table.moose.density.pred [25, 18] <- 23179
-table.moose.density.pred [25, 19] <-"Current"
-table.moose.density.pred [25, 20] <- "5-04"
-table.moose.density.pred [25, 21] <- 515200
-
-table.moose.density.pred [26, 1] <- 5869 
-table.moose.density.pred [26, 2] <- 4059         
-table.moose.density.pred [26, 3] <- 777        
-table.moose.density.pred [26, 4] <- 136        
-table.moose.density.pred [26, 5] <- 862        
-table.moose.density.pred [26, 6] <- 404         
-table.moose.density.pred [26, 7] <- 31         
-table.moose.density.pred [26, 8] <- 48         
-table.moose.density.pred [26, 9] <- 0         
-table.moose.density.pred [26, 10] <- 106         
-table.moose.density.pred [26, 11] <- 4825
-table.moose.density.pred [26, 12] <- 1597
-table.moose.density.pred [26, 13] <- 10495
-table.moose.density.pred [26, 14] <- 16181
-table.moose.density.pred [26, 15] <- 22
-table.moose.density.pred [26, 16] <- 12
-table.moose.density.pred [26, 17] <- 3
-table.moose.density.pred [26, 18] <- 15724
-table.moose.density.pred [26, 19] <-"Current"
-table.moose.density.pred [26, 20] <- "5-06"
-table.moose.density.pred [26, 21] <- 96000
-
-table.moose.density.pred [27, 1] <- 0 
-table.moose.density.pred [27, 2] <- 0         
-table.moose.density.pred [27, 3] <- 0        
-table.moose.density.pred [27, 4] <- 0        
-table.moose.density.pred [27, 5] <- 506        
-table.moose.density.pred [27, 6] <- 2489         
-table.moose.density.pred [27, 7] <- 5370         
-table.moose.density.pred [27, 8] <- 10         
-table.moose.density.pred [27, 9] <- 0         
-table.moose.density.pred [27, 10] <- 421         
-table.moose.density.pred [27, 11] <- 14140
-table.moose.density.pred [27, 12] <- 578
-table.moose.density.pred [27, 13] <- 11351
-table.moose.density.pred [27, 14] <- 920
-table.moose.density.pred [27, 15] <- 0
-table.moose.density.pred [27, 16] <- 0
-table.moose.density.pred [27, 17] <- 0
-table.moose.density.pred [27, 18] <- 10856
-table.moose.density.pred [27, 19] <-"Current"
-table.moose.density.pred [27, 20] <- "5-10"
-table.moose.density.pred [27, 21] <- 127300
-
-table.moose.density.pred [28, 1] <- 1177 
-table.moose.density.pred [28, 2] <- 6624         
-table.moose.density.pred [28, 3] <- 14901        
-table.moose.density.pred [28, 4] <- 4609        
-table.moose.density.pred [28, 5] <- 7331        
-table.moose.density.pred [28, 6] <- 13734         
-table.moose.density.pred [28, 7] <- 122         
-table.moose.density.pred [28, 8] <- 0         
-table.moose.density.pred [28, 9] <- 311         
-table.moose.density.pred [28, 10] <- 208         
-table.moose.density.pred [28, 11] <- 3563
-table.moose.density.pred [28, 12] <- 594
-table.moose.density.pred [28, 13] <- 22319
-table.moose.density.pred [28, 14] <- 2718
-table.moose.density.pred [28, 15] <- 15
-table.moose.density.pred [28, 16] <- 10
-table.moose.density.pred [28, 17] <- 5
-table.moose.density.pred [28, 18] <- 7415
-table.moose.density.pred [28, 19] <-"Current"
-table.moose.density.pred [28, 20] <- "5-12-B"
-table.moose.density.pred [28, 21] <- 267200
-
-table.moose.density.pred [29, 1] <- 28562 
-table.moose.density.pred [29, 2] <- 14806         
-table.moose.density.pred [29, 3] <- 24076        
-table.moose.density.pred [29, 4] <- 50930        
-table.moose.density.pred [29, 5] <- 1508        
-table.moose.density.pred [29, 6] <- 24709         
-table.moose.density.pred [29, 7] <- 193         
-table.moose.density.pred [29, 8] <- 0         
-table.moose.density.pred [29, 9] <- 45         
-table.moose.density.pred [29, 10] <- 140         
-table.moose.density.pred [29, 11] <- 18453
-table.moose.density.pred [29, 12] <- 207
-table.moose.density.pred [29, 13] <- 27521
-table.moose.density.pred [29, 14] <- 27643
-table.moose.density.pred [29, 15] <- 82
-table.moose.density.pred [29, 16] <- 8
-table.moose.density.pred [29, 17] <- 26
-table.moose.density.pred [29, 18] <- 8122
-table.moose.density.pred [29, 19] <-"Current"
-table.moose.density.pred [29, 20] <- "5-13-A"
-table.moose.density.pred [29, 21] <- 500800
-
-table.moose.density.pred [30, 1] <- 23001 
-table.moose.density.pred [30, 2] <- 45440         
-table.moose.density.pred [30, 3] <- 66667        
-table.moose.density.pred [30, 4] <- 33029        
-table.moose.density.pred [30, 5] <- 14665        
-table.moose.density.pred [30, 6] <- 8782         
-table.moose.density.pred [30, 7] <- 8080         
-table.moose.density.pred [30, 8] <- 0         
-table.moose.density.pred [30, 9] <- 18         
-table.moose.density.pred [30, 10] <- 501         
-table.moose.density.pred [30, 11] <- 32060
-table.moose.density.pred [30, 12] <- 1592
-table.moose.density.pred [30, 13] <- 13835
-table.moose.density.pred [30, 14] <- 42625
-table.moose.density.pred [30, 15] <- 57
-table.moose.density.pred [30, 16] <- 29
-table.moose.density.pred [30, 17] <- 0
-table.moose.density.pred [30, 18] <- 3969
-table.moose.density.pred [30, 19] <-"Current"
-table.moose.density.pred [30, 20] <- "5-13-B"
-table.moose.density.pred [30, 21] <- 456000
-
-table.moose.density.pred [31, 1] <- 25770 
-table.moose.density.pred [31, 2] <- 30890         
-table.moose.density.pred [31, 3] <- 38870        
-table.moose.density.pred [31, 4] <- 21097        
-table.moose.density.pred [31, 5] <- 239046        
-table.moose.density.pred [31, 6] <- 41271         
-table.moose.density.pred [31, 7] <- 13867         
-table.moose.density.pred [31, 8] <- 152         
-table.moose.density.pred [31, 9] <- 2340         
-table.moose.density.pred [31, 10] <- 537         
-table.moose.density.pred [31, 11] <- 22991
-table.moose.density.pred [31, 12] <- 712
-table.moose.density.pred [31, 13] <- 28689
-table.moose.density.pred [31, 14] <- 8046
-table.moose.density.pred [31, 15] <- 248
-table.moose.density.pred [31, 16] <- 11
-table.moose.density.pred [31, 17] <- 0
-table.moose.density.pred [31, 18] <- 9660
-table.moose.density.pred [31, 19] <-"Current"
-table.moose.density.pred [31, 20] <- "5-13-C"
-table.moose.density.pred [31, 21] <- 468800
-
-table.moose.density.pred [32, 1] <- 6896 
-table.moose.density.pred [32, 2] <- 10939         
-table.moose.density.pred [32, 3] <- 40059        
-table.moose.density.pred [32, 4] <- 27517        
-table.moose.density.pred [32, 5] <- 133342        
-table.moose.density.pred [32, 6] <- 61750         
-table.moose.density.pred [32, 7] <- 87         
-table.moose.density.pred [32, 8] <- 106         
-table.moose.density.pred [32, 9] <- 238         
-table.moose.density.pred [32, 10] <- 60         
-table.moose.density.pred [32, 11] <- 35202
-table.moose.density.pred [32, 12] <- 2152
-table.moose.density.pred [32, 13] <- 16762
-table.moose.density.pred [32, 14] <- 196485
-table.moose.density.pred [32, 15] <- 178
-table.moose.density.pred [32, 16] <- 54
-table.moose.density.pred [32, 17] <- 13
-table.moose.density.pred [32, 18] <- 8856
-table.moose.density.pred [32, 19] <-"Current"
-table.moose.density.pred [32, 20] <- "5-14"
-table.moose.density.pred [32, 21] <- 404800
-
-table.moose.density.pred [33, 1] <- 4171 
-table.moose.density.pred [33, 2] <- 2297         
-table.moose.density.pred [33, 3] <- 9739        
-table.moose.density.pred [33, 4] <- 6906        
-table.moose.density.pred [33, 5] <- 2        
-table.moose.density.pred [33, 6] <- 0         
-table.moose.density.pred [33, 7] <- 24         
-table.moose.density.pred [33, 8] <- 80         
-table.moose.density.pred [33, 9] <- 245         
-table.moose.density.pred [33, 10] <- 563         
-table.moose.density.pred [33, 11] <- 2981
-table.moose.density.pred [33, 12] <- 305
-table.moose.density.pred [33, 13] <- 2561
-table.moose.density.pred [33, 14] <- 25105
-table.moose.density.pred [33, 15] <- 12
-table.moose.density.pred [33, 16] <- 0
-table.moose.density.pred [33, 17] <- 0
-table.moose.density.pred [33, 18] <- 6750
-table.moose.density.pred [33, 19] <-"Current"
-table.moose.density.pred [33, 20] <- "5-15-A"
-table.moose.density.pred [33, 21] <- 95800
-
-table.moose.density.pred [34, 1] <- 688 
-table.moose.density.pred [34, 2] <- 936         
-table.moose.density.pred [34, 3] <- 2739        
-table.moose.density.pred [34, 4] <- 3915        
-table.moose.density.pred [34, 5] <- 931        
-table.moose.density.pred [34, 6] <- 0         
-table.moose.density.pred [34, 7] <- 14         
-table.moose.density.pred [34, 8] <- 173         
-table.moose.density.pred [34, 9] <- 207         
-table.moose.density.pred [34, 10] <- 0         
-table.moose.density.pred [34, 11] <- 115
-table.moose.density.pred [34, 12] <- 584
-table.moose.density.pred [34, 13] <- 1461
-table.moose.density.pred [34, 14] <- 10746
-table.moose.density.pred [34, 15] <- 0
-table.moose.density.pred [34, 16] <- 0
-table.moose.density.pred [34, 17] <- 0
-table.moose.density.pred [34, 18] <- 13348
-table.moose.density.pred [34, 19] <-"Current"
-table.moose.density.pred [34, 20] <- "5-15-B"
-table.moose.density.pred [34, 21] <- 84500
-
-table.moose.density.pred [35, 1] <- 2331 
-table.moose.density.pred [35, 2] <- 1540         
-table.moose.density.pred [35, 3] <- 6267        
-table.moose.density.pred [35, 4] <- 7959        
-table.moose.density.pred [35, 5] <- 2        
-table.moose.density.pred [35, 6] <- 34         
-table.moose.density.pred [35, 7] <- 0         
-table.moose.density.pred [35, 8] <- 0         
-table.moose.density.pred [35, 9] <- 315         
-table.moose.density.pred [35, 10] <- 129         
-table.moose.density.pred [35, 11] <- 1167
-table.moose.density.pred [35, 12] <- 78
-table.moose.density.pred [35, 13] <- 831
-table.moose.density.pred [35, 14] <- 14274
-table.moose.density.pred [35, 15] <- 11
-table.moose.density.pred [35, 16] <- 0
-table.moose.density.pred [35, 17] <- 0
-table.moose.density.pred [35, 18] <- 10131
-table.moose.density.pred [35, 19] <-"Current"
-table.moose.density.pred [35, 20] <- "5-15-C"
-table.moose.density.pred [35, 21] <- 80100
-
-table.moose.density.pred [36, 1] <- 5776 
-table.moose.density.pred [36, 2] <- 7930         
-table.moose.density.pred [36, 3] <- 21985        
-table.moose.density.pred [36, 4] <- 16567        
-table.moose.density.pred [36, 5] <- 0        
-table.moose.density.pred [36, 6] <- 142         
-table.moose.density.pred [36, 7] <- 198         
-table.moose.density.pred [36, 8] <- 949         
-table.moose.density.pred [36, 9] <- 687         
-table.moose.density.pred [36, 10] <- 270         
-table.moose.density.pred [36, 11] <- 7077
-table.moose.density.pred [36, 12] <- 897
-table.moose.density.pred [36, 13] <- 4182
-table.moose.density.pred [36, 14] <- 3685
-table.moose.density.pred [36, 15] <- 18
-table.moose.density.pred [36, 16] <- 4
-table.moose.density.pred [36, 17] <- 0
-table.moose.density.pred [36, 18] <- 1530
-table.moose.density.pred [36, 19] <-"Current"
-table.moose.density.pred [36, 20] <- "5-15-D"
-table.moose.density.pred [36, 21] <- 311500
-
-# Forestry 15% area < 30 years old conditions
-table.moose.density.pred [37, 1] <- 8700 # 3.75% of total area (232000*0.0375)
-table.moose.density.pred [37, 2] <- 8700         
-table.moose.density.pred [37, 3] <- 8700        
-table.moose.density.pred [37, 4] <- 8700        
-table.moose.density.pred [37, 5] <- 28        
-table.moose.density.pred [37, 6] <- 791         
-table.moose.density.pred [37, 7] <- 16         
-table.moose.density.pred [37, 8] <- 0         
-table.moose.density.pred [37, 9] <- 0         
-table.moose.density.pred [37, 10] <- 72         
-table.moose.density.pred [37, 11] <- 41909
-table.moose.density.pred [37, 12] <- 78
-table.moose.density.pred [37, 13] <- 7799
-table.moose.density.pred [37, 14] <- 82920
-table.moose.density.pred [37, 15] <- 123
-table.moose.density.pred [37, 16] <- 66
-table.moose.density.pred [37, 17] <- 0
-table.moose.density.pred [37, 18] <- 23675
-table.moose.density.pred [37, 19] <-"Forestry 15%"
-table.moose.density.pred [37, 20] <- "5-01"
-table.moose.density.pred [37, 21] <- 232000
-
-table.moose.density.pred [38, 1] <- 12840 # 3.75% of total area (342400*0.0375)
-table.moose.density.pred [38, 2] <- 12840         
-table.moose.density.pred [38, 3] <- 12840        
-table.moose.density.pred [38, 4] <- 12840        
-table.moose.density.pred [38, 5] <- 8693        
-table.moose.density.pred [38, 6] <- 375         
-table.moose.density.pred [38, 7] <- 12         
-table.moose.density.pred [38, 8] <- 12         
-table.moose.density.pred [38, 9] <- 19         
-table.moose.density.pred [38, 10] <- 154         
-table.moose.density.pred [38, 11] <- 13848
-table.moose.density.pred [38, 12] <- 1294
-table.moose.density.pred [38, 13] <- 13200
-table.moose.density.pred [38, 14] <- 271868
-table.moose.density.pred [38, 15] <- 82
-table.moose.density.pred [38, 16] <- 24
-table.moose.density.pred [38, 17] <- 2
-table.moose.density.pred [38, 18] <- 14664
-table.moose.density.pred [38, 19] <-"Forestry 15%"
-table.moose.density.pred [38, 20] <- "5-02-A"
-table.moose.density.pred [38, 21] <- 342400
-
-table.moose.density.pred [39, 1] <- 12540 # 3.75% of total area (334400*0.0375)
-table.moose.density.pred [39, 2] <- 12540         
-table.moose.density.pred [39, 3] <- 12540        
-table.moose.density.pred [39, 4] <- 12540        
-table.moose.density.pred [39, 5] <- 8        
-table.moose.density.pred [39, 6] <- 664         
-table.moose.density.pred [39, 7] <- 224         
-table.moose.density.pred [39, 8] <- 24         
-table.moose.density.pred [39, 9] <- 43         
-table.moose.density.pred [39, 10] <- 188         
-table.moose.density.pred [39, 11] <- 36027
-table.moose.density.pred [39, 12] <- 315
-table.moose.density.pred [39, 13] <- 8980
-table.moose.density.pred [39, 14] <- 84461
-table.moose.density.pred [39, 15] <- 68
-table.moose.density.pred [39, 16] <- 6
-table.moose.density.pred [39, 17] <- 3
-table.moose.density.pred [39, 18] <- 24022
-table.moose.density.pred [39, 19] <-"Forestry 15%"
-table.moose.density.pred [39, 20] <- "5-02-B"
-table.moose.density.pred [39, 21] <- 334400
-
-table.moose.density.pred [40, 1] <- 11820 # 3.75% of total area (315200*0.0375)
-table.moose.density.pred [40, 2] <- 11820         
-table.moose.density.pred [40, 3] <- 11820        
-table.moose.density.pred [40, 4] <- 11820        
-table.moose.density.pred [40, 5] <- 21559        
-table.moose.density.pred [40, 6] <- 46         
-table.moose.density.pred [40, 7] <- 103         
-table.moose.density.pred [40, 8] <- 87         
-table.moose.density.pred [40, 9] <- 92         
-table.moose.density.pred [40, 10] <- 71         
-table.moose.density.pred [40, 11] <- 38292
-table.moose.density.pred [40, 12] <- 922
-table.moose.density.pred [40, 13] <- 13860
-table.moose.density.pred [40, 14] <- 137221
-table.moose.density.pred [40, 15] <- 77
-table.moose.density.pred [40, 16] <- 37
-table.moose.density.pred [40, 17] <- 0
-table.moose.density.pred [40, 18] <- 10870
-table.moose.density.pred [40, 19] <-"Forestry 15%"
-table.moose.density.pred [40, 20] <- "5-02-C"
-table.moose.density.pred [40, 21] <- 315200
-
-table.moose.density.pred [41, 1] <- 12360 # 3.75% of total area (329600*0.0375)
-table.moose.density.pred [41, 2] <- 12360         
-table.moose.density.pred [41, 3] <- 12360        
-table.moose.density.pred [41, 4] <- 12360        
-table.moose.density.pred [41, 5] <- 178        
-table.moose.density.pred [41, 6] <- 5         
-table.moose.density.pred [41, 7] <- 0         
-table.moose.density.pred [41, 8] <- 0         
-table.moose.density.pred [41, 9] <- 0         
-table.moose.density.pred [41, 10] <- 37         
-table.moose.density.pred [41, 11] <- 47521
-table.moose.density.pred [41, 12] <- 5655
-table.moose.density.pred [41, 13] <- 6525
-table.moose.density.pred [41, 14] <- 80398
-table.moose.density.pred [41, 15] <- 28
-table.moose.density.pred [41, 16] <- 27
-table.moose.density.pred [41, 17] <- 0
-table.moose.density.pred [41, 18] <- 3836
-table.moose.density.pred [41, 19] <-"Forestry 15%"
-table.moose.density.pred [41, 20] <- "5-02-D"
-table.moose.density.pred [41, 21] <- 329600
-
-table.moose.density.pred [42, 1] <- 9660 # 3.75% of total area (257600*0.0375)
-table.moose.density.pred [42, 2] <- 9660         
-table.moose.density.pred [42, 3] <- 9660        
-table.moose.density.pred [42, 4] <- 9660        
-table.moose.density.pred [42, 5] <- 37126        
-table.moose.density.pred [42, 6] <- 420         
-table.moose.density.pred [42, 7] <- 139         
-table.moose.density.pred [42, 8] <- 164         
-table.moose.density.pred [42, 9] <- 0         
-table.moose.density.pred [42, 10] <- 0         
-table.moose.density.pred [42, 11] <- 4887
-table.moose.density.pred [42, 12] <- 791
-table.moose.density.pred [42, 13] <- 7388
-table.moose.density.pred [42, 14] <- 105901
-table.moose.density.pred [42, 15] <- 18
-table.moose.density.pred [42, 16] <- 0
-table.moose.density.pred [42, 17] <- 0
-table.moose.density.pred [42, 18] <- 1476
-table.moose.density.pred [42, 19] <-"Forestry 15%"
-table.moose.density.pred [42, 20] <- "5-03"
-table.moose.density.pred [42, 21] <- 257600
-
-table.moose.density.pred [43, 1] <- 19320 # 3.75% of total area (515200*0.0375)
-table.moose.density.pred [43, 2] <- 19320         
-table.moose.density.pred [43, 3] <- 19320        
-table.moose.density.pred [43, 4] <- 19320        
-table.moose.density.pred [43, 5] <- 82        
-table.moose.density.pred [43, 6] <- 55761         
-table.moose.density.pred [43, 7] <- 27498         
-table.moose.density.pred [43, 8] <- 508         
-table.moose.density.pred [43, 9] <- 192         
-table.moose.density.pred [43, 10] <- 864         
-table.moose.density.pred [43, 11] <- 21373
-table.moose.density.pred [43, 12] <- 2019
-table.moose.density.pred [43, 13] <- 23805
-table.moose.density.pred [43, 14] <- 93135
-table.moose.density.pred [43, 15] <- 134
-table.moose.density.pred [43, 16] <- 0
-table.moose.density.pred [43, 17] <- 61
-table.moose.density.pred [43, 18] <- 23179
-table.moose.density.pred [43, 19] <-"Forestry 15%"
-table.moose.density.pred [43, 20] <- "5-04"
-table.moose.density.pred [43, 21] <- 515200
-
-table.moose.density.pred [44, 1] <- 3600 # 3.75% of total area (96000*0.0375)
-table.moose.density.pred [44, 2] <- 3600         
-table.moose.density.pred [44, 3] <- 3600        
-table.moose.density.pred [44, 4] <- 3600        
-table.moose.density.pred [44, 5] <- 862        
-table.moose.density.pred [44, 6] <- 404         
-table.moose.density.pred [44, 7] <- 31         
-table.moose.density.pred [44, 8] <- 48         
-table.moose.density.pred [44, 9] <- 0         
-table.moose.density.pred [44, 10] <- 106         
-table.moose.density.pred [44, 11] <- 4825
-table.moose.density.pred [44, 12] <- 1597
-table.moose.density.pred [44, 13] <- 10495
-table.moose.density.pred [44, 14] <- 16181
-table.moose.density.pred [44, 15] <- 22
-table.moose.density.pred [44, 16] <- 12
-table.moose.density.pred [44, 17] <- 3
-table.moose.density.pred [44, 18] <- 15724
-table.moose.density.pred [44, 19] <-"Forestry 15%"
-table.moose.density.pred [44, 20] <- "5-06"
-table.moose.density.pred [44, 21] <- 96000
-
-table.moose.density.pred [45, 1] <- 4773 # 3.75% of total area (127300*0.0375)
-table.moose.density.pred [45, 2] <- 4773         
-table.moose.density.pred [45, 3] <- 4773        
-table.moose.density.pred [45, 4] <- 4773        
-table.moose.density.pred [45, 5] <- 506        
-table.moose.density.pred [45, 6] <- 2489         
-table.moose.density.pred [45, 7] <- 5370         
-table.moose.density.pred [45, 8] <- 10         
-table.moose.density.pred [45, 9] <- 0         
-table.moose.density.pred [45, 10] <- 421         
-table.moose.density.pred [45, 11] <- 14140
-table.moose.density.pred [45, 12] <- 578
-table.moose.density.pred [45, 13] <- 11351
-table.moose.density.pred [45, 14] <- 920
-table.moose.density.pred [45, 15] <- 0
-table.moose.density.pred [45, 16] <- 0
-table.moose.density.pred [45, 17] <- 0
-table.moose.density.pred [45, 18] <- 10856
-table.moose.density.pred [45, 19] <-"Forestry 15%"
-table.moose.density.pred [45, 20] <- "5-10"
-table.moose.density.pred [45, 21] <- 127300
-
-table.moose.density.pred [46, 1] <- 10020 # 3.75% of total area (267200*0.0375)
-table.moose.density.pred [46, 2] <- 10020         
-table.moose.density.pred [46, 3] <- 10020        
-table.moose.density.pred [46, 4] <- 10020        
-table.moose.density.pred [46, 5] <- 7331        
-table.moose.density.pred [46, 6] <- 13734         
-table.moose.density.pred [46, 7] <- 122         
-table.moose.density.pred [46, 8] <- 0         
-table.moose.density.pred [46, 9] <- 311         
-table.moose.density.pred [46, 10] <- 208         
-table.moose.density.pred [46, 11] <- 3563
-table.moose.density.pred [46, 12] <- 594
-table.moose.density.pred [46, 13] <- 22319
-table.moose.density.pred [46, 14] <- 2718
-table.moose.density.pred [46, 15] <- 15
-table.moose.density.pred [46, 16] <- 10
-table.moose.density.pred [46, 17] <- 5
-table.moose.density.pred [46, 18] <- 7415
-table.moose.density.pred [46, 19] <-"Forestry 15%"
-table.moose.density.pred [46, 20] <- "5-12-B"
-table.moose.density.pred [46, 21] <- 267200
-
-table.moose.density.pred [47, 1] <- 18780 # 3.75% of total area (500800*0.0375)
-table.moose.density.pred [47, 2] <- 18780         
-table.moose.density.pred [47, 3] <- 18780        
-table.moose.density.pred [47, 4] <- 18780        
-table.moose.density.pred [47, 5] <- 1508        
-table.moose.density.pred [47, 6] <- 24709         
-table.moose.density.pred [47, 7] <- 193         
-table.moose.density.pred [47, 8] <- 0         
-table.moose.density.pred [47, 9] <- 45         
-table.moose.density.pred [47, 10] <- 140         
-table.moose.density.pred [47, 11] <- 18453
-table.moose.density.pred [47, 12] <- 207
-table.moose.density.pred [47, 13] <- 27521
-table.moose.density.pred [47, 14] <- 27643
-table.moose.density.pred [47, 15] <- 82
-table.moose.density.pred [47, 16] <- 8
-table.moose.density.pred [47, 17] <- 26
-table.moose.density.pred [47, 18] <- 8122
-table.moose.density.pred [47, 19] <-"Forestry 15%"
-table.moose.density.pred [47, 20] <- "5-13-A"
-table.moose.density.pred [47, 21] <- 500800
-
-table.moose.density.pred [48, 1] <- 17100 # 3.75% of total area (456000*0.0375)
-table.moose.density.pred [48, 2] <- 17100         
-table.moose.density.pred [48, 3] <- 17100        
-table.moose.density.pred [48, 4] <- 17100        
-table.moose.density.pred [48, 5] <- 14665        
-table.moose.density.pred [48, 6] <- 8782         
-table.moose.density.pred [48, 7] <- 8080         
-table.moose.density.pred [48, 8] <- 0         
-table.moose.density.pred [48, 9] <- 18         
-table.moose.density.pred [48, 10] <- 501         
-table.moose.density.pred [48, 11] <- 32060
-table.moose.density.pred [48, 12] <- 1592
-table.moose.density.pred [48, 13] <- 13835
-table.moose.density.pred [48, 14] <- 42625
-table.moose.density.pred [48, 15] <- 57
-table.moose.density.pred [48, 16] <- 29
-table.moose.density.pred [48, 17] <- 0
-table.moose.density.pred [48, 18] <- 3969
-table.moose.density.pred [48, 19] <-"Forestry 15%"
-table.moose.density.pred [48, 20] <- "5-13-B"
-table.moose.density.pred [48, 21] <- 456000
-
-table.moose.density.pred [49, 1] <- 17580 # 3.75% of total area (468800*0.0375)
-table.moose.density.pred [49, 2] <- 17580         
-table.moose.density.pred [49, 3] <- 17580        
-table.moose.density.pred [49, 4] <- 17580        
-table.moose.density.pred [49, 5] <- 239046        
-table.moose.density.pred [49, 6] <- 41271         
-table.moose.density.pred [49, 7] <- 13867         
-table.moose.density.pred [49, 8] <- 152         
-table.moose.density.pred [49, 9] <- 2340         
-table.moose.density.pred [49, 10] <- 537         
-table.moose.density.pred [49, 11] <- 22991
-table.moose.density.pred [49, 12] <- 712
-table.moose.density.pred [49, 13] <- 28689
-table.moose.density.pred [49, 14] <- 8046
-table.moose.density.pred [49, 15] <- 248
-table.moose.density.pred [49, 16] <- 11
-table.moose.density.pred [49, 17] <- 0
-table.moose.density.pred [49, 18] <- 9660
-table.moose.density.pred [49, 19] <-"Forestry 15%"
-table.moose.density.pred [49, 20] <- "5-13-C"
-table.moose.density.pred [49, 21] <- 468800
-
-table.moose.density.pred [50, 1] <- 15180 # 3.75% of total area (404800*0.0375)
-table.moose.density.pred [50, 2] <- 15180         
-table.moose.density.pred [50, 3] <- 15180        
-table.moose.density.pred [50, 4] <- 15180        
-table.moose.density.pred [50, 5] <- 133342        
-table.moose.density.pred [50, 6] <- 61750         
-table.moose.density.pred [50, 7] <- 87         
-table.moose.density.pred [50, 8] <- 106         
-table.moose.density.pred [50, 9] <- 238         
-table.moose.density.pred [50, 10] <- 60         
-table.moose.density.pred [50, 11] <- 35202
-table.moose.density.pred [50, 12] <- 2152
-table.moose.density.pred [50, 13] <- 16762
-table.moose.density.pred [50, 14] <- 196485
-table.moose.density.pred [50, 15] <- 178
-table.moose.density.pred [50, 16] <- 54
-table.moose.density.pred [50, 17] <- 13
-table.moose.density.pred [50, 18] <- 8856
-table.moose.density.pred [50, 19] <-"Forestry 15%"
-table.moose.density.pred [50, 20] <- "5-14"
-table.moose.density.pred [50, 21] <- 404800
-
-table.moose.density.pred [51, 1] <- 3592 # 3.75% of total area (95800*0.0375)
-table.moose.density.pred [51, 2] <- 3592         
-table.moose.density.pred [51, 3] <- 3592        
-table.moose.density.pred [51, 4] <- 3592        
-table.moose.density.pred [51, 5] <- 2        
-table.moose.density.pred [51, 6] <- 0         
-table.moose.density.pred [51, 7] <- 24         
-table.moose.density.pred [51, 8] <- 80         
-table.moose.density.pred [51, 9] <- 245         
-table.moose.density.pred [51, 10] <- 563         
-table.moose.density.pred [51, 11] <- 2981
-table.moose.density.pred [51, 12] <- 305
-table.moose.density.pred [51, 13] <- 2561
-table.moose.density.pred [51, 14] <- 25105
-table.moose.density.pred [51, 15] <- 12
-table.moose.density.pred [51, 16] <- 0
-table.moose.density.pred [51, 17] <- 0
-table.moose.density.pred [51, 18] <- 6750
-table.moose.density.pred [51, 19] <-"Forestry 15%"
-table.moose.density.pred [51, 20] <- "5-15-A"
-table.moose.density.pred [51, 21] <- 95800
-
-table.moose.density.pred [52, 1] <- 3168 # 3.75% of total area (84500*0.0375)
-table.moose.density.pred [52, 2] <- 3168         
-table.moose.density.pred [52, 3] <- 3168        
-table.moose.density.pred [52, 4] <- 3168        
-table.moose.density.pred [52, 5] <- 931        
-table.moose.density.pred [52, 6] <- 0         
-table.moose.density.pred [52, 7] <- 14         
-table.moose.density.pred [52, 8] <- 173         
-table.moose.density.pred [52, 9] <- 207         
-table.moose.density.pred [52, 10] <- 0         
-table.moose.density.pred [52, 11] <- 115
-table.moose.density.pred [52, 12] <- 584
-table.moose.density.pred [52, 13] <- 1461
-table.moose.density.pred [52, 14] <- 10746
-table.moose.density.pred [52, 15] <- 0
-table.moose.density.pred [52, 16] <- 0
-table.moose.density.pred [52, 17] <- 0
-table.moose.density.pred [52, 18] <- 13348
-table.moose.density.pred [52, 19] <-"Forestry 15%"
-table.moose.density.pred [52, 20] <- "5-15-B"
-table.moose.density.pred [52, 21] <- 84500
-
-table.moose.density.pred [53, 1] <- 3003 # 3.75% of total area (80100*0.0375)
-table.moose.density.pred [53, 2] <- 3003         
-table.moose.density.pred [53, 3] <- 3003        
-table.moose.density.pred [53, 4] <- 3003        
-table.moose.density.pred [53, 5] <- 2        
-table.moose.density.pred [53, 6] <- 34         
-table.moose.density.pred [53, 7] <- 0         
-table.moose.density.pred [53, 8] <- 0         
-table.moose.density.pred [53, 9] <- 315         
-table.moose.density.pred [53, 10] <- 129         
-table.moose.density.pred [53, 11] <- 1167
-table.moose.density.pred [53, 12] <- 78
-table.moose.density.pred [53, 13] <- 831
-table.moose.density.pred [53, 14] <- 14274
-table.moose.density.pred [53, 15] <- 11
-table.moose.density.pred [53, 16] <- 0
-table.moose.density.pred [53, 17] <- 0
-table.moose.density.pred [53, 18] <- 10131
-table.moose.density.pred [53, 19] <-"Forestry 15%"
-table.moose.density.pred [53, 20] <- "5-15-C"
-table.moose.density.pred [53, 21] <- 80100
-
-table.moose.density.pred [54, 1] <- 11681 # 3.75% of total area (311500*0.0375)
-table.moose.density.pred [54, 2] <- 11681         
-table.moose.density.pred [54, 3] <- 11681        
-table.moose.density.pred [54, 4] <- 11681        
-table.moose.density.pred [54, 5] <- 0        
-table.moose.density.pred [54, 6] <- 142         
-table.moose.density.pred [54, 7] <- 198         
-table.moose.density.pred [54, 8] <- 949         
-table.moose.density.pred [54, 9] <- 687         
-table.moose.density.pred [54, 10] <- 270         
-table.moose.density.pred [54, 11] <- 7077
-table.moose.density.pred [54, 12] <- 897
-table.moose.density.pred [54, 13] <- 4182
-table.moose.density.pred [54, 14] <- 5485
-table.moose.density.pred [54, 15] <- 18
-table.moose.density.pred [54, 16] <- 4
-table.moose.density.pred [54, 17] <- 0
-table.moose.density.pred [54, 18] <- 1530
-table.moose.density.pred [54, 19] <-"Forestry 15%"
-table.moose.density.pred [54, 20] <- "5-15-D"
-table.moose.density.pred [54, 21] <- 311500
-
-table.moose.density.pred$moose.density.estimate <- 0.084 + 
-                        (table.moose.density.pred$Cut_1_5_area_ha * 0.00000093) + 
-                        (table.moose.density.pred$Cut_6_10_area_ha * 0.0000018) + 
-                        (table.moose.density.pred$Cut_11_20_area_ha * -0.0000018) + 
-                        (table.moose.density.pred$Cut_21_30_area_ha * -0.0000028) + 
-                        (table.moose.density.pred$Fire_1_5_area_ha * -0.00000055) + 
-                        (table.moose.density.pred$Fire_6_10_area_ha * 0.00000064) + 
-                        (table.moose.density.pred$Fire_11_15_area_ha * -0.0000022) + 
-                        (table.moose.density.pred$Fire_16_20_area_ha * 0.000032) + 
-                        (table.moose.density.pred$Fire_21_25_area_ha * 0.000022) + 
-                        (table.moose.density.pred$Fire_26_30_area_ha * -0.000012) + 
-                        (table.moose.density.pred$Populus_area_ha * 0.0000081) + 
-                        (table.moose.density.pred$river_area_ha * 0.000031) + 
-                        (table.moose.density.pred$wetland_area_ha * 0.0000048) + 
-                        (table.moose.density.pred$DougFir_area_ha * 0.00000014) + 
-                        (table.moose.density.pred$road_loose_km * -0.00024) + 
-                        (table.moose.density.pred$road_paved_km * -0.0028) + 
-                        (table.moose.density.pred$road_rough_km * -0.0030) + 
-                        (table.moose.density.pred$lake_area_ha * 0.00000060)
-
-table.moose.density.pred <- data.table (table.moose.density.pred)
-
-table.moose.density.pred [, WolfDensityFuller := round (3.5 + ((moose.density.estimate * 6) * 3.3))] # FUller wolf density
-table.moose.density.pred [, WolfDensityKuzyk := round (((moose.density.estimate * 6) * 5.4) - ((moose.density.estimate * 6)^2 * 0.166))] # Kuzyk density
-table.moose.density.pred [, WolfDensityMessier := round ((58.7 * (moose.density.estimate - 0.03))/(0.76 + moose.density.estimate))] # MEssier density
-table.moose.density.pred [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
-
-table.moose.density.pred$wmu <- as.factor(table.moose.density.pred$wmu)
+data$scenario <- factor (data$scenario, 
+                         levels = c ("Undisturbed", "No Cutblocks", "Current", "Forestry 10%", 
+                                     "Forestry 20%", "Forestry 30%", "Forestry 40%"))
 
 # ggplot (table.moose.density.pred,
 #         aes (x = scenario, y = moose.density.estimate,
@@ -1408,7 +321,7 @@ table.moose.density.pred$wmu <- as.factor(table.moose.density.pred$wmu)
 #         y = expression ("Predicted Moose Density - moose per"~km^2)) +
 #   scale_y_continuous (breaks = seq (0, 1, 0.1))
 
-ggplot (table.moose.density.pred,
+ggplot (data,
         aes (x = scenario, y = WolfDensityAverage,
              label = wmu)) +
   geom_point (aes (x = scenario, # classify points by wmu
@@ -1426,12 +339,25 @@ ggplot (table.moose.density.pred,
   theme_classic () + 
   theme (legend.position = "none") + # turn off the legend
   labs (x = expression ("Scenario"), 
-        y = expression ("Predicted Wolf Density - wolves per 1,000"~km^2)) +
-  scale_y_continuous (breaks = seq (0, 22, 1))
+        y = expression ("Model Estimated Wolf Density - wolves per 1,000"~km^2)) +
+  scale_y_continuous (breaks = seq (0, 28, 1))
+
 ```
 
+Compared to current habitat conditions, removing cutblocks but not roads from WMUs (i.e., the "No Cutblocks" scenario) had a mixed effect on moose (and wolf) density estimates, depending on the WMU (Fig. 4). Removing cutblocks from WMUs with more older than younger cutblocks had a positive effect on moose density, whereas removing cutblocks from WMUs with more younger than older cutblocks had a negative effect. These results show a positive influence of young cutblocks and negative influence of older cutblocks on moose density estimates. I could speculate that this effect might be due to younger cutblocks providing greater forage benefits to moose than older cutblocks, thus supporting higher moose densities. However, [Mumma and Gillingham (2019)](http://web.unbc.ca/~michael/Mumma_and_Gillingham_2019.pdf) found a negative effect of young (1 to 8 year old) cutblocks on adult female moose survival in several areas of British Columbia, including the Chilcotin region, essentially supporting the opposite relationship of what I found at the WMU scale. Perhaps that while individual cow moose are more likely to die from hunting or starvation in areas with younger cutblocks, it takes a decade for this effect to manifest in a population at a WMU scale (i.e., a lag between individual and population scales). This might explain the negative effect of older cutblocks on moose densities in WMUs that I found. However, this lag effect cannot be adequately tested with the data in hand and requires more consideration.
 
+Overall, the moose density model identifies a net negative effect of roads and cutblocks on moose densities (Fig. 4). Younger aged cutblocks might benefit moose, but over time, as cutblocks age, the effects become negative. Therefore, scenarios with increasing proprotions of WMUs cut by forestry show decreasing wolf density estimates. Clearly, there are complexities and uncertainties in the wolf-moose-forestry relationship in the Chilcotin region that require careful consideration in caribou recovery planning. 
 
+### Effects of Burns, Riparian Areas and Forest Stand Types on Moose and Wolf Densities
+In the moose density model, burns had a significant, positive influence on moose density that was much larger than the influence of forestry. Younger burns (1 to 15 years old) had virtually no effect on moose densities, but older burns (16 to 30 years old) had a strong positive influence. It may be that older burns provide better foraging opportunities for moose than younger burns, supporting higher moose densities. Alternatively, older burns may indicate a lag effect of the benefits of younger burns to individual moose that takes several years to manifest at the population scale. Regardless, fire regimes in Canada are changing, with very large, more intense fires becoming more common ([Flannigan et al. 2005](https://link.springer.com/article/10.1007/s10584-005-5935-y); [Wang et al. 2015](https://link.springer.com/article/10.1007/s10584-015-1375-5)). It's unclear whether moose densities will continue to respond strongly and positively to burned areas given this changing regime, and thus the influence of future fire on moose densities should be considered with some caution.
 
+The area of *Populus* species leading forest stands and rivers had significant, positive influences on moose (and thus wolf) densities. Rivers are relatively 'static' habitat for moose, and the amount of river habitat is not typically managed, although the quality of riparian habitat can be considered in habitat management. However, the area of *Populus* species leading forest stands could be managed as part of forest planning. In addition, the amount of *Populus* species leading forest stands will likely change as a consequence of increasingly changing climate conditions ([Hamann and Wang 2006](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/0012-9658(2006)87%5B2773:PEOCCO%5D2.0.CO%3B2); [Iverson et al. 2008](https://www.sciencedirect.com/science/article/pii/S0378112707005439)). Greater monitoring of trends in *Populus* species leading stands could help inform moose and wolf management in caribou recovery areas. 
 
+## Implications of the Moose and Wolf Density Model Results for Caribou Recovery Planning in the Chilcotin Region
+Managing for low moose and wolf densities in the Chilcotin region to minimize predation on caribou is going to be a significant challenge. Using existing models, I estimate that there are currently relatively high wolf densities in the region (median of WMUs = 12 wolves/1,000 km^2^), well above thresholds (i.e., 3 wolves/1,000km^2^) recommended for some caribou critical habitat types. In addition, according to results of my moose density model, reducing forestry disturbance in caribou critical habitat could potentially benefit moose and wolf populations, paradoxically increasing the vulnerability of caribou populations to predation. Conversely, fire suppression could help maintain low moose densities in the region, which could be important to supporting caribou recovery. In addition, regardless of habitat disturbance type, the moose density model suggests that we need to consider the potential for lag effects of habitat disturbance on moose and wolf populations. Current moose density estimates in the Chilcotin region appear to not only reflect current habitat conditions, but trends in habitat.
 
+Results of the models described here should not discourage the implementation of new habitat protections for caribou. However, clearly the model results suggest we need to very carefully consider how managing habitat disturbance will influence moose, wolves and caribou. Each of these species interacts with habitat disturbance in a dynamic, complex way, making it a challenge to predict how habitat disturbance management will influence interactions between these species. Improtantly, I think the models highlight the challenges and limitations in using very specific wildlife population density (e.g., 3 wolves/1,000km^2^) and habitat area thresholds (e.g., 35% area of disturbance) as management targets. I would not necessarily discourage the use of these targets, but they should be considered as being highly uncertain. Caribou recovery actions, including habitat protections, are much more likely to be succesfull if they are flexible and responsive to new information.
+
+If the moose density model here is reasonably correct, than habitat protections in caribou critical habitat could benefit moose, but these protections could then also potentially benefit moose hunters in the region. Improved moose habitat could support more productive moose populations and thus higher hunting quotas. Despite habtiat protections, moose populations could still be kept at relatively low densites by allowing for intensive hunting, which would likely benefit caribou ([Serrouya et al. 2017](https://peerj.com/articles/3736/?utm_source=TrendMD&utm_campaign=PeerJ_TrendMD_1&utm_medium=TrendMD)). The dynamics between habitat protections and moose population management (i.e., hunting) also needs further consideration here, and flexible and responsive moose hunting policies in conjunction with habitat protections may be beneficial to caribou recovery. 
+
+Prior to implementing the models described here as part of caribou recovery planning, they should be critically discussed among wildlife experts (i.e., First Nations, government wildlife biologists, academic wildlife biolgists, and outfitters and hunters) with good knowledge of wildlife in the Chilcotin region. Ultimately, these experts should evaluate whether the models here are useful to informing a discussion about caribou recovery in the Chilcotin region. 
