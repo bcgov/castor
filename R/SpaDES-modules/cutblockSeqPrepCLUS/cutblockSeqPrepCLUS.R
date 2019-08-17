@@ -16,7 +16,7 @@ defineModule(sim, list(
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
-              person("Tyler", "Muhley", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
+              person("Tyler", "Muhly", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.1.1", cutblockSeqPrepCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -34,6 +34,7 @@ defineModule(sim, list(
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
     defineParameter("cutblockSeqInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
+    defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -41,7 +42,9 @@ defineModule(sim, list(
     defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput("boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA)
+    expectsInput("boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA)
+    
   ),
   outputObjects = bind_rows(
     createsOutput("landings", "SpatialPoints", "This describes a series of point locations representing the cutblocks or their landings", ...),
@@ -75,6 +78,10 @@ cutblockSeqPrepCLUS.Init <- function(sim) {
   sim<-cutblockSeqPrepCLUS.getHistoricalLandings(sim)
   sim$landings<-NULL
   sim$landingsArea<-NULL
+  #Create a column in clusdb.pixels table with the cutblock ids
+  sim <- cutblockSeqPrepCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
+  sim <- cutblockSeqPrepCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
+  
   return(invisible(sim))
 }
 
@@ -108,6 +115,64 @@ cutblockSeqPrepCLUS.getLandings <- function(sim) {
   }
   return(invisible(sim))
 }
+
+cutblockSeqPrepCLUS.createBlocksTable<-function(sim){
+  message("create blockid, blocks and adjacentBlocks")
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
+  
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+  
+  return(invisible(sim)) 
+}
+
+cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
+  
+  if(!(P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster") == '99999')){
+    message(paste0('..getting cutblocks: ',P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster")))
+    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster"), 
+                           clipper=sim$boundaryInfo[1] , 
+                           geom= sim$boundaryInfo[4] , 
+                           where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    if(extent(sim$ras) == extent(ras.blk)){
+      exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
+      setnames(exist_cutblocks, "V1", "blockid")
+      exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
+      exist_cutblocks<-exist_cutblocks[blockid > 0, ]
+      
+      #add to the clusdb
+      dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
+      
+      rm(ras.blk,exist_cutblocks)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "blockingCLUS", "nameCutblockRaster")))
+    }
+  }
+  return(invisible(sim))
+}
+
+cutblockSeqPrepCLUS.setBlocksTable <- function(sim) {
+  message("set the blocks table")
+  
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
+                    SELECT blockid, round(AVG(age),0) as age
+                                       FROM pixels WHERE blockid > 0 GROUP BY blockid "))
+  
+  dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
+  
+  return(invisible(sim))
+}
+
 
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
