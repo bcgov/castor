@@ -76,6 +76,64 @@ est_age_spp1, est_height_spp1, est_age_spp2, est_height_spp2, adj_ind, lorey_hei
 ws_vol_per_ha_125, cu_vol_per_ha_125, d_vol_per_ha_125, dw_vol_per_ha_125) 
 FROM 'C:\Users\KLOCHHEA\clus\VDYP\VEG_COMP_VDYP7_INPUT_LAYER_TBL_2019.csv' DELIMITER ',' CSV HEADER;
 
+CREATE TABLE public.vdyp_input_poly
+(
+  feature_id integer,
+  map_id text,
+  polygon_number integer,
+  org_unit text,
+  tsa_name text,
+  tfl_name text,
+  inventory_standard_code text,
+  tsa_number text,
+  shrub_height double precision,
+  shrub_crown_closure integer,
+  shrub_cover_pattern integer,
+  herb_cover_type_code text,
+  herb_cover_pct integer,
+  herb_cover_pattern_code integer,
+  bryoid_cover_pct integer,
+  bec_zone_code text,
+  cfs_ecozone integer,
+  pre_disturbance_stockability double precision,
+  yield_factor double precision,
+  non_productive_descriptor_cd text,
+  bclcs_level1_code text,
+  bclcs_level2_code text,
+  bclcs_level3_code text,
+  bclcs_level4_code text,
+  bclcs_level5_code text,
+  photo_estimation_base_year integer,
+  reference_year integer,
+  pct_dead integer,
+  non_veg_cover_type_1 text,
+  non_veg_cover_pct_1 integer,
+  non_veg_cover_pattern_1 integer,
+  non_veg_cover_type_2 text,
+  non_veg_cover_pct_2 integer,
+  non_veg_cover_pattern_2 integer,
+  non_veg_cover_type_3 text,
+  non_veg_cover_pct_3 integer,
+  non_veg_cover_pattern_3 integer,
+  land_cover_class_cd_1 text,
+  land_cover_pct_1 integer,
+  land_cover_class_cd_2 text,
+  land_cover_pct_2 integer,
+  land_cover_class_cd_3 text,
+  land_cover_pct_3 integer
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE public.vdyp_input_poly
+  OWNER TO clus_project;
+/*Import the data*/
+COPY vdyp_input_poly (feature_id, map_id, polygon_number, org_unit, tsa_name, tfl_name, inventory_standard_code, tsa_number, shrub_height, shrub_crown_closure,	
+shrub_cover_pattern, herb_cover_type_code, herb_cover_pct, herb_cover_pattern_code, bryoid_cover_pct, bec_zone_code, cfs_ecozone, pre_disturbance_stockability,	
+yield_factor, non_productive_descriptor_cd, bclcs_level1_code, bclcs_level2_code, bclcs_level3_code, bclcs_level4_code, bclcs_level5_code, photo_estimation_base_year,	
+reference_year, pct_dead, non_veg_cover_type_1, non_veg_cover_pct_1, non_veg_cover_pattern_1, non_veg_cover_type_2, non_veg_cover_pct_2, non_veg_cover_pattern_2,	
+non_veg_cover_type_3, non_veg_cover_pct_3, non_veg_cover_pattern_3, land_cover_class_cd_1, land_cover_pct_1, land_cover_class_cd_2, land_cover_pct_2, land_cover_class_cd_3, land_cover_pct_3		) 
+FROM 'C:\Users\KLOCHHEA\clus\VDYP\VEG_COMP_VDYP7_INPUT_POLY_TBL_2019.csv' DELIMITER ',' CSV HEADER;
 
 /*b. Import the vdyp output table with the projections of each stand*/
 CREATE TABLE public.vdyp
@@ -208,7 +266,7 @@ Update vdyp SET  prj_pcnt_stock  = NULL, prj_site_index = NULL, prj_dom_ht = NUL
   prj_sp6_vol_ws = NULL, prj_sp6_vol_cu = NULL, prj_sp6_vol_d = NULL, prj_sp6_vol_dw = NULL, prj_sp6_vol_dwb= NULL
   WHERE prj_mode = 'Back';
 
-  VACUUM vdyp; /*Clean up the table*/
+ /*VACUUM vdyp; Clean up the table*/
   
 /*--------------------------------------------------------------------------*/
 /* Step 4. Remove Projections that have serious errors
@@ -360,7 +418,6 @@ WHEN UPPER(species_cd_3) IN ('S','SA','SN','SX','SXB','SXL','SXS','SXX') THEN 'S
 ELSE species_cd_3
 END  ;
 
-
 /* Group species that are the same*/
 Update vdyp_vri2018 set species_pct_1 = (species_pct_1 + species_pct_2) WHERE species_cd_1 = species_cd_2; 
 Update vdyp_vri2018 set species_pct_1 = (species_pct_1 + species_pct_3) WHERE species_cd_1 = species_cd_3;
@@ -402,4 +459,22 @@ FROM vdyp
 FULL JOIN (SELECT feature_id, yc_grp, polygon_area FROM vdyp_vri2018) as b
 ON vdyp.feature_id = b.feature_id) as foo);
 
-select * from vdyptest limit 100;
+/*----------OMISSION-----*/
+COPy (select * from vdyp_input_tbl where forest_cover_rank_code =1 AND feature_id IN (select feature_id from vdyp_vri2018 WHERE yc_grp IN (select yc_grp from vdyptest group by yc_grp having count(*) < 35)))
+TO 'C:\Users\KLOCHHEA\clus\VDYP\omission\tbl1.csv' 
+DELIMITER ',' CSV HEADER;
+
+COPy (select * from vdyp_input_poly where feature_id IN (select feature_id from vdyp_vri2018 WHERE yc_grp IN (select yc_grp from vdyptest group by yc_grp having count(*) < 35)))
+TO 'C:\Users\KLOCHHEA\clus\VDYP\omission\poly1.csv' 
+DELIMITER ',' CSV HEADER;
+
+select * from vdyp_omission where feature_id = 4050942 ;
+select * from vdyp_vri2018  where feature_id = 4050942;
+select * from vdyp_err  where feature_id = 4050942;
+select * from veg_comp_lyr_r1_poly_2018 where feature_id = 4050942;
+select * from vdyp_input_tbl where feature_id = 4050942;
+select * from vdyp_input_poly where feature_id = 4050942;
+/*---------*/
+
+select distinct(yc_grp) from vdyptest;
+
