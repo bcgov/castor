@@ -1,0 +1,83 @@
+---
+title: "survivalCLUS"
+author: "Tyler Muhly"
+date: "20 August 2019"
+output: pdf_document
+---
+
+## Overview
+This module calculates the survival rate of female caribou as a function of the amount of early seral (i.e., 1 to 40 year old) forest in caribou herd ranges using he model developed by [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x) (see details in '\R\caribou_habitat\25_Wittmer_caribou_model'). The module requires input on forest age (output of CLUS disturbance modules), the caribou herd area of interest and the density of caribou in the herd. 
+
+Caribou herd and density parameters are set by the user. This model was developed for southern mountain caribou (Designatable Unit 9), and thus should only applied to those caribou herds.     
+
+# Usage
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+library (here)
+source (paste0 (here(),"/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here(), "/R"))
+cacheDir <- file.path (paste0 (here(), "/R"))
+times <- list (start = 0, end = 1)
+
+parameters <- list (
+  .progress = list (type = NA, interval = NA),
+  .globals = list (),
+  dataLoaderCLUS = list (dbName = 'clus',
+                         nameBoundaryFile = "gcbp_carib_polygon",
+                         nameBoundaryColumn = "herd_name",
+                         nameBoundary = 'Muskwa', 
+                         nameBoundaryGeom = "geom",
+                         nameAgeRaster = "rast.vri2017_projage1"),
+  survivalCLUS = list (caribou_herd_density)
+)
+
+modules <- list ("dataLoaderCLUS", "survivalCLUS")
+objects <- list()
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit (times = times, params = parameters, modules = modules,
+                  objects = objects, paths = paths)
+
+system.time({
+mysimout <- spades (mySim)
+})
+
+```
+
+# Events
+
+Describe what happens for each event type.
+
+## Plotting
+
+Write what is plotted.
+
+## Saving
+
+Write what is saved.
+
+# Data dependencies
+
+## Input data
+
+How to obtain input data, and a description of the data required by the module.
+If `sourceURL` is specified, `downloadData("survivalCLUS", "path/to/modules/dir")` may be sufficient.
+
+## Output data
+
+Description of the module outputs.
+
+# Links to other modules
+
+Describe any anticipated linkages to other modules.
+
