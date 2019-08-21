@@ -41,9 +41,8 @@ parameters <- list (
   dataLoaderCLUS = list (dbName = 'clus',
                          nameBoundaryFile = "study_area_compart",
                          nameBoundaryColumn = "tsb_number",
-                         nameBoundary = c ("41B", "41D"), 
+                         nameBoundary = c ("26A", "29B", "29C"), 
                          nameBoundaryGeom="wkb_geometry",
-                         nameCutblockTable = "public.cns_cut_bl_polygon",
                          nameAgeRaster= "rast.vri2017_projage1",
                          nameHeightRaster= "rast.vri2017_projheight1",
                          nameCrownClosureRaster= "rast.vri2017_crownclosure"),
@@ -52,23 +51,14 @@ roadCLUS = list(roadMethod = 'snap',
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_resource'),
 rsfCLUS = list(calculateInterval = 2,
-               checkRasters = TRUE)
+               checkRasters = TRUE,
+               criticalHabitatTable = 'public.crithab_lu')
 )
 
 modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' AND season = 'LW'"))
-# see rsf_model_coeff.rmd  
-rsf_model_coeff$static = 'Y'
-rsf_model_coeff[sql== 'age', sql := 'rast.vri2017_projage1']
-rsf_model_coeff[sql== 'roadyear >= 0', sql := 'rast.dt_crds_resource']
-rsf_model_coeff[sql== 'blockid > 0 AND age BETWEEN 0 AND 4', sql := 'rast.dt_cutblock_1_4']
-rsf_model_coeff[sql== 'blockid > 0 AND age BETWEEN 5 AND 9', sql := 'rast.dt_cutblock_5_9']
-rsf_model_coeff[sql== 'blockid > 0 AND age BETWEEN 10 AND 29', sql := 'rast.dt_cutblock_10_29']
-rsf_model_coeff[sql== 'blockid > 0 AND age BETWEEN 30 AND 60', sql := 'rast.dt_cutblock_30_60']
-#rsf_model_coeff<-rsf_model_coeff[!(sql== 'rast.dist_to_ag'), ]
-rsf_model_coeff<-rsf_model_coeff[!(sql== 'rast.tave_wt'), ]
-#rsf_model_coeff<-rsf_model_coeff[!(sql== 'rast.ppt_snow_winter'), ]
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU7' and season = 'S'"))
+rsf_model_coeff[, bounds := 'rast.crithabitat']
 
 objects <- list (rsf_model_coeff = rsf_model_coeff)
 paths <- list(
