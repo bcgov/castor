@@ -267,7 +267,7 @@ rsfCLUS.StandardizeDynamicRSFCovar<-function(sim){
   
     dynamic_equals<-paste(dynamic_list$equate, sep ="' '", collapse = ", ")
     dynamic_assign<-parse(text=paste0("`:=`(",dynamic_equals ,")"))
-    sim$rsfcovar[,eval(dynamic_assign)] #Assign the new names with the imported (old) layers
+    sim$rsfcovar[,eval(dynamic_assign)] # Assign the new names with the imported (old) layers
   
     cm <- setNames(dynamic_list$mean, dynamic_list$layer_uni)#A named vector pertaining to the mean
     csd <- setNames(dynamic_list$sdev, dynamic_list$layer_uni) #A named vector pertaining to the standard deviation
