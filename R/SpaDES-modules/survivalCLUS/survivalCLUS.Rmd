@@ -5,10 +5,12 @@ date: "20 August 2019"
 output: pdf_document
 ---
 
-## Overview
-This module calculates the survival rate of female caribou as a function of the amount of early seral (i.e., 1 to 40 year old) forest in caribou herd ranges using he model developed by [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x) (see details in '\R\caribou_habitat\25_Wittmer_caribou_model'). The module requires input on forest age (output of CLUS disturbance modules), the caribou herd area of interest and the density of caribou in the herd. 
+# Overview
+This module estimates the survival rate of female caribou in herd ranges as a function of the amount of early seral (i.e., 1 to 40 year old) forest in the range. The survival rate model comes from the reasearch done by [Wittmer et al. (2007)](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x) (see details in '/R/caribou_habitat/25_Wittmer_caribou_model') on southern mountain caribou (Designatable Unit 9). Specifically, we apply the population-scale model that Wittmer et al. (2007) developed. 
 
-Caribou herd and density parameters are set by the user. This model was developed for southern mountain caribou (Designatable Unit 9), and thus should only applied to those caribou herds.     
+The module requires input on forest age (output from the CLUS disturbance modules) and density of caribou herds. Currently, the caribou herd density parameter is static and must be set by the user. A caribou herd raster was derived from the provincial caribou herd boundary data set (see details in "/R/Params/caribou_herd_raster.rmd").
+
+We caution against using the model outside of the southern mountain caribou population range, as it was developed using data only from that population, and thus may not be applicable to other parts of BC. 
 
 # Usage
 
@@ -27,13 +29,13 @@ times <- list (start = 0, end = 1)
 parameters <- list (
   .progress = list (type = NA, interval = NA),
   .globals = list (),
-  dataLoaderCLUS = list (dbName = 'clus',
-                         nameBoundaryFile = "gcbp_carib_polygon",
-                         nameBoundaryColumn = "herd_name",
-                         nameBoundary = 'Muskwa', 
-                         nameBoundaryGeom = "geom",
-                         nameAgeRaster = "rast.vri2017_projage1"),
-  survivalCLUS = list (caribou_herd_density)
+  dataLoaderCLUS = list (dbName = 'clusdb',
+                         nameBoundaryFile = "",
+                         nameBoundaryColumn = "",
+                         nameBoundary = '', 
+                         nameBoundaryGeom = ""),
+  survivalCLUS = list (caribou_herd_density = 0.05,
+                       nameRasCaribouHerd = "ras.caribou_herd")
 )
 
 modules <- list ("dataLoaderCLUS", "survivalCLUS")
@@ -55,29 +57,19 @@ mysimout <- spades (mySim)
 ```
 
 # Events
-
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
+This module is pretty simple; there are three event types: 'init', 'calculateSurvival' and 'saveSurvival'. The 'init' event identifies herds in the sim study area, calculates the survival rate in each of those herds at time 0 and saves the survival rate estimates as a data.table in the sim. The 'calculateSurvival' event calculates the survival rate in each herd at each scehduled time interval. The 'saveSurvival' event saves the survival rate table (i.e., survival rate at time *t*, by herd) into the sim database (clusdb) at the end of the sim for use post-processing in data summary, etc.
 
 # Data dependencies
-
 ## Input data
-
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("survivalCLUS", "path/to/modules/dir")` may be sufficient.
+This module needs the 'age' field (i.e., age of forest) from the 'pixels' table in the sim RSQLite databases (clusdb) that gets instantiated at the start of the sim in the dataLoaderCLUS. 
 
 ## Output data
-
-Description of the module outputs.
+This module outputs a data.table that has the herd integer identifer (can be linked to caribou herd name by look-up table; see: "/R/Params/caribou_herd_raster.rmd") and estimated survival rate at each time interval of the sim.
 
 # Links to other modules
+The module will only work if the dataLoadDerCLUS clusdb is instantiated as part of the CLUS model. Otherwise you won't have the age data needed to make the survival rate calculation. 
 
-Describe any anticipated linkages to other modules.
+# Future Improvements
+- a data.table that lists herd name, correspoding raster integer and estimated density that would be a parameter input for more precisely calculating survival rate by herd
 
+- a linkage to a caribou population model so that population estimates can be calculated as a function of changing adult female survival rates estimated here 

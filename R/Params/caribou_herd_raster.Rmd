@@ -10,22 +10,20 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Purpose
-This rmd produces a raster that specifies the caribou herd boundaries in British Columbia. It can be used to summarize or calculate information by caribou herd area. Currently, it is used in the survivalCLUS SpaDES module to estimate caribou survival rates by herd as a function of forest age there. 
+This rmd produces a raster that specifies the caribou herd boundaries in British Columbia. It can be used in the CLUS model to summarize or calculate information by caribou herd area. Currently, it is used in the survivalCLUS SpaDES module to estimate caribou survival rates by herd as a function of forest age there. 
 
 ## Spatial Data on Caribou Herds
-First, we'll get the caribou herd boundary data from the British Columbia government data warehouse (BCGW). TO do this we use the [bcdata](https://github.com/bcgov/bcdata) package. 
-
-The data can also be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc). 
+First, we'll get the caribou herd boundary data from the British Columbia government data warehouse (BCGW). TO do this we use the [bcdata](https://github.com/bcgov/bcdata) package. The data can also be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc). 
 
 ```{r, get herd data from BCGW}
 library (bcdata)
 library (sf)
 
-poly.caribou <- bcdata::bcdc_get_data ("caribou-herd-locations-for-bc") # herd boundary data is named "caribou-herd-locations-for-bc" in teh BCGW; can use bcdc_search ("caribou") as a way to search for the data
+poly.caribou <- bcdata::bcdc_get_data ("caribou-herd-locations-for-bc") # herd boundary data is named "caribou-herd-locations-for-bc" in the BCGW; can use bcdc_search ("caribou") as a way to search for the data using the bcdata package
 ```
 
 ## Rasterize the Data
-Here we convert the polygon to a raster, following the provincial hectares BC raster convention that we are using to ensure all rasters overlap.
+Here we convert the polygon to a raster, following the provincial hectares BC raster convention that we are using in the CLUS model to ensure all rasters overlap.
 
 ```{r, convert polygon to raster}
 library (raster)
@@ -40,26 +38,26 @@ prov.rast <- raster::raster ( # create the standardized provincial raster with n
 
 poly.caribou$herd_integer <- as.integer (as.factor (poly.caribou$HERD_NAME)) # create an integer equivalent to herd name
 
-ras.caribou.herd <-fasterize::fasterize(poly.caribou, prov.rast, field = "herd_integer") 
+ras.caribou.herd <-fasterize::fasterize (poly.caribou, prov.rast, field = "herd_integer") 
 # turn the polygon into a raster
 
-plot(ras.caribou.herd) # make sure the raster looks good
+plot (ras.caribou.herd) # make sure the raster looks good
 ```
 
 ## Create Look-up Table
-Here we create a look-up table for the raster so we can translate the raster into herd names.
+Here we create a look-up table for the raster so we can translate the raster into herd names later.
 
 ```{r, create look-up table for raster}
 library (data.table)
 
-lu_caribouHerd <- unique (data.table( cbind (poly.caribou$herd_integer, poly.caribou$HERD_NAME)))
+lu_caribouHerd <- unique (data.table (cbind (poly.caribou$herd_integer, poly.caribou$HERD_NAME)))
 lu_caribouHerd <- lu_caribouHerd [order(V1)]
-setnames (lu_caribouHerd, c("V1", "V2"), c("raster_interger", "herd_name"))
+setnames (lu_caribouHerd, c("V1", "V2"), c("raster_integer", "herd_name"))
 
 ```
 
 ## Commit the Data to the PostgreSQL database
-Now we just need to save the data. We save the raster to the raster schema and look-up table to the public schema. 
+Now we need to save the data. We save the raster to the raster schema and look-up table to the public schema in our postgreSQL database. 
 
 ```{r, commit data to the dbase}
 library (DBI)
@@ -74,11 +72,6 @@ DBI::dbWriteTable (conn, c("public", "caribou_herd"), value = lu_caribouHerd,
 writeRaster (ras.caribou.herd, file = "caribou_herd.tif", format = "GTiff", overwrite = TRUE)
 
 #upload to db
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here (), '/R/params/caribou_herd.tif -t 100x100 ras.caribou_herd | psql -d clus -h ', keyring::key_get('dbhost', keyring = 'postgreSQL'), ' -U ',user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,'-W ', password = keyring::key_get('dbpass', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here (), '/R/params/caribou_herd.tif -t 100x100 ras.caribou_herd | psql postgresql://clus_project:clus@DC052586:5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 ```
-
-
-
-
-
