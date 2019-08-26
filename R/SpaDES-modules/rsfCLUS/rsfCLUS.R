@@ -116,7 +116,6 @@ rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
         #Start with the RC or Reclass variables
         if (rsf_model_coeff[sql == layer_name & layer != 'int']$type == 'RC' ){ # if the covariate is a reclass 'RC' type
             rclass_text <- rsf_model_coeff[sql == layer_name & layer != 'int']$reclass # create a table of the reclass SQL statement
-            message(rclass_text)
             layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
                 RASTER_CLIP_CAT(srcRaster = layer_name, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                        clipper = sim$boundaryInfo[[1]], 
