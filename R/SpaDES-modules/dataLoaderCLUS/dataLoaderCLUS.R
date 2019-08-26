@@ -267,7 +267,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       if(aoi == extent(ras.zone)){#need to check that each of the extents are the same
         pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone)))))
         setnames(pixels, "V1", paste0('zone',i))#SET zone NAMES to RASTER layer
-        dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric')) # add teh zone id column and populate it with the zone names
+        dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric')) # add the zone id column and populate it with the zone names
         dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone", i, "', '", P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], "')" ))
         # message(head(zones_aoi))
         rm(ras.zone)
