@@ -46,7 +46,7 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
-times <- list(start = 0, end = 2)
+times <- list(start = 0, end = 5)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -63,16 +63,22 @@ parameters <- list(
                          nameCompartmentRaster = "rast.forest_tenure"),  
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.beo_const',
-                      nameCutblockRaster ="rast.cns_cut_bl2002",
+                      nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
   forestryCLUS = list( harvestPriority = "age DESC, vol DESC, crowncover DESC"),
   roadCLUS = list(roadMethod = 'snap', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.pre_roads')
+                  nameRoads =  'rast.crds_resource'),
+  rsfCLUS = list(calculateInterval = 1,
+                 criticalHabitatTable = "public.crithab_lu")
                 )
 
-modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS")
+modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "rsfCLUS")
+
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' AND season = 'S'"))
+# see rsf_model_coeff.rmd   
+
 harvestFlow<- data.table(compartment = c('24E','24E','24E','24E','24E','24E','24E','24E','24E','24E'),
                                    partition = 'vol > 50',
                                    year = rep(seq(from = 2018, to=2027, by = 
