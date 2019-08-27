@@ -1,0 +1,230 @@
+---
+title: "Moose Spatial Data"
+author: "Tyler Muhly"
+date: "26/08/2019"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set (echo = TRUE)
+```
+
+## Introduction
+Here I provide the workflow and scrip for summarizing spatial data within wildlfie management units (WMUs) in British Columbia. The prupose is to provide spaital information on wildlfie habitat that can be linked to wildlife popualtion density collected in WMUs. This data can then be used to  create staisticla models realting to habtiat and wildlife. These models help achieve the objectives of providing soem undertsadnign of how habtiat is related to popautlions, and for estimating future densities under changing landscape conditions. Thus, teh foucs here is on measuruing vegetation, climate and human footprint (e.g, raods) in WMUs.
+
+## Methods
+Here I outline the steps for aquiring data and linking it to the WMU data
+
+### Step 1: Management Boundaries
+First, we need the management boundaries where we are going to summarize the habitat data. Here I am using WMUs adn limited entry hunting (LEH) zones, becuase the focus is on moose, and data on moose density is typically estimated within WMUs or LEH zones. These data can also be easily scaled up to game managmen zones (GMZs). I get the data from the British Columbia government data warehouse (BCGW) using the [bcdata](https://github.com/bcgov/bcdata) package. WMU data can also be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/wildlife-management-units) and LEH zone data can be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-polygons-1-20-000). 
+
+```{r, management unit spatial data, echo = T, message = F, warning = F}
+library (bcdata)
+library (sf)
+library (rgdal)
+# bcdata::bcdc_search ("wildlife") # can use this to search for data
+
+poly.wmu <- bcdc_get_data ("wildlife-management-units") # name of the data in BCGW
+plot (st_geometry (poly.wmu)) # check to make sure it looks ok
+# poly.leh <- bcdc_get_data ("limited-entry-hunting-zone-polygons-1-20-000") # name of the data in BCGW
+# The LEH data is not currently accesible via the bcdata package; so I will use the download version and load that shapefile here
+poly.leh <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                         layer = "leh_zones",
+                         query = "SELECT LIMITED_ENTRY_HUNTING_ZONE, MANAGEMENT_UNITS FROM leh_zones") # only select the LEH columns
+poly.leh <- sf::st_transform (poly.leh, st_crs (poly.wmu))
+
+# there a topology problem with the data; Ring Self-intersection
+# st_is_valid (poly.leh) # four polygons have invalid geometry
+poly.leh <- poly.leh [st_is_valid (poly.leh), ] # this drops those invalid geometries
+
+plot (st_geometry (poly.leh)) # check to make sure it looks ok  
+
+# game management zones (gmz's)
+poly.gmz <- bcdc_get_data ("game-management-zones")
+plot (st_geometry (poly.gmz)) # check to make sure it looks ok  
+
+```
+
+### Step 2: Spatial Habitat Data
+I obtained extensive spatial data from publically accesible data souces wherever possible to facilate re-analysis of data and transparacenty of the analysis. Our transparent adn accessible approach allows others 
+
+
+
+#### Vegetation
+
+Internal version, but eventually all will be public
+
+
+# VRI Internal; downloaded 25 July 2018
+# NOTE: the internal data provides access to VRI in TFLs, which is NOT available in the public version 
+# <\\spatialfiles2.bcgov\work\FOR\VIC\HTS\DAM\WorkArea\Mcdougall\Projects\2018\PROJECTION_2018\Data\INTERNAL_VEG_COMP\INTERNAL_VEGCOMP
+# Name in GDB: vri_internal_20180725
+
+
+
+
+#### Water Features
+I estimated the total area of waterbodies in each WMU by calculating the area of [lakes](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-lakes), [wetlands](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-wetlands) and [watercourses](https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm)).
+
+
+
+#### Insect Dsturabnces
+# Mountain Pine Beetle
+# https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/aerial-overview-surveys/methods
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2017/Final%20Dataset/FHF_2017.zip", 
+            dest = "mountain_pine_beetle\\2017.zip", 
+            mode = "wb")
+unzip ("mountain_pine_beetle\\2017.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2017")
+file.remove ("mountain_pine_beetle\\2017.zip")
+  
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2016/AOS_2016_Shapefiles_and_TSA_Spreadsheet_Jan25.zip",
+          dest = "mountain_pine_beetle\\2016.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2016.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2016")
+file.remove ("mountain_pine_beetle\\2016.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2015/final_prov_data/FHF_spatial_Feb11.zip",
+          dest = "mountain_pine_beetle\\2015.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2015.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2015")
+file.remove ("mountain_pine_beetle\\2015.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2014/2014_FHF_Jan23.zip",
+          dest = "mountain_pine_beetle\\2014.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2014.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2014")
+file.remove ("mountain_pine_beetle\\2014.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2013/FHF_2013_Jan24.zip",
+          dest = "mountain_pine_beetle\\2013.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2013.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2013")
+file.remove ("mountain_pine_beetle\\2013.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2012/FHF_Final_12132012.zip",
+          dest = "mountain_pine_beetle\\2012.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2012.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2012")
+file.remove ("mountain_pine_beetle\\2012.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2011/final_2011_aos_July30.zip",
+          dest = "mountain_pine_beetle\\2011.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2011.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2011")
+file.remove ("mountain_pine_beetle\\2011.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2010/fhdata%20final%2012162010.zip",
+          dest = "mountain_pine_beetle\\2010.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2010.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2010")
+file.remove ("mountain_pine_beetle\\2010.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2009/replacement%20spatial%20and%20MDB%20files-20100111.zip",
+          dest = "mountain_pine_beetle\\2009.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2009.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2009")
+file.remove ("mountain_pine_beetle\\2009.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2008/2008_BC_overview.zip",
+          dest = "mountain_pine_beetle\\2008.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2008.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2008")
+file.remove ("mountain_pine_beetle\\2008.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2007/final_version/fhf_shapefiles_20080103.zip",
+          dest = "mountain_pine_beetle\\2007.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2007.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2007")
+file.remove ("mountain_pine_beetle\\2007.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2006/fhdata_2006_final.zip",
+          dest = "mountain_pine_beetle\\2006.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2006.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2006")
+file.remove ("mountain_pine_beetle\\2006.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2005/Final/fhfdata_2005.zip",
+          dest = "mountain_pine_beetle\\2005.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2005.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2005")
+file.remove ("mountain_pine_beetle\\2005.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2004/fhf_complete_dataset_20050218.zip",
+          dest = "mountain_pine_beetle\\2004.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2004.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2004")
+file.remove ("mountain_pine_beetle\\2004.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip",
+          dest = "mountain_pine_beetle\\2003.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2003.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2003")
+file.remove ("mountain_pine_beetle\\2003.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2002/fhf-nov15-2002.zip",
+          dest = "mountain_pine_beetle\\2002.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2002.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2002")
+file.remove ("mountain_pine_beetle\\2002.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2001/shape_files/fhdata2001.zip",
+          dest = "mountain_pine_beetle\\2001.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2001.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2001")
+file.remove ("mountain_pine_beetle\\2001.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2000/provincial_data/shape.zip",
+          dest = "mountain_pine_beetle\\2000.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2000.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2000")
+file.remove ("mountain_pine_beetle\\2000.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/1999/shape/Prov_Shape.zip",
+          dest = "mountain_pine_beetle\\1999.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\1999.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\1999")
+file.remove ("mountain_pine_beetle\\1999.zip")
+# NAmes in gdb: mpb_2017 to mpb_1999
+
+#### Human LAnscape Disturbances
+
+##### Roads
+https://catalogue.data.gov.bc.ca/dataset/243c94a1-f275-41dc-bc37-91d8a2b26e10
+
+total length of [roads](https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-demographic-partially-attributed-roads)
+
+##### Cutblocks
+[consolidated cutblock](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) polygons using data from the DataBC catalogue. 
+
+
+#### Fire
+[historic](https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical) and [2018](https://catalogue.data.gov.bc.ca/dataset/fire-locations-current) fire perimeters
+
+
+#### Climate
+
+
+### Step 3: Summarize Spatial Data by Management Unit
+#### Vegetation
+....
+
+
