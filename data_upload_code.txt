@@ -1,0 +1,182 @@
+::CLUS data base development
+::cmd prompt codes to transfer and reorganize data
+
+::Province
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc\dem_all_bc_proj3.tif -t 100x100 public.dem_all_bc_proj3 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\out\data\tile\RoadDensR.tif -t 100x100 public.PreRoadDens | psql -d clus
+
+gdalwarp  -tr 100 100  -te 159587.5 173787.5 1881187.5 1748187.5 -dstnodata 255 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc\bc_ha_slope.tif  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc\bc_ha_slope2.tif
+
+gdalwarp -r cubic -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5  Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\wetland\boreal\Enhanced_Wetland_Classification\wettype.ewcmosaic.tif Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\wetland\boreal\Enhanced_Wetland_Classification\wettype.ewcmosaic_3005.tif
+gdalwarp -t_srs EPSG:3005 -multi -tap -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\bec\BEC_current\raster\becCurrRas.tif  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\bec\BEC_current\raster\becCurrRas3005.tif
+
+raster2pgsql -s 3005 -d -I -C -M -N 255 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc\bc_ha_slope2.tif -t 100x100 rast.bc_ha_slope | psql -d clus
+
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\R\tmp\prov_layer.tif -t 100x100 public.bc_thlb | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\thlb2018.tif -t 100x100 public.ras_bc_thlb2018 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\similar.tif -t 100x100 public.ras_similar_vri2003 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\thlb_nir_Lyr.tif -t 100x100 public.ras_thlb_nir_Lyr2018 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\thlb_rco_Lyr.tif -t 100x100 public.ras_thlb_rco_Lyr2018 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\thlb_sir_Lyr.tif -t 100x100 public.ras_thlb_sir_Lyr2018 | psql -d clus
+
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\workarea\PROVINCIAL\bc_mask.tif -t 100x100 public.bc_bound_ras | psql -d clus
+
+
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\work\FOR\VIC\HTS\DAM\WorkArea\Mcdougall\Projects\2018\PROJECTION_2018\Data\INTERNAL_VEG_COMP\INTERNAL_VEGCOMP\VEG_COMP_2017.gdb VEG_COMP_POLY -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\work\FOR\VIC\HTS\DAM\WorkArea\Mcdougall\Projects\2018\PROJECTION_2018\Data\INTERNAL_VEG_COMP\INTERNAL_VEGCOMP\VEG_COMP_LYR_L1_POLY.gdb VEG_COMP_LYR_L1_POLY -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\FAIB_DATA_FOR_DISTRIBUTION\THLB\Consolidated_THLB.gdb THLB_data_NIR -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\FAIB_DATA_FOR_DISTRIBUTION\THLB\Consolidated_THLB.gdb THLB_data_SIR -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\FAIB_DATA_FOR_DISTRIBUTION\THLB\Consolidated_THLB.gdb THLB_data_RCO -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\FAIB_DATA_FOR_DISTRIBUTION\THLB\2018_BC_THLB\THLB.gdb BC_THLB -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\work\FOR\VIC\HTS\DAM\WorkArea\DATA\VRI2003\VRI2003_VEG_COMP_LYR_R1_POLY_FINAL_DELIVERYv2.gdb  -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+gdal_rasterize -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5 PG:"dbname=clus host = localhost password=postgres" -l public.veg_comp_lyr_l1_poly -a bclcs_level_1 C:\Users\KLOCHHEA\clus\vri_bclc1.tif
+
+::Roads Layers
+gdalwarp -r cubic -multi -tap -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5 Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\wetland\boreal\Enhanced_Wetland_Classification\wettype.ewcmosaic.tif Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\wetland\boreal\Enhanced_Wetland_Classification\wettype.ewcmosaic_3005.tif
+
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_loose.tif -t 100x100 public.crds_loose | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_paved.tif -t 100x100 public.crds_paved | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_petroleum.tif -t 100x100 public.crds_petroleum | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_rough.tif -t 100x100 public.crds_rough | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_trim_transport.tif -t 100x100 public.crds_trim_transport | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_unknown.tif -t 100x100 public.crds_unknown | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\pre_roads.tif -t 100x100 public.pre_roads_ras | psql -d clus
+
+gdal_proximity C:\Users\KLOCHHEA\clus\R\outputs\Barkerville\Barkerville.tif C:\Users\KLOCHHEA\clus\R\outputs\Barkerville\dist.tif 
+
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\dist_crds_paved.tif -t 100x100 rast.dt_crds_paved | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\dist_crds_resource.tif -t 100x100 rast.dt_crds_resource| psql -d clus
+
+::Beetle and Fire
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\forest_health\raster_bark_beetle_all_1to5yo_fin.tif -t 100x100 rast.beetle_1_to_5| psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\forest_health\raster_bark_beetle_all_6to9yo_fin.tif -t 100x100 rast.beetle_6_to_9| psql -d clus
+
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_1to5yo_fin.tif -t 100x100 rast.fire_1_to_5| psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_6to25yo_fin.tif -t 100x100 rast.fire_6_to_25| psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_over25yo_fin.tif -t 100x100 rast.fire_gt_25| psql -d clus
+
+
+
+::WaterCourses and Pipelines
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\water\raster_lakes_20180816.tif -t 100x100 public.lakes | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\water\raster_watercourses_20180816.tif -t 100x100 public.watercourses | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\pipelines\raster_pipelines_20180815.tif -t 100x100 public.pipelines | psql -d clus
+
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\pipelines\raster_distance_to_pipelines_bcalbers_20180815.tif -t 100x100 rast.dt_pipelines| psql -d clus
+
+::ClimateBC downloads
+gdalwarp -t_srs EPSG:3005 -multi -tap -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\bec\BEC_current\raster\becCurrRas.tif  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\bec\BEC_current\raster\becCurrRas3005.tif
+raster2pgsql -s 4326 -d -I -C -M  C:\Users\KLOCHHEA\Downloads\BEC_zone_2080s\BEC_zone_2080s.tif  -t 100x100 public.BEC_zone_2080s | psql -d clus
+
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\study_areas\clus_study_areas.gdb "study_area_caribou_herd" -lco SCHEMA=public -overwrite -progress --config PG_USE_COPY YES
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\landscape_units\BCGW_78757263_1532118854596_10700\RMP_LANDSCAPE_UNIT_SP\RMP_LU_SP_polygon.shp -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\tenure\BCGW_7113060B_1536165367998_24468\FADM_TFL_DELETION\FADM_TFLDE_polygon.shp -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\tenure\BCGW_7113060B_153619006597_19052\FADM_TFL\FADM_TFL_polygon.shp -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+::RoadCost surface
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5    \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\cost_surface.tif  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\cost_surface_bc_ha.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\cost_surface_bc_ha.tif -t 100x100 rast.rd_cost_surface | psql -d clus
+
+::Forest tenure roads
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" O:\!Workgrp\Analysts\lochhead\BCGW_7113060B_1537299656346_19436\FTEN_ROAD_SECTION_LINES_SVW\FTEN_RS_LN_line.shp -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+raster2pgsql -s 3005 -d -I -C -M  C:\Users\KLOCHHEA\clus\out\data\tile\RoadDensR.tif -t 100x100 public.ften_roads_ras | psql -d clus
+
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\landscape_units\RMP_LANDSCAPE_UNIT_SP\RMP_LU_SP_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+::VRI
+raster2pgsql -s 3005 -d -I -C -M -N 2147483648  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_projage1.tif -t 100x100 rast.vri2017_projage1 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_projheight1.tif -t 100x100 rast.vri2017_projheight1 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_crownclosure.tif -t 100x100 rast.vri2017_crownclosure | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_basalarea.tif -t 100x100 rast.vri2017_basalarea | psql -d clus
+
+
+::ZONES
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\REC_VISUAL_LANDSCAPE_INVENTORY\REC_VLND_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\RMP_OGMA_LEGAL_ALL_SVW\OGMA_LEGAL_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\RMP_PLAN_LEGAL_LINE_SVW\RMP_LGL_LN_line.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\RMP_PLAN_LEGAL_POINT_SVW\RMP_LG_PN_point.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\RMP_PLAN_LEGAL_POLY_SVW\RMP_LG_PL_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\RMP_STRGC_LAND_RSRCE_PLAN_SVW\RMPSLR_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\TA_WILDLIFE_MGMT_AREAS_SVW\TA_WMA_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\WCP_FISH_SENSITIVE_WS_POLY\WCP_F_S_WS_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\WCP_UNGULATE_WINTER_RANGE_SP\WCP_UWR_SP_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\WCP_WILDLIFE_HABITAT_AREA_POLY\WCP_WHAPLY_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\WLS_COMMUNITY_WS_PUB_SVW\COM_WS_PUB_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\F_OWN\F_OWN_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\FADM_DESIGNATED_AREAS\FADM_DESAR_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\TA_PARK_ECORES_PA_SVW\TA_PEP_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_basalarea.tif -t 100x100 rast.vri2017_basalarea | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_siteindex.tif -t 100x100 rast.vri2017_siteindex | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\water\raster_dist_to_watercourses_bcalbers_20180820.tif -t 100x100 rast.dt_watercourses | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\water\raster_dist_to_lakes_bcalbers_20180820.tif -t 100x100 rast.dt_waterbodies | psql -d clus
+
+
+::Caribou
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\study_areas\du6\caribou_boreal_study_area.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\study_areas\du8\du8_herds_buff25km.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\study_areas\du7\du7_herds_buff25km.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" Z:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\study_areas\du9\du9_herds_buff25km.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+::Cutblocks
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_dist_cutblocks_1to4yo.tif -t 100x100 rast.dt_cutblock_1_4 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_dist_cutblocks_5to9yo.tif -t 100x100 rast.dt_cutblock_5_9 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_dist_cutblocks_5yo_over.tif -t 100x100 rast.dt_cutblock_5o | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_dist_cutblocks_10to29yo.tif -t 100x100 rast.dt_cutblock_10_29 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_dist_cutblocks_10yo_over.tif -t 100x100 rast.dt_cutblock_10o | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_dist_cutblocks_30yo_over.tif -t 100x100 rast.dt_cutblock_30o | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_cutblocks_2003_2017.tif -t 100x100 rast.cutblock_new_0_15 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\cutblocks\cutblock_tiffs\raster_cutblocks_1988_2002.tif -t 100x100 rast.cutblock_old_16_30 | psql -d clus
+
+
+::Topography
+gdalwarp -t_srs EPSG:3005 -multi -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5  S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\northness_all_bc_int_x1000.tif  S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\northness_all_bc_int_x1000_2.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\northness_all_bc_int_x1000_2.tif -t 100x100 rast.northnessx1000 | psql -d clus
+gdalwarp -t_srs EPSG:3005 -multi -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5  S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\eastness_all_bc_int_x1000.tif  S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\eastness_all_bc_int_x1000_2.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\eastness_all_bc_int_x1000_2.tif -t 100x100 rast.eastnessx1000 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\dem_ha_bc.tif -t 100x100 rast.dem | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\dem\all_bc\elevation_sq.tif -t 100x100 rast.dem_sq | psql -d clus
+
+::Climate for RSF
+gdalwarp -t_srs EPSG:3005 -multi -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5  S:\ANA\PROJECTS\CLUS\Data\climate\annual\map  S:\ANA\PROJECTS\CLUS\Data\climate\annual\map\map.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\annual\map\map.tif -t 100x100 rast.map| psql -d clus
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\annual\mat  S:\ANA\PROJECTS\CLUS\Data\climate\annual\mat\mat.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\annual\mat\mat.tif -t 100x100 rast.mat| psql -d clus
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm\ppt_sm.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm\ppt_sm.tif -t 100x100 rast.ppt_sm| psql -d clus
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_sm  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_sm\tave_sm.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_sm\tave_sm.tif -t 100x100 rast.tave_sm| psql -d clus
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_wt  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_wt\tave_wt.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_wt\tave_wt.tif -t 100x100 rast.tave_wt | psql -d clus
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas  S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas\pas.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas\pas.tif -t 100x100 rast.pas | psql -d clus
+
+
+::RSF Mines and Ag
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\mine\raster_distance_to_mines_ce_2015_bcalbers.tif -t 100x100 rast.dt_mines | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\agriculture\raster_dist_to_agriculture_ce_2015.tif -t 100x100 rast.dt_agriculture | psql -d clus
+
+
+::RSF vegetation
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_deciduous.tif -t 100x100 rast.vri2017_deciduous | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_conifer.tif -t 100x100 rast.vri2017_conifer | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_herb.tif -t 100x100 rast.vri2017_herb | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_nonveg_land.tif -t 100x100 rast.vri2017_nonveg_land | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_pine.tif -t 100x100 rast.vri2017_pine| psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_nonveg_water.tif -t 100x100 rast.vri2017_nonveg_water | psql -d clus
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_nonveg_land_no_urban.tif  S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_nonveg_land_no_urban_2.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_nonveg_land_no_urban_2.tif -t 100x100 rast.vri2017_nonveg_land_no_urban | psql -d clus
+
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_urban.tif -t 100x100 rast.vri2017_urban | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_not_pine_2003to2017.tif -t 100x100 rast.fire_not_pine_15 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_pine_2003to2017.tif -t 100x100 rast.fire_pine_15 | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_over25yo_fin.tif -t 100x100 rast.fire_old_25 | psql -d clus
