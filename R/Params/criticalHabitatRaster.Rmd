@@ -19,7 +19,7 @@ The critical habitats may come in various data structure forms like .shp or .gdb
 ```{r, data}
 library(sf)
 #Chilcotin
-chilcotin<-sf::st_read("Z:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/BC/chilcotin_lpu/eis_19_004_bc_core_chilcotin_v20190731.gdb", layer ='BCHabitat_20190731')
+chilcotin<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/BC/chilcotin_lpu/eis_19_004_bc_core_chilcotin_v20190731.gdb", layer ='BCHabitat_20190731')
 chilcotin<-st_cast(chilcotin, "MULTIPOLYGON")
 chilcotin$critCode<-paste(chilcotin$Herd_Code,chilcotin$BCHab_code, sep = "_")
 
@@ -57,5 +57,5 @@ DBI::dbWriteTable(conn, c("public", "criticalhabitat"), value= lu_critHab, row.n
 writeRaster(ras.chilcotin, file="criticalhabitat.tif", format="GTiff", overwrite=TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/R/params/criticalhabitat.tif -t 100x100 rast.crithabitat | psql -d clus-h ', keyring::key_get('dbhost', keyring = 'postgreSQL'), ' -U ',user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,'-W ', password = keyring::key_get('dbpass', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/criticalhabitat.tif -t 100x100 rast.crithabitat | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```
