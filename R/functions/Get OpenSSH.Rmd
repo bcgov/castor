@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Get OpenSSH server. 
 
-Note there are many other ssh servers available. OpenSSH is available in Windows 10- as windows has opted to use this ssh server.
+Note there are many other ssh servers available. OpenSSH is available in Windows 10- as windows has opted to use this ssh server. By default this server is active - if it has been turned off go to Apps and turn on.
 
 *	Download the latest OpenSSH for Windows binaries (package OpenSSH-Win64.zip ).
 

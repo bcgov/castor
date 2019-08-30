@@ -7,7 +7,7 @@ output: html_document
 
 # Keyrings and keys
 
-Inside the credential store, there are keyrings that contain multiple keys. A keyring is secured with a single password, which then grants access to all of its keys. In the case of accessing a database this means we first create a key ring that holds all the information about the database (i.e., the keys). Second we unlock the key ring only once at the start of an R session. Lastly, in the code we then use `key_get()` to return the needed information like the host, dbname, user, password, etc.
+Inside the credential store, there are keyrings that contain multiple keys. A keyring is secured with a single password, which then grants access to all of its keys. In the case of accessing a database this means we first create a key ring that holds all the information about the database (i.e., the keys). Second we unlock the key ring only once at the start of an R session. Lastly, in the code we then use `key_get()` to return the needed information like the host, dbname, user, password, etc. Note this can be started for any project.
 
 ```{r, install_keyring}
 #install.packages("keyring")

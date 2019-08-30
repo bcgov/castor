@@ -22,7 +22,7 @@ Conditional harvesting means that there is some level of retention required duri
 library(data.table)
 library(sf)
 library(here)
-source (paste0 (here(),"/R/functions/R_Postgres.R"))
+source (paste0(here(),"/R/functions/R_Postgres.R"))
 
 wha_poly<-getSpatialQuery("SELECT ogc_fid, wha_tag, feat_notes, aprv_date, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN 
 (SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.study_area_tsa b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
@@ -723,9 +723,9 @@ wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 
 ### Clean up and Commit data
 ```{r, clean_commit}
-#writeRaster(wha.ras, file=paste0(here(), "/wha.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(wha.ras, file=paste0(here(), "/wha.tif"), format="GTiff", overwrite=TRUE)
 
-#system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha.tif -t 100x100 rast.zone_wha | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha.tif -t 100x100 rast.zone_cond_wha |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 df<-as.data.frame(zone_wha)
 df$ndt<-as.integer(0)

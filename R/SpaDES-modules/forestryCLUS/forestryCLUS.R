@@ -49,7 +49,8 @@ defineModule(sim, list(
     createsOutput(objectName = "compartment_list", objectClass = "character", desc = NA),
     createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc = NA),
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA),
-    createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA)
+    createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
+    createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA)
   )
 ))
 
@@ -94,6 +95,10 @@ forestryCLUS.Init <- function(sim) {
     nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
     dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
+  
+  #For printing out rasters of harvest blocks
+  sim$harvestBlocks<-sim$ras
+  sim$harvestBlocks[]<-0
   
   return(invisible(sim))
 }
@@ -231,7 +236,11 @@ forestryCLUS.getHarvestQueue<- function(sim) {
           rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
         dbClearResult(rs)
         dbCommit(sim$clusdb)
-      
+        
+        #Save the harvesting raster
+        sim$harvestBlocks[queue$pixelid]<-time(sim)
+        writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
+        
         #Set the harvesting report
         sim$harvestReport<- rbindlist(list(sim$harvestReport, list(time(sim), compart, sum(queue$thlb) , sum(queue$vol_h))))
       
@@ -244,7 +253,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
         
         #clean up
-        rm(land_coord, land_pixels)
+        rm(land_coord, land_pixels, queue)
       }
     } else{
       next #No volume demanded in this compartment
