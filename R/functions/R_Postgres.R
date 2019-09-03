@@ -12,7 +12,12 @@ library(sp)
 
 #Simple database connectivity functions
 getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL')
+                       )
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
