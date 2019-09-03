@@ -74,6 +74,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
                   sim <- blockingCLUS.setAdjTable(sim)
                   sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
+                  sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
                }
                
                #Schedule the Update 
@@ -84,9 +85,8 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                sim <- blockingCLUS.setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
              }
-      )
+          )
       
-      #sim <- scheduleEvent(sim, eventTime = end(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
     },
     buildBlocks = {
         sim <- blockingCLUS.spreadBlock(sim)
@@ -324,7 +324,7 @@ blockingCLUS.preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
-  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+  #writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   rm(zones, result, blockids, max_blockid)
   gc()
   return(invisible(sim))
