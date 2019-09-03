@@ -1,0 +1,338 @@
+"","species","population","season","bounds","static","beta","layer","type","sql","reclass","mean","sdev"
+"1","caribou","DU6","EW","rast.du6_bounds","Y",-2.56292,"int","","","",0,1
+"2","caribou","DU6","EW","rast.du6_bounds","Y",-0.01776,"bc_ha_slope","","rast.bc_ha_slope","",1.29,1.7
+"3","caribou","DU6","EW","rast.du6_bounds","Y",-0.0187,"dt_waterbodies","DT","rast.dt_waterbodies","",1735.34,1321.73
+"4","caribou","DU6","EW","rast.du6_bounds","Y",-0.02206,"dt_watercourses","DT","rast.dt_watercourses","",8339.88,5611.6
+"5","caribou","DU6","EW","rast.du6_bounds","N",-0.05482,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",82949.34,62637.72
+"6","caribou","DU6","EW","rast.du6_bounds","N",-0.15491,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",44787.09,35184.17
+"7","caribou","DU6","EW","rast.du6_bounds","N",-0.1035,"blocks_10_60","DT","blockid > 0 AND age BETWEEN 10 AND 60","",24934.39,24867.17
+"8","caribou","DU6","EW","rast.du6_bounds","Y",0.03725,"dt_crds_paved","DT","rast.dt_crds_paved","",25318.03,18921.11
+"9","caribou","DU6","EW","rast.du6_bounds","N",0.0294,"dt_crds_resource","DT","roadyear >= 0","",603.36,573.78
+"10","caribou","DU6","EW","rast.du6_bounds","Y",0.00804,"dt_pipelines","DT","rast.dt_pipelines","",4011.11,4576.62
+"11","caribou","DU6","EW","rast.du6_bounds","Y",0.16724,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"12","caribou","DU6","EW","rast.du6_bounds","Y",0.49822,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"13","caribou","DU6","EW","rast.du6_bounds","Y",0.16128,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"14","caribou","DU6","EW","rast.du6_bounds","Y",-0.30526,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"15","caribou","DU6","EW","rast.du6_bounds","Y",-0.10831,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"16","caribou","DU6","EW","rast.du6_bounds","Y",-0.14529,"grow_deg_day","UP","rast.grow_deg_day","",1150.65,81.32
+"17","caribou","DU6","EW","rast.du6_bounds","Y",-0.15568,"ppt_snow_winter","UP","rast.ppt_snow_winter","",69,5.96
+"18","caribou","DU6","EW","rast.du6_bounds","Y",1,"bec_current","RC","rast.bec_current","''1-6:0,7:-0.1676, 8-129:0''",0,1
+"19","caribou","DU6","EW","rast.du6_bounds","Y",1,"demars_wetland","RC","rast.demars_wetland","''0:0.6786,1:0.6786,2:0.6786,3:0.6786,5:0.6786,6:0.6786,7:0.3420,8:0.2420,9:0.3420,10:0.242,11:0.3420,12:0.2420,13:0.6995,14:0.6995,15:0.6995,16:-0.0345,17:-0.0345,18:-0.0345,20:0.0504,21:0,22:-0.5054,23:-0.5054,24:0.6786,25:0.6786,26:0.6786,27:0.6786,28:0.6786,29:0.6786,30:0.6786,32:0.6786,33:0''",0,1
+"20","caribou","DU6","EW","rast.du6_bounds","Y",0.14354,"vri2017_bryoidcoverpct","UP","rast.vri2017_bryoidcoverpct","",17.21,15.12
+"21","caribou","DU6","EW","rast.du6_bounds","Y",0.12382,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",12.55,12.19
+"22","caribou","DU6","EW","rast.du6_bounds","N",0.0763,"age","UP","age","",96.49,37.78
+"23","caribou","DU6","EW","rast.du6_bounds","Y",0.08514,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",27.01,19.13
+"24","caribou","DU6","EW","rast.du6_bounds","N",-0.15519,"height","UP","height","",8.3,5.19
+"25","caribou","DU6","EW","rast.du6_bounds","N",0.00479,"crownclosure","UP","crownclosure","",30.6,18.42
+"26","caribou","DU6","LW","rast.du6_bounds","Y",-2.07467,"int","","","",0,1
+"27","caribou","DU6","LW","rast.du6_bounds","Y",-0.04153,"bc_ha_slope","","rast.bc_ha_slope","",1.34,1.82
+"28","caribou","DU6","LW","rast.du6_bounds","Y",0.00639,"dt_waterbodies","DT","rast.dt_waterbodies","",1931,1578.21
+"29","caribou","DU6","LW","rast.du6_bounds","Y",0.01268,"dt_watercourses","DT","rast.dt_watercourses","",7895.47,5457.52
+"30","caribou","DU6","LW","rast.du6_bounds","N",-0.05606,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",77316.24,62919.17
+"31","caribou","DU6","LW","rast.du6_bounds","N",-0.04756,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",42942.93,34148.32
+"32","caribou","DU6","LW","rast.du6_bounds","N",-0.01363,"blocks_10_60","DT","blockid > 0 AND age BETWEEN 10 AND 60","",21326.91,21454.15
+"33","caribou","DU6","LW","rast.du6_bounds","Y",-0.00181,"dt_crds_paved","DT","rast.dt_crds_paved","",23662.42,16945.14
+"34","caribou","DU6","LW","rast.du6_bounds","N",0.03323,"dt_crds_resource","DT","roadyear >= 0","",611.28,571.51
+"35","caribou","DU6","LW","rast.du6_bounds","Y",0.06308,"dt_pipelines","DT","rast.dt_pipelines","",4452.44,5111.67
+"36","caribou","DU6","LW","rast.du6_bounds","Y",0.21316,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"37","caribou","DU6","LW","rast.du6_bounds","Y",-0.06136,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"38","caribou","DU6","LW","rast.du6_bounds","Y",-0.24502,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"39","caribou","DU6","LW","rast.du6_bounds","Y",-0.41433,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"40","caribou","DU6","LW","rast.du6_bounds","Y",-0.21353,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"41","caribou","DU6","LW","rast.du6_bounds","Y",0.04349,"grow_deg_day","UP","rast.grow_deg_day","",1156.49,78.84
+"42","caribou","DU6","LW","rast.du6_bounds","Y",-0.04058,"ppt_snow_winter","UP","rast.ppt_snow_winter","",69.27,6.13
+"43","caribou","DU6","LW","rast.du6_bounds","Y",1,"bec_current","RC","rast.bec_current","''1-6:0,7:-0.1676, 8-129:0''",0,1
+"44","caribou","DU6","LW","rast.du6_bounds","Y",1,"demars_wetland","RC","rast.demars_wetland","''0:0.3065,1:0.3065,2:0.3065,3:0.3065,5:0.3065,6:0.3065,7:-0.0718,8:0.3498,9:-0.0718,10:0.3498,11:-0.0718,12:0.3498,13:0.6486,14:0.6486,15:0.6486,16:-0.3210,17:-0.3210,18:-0.3210,20:0.0818,21:0,22:-1.0731,23:-1.0731,24:0.3065,25:0.3065,26:0.3065,27:0.3065,28:0.3065,29:0.3065,30:0.3065,32:0.3065,33:0''",0,1
+"45","caribou","DU6","LW","rast.du6_bounds","Y",0.13937,"vri2017_bryoidcoverpct","UP","rast.vri2017_bryoidcoverpct","",17.47,15.51
+"46","caribou","DU6","LW","rast.du6_bounds","Y",0.01874,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",11.98,11.98
+"47","caribou","DU6","LW","rast.du6_bounds","N",0.07537,"age","UP","age","",98.36,38.14
+"48","caribou","DU6","LW","rast.du6_bounds","Y",0.05259,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",24.84,17.6
+"49","caribou","DU6","LW","rast.du6_bounds","N",-0.21433,"height","UP","height","",8.79,5.65
+"50","caribou","DU6","LW","rast.du6_bounds","N",0.08297,"crownclosure","UP","crownclosure","",32.79,18.3
+"51","caribou","DU6","S","rast.du6_bounds","Y",-1.78539,"int","","","",0,1
+"52","caribou","DU6","S","rast.du6_bounds","Y",-0.05895,"bc_ha_slope","","rast.bc_ha_slope","",1.31,1.79
+"53","caribou","DU6","S","rast.du6_bounds","Y",0.06837,"dt_waterbodies","DT","rast.dt_waterbodies","",2078.08,1615.64
+"54","caribou","DU6","S","rast.du6_bounds","Y",0.05367,"dt_watercourses","DT","rast.dt_watercourses","",8416.94,5912.19
+"55","caribou","DU6","S","rast.du6_bounds","N",-0.11194,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",81359.64,64925.71
+"56","caribou","DU6","S","rast.du6_bounds","N",-0.26659,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",43750.26,32983.11
+"57","caribou","DU6","S","rast.du6_bounds","N",-0.16262,"blocks_10_60","DT","blockid > 0 AND age BETWEEN 10 AND 60","",21859.19,21818.8
+"58","caribou","DU6","S","rast.du6_bounds","Y",0.01986,"dt_crds_paved","DT","rast.dt_crds_paved","",24735.56,17889.59
+"59","caribou","DU6","S","rast.du6_bounds","N",0.06206,"dt_crds_resource","DT","roadyear >= 0","",639.35,594.59
+"60","caribou","DU6","S","rast.du6_bounds","Y",0.10752,"dt_pipelines","DT","rast.dt_pipelines","",4456.65,5235.59
+"61","caribou","DU6","S","rast.du6_bounds","Y",0.06845,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"62","caribou","DU6","S","rast.du6_bounds","Y",-0.2015,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"63","caribou","DU6","S","rast.du6_bounds","Y",-0.14326,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"64","caribou","DU6","S","rast.du6_bounds","Y",-0.25276,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"65","caribou","DU6","S","rast.du6_bounds","Y",-0.01891,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"66","caribou","DU6","S","rast.du6_bounds","Y",0.30986,"pas","UP","rast.pas","",154.68,14.62
+"67","caribou","DU6","S","rast.du6_bounds","Y",0.09115,"ppt_sm","UP","rast.ppt_sm","",217.87,11.26
+"68","caribou","DU6","S","rast.du6_bounds","Y",0.08235,"tave_sm","UP","rast.tave_sm","",14.46,1.55
+"69","caribou","DU6","S","rast.du6_bounds","Y",1,"bec_current","RC","rast.bec_current","''1-6:0,7:-0.1676, 8-129:0''",0,1
+"70","caribou","DU6","S","rast.du6_bounds","Y",1,"demars_wetland","RC","rast.demars_wetland","''0:0.3418,1:0.3418,2:0.3418,3:0.3418,5:0.3418,6:0.3418,7:0.1927,8:0.4931,9:0.1927,10:0.4931,11:0.1927,12:0.4931,13:0.5827,14:0.5827,15:0.5827,16:-0.0947,17:-0.0947,18:-0.0947,20:0.3288,21:0,22:-0.7312,23:-0.7312,24:0.3418,25:0.3418,26:0.3418,27:0.3418,28:0.3418,29:0.3418,30:0.3418,32:0.3418,33:0''",0,1
+"71","caribou","DU6","S","rast.du6_bounds","Y",0.14901,"vri2017_bryoidcoverpct","UP","rast.vri2017_bryoidcoverpct","",17.42,15.36
+"72","caribou","DU6","S","rast.du6_bounds","Y",0.07282,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",11.88,12.11
+"73","caribou","DU6","S","rast.du6_bounds","N",0.11211,"age","UP","age","",100.07,38.17
+"74","caribou","DU6","S","rast.du6_bounds","Y",0.13457,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",26.4,18.19
+"75","caribou","DU6","S","rast.du6_bounds","N",-0.13097,"height","UP","height","",8.51,5.19
+"76","caribou","DU6","S","rast.du6_bounds","N",0.13981,"crownclosure","UP","crownclosure","",32.08,17.89
+"77","caribou","DU8","EW","rast.du8_bounds","Y",-2.88167,"int","","","",0,1
+"78","caribou","DU8","EW","rast.du8_bounds","Y",1,"bec_current","RC","rast.bec_current","''1:1.8593,2:1.8593,3-6:0,7:0.9401,8:0,9:0.8622,10-41:0,42:0.5476,43:0.9612,44-52:0,53:0.7801,54-55:0,56:0.2068,57-122:0,123:0.2700,124-129:0''",0,1
+"79","caribou","DU8","EW","rast.du8_bounds","N",0.02932,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",9647.65,6561.15
+"80","caribou","DU8","EW","rast.du8_bounds","N",-0.14178,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",6603.94,4832.88
+"81","caribou","DU8","EW","rast.du8_bounds","N",0.06689,"blocks_10_29","DT","blockid > 0 AND age BETWEEN 10 AND 29","",3176.5,2655.67
+"82","caribou","DU8","EW","rast.du8_bounds","N",-0.12719,"blocks_30_60","DT","blockid > 0 AND age BETWEEN 30 AND 60","",5803.03,3683.12
+"83","caribou","DU8","EW","rast.du8_bounds","N",0.00248,"dt_crds_resource","DT","roadyear >= 0","",1295.38,1549.52
+"84","caribou","DU8","EW","rast.du8_bounds","Y",0.13032,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"85","caribou","DU8","EW","rast.du8_bounds","Y",-0.05028,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"86","caribou","DU8","EW","rast.du8_bounds","Y",-1.02461,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"87","caribou","DU8","EW","rast.du8_bounds","Y",-0.10057,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"88","caribou","DU8","EW","rast.du8_bounds","Y",-0.20953,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"89","caribou","DU8","EW","rast.du8_bounds","Y",-0.06267,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",10.03,14.11
+"90","caribou","DU8","EW","rast.du8_bounds","Y",0.42835,"vri2017_bryoidcoverpct","UP","rast.vri2017_bryoidcoverpct","",5.28,11.12
+"91","caribou","DU8","LW","rast.du8_bounds","Y",-1.93693,"int","","","",0,1
+"92","caribou","DU8","LW","rast.du8_bounds","Y",-0.60122,"bc_ha_slope","","rast.bc_ha_slope","",17.35,11.52
+"93","caribou","DU8","LW","rast.du8_bounds","Y",-0.06432,"dt_watercourses","DT","rast.dt_watercourses","",5000.13,2148.91
+"94","caribou","DU8","LW","rast.du8_bounds","Y",0.02375,"dt_waterbodies","DT","rast.dt_waterbodies","",3420.25,2252.94
+"95","caribou","DU8","LW","rast.du8_bounds","Y",1.35767,"dem","","rast.dem","",1523.83,251.99
+"96","caribou","DU8","LW","rast.du8_bounds","N",-0.02184,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",12205.11,6115.12
+"97","caribou","DU8","LW","rast.du8_bounds","N",-0.19594,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",8696.5,4998.32
+"98","caribou","DU8","LW","rast.du8_bounds","N",-0.01181,"blocks_10_29","DT","blockid > 0 AND age BETWEEN 10 AND 29","",4475.74,3114.78
+"99","caribou","DU8","LW","rast.du8_bounds","N",-0.03565,"blocks_30_60","DT","blockid > 0 AND age BETWEEN 30 AND 60","",7144.74,4147.52
+"100","caribou","DU8","LW","rast.du8_bounds","N",0.02286,"dt_crds_resource","DT","roadyear >= 0","",1929.46,1918.13
+"101","caribou","DU8","LW","rast.du8_bounds","Y",-0.09524,"dt_pipelines","DT","rast.dt_pipelines","",8435.61,11735.18
+"102","caribou","DU8","LW","rast.du8_bounds","Y",-0.11099,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"103","caribou","DU8","LW","rast.du8_bounds","Y",0.14883,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"104","caribou","DU8","LW","rast.du8_bounds","Y",-1.20599,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"105","caribou","DU8","LW","rast.du8_bounds","Y",-0.08847,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"106","caribou","DU8","LW","rast.du8_bounds","Y",-0.45233,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"107","caribou","DU8","LW","rast.du8_bounds","N",0.0879,"age","UP","age","",106.52,81.11
+"108","caribou","DU8","LW","rast.du8_bounds","Y",0.05554,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",13.35,19.16
+"109","caribou","DU8","LW","rast.du8_bounds","Y",-0.06945,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",10.33,15.47
+"110","caribou","DU8","LW","rast.du8_bounds","Y",-1.13934,"ppt_snow_winter","UP","rast.ppt_snow_winter","",348.79,127.65
+"111","caribou","DU8","LW","rast.du8_bounds","Y",0.20951,"tave_wt","UP","rast.tave_wt","",-9.81,1.55
+"112","caribou","DU8","S","rast.du8_bounds","Y",-1.33767,"int","","","",0,1
+"113","caribou","DU8","S","rast.du8_bounds","Y",-0.37005,"bc_ha_slope","","rast.bc_ha_slope","",17.61,11.11
+"114","caribou","DU8","LW","rast.du8_bounds","Y",-0.26561,"vri2017_siteindex","","rast.vri2017_siteindex","",5.07,4.27
+"115","caribou","DU8","S","rast.du8_bounds","Y",-0.13619,"dt_watercourses","DT","rast.dt_watercourses","",4635.76,2482.39
+"116","caribou","DU8","S","rast.du8_bounds","Y",0.13806,"dt_waterbodies","DT","rast.dt_waterbodies","",3687.11,2313.75
+"117","caribou","DU8","S","rast.du8_bounds","N",-0.00788,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",11967.97,6586.27
+"118","caribou","DU8","S","rast.du8_bounds","N",0.06212,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",7648.06,4899.73
+"119","caribou","DU8","S","rast.du8_bounds","N",-0.18366,"blocks_10_29","DT","blockid > 0 AND age BETWEEN 10 AND 29","",3984.84,3211.47
+"120","caribou","DU8","S","rast.du8_bounds","N",0.01979,"blocks_30_60","DT","blockid > 0 AND age BETWEEN 30 AND 60","",7812.35,4273.94
+"121","caribou","DU8","S","rast.du8_bounds","N",0.12431,"dt_crds_resource","DT","roadyear >= 0","",2054.78,1971.17
+"122","caribou","DU8","S","rast.du8_bounds","Y",0.14426,"dt_pipelines","DT","rast.dt_pipelines","",9981.83,12221.45
+"123","caribou","DU8","S","rast.du8_bounds","Y",-0.18358,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"124","caribou","DU8","S","rast.du8_bounds","Y",-0.33415,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"125","caribou","DU8","S","rast.du8_bounds","Y",-0.00315,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"126","caribou","DU8","S","rast.du8_bounds","Y",-0.55541,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"127","caribou","DU8","S","rast.du8_bounds","Y",-0.12787,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"128","caribou","DU8","S","rast.du8_bounds","N",-0.0611,"age","UP","age","",125.61,81.14
+"129","caribou","DU8","S","rast.du8_bounds","Y",0.10372,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",13.7,18.46
+"130","caribou","DU8","S","rast.du8_bounds","Y",-0.0642,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",12.51,16.27
+"131","caribou","DU8","S","rast.du8_bounds","Y",1,"bec_current","RC","rast.bec_current","''1:0.6417,2:0.6417,3-6:0,7:-0.9283,8:0,9:-0.9048,10-41:0,42:0.0945,43:0.1301,44-52:0,53:0.0834,54-55:0,56:-0.7491,57-122:0,123:-0.4990,124-129:0''",0,1
+"132","caribou","DU8","S","rast.du8_bounds","Y",-0.21863,"map","UP","rast.map","",1271.48,313.96
+"133","caribou","DU7","EW","rast.du7_bounds","Y",-2.07,"int","","","",0,1
+"134","caribou","DU7","EW","rast.du7_bounds","Y",-0.35,"bc_ha_slope","","rast.bc_ha_slope","",8.96,11.24
+"135","caribou","DU7","EW","rast.du7_bounds","Y",-0.18,"dt_watercourses","DT","rast.dt_watercourses","",12265.56,9651.81
+"136","caribou","DU7","EW","rast.du7_bounds","Y",0.02,"dt_waterbodies","DT","rast.dt_waterbodies","",3228.73,3137.24
+"137","caribou","DU7","EW","rast.du7_bounds","Y",0.54,"dem","","rast.dem","",1365.56,276.69
+"138","caribou","DU7","EW","rast.du7_bounds","N",-0.23,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",40506.96,41225.4
+"139","caribou","DU7","EW","rast.du7_bounds","N",0.05,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",22820.57,19214.23
+"140","caribou","DU7","EW","rast.du7_bounds","N",-0.14,"blocks_10_60","DT","blockid > 0 AND age BETWEEN 10 AND 60","",13974.75,15863.16
+"141","caribou","DU7","EW","rast.du7_bounds","Y",0.05,"dt_crds_paved","DT","rast.dt_crds_paved","",20824.17,12261.22
+"142","caribou","DU7","EW","rast.du7_bounds","N",0.06,"dt_crds_resource","DT","roadyear >= 0","",5981.6,7118.27
+"143","caribou","DU7","EW","rast.du7_bounds","Y",0.41,"dt_pipelines","DT","rast.dt_pipelines","",84103.35,57787.66
+"144","caribou","DU7","EW","rast.du7_bounds","Y",0.04,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"145","caribou","DU7","EW","rast.du7_bounds","Y",0.2,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"146","caribou","DU7","EW","rast.du7_bounds","Y",-0.32,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"147","caribou","DU7","EW","rast.du7_bounds","Y",-0.08,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"148","caribou","DU7","EW","rast.du7_bounds","Y",-0.26,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"149","caribou","DU7","EW","rast.du7_bounds","Y",-0.4,"ppt_snow_winter","UP","rast.ppt_snow_winter","",145.52,53.21
+"150","caribou","DU7","EW","rast.du7_bounds","Y",-0.16,"tave_wt","UP","rast.tave_wt","",-8.83,1.92
+"151","caribou","DU7","EW","rast.du7_bounds","N",-0.02,"age","UP","age","",118.68,64.19
+"152","caribou","DU7","EW","rast.du7_bounds","N",-0.12,"crownclosure","UP","crownclosure","",26.55,19.22
+"153","caribou","DU7","EW","rast.du7_bounds","Y",0.08,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",14.92,18.11
+"154","caribou","DU7","EW","rast.du7_bounds","Y",-0.01,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",12.81,15.25
+"155","caribou","DU7","EW","rast.du7_bounds","Y",0.12,"vri2017_bryoidcoverpct","UP","rast.vri2017_bryoidcoverpct","",5.64,9.84
+"156","caribou","DU7","LW","rast.du7_bounds","Y",-1.63723,"int","","","",0,1
+"157","caribou","DU7","LW","rast.du7_bounds","Y",-0.3336,"bc_ha_slope","","rast.bc_ha_slope","",10.38,11.21
+"158","caribou","DU7","LW","rast.du7_bounds","Y",-0.14484,"dt_watercourses","DT","rast.dt_watercourses","",7503.31,6691.42
+"159","caribou","DU7","LW","rast.du7_bounds","Y",0.05753,"dt_waterbodies","DT","rast.dt_waterbodies","",3721.39,3577.95
+"160","caribou","DU7","LW","rast.du7_bounds","Y",0.62338,"dem","","rast.dem","",1253.91,315.65
+"161","caribou","DU7","LW","rast.du7_bounds","N",-0.23203,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",40847.28,43498.42
+"162","caribou","DU7","LW","rast.du7_bounds","N",-0.12232,"blocks_5_60","DT","blockid > 0 AND age BETWEEN 5 AND 60","",17357.5,25323.27
+"163","caribou","DU7","LW","rast.du7_bounds","N",0.0549,"dt_crds_resource","DT","roadyear >= 0","",4305.23,5754.29
+"164","caribou","DU7","LW","rast.du7_bounds","Y",-0.03995,"dt_crds_paved","DT","rast.dt_crds_paved","",17758.43,12549.83
+"165","caribou","DU7","LW","rast.du7_bounds","Y",-0.07823,"dt_pipelines","DT","rast.dt_pipelines","",74169.2,58711.5
+"166","caribou","DU7","LW","rast.du7_bounds","Y",0.06174,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"167","caribou","DU7","LW","rast.du7_bounds","Y",0.38404,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"168","caribou","DU7","LW","rast.du7_bounds","Y",0.14815,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"169","caribou","DU7","LW","rast.du7_bounds","Y",-0.27892,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"170","caribou","DU7","LW","rast.du7_bounds","Y",0.01433,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"171","caribou","DU7","LW","rast.du7_bounds","N",-0.0463,"age","UP","age","",106.37,69.28
+"172","caribou","DU8","S","rast.du8_bounds","Y",-0.20115,"vri2017_siteindex","","rast.vri2017_siteindex","",6.13,4.21
+"173","caribou","DU7","LW","rast.du7_bounds","N",-0.12244,"crownclosure","UP","crownclosure","",24.52,19.58
+"174","caribou","DU7","LW","rast.du7_bounds","Y",-0.10422,"tave_wt","UP","rast.tave_wt","",-9.27,2.12
+"175","caribou","DU7","LW","rast.du7_bounds","Y",-0.45722,"ppt_snow_winter","UP","rast.ppt_snow_winter","",126.93,55.87
+"176","caribou","DU7","S","rast.du7_bounds","Y",-1.016,"int","","","",0,1
+"177","caribou","DU7","S","rast.du7_bounds","Y",-0.41,"bc_ha_slope","","rast.bc_ha_slope","",14.62,12.18
+"178","caribou","DU7","S","rast.du7_bounds","Y",-0.259,"dt_watercourses","DT","rast.dt_watercourses","",10313.19,8916.28
+"179","caribou","DU7","S","rast.du7_bounds","Y",0.005,"dt_waterbodies","DT","rast.dt_waterbodies","",3526.87,2943.8
+"180","caribou","DU7","S","rast.du7_bounds","Y",0.745,"dem","","rast.dem","",1558.78,316.76
+"181","caribou","DU7","S","rast.du7_bounds","N",-0.032,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",49411.92,44659.35
+"182","caribou","DU7","S","rast.du7_bounds","N",0.029,"blocks_5_60","DT","blockid > 0 AND age BETWEEN 5 AND 60","",22547.88,21144.26
+"183","caribou","DU7","S","rast.du7_bounds","N",0.038,"dt_crds_resource","DT","roadyear >= 0","",7932.55,7522.24
+"184","caribou","DU7","S","rast.du7_bounds","Y",-0.016,"dt_crds_paved","DT","rast.dt_crds_paved","",23334.3,12985.42
+"185","caribou","DU7","S","rast.du7_bounds","Y",-0.017,"dt_pipelines","DT","rast.dt_pipelines","",81717.07,57816.89
+"186","caribou","DU7","S","rast.du7_bounds","Y",-0.174,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"187","caribou","DU7","S","rast.du7_bounds","Y",-0.095,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"188","caribou","DU7","S","rast.du7_bounds","Y",0.454,"fire_1_to_5","UP","rast.fire_1_to_5","",0,1
+"189","caribou","DU7","S","rast.du7_bounds","Y",-0.378,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"190","caribou","DU7","S","rast.du7_bounds","Y",0.07,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"191","caribou","DU7","S","rast.du7_bounds","N",-0.14,"age","UP","age","",95.43,83.95
+"192","caribou","DU7","S","rast.du7_bounds","Y",0.049,"vri2017_bryoidcoverpct","UP","rast.vri2017_bryoidcoverpct","",4.4,9.16
+"193","caribou","DU7","S","rast.du7_bounds","Y",0.103,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",12.45,16.13
+"194","caribou","DU7","S","rast.du7_bounds","Y",0.449,"mat","UP","rast.mat","",-0.43,1.52
+"195","caribou","DU7","S","rast.du7_bounds","Y",0.013,"map","UP","rast.map","",850.99,274.19
+"196","caribou","DU9","EW","rast.du9_bounds","Y",-2.82,"int","","","",0,1
+"197","caribou","DU9","EW","rast.du9_bounds","Y",-0.4,"bc_ha_slope","","rast.bc_ha_slope","",22,12
+"198","caribou","DU9","EW","rast.du9_bounds","Y",0.14,"dt_watercourses","DT","rast.dt_watercourses","",6862,3754
+"199","caribou","DU9","EW","rast.du9_bounds","Y",-0.16,"dt_waterbodies","DT","rast.dt_waterbodies","",2296,1553
+"200","caribou","DU9","EW","rast.du9_bounds","Y",1.92,"dem","","rast.dem","",1681,317
+"201","caribou","DU9","EW","rast.du9_bounds","N",-0.88,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",8537,8896
+"202","caribou","DU9","EW","rast.du9_bounds","N",0.1,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",6425,5271
+"203","caribou","DU9","EW","rast.du9_bounds","N",0.1,"blocks_10_29","DT","blockid > 0 AND age BETWEEN 10 AND 29","",4202,4122
+"204","caribou","DU9","EW","rast.du9_bounds","N",-0.06,"blocks_30_60","DT","blockid > 0 AND age BETWEEN 30 AND 60","",8055,6896
+"205","caribou","DU9","EW","rast.du9_bounds","N",-0.29,"dt_crds_resource","DT","roadyear >= 0","",2701,2583
+"206","caribou","DU9","EW","rast.du9_bounds","Y",-1.08,"dt_pipelines","DT","rast.dt_pipelines","",26610,19385
+"207","caribou","DU9","EW","rast.du9_bounds","Y",0.37,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"208","caribou","DU9","EW","rast.du9_bounds","Y",0.37,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"209","caribou","DU9","EW","rast.du9_bounds","Y",-1.46,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"210","caribou","DU9","EW","rast.du9_bounds","Y",-1.04,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"211","caribou","DU9","EW","rast.du9_bounds","Y",1.08,"mat","UP","rast.mat","",1,1
+"212","caribou","DU9","EW","rast.du9_bounds","N",0.14,"age","UP","age","",138,84
+"213","caribou","DU9","EW","rast.du9_bounds","N",0.1,"crownclosure","UP","crownclosure","",31,23
+"214","caribou","DU9","EW","rast.du9_bounds","Y",0.24,"vri2017_herbcoverpct","UP","rast.vri2017_bryoidcoverpct","",13,19
+"215","caribou","DU9","EW","rast.du9_bounds","Y",-0.15,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",10,16
+"216","caribou","DU9","LW","rast.du9_bounds","Y",-2.8,"int","","","",0,1
+"217","caribou","DU9","LW","rast.du9_bounds","Y",-0.67,"bc_ha_slope","","rast.bc_ha_slope","",0,13
+"218","caribou","DU9","LW","rast.du9_bounds","Y",-0.44,"dt_watercourses","DT","rast.dt_watercourses","",23,4519
+"219","caribou","DU9","LW","rast.du9_bounds","Y",0,"dt_waterbodies","DT","rast.dt_waterbodies","",8645,1398
+"220","caribou","DU9","LW","rast.du9_bounds","Y",0.7,"dem","","rast.dem","",2135,249
+"221","caribou","DU9","LW","rast.du9_bounds","N",-0.34,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",1850,5134
+"222","caribou","DU9","LW","rast.du9_bounds","N",-0.17,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",7526,5663
+"223","caribou","DU9","LW","rast.du9_bounds","N",0.18,"blocks_10_29","DT","blockid > 0 AND age BETWEEN 10 AND 29","",3022,3217
+"224","caribou","DU9","LW","rast.du9_bounds","N",-0.37,"blocks_30_60","DT","blockid > 0 AND age BETWEEN 30 AND 60","",4826,5115
+"225","caribou","DU9","LW","rast.du9_bounds","N",0.31,"dt_crds_resource","DT","roadyear >= 0","",1965,2499
+"226","caribou","DU9","LW","rast.du9_bounds","Y",-0.86,"beetle_1_to_5","UP","rast.beetle_1_to_5","",0,1
+"227","caribou","DU9","LW","rast.du9_bounds","Y",1.03,"beetle_6_to_9","UP","rast.beetle_6_to_9","",0,1
+"228","caribou","DU9","LW","rast.du9_bounds","Y",-0.69,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"229","caribou","DU9","LW","rast.du9_bounds","Y",-0.93,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"230","caribou","DU9","LW","rast.du9_bounds","N",0.25,"age","UP","age","",137,83
+"231","caribou","DU9","LW","rast.du9_bounds","Y",0.1,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",14,17
+"232","caribou","DU9","LW","rast.du9_bounds","Y",-0.01,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",15,17
+"233","caribou","DU9","LW","rast.du9_bounds","N",0.11,"crownclosure","UP","crownclosure","",26,21
+"234","caribou","DU9","LW","rast.du9_bounds","Y",0.17,"ppt_snow_winter","UP","rast.ppt_snow_winter","",447,71
+"235","caribou","DU9","LW","rast.du9_bounds","Y",-0.19,"tave_wt","","rast.tave_wt","",-8,1
+"236","caribou","DU9","S","rast.du9_bounds","Y",-2.2,"int","","","",0,1
+"237","caribou","DU9","S","rast.du9_bounds","Y",-0.41,"bc_ha_slope","","rast.bc_ha_slope","",23,12
+"238","caribou","DU9","S","rast.du9_bounds","Y",-0.04,"dt_watercourses","","rast.dt_watercourses","",7252,4316
+"239","caribou","DU9","S","rast.du9_bounds","Y",0.24,"dt_waterbodies","","rast.dt_waterbodies","",2903,2228
+"240","caribou","DU9","S","rast.du9_bounds","Y",0.68,"dem","","rast.dem","",1669,271
+"241","caribou","DU9","S","rast.du9_bounds","N",0.04,"blocks_0_4","DT","blockid > 0 AND age BETWEEN 0 AND 4","",11162,7215
+"242","caribou","DU9","S","rast.du9_bounds","N",0.03,"blocks_5_9","DT","blockid > 0 AND age BETWEEN 5 AND 9","",11000,5475
+"243","caribou","DU9","S","rast.du9_bounds","N",0.22,"blocks_10_29","DT","blockid > 0 AND age BETWEEN 10 AND 29","",5260,3662
+"244","caribou","DU9","S","rast.du9_bounds","N",0.13,"blocks_30_60","DT","blockid > 0 AND age BETWEEN 30 AND 60","",8273,6593
+"245","caribou","DU9","S","rast.du9_bounds","N",-0.05,"dt_crds_resource","DT","roadyear >= 0","",3403,3179
+"246","caribou","DU9","S","rast.du9_bounds","Y",0.11,"dt_pipelines","DT","rast.dt_pipelines","",29455,21313
+"247","caribou","DU9","S","rast.du9_bounds","Y",0.04,"fire_6_to_25","UP","rast.fire_6_to_25","",0,1
+"248","caribou","DU9","S","rast.du9_bounds","Y",-2.03,"fire_gt_25","UP","rast.fire_gt_25","",0,1
+"249","caribou","DU9","S","rast.du9_bounds","N",0.15,"age","UP","age","",146,86
+"250","caribou","DU9","S","rast.du9_bounds","Y",-0.05,"vri2017_herbcoverpct","UP","rast.vri2017_herbcoverpct","",16,17
+"251","caribou","DU9","S","rast.du9_bounds","Y",0.04,"vri2017_shrubcrownclosure","UP","rast.vri2017_shrubcrownclosure","",20,21
+"252","moose","DU7","LW","rast.du7_bounds","Y",-4.51,"int","","","",0,1
+"253","moose","DU7","LW","rast.du7_bounds","Y",0.00547,"dem","","rast.dem","",0,1
+"254","moose","DU7","LW","rast.du7_bounds","Y",-6e-05,"northnessx1000","","rast.northnessx1000","",0,1
+"255","moose","DU7","LW","rast.du7_bounds","N",-0.06,"blocks_1_15","UP","blockid > 0 AND age BETWEEN 0 AND 15","",0,1
+"256","moose","DU7","LW","rast.du7_bounds","N",0.01,"blocks_16_40","UP","blockid > 0 AND age BETWEEN 16 AND 40","",0,1
+"257","moose","DU7","C","rast.du7_bounds","Y",-3.48,"int","","","",0,1
+"258","moose","DU7","C","rast.du7_bounds","Y",0.00383,"dem","","rast.dem","",0,1
+"259","moose","DU7","C","rast.du7_bounds","Y",-0.00011,"northnessx1000","","rast.northnessx1000","",0,1
+"260","moose","DU7","C","rast.du7_bounds","N",-0.12,"blocks_1_15","UP","blockid > 0 AND age BETWEEN 0 AND 15","",0,1
+"261","moose","DU7","C","rast.du7_bounds","N",-0.65,"blocks_16_40","UP","blockid > 0 AND age BETWEEN 16 AND 40","",0,1
+"262","moose","DU7","S","rast.du7_bounds","Y",-3.81,"int","","","",0,1
+"263","moose","DU7","S","rast.du7_bounds","Y",0.00387,"dem","","rast.dem","",0,1
+"264","moose","DU7","LW","rast.du7_bounds","Y",0.41,"fire_old_25","UP","rast.fire_old_25","",0,1
+"265","moose","DU7","S","rast.du7_bounds","Y",0.17,"fire_old_25","UP","rast.fire_old_25","",0,1
+"266","moose","DU7","LW","rast.du7_bounds","Y",0.26,"fire_not_pine_15","UP","rast.fire_not_pine_15","",0,1
+"267","moose","DU7","C","rast.du7_bounds","Y",0.23,"fire_not_pine_15","UP","rast.fire_not_pine_15","",0,1
+"268","moose","DU7","S","rast.du7_bounds","Y",0.23,"fire_not_pine_15","UP","rast.fire_not_pine_15","",0,1
+"269","moose","DU7","LW","rast.du7_bounds","Y",-0.41,"fire_pine_15","UP","rast.fire_pine_15","",0,1
+"270","moose","DU7","C","rast.du7_bounds","Y",-0.22,"fire_pine_15","UP","rast.fire_pine_15","",0,1
+"271","caribou","DU9","S","rast.du9_bounds","Y",0.07,"dt_mines","DT","rast.dt_mines","",32868,8951
+"272","moose","DU7","LW","rast.du7_bounds","Y",0.11,"vri2017_conifer","UP","rast.vri2017_conifer","",0,1
+"273","moose","DU7","C","rast.du7_bounds","Y",-0.07,"vri2017_conifer","UP","rast.vri2017_conifer","",0,1
+"274","moose","DU7","S","rast.du7_bounds","Y",0.29,"vri2017_conifer","UP","rast.vri2017_conifer","",0,1
+"275","moose","DU7","LW","rast.du7_bounds","Y",0.32,"vri2017_deciduous","UP","rast.vri2017_deciduous","",0,1
+"276","moose","DU7","C","rast.du7_bounds","Y",0.59,"vri2017_deciduous","UP","rast.vri2017_deciduous","",0,1
+"277","moose","DU7","S","rast.du7_bounds","Y",0.2,"vri2017_deciduous","UP","rast.vri2017_deciduous","",0,1
+"278","moose","DU7","LW","rast.du7_bounds","Y",0.63,"vri2017_herb","UP","rast.vri2017_herb","",0,1
+"279","moose","DU7","C","rast.du7_bounds","Y",0.97,"vri2017_herb","UP","rast.vri2017_herb","",0,1
+"280","moose","DU7","S","rast.du7_bounds","Y",0.14,"vri2017_herb","UP","rast.vri2017_herb","",0,1
+"281","moose","DU7","LW","rast.du7_bounds","Y",-1.95,"vri2017_urban","UP","rast.vri2017_urban","",0,1
+"282","moose","DU7","C","rast.du7_bounds","Y",-0.55,"vri2017_urban","UP","rast.vri2017_urban","",0,1
+"283","moose","DU7","LW","rast.du7_bounds","Y",-0.22,"vri2017_pine","UP","rast.vri2017_pine","",0,1
+"284","moose","DU7","C","rast.du7_bounds","Y",-0.16,"vri2017_pine","UP","rast.vri2017_pine","",0,1
+"285","moose","DU7","S","rast.du7_bounds","Y",0.14,"vri2017_pine","UP","rast.vri2017_pine","",0,1
+"286","moose","DU7","LW","rast.du7_bounds","Y",0.47,"vri2017_nonveg_land_no_urban","UP","rast.vri2017_nonveg_land_no_urban","",0,1
+"287","moose","DU7","LW","rast.du7_bounds","Y",0.23,"vri2017_nonveg_water","UP","rast.vri2017_nonveg_water","",0,1
+"288","moose","DU7","C","rast.du7_bounds","Y",-0.03,"vri2017_nonveg_water","UP","rast.vri2017_nonveg_water","",0,1
+"289","moose","DU7","S","rast.du7_bounds","Y",-0.06,"vri2017_nonveg_water","UP","rast.vri2017_nonveg_water","",0,1
+"290","caribou","DU9","S","rast.du9_bounds","Y",0.04,"vri2017_siteindex","","rast.vri2017_siteindex","",6,5
+"291","moose","DU7","S","rast.du7_bounds","N",-0.3,"blocks_1_15","UP","blockid > 0 AND age BETWEEN 0 AND 15","",0,1
+"292","moose","DU7","S","rast.du7_bounds","N",-0.1,"blocks_16_40","UP","blockid > 0 AND age BETWEEN 16 AND 40","",0,1
+"293","moose","DU7","F","rast.du7_bounds","Y",-1.76,"int","","","",0,1
+"294","moose","DU7","F","rast.du7_bounds","Y",4e-04,"dem","","rast.dem","",0,1
+"295","moose","DU7","F","rast.du7_bounds","Y",4e-05,"northnessx1000","","rast.northnessx1000","",0,1
+"296","moose","DU7","F","rast.du7_bounds","N",0.01,"blocks_1_15","UP","blockid > 0 AND age BETWEEN 0 AND 15","",0,1
+"297","moose","DU7","F","rast.du7_bounds","N",-0.31,"blocks_16_40","UP","blockid > 0 AND age BETWEEN 16 AND 40","",0,1
+"298","moose","DU7","EW","rast.du7_bounds","Y",-3.97,"int","","","",0,1
+"299","moose","DU7","EW","rast.du7_bounds","Y",0.0043,"dem","","rast.dem","",0,1
+"300","moose","DU7","EW","rast.du7_bounds","N",0.08,"blocks_1_15","UP","blockid > 0 AND age BETWEEN 0 AND 15","",0,1
+"301","moose","DU7","EW","rast.du7_bounds","N",-0.2,"blocks_16_40","UP","blockid > 0 AND age BETWEEN 16 AND 40","",0,1
+"302","moose","DU7","EW","rast.du7_bounds","Y",1e-05,"dt_crds_paved","DT","rast.dt_crds_paved","",0,1
+"303","moose","DU7","EW","rast.du7_bounds","N",1e-05,"dt_crds_resource","DT","roadyear >= 0","",0,1
+"304","moose","DU7","LW","rast.du7_bounds","Y",-3e-05,"eastnessx1000","","rast.eastnessx1000","",0,1
+"305","moose","DU7","C","rast.du7_bounds","Y",0.00011,"eastnessx1000","","rast.eastnessx1000","",0,1
+"306","moose","DU7","F","rast.du7_bounds","Y",3e-05,"eastnessx1000","","rast.eastnessx1000","",0,1
+"307","moose","DU7","EW","rast.du7_bounds","Y",1e-05,"eastnessx1000","","rast.eastnessx1000","",0,1
+"308","moose","DU7","LW","rast.du7_bounds","Y",-2.5e-06,"dem_sq","","rast.dem_sq","",0,1
+"309","moose","DU7","C","rast.du7_bounds","Y",-1.8e-06,"dem_sq","","rast.dem_sq","",0,1
+"310","moose","DU7","S","rast.du7_bounds","Y",-1.8e-06,"dem_sq","","rast.dem_sq","",0,1
+"311","moose","DU7","F","rast.du7_bounds","Y",-3e-07,"dem_sq","","rast.dem_sq","",0,1
+"312","moose","DU7","EW","rast.du7_bounds","Y",-2e-06,"dem_sq","","rast.dem_sq","",0,1
+"313","moose","DU7","F","rast.du7_bounds","Y",-0.39,"fire_old_25","UP","rast.fire_old_25","",0,1
+"314","moose","DU7","EW","rast.du7_bounds","Y",0.33,"fire_old_25","UP","rast.fire_old_25","",0,1
+"315","moose","DU7","F","rast.du7_bounds","Y",0.21,"fire_not_pine_15","UP","rast.fire_not_pine_15","",0,1
+"316","moose","DU7","EW","rast.du7_bounds","Y",-0.76,"fire_not_pine_15","UP","rast.fire_not_pine_15","",0,1
+"317","moose","DU7","S","rast.du7_bounds","Y",-0.05,"fire_pine_15","UP","rast.fire_pine_15","",0,1
+"318","moose","DU7","F","rast.du7_bounds","Y",-0.1,"fire_pine_15","UP","rast.fire_pine_15","",0,1
+"319","moose","DU7","EW","rast.du7_bounds","Y",0.13,"fire_pine_15","UP","rast.fire_pine_15","",0,1
+"320","caribou","DU8","LW","rast.du8_bounds","Y",0.2112,"dt_agriculture","DT","rast.dt_agriculture","",21330.17,8341.48
+"321","caribou","DU7","EW","rast.du7_bounds","Y",-0.05,"dt_mines","DT","rast.dt_mines","",37553.03,15172.16
+"322","caribou","DU7","LW","rast.du7_bounds","Y",0.11419,"dt_mines","DT","rast.dt_mines","",33168.18,17199.82
+"323","caribou","DU7","S","rast.du7_bounds","Y",0.027,"dt_mines","DT","rast.dt_mines","",34228.3,15734.97
+"324","moose","DU7","F","rast.du7_bounds","Y",0.18,"vri2017_conifer","UP","rast.vri2017_conifer","",0,1
+"325","moose","DU7","EW","rast.du7_bounds","Y",-0.4,"vri2017_conifer","UP","rast.vri2017_conifer","",0,1
+"326","moose","DU7","F","rast.du7_bounds","Y",0.28,"vri2017_deciduous","UP","rast.vri2017_deciduous","",0,1
+"327","moose","DU7","EW","rast.du7_bounds","Y",0.18,"vri2017_deciduous","UP","rast.vri2017_deciduous","",0,1
+"328","moose","DU7","F","rast.du7_bounds","Y",0.39,"vri2017_herb","UP","rast.vri2017_herb","",0,1
+"329","moose","DU7","EW","rast.du7_bounds","Y",0.79,"vri2017_herb","UP","rast.vri2017_herb","",0,1
+"330","moose","DU7","F","rast.du7_bounds","Y",-0.04,"vri2017_pine","UP","rast.vri2017_pine","",0,1
+"331","moose","DU7","EW","rast.du7_bounds","Y",-0.71,"vri2017_pine","UP","rast.vri2017_pine","",0,1
+"332","moose","DU7","F","rast.du7_bounds","Y",-0.06,"vri2017_nonveg_water","UP","rast.vri2017_nonveg_water","",0,1
+"333","moose","DU7","EW","rast.du7_bounds","Y",0.56,"vri2017_nonveg_water","UP","rast.vri2017_nonveg_water","",0,1
+"334","caribou","DU9","EW","rast.du9_bounds","Y",0.19,"vri2017_siteindex","","rast.vri2017_siteindex","",8,5
+"335","caribou","DU9","LW","rast.du9_bounds","Y",0.24,"vri2017_siteindex","","rast.vri2017_siteindex","",8,5
+"336","caribou","DU7","EW","rast.du7_bounds","Y",-0.05,"vri2017_siteindex","","rast.vri2017_siteindex","",7.01,4.17
+"337","caribou","DU7","LW","rast.du7_bounds","Y",-0.04421,"vri2017_siteindex","","rast.vri2017_siteindex","",7.25,4.78
