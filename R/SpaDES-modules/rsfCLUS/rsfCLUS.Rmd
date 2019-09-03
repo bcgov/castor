@@ -55,7 +55,7 @@ roadCLUS = list(roadMethod = 'snap',
                   nameRoads =  'rast.dt_crds_resource'),
 rsfCLUS = list(calculateInterval = 2,
                checkRasters = TRUE,
-               criticalHabitatTable = 'public.crithab_lu')
+               criticalHabitatTable = 'public.criticalhabitat')
 )
 
 modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
