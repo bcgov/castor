@@ -92,6 +92,7 @@ raster2pgsql -s 3005 -d -I -C -M -N 2147483648  \\spatialfiles2.bcgov\archive\FO
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_projheight1.tif -t 100x100 rast.vri2017_projheight1 | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_crownclosure.tif -t 100x100 rast.vri2017_crownclosure | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_basalarea.tif -t 100x100 rast.vri2017_basalarea | psql -d clus
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=klochhea" W:\DAM\WorkArea\DATA\VRI2018\PUBLIC\VEG_COMP_LYR_R1_POLY.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
 ::ZONES
@@ -109,6 +110,7 @@ ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2
 ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\F_OWN\F_OWN_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\FADM_DESIGNATED_AREAS\FADM_DESAR_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\TA_PARK_ECORES_PA_SVW\TA_PEP_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\TA_CONSERVANCY_AREAS_SVW\TA_CA_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_basalarea.tif -t 100x100 rast.vri2017_basalarea | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_siteindex.tif -t 100x100 rast.vri2017_siteindex | psql -d clus
