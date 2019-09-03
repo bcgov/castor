@@ -60,7 +60,7 @@ road<-fasterize::fasterize(st_cast(roads_sf, "MULTIPOLYGON"), prov.rast, field =
 writeRaster(road, "road.tif", overwrite = TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/road.tif -t 100x100 rast.crds_resource | psql -d clus -h ', keyring::key_get('dbhost', keyring = 'postgreSQL'), ' -U ',user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,'-W ', password = keyring::key_get('dbpass', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/road.tif -t 100x100 rast.crds_resource | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
 
