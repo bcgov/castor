@@ -62,7 +62,7 @@ parameters <- list(
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.forest_tenure"),  
   blockingCLUS = list(blockMethod='pre', 
-                      patchZone = 'rast.beo_const',
+                      patchZone = 'rast.zone_cond_beo',
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
@@ -70,8 +70,7 @@ parameters <- list(
   roadCLUS = list(roadMethod = 'snap', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_resource'),
-  rsfCLUS = list(calculateInterval = 1,
-                 criticalHabitatTable = "public.crithab_lu")
+  rsfCLUS = list(calculateInterval = 1, criticalHabitatTable = "public.criticalhabitat")
                 )
 
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "rsfCLUS")
