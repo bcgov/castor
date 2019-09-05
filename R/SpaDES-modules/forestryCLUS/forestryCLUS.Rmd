@@ -75,15 +75,14 @@ parameters <- list(
 
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "rsfCLUS")
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' AND season = 'S'"))
-# see rsf_model_coeff.rmd   
-
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' AND season = 'S'"))#see rsf_model_coeff.rmd 
+scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
 harvestFlow<- data.table(compartment = c('24E','24E','24E','24E','24E','24E','24E','24E','24E','24E'),
                                    partition = 'vol > 50',
                                    year = rep(seq(from = 2018, to=2027, by = 
                                                     1),1), 
                                    flow = 100000)
-objects <- list(harvestFlow = harvestFlow 
+objects <- list(harvestFlow = harvestFlow, rsf_model_coeff=rsf_model_coeff , scenario = scenario
                 )
 paths <- list(
   cachePath = cacheDir,
