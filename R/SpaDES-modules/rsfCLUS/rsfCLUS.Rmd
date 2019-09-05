@@ -41,9 +41,9 @@ parameters <- list (
   dataLoaderCLUS = list (dbName = 'clus',
                          nameBoundaryFile = "study_area_compart",
                          nameBoundaryColumn = "tsb_number",
-                         #nameBoundary = c ("41B", "41D"), #DU8
+                         nameBoundary = c ("41B", "41D"), #DU8
                          #nameBoundary = c ("26A", "29B", "29C"), #DU7
-                         nameBoundary = c ("08B"), #DU6
+                         #nameBoundary = c ("08B"), #DU6
                          #nameBoundary = c ("24E"), #DU6
                          nameBoundaryGeom="wkb_geometry",
                          nameAgeRaster= "rast.vri2017_projage1",
@@ -52,7 +52,7 @@ parameters <- list (
 cutblockSeqPrepCLUS = list(nameCutblockRaster ="rast.cns_cut_bl"),
 roadCLUS = list(roadMethod = 'snap', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.dt_crds_resource'),
+                  nameRoads =  'rast.crds_resource'),
 rsfCLUS = list(calculateInterval = 2,
                checkRasters = TRUE,
                criticalHabitatTable = 'public.criticalhabitat')
@@ -60,20 +60,20 @@ rsfCLUS = list(calculateInterval = 2,
 
 modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU6' and season IN ('S', 'EW', 'LW')"))
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' and season IN ('S', 'EW', 'LW')"))
 #rsf_model_coeff[, bounds := 'rast.crithabitat']
-rsf_model_coeff[, static := 'Y']
-rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 0 AND 4', sql := 'rast.dt_cutblock_1_4']
-rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 5 AND 60', sql := 'rast.dt_cutblock_5o']
-rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 5 AND 9', sql := 'rast.dt_cutblock_5_9']
-rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 10 AND 60', sql := 'rast.dt_cutblock_10o']
-rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 10 AND 29', sql := 'rast.dt_cutblock_10_29']
-rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 30 AND 60', sql := 'rast.dt_cutblock_30o']
+#rsf_model_coeff[, static := 'Y']
+#rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 0 AND 4', sql := 'rast.dt_cutblock_1_4']
+#rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 5 AND 60', sql := 'rast.dt_cutblock_5o']
+#rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 5 AND 9', sql := 'rast.dt_cutblock_5_9']
+#rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 10 AND 60', sql := 'rast.dt_cutblock_10o']
+#rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 10 AND 29', sql := 'rast.dt_cutblock_10_29']
+#rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 30 AND 60', sql := 'rast.dt_cutblock_30o']
 
-rsf_model_coeff[sql == 'roadyear >= 0', sql := 'rast.dt_crds_resource']
-rsf_model_coeff[sql == 'age', sql := 'rast.vri2017_projage1']
-rsf_model_coeff[sql == 'crownclosure', sql := 'rast.vri2017_crownclosure']
-rsf_model_coeff[sql == 'height', sql := 'rast.vri2017_projheight1']
+#rsf_model_coeff[sql == 'roadyear >= 0', sql := 'rast.dt_crds_resource']
+#rsf_model_coeff[sql == 'age', sql := 'rast.vri2017_projage1']
+#rsf_model_coeff[sql == 'crownclosure', sql := 'rast.vri2017_crownclosure']
+#rsf_model_coeff[sql == 'height', sql := 'rast.vri2017_projheight1']
 
 objects <- list (rsf_model_coeff = rsf_model_coeff)
 paths <- list(

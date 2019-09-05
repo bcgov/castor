@@ -10,6 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 #===========================================================================================
+#TODO: Be able to change raster values according to the time of the simulation. A RasterUpdate table that stores rasters for linear interpolation?
 
 defineModule(sim, list(
   name = "rsfCLUS",
@@ -199,15 +200,13 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
   if(length(dt_sql) > 0 ){
     for(i in 1:length(dt_sql)){ #Loop through each of the DT layers
       dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE ", dt_sql[i]))) # loop through the list and query the 'pixels' table in the RSQLite db for each 'distance to' variable
-      if(nrow(dt_select) > 0){ print(paste0(dt_sql[i], ": TRUE"))
-      
+      if(nrow(dt_select) > 0){ 
+        print(paste0(dt_sql[i], ": TRUE"))
         dt_select[,field := 0]
-        #outPts contains pixelid, x, y, field, population
-        #sim$rsfcovar contains: pixelid, x,y, population
+        #outPts contains pixelid, x, y, field, population; sim$rsfcovar contains: pixelid, x,y, population
         outPts<-merge(sim$rsfcovar, dt_select, by = 'pixelid', all.x =TRUE) 
-      
         #The number of Du's that use this layer. This calcs the Distance To using the boundary of the DU!
-        dt_variable<-unique(rsf_model_coeff[sql == dt_sql[i]], by ="population")
+        dt_variable<-unique(rsf_model_coeff[sql == dt_sql[i]], by ="population") #population is used as the unique becuase it refers bounds
         for(j in 1:nrow(dt_variable)){
           pop_select<-parse(text=dt_variable$population[j])
           if(nrow(outPts[field==0 & eval(pop_select) > 0, c('x', 'y')])>0){
@@ -317,6 +316,7 @@ rsfCLUS.StandardizeDynamicRSFCovar<-function(sim){
 }
 
 rsfCLUS.StoreRSFCovar<- function(sim){
+  message('storing covariates in rsfcovar table')
   #Stores the rsfCover in clusdb. This allows a clusdb to be created and used again without wait times for dataloading
   ##Create the table in clusdb
   dbExecute(sim$clusdb, paste0("CREATE TABLE IF NOT EXISTS rsfcovar (",
@@ -362,7 +362,7 @@ getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
 rsfCLUS.checkRasters <- function(sim) {
 #----Plotting the raster---
   for(layer in colnames(sim$rsfcovar)){
-    message(paste0("ploting", layer))
+    message(paste0("ploting: ", layer))
     outRas<-sim$ras 
     test<-parse(text = paste0("sim$rsfcovar$",layer))
     if(is.character(eval(test))){
