@@ -60,6 +60,7 @@ rsfCLUS = list(calculateInterval = 2,
 
 modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
 
+scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
 rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' and season IN ('S', 'EW', 'LW')"))
 #rsf_model_coeff[, bounds := 'rast.crithabitat']
 #rsf_model_coeff[, static := 'Y']
@@ -75,7 +76,7 @@ rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE
 #rsf_model_coeff[sql == 'crownclosure', sql := 'rast.vri2017_crownclosure']
 #rsf_model_coeff[sql == 'height', sql := 'rast.vri2017_projheight1']
 
-objects <- list (rsf_model_coeff = rsf_model_coeff)
+objects <- list (rsf_model_coeff = rsf_model_coeff, scenario = scenario)
 paths <- list(
   cachePath = cacheDir,
   modulePath = moduleDir,

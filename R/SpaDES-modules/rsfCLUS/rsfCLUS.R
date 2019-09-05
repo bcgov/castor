@@ -44,7 +44,8 @@ defineModule(sim, list(
     expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
-    expectsInput("landings", objectClass ="character", desc = NA, sourceURL = NA)
+    expectsInput("landings", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -66,8 +67,8 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there a
     calculateRSF = {
       sim <- rsfCLUS.UpdateRSFCovar(sim) # this function updates the 'updateabale' and 'distance to' covariates in the model by querying the 'pixels' table in the RSQLite db
       sim <- rsfCLUS.StandardizeDynamicRSFCovar(sim) # this function standardizes the RSF covariate values
-      sim <- rsfCLUS.PredictRSF(sim) #  this function predicts each uniuue RSF score at each applicable pixelid 
-      
+      sim <- rsfCLUS.PredictRSF(sim) #  this function predicts each uniuue RSF score at each applicable pixelid as stores in the rsf object
+      sim <- rsfCLUS.Save(sim) #this function saves and summarizes rsf predictions for a time step
       sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     
@@ -78,6 +79,9 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there a
 }
 
 rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
+  
+  if(nrow(scenario) == 0) { stop('Include a scenario description as a data.table object with columns: name, description')}
+  
   rsf_model_coeff [, rsf:= do.call(paste0, list(collapse = "_", .BY)), by = c("species", "population", "season") ] # init a new column in rsf_model_coeff that is concatenated variable called 'rsf' that will report the species, population and season 
   rsf_model_coeff [layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("species", "population", "season", "layer") ] # creates a new column, 'layer_uni' concatenating species-pop-season-layer 
   sim$rsf <- data.table() #instantiate the data.table object for the rsf predictions
@@ -238,26 +242,6 @@ getDistanceToLayers<-function(sim){ #takes a sql statement and returns the dista
   return(invisible(sim))
 }
 
-rsfCLUS.PredictRSF <- function(sim){
-  #Loop through each population and season to predict its resource selection probability at each applicable pixel
-  message("predicting RSF")
-  rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf # list of unique RSFs (concatenated column created at init)
-  test<-sim$ras
-  
-  for(i in 1:length(rsfPops)){ # for each unique RSF
-    sim$rsf<-cbind(sim$rsf, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
-    setnames(sim$rsf, "V1", paste0(rsfPops[i],"_", time(sim))) # name each rsf prediction appropriately
-    
-    #----Plot the Raster---------------------------
-    expr <- parse(text = paste0(rsfPops[i],"_", time(sim)))
-    test[]<-unlist(sim$rsf[,eval(expr)], use.names = FALSE)
-    writeRaster(test, paste0(rsfPops[i],"_", time(sim), ".tif"), overwrite = TRUE)
-    #----------------------------------------------
-  }
-
-  return(invisible(sim))
-}
-
 rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
   message('standardizing static covariates')
   
@@ -375,6 +359,32 @@ rsfCLUS.checkRasters <- function(sim) {
   }
 
 #--------------------------
+  return(invisible(sim))
+}
+
+rsfCLUS.PredictRSF <- function(sim){
+  #Loop through each population and season to predict its resource selection probability at each applicable pixel
+  message("predicting RSF")
+  rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf # list of unique RSFs (concatenated column created at init)
+  test<-sim$ras
+  
+  for(i in 1:length(rsfPops)){ # for each unique RSF
+    sim$rsf<-cbind(sim$rsf, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+    setnames(sim$rsf, "V1", paste0(rsfPops[i],"_", time(sim))) # name each rsf prediction appropriately
+    
+    #----Plot the Raster---------------------------
+    expr <- parse(text = paste0(rsfPops[i],"_", time(sim)))
+    test[]<-unlist(sim$rsf[,eval(expr)], use.names = FALSE)
+    writeRaster(test, paste0(rsfPops[i],"_", time(sim), ".tif"), overwrite = TRUE)
+    #----------------------------------------------
+  }
+  
+  rm(test)
+  return(invisible(sim))
+}
+
+rsfCLUS.Save<-function(sim){
+  
   return(invisible(sim))
 }
 
