@@ -165,6 +165,10 @@ raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climat
 gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas  S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas\pas.tif
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas\pas.tif -t 100x100 rast.pas | psql -d clus
 
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\pas_wt  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\pas_wt\pas_wt.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\pas_wt\pas_wt.tif -t 100x100 rast.pas_wt | psql -d clus
+
+
 
 ::RSF Mines and Ag
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\mine\raster_distance_to_mines_ce_2015_bcalbers.tif -t 100x100 rast.dt_mines | psql -d clus
