@@ -275,7 +275,9 @@ ras.bec<-fasterize::fasterize(bec_poly, ProvRast,
                         field = "value",#cells that are waterbodies get a value of 1
                         background = 0) 
 writeRaster(ras.bec, file="bec.tif", format="GTiff", overwrite=TRUE)
-system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/params/bec.tif -t 100x100 rast.bec_current | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bec.tif -t 100x100 rast.bec_current | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
 
 ```
 
