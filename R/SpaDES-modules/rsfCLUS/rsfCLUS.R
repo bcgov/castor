@@ -31,6 +31,7 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which resource selection function are calculated"),
     defineParameter("checkRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the rasters to disk. For checking in a GIS"),
+    defineParameter("writeRSFRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the predicted rasters For checking in a GIS"),
     defineParameter("criticalHabitatTable", "character", "99999", NA, NA, "The name of the look up table to convert raster values to critical habitat labels. The two values required are value (int) and crithab (chr)"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
@@ -106,6 +107,7 @@ rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
           if(!(P(sim, "rsfCLUS", "criticalHabitatTable") == '99999')){
             crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCLUS", "criticalHabitatTable"))))
             bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
+            print(head(bounds[V1 > 0,]))
           }else{
             stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCLUS", "criticalHabitatTable")))
           }
@@ -370,12 +372,14 @@ rsfCLUS.PredictRSF <- function(sim){
   
   for(i in 1:length(rsfPops)){ # for each unique RSF
     sim$rsf<-cbind(sim$rsf, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
-    setnames(sim$rsf, "V1", paste0(rsfPops[i],"_", time(sim))) # name each rsf prediction appropriately
+    setnames(sim$rsf, "V1", paste0(rsfPops[i])) # name each rsf prediction appropriately
     
     #----Plot the Raster---------------------------
-    expr <- parse(text = paste0(rsfPops[i],"_", time(sim)))
-    test[]<-unlist(sim$rsf[,eval(expr)], use.names = FALSE)
-    writeRaster(test, paste0(rsfPops[i],"_", time(sim), ".tif"), overwrite = TRUE)
+    if(P(sim, "rsfCLUS", "writeRSFRasters")){
+      expr <- parse(text = paste0(rsfPops[i]))
+      test[]<-unlist(sim$rsf[,eval(expr)], use.names = FALSE)
+      writeRaster(test, paste0(rsfPops[i],"_", time(sim), ".tif"), overwrite = TRUE)
+    }
     #----------------------------------------------
   }
   

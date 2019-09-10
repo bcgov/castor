@@ -41,8 +41,8 @@ parameters <- list (
   dataLoaderCLUS = list (dbName = 'clus',
                          nameBoundaryFile = "study_area_compart",
                          nameBoundaryColumn = "tsb_number",
-                         nameBoundary = c ("41B", "41D"), #DU8
-                         #nameBoundary = c ("26A", "29B", "29C"), #DU7
+                         #nameBoundary = c ("41B", "41D"), #DU8
+                         nameBoundary = c ("26A", "29B", "29C"), #DU7
                          #nameBoundary = c ("08B"), #DU6
                          #nameBoundary = c ("24E"), #DU6
                          nameBoundaryGeom="wkb_geometry",
@@ -54,15 +54,15 @@ roadCLUS = list(roadMethod = 'snap',
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_resource'),
 rsfCLUS = list(calculateInterval = 2,
-               checkRasters = TRUE,
+               writeRSFRasters = TRUE,
                criticalHabitatTable = 'public.criticalhabitat')
 )
 
 modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
 
 scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' and season IN ('S', 'EW', 'LW')"))
-#rsf_model_coeff[, bounds := 'rast.crithabitat']
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU7' and season IN ('S', 'EW', 'LW')"))
+rsf_model_coeff[, bounds := 'rast.crithabitat']
 #rsf_model_coeff[, static := 'Y']
 #rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 0 AND 4', sql := 'rast.dt_cutblock_1_4']
 #rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 5 AND 60', sql := 'rast.dt_cutblock_5o']
