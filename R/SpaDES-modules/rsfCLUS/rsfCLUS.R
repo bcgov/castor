@@ -52,7 +52,7 @@ defineModule(sim, list(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "Used in the RSQLite clusdb. Consists of covariates at each pixelid used to calculate the RSF."),
     createsOutput(objectName = "rsfGLM", objectClass = "list", desc = "Instantiated glm objects that describe the mathematical components of RSFs. Gets created at Init. Used to predict the rsf scores based on the rsfCovar values."),
-    createsOutput(objectName = "rsf", objectClass = "data.table", desc = "Used in the RSQLite clusdb. Consists of predicted RSF scores for each pixelid.")
+    createsOutput(objectName = "rsf", objectClass = "data.table", desc = "Consists of summed predicted RSF scores for each critical habitat")
   )
 ))
 
@@ -107,7 +107,6 @@ rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
           if(!(P(sim, "rsfCLUS", "criticalHabitatTable") == '99999')){
             crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCLUS", "criticalHabitatTable"))))
             bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
-            print(head(bounds[V1 > 0,]))
           }else{
             stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCLUS", "criticalHabitatTable")))
           }
@@ -367,23 +366,32 @@ rsfCLUS.checkRasters <- function(sim) {
 rsfCLUS.PredictRSF <- function(sim){
   #Loop through each population and season to predict its resource selection probability at each applicable pixel
   message("predicting RSF")
-  rsfPops<- unique(rsf_model_coeff[,"rsf"])$rsf # list of unique RSFs (concatenated column created at init)
-  test<-sim$ras
-  
-  for(i in 1:length(rsfPops)){ # for each unique RSF
-    sim$rsf<-cbind(sim$rsf, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
-    setnames(sim$rsf, "V1", paste0(rsfPops[i])) # name each rsf prediction appropriately
+  rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
+ 
+  for(i in 1:nrow(rsfPops)){ # for each unique RSF
+    sim$rsfcovar<-cbind(sim$rsfcovar, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+    setnames(sim$rsfcovar, "V1", paste0(rsfPops[[1]][[i]])) # name each rsf prediction appropriately
     
-    #----Plot the Raster---------------------------
-    if(P(sim, "rsfCLUS", "writeRSFRasters")){
-      expr <- parse(text = paste0(rsfPops[i]))
-      test[]<-unlist(sim$rsf[,eval(expr)], use.names = FALSE)
-      writeRaster(test, paste0(rsfPops[i],"_", time(sim), ".tif"), overwrite = TRUE)
-    }
-    #----------------------------------------------
+    expr <- parse(text = paste0(rsfPops[[1]][[i]]))
+    rsfdt<-data.table(sim$rsfcovar[!is.na(eval(expr)),sum(eval(expr)), by = c(paste0(rsfPops[[2]][[i]]))])
+    rsfdt[, time:=time(sim)]
+    rsfdt[, rsf:=paste0(rsfPops[[1]][[i]])]
+    
+    lrsf<-list(sim$rsf, rsfdt)
+    sim$rsf<-rbindlist(lrsf)
+    
+    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
+      out.ras<-sim$ras
+      out.ras[]<-unlist(sim$rsfcovar[,eval(expr)], use.names = FALSE)
+      writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim), ".tif"), overwrite = TRUE)
+      rm(out.ras)
+    }#----------------------------------------------
+    
+    #Remove the prediction
+    sim$rsfcovar[,paste0(rsfPops[[1]][[i]]) := NULL]
   }
   
-  rm(test)
+  
   return(invisible(sim))
 }
 
