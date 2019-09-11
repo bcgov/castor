@@ -376,7 +376,7 @@ rsfCLUS.PredictRSF <- function(sim){
     rsfdt<-data.table(sim$rsfcovar[!is.na(eval(expr)),sum(eval(expr)), by = c(paste0(rsfPops[[2]][[i]]))])
     rsfdt[, time:=time(sim)]
     rsfdt[, rsf:=paste0(rsfPops[[1]][[i]])]
-    
+    setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "rsf_model", "time"))
     lrsf<-list(sim$rsf, rsfdt)
     sim$rsf<-rbindlist(lrsf)
     
