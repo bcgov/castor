@@ -18,6 +18,9 @@ The critical habitat raster specifies the spatial zones used to summarize rsfCLU
 The critical habitats may come in various data structure forms like .shp or .gdb. In this chunk the data is loaded in R.
 ```{r, data}
 library(sf)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
 #Chilcotin
 chilcotin<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/BC/chilcotin_lpu/eis_19_004_bc_core_chilcotin_v20190731.gdb", layer ='BCHabitat_20190731')
 chilcotin<-st_cast(chilcotin, "MULTIPOLYGON")
@@ -37,7 +40,7 @@ prov.rast <- raster::raster(
 
 chilcotin$critCode2<-as.integer(as.factor(chilcotin$critCode))
 ras.chilcotin <-fasterize::fasterize(chilcotin, prov.rast, field = "critCode2") #this is a
-plot(ras.chilcotin)
+raster::plot(ras.chilcotin)
 ```
 
 ## Lookup Table
@@ -49,6 +52,7 @@ setnames(lu_critHab, c("V1", "V2"), c("value", "crithab"))
 
 ## Commit to postgreSQL
 ```{r, commit_db}
+
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
 DBI::dbWriteTable(conn, c("public", "criticalhabitat"), value= lu_critHab, row.names = FALSE, overwrite = TRUE)
