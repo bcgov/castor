@@ -100,7 +100,7 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 ```
 
 
-## Tenure 
+## Ownership 
 
 Location for administrative layers used in TSR: \\Orbital\s63016\!Publish\TSR Documentation.
 The [Generalized Forest Ownership layer](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/data-management/standards/generalized_forest_cover_ownership_layer_2018.pdf) is used to arrive at a contributing forest landbase
@@ -263,7 +263,8 @@ vat_bec<-unique(as.data.table(bec_poly)[,c("zone", "subzone")])[order(zone, subz
 print(vat_bec)
 #write this to pg
 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user')
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
 DBI::dbWriteTable(conn, c("public", "bec_zone_vat"), value= vat_bec, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 
@@ -274,7 +275,9 @@ ras.bec<-fasterize::fasterize(bec_poly, ProvRast,
                         field = "value",#cells that are waterbodies get a value of 1
                         background = 0) 
 writeRaster(ras.bec, file="bec.tif", format="GTiff", overwrite=TRUE)
-system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/params/bec.tif -t 100x100 rast.bec_current | psql -d clus",invisible = TRUE, show.output.on.console = FALSE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bec.tif -t 100x100 rast.bec_current | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
 
 ```
 
@@ -285,11 +288,11 @@ fortenure_poly<-getSpatialQuery("SELECT tsb_number, geom FROM public.forest_tenu
 fortenure_vat<-unique(as.data.table(fortenure_poly)[,c("tsb_number")])[,value:= seq_len(.N)]
 
 print(fortenure_vat)
-#write this to pg
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='localhost', dbname = 'clus', port='5432' ,user='app_user')
+#write this to pg
 DBI::dbWriteTable(conn, c("public", "forest_tenure_vat"), value= fortenure_vat, row.names = FALSE, overwrite = TRUE) 
-dbDisconnect(conn)
+
 
 #merge back to becpoly
 fortenure_poly<-merge(fortenure_poly, fortenure_vat, by =c("tsb_number"))
@@ -299,5 +302,5 @@ ras.forest_tenure<-fasterize::fasterize(fortenure_poly, ProvRast,
                         background = 0) 
 writeRaster(ras.forest_tenure, file="forest_tenure.tif", format="GTiff", overwrite=TRUE)
 
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here (), '/R/params/forest_tenure.tif -t 100x100 rast.forest_tenure | psql -d clus -h ', keyring::key_get('dbhost', keyring = 'postgreSQL'), ' -U ',user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,'-W ', password = keyring::key_get('dbpass', keyring = 'postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_tenure.tif -t 100x100 rast.forest_tenure | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```

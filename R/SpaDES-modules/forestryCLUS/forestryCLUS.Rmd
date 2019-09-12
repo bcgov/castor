@@ -46,23 +46,31 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
-times <- list(start = 0, end = 5)
+times <- list(start = 0, end = 1)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list( 
                          #Database connection
                          dbName='clus',
-                         save_clusdb = FALSE,
-                         useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/blockingCLUS/clusdb.sqlite",
+                         save_clusdb = TRUE,
+                         #useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/blockingCLUS/clusdb.sqlite",
                          #Study Area
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
-                         nameBoundary=c("24E"), 
+                         nameBoundary = c ("26A", "29B", "29C"), #DU7 
                          nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "rast.forest_tenure"),  
+                         nameCompartmentRaster = "rast.forest_tenure",
+                         nameCompartmentTable = "forest_tenure_vat",
+                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo",  "rast.zone_cond_uwr", "rast.zone_cond_fsw", "rast.zone_cond_nharv"),
+                         nameZoneTable="zone_constraints",
+                         nameAgeRaster= "rast.vri2017_projage1",
+                         nameHeightRaster= "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameYieldTable ="yield_ex"),
   blockingCLUS = list(blockMethod='pre', 
-                      patchZone = 'rast.beo_const',
+                      patchZone = 'rast.zone_cond_beo',
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
@@ -70,21 +78,34 @@ parameters <- list(
   roadCLUS = list(roadMethod = 'snap', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_resource'),
-  rsfCLUS = list(calculateInterval = 1,
-                 criticalHabitatTable = "public.crithab_lu")
+  rsfCLUS = list(calculateInterval = 5, 
+                 criticalHabitatTable = "public.criticalhabitat",
+                 writeRSFRasters = TRUE)
                 )
 
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "rsfCLUS")
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU8' AND season = 'S'"))
-# see rsf_model_coeff.rmd   
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU7' and season IN ('S', 'EW', 'LW')"))
+rsf_model_coeff[, bounds := 'rast.crithabitat']
 
-harvestFlow<- data.table(compartment = c('24E','24E','24E','24E','24E','24E','24E','24E','24E','24E'),
+scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
+harvestFlow<- data.table(compartment = c('26A','26A','26A','26A','26A','26A','26A','26A','26A','26A'),
                                    partition = 'vol > 50',
-                                   year = rep(seq(from = 2018, to=2027, by = 
-                                                    1),1), 
-                                   flow = 100000)
-objects <- list(harvestFlow = harvestFlow 
+                                   year = rep(seq(from = 2018, to=2068, by = 1),1), 
+                                   flow = 10000)
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+
+objects <- list(harvestFlow = harvestFlow, patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario
                 )
 paths <- list(
   cachePath = cacheDir,
@@ -97,7 +118,7 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
 
-outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport"))
+outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport","rsf"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

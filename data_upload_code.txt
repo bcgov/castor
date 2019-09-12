@@ -92,6 +92,7 @@ raster2pgsql -s 3005 -d -I -C -M -N 2147483648  \\spatialfiles2.bcgov\archive\FO
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_projheight1.tif -t 100x100 rast.vri2017_projheight1 | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_crownclosure.tif -t 100x100 rast.vri2017_crownclosure | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_basalarea.tif -t 100x100 rast.vri2017_basalarea | psql -d clus
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=klochhea" W:\DAM\WorkArea\DATA\VRI2018\PUBLIC\VEG_COMP_LYR_R1_POLY.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
 ::ZONES
@@ -109,6 +110,7 @@ ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2
 ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\F_OWN\F_OWN_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\FADM_DESIGNATED_AREAS\FADM_DESAR_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\TA_PARK_ECORES_PA_SVW\TA_PEP_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\land_use\TA_CONSERVANCY_AREAS_SVW\TA_CA_SVW_polygon.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_basalarea.tif -t 100x100 rast.vri2017_basalarea | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  \\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\vri_tfl\vri_siteindex.tif -t 100x100 rast.vri2017_siteindex | psql -d clus
@@ -148,17 +150,24 @@ raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climat
 gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\annual\mat  S:\ANA\PROJECTS\CLUS\Data\climate\annual\mat\mat.tif
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\annual\mat\mat.tif -t 100x100 rast.mat| psql -d clus
 
-gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm\ppt_sm.tif
-raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm\ppt_sm.tif -t 100x100 rast.ppt_sm| psql -d clus
-
 gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_sm  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_sm\tave_sm.tif
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_sm\tave_sm.tif -t 100x100 rast.tave_sm| psql -d clus
 
 gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_wt  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_wt\tave_wt.tif
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\tave_wt\tave_wt.tif -t 100x100 rast.tave_wt | psql -d clus
 
+
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm\ppt_sm.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\ppt_sm\ppt_sm.tif -t 100x100 rast.ppt_sm| psql -d clus
+
+
 gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas  S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas\pas.tif
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\annual\pas\pas.tif -t 100x100 rast.pas | psql -d clus
+
+gdalwarp -t_srs EPSG:3005 -multi  -tr 100 100 -te 159587.5 173787.5 1881187.5 1748187.5   S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\pas_wt  S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\pas_wt\pas_wt.tif
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\climate\seasonal\pas_wt\pas_wt.tif -t 100x100 rast.pas_wt | psql -d clus
+
 
 
 ::RSF Mines and Ag
@@ -180,3 +189,16 @@ raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\vri_tf
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_not_pine_2003to2017.tif -t 100x100 rast.fire_not_pine_15 | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_pine_2003to2017.tif -t 100x100 rast.fire_pine_15 | psql -d clus
 raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\fire\fire_tiffs\raster_fire_over25yo_fin.tif -t 100x100 rast.fire_old_25 | psql -d clus
+
+::Predicted RSF for Validation
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du6_ew.tif -t 100x100 caribou.rsf_du6_ew | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du6_lw.tif -t 100x100 caribou.rsf_du6_lw | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du7_lw.tif -t 100x100 caribou.rsf_du7_lw | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du7_ew.tif -t 100x100 caribou.rsf_du7_ew | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du7_s.tif -t 100x100 caribou.rsf_du7_s | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du8_lw.tif -t 100x100 caribou.rsf_du8_lw | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du8_ew.tif -t 100x100 caribou.rsf_du8_ew | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du8_s.tif -t 100x100 caribou.rsf_du8_s | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du9_lw.tif -t 100x100 caribou.rsf_du9_lw | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du9_ew.tif -t 100x100 caribou.rsf_du9_ew | psql -d clus
+raster2pgsql -s 3005 -d -I -C -M  -N 2147483648 S:\ANA\PROJECTS\CLUS\Data\caribou\rsf_muhly\model_rasters\rsf_du9_s.tif -t 100x100 caribou.rsf_du9_s | psql -d clus

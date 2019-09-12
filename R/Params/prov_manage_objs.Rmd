@@ -232,7 +232,7 @@ writeRaster(zone.ras, file=paste0(here(),"/zone_beo.tif"), format="GTiff", overw
 rm(zone.ras, out)
 
 # Upload to postgres database
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_beo.tif -t 100x100 rast.zone_beo | psql -d clus'), show.output.on.console = FALSE, invisible = FALSE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_beo.tif -t 100x100 rast.zone_cond_beo |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
 
 library(RPostgreSQL)
 zone_beo_table<-setDT(ogm.final)[, .SD[which.max(AGE)], by=zone]
@@ -271,7 +271,7 @@ fsw.ras<-fasterize::fasterize(sf= fsw, raster = ProvRast , field = "fsw_id")
 writeRaster(fsw.ras, file=paste0(here(),"/zone_fsw.tif"), format="GTiff", overwrite=TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_fsw.tif -t 100x100 rast.zone_fsw | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_fsw.tif -t 100x100 rast.zone_cond_fsw |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 rm(fsw.ras)
 gc()
@@ -323,7 +323,7 @@ end as vli_id, wkb_geometry FROM public.rec_vlnd_polygon WHERE evqo_cd <> 'SCO'"
 vqo.ras<-fasterize::fasterize(sf= vqo, raster = ProvRast , field = "vli_id")
 writeRaster(vqo.ras, file=paste0(here(),"/zone_vqo.tif"), format="GTiff", overwrite=TRUE)
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_vqo.tif -t 100x100 rast.zone_vqo | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_vqo.tif -t 100x100 rast.zone_cond_vqo |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 df<-as.data.frame(vqo)
 df<-df[,1:2]
@@ -392,7 +392,7 @@ nharv.ras[nharv.ras[] == 0 ] <- NA
 nharv.ras[nharv.ras[] > 0 ] <- 0
 writeRaster(nharv.ras, file=paste0(here(),"/nharv.tif"), format="GTiff", overwrite=TRUE)
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/nharv.tif -t 100x100 rast.zone_c_nharv | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/nharv.tif -t 100x100 rast.zone_cond_nharv | psql -d clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
 
@@ -422,7 +422,9 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
 
+dbExecute(conn, "ALTER TABLE zone_nharv INHERIT zone_constraints")
 dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints")
+dbExecute(conn, "ALTER TABLE zone_wha INHERIT zone_constraints")
 dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints")
 dbExecute(conn, "ALTER TABLE zone_fsw INHERIT zone_constraints")
 dbExecute(conn, "ALTER TABLE zone_uwr INHERIT zone_constraints") #Note from uwr_cond_harvest.rmd

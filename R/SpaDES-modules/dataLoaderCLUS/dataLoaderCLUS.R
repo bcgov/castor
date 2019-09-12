@@ -96,7 +96,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         
        }else{
-        message(paste0("Loading existing db...", P(sim, "dataloaderCLUS", "clusdb")))
+        message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))
          #TODO: Make a copy of the db here so that the clusdb is in memory
         userdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") ) # connext to pgdb
         sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") # save the pgdb in memory (object in sim)

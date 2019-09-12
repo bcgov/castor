@@ -55,7 +55,7 @@ def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='localhost', dbName='c
 
     #--Testing -s is just the schema
 
-    params = ['pg_dump',  '-h', dbHost, '-p', dbPort,  '-Fd' , '-f ', buDir , dbName, ]
+    params = ['pg_dump --no-sync ',  '-h', dbHost, '-p', dbPort,  '-Fd' , '-f ', buDir , dbName, ]
 
     command = ""
     for p in params:
@@ -73,7 +73,7 @@ def BackupDB(dbUser='postgres', dbPass='postgres', dbHost='localhost', dbName='c
     process.wait()
     output, error = process.communicate()
     if error:
-        log("*****Error Executing Command: {0}".format(command))
+        log("*****Error Executing Command: {0}".format(error))
         log("*****Error Performing Backup.")
 
         #if not gmailacct is None:

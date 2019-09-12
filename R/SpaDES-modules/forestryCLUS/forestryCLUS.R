@@ -41,8 +41,8 @@ defineModule(sim, list(
     expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
     expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName ="pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA)
-    
+    expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -50,7 +50,8 @@ defineModule(sim, list(
     createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc = NA),
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA),
     createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
-    createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA)
+    createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
+    createsOutput(objectName ="scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
 ))
 
@@ -82,6 +83,8 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 forestryCLUS.Init <- function(sim) {
+  if(nrow(scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
+  
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(time = integer(), compartment = character(), area= numeric(), volume = numeric())
@@ -210,7 +213,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
     harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
-    if(!is.null(harvestTarget)){# Determine if there is a demand for volume to harvest
+    if(!is.na(harvestTarget)){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
       harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
@@ -259,6 +262,25 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       next #No volume demanded in this compartment
     }
   }
+  return(invisible(sim))
+}
+forestryCLUS.calcUncertainty <-function(sim) {
+  #Create a data.frame that houses the distribution of simulated achieved annual volume (aac)
+  #aac.sim<-sapply(1:1000,
+  #       function(x)
+  #         with(to.cut[base$cut.me == 1,],
+  #              sum(rGA(sum(base$cut.me), # if n = 1 then randoms are correlated!
+  #                      mu = mu.hat,
+  #                      sigma = sigma.hat)))) / 1000
+  
+  #the mean expected return?
+  mean(aac.sim)
+  
+  #the probability of achieving the mean objective?
+  mean(aac.sim > 1000000)
+  
+  #the 90% prediction interval?
+  quantile(aac.sim, p = c(0.05, 0.95))
   return(invisible(sim))
 }
 
