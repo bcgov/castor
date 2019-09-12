@@ -369,26 +369,28 @@ rsfCLUS.PredictRSF <- function(sim){
   rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
  
   for(i in 1:nrow(rsfPops)){ # for each unique RSF
-    sim$rsfcovar<-cbind(sim$rsfcovar, data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
-    setnames(sim$rsfcovar, "V1", paste0(rsfPops[[1]][[i]])) # name each rsf prediction appropriately
+    print(paste0(rsfPops[[1]][[i]]))
     
+    pred_rsf<-cbind(sim$rsfcovar[, eval(parse(text = paste0(rsfPops[[2]][[i]])))], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+    setnames(pred_rsf, c(paste0(rsfPops[[2]][[i]]) , paste0(rsfPops[[1]][[i]]))) # name each rsf prediction appropriately
+
     expr <- parse(text = paste0(rsfPops[[1]][[i]]))
-    rsfdt<-data.table(sim$rsfcovar[!is.na(eval(expr)),sum(eval(expr)), by = c(paste0(rsfPops[[2]][[i]]))])
+    rsfdt<-data.table( pred_rsf[!is.na(eval(expr)),sum(eval(expr)), by = c(paste0(rsfPops[[2]][[i]]))])
     rsfdt[, time:=time(sim)]
     rsfdt[, rsf:=paste0(rsfPops[[1]][[i]])]
     setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "time", "rsf_model"))
     lrsf<-list(sim$rsf, rsfdt)
     sim$rsf<-rbindlist(lrsf)
-    
+
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras
-      out.ras[]<-unlist(sim$rsfcovar[,eval(expr)], use.names = FALSE)
+      out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim), ".tif"), overwrite = TRUE)
       rm(out.ras)
     }#----------------------------------------------
     
     #Remove the prediction
-    sim$rsfcovar[,paste0(rsfPops[[1]][[i]]) := NULL]
+    rm(pred_rsf)
   }
   
   
