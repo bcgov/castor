@@ -163,7 +163,7 @@ rsfCLUS.Init <- function(sim) { # NOTE: uses data.table package syntax
     
   }else{ # if there is already an rsfcovar data.table in the RSQLite db then grab the table and load it into the sim
     message('...getting rsfcovar')
-    sim$rsfcovar<-dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar")
+    sim$rsfcovar<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar"))
   }
   
   #Set the GLM objects so that inherits class 'glm' which is needed for predict.glm function/method
@@ -188,8 +188,19 @@ rsfCLUS.UpdateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie
 getUpdatedLayers<-function(sim){ #gets the updateable (internal to sim$clusdb) variables for the rsf
   up_layers<-paste(unlist(unique(rsf_model_coeff[static == 'N' & type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ") # create a list of the unique updatebale variables
   if(!(up_layers=="")){
-    newLayer<-as.data.table(dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels ORDER BY pixelid"))) # loop through the list and query the 'pixels' table in the RSQLite db for each updateable variable
-    sim$rsfcovar[, (colnames(newLayer)) := newLayer] # Attach those updatable varaibales to the rsfCover data.table; The '()' is need to evaluate the colnames function
+    newLayer<-data.table(dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels ORDER BY pixelid"))) # loop through the list and query the 'pixels' table in the RSQLite db for each updateable variable
+   
+    test<-paste('newLayer$',colnames(newLayer), sep = '')
+    test <- within(data.table(colnames(newLayer)),  equate <- paste(colnames(newLayer), test
+                                                               , sep="=")) # concatenate two colums so that the new layer equals the old layer
+    
+    equals<-paste(test$equate, sep ="' '", collapse = ", ")
+    assign<-parse(text=paste0("`:=`(",equals ,")"))
+    print(is.data.table(sim$rsfcovar))
+    sim$rsfcovar<-sim$rsfcovar[,eval(assign)] #Assign the new names with the imported (old) layers
+    
+    
+    #sim$rsfcovar[, (colnames(newLayer)) := newLayer] # Attach those updatable varaibales to the rsfCover data.table; The '()' is need to evaluate the colnames function
     rm(newLayer)
     gc()
   }
@@ -369,9 +380,7 @@ rsfCLUS.PredictRSF <- function(sim){
   rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
  
   for(i in 1:nrow(rsfPops)){ # for each unique RSF
-    print(paste0(rsfPops[[1]][[i]]))
-    
-    pred_rsf<-cbind(sim$rsfcovar[, eval(parse(text = paste0(rsfPops[[2]][[i]])))], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+    pred_rsf<-cbind(sim$rsfcovar[, paste0(rsfPops[[2]][[i]])], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
     setnames(pred_rsf, c(paste0(rsfPops[[2]][[i]]) , paste0(rsfPops[[1]][[i]]))) # name each rsf prediction appropriately
 
     expr <- parse(text = paste0(rsfPops[[1]][[i]]))
