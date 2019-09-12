@@ -20,6 +20,9 @@ library (bcdata)
 library (sf)
 
 poly.caribou <- bcdata::bcdc_get_data ("caribou-herd-locations-for-bc") # herd boundary data is named "caribou-herd-locations-for-bc" in the BCGW; can use bcdc_search ("caribou") as a way to search for the data using the bcdata package
+# when I developed htis it worked, now I get "Error: No Web Service resource available for this dataset." Download data as shapefile if needed
+poly.caribou <- st_read ("C:\\Work\\caribou\\clus_data\\caribou\\caribou_herd\\bcdata_herds\\GCPB_CARIBOU_POPULATION_SP\\GCBP_CARIB_polygon.shp",  stringsAsFactors = FALSE)
+# plot (st_geometry (poly.caribou))
 ```
 
 ## Rasterize the Data
@@ -72,6 +75,6 @@ DBI::dbWriteTable (conn, c("public", "caribou_herd"), value = lu_caribouHerd,
 writeRaster (ras.caribou.herd, file = "caribou_herd.tif", format = "GTiff", overwrite = TRUE)
 
 #upload to db
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here (), '/R/params/caribou_herd.tif -t 100x100 ras.caribou_herd | psql postgresql://clus_project:clus@DC052586:5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here (), '/R/params/caribou_herd.tif -t 100x100 rast.caribou_herd | psql postgresql://clus_project:clus@DC052586:5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 ```
