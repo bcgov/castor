@@ -52,6 +52,16 @@ The modeled relationship between moose density and wolf density is illustrated i
 <p class="caption">Figure 3. Estimated wolf density as a function of moose density using the Messier (1994) model.</p>
 </div>
 
+### The Klaczek and Heard (2016) Model
+Klaczek and Heard (2016) fit the [Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) Type II model to a sub-set of the data, excluding data from the Isle Royale ecosystem, using the equation: $$W = (26.15 * M) / (M + 0.341)$$
+
+Here W = wolf density (wolves/1,000 km^2^) and M = moose density (moose/km^2^). They evaluated the model fit to moose and wolf data collected in the Parsnip area of British Columbia, and found their Type II model was a good fit to the data (Klaczek, pers. comm.).
+
+<div class="figure" style="text-align: left">
+<img src="03_moose_density_summary_files/figure-html/Klaczek and Heard 2016 wolf density model-1.png" alt="Figure 4. Estimated wolf density as a function of moose density using the Klaczek and Heard (2016) model."  />
+<p class="caption">Figure 4. Estimated wolf density as a function of moose density using the Klaczek and Heard (2016) model.</p>
+</div>
+
 ## Estimated Wolf Densities in the Chilcotin Region of British Columbia
 Caribou recovery planning has begun in the Chilcotin local population unit (LPU) of caribou. This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *Threatened* under Canada's *Species at Risk Act*. The Itcha-Ilgachuz herd is considered to be of significant conservation importance provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, road development, wildfire and mountain pine beetle infestations (cite herd plan). In addition, the 2019 caribou population census showed a 40% population decline from 2018, and at that rate of decline, the herd would be functionally extirpated (i.e., less than 20 animals) in eight years (Carolyn Shores, Provincial Caribou Biologist, pers. comm.). Thus, there is an urgent need to develop a recovery plan for the Chilcotin LPU. A critical component of this plan will be identifying ways to effectively minimize wolf density in the region, both directly (i.e., culling) and indirectly (by managing moose populations and moose and wolf habitat). 
 
@@ -69,6 +79,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> WolfDensityFuller </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> WolfDensityKuzyk </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> WolfDensityMessier </th>
+   <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> WolfDensityKlaczek </th>
    <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;"> WolfDensityAverage </th>
   </tr>
  </thead>
@@ -81,6 +92,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 13 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-01 </td>
@@ -89,6 +101,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 12 </td>
   </tr>
   <tr>
@@ -99,6 +112,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 20 </td>
    <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-A </td>
@@ -107,6 +121,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 12 </td>
   </tr>
   <tr>
@@ -116,6 +131,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 9 </td>
   </tr>
   <tr>
@@ -125,6 +141,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 10 </td>
   </tr>
   <tr>
@@ -134,7 +151,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 5 </td>
-   <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 6 </td>
+   <td style="text-align:right;"> 5 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-B </td>
@@ -143,6 +161,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 14 </td>
    <td style="text-align:right;"> 21 </td>
+   <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 16 </td>
   </tr>
   <tr>
@@ -153,6 +172,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 18 </td>
    <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 14 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-B </td>
@@ -161,7 +181,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 24 </td>
-   <td style="text-align:right;"> 19 </td>
+   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 18 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-B </td>
@@ -170,7 +191,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 18 </td>
    <td style="text-align:right;"> 20 </td>
    <td style="text-align:right;"> 28 </td>
-   <td style="text-align:right;"> 22 </td>
+   <td style="text-align:right;"> 18 </td>
+   <td style="text-align:right;"> 21 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-B </td>
@@ -179,7 +201,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 32 </td>
    <td style="text-align:right;"> 34 </td>
    <td style="text-align:right;"> 37 </td>
-   <td style="text-align:right;"> 34 </td>
+   <td style="text-align:right;"> 21 </td>
+   <td style="text-align:right;"> 31 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-C </td>
@@ -188,7 +211,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 18 </td>
-   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 14 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-C </td>
@@ -197,6 +221,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 14 </td>
    <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 22 </td>
+   <td style="text-align:right;"> 16 </td>
    <td style="text-align:right;"> 17 </td>
   </tr>
   <tr>
@@ -206,7 +231,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 16 </td>
    <td style="text-align:right;"> 18 </td>
    <td style="text-align:right;"> 25 </td>
-   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 19 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-C </td>
@@ -215,6 +241,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
@@ -224,6 +251,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 16 </td>
    <td style="text-align:right;"> 24 </td>
+   <td style="text-align:right;"> 16 </td>
    <td style="text-align:right;"> 18 </td>
   </tr>
   <tr>
@@ -233,7 +261,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 21 </td>
    <td style="text-align:right;"> 23 </td>
    <td style="text-align:right;"> 30 </td>
-   <td style="text-align:right;"> 25 </td>
+   <td style="text-align:right;"> 19 </td>
+   <td style="text-align:right;"> 23 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-D </td>
@@ -242,7 +271,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 19 </td>
    <td style="text-align:right;"> 26 </td>
-   <td style="text-align:right;"> 21 </td>
+   <td style="text-align:right;"> 17 </td>
+   <td style="text-align:right;"> 20 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-02-D </td>
@@ -251,7 +281,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 27 </td>
    <td style="text-align:right;"> 30 </td>
    <td style="text-align:right;"> 35 </td>
-   <td style="text-align:right;"> 31 </td>
+   <td style="text-align:right;"> 20 </td>
+   <td style="text-align:right;"> 28 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-03 </td>
@@ -260,7 +291,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 10 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-03 </td>
@@ -270,6 +302,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 13 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-04 </td>
@@ -278,6 +311,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 9 </td>
   </tr>
   <tr>
@@ -287,6 +321,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 4 </td>
    <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 6 </td>
   </tr>
   <tr>
@@ -296,6 +331,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
@@ -306,6 +342,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 19 </td>
    <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 14 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-04 </td>
@@ -315,6 +352,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 18 </td>
    <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 14 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-04 </td>
@@ -323,7 +361,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 18 </td>
    <td style="text-align:right;"> 20 </td>
    <td style="text-align:right;"> 27 </td>
-   <td style="text-align:right;"> 22 </td>
+   <td style="text-align:right;"> 18 </td>
+   <td style="text-align:right;"> 21 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-06 </td>
@@ -332,7 +371,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 8 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-10 </td>
@@ -341,6 +381,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 10 </td>
   </tr>
   <tr>
@@ -350,7 +391,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 12 </td>
-   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 10 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-12-B </td>
@@ -359,7 +401,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 17 </td>
    <td style="text-align:right;"> 24 </td>
-   <td style="text-align:right;"> 19 </td>
+   <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 18 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-13-A </td>
@@ -368,7 +411,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 8 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-13-A </td>
@@ -377,6 +421,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
@@ -387,6 +432,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 20 </td>
    <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 15 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-13-A </td>
@@ -395,6 +441,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 12 </td>
   </tr>
   <tr>
@@ -404,7 +451,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 18 </td>
-   <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 14 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-13-B </td>
@@ -413,7 +461,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 15 </td>
-   <td style="text-align:right;"> 11 </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 12 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-13-C </td>
@@ -422,7 +471,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 14 </td>
-   <td style="text-align:right;"> 10 </td>
+   <td style="text-align:right;"> 12 </td>
+   <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-13-C </td>
@@ -431,6 +481,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 14 </td>
    <td style="text-align:right;"> 22 </td>
+   <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 16 </td>
   </tr>
   <tr>
@@ -441,6 +492,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 19 </td>
    <td style="text-align:right;"> 14 </td>
+   <td style="text-align:right;"> 14 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-14 </td>
@@ -449,6 +501,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 10 </td>
   </tr>
   <tr>
@@ -458,6 +511,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 8 </td>
    <td style="text-align:right;"> 13 </td>
+   <td style="text-align:right;"> 11 </td>
    <td style="text-align:right;"> 10 </td>
   </tr>
   <tr>
@@ -467,6 +521,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 14 </td>
    <td style="text-align:right;"> 21 </td>
+   <td style="text-align:right;"> 15 </td>
    <td style="text-align:right;"> 16 </td>
   </tr>
   <tr>
@@ -476,6 +531,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 10 </td>
    <td style="text-align:right;"> 16 </td>
+   <td style="text-align:right;"> 13 </td>
    <td style="text-align:right;"> 12 </td>
   </tr>
   <tr>
@@ -485,6 +541,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 9 </td>
    <td style="text-align:right;"> 15 </td>
+   <td style="text-align:right;"> 12 </td>
    <td style="text-align:right;"> 11 </td>
   </tr>
   <tr>
@@ -494,7 +551,8 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 5 </td>
    <td style="text-align:right;"> 9 </td>
-   <td style="text-align:right;"> 7 </td>
+   <td style="text-align:right;"> 9 </td>
+   <td style="text-align:right;"> 8 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 5-15-C </td>
@@ -503,6 +561,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 3 </td>
    <td style="text-align:right;"> 5 </td>
+   <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 5 </td>
   </tr>
   <tr>
@@ -511,6 +570,7 @@ The models suggest that wolf densities were never below 3 wolves/1,000 km^2^ in 
    <td style="text-align:right;"> 0.130 </td>
    <td style="text-align:right;"> 6 </td>
    <td style="text-align:right;"> 4 </td>
+   <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 7 </td>
    <td style="text-align:right;"> 6 </td>
   </tr>

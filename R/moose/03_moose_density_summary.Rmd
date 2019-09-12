@@ -105,6 +105,30 @@ ggplot (data, aes (x = moose.km2, y = wolf.dens.messier))  +
 
 ```
 
+### The Klaczek and Heard (2016) Model
+Klaczek and Heard (2016) fit the [Messier (1994)](https://www.jstor.org/stable/1939551?seq=1#page_scan_tab_contents) Type II model to a sub-set of the data, excluding data from the Isle Royale ecosystem, using the equation: $$W = (26.15 * M) / (M + 0.341)$$
+
+Here W = wolf density (wolves/1,000 km^2^) and M = moose density (moose/km^2^). They evaluated the model fit to moose and wolf data collected in the Parsnip area of British Columbia, and found their Type II model was a good fit to the data (Klaczek, pers. comm.).
+
+```{r, Klaczek and Heard 2016 wolf density model, val = T, echo = F, fig.align = "left", fig.cap = "Figure 4. Estimated wolf density as a function of moose density using the Klaczek and Heard (2016) model."}
+
+library (ggplot2)
+
+data <- data.frame ("area.km2" = 1000, # 'simulated' dataset 
+                    "moose.km2" = seq (0, 1.5, 0.01),
+                     stringsAsFactors = FALSE)
+
+data$wolf.dens.messier <- (26.15 * data$moose.km2)/(0.341 + data$moose.km2)
+
+ggplot (data, aes (x = moose.km2, y = wolf.dens.messier))  +
+  geom_line () + 
+  labs (x = expression ("Moose Density - moose per"~km^2), 
+        y = expression ("Wolf Density - wolves per 1,000"~km^2)) +
+  scale_x_continuous (breaks = seq (0, 1.5, 0.1)) +
+  scale_y_continuous (breaks = seq (0, 40, 2)) +
+  theme_classic ()
+```
+
 ## Estimated Wolf Densities in the Chilcotin Region of British Columbia
 Caribou recovery planning has begun in the Chilcotin local population unit (LPU) of caribou. This LPU consists of the Itcha-Ilgachuz, Rainbows and Charlotte Alplands caribou herds, and constitutes the southernmost LPU of the Northern Mountain Caribou Designatible Unit (DU 7). These caribou are classified as *Threatened* under Canada's *Species at Risk Act*. The Itcha-Ilgachuz herd is considered to be of significant conservation importance provincially because it is the largest and highest density herd in west-central British Columbia (cite herd plan). However, the herd declined 17.2% annually between 2014 and 2018, and the habitat has experienced significant amounts of timber harvesting, road development, wildfire and mountain pine beetle infestations (cite herd plan). In addition, the 2019 caribou population census showed a 40% population decline from 2018, and at that rate of decline, the herd would be functionally extirpated (i.e., less than 20 animals) in eight years (Carolyn Shores, Provincial Caribou Biologist, pers. comm.). Thus, there is an urgent need to develop a recovery plan for the Chilcotin LPU. A critical component of this plan will be identifying ways to effectively minimize wolf density in the region, both directly (i.e., culling) and indirectly (by managing moose populations and moose and wolf habitat). 
 
@@ -123,7 +147,8 @@ tab_density_est <- data.table ("Wildlife Management Unit (WMU)" = c ("5-01", "5-
 tab_density_est [, WolfDensityFuller := round (3.5 + ((MooseDensityKm2 * 6) * 3.3))] # FUller wolf density
 tab_density_est [, WolfDensityKuzyk := round (((MooseDensityKm2 * 6) * 5.4) - ((MooseDensityKm2 * 6)^2 * 0.166))] # Kuzyk density
 tab_density_est [, WolfDensityMessier := round ((58.7 * (MooseDensityKm2 - 0.03))/(0.76 + MooseDensityKm2))] # MEssier density
-tab_density_est [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
+tab_density_est [, WolfDensityKlaczek := round ((26.15 * MooseDensityKm2)/(0.341 + MooseDensityKm2))] # Klaczek density
+tab_density_est [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier + WolfDensityKlaczek)/4)] # Averaged density
 
 kable (tab_density_est,
        caption = "<b>Table 1. Estimated moose densities from aerial survey data and wolf densities from published wolf density models in the Chilcotin region of British Columbia.<b>") %>%
@@ -292,7 +317,8 @@ data <- data.table (data)
 data [, WolfDensityFuller := round (3.5 + ((moose.density.estimate * 6) * 3.3))] # FUller wolf density
 data [, WolfDensityKuzyk := round (((moose.density.estimate * 6) * 5.4) - ((moose.density.estimate * 6)^2 * 0.166))] # Kuzyk density
 data [, WolfDensityMessier := round ((58.7 * (moose.density.estimate - 0.03))/(0.76 + moose.density.estimate))] # MEssier density
-data [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier)/3)] # Averaged density
+data [, WolfDensityKlaczek := round ((26.15 * moose.density.estimate)/(0.341 + moose.density.estimate))] # Klaczek density
+data [, WolfDensityAverage := round ((WolfDensityFuller + WolfDensityKuzyk + WolfDensityMessier + WolfDensityKlaczek)/4)] # Averaged density
 
 data$wmu <- as.factor(data$wmu)
 
