@@ -213,7 +213,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
     harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
-    if(!is.null(harvestTarget)){# Determine if there is a demand for volume to harvest
+    if(!is.na(harvestTarget)){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
       harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
@@ -262,6 +262,25 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       next #No volume demanded in this compartment
     }
   }
+  return(invisible(sim))
+}
+forestryCLUS.calcUncertainty <-function(sim) {
+  #Create a data.frame that houses the distribution of simulated achieved annual volume (aac)
+  #aac.sim<-sapply(1:1000,
+  #       function(x)
+  #         with(to.cut[base$cut.me == 1,],
+  #              sum(rGA(sum(base$cut.me), # if n = 1 then randoms are correlated!
+  #                      mu = mu.hat,
+  #                      sigma = sigma.hat)))) / 1000
+  
+  #the mean expected return?
+  mean(aac.sim)
+  
+  #the probability of achieving the mean objective?
+  mean(aac.sim > 1000000)
+  
+  #the 90% prediction interval?
+  quantile(aac.sim, p = c(0.05, 0.95))
   return(invisible(sim))
 }
 
