@@ -86,7 +86,9 @@ Init <- function(sim) {
   tab1[, ht:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$height, 
                                               xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-  if(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1") == 'eca'){
+  print(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")))
+  
+  if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     print("Apply ECA")
     tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$eca, 
@@ -129,7 +131,7 @@ growingStockCLUS.Update<- function(sim) {
   dbExecute(sim$clusdb, "DROP INDEX index_height")
   
   
-  if(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1") == 'eca'){
+  if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                                  dat[yieldid == .BY]$eca, 
                                                  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
