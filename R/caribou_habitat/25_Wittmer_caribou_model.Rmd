@@ -19,11 +19,16 @@ Here I describe in these models in detail, and how they could be used to with th
 ## The [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x) Model
 [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x) developed their model for southern mountain caribou (i.e., Designatable Unit 9; [COSEWIC 2011](https://www.canada.ca/content/dam/eccc/migration/cosewic-cosepac/4e5136bf-f3ef-4b7a-9a79-6d70ba15440f/cosewic_caribou_du_report_23dec2011.pdf)), using data from 10 'populations' (i.e., groups of caribou with unique spatial ranges, typically referred to as 'herds'). Individual caribou were monitored with radiotelemetry collars from 1984 to 2004 that broadcast a mortality signal when the animal died. These mortalities were investigated to identify cause of death. Models were developed using these data to estimate annual survival rates for cariobu in each 'population'. Annual survival rates were estimated as a function of habitat, including proportion of young (1 to 40 year old), mid-seral (40 to 140 year old) and old (>140 year old) forests, proportion of alpine areas, edge of young forests, mean patch size of young and old forests, average yearly snow accumulation and estimated population density in population ranges. Habitat features were measured using spatial data within 95% kernel density estimators of caribou locations in each a unique population. These ranges varied in size from 613 km^2^ to 8,141 km^2^, with a median size of 1,770 km^2^.   
 
-Several models were fit with various combinations of habitat covariates. The top model had the equation: $$S = 1.91 - (0.59 * F_{1to40}) + (0.42 * D)$$ 
+Several models were fit with various combinations of habitat covariates. The top model had the linear equation: $$S = 1.91 - (0.59 * F_{1to40}) + (0.42 * D)$$ 
 
 Here F~1to40~ = proportion of forest 1 to 40 years old and D = caribou population density (caribou/km^2^) in a caribou herd range. The model also includes a threshold, where F~1to40~ only influences survival when it exceeds 0.09.  
 
+Note that [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x) used a logit model, so the linear equation needs to be backtransformed using the equation: $$SR = exp (S)/(1 + exp(S)$$ 
 
+Also, it is important to note that they used the percentage (not proportion) of age classes over all forest types, not all land cover types. They also standardzied covariates to fit the model (i.e., subtraced teh mean adn divided by the standard deviation). Coefficients for standardizing the covariates were obtained from Wittmer (pers. comm.). To standardize percent forest age 1 to 40:  
+$$ SF_{1to40} = (F_{1to40} - 9.2220)/3.8932 $$
+To standardize density:
+$$ SD = (D - 0.0515)/0.0413 $$
 
 
 
