@@ -51,7 +51,7 @@ parameters <- list(
                          useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/clusdb.sqlite",
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
-                         nameBoundary=c("24E"), 
+                         nameBoundary = c ("26A", "29B", "29C"), #DU7  
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.forest_tenure",
                          nameCompartmentTable = "forest_tenure_vat"),
