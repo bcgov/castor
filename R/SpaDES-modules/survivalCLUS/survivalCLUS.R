@@ -11,11 +11,11 @@
 # See the License for the specific language governing permissions and limitations under the License.
 #===========================================================================================
 
-defineModule (sim, list(
+defineModule (sim, list (
   name = "survivalCLUS",
   description = "This module calculates adult female caribou survival rate in caribou herd ranges using the model developed by Wittmer et al. 2007.",
   keywords = c ("caribou", "survival", "southern mountain", "adult female"), # c("insert key words here"),
-  authors = c (person (c("Tyler", "Bryon"), "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
+  authors = c (person ("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character (0),
   version = list (SpaDES.core = "0.2.5", survivalCLUS = "0.0.1"),
@@ -29,9 +29,8 @@ defineModule (sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter ("calculateInterval", "numeric", 1, 1, 5, "The simulation time at which survival rates are calculated"),
     defineParameter ("caribou_herd_density", "numeric", 0.05, 0, 1, "This is the caribou herd density that the user defines. It is necessary to fit the survival model. For now, we are keeping it static, but in the future it could be made dynamic by linking to a population model."),
-    #### future improvement here would be to create a parameter that is a table of caribou herd population numbers and/or densities that coudl be input here and applied to the relevant herd ranges in the analysis
-    defineParameter ("nameRasCaribouHerd", "character", "ras.caribou_herd", NA, NA, "Name of the raster of the caribou herd boundaries that is stored in the psql clusdb. Created in Params\caribou_herd_raster.rmd.") # could be included in dataLoader instead for easier use in other modules?
-    # defineParameter ("tableCaribouHerd", "character", "caribou_herd", NA, NA, "The look up table to convert raster values to caribou herd name labels. The two values required are raster_integer and herd_name. Created in Params\caribou_herd_raster.rmd. I don't think this is needed here? Can be called later as part of data summary?")
+    defineParameter ("nameRasCaribouHerd", "character", "rast.caribou_herd", NA, NA, "Name of the raster of the caribou herd boundaries raster that is stored in the psql clusdb. Created in Params/caribou_herd_raster.rmd."), # could be included in dataLoader instead for easier use in other modules?
+    defineParameter ("tableCaribouHerd", "character", "public.caribou_herd", NA, NA, "The look up table to convert raster values to caribou herd name labels. The two values required are value and herd_name. Created in Params/caribou_herd_raster.rmd")
     # defineParameter (".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     # defineParameter (".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     # defineParameter (".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -45,26 +44,22 @@ defineModule (sim, list(
   outputObjects = bind_rows(
     #createsOutput ("objectName", "objectClass", "output object description", ...),
     #createsOutput (objectName = NA, objectClass = NA, desc = NA)
-    createsOutput (objectName = "tableSurvival", objectClass = "data.table", desc = "A data.table object created in the RSQLite clusdb. Consists of survival rate estimates for each herd in the study area at each time step.")
+    createsOutput (objectName = "tableSurvival", objectClass = "data.table", desc = "A data.table object. Consists of survival rate estimates for each herd in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
+    )
   )
-))
+)
 
 doEvent.survivalCLUS = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { # identify herds in the study area, calculate survival rate at time 0 for those herds and save the survival rate estimate
-      sim <- survivalCLUS.Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survial rate estimates
+      sim <- survivalCLUS.Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
       sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event 
-      sim <- scheduleEvent (sim, end(sim) , "survivalCLUS", "saveSurvival", 8) # schedule the save event at the end
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- survivalCLUS.PredictSurvival (sim) # this function calculates survival rate
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next calculate RSF event 
-    },
-    
-    saveSurvival = { # save the survival rate table to the db for use post-processing in data summary, etc.
-      sim <- survivalCLUS.setTablesCLUSdb (sim) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event  
     },
     
     warning (paste ("Undefined event type: '", current (sim) [1, "eventType", with = FALSE],
@@ -78,38 +73,54 @@ doEvent.survivalCLUS = function (sim, eventTime, eventType) {
 ######################
 survivalCLUS.Init <- function (sim) { # this function identifies the caribou herds in the 'study area' creates the survival rate table, calculates survival rate at time = 0, and saves the survival table in the clusdb
 
-  dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds integer") # add a column to the pixel table that will define the caribou herd area   
-  dbExecute (sim$clusdb, "CREATE TABLE survival_caribou (herd_bounds integer, survival_rate double)") # create a new table that will hold the survival rate for each caribou herd
-  
+  dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
+
   herdbounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
                                   RASTER_CLIP2 (srcRaster = P (sim, "survivalCLUS", "nameRasCaribouHerd") , # clip the herd boundary raster; defined in parameters, above
                                                 clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # by the study area; defined in parameters of dataLoaderCLUS
                                                 geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                                                 where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                                                 conn = NULL)))))
-    
-  dbBegin (sim$clusdb) # fire up the db and add the herd boundary values to the pixels table column that was created above
-  rs <- dbSendQuery (sim$clusdb, "Update pixels set herd_bounds = :V1", herdbounds) # the default name of the herdbounds column is 'V1'
+  
+  setnames (herdbounds, "V1", "herd_bounds") # rename the default column name
+  herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
+  herdbounds [, pixelid := seq_len(.N)] # add pixelid value
+  
+  vat_table <- data.table (getTableQuery (paste0 ( "SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
+                                          
+  herdbounds <- merge (herdbounds, vat_table, by.x = "herd_bounds", by.y = "value", all.x = TRUE) # left join the herd name to the intger
+  herdbounds [, herd_bounds := NULL] # drop the integer value 
+  setnames (herdbounds, "herd_name", "herd_bounds") # rename the herd boundary column
+  setorder (herdbounds, "pixelid") # this helps speed up processing?
+
+  dbBegin (sim$clusdb) # fire up the db and add the herd boundary values to the pixels table 
+  rs <- dbSendQuery (sim$clusdb, "Update pixels set herd_bounds = :herd_bounds where pixelid = :pixelid", herdbounds) 
   dbClearResult (rs)
   dbCommit (sim$clusdb) # commit the new column to the db
 
-  # calculate the proportion of age 1 to 40 year old forest pixels in each herd area in the study area 
-  # this SQL statement selects the average value of:
+  # The following calculates the proportion of age 1 to 40 year old forest pixels in each herd area 
+  # in the study area 
+   # the SQL statement selects the average value of:
     # cases that meet the case criteria 'when' (case = 1) and
     # cases that do not meet the case criteria 'then' (case = 0)
     # So, if an area of 10 pixels has 4 pixels age 1 to 40, then the statement will return
     # a value of 0.4  = AVG (0,0,1,1,0,1,1,0,0,0)
     # it does this by each herd ('GROUP BY' statement)
-  sim$survtable <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 1 AND 40 THEN 1 ELSE 0 END) FROM pixels GROUP BY herd_bounds"))
-  # what is the column name of the output; V1???
+    # the IS NOT NULL statements drop out the non-forested areas from the calculation, i.e., the denominator is the area of forest, not all land
+  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
+  # alternate way to specify the query: SELECT AVG (CASE WHEN age IS NOT NULL AND age BETWEEN 0 AND 40 THEN 1 WHEN age IS NOT NULL THEN 0 ELSE NULL END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL GROUP BY herd_bounds;
+
+  # The following equation calculates the survival rate in the herd area using the Wittmer et al. model 
+    # The model is a threshold model; if the proportion of 1 to 40 year old forest is < 0.09, 
+    # then forest age has no effect; hence the two statements below
+    # Wittmer standardized his covariates; I was able to get his original spreadsheet (See C:\Work\caribou\clus_github\R\SpaDES-modules\survivalCLUS\data\Wittmer_Figure_3.xls)
+    # Coefficents are standardized using the values from the spreadsheet
+    # Model was a logit function, so here I back-calculate to get survival rates exp(fxn)/(1+exp(fxn))
+  sim$tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 
+  sim$tableSurvival[!(prop_age < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
+  sim$tableSurvival[, time := time(sim)] # add the time of the survival calc
   
-  # This equation calculates the survival rate in the herd area using the Wittmer et al. model 
-  # The model is a threshold model; if the proportion of 1 to 40 year old forest is < 0.09, 
-  # then forest age has no effect; hence the two statements below
-  sim$survtable [V1 < 0.09, survival := 0.42 * P(sim)$caribou_herd_density ] # V1 here needs to be replaced with whatever the column name is that gets created in the above query
-  sim$survtable [!(V1 < 0.09), survival := (1.91 - (V1 * 0.59) + (0.42 * P(sim)$caribou_herd_density))]
-  sim$survtable [, time := time(sim)] # add the time of the survival calc
-  
+  print(sim$tableSurvival)
   ### Future version could include a table parameter input with caribou number or density by herd 
   ### that could be used in the model, rather than a single parameter for all herds, as currently 
   ### done
@@ -120,34 +131,17 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
 
 survivalCLUS.PredictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
  
-  sim$new_survtable <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 1 AND 40 THEN 1 ELSE 0 END) FROM pixels GROUP BY herd_bounds"))
-  # what is the column name of the output; V1???
+  new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
+  new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
+  new_tableSurvival[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
+  new_tableSurvival[, time := time(sim)] # add the time of the survival calc
   
-  sim$new_survtable [V1 < 0.09, survival_rate := 0.42 * P(sim)$caribou_herd_density ] # V1 needs to be replaced with whatever the column name is that gets created in the above query
-  sim$new_survtable [!(V1 < 0.09), survival_rate := (1.91 - (V1 * 0.59) + (0.42 * P(sim)$caribou_herd_density))]
-  sim$new_survtable [, time := time(sim)] # add the time of the survival calc
+  table_list <- list(sim$tableSurvival, new_tableSurvival)
+  sim$tableSurvival <- rbindlist (table_list) # bind the new survival rate table to the existing table
+  rm (new_tableSurvival) # is this necessary?
   
-  sim$survtable <- rbind (sim$survtable, new_survtable) # bind the new survival rate table to the existing table
-  rm (sim$new_survtable) # is this necessary?
-
-  return(invisible(sim))
+  return (invisible(sim))
 }
-
-
-survivalCLUS.setTablesCLUSdb <- function (sim) { # this function saves the survival table to the clusdb
-  
-  dbBegin (sim$clusdb)
-  rs <- dbSendQuery (sim$clusdb, "INSERT INTO survival_caribou (herd_bounds, survival_rate, time) values (:herd_bounds, :survival_rate, :time)", sim$survtable) # from sim object
-  dbClearResult (rs)
-  dbCommit (sim$clusdb)
-  rm (rs)
-  gc ()
-  # another thing that could be done here is link the LUT herd name to the integer in the 
-  # survival_caribou table, but maybe that is best done post processing, as part of data 
-  # review and summary.
-}
-
-
 
 
 .inputObjects <- function(sim) {
@@ -156,3 +150,4 @@ survivalCLUS.setTablesCLUSdb <- function (sim) { # this function saves the survi
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
   return(invisible(sim))
 }
+
