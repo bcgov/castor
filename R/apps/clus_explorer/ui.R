@@ -1,3 +1,4 @@
+
 ui <- dashboardPage(skin = "black",
   dashboardHeader(title = "CLUS: Explorer Tool"
                  ),
@@ -74,7 +75,9 @@ ui <- dashboardPage(skin = "black",
         h2("Insects")
       ),
       tabItem(tabName = "climate",
-        h2("Climate")
+        box(title = "Conceptual Path Diagram", width=12, background = "black", solidHeader = TRUE, collapsible = TRUE,
+        plotOutput(outputId = "climatemap", height = "800px")
+        )
       ),
       tabItem(tabName = "oilandgas",
         h2("Oil and Gas")
