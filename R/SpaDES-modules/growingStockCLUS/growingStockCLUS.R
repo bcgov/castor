@@ -36,6 +36,7 @@ defineModule(sim, list(
     defineParameter("updateInterval", "numeric", 1, NA, NA, "")
   ),
   inputObjects = bind_rows(
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA)
   ),
   outputObjects = bind_rows(
@@ -78,6 +79,7 @@ Init <- function(sim) {
   #ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
 
   #Note with any linear interpolation there is a bias for higher yields at younger ages (before cMAI) and lower yields at older ages (past cMAI)
+
   dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol, height, eca FROM yields"))
   tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0"))
   tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
@@ -86,10 +88,8 @@ Init <- function(sim) {
   tab1[, ht:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$height, 
                                               xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-  print(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")))
-  
+
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
-    print("Apply ECA")
     tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, 
                                               dat[yieldid == .BY]$eca, 
                                               xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
@@ -105,8 +105,8 @@ Init <- function(sim) {
     }
   
 
-  
-  sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
+  sim$growingStockReport<- data.table(scenario = scenario$name, time = time(sim), growingStock = dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels;"))
+  #sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
   
   rm(tab1,dat)
   gc()
@@ -158,7 +158,7 @@ growingStockCLUS.Update<- function(sim) {
 }
 
 growingStockCLUS.record<- function(sim) {
-  sim$growingStockReport[time(sim)+P(sim, "growingStockCLUS", "updateInterval")]<- dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels")
+  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, time = time(sim), growingStock = dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))), use.names = TRUE)
   return(invisible(sim))
 }
 
