@@ -107,7 +107,7 @@ save.reports <-function (sim){
                         password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
   #harvestingReport
   if(!is.null(sim$harvestReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'harvest'), harvestReport, append = T,row.names = FALSE)
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'harvest'), sim$harvestReport, append = T,row.names = FALSE)
   }
   #GrowingStockReport
   if(!is.null(sim$growingStockReport)){

@@ -105,7 +105,9 @@ Init <- function(sim) {
     }
   
 
-  sim$growingStockReport<- data.table(scenario = scenario$name, time = time(sim), growingStock = dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels;"))
+  sim$growingStockReport<- data.table(scenario = scenario$name, timeperiod = time(sim), 
+                                     dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock FROM pixels;"))
+ 
   #sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
   
   rm(tab1,dat)
@@ -158,7 +160,7 @@ growingStockCLUS.Update<- function(sim) {
 }
 
 growingStockCLUS.record<- function(sim) {
-  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, time = time(sim), growingStock = dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))), use.names = TRUE)
+  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock FROM pixels"))), use.names = TRUE)
   return(invisible(sim))
 }
 

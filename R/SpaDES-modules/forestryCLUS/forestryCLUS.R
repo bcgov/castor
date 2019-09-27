@@ -87,7 +87,7 @@ forestryCLUS.Init <- function(sim) {
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$harvestReport <- data.table(scenario = character(), time = integer(), compartment = character(), area= numeric(), volume = numeric())
+  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
@@ -246,7 +246,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         sim$harvestBlocks[queue$pixelid]<-time(sim)
 
         #Set the harvesting report
-        sim$harvestReport<- rbindlist(list(sim$harvestReport, data.table(scenario= scenario$name, time = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h))))
+        sim$harvestReport<- rbindlist(list(sim$harvestReport, data.table(scenario= scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h))))
       
         #Create landings
         #pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
