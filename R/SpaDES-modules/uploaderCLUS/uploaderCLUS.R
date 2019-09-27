@@ -51,28 +51,8 @@ doEvent.uploaderCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, end(sim), "uploaderCLUS", "save", 99999)
     },
     save = {
-      #harvestingReport
-      if(!is.null(sim$harvestReport)){
-        
-      }
-      #GrowingStockReport
-      if(!is.null(sim$growingStockReport)){
-        
-      }
-      #rsf
-      if(!is.null(sim$rsf)){
-        
-      }
-      #survival
-      if(!is.null(sim$tableSurvival)){
-        
-      }
-
-      #rasters
-      ##blocks
-      ##roads
-      ##rsfStart
-      ##rsfEND
+      sim <- save.reports(sim)
+      sim <- save.rasters(sim)
     },
 
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -90,18 +70,20 @@ Init <- function(sim) {
   #Does the schema exist?
   if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
     #remove all the rows that have the scenario name in them
-    dbExecute(connx, paste0("DELETE FROM scenarios where name = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM harvest where name = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM growingstock where name = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM rsf where name = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM survival where name = '", scenario$name, "';"))
-  
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", scenario$name, "';"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
+
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".harvest where scenario = '", scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", scenario$name, "';"))
+    dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
     dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "uploaderCLUS", "aoiName"),";"))
     dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO appuser;"))
     #Create the tables
-    tableList = list(scenarios = data.table(name =character(), description= character()), 
+    tableList = list(scenarios = data.table(scenario =character(), description= character()), 
                      harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric()), 
                      growingstock = data.table(scenario = character(), timeperiod = integer(), growingstock = numeric()), 
                      rsf = data.table(scenario = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
@@ -113,11 +95,41 @@ Init <- function(sim) {
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
     }
     
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
     dbDisconnect(connx)
   }
-  
-
   return(invisible(sim))
 }
 
+save.reports <-function (sim){
+  connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
+                        user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
+                        password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+  #harvestingReport
+  if(!is.null(sim$harvestReport)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'harvest'), harvestReport, append = T,row.names = FALSE)
+  }
+  #GrowingStockReport
+  if(!is.null(sim$growingStockReport)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'growingstock'), sim$growingStockReport, append = T,row.names = FALSE)
+  }
+  #rsf
+  if(!is.null(sim$rsf)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'rsf'), sim$rsf, append = T,row.names = FALSE)
+  }
+  #survival
+  if(!is.null(sim$tableSurvival)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), sim$tableSurvival, append = T,row.names = FALSE)
+  }
+  dbDisconnect(connx)
+  return(invisible(sim)) 
+}
 
+save.rasters <-function (sim){
+  #rasters
+  ##blocks
+  ##roads
+  ##rsfStart
+  ##rsfEND
+  return(invisible(sim)) 
+}
