@@ -15,8 +15,8 @@ ui <- dashboardPage(skin = "black",
         menuSubItem("Oil and Gas (planned)", tabName = "oilandgas", icon = icon("bolt")),
         menuSubItem("Recreation (planned)", tabName = "recreation", icon = icon("shoe-prints"))
         ), 
-      menuItem("Query Builder", tabName = "querybuilder", icon = icon("search"))
-
+      menuItem("Query Builder", tabName = "querybuilder", icon = icon("search")),
+      menuItem("Map Viewer", tabName = "mapviewer", icon = icon("layer-group"))
     )
   ),
   dashboardBody(
@@ -36,14 +36,9 @@ ui <- dashboardPage(skin = "black",
             )
           )
       ),
-      tabItem(tabName = "caribou",
-          fluidRow(
-            valueBox(100, "Caribou Habitat", icon = icon("paw"))
-          )
-      ),
       tabItem(tabName = "querybuilder",
-          fluidRow( #Table query
-            box(title = "Table Query", background = "black", solidHeader = TRUE,
+        fluidRow( #Table query
+          box(title = "Table Query", background = "black", solidHeader = TRUE,
                     #em("SELECT",style="color:#090909;font-size:80%")
               selectInput(inputId = "queryTable", label = "FROM TABLE:", choices = c("scenarios", "pixels", "rsf", "blocks", "growingStockReport", "harvestingReport" ), selected = character(0)),
               fluidRow(
@@ -56,17 +51,50 @@ ui <- dashboardPage(skin = "black",
               )
             ),
             dataTableOutput("resultSetTable")
+          )
+      ),
+      tabItem(tabName = "mapviewer",
+        fluidRow(#Raster query
+          box(title = "Map Query",  collapsible = T, background = "black", solidHeader = TRUE, width = 10,
+            selectInput("maplayers", label = "SELECT", multiple = TRUE, choices = NULL )
+          )
+      ),
+        leafletOutput("resultSetRaster", height = 750, width = "83%")     
+      ),
+      tabItem(tabName = "caribou",
+        fluidRow(
+          valueBox("BAU", "", icon = icon("paw"), color = "purple")
           ),
-          
-          fluidRow(#Raster query
-            box(title = "Map Query",  collapsible = T, background = "black", solidHeader = TRUE,
-              textInput("query_columns", label = "SELECT" )
-            )),
-          leafletOutput("resultSetRaster")
+        fluidRow(
+          box(title = "Survival", collapsible = TRUE, solidHeader = TRUE, background = "purple", width =12,
+            plotlyOutput(outputId = "survivalPlot", height = "400px"))
+          ),
+        fluidRow(
+          box(title = "Proportion Disturbed", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+            plotlyOutput(outputId = "propAgePlot", height = "400px"))
+          ),
+        fluidRow(
+          box(title = "Resource Selection", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+              plotlyOutput(outputId = "rsfPlot", height = "400px"))
+        )
       ),
       tabItem(tabName = "forestry",
-        valueBox(100, "Probability of Acheiving AAC", icon = icon("tree")),
-        valueBox(100, "Total Area Harvested", icon = icon("tree"))
+        fluidRow(
+          valueBox("BAU", "Probability of Acheiving AAC", icon = icon("tree"), color = "green"),
+          valueBox("BAU", "Total Area Harvested", icon = icon("tree"), color = "green"),
+          valueBox("BAU", "Total Volume Harvested", icon = icon("tree"), color = "green")
+        ),
+        fluidRow(
+          box(title = "Harvest Flow", collapsible = TRUE, solidHeader = TRUE,background = "green", width =12,
+            plotlyOutput(outputId = "harvestAreaPlot", height = "400px"),
+            plotlyOutput(outputId = "harvestVolumePlot", height = "400px")
+          )
+        ),
+        fluidRow(
+          box(title = "Growingstock", collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "green", width =12,
+            plotlyOutput(outputId = "growingStockPlot", height = "400px")
+          )
+        )
       ),
       tabItem(tabName = "fire",
         h2("Fire")
@@ -75,8 +103,10 @@ ui <- dashboardPage(skin = "black",
         h2("Insects")
       ),
       tabItem(tabName = "climate",
-        box(title = "Conceptual Path Diagram", width=12, background = "black", solidHeader = TRUE, collapsible = TRUE,
+        box(title = "Conceptual Path Diagram", width=12, background = "yellow", solidHeader = TRUE, collapsible = TRUE,
         plotOutput(outputId = "climatemap", height = "800px")
+        ),
+        box(title = "Modelled Path Diagram", width=12, background = "yellow", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE
         )
       ),
       tabItem(tabName = "oilandgas",

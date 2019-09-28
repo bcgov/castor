@@ -26,10 +26,26 @@ queryColumnNames <- reactive({
           AND table_name   = '",input$queryTable,"'")))
   })
 
+availableMapLayers <- reactive({
+  req(input$schema)
+  req(input$scenario)
+  print(paste0("SELECT r_table_name FROM raster_columns WHERE r_table_schema = '", input$schema , "' "))
+  getTableQuery(paste0("SELECT r_table_name FROM raster_columns WHERE r_table_schema = '", input$schema , "' "))
+})
+
 scenariosList<-reactive({
     data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".scenarios")))
 })
 
+reportList<-reactive({
+  req(input$schema)
+  req(input$scenario)
+  list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
+       growingstock = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
+       rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
+       survival = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');")))
+    )
+})
 
 #---Observe
   observe({ #Scenarios based on the area of interest selected
@@ -48,14 +64,19 @@ scenariosList<-reactive({
                       choices = queryColumnNames()$column_name,
                       selected = character(0))
   })
+  
+  observe({
+    print(availableMapLayers())
+    updateSelectInput(session, "maplayers",
+                      choices = availableMapLayers()$r_table_name,
+                      selected = character(0))
+  })
 
   observe({ 
-    leafletProxy("raster_map") %>% 
-      clearImages() #%>% 
-      #addTiles() %>%
-      #addRasterImage(r_NDVI_temp(),  opacity = 0.5)# %>%
-    #addLegend(pal = pal, values = values(r),
-    #          title = "Surface temp")
+    leafletProxy("resultSetRaster") %>% 
+      clearImages() %>% 
+      addTiles() 
+
   }) 
   
 #---Outputs
@@ -64,9 +85,15 @@ scenariosList<-reactive({
     )
 
   output$resultSetRaster <- renderLeaflet({
-    leaflet() %>%
-    addTiles() #%>%
-    #setView(lat = (bbox(rec)[[4]]+bbox(rec)[[2]])/2, lng = (bbox(rec)[[1]]+bbox(rec)[[3]])/2, zoom = 12)
+    leaflet(options = leafletOptions(doubleClickZoom= TRUE))%>%
+      setView(-124.87, 54.29, zoom = 5) %>%
+      addTiles() %>% 
+      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
+      addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
+      addScaleBar(position = "bottomright") %>%
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"))
+
   })
   
   output$climatemap <-renderPlot({
@@ -75,5 +102,99 @@ scenariosList<-reactive({
            col =c("yellow", "orange", "purple", "lightblue", "pink", "red", "green"), pch =19, bty = 'n', cex = 1.7)
   })
   
+  output$harvestAreaPlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$harvest[,sum(area), by=c("scenario", "timeperiod")]
+      data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+      data[,timeperiod:= as.integer(timeperiod)]
+      p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+        geom_area(position = "identity", aes(alpha = scenario)) +
+        xlab ("Future year") +
+        ylab ("Area Harvested (ha)") +
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_alpha_discrete(range=c(0.4,0.8))+
+        scale_fill_grey(start=0.8, end=0.2) +
+        theme_bw()
+      ggplotly(p)
+    })
+  }) 
+  
+  output$harvestVolumePlot <- renderPlotly ({
+      data<-reportList()$harvest[,sum(volume), by=c("scenario", "timeperiod")]
+      data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+      data[,timeperiod:= as.integer(timeperiod)]
+      p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+        geom_area(position = "identity", aes(alpha = scenario)) +
+        xlab ("Future year") +
+        ylab ("Volume Harvested (m3)") +
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_alpha_discrete(range=c(0.4,0.8))+
+        scale_fill_grey(start=0.8, end=0.2) +
+        theme_bw()
+      ggplotly(p)
+  })
+  
+  output$growingStockPlot <- renderPlotly ({
+    data<-reportList()$growingstock
+    data$scenario <- reorder(data$scenario, data$growingstock, function(x) -max(x) )
+    p<-ggplot(data, aes (x=timeperiod, y=growingstock, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Growing Stock (m3)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
+  }) 
+  
+  output$survivalPlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$survival
+      data$scenario <- reorder(data$scenario, data$survival_rate, function(x) -max(x) )
+      p<-ggplot(data, aes (x=timeperiod, y=survival_rate, color = scenario, type = scenario)) +
+        facet_grid(.~herd_bounds)+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Adult Female Survival Rate)") +
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_alpha(range=c(0.4,0.8))+
+        scale_color_grey(start=0.8, end=0.2) +
+        theme_bw()
+      ggplotly(p)
+    })
+  }) 
+  
+  output$propAgePlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$survival
+      data$scenario <- reorder(data$scenario, data$prop_age, function(x) -max(x) )
+      p<-ggplot(data, aes (x=timeperiod, y=prop_age, fill = scenario)) +
+        facet_grid(.~herd_bounds)+
+        geom_area(position = "identity", aes(alpha = scenario)) +
+        xlab ("Future year") +
+        ylab ("Proportion Age < 40 years") +
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_alpha_discrete(range=c(0.4,0.8))+
+        scale_fill_grey(start=0.8, end=0.2) +
+        theme_bw()
+      ggplotly(p)
+    })
+  }) 
+  
+  output$rsfPlot <- renderPlotly ({
+    data<-reportList()$rsf
+    data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
+    p<-ggplot(data, aes (x=as.factor(timeperiod), y=sum_rsf_hat, fill = scenario)) +
+      facet_grid(rsf_model~.)+
+      geom_bar(stat="identity",position = "dodge") +
+      xlab ("Future year") +
+      ylab ("Sum RSF Value") +
+      #scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
+  })  
 }
 

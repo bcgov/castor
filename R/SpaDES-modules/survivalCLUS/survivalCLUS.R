@@ -117,7 +117,7 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
     # Model was a logit function, so here I back-calculate to get survival rates exp(fxn)/(1+exp(fxn))
   sim$tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 
   sim$tableSurvival[!(prop_age < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  sim$tableSurvival[, time := time(sim)] # add the time of the survival calc
+  sim$tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
   sim$tableSurvival[, scenario := scenario$name] 
   
   #print(sim$tableSurvival)
@@ -134,11 +134,12 @@ survivalCLUS.PredictSurvival <- function (sim) { # this function calculates surv
   new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
   new_tableSurvival[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  new_tableSurvival[, time := time(sim)] # add the time of the survival calc
+  new_tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
+  new_tableSurvival[, scenario := scenario$name]
   
   table_list <- list(sim$tableSurvival, new_tableSurvival)
   sim$tableSurvival <- rbindlist (table_list) # bind the new survival rate table to the existing table
-  sim$tableSurvival[, scenario := scenario$name]
+  
   rm (new_tableSurvival) # is this necessary?
   
   return (invisible(sim))

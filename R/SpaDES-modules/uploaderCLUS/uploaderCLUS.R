@@ -128,8 +128,19 @@ save.reports <-function (sim){
 save.rasters <-function (sim){
   #rasters
   ##blocks
+  commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,'harvestBlocks.tif'), schema = P(sim, "uploaderCLUS", "aoiName"), 
+               name = paste0(scenario$name, "_cutblocks.tif"), P(sim, "uploaderCLUS", "dbInfo") )
+  
   ##roads
+  commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
+               schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_roads.tif"),
+               P(sim, "uploaderCLUS", "dbInfo"))
   ##rsfStart
   ##rsfEND
   return(invisible(sim)) 
+}
+
+commitRaster<-function(layer, schema, name, dbInfo){
+  print(paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', layer, ' -t 100x100 ', schema, '.', name, ' |  psql postgres://', dbInfo[[2]], ':', dbInfo[[3]], '@', dbInfo[[1]], ':5432/',dbname = dbInfo[[4]]))
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', layer, ' -t 100x100 ', schema, '.', name, ' |  psql postgres://', dbInfo[[2]], ':', dbInfo[[3]], '@', dbInfo[[1]], ':5432/',dbname = dbInfo[[4]]), show.output.on.console = FALSE, invisible = TRUE)
 }
