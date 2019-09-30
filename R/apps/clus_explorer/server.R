@@ -29,8 +29,20 @@ queryColumnNames <- reactive({
 availableMapLayers <- reactive({
   req(input$schema)
   req(input$scenario)
-  print(paste0("SELECT r_table_name FROM raster_columns WHERE r_table_schema = '", input$schema , "' "))
-  getTableQuery(paste0("SELECT r_table_name FROM raster_columns WHERE r_table_schema = '", input$schema , "' "))
+  #print(paste0("SELECT r_table_name FROM public.raster_columns WHERE r_table_schema = '", input$schema , "' ;"))
+  #getSpatialQuery(paste0("SELECT r_table_name FROM public.raster_columns WHERE r_table_schema = '", input$schema , "' ;"))
+  list_layers<-list()
+  i<-1
+  k<-1
+  while(i < 2*length(input$scenario)){
+    list_layers[[i]]<-paste0(input$scenario[[k]], "_roads")
+    i<-i+1
+    list_layers[[i]]<-paste0(input$scenario[[k]], "_cutblocks")
+    k<- k +1
+    i<-i+1
+  }
+  
+  print(list_layers)
 })
 
 scenariosList<-reactive({
@@ -45,6 +57,19 @@ reportList<-reactive({
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        survival = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');")))
     )
+})
+
+observeEvent(input$getMapLayersButton, {
+  print(length(input$maplayers))
+  
+  withProgress(message = 'Loading layers', value = 0.1, {
+    mapLayersStack <-getRasterQuery(c("chilcotin", tolower(input$maplayers)))
+  })
+  
+  leafletProxy("resultSetRaster") %>% 
+    clearImages() %>% 
+    addTiles()  %>%
+    addRasterImage(mapLayersStack, colors = "Spectral", opacity = 0.8)
 })
 
 #---Observe
@@ -66,23 +91,25 @@ reportList<-reactive({
   })
   
   observe({
-    print(availableMapLayers())
+    #print(availableMapLayers())
     updateSelectInput(session, "maplayers",
-                      choices = availableMapLayers()$r_table_name,
+                      choices = availableMapLayers(),
                       selected = character(0))
   })
 
   observe({ 
     leafletProxy("resultSetRaster") %>% 
       clearImages() %>% 
-      addTiles() 
-
+      addTiles()
   }) 
   
 #---Outputs
-  output$resultSetTable<-renderDataTable(
-    data.table(getTableQuery(paste0("SELECT ", paste(input$queryColumn, sep="' '", collapse=", "), " FROM ", input$schema, ".", input$queryTable)))
-    )
+  output$resultSetTable<-renderDataTable({
+    #print(paste0("SELECT ", paste(c(input$queryRows,input$queryColumns), sep="' '", collapse=", "), " FROM ", input$schema, ".", input$queryTable, " WHERE scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY ", input$queryColumns))
+    data.table(getTableQuery(paste0("SELECT scenario, ", paste(c(paste0(input$queryValue, "(", input$queryRows, ")"),input$queryColumns), sep="' '", collapse=", "), " FROM ", 
+                                    input$schema, ".", input$queryTable, " WHERE scenario IN ('",
+                                    paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY scenario, ", input$queryColumns, " ORDER BY ", input$queryColumns)))
+  })
 
   output$resultSetRaster <- renderLeaflet({
     leaflet(options = leafletOptions(doubleClickZoom= TRUE))%>%

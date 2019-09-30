@@ -40,7 +40,7 @@ ui <- dashboardPage(skin = "black",
         fluidRow( #Table query
           box(title = "Table Query", background = "black", solidHeader = TRUE,
                     #em("SELECT",style="color:#090909;font-size:80%")
-              selectInput(inputId = "queryTable", label = "FROM TABLE:", choices = c("scenarios", "pixels", "rsf", "blocks", "growingStockReport", "harvestingReport" ), selected = character(0)),
+              selectInput(inputId = "queryTable", label = "FROM TABLE:", choices = c("scenarios", "harvest", "rsf",  "growingstock", "survival" ), selected = character(0)),
               fluidRow(
                 column(width = 6, textInput(inputId= "queryWHERE", label = "Where")),
                 column(width = 6, selectInput(inputId= "queryColumns", label = "Columns", choices = NULL))
@@ -56,7 +56,8 @@ ui <- dashboardPage(skin = "black",
       tabItem(tabName = "mapviewer",
         fluidRow(#Raster query
           box(title = "Map Query",  collapsible = T, background = "black", solidHeader = TRUE, width = 10,
-            selectInput("maplayers", label = "SELECT", multiple = TRUE, choices = NULL )
+            selectInput("maplayers", label = "Available Layers", multiple = TRUE, choices = NULL),
+            actionButton("getMapLayersButton", "Load")
           )
       ),
         leafletOutput("resultSetRaster", height = 750, width = "83%")     
@@ -80,7 +81,7 @@ ui <- dashboardPage(skin = "black",
       ),
       tabItem(tabName = "forestry",
         fluidRow(
-          valueBox("BAU", "Probability of Acheiving AAC", icon = icon("tree"), color = "green"),
+          valueBox("BAU", "Acheiving AAC", icon = icon("tree"), color = "green"),
           valueBox("BAU", "Total Area Harvested", icon = icon("tree"), color = "green"),
           valueBox("BAU", "Total Volume Harvested", icon = icon("tree"), color = "green")
         ),
