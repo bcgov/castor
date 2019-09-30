@@ -32,7 +32,8 @@ ui <- dashboardPage(skin = "black",
           fluidRow(
             box(title = "Scenarios", background = "black", solidHeader = TRUE,
                 "select the scenarios you wish to compare",
-                checkboxGroupInput(inputId ="scenario", label = NULL )
+                checkboxGroupInput(inputId ="scenario", label = NULL ),
+                tableOutput("scenarioDescription")
             )
           )
       ),
@@ -64,7 +65,9 @@ ui <- dashboardPage(skin = "black",
       ),
       tabItem(tabName = "caribou",
         fluidRow(
-          valueBox("BAU", "", icon = icon("paw"), color = "purple")
+          valueBox("BAU", "Disturbance", icon = icon("paw"), color = "purple"),
+          valueBox("BAU", "Survival", icon = icon("paw"), color = "purple"),
+          valueBox("BAU", "RSF", icon = icon("paw"), color = "purple")
           ),
         fluidRow(
           box(title = "Survival", collapsible = TRUE, solidHeader = TRUE, background = "purple", width =12,
@@ -82,8 +85,8 @@ ui <- dashboardPage(skin = "black",
       tabItem(tabName = "forestry",
         fluidRow(
           valueBox("BAU", "Acheiving AAC", icon = icon("tree"), color = "green"),
-          valueBox("BAU", "Total Area Harvested", icon = icon("tree"), color = "green"),
-          valueBox("BAU", "Total Volume Harvested", icon = icon("tree"), color = "green")
+          valueBox("BAU", "Area Harvested", icon = icon("tree"), color = "green"),
+          valueBox("BAU", "Volume Harvested", icon = icon("tree"), color = "green")
         ),
         fluidRow(
           box(title = "Harvest Flow", collapsible = TRUE, solidHeader = TRUE,background = "green", width =12,
@@ -98,10 +101,18 @@ ui <- dashboardPage(skin = "black",
         )
       ),
       tabItem(tabName = "fire",
-        h2("Fire")
+        fluidRow(
+            valueBox("0", "Fires", icon = icon("fire"), color = "red"),
+            valueBox("0", "Area Burnt", icon = icon("fire"), color = "red"),
+            valueBox("0", "Volume Burnt", icon = icon("fire"), color = "red")
+          )
       ),
       tabItem(tabName = "insects",
-        h2("Insects")
+        fluidRow(
+            valueBox("0", "Outbreaks", icon = icon("bug"), color = "teal"),
+            valueBox("0", "Area spread", icon = icon("bug"), color = "teal"),
+            valueBox("0", "Volume Lost", icon = icon("bug"), color = "teal")
+        )
       ),
       tabItem(tabName = "climate",
         box(title = "Conceptual Path Diagram", width=12, background = "yellow", solidHeader = TRUE, collapsible = TRUE,
@@ -111,13 +122,25 @@ ui <- dashboardPage(skin = "black",
         )
       ),
       tabItem(tabName = "oilandgas",
-        h2("Oil and Gas")
+        fluidRow(
+            valueBox("BAU", "Footprint", icon = icon("bolt"), color = "navy"),
+            valueBox("0", "Jobs", icon = icon("bolt"), color = "navy"),
+            valueBox("0", "GDP", icon = icon("bolt"), color = "navy")
+        )
       ),
       tabItem(tabName = "mining",
-        h2("Mining")
+        fluidRow(
+            valueBox("BAU", "Footprint", icon = icon("industry"), color = "navy"),
+            valueBox("0", "Jobs", icon = icon("industry"), color = "navy"),
+            valueBox("0", "GDP", icon = icon("industry"), color = "navy")
+          )
       ),
       tabItem(tabName = "recreation",
-        h2("Recreation")
+        fluidRow(
+            valueBox("BAU", "Footprint", icon = icon("shoe-prints"), color = "aqua"),
+            valueBox("0", "Jobs", icon = icon("shoe-prints"), color = "aqua"),
+            valueBox("0", "GDP", icon = icon("shoe-prints"), color = "aqua")
+        )
       )
     )
   )

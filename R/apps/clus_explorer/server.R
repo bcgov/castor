@@ -41,12 +41,11 @@ availableMapLayers <- reactive({
     k<- k +1
     i<-i+1
   }
-  
-  print(list_layers)
 })
 
 scenariosList<-reactive({
-    data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".scenarios")))
+  req(input$schema)
+  data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".scenarios")))
 })
 
 reportList<-reactive({
@@ -65,11 +64,17 @@ observeEvent(input$getMapLayersButton, {
   withProgress(message = 'Loading layers', value = 0.1, {
     mapLayersStack <-getRasterQuery(c("chilcotin", tolower(input$maplayers)))
   })
+
+  colores <- c('red', 'green', 'blue', 'chocolate', 'deeppink', 'grey')
+  at <- seq(0, 20, 1)
+  cb <- colorBin(palette = colores, bins = at, domain = at)
   
   leafletProxy("resultSetRaster") %>% 
     clearImages() %>% 
+    clearTiles() %>%
     addTiles()  %>%
-    addRasterImage(mapLayersStack, colors = "Spectral", opacity = 0.8)
+    addRasterImage(mapLayersStack,  colors = cb, opacity = 0.8) %>% 
+    addLegend(pal = cb, values = at)
 })
 
 #---Observe
@@ -104,13 +109,17 @@ observeEvent(input$getMapLayersButton, {
   }) 
   
 #---Outputs
+ output$scenarioDescription<-renderTable({
+   req(input$scenario)
+   as.data.frame(scenariosList())
+ })
+  
   output$resultSetTable<-renderDataTable({
     #print(paste0("SELECT ", paste(c(input$queryRows,input$queryColumns), sep="' '", collapse=", "), " FROM ", input$schema, ".", input$queryTable, " WHERE scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY ", input$queryColumns))
     data.table(getTableQuery(paste0("SELECT scenario, ", paste(c(paste0(input$queryValue, "(", input$queryRows, ")"),input$queryColumns), sep="' '", collapse=", "), " FROM ", 
                                     input$schema, ".", input$queryTable, " WHERE scenario IN ('",
                                     paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY scenario, ", input$queryColumns, " ORDER BY ", input$queryColumns)))
   })
-
   output$resultSetRaster <- renderLeaflet({
     leaflet(options = leafletOptions(doubleClickZoom= TRUE))%>%
       setView(-124.87, 54.29, zoom = 5) %>%
@@ -178,7 +187,7 @@ observeEvent(input$getMapLayersButton, {
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
-      data$scenario <- reorder(data$scenario, data$survival_rate, function(x) -max(x) )
+      #data$scenario <- reorder(data$scenario, data$survival_rate, function(x) -max(x) )
       p<-ggplot(data, aes (x=timeperiod, y=survival_rate, color = scenario, type = scenario)) +
         facet_grid(.~herd_bounds)+
         geom_line() +
@@ -194,16 +203,16 @@ observeEvent(input$getMapLayersButton, {
   
   output$propAgePlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
-      data<-reportList()$survival
-      data$scenario <- reorder(data$scenario, data$prop_age, function(x) -max(x) )
-      p<-ggplot(data, aes (x=timeperiod, y=prop_age, fill = scenario)) +
+      data1<-reportList()$survival
+      #data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x) )
+      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
         facet_grid(.~herd_bounds)+
-        geom_area(position = "identity", aes(alpha = scenario)) +
+        geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age < 40 years") +
-        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_x_continuous(breaks = seq(0, max(data1$timeperiod), by = 2))+
         scale_alpha_discrete(range=c(0.4,0.8))+
-        scale_fill_grey(start=0.8, end=0.2) +
+        scale_color_grey(start=0.8, end=0.2) +
         theme_bw()
       ggplotly(p)
     })
