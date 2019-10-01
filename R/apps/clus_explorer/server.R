@@ -41,6 +41,7 @@ availableMapLayers <- reactive({
     k<- k +1
     i<-i+1
   }
+  list_layers
 })
 
 scenariosList<-reactive({
