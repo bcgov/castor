@@ -87,7 +87,7 @@ forestryCLUS.Init <- function(sim) {
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$harvestReport <- data.table(time = integer(), compartment = character(), area= numeric(), volume = numeric())
+  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
@@ -209,6 +209,8 @@ forestryCLUS.setConstraints<- function(sim) {
 
 forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
+  land_coord<- data.table() #initialize a temp object for storing landings
+  
   for(compart in sim$compartment_list){
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
@@ -242,26 +244,29 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)
-        writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
-        
+
         #Set the harvesting report
-        sim$harvestReport<- rbindlist(list(sim$harvestReport, list(time(sim), compart, sum(queue$thlb) , sum(queue$vol_h))))
+        sim$harvestReport<- rbindlist(list(sim$harvestReport, data.table(scenario= scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h))))
       
         #Create landings
         #pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
         land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        land_coord<-sim$pts[pixelid %in% land_pixels, ]
         
-        #convert to class SpatialPoints
-        sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
-        
+        #TODO: this keeps getting overwritten and thus not simulating the roads because only the last compartment will have the landings,
+        land_coord<-rbindlist(list(land_coord, sim$pts[pixelid %in% land_pixels, ]))
         #clean up
-        rm(land_coord, land_pixels, queue)
+        rm(land_pixels, queue)
       }
     } else{
       next #No volume demanded in this compartment
     }
   }
+  
+  #convert to class SpatialPoints needed for roadsCLUS
+  sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
+  
+  #write the blocks to a raster?
+  writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 forestryCLUS.calcUncertainty <-function(sim) {

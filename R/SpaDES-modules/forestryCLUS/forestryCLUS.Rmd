@@ -46,15 +46,15 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
-times <- list(start = 0, end = 1)
+times <- list(start = 0, end = 5)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list( 
                          #Database connection
                          dbName='clus',
-                         save_clusdb = TRUE,
-                         #useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/blockingCLUS/clusdb.sqlite",
+                         #save_clusdb = TRUE,
+                         useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/clusdb.sqlite",
                          #Study Area
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
@@ -71,6 +71,7 @@ parameters <- list(
                          nameYieldTable ="yield_ex"),
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_cond_beo',
+                      patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
@@ -89,10 +90,22 @@ rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE
 rsf_model_coeff[, bounds := 'rast.crithabitat']
 
 scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
-harvestFlow<- data.table(compartment = c('26A','26A','26A','26A','26A','26A','26A','26A','26A','26A'),
+harvestFlowA<- data.table(compartment = '26A',
                                    partition = 'vol > 50',
                                    year = rep(seq(from = 2018, to=2068, by = 1),1), 
                                    flow = 10000)
+harvestFlowB<- data.table(compartment = '29B',
+                                   partition = 'vol > 50',
+                                   year = rep(seq(from = 2018, to=2068, by = 1),1), 
+                                   flow = 10000)
+
+harvestFlowC<- data.table(compartment = '29C',
+                                   partition = 'vol > 50',
+                                   year = rep(seq(from = 2018, to=2068, by = 1),1), 
+                                   flow = 10000)
+harvestFlow<-list(harvestFlowA,harvestFlowB,harvestFlowC)
+harvestFlow<-rbindlist(harvestFlow)
+
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
                                   3,3,3,3,3,3,

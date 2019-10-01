@@ -385,9 +385,10 @@ rsfCLUS.PredictRSF <- function(sim){
 
     expr <- parse(text = paste0(rsfPops[[1]][[i]]))
     rsfdt<-data.table( pred_rsf[!is.na(eval(expr)),sum(eval(expr)), by = c(paste0(rsfPops[[2]][[i]]))])
-    rsfdt[, time:=time(sim)]
+    rsfdt[, timeperiod:=time(sim)]
     rsfdt[, rsf:=paste0(rsfPops[[1]][[i]])]
-    setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "time", "rsf_model"))
+    setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "timeperiod", "rsf_model"))
+    rsfdt[, scenario:=scenario$name]
     lrsf<-list(sim$rsf, rsfdt)
     sim$rsf<-rbindlist(lrsf)
 

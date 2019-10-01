@@ -32,7 +32,7 @@ defineModule(sim, list(
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter("blockMethod", "character", "pre", NA, NA, "This describes the type of blocking method"),
     defineParameter("patchZone", "character", "99999", NA, NA, "Zones that pertain to the patch size distribution requirements"),
-    defineParameter("patchVariation", "numeric", 0.2, NA, NA, "The percent (fractional) difference between edges of the pre-blocking algorithm"),
+    defineParameter("patchVariation", "numeric",6, NA, NA, "The percent (fractional) difference between edges of the pre-blocking algorithm"),
     defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
@@ -235,11 +235,12 @@ blockingCLUS.preBlock <- function(sim) {
   }
   #only select those zones to apply constraints that actually have thlb in them.
   zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels WHERE 
-                                 thlb > 0 group by ", patchSizeZone)))) 
+                                 thlb > 0 AND ", patchSizeZone, " IS NOT NULL group by ", patchSizeZone)))) 
   resultset<-list() #create an empty resultset to be appended within the for loop
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
   
   for(zone in zones){
+    message(paste0("loading--", zone))
     vertices<-data.table(dbGetQuery(sim$clusdb,
           paste0("SELECT pixelid FROM pixels where thlb > 0 AND blockid = 0 and ", patchSizeZone, " = ", zone, ";")))
     
@@ -257,6 +258,7 @@ blockingCLUS.preBlock <- function(sim) {
       paths.matrix[, V2 := as.integer(V2)]
       #print(head(get.edgelist(g.mst_sub)))
       natDT <-dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
+ 
       targetNum <- patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
       #sample(x=c(1,2,3), size=1000, replace=TRUE, prob=c(.04,.50,.46))

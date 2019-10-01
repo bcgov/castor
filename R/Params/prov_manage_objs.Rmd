@@ -223,10 +223,14 @@ rm(ogm.ras, out, NDT1, NDT2, NDT3, NDT4, vat, p_OGR)
 gc()
 
 ogm.final[, zone := .GRP, by=.(LU_ID,BEC,NDT)] #Creates a unique id for each zone grouped by Lu_ID, BEC and NDT
+#remove zones that are ndt5 or other wise do not have a ogr, age
+print(head(ogm.final[is.na(AGE),]))
+ogm.final[is.na(AGE), zone:=NA]
 out<-data.frame(ogm.final[order(id)])
 gc()
 zone.ras<-ProvRast
 zone.ras[]<-out[,9] #assign the zone to each pixel
+
 
 writeRaster(zone.ras, file=paste0(here(),"/zone_beo.tif"), format="GTiff", overwrite=TRUE)#print the raster
 rm(zone.ras, out)
@@ -235,13 +239,14 @@ rm(zone.ras, out)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_beo.tif -t 100x100 rast.zone_cond_beo |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
 
 library(RPostgreSQL)
+ogm.final[zone == 2435,]
 zone_beo_table<-setDT(ogm.final)[, .SD[which.max(AGE)], by=zone]
-print(head(zone_beo_table))# check
 
 zone_beo_table<-zone_beo_table[,c(1,3:4, 6)]
 zone_beo_table[, reference_zone := 'rast.zone_beo']
 zone_beo_table[, variable := 'age']
 zone_beo_table[, type := 'ge']
+
 setnames(zone_beo_table, c("zoneid", "percentage", 
                   "threshold","ndt", "reference_zone", 
                   "variable", "type"))

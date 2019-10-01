@@ -41,7 +41,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile="study_area_compart",
                          nameBoundaryColumn="tsb_number",
-                         nameBoundary=c("24E"), 
+                         nameBoundary = c ("26A", "29B", "29C"), #DU7 
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.forest_tenure",
                          nameCompartmentTable = "forest_tenure_vat",
@@ -69,7 +69,7 @@ parameters <-  list(
                       )
                     )
 
-modules <- list("dataLoaderCLUS")
+modules <- list("dataLoaderCLUS", "rsfCLUS")
 objects <- list()
 inputs <- list()
 outputs <- list()
