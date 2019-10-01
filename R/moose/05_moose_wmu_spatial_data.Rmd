@@ -10,15 +10,17 @@ knitr::opts_chunk$set (echo = TRUE)
 ```
 
 ## Introduction
-Here I provide the workflow and scrip for summarizing spatial data within wildlfie management units (WMUs) in British Columbia. The prupose is to provide spaital information on wildlfie habitat that can be linked to wildlife popualtion density collected in WMUs. This data can then be used to  create staisticla models realting to habtiat and wildlife. These models help achieve the objectives of providing soem undertsadnign of how habtiat is related to popautlions, and for estimating future densities under changing landscape conditions. Thus, the foucs here is on measuruing vegetation, climate and human footprint (e.g, raods) in WMUs.
+Here I provide the workflow and script for summarizing spatial data within wildlfie management units (WMUs) in British Columbia. The prupose is to provide spaital information on wildlfie habitat that can be linked to wildlife popualtion data collected in WMUs. This data can then be used to  create staistical models relating habtiat to wildlife popualtion paramters. These models help achieve the objectives of providing soem undertsadnign of how habtiat is related to popautlions, and for estimating future popualtion paramters under changing landscape conditions. 
 
-I referred to the provinciul moose [species account](http://a100.gov.bc.ca/appsdata/acat/documents/r1665/whr_4146_malal_1098220322301_07a33d337dd7428586868202f6bc05bd.pdf) and a moose habtait decision aid ([Wall et al. 2011](http://www.jem-online.org/index.php/jem/article/download/46/39)) for identifying habitat features imrptoant to moose adn to measure in WMUs.
+Here I apply this workjflow to analyzing statsical realtionships between moose popuyaltion apramters and vegetation, climate and human footprint (e.g, roads) in WMUs.
+
+I referred to the provincial moose [species account](http://a100.gov.bc.ca/appsdata/acat/documents/r1665/whr_4146_malal_1098220322301_07a33d337dd7428586868202f6bc05bd.pdf) and a moose habtait decision aid ([Wall et al. 2011](http://www.jem-online.org/index.php/jem/article/download/46/39)) for identifying habitat features important to moose and to measure in WMUs.
 
 ## Methods
 Here I outline the steps for aquiring spaital data and sumamrizing habitat atributes in each managment unit (e.g., WMU). 
 
 ### Step 1: Management Boundaries
-First, we need the management boundaries where we are going to summarize the habitat data. Here I am using WMUs adn limited entry hunting (LEH) zones, becuase the focus is on moose, and data on moose density is typically estimated within WMUs or LEH zones. These data can also be easily scaled up to game managmen zones (GMZs). I get the data from the British Columbia government data warehouse (BCGW) using the [bcdata](https://github.com/bcgov/bcdata) package. WMU data can also be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/wildlife-management-units) and LEH zone data can be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-polygons-1-20-000). 
+First, we need to identify the management area boundaries where we are going to summarize the habitat data. Here I am using WMUs and limited entry hunting (LEH) zones, because the focus of this particular analysis is on moose, and data on moose density is typically estimated within WMUs or LEH zones. These data can also be easily scaled up to game managment zones (GMZs). I got the spatial boundary data from the British Columbia government data warehouse (BCGW) using the [bcdata](https://github.com/bcgov/bcdata) package. WMU data can also be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/wildlife-management-units) and LEH zone data can be downloaded [here](https://catalogue.data.gov.bc.ca/dataset/limited-entry-hunting-zone-polygons-1-20-000). 
 
 ```{r, management unit spatial data, echo = T, message = F, warning = F}
 library (bcdata)
@@ -26,11 +28,25 @@ library (sf)
 library (data.table)
 # bcdata::bcdc_search ("wildlife") # can use this to search for data
 
-poly.wmu <- bcdc_get_data ("wildlife-management-units") # name of the data in BCGW
-poly.wmu <- poly.wmu [poly.wmu$REGION_RESPONSIBLE_NAME != "Vancouver Island",] # drop Van Isle - no moose
+# poly.wmu <- bcdc_get_data ("wildlife-management-units") # name of the data in BCGW; 
+#### NOTE: this is currrntly 'broken' for some reason, so I'm accessing via geodb....
+
+poly.wmu <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                         layer = "wmu_bcgw_20190925")
+poly.wmu <- poly.wmu [poly.wmu$REGION_RESPONSIBLE != 1,] # drop Van Isle - no moose
 plot (st_geometry (poly.wmu)) # check to make sure it looks ok
 wmu.habitat <- as.data.table (unique (poly.wmu$WILDLIFE_MGMT_UNIT_ID))# instantiate a data.table of unique wmu's to bind habitat values and save
-names(wmu.habitat) [1] <- "wmu"
+names (wmu.habitat) [1] <- "wmu"
+wmu.area <- as.data.table (poly.wmu) # add area to the table
+wmu.area <- as.data.table (wmu.area [, c("WILDLIFE_MGMT_UNIT_ID", "FEATURE_AREA_SQM")])
+wmu.area [, wmu_area_km2 := FEATURE_AREA_SQM / 1000000]
+names (wmu.area) [1] <- "wmu"
+wmu.area <- wmu.area [, "FEATURE_AREA_SQM" := NULL] 
+setkey (wmu.area, wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, wmu.area, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
 
 # poly.leh <- bcdc_get_data ("limited-entry-hunting-zone-polygons-1-20-000") # name of the data in BCGW
@@ -56,8 +72,507 @@ names (gmz.habitat) [1] <- "gmz"
 write.csv (gmz.habitat, "C:\\Work\\caribou\\clus_data\\moose\\gmz_habitat.csv")
 ```
 
-### Step 2: Summarize Spatial Habitat Data by Management Unit
-I obtained spatial data from maintained, publically accessible sources wherever possible to facilitate re-analysis of data and transparency of the analysis. The majority of the data is accessible through the BC government data portal, [DataBC](https://data.gov.bc.ca/). This transparent and accessible approach allows others to obtain and analyze the same data and facilitates re-analysis of updated data in the future for comparison to previous analyses. 
+### Step 2: Compile Population Parameter Data
+I took the regional moose population number, density and composition (i.e., bull:cow and calf:cow ratios) estimates obtained from stratified random block (SRB) aerial surveys between 1996 to 2015 compiled by Hatter for this analysis. 
+  
+  
+```{r, load the moose data, echo = T, message = F, warning = F}
+require (kableExtra)
+require (data.table)
+data.moose <- read.csv ("C:\\Work\\caribou\\clus_data\\moose\\density\\table_moose_gmz_data_1996_2015.csv") 
+wmu.moose.unique <- list (unique (as.character (data.moose$wmus))) # get list of unique WMUs
+
+# kable (data.moose, 
+#        caption = "Estimated Moose Population Number, Density and composition in Wildlife Management Units (WMUs) across Brtish Columbia form 1996-2015") %>%
+#   kable_styling (position = "left",
+#                  bootstrap_options = c("striped", "hover", "condensed"),
+#                  fixed_thead = T,
+#                  full_width = F)
+```
+
+
+### Step 3: Summarize Spatial Habitat Data by Management Unit
+I obtained spatial data from maintained, publicly accessible sources wherever possible to facilitate transparency of the analysis. The majority of the data is accessible through the BC government data portal, [DataBC](https://data.gov.bc.ca/). This approach allows others to obtain, evaluate and analyze the same data and facilitates re-analysis of updated data in the future for comparison to previous analyses. 
+
+#### Human Landscape Disturbances
+I calculated the area or density of human created landscape disturbances in each management unit. Here, I focussed on roads and cutblocks, as they represent important impacts of natural resource development on moose in particular, and wildlife in general. Roads increase human access into moose habitat, which can increase their mortality rates. Cutblocks create early seral forest, which in general supports production of shrubs and young deciduous trees that are high-qulity forage for moose. In addition, spatial data on roads and cutblocks are accessible and relatively well documented.  
+
+##### Roads
+I estimated the total length of roads in each management area using the BC governments [digital road atlas data](https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-demographic-partially-attributed-roads). I only included 'road', 'bridge' and 'tunnel' feature types (i.e., I removed 'trail', 'ferry routes', 'snowshed', 'dam' and 'virtual' types) in the estimate. I estimated the length of each road surface type (i.e., 'loose', 'overgrown', 'paved', 'rough', 'seasonal' adn 'unknwon') in each managment area. Unfortunately, the digital road atlas does not include reliable date attributes for when roads are built, and thus roads are treated as a 'static' variable.  
+
+```{r, road data download and attribute to management areas, echo = T, message = F, warning = F}
+# roads <- bcdc_get_data ("digital-road-atlas-dra-demographic-partially-attributed-roads") # name of the data in BCGW; again, not working; so loadign form BCGW via a gdb
+roads <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                         layer = "roads_dra_20190925")
+
+## Removing 'trail', 'ferry routes', 'snowshed', 'dam' and 'virtual' linear feature types ##
+roads <- roads [roads$FEATURE_TYPE == "Road" | roads$FEATURE_TYPE == "Bridge" | roads$FEATURE_TYPE == "Tunnel",]
+
+# intersect roads with wmu and retuns lines with WMU values
+wmu.roads <- sf::st_intersection (roads, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) # just intersect the WMU name
+table.wmu.roads <- as.data.table (wmu.roads)
+table.wmu.roads.sum <- table.wmu.roads %>% 
+                        group_by (WILDLIFE_MGMT_UNIT_ID, ROAD_SURFACE) %>%
+                        summarise (length_m = sum (FEATURE_LENGTH_M)) # calculate length of each road type
+names (table.wmu.roads.sum) [names (table.wmu.roads.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+
+## these next steps left-join the road length data to wmu data ##
+### Subset the road types ###
+#### LOOSE ####
+table.wmu.loose.roads.sum <- table.wmu.roads.sum [table.wmu.roads.sum$ROAD_SURFACE == "loose", ]
+setkey (as.data.table (table.wmu.loose.roads.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.loose.roads.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "length_m"] <- "road_loose_meters"
+wmu.habitat <- wmu.habitat [, "ROAD_SURFACE" := NULL] 
+rm (table.wmu.loose.roads.sum)
+gc ()
+
+#### Overgrown ####
+table.wmu.og.roads.sum <- table.wmu.roads.sum [table.wmu.roads.sum$ROAD_SURFACE == "overgrown", ]
+setkey (as.data.table (table.wmu.og.roads.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.og.roads.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "length_m"] <- "road_overgrown_meters"
+wmu.habitat <- wmu.habitat [, "ROAD_SURFACE" := NULL] 
+rm (table.wmu.og.roads.sum)
+gc ()
+
+#### Paved ####
+table.wmu.pvd.roads.sum <- table.wmu.roads.sum [table.wmu.roads.sum$ROAD_SURFACE == "paved", ]
+setkey (as.data.table (table.wmu.pvd.roads.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.pvd.roads.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "length_m"] <- "road_paved_meters"
+wmu.habitat <- wmu.habitat [, "ROAD_SURFACE" := NULL] 
+rm (table.wmu.pvd.roads.sum)
+gc ()
+
+#### Rough ####
+table.wmu.rough.roads.sum <- table.wmu.roads.sum [table.wmu.roads.sum$ROAD_SURFACE == "rough", ]
+setkey (as.data.table (table.wmu.rough.roads.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.rough.roads.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "length_m"] <- "road_rough_meters"
+wmu.habitat <- wmu.habitat [, "ROAD_SURFACE" := NULL] 
+rm (table.wmu.rough.roads.sum)
+gc ()
+
+#### Seasonal ####
+table.wmu.seas.roads.sum <- table.wmu.roads.sum [table.wmu.roads.sum$ROAD_SURFACE == "seasonal", ]
+setkey (as.data.table (table.wmu.seas.roads.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.seas.roads.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "length_m"] <- "road_seasonal_meters"
+wmu.habitat <- wmu.habitat [, "ROAD_SURFACE" := NULL] 
+rm (table.wmu.seas.roads.sum)
+gc ()
+
+#### Unknown ####
+table.wmu.seas.unk.sum <- table.wmu.roads.sum [table.wmu.roads.sum$ROAD_SURFACE == "unknown", ]
+setkey (as.data.table (table.wmu.seas.unk.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.seas.unk.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "length_m"] <- "road_unknown_meters"
+wmu.habitat <- wmu.habitat [, "ROAD_SURFACE" := NULL] 
+rm (table.wmu.seas.unk.sum)
+gc ()
+
+# save the data
+write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
+
+rm (table.wmu.roads, table.wmu.roads.sum, wmu.roads)
+gc ()
+```
+
+##### Cutblocks
+I estimated the area of cutblocks in each management area using the BC governments [consolidated cutblock data ](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-). I calculated the amount of area cut each year from 1960 to 2018, and the area cut between 1950 to 1959 and prior to 1950. 
+
+```{r, cutblock data download and attribute to management areas, echo = T, message = F, warning = F}
+# cutblocks <- bcdc_get_data ('b1b647a6-f271-42e0-9cd0-89ec24bce9f7', resource = '66656966-8af6-4e32-8de1-b79c63cae40f') # name of the data in BCGW; I noticed there are 413451 rows form here, whereas 446,987 in the BCGW; not sure why they are different, but this version likely underestimates the area of cutblocks; so I used teh BCGW data again....
+cutblocks <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                          layer = "cutblocks_20190927")
+
+# intersect cutblocks with WMU values
+wmu.cutblocks <- sf::st_intersection (cutblocks, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) # just intersect the WMU name
+table.wmu.cutblocks <- as.data.table (wmu.cutblocks)
+table.wmu.cutblocks.sum <- table.wmu.cutblocks %>% 
+                             group_by (WILDLIFE_MGMT_UNIT_ID, HARVEST_YEAR) %>%
+                             summarise (area_ha = sum (AREA_HA)) # calculate area of cut by year
+names (table.wmu.cutblocks.sum) [names (table.wmu.cutblocks.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+
+## these next steps left-join the cutblock data to wmu data ##
+### Subset the harvest years ###
+#### everything  prior to 1950 ####
+table.wmu.cutblocks.lt1950.sum <- table.wmu.cutblocks.sum [table.wmu.cutblocks.sum$HARVEST_YEAR < 1950, ] # filter out the years
+table.wmu.cutblocks.lt1950.sum <- table.wmu.cutblocks.lt1950.sum %>% # summarize area across years
+                                       group_by (wmu) %>%
+                                       summarise (area_ha = sum (area_ha))
+setkey (as.data.table (table.wmu.cutblocks.lt1950.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.cutblocks.lt1950.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_ha"] <- "cutblocks_lt1950_area_ha"
+rm (table.wmu.cutblocks.lt1950.sum)
+gc ()
+
+#### 1950 to 1959 ####
+table.wmu.cutblocks.1950to1959.sum <- table.wmu.cutblocks.sum [table.wmu.cutblocks.sum$HARVEST_YEAR > 1949 & table.wmu.cutblocks.sum$HARVEST_YEAR < 1960, ]
+table.wmu.cutblocks.1950to1959.sum <- table.wmu.cutblocks.1950to1959.sum %>% 
+                                       group_by (wmu) %>%
+                                       summarise (area_ha = sum (area_ha))
+setkey (as.data.table (table.wmu.cutblocks.1950to1959.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.cutblocks.1950to1959.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_ha"] <- "cutblocks_1950to1959_area_ha"
+rm (table.wmu.cutblocks.1950to1959.sum)
+gc ()
+
+#### 1960 ####
+table.wmu.cutblocks.1960.sum <- table.wmu.cutblocks.sum [table.wmu.cutblocks.sum$HARVEST_YEAR == 1960, ]
+setkey (as.data.table (table.wmu.cutblocks.1960.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.cutblocks.1960.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_ha"] <- "cutblocks_1960_area_ha"
+wmu.habitat <- wmu.habitat [, "HARVEST_YEAR" := NULL] 
+rm (table.wmu.cutblocks.1960.sum)
+gc ()
+
+# all years in between.....
+
+#### 2018 ####
+table.wmu.cutblocks.2018.sum <- table.wmu.cutblocks.sum [table.wmu.cutblocks.sum$HARVEST_YEAR == 2018, ]
+setkey (as.data.table (table.wmu.cutblocks.2018.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.cutblocks.2018.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_ha"] <- "cutblocks_2018_area_ha"
+wmu.habitat <- wmu.habitat [, "HARVEST_YEAR" := NULL] 
+rm (table.wmu.cutblocks.2018.sum)
+gc ()
+
+# save the data
+write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
+```
+
+#### Natural Landscape Disturbances
+I calculated the area of fire and insect disturbances in each management unit. Both disturabnce types likely have a signficant influence on moose, as they create early seral forest that may increase forage quantity for moose in an area. Conversely, they remove forest cover acorss large areas, and can potentially reduce the amount of security and thermal cover available to moose.
+
+#### Fire
+I obtained [historic](https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical) and [current (2019)](https://catalogue.data.gov.bc.ca/dataset/fire-locations-current) fire perimeter data collected by the BC government. These data map the maximum spatial extent of burned areas, but do not map the intensity of burned areas within them, and  there may be areas within the perimeters that did not burn. Therefore, I use it as an indicator of the amount of burnt area, and not an absolute value. 
+
+```{r, fire perimeter data download and attribute to management areas, echo = T, message = F, warning = F}
+library (bcdata)
+# fire.historic <- bcdc_get_data ('fire-perimeters-historical') 
+# fire.current <- bcdc_get_data ('fire-perimeters-current') 
+
+fire.historic <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                             layer = "fire_historic_20190930")
+fire.current <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                             layer = "fire_current_20190930")
+
+# intersect fire perims with WMU values
+wmu.fire.historic <- sf::st_intersection (fire.historic, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) # just intersect the WMU name
+wmu.fire.current <- sf::st_intersection (fire.current, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) 
+
+table.wmu.fire.historic <- as.data.table (wmu.fire.historic)
+table.wmu.fire.historic.sum <- table.wmu.fire.historic %>% 
+                             group_by (WILDLIFE_MGMT_UNIT_ID, FIRE_YEAR) %>%
+                             summarise (area_m2 = sum (FEATURE_AREA_SQM))
+names (table.wmu.fire.historic.sum) [names (table.wmu.fire.historic.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+
+table.wmu.fire.current <- as.data.table (wmu.fire.current)
+table.wmu.fire.current.sum <- table.wmu.fire.current %>% 
+                             group_by (WILDLIFE_MGMT_UNIT_ID) %>%
+                             summarise (area_m2 = sum (FEATURE_AREA_SQM))
+names (table.wmu.fire.current.sum) [names (table.wmu.fire.current.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+
+## these next steps left-join the fire data to wmu data ##
+
+
+### Subset the fire years ###
+### Current ###
+setkey (as.data.table (table.wmu.fire.current.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.fire.current.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_m2"] <- "fire_2019_area_m2"
+rm (table.wmu.fire.current.sum)
+gc ()
+
+#### everything prior to 1950 ####
+table.wmu.fire.lt1950.sum <- table.wmu.fire.historic.sum [table.wmu.fire.historic.sum$FIRE_YEAR < 1950, ] # filter out the years
+table.wmu.fire.lt1950.sum <- table.wmu.fire.lt1950.sum %>% # summarize area across years
+                                       group_by (wmu) %>%
+                                       summarise (area_m2 = sum (area_m2))
+setkey (as.data.table (table.wmu.fire.lt1950.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.fire.lt1950.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_m2"] <- "fire_lt1950_area_m2"
+rm (table.wmu.fire.lt1950.sum)
+gc ()
+
+#### 1950 to 1959 ####
+table.wmu.fire.1950to1959.sum <- table.wmu.fire.historic.sum [table.wmu.fire.historic.sum$FIRE_YEAR > 1949 & table.wmu.fire.historic.sum$FIRE_YEAR < 1960, ] # filter out the years
+table.wmu.fire.1950to1959.sum <- table.wmu.fire.1950to1959.sum %>% # summarize area across years
+                                       group_by (wmu) %>%
+                                       summarise (area_m2 = sum (area_m2))
+setkey (as.data.table (table.wmu.fire.1950to1959.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.fire.1950to1959.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_m2"] <- "fire_1950to1959_area_m2"
+rm (table.wmu.fire.1950to1959.sum)
+gc ()
+
+#### 1960 ####
+table.wmu.fire.1960.sum <- table.wmu.fire.historic.sum [table.wmu.fire.historic.sum$FIRE_YEAR == 1960, ] # filter out the years
+setkey (as.data.table (table.wmu.fire.1960.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.fire.1960.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_m2"] <- "fire_1960_area_m2"
+wmu.habitat <- wmu.habitat [, "FIRE_YEAR" := NULL]
+rm (table.wmu.fire.1960.sum)
+gc ()
+
+### and all between.... ###
+
+#### 2018 ####
+table.wmu.fire.2018.sum <- table.wmu.fire.historic.sum [table.wmu.fire.historic.sum$FIRE_YEAR == 2018, ]
+setkey (as.data.table (table.wmu.fire.2018.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.fire.2018.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+names (wmu.habitat) [names (wmu.habitat) == "area_m2"] <- "fire_2018_area_m2"
+wmu.habitat <- wmu.habitat [, "FIRE_YEAR" := NULL]
+rm (table.wmu.fire.2018.sum)
+gc ()
+
+# save the data
+write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
+
+```
+
+#### Beetle Disturbances
+I measured insect disturbance in management areas using data collected by the government of British Columbia using aerial survey  [methods](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/aerial-overview-surveys/methods). Data are accessible through an [FTP site](https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/), and I downloaded annual datsets from 1999 to 2017.  
+
+I summarized the area of moderate (11 to 29%), severe (30 to 49%) and very severe (>50%) levels of disturbance from bettle's inlcuidng: mountain pine beetle (IBM), spruce beetle (IBS), Dougals fir beetle (IBD), western balsam bark beetle (IBB), western pine beetle (IBW), 
+
+FHF == "IBI"
+FHF == "IB"
+
+
+```{r}
+
+
+
+
+
+
+
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2017/Final%20Dataset/FHF_2017.zip", 
+            dest = "mountain_pine_beetle\\2017.zip", 
+            mode = "wb")
+unzip ("mountain_pine_beetle\\2017.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2017")
+file.remove ("mountain_pine_beetle\\2017.zip")
+  
+  
+  #########
+# 2017 #
+#######
+fh.2017 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
+                        layer = "mpb_2017")
+writeTableQuery (fh.2017, c ("vegetation", "forest_health_2017"))
+bark.beetles.2017 <- dplyr::filter (fh.2017, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+                                             FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
+                                             FHF == "IBW")
+bark.beetles.vs.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "V")
+  bark.beetles.s.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "S")
+bark.beetles.m.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "M")
+
+  
+  
+  
+  
+  
+  
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2016/AOS_2016_Shapefiles_and_TSA_Spreadsheet_Jan25.zip",
+          dest = "mountain_pine_beetle\\2016.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2016.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2016")
+file.remove ("mountain_pine_beetle\\2016.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2015/final_prov_data/FHF_spatial_Feb11.zip",
+          dest = "mountain_pine_beetle\\2015.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2015.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2015")
+file.remove ("mountain_pine_beetle\\2015.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2014/2014_FHF_Jan23.zip",
+          dest = "mountain_pine_beetle\\2014.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2014.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2014")
+file.remove ("mountain_pine_beetle\\2014.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2013/FHF_2013_Jan24.zip",
+          dest = "mountain_pine_beetle\\2013.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2013.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2013")
+file.remove ("mountain_pine_beetle\\2013.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2012/FHF_Final_12132012.zip",
+          dest = "mountain_pine_beetle\\2012.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2012.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2012")
+file.remove ("mountain_pine_beetle\\2012.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2011/final_2011_aos_July30.zip",
+          dest = "mountain_pine_beetle\\2011.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2011.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2011")
+file.remove ("mountain_pine_beetle\\2011.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2010/fhdata%20final%2012162010.zip",
+          dest = "mountain_pine_beetle\\2010.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2010.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2010")
+file.remove ("mountain_pine_beetle\\2010.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2009/replacement%20spatial%20and%20MDB%20files-20100111.zip",
+          dest = "mountain_pine_beetle\\2009.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2009.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2009")
+file.remove ("mountain_pine_beetle\\2009.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2008/2008_BC_overview.zip",
+          dest = "mountain_pine_beetle\\2008.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2008.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2008")
+file.remove ("mountain_pine_beetle\\2008.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2007/final_version/fhf_shapefiles_20080103.zip",
+          dest = "mountain_pine_beetle\\2007.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2007.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2007")
+file.remove ("mountain_pine_beetle\\2007.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2006/fhdata_2006_final.zip",
+          dest = "mountain_pine_beetle\\2006.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2006.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2006")
+file.remove ("mountain_pine_beetle\\2006.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2005/Final/fhfdata_2005.zip",
+          dest = "mountain_pine_beetle\\2005.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2005.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2005")
+file.remove ("mountain_pine_beetle\\2005.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2004/fhf_complete_dataset_20050218.zip",
+          dest = "mountain_pine_beetle\\2004.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2004.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2004")
+file.remove ("mountain_pine_beetle\\2004.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip",
+          dest = "mountain_pine_beetle\\2003.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2003.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2003")
+file.remove ("mountain_pine_beetle\\2003.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2002/fhf-nov15-2002.zip",
+          dest = "mountain_pine_beetle\\2002.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2002.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2002")
+file.remove ("mountain_pine_beetle\\2002.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2001/shape_files/fhdata2001.zip",
+          dest = "mountain_pine_beetle\\2001.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2001.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2001")
+file.remove ("mountain_pine_beetle\\2001.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2000/provincial_data/shape.zip",
+          dest = "mountain_pine_beetle\\2000.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\2000.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2000")
+file.remove ("mountain_pine_beetle\\2000.zip")
+
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/1999/shape/Prov_Shape.zip",
+          dest = "mountain_pine_beetle\\1999.zip", 
+          mode = "wb")
+unzip ("mountain_pine_beetle\\1999.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\1999")
+file.remove ("mountain_pine_beetle\\1999.zip")
+# NAmes in gdb: mpb_2017 to mpb_1999
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### Vegetation
 I obtained data on vegetation from the provincial government vegetation resources inventory (VRI), available [here](https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1). However, I used a version 'internal' to govenrmetn employees, becuase the interval version included data form tree farm licenses (TFLs), that is not available in the pulbic data because TFL data is typically not public and is owned by the licensee. However, agreements have been made to put the TFL data into upcomign versions of the pulbic VRI datsets. Thus, the same data used here will eventually be made available. Here I made the choice to use the internal data to minimize teh extent of missing data in the management areas. 
@@ -65,6 +580,7 @@ I obtained data on vegetation from the provincial government vegetation resource
 ```{r, VRI data download and attribute to management areas, echo = T, message = F, warning = F}
 library (sf)
 library (units)
+library (dplyr)
 poly.vri <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\caribou_habitat_model.gdb",
                          layer = "vri_internal_20180725",
                          query = "SELECT FEATURE_ID, POLYGON_ID, COAST_INTERIOR_CD, SHRUB_CROWN_CLOSURE, BEC_ZONE_CODE, BEC_SUBZONE, BEC_VARIANT, CROWN_CLOSURE, SPECIES_CD_1, SPECIES_PCT_1, SPECIES_CD_2, SPECIES_PCT_2, SPECIES_CD_3, SPECIES_PCT_3, PROJ_AGE_1, PROJ_AGE_CLASS_CD_1, PROJ_AGE_2, PROJ_AGE_CLASS_CD_2, PROJ_HEIGHT_1 FROM vri_internal_20180725") # select the data fields of interest
@@ -72,45 +588,27 @@ poly.vri.clean <- poly.vri [sf::st_is_valid (poly.vri), ] # remove invalid topol
 rm (poly.vri)
 gc ()
 
-### Need to do this analysis by region since the data is too large to do provincially ###
-# Region 2 #
-poly.wmu.reg2 <- poly.wmu [poly.wmu$REGION_RESPONSIBLE == 2,] 
-poly.vri.clean.reg2 <-  sf::st_intersection (poly.vri.clean, poly.wmu.reg2)
-poly.vri.wmu.reg2 <- sf::st_union (poly.vri.clean.reg2, poly.wmu.reg2 ["WILDLIFE_MGMT_UNIT_ID"]) # union the WMU ID to the VRI
-rm (poly.wmu.reg2)
+### Need to do this analysis by game management zone since the data is too large to do provincially or eve by region ###
+# Region 7 #
+poly.wmu.gmz3a <- poly.wmu [poly.wmu$GAME_MANAGEMENT_ZONE_ID == "3a" & poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-15" | poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-16" | poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-32" | poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-33",]
+# poly.wmu.reg7 <- poly.wmu [poly.wmu$REGION_RESPONSIBLE == 7,] 
+poly.wmu.gmz3a <- poly.wmu.gmz3a ["WILDLIFE_MGMT_UNIT_ID"] # drop the data fields we don't need
+poly.vri.clean.gmz3a <- sf::st_intersection (poly.vri.clean, poly.wmu.gmz3a) # intersect the VRI with WMU data
 gc ()
-area_m2 <- sf::st_area (poly.vri.wmu.reg2) # calculate area of the joined polygons
-units (area_m2) <- NULL # drop units
-tab_area_m2 <- as.data.table (area_m2) # turn the area into a data.table
-rm (area_m2)
+poly.vri.clean.gmz3a <- poly.vri.clean.gmz3a %>% 
+                            mutate (area_m2 = st_area (.) %>% # calculate area of each polygon in m2
+                            as.numeric ())
+tab.poly.vri.gmz3a <- as.data.table (poly.vri.clean.gmz3a) 
+tab.poly.vri.gmz3a <- tab.poly.vri.gmz3a [, "SHAPE" := NULL] 
+names (tab.poly.vri.gmz3a) [names (tab.poly.vri.gmz3a) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+# https://stackoverflow.com/questions/54710574/how-to-do-a-full-union-with-the-r-package-sf
+tab.poly.vri.gmz3a$area_ha <- tab.poly.vri.gmz3a$area_m2 / 10000 # convert m^2 to ha
+rm (poly.wmu.gmz3a, poly.vri.clean.gmz3a)
 gc ()
-tab.poly.vri.wmu.reg2 <- as.data.table (poly.vri.wmu.reg2) # get the data from the sf object
-rm (poly.vri.wmu.reg2)
-gc()
-
-tab.poly.vri.wmu.reg2.area <- cbind (tab.poly.vri.wmu.reg2, tab_area_m2) # bind the area to the table
-rm (tab.poly.vri.wmu.reg2, tab_area_m2)
-gc ()
+write.csv (tab.poly.vri.gmz3a, # save the data
+           "C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu_area_gmz3a.csv")
 
 
-
-
-
-
-
-
-
-
-tab.poly.vri.wmu.reg2.area$area_ha <- tab.poly.vri.wmu.reg2.area$area_m2 / 10000 # convert m^2 to ha
-names (tab.poly.vri.wmu.reg2.area) [names (tab.poly.vri.wmu.reg2.area) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
-write.csv (tab.poly.vri.wmu.reg2.area, # save the data
-           "C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu_area_reg2.csv")
-
-
-
-
-
-gc ()
 
 
 
@@ -133,13 +631,13 @@ library (data.table)
 # unique (tab.poly.vri.wmu.area$BEC_ZONE_CODE)
 
 # BAFA
-# Region 2
-wmu.bafa.area <- tab.poly.vri.wmu.reg2.area [BEC_ZONE_CODE == "BAFA",
-                                             .(BAFA_area_ha = sum (area_ha)), 
-                                             by = .(wmu)] 
+# Region 6
+wmu.bafa.area <- tab.poly.vri.gmz3a [BEC_ZONE_CODE == "BAFA",
+                                     .(BAFA_area_ha = sum (area_ha)), 
+                                     by = .(wmu)] 
 
 setkey (wmu.bafa.area, wmu) # these four setps left-join the bafa area data to wmu data
-setkey (wmu.habitat ,wmu)
+setkey (wmu.habitat, wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.bafa.area, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
@@ -147,9 +645,9 @@ rm (wmu.bafa.area)
 gc ()
 
 # ESSF
-wmu.essf.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "ESSF",
-                                        .(essf_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.essf.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "ESSF",
+                                              .(essf_area_ha = sum (area_ha)), 
+                                              by = .(wmu)] 
 setkey (wmu.essf.area, wmu) # these four steps left-join the essf area data to wmu data
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.essf.area, all.x = TRUE)
@@ -159,9 +657,9 @@ rm (wmu.essf.area)
 gc ()
 
 # ICH
-wmu.ich.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "ICH",
-                                        .(ich_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.ich.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "ICH",
+                                            .(ich_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.ich.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.ich.area, all.x = TRUE)
@@ -171,9 +669,9 @@ rm (wmu.ich.area)
 gc ()
 
 # PP
-wmu.pp.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "PP",
-                                        .(pp_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.pp.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "PP",
+                                            .(pp_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.pp.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.pp.area, all.x = TRUE)
@@ -183,9 +681,9 @@ rm (wmu.pp.area)
 gc ()
 
 # IDF
-wmu.idf.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "IDF",
-                                        .(idf_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.idf.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "IDF",
+                                            .(idf_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.idf.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.idf.area, all.x = TRUE)
@@ -195,9 +693,9 @@ rm (wmu.idf.area)
 gc ()
 
 # MH
-wmu.mh.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "MH",
-                                        .(mh_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.mh.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "MH",
+                                            .(mh_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.mh.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.mh.area, all.x = TRUE)
@@ -207,9 +705,9 @@ rm (wmu.mh.area)
 gc ()
 
 # cwh
-wmu.cwh.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "CWH",
-                                        .(cwh_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.cwh.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "CWH",
+                                            .(cwh_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.cwh.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.cwh.area, all.x = TRUE)
@@ -219,9 +717,9 @@ rm (wmu.cwh.area)
 gc ()
 
 # sbs
-wmu.sbs.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "SBS",
-                                        .(sbs_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.sbs.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "SBS",
+                                            .(sbs_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.sbs.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.sbs.area, all.x = TRUE)
@@ -243,9 +741,9 @@ rm (wmu.sbps.area)
 gc ()  
 
 # ms
-wmu.ms.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "MS",
-                                        .(ms_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.ms.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "MS",
+                                            .(ms_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.ms.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.ms.area, all.x = TRUE)
@@ -255,9 +753,9 @@ rm (wmu.ms.area)
 gc ()  
 
 # cma
-wmu.cma.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "CMA",
-                                        .(cma_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.cma.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "CMA",
+                                            .(cma_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.cma.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.cma.area, all.x = TRUE)
@@ -267,9 +765,9 @@ rm (wmu.cma.area)
 gc ()  
 
 # bwbs
-wmu.bwbs.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "BWBS",
-                                        .(bwbs_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.bwbs.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "BWBS",
+                                              .(bwbs_area_ha = sum (area_ha)), 
+                                              by = .(wmu)] 
 setkey (wmu.bwbs.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.bwbs.area, all.x = TRUE)
@@ -279,9 +777,9 @@ rm (wmu.bwbs.area)
 gc ()  
 
 # swb
-wmu.swb.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "SWB",
-                                        .(swb_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.swb.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "SWB",
+                                            .(swb_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.swb.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.swb.area, all.x = TRUE)
@@ -291,9 +789,9 @@ rm (wmu.swb.area)
 gc () 
 
 # bg
-wmu.bg.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "BG",
-                                        .(bg_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.bg.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "BG",
+                                            .(bg_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.bg.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.bg.area, all.x = TRUE)
@@ -303,9 +801,9 @@ rm (wmu.bg.area)
 gc () 
 
 # cdf
-wmu.cdf.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "CDF",
-                                        .(cdf_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.cdf.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "CDF",
+                                            .(cdf_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.cdf.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.cdf.area, all.x = TRUE)
@@ -315,9 +813,9 @@ rm (wmu.cdf.area)
 gc () 
 
 # ima
-wmu.ima.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "IMA",
-                                        .(ima_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
+wmu.ima.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "IMA",
+                                            .(ima_area_ha = sum (area_ha)), 
+                                            by = .(wmu)] 
 setkey (wmu.ima.area, wmu) 
 setkey (wmu.habitat ,wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.ima.area, all.x = TRUE)
@@ -330,11 +828,10 @@ gc ()
 I summarized the area of shubs in each management area. I multiplied the area of each polygon by teh crown closure of shrubs as an estimate of shrub cover in a polygon. Then I added all polygons in a WMU to calculate area of shrub cover. 
 
 ```{r, calculate area of shrub, echo = T, message = F, warning = F}
-tab.poly.vri.wmu.area.shrub <- na.omit (tab.poly.vri.wmu.area, 
+tab.poly.vri.wmu.area.shrub <- na.omit (tab.poly.vri.gmz3a.wmu.area, 
                                         cols = ("SHRUB_CROWN_CLOSURE"), 
                                         invert = FALSE)
-wmu.shrub.area <- tab.poly.vri.wmu.area.shrub [, .(shrub_area_ha = sum (area_ha *     
-                                                                        SHRUB_CROWN_CLOSURE)), 
+wmu.shrub.area <- tab.poly.vri.wmu.area.shrub [, .(shrub_area_ha = sum (area_ha * SHRUB_CROWN_CLOSURE)), 
                                                by = .(wmu)] 
 setkey (wmu.shrub.area, wmu) 
 setkey (wmu.habitat ,wmu)
@@ -349,7 +846,7 @@ I summarized the area of forest types important for moose. This included area of
 
 ```{r, area of forest stand types, echo = T, message = F, warning = F}
 # Douglas fir leading forest stands aged 51 to 70
-wmu.doug.fir.50.70.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 51, 70)),
+wmu.doug.fir.50.70.area <- tab.poly.vri.gmz3a.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 51, 70)),
                                         .(doug_fir_50_70_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir.50.70.area, wmu) 
@@ -361,7 +858,7 @@ rm (wmu.doug.fir.50.70.area)
 gc () 
 
 # Douglas fir leading forest stands aged 71 to 90
-wmu.doug.fir.71.90.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 71, 90)),
+wmu.doug.fir.71.90.area <- tab.poly.vri.gmz3a.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 71, 90)),
                                         .(doug_fir_71_90_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir.71.90.area, wmu) 
@@ -589,7 +1086,13 @@ library (data.table)
 
 poly.lakes <- bcdc_get_data ("freshwater-atlas-lakes") # name of the data in BCGW
 # plot (st_geometry (poly.lakes)) # check to make sure it looks ok
-poly.lakes.wmu <- sf::st_union (poly.lakes, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) # union the WMU ID to lakes
+
+
+
+
+
+
+
 tab.poly.lakes.wmu <- as.data.table (poly.lakes.wmu) # get the data from the sf object
 area_m2 <- sf::st_area (poly.lakes.wmu) # calculate area of the joined polygons
 units (area_m2) <- NULL # drop units
@@ -658,204 +1161,6 @@ gc ()
 
 
 
-
-
-
-#### Beetle Disturbances
-I measured insect disturbance in management areas using data collected by the government of British Columbia using aerial survey  [methods](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/aerial-overview-surveys/methods). Data are accessible through an [FTP site](https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/), and I downloaded annual datsets from 1999 to 2017.  
-
-I summarized the area of moderate (11 to 29%), severe (30 to 49%) and very severe (>50%) levels of disturbance from bettle's inlcuidng: mountain pine beetle (IBM), spruce beetle (IBS), Dougals fir beetle (IBD), western balsam bark beetle (IBB), western pine beetle (IBW), 
-
-FHF == "IBI"
-FHF == "IB"
-
-
-
-
-
-
-
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2017/Final%20Dataset/FHF_2017.zip", 
-            dest = "mountain_pine_beetle\\2017.zip", 
-            mode = "wb")
-unzip ("mountain_pine_beetle\\2017.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2017")
-file.remove ("mountain_pine_beetle\\2017.zip")
-  
-  
-  #########
-# 2017 #
-#######
-fh.2017 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
-                        layer = "mpb_2017")
-writeTableQuery (fh.2017, c ("vegetation", "forest_health_2017"))
-bark.beetles.2017 <- dplyr::filter (fh.2017, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
-                                             FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
-                                             FHF == "IBW")
-bark.beetles.vs.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "V")
-  bark.beetles.s.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "S")
-bark.beetles.m.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "M")
-
-  
-  
-  
-  
-  
-  
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2016/AOS_2016_Shapefiles_and_TSA_Spreadsheet_Jan25.zip",
-          dest = "mountain_pine_beetle\\2016.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2016.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2016")
-file.remove ("mountain_pine_beetle\\2016.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2015/final_prov_data/FHF_spatial_Feb11.zip",
-          dest = "mountain_pine_beetle\\2015.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2015.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2015")
-file.remove ("mountain_pine_beetle\\2015.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2014/2014_FHF_Jan23.zip",
-          dest = "mountain_pine_beetle\\2014.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2014.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2014")
-file.remove ("mountain_pine_beetle\\2014.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2013/FHF_2013_Jan24.zip",
-          dest = "mountain_pine_beetle\\2013.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2013.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2013")
-file.remove ("mountain_pine_beetle\\2013.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2012/FHF_Final_12132012.zip",
-          dest = "mountain_pine_beetle\\2012.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2012.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2012")
-file.remove ("mountain_pine_beetle\\2012.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2011/final_2011_aos_July30.zip",
-          dest = "mountain_pine_beetle\\2011.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2011.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2011")
-file.remove ("mountain_pine_beetle\\2011.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2010/fhdata%20final%2012162010.zip",
-          dest = "mountain_pine_beetle\\2010.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2010.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2010")
-file.remove ("mountain_pine_beetle\\2010.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2009/replacement%20spatial%20and%20MDB%20files-20100111.zip",
-          dest = "mountain_pine_beetle\\2009.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2009.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2009")
-file.remove ("mountain_pine_beetle\\2009.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2008/2008_BC_overview.zip",
-          dest = "mountain_pine_beetle\\2008.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2008.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2008")
-file.remove ("mountain_pine_beetle\\2008.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2007/final_version/fhf_shapefiles_20080103.zip",
-          dest = "mountain_pine_beetle\\2007.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2007.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2007")
-file.remove ("mountain_pine_beetle\\2007.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2006/fhdata_2006_final.zip",
-          dest = "mountain_pine_beetle\\2006.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2006.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2006")
-file.remove ("mountain_pine_beetle\\2006.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2005/Final/fhfdata_2005.zip",
-          dest = "mountain_pine_beetle\\2005.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2005.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2005")
-file.remove ("mountain_pine_beetle\\2005.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2004/fhf_complete_dataset_20050218.zip",
-          dest = "mountain_pine_beetle\\2004.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2004.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2004")
-file.remove ("mountain_pine_beetle\\2004.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip",
-          dest = "mountain_pine_beetle\\2003.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2003.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2003")
-file.remove ("mountain_pine_beetle\\2003.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2002/fhf-nov15-2002.zip",
-          dest = "mountain_pine_beetle\\2002.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2002.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2002")
-file.remove ("mountain_pine_beetle\\2002.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2001/shape_files/fhdata2001.zip",
-          dest = "mountain_pine_beetle\\2001.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2001.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2001")
-file.remove ("mountain_pine_beetle\\2001.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2000/provincial_data/shape.zip",
-          dest = "mountain_pine_beetle\\2000.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2000.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2000")
-file.remove ("mountain_pine_beetle\\2000.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/1999/shape/Prov_Shape.zip",
-          dest = "mountain_pine_beetle\\1999.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\1999.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\1999")
-file.remove ("mountain_pine_beetle\\1999.zip")
-# NAmes in gdb: mpb_2017 to mpb_1999
-
-
-
-
-
-
-
-
-#### Human Landscape Disturbances
-I calculated the area or density of human created landscape disturabnces in each management unit. Here, I focussed on roads, which have imrptant impacts on wildlfie, includign cariobu, their predators (wolves), and apparent compeittiores (moose). I also 
-
-
-Unforntuately no reliable date attributed to roads
-
-
-
-##### Roads
-https://catalogue.data.gov.bc.ca/dataset/243c94a1-f275-41dc-bc37-91d8a2b26e10
-
-total length of [roads](https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-demographic-partially-attributed-roads)
-
-##### Cutblocks
-[consolidated cutblock](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) polygons using data from the DataBC catalogue. 
-
-
-#### Fire
-[historic](https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical) and [2018](https://catalogue.data.gov.bc.ca/dataset/fire-locations-current) fire perimeters
 
 
 #### Climate
