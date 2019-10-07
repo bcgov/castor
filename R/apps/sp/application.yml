@@ -1,0 +1,53 @@
+proxy:
+  title: FAIB Apps
+  port: 8787
+  authentication: simple
+  admin-groups: admins
+  users:
+  - name: klochhea
+    password: password
+    groups: admins
+  - name: tmuhly
+    password: password
+    groups: admins
+  - name: imcdouga
+    password: password
+    groups: admins
+  - name: guest
+    password: caribou_recovery
+    groups: biologists
+
+
+  docker:
+      internal-networking: true
+  specs:
+  - id: cariboubc
+    display-name: CaribouBC
+    description: An open-source tool to guide caribou management decisions in British Columbia
+    container-cmd: ["/usr/bin/shiny-server.sh"]
+    container-image: cariboubc
+    container-network: sp-example-net
+    access-groups: admins, biologists
+  - id: clus_scenario
+    display-name: CLUS scenario tool
+    description: A tool for developing spatialy explicit land use scenarios (Development)
+    container-cmd: ["/usr/bin/shiny-server.sh"]
+    container-image: clus_scen
+    container-network: sp-example-net
+    access-groups: admins, biologists
+  - id: clus_explorer
+    display-name: CLUS explorer tool
+    description:  A tool for exploring outputs from spatialy explicit land use scenarios (Development)
+    container-cmd: ["/usr/bin/shiny-server.sh"]
+    container-image: clus_explorer
+    container-network: sp-example-net
+    access-groups: admins, biologists
+
+    container-env:
+      user: "shiny"
+      environment:
+        - APPLICATION_LOGS_TO_STDOUT=false
+
+logging:
+  file:
+    shinyproxy.log
