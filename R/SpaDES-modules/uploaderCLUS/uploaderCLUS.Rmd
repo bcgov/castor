@@ -46,7 +46,7 @@ parameters <- list(
                          nameYieldTable ="yield_ex"),
   
   uploaderCLUS = list(aoiName = 'chilcotin',
-                      dbInfo  = list('206.12.91.188', 'klochhea', 'XVneCw86', 'clus'))
+                      dbInfo  = list('', '', '', ''))
 )
 modules <- list("dataLoaderCLUS", "uploaderCLUS")
 scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
