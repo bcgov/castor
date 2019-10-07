@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 *.shp
+*.tif
 *.dbf
 *.prj
 *.shx
@@ -22,5 +23,5 @@ mercurial.ini
 /R/apps/alpha
 /R/credential_clusdb.R
 .Rprofile
-.sqlite
+*.sqlite
 
