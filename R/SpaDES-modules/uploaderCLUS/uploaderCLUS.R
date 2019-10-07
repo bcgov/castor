@@ -129,11 +129,11 @@ save.rasters <-function (sim){
   #rasters
   ##blocks
   commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,'harvestBlocks.tif'), schema = P(sim, "uploaderCLUS", "aoiName"), 
-               name = paste0(scenario$name, "_cutblocks.tif"), P(sim, "uploaderCLUS", "dbInfo") )
+               name = paste0(scenario$name, "_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
   
   ##roads
   commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
-               schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_roads.tif"),
+               schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_roads"),
                P(sim, "uploaderCLUS", "dbInfo"))
   ##rsfStart
   ##rsfEND

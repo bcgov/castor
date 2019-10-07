@@ -46,7 +46,9 @@ defineModule(sim, list(
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput("landings", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="harvestUnits", objectClass = "RasterLayer", desc = 'The name of the scenario and its description', sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
