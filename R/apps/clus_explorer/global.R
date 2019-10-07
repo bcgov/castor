@@ -13,24 +13,20 @@ library(sf)
 
 
 getTableQuery<-function(sql){
-<<<<<<< HEAD
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
-=======
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='', dbname = '', port='5432', user='', password='')
->>>>>>> 2caf18fde26b4aeeff343908032d25407deb3c1d
   on.exit(dbDisconnect(conn))
   dbGetQuery(conn, sql)
 }
 
 getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='', dbname = '', port='5432', user='', password='')
   on.exit(dbDisconnect(conn))
   st_read(conn, query = sql)
 }
 
 
 getRasterQuery<-function(srcRaster){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='', dbname = '', port='5432', user='', password='')
   on.exit(dbDisconnect(conn))
   pgGetRast(conn, srcRaster)
 }
