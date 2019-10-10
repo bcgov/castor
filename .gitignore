@@ -13,6 +13,7 @@
 *.html
 *.xlsx
 /scrap.R
+/global.R
 /tass/
 /Get OpenSSH.docx
 /HOW_TO_oracle_connect
