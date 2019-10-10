@@ -33,14 +33,16 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("updateInterval", "numeric", 1, NA, NA, "")
+    defineParameter("updateInterval", "numeric", 1, NA, NA, "The interval when the growinstock should be updated"),
+    defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock")
   ),
   inputObjects = bind_rows(
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA)
   ),
   outputObjects = bind_rows(
-    createsOutput(objectName = "growingStockReport", objectClass = "data.table", desc = NA)
+    createsOutput(objectName = "growingStockReport", objectClass = "data.table", desc = NA),
+    createsOutput(objectName = "growingStockLevel", objectClass = "numeric", desc = NA)
   )
 ))
 
@@ -106,9 +108,8 @@ Init <- function(sim) {
   
 
   sim$growingStockReport<- data.table(scenario = scenario$name, timeperiod = time(sim), 
-                                     dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock FROM pixels;"))
+                                     dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock, compartid FROM pixels group by compartid;"))
  
-  #sim$growingStockReport<-list(dbGetQuery(sim$clusdb, "SELECT sum(vol) FROM pixels"))
   
   rm(tab1,dat)
   gc()
@@ -160,7 +161,7 @@ growingStockCLUS.Update<- function(sim) {
 }
 
 growingStockCLUS.record<- function(sim) {
-  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock FROM pixels"))), use.names = TRUE)
+  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock, compartid FROM pixels group by compartid;"))), use.names = TRUE)
   return(invisible(sim))
 }
 
