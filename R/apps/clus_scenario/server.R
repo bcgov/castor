@@ -6,20 +6,6 @@ shinyServer(function(input, output, session) {
   #-------------------------------------------------------------------------------------------------
   #Functions for retrieving data from the postgres server (vector, raster and tables)
   #-------------------------------------------------------------------------------------------------
-  getSpatialQuery<-function(sql){
-    #conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.88.136', dbname = 'ima', port='5432', user='ima', password='eFxrq+rtgRdaSLodd7APAHbmUyHguWZOOdAZKjrg130=')
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.167.181.178', dbname = 'aroma', port='5432', user='aroma', password='X+Scc4yRPtpGb1AgfpJTwjZgyshOG+c3QSRMj1UgVMZ87PLv')
-    on.exit(dbDisconnect(conn))
-    st_read(conn, query = sql)
-  }
-  
-  getTableQuery<-function(sql){
-    #conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.88.136', dbname = 'ima', port='5432', user='ima', password='eFxrq+rtgRdaSLodd7APAHbmUyHguWZOOdAZKjrg130=')
-    conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.167.181.178', dbname = 'aroma', port='5432', user='aroma', password='X+Scc4yRPtpGb1AgfpJTwjZgyshOG+c3QSRMj1UgVMZ87PLv')
-    on.exit(dbDisconnect(conn))
-    dbGetQuery(conn, sql)
-  }
-  
   readData<-function(session){
     progress<-Progress$new(session)
     progress$set(value = 0, message = 'Loading...')
@@ -28,9 +14,9 @@ shinyServer(function(input, output, session) {
     herd_bound <<- sf::st_zm(getSpatialQuery("SELECT gid, herd_name, ecotype, risk_stat, geom FROM public.gcbp_carib_polygon WHERE herd_name <> 'NA'"))
     sp_herd_bound<<-sf::as_Spatial(st_transform(herd_bound, 4326))
     progress$set(value = 0.3, message = 'Loading...')
-    uwr<<- getSpatialQuery("SELECT approval_year, geom FROM public.uwr_caribou_no_harvest_20180627 Limit 1")
+    uwr<<- getSpatialQuery("SELECT approval_year, geom FROM public.uwr_caribou_no_harvest_20180627 ")
     progress$set(value = 0.5, message = 'Loading...')
-    wha<<- getSpatialQuery("SELECT approval_year, geom FROM public.wha_caribou_no_harvest_20180627 Limit 1")
+    wha<<- getSpatialQuery("SELECT approval_year, geom FROM public.wha_caribou_no_harvest_20180627 ")
     empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
     progress$set(value = 0.6, message = 'Loading...')
   #----------------

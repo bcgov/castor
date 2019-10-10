@@ -1,18 +1,3 @@
-library(shiny)
-library(shinythemes)
-library(shinyWidgets)
-library(leaflet.extras)
-library(dplyr)
-library(ggplot2)
-library(leaflet)
-library(RPostgreSQL)
-library(sf)
-library(zoo)
-library(tidyr)
-library(plotly)
-library(raster)
-library(lobstr)
-
 #-------------------------------------------------------------------------------------------------
 # Define UI
 shinyUI(fluidPage(theme = shinytheme("lumen"),  
