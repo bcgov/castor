@@ -366,174 +366,60 @@ write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
 #### Beetle Disturbances
 I measured insect disturbance in management areas using data collected by the government of British Columbia using aerial survey  [methods](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/aerial-overview-surveys/methods). Data are accessible through an [FTP site](https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/), and I downloaded annual datsets from 1999 to 2017.  
 
-I summarized the area of moderate (11 to 29%), severe (30 to 49%) and very severe (>50%) levels of disturbance from bettle's inlcuidng: mountain pine beetle (IBM), spruce beetle (IBS), Dougals fir beetle (IBD), western balsam bark beetle (IBB), western pine beetle (IBW), 
-
-FHF == "IBI"
-FHF == "IB"
+I summarized the area of moderate (11 to 29%), severe (30 to 49%) and very severe (>50%) levels of disturbance from bettle's including: mountain pine beetle, spruce beetle, Dougals fir beetle, western balsam bark beetle and western pine beetle in each WMU. 
 
 
-```{r}
+```{r, forest health data download and attribute beetle disturbance to management areas, echo = T, message = F, warning = F}
+library (downloader)
+library (sf)
+library (data.table)
+library (dplyr)
 
-
-
-
-
-
-
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2017/Final%20Dataset/FHF_2017.zip", 
-            dest = "mountain_pine_beetle\\2017.zip", 
+# Download data; this is an example; do these for each year
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip", 
+            dest = "C:\\Work\\caribou\\clus_data\\forest_health\\2003.zip", 
             mode = "wb")
-unzip ("mountain_pine_beetle\\2017.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2017")
-file.remove ("mountain_pine_beetle\\2017.zip")
-  
-  
-  #########
+unzip ("C:\\Work\\caribou\\clus_data\\forest_health\\2003.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\forest_health\\2003")
+file.remove ("C:\\Work
+             \\caribou\\clus_data\\forest_health\\2003.zip")
+
+#########
 # 2017 #
 #######
-fh.2017 <- sf::st_read (dsn = "caribou_habitat_model\\caribou_habitat_model.gdb", 
-                        layer = "mpb_2017")
-writeTableQuery (fh.2017, c ("vegetation", "forest_health_2017"))
-bark.beetles.2017 <- dplyr::filter (fh.2017, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+fh.2003 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\forest_health\\2003\\SHAPE_FILES\\fhf_poly_2003.shp")
+bark.beetles.2003 <- dplyr::filter (fh.2003, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
                                              FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                              FHF == "IBW")
-bark.beetles.vs.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "V")
-  bark.beetles.s.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "S")
-bark.beetles.m.2017 <- dplyr::filter (bark.beetles.2017, SEVERITY == "M")
+bark.beetles.vs.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "V")
+bark.beetles.s.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "S")
+bark.beetles.m.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "M")
 
+bark.beetles.m.2003 <- st_transform (bark.beetles.m.2003, crs = 3005)
+wmu.bark.beetles.m.2003 <- sf::st_intersection (bark.beetles.m.2003, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"])
   
+table.wmu.bark.beetles.m.2003 <- as.data.table (wmu.bark.beetles.m.2003)  
   
-  
-  
-  
-  
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2016/AOS_2016_Shapefiles_and_TSA_Spreadsheet_Jan25.zip",
-          dest = "mountain_pine_beetle\\2016.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2016.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2016")
-file.remove ("mountain_pine_beetle\\2016.zip")
+table.wmu.bark.beetles.m.2003.sum <- table.wmu.bark.beetles.m.2003 %>% 
+                                          group_by (WILDLIFE_MGMT_UNIT_ID) %>%
+                                          summarise (beetle_2003_m_area_ha = sum (POLY_AREA))
+names (table.wmu.bark.beetles.m.2003.sum) [names (table.wmu.bark.beetles.m.2003.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2015/final_prov_data/FHF_spatial_Feb11.zip",
-          dest = "mountain_pine_beetle\\2015.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2015.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2015")
-file.remove ("mountain_pine_beetle\\2015.zip")
+## these next steps left-join the fire data to wmu data ##
+setkey (as.data.table (table.wmu.bark.beetles.m.2003.sum), wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.bark.beetles.m.2003.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+rm (bark.beetles.m.2003, wmu.bark.beetles.m.2003, table.wmu.bark.beetles.m.2003, table.wmu.bark.beetles.m.2003.sum, bark.beetles.m.2003)
+gc ()
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2014/2014_FHF_Jan23.zip",
-          dest = "mountain_pine_beetle\\2014.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2014.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2014")
-file.remove ("mountain_pine_beetle\\2014.zip")
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2013/FHF_2013_Jan24.zip",
-          dest = "mountain_pine_beetle\\2013.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2013.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2013")
-file.remove ("mountain_pine_beetle\\2013.zip")
+# save the data
+write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2012/FHF_Final_12132012.zip",
-          dest = "mountain_pine_beetle\\2012.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2012.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2012")
-file.remove ("mountain_pine_beetle\\2012.zip")
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2011/final_2011_aos_July30.zip",
-          dest = "mountain_pine_beetle\\2011.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2011.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2011")
-file.remove ("mountain_pine_beetle\\2011.zip")
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2010/fhdata%20final%2012162010.zip",
-          dest = "mountain_pine_beetle\\2010.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2010.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2010")
-file.remove ("mountain_pine_beetle\\2010.zip")
 
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2009/replacement%20spatial%20and%20MDB%20files-20100111.zip",
-          dest = "mountain_pine_beetle\\2009.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2009.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2009")
-file.remove ("mountain_pine_beetle\\2009.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2008/2008_BC_overview.zip",
-          dest = "mountain_pine_beetle\\2008.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2008.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2008")
-file.remove ("mountain_pine_beetle\\2008.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2007/final_version/fhf_shapefiles_20080103.zip",
-          dest = "mountain_pine_beetle\\2007.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2007.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2007")
-file.remove ("mountain_pine_beetle\\2007.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2006/fhdata_2006_final.zip",
-          dest = "mountain_pine_beetle\\2006.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2006.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2006")
-file.remove ("mountain_pine_beetle\\2006.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2005/Final/fhfdata_2005.zip",
-          dest = "mountain_pine_beetle\\2005.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2005.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2005")
-file.remove ("mountain_pine_beetle\\2005.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2004/fhf_complete_dataset_20050218.zip",
-          dest = "mountain_pine_beetle\\2004.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2004.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2004")
-file.remove ("mountain_pine_beetle\\2004.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip",
-          dest = "mountain_pine_beetle\\2003.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2003.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2003")
-file.remove ("mountain_pine_beetle\\2003.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2002/fhf-nov15-2002.zip",
-          dest = "mountain_pine_beetle\\2002.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2002.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2002")
-file.remove ("mountain_pine_beetle\\2002.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2001/shape_files/fhdata2001.zip",
-          dest = "mountain_pine_beetle\\2001.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2001.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2001")
-file.remove ("mountain_pine_beetle\\2001.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2000/provincial_data/shape.zip",
-          dest = "mountain_pine_beetle\\2000.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\2000.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\2000")
-file.remove ("mountain_pine_beetle\\2000.zip")
-
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/1999/shape/Prov_Shape.zip",
-          dest = "mountain_pine_beetle\\1999.zip", 
-          mode = "wb")
-unzip ("mountain_pine_beetle\\1999.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\mountain_pine_beetle\\1999")
-file.remove ("mountain_pine_beetle\\1999.zip")
-# NAmes in gdb: mpb_2017 to mpb_1999
 
 
 ```
