@@ -71,7 +71,7 @@ doEvent.survivalCLUS = function (sim, eventTime, eventType) {
 
 survivalCLUS.Init <- function (sim) { # this function identifies the caribou herds in the 'study area' creates the survival rate table, calculates survival rate at time = 0, and saves the survival table in the clusdb
   #Added a condition here in those cases where the dataLoaderCLUS has already ran
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM pixels where herd_bounds IS NOT NULL Limit 1"))== 0){
+  if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'herd_bounds',])== 0){
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
   
     herdbounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader

@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 *.shp
+*.tif
 *.dbf
 *.prj
 *.shx
@@ -12,6 +13,7 @@
 *.html
 *.xlsx
 /scrap.R
+/global.R
 /tass/
 /Get OpenSSH.docx
 /HOW_TO_oracle_connect
@@ -22,5 +24,5 @@ mercurial.ini
 /R/apps/alpha
 /R/credential_clusdb.R
 .Rprofile
-.sqlite
+*.sqlite
 

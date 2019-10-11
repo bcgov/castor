@@ -7,68 +7,62 @@ output: pdf_document
 
 # Overview
 
-Provide an overview of what the module does / how to use the module.
-
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
-
-## R Markdown
-
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
-For help writing in R Markdown, see http://rmarkdown.rstudio.com/.
+This module uploads scenario outputs to a postgres database hosted by a virtual machine. The inputs into this module are the are of interest which could be a herd boundary like the chilcotin and database information including the host, user, password, etc.
 
 # Usage
 
 ```{r module_usage}
-library(SpaDES)
+library(SpaDES.core)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
-setPaths(modulePath = file.path("C:/Users/klochhea/clus/R/SpaDES-modules"))
-getPaths() # shows where the 4 relevant paths are
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/uploaderCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/uploaderCLUS/outputs")
+cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/uploaderCLUS")
 
-times <- list(start = 0, end = 10)
+times <- list(start = 0, end = 0)
 
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list( 
+                         #Database connection
+                         dbName='clus',
+                         #save_clusdb = TRUE,
+                         useCLUSdb = "C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/clusdb.sqlite",
+                         nameBoundaryFile="study_area_compart",
+                         nameBoundaryColumn="tsb_number",
+                         nameBoundary = c ("26A","26B", "26C"),
+                         nameBoundaryGeom='wkb_geometry',
+                         nameCompartmentRaster = "rast.forest_tenure",
+                         nameCompartmentTable = "forest_tenure_vat",
+                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo",  "rast.zone_cond_uwr", "rast.zone_cond_fsw", "rast.zone_cond_nharv"),
+                         nameZoneTable="zone_constraints",
+                         nameAgeRaster= "rast.vri2017_projage1",
+                         nameHeightRaster= "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameYieldTable ="yield_ex"),
+  
+  uploaderCLUS = list(aoiName = 'chilcotin',
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL")))
 )
-modules <- list("uploaderCLUS")
-objects <- list()
-inputs <- list()
-outputs <- list()
+modules <- list("dataLoaderCLUS", "uploaderCLUS")
+scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
+objects <- list(scenario=scenario)
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects)
+                 objects = objects, paths = paths)
 
 mySimOut <- spades(mySim)
 ```
 
-# Events
 
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
-
-# Data dependencies
-
-## Input data
-
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("uploaderCLUS", "path/to/modules/dir")` may be sufficient.
-
-## Output data
-
-Description of the module outputs.
-
-# Links to other modules
-
-Describe any anticipated linkages to other modules.
 
