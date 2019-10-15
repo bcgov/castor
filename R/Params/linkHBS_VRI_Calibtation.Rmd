@@ -1,0 +1,92 @@
+---
+title: "connect vri hbs"
+output: html_document
+---
+
+# Introduction
+
+Estimates of merchantable tree volume yields are required not only in timber supply forecasts but also to serve as surrogates for many ecological processes of interest to decision makers (e.g., biomass, carbon, wildlife habitat). Often these estimates are forecasted through time using empirically derived growth and yield models. The input parameters for these models can vary from individual tree level to stand level attributes with a forest inventory providing the majority of this information. In particular, stand-level information used to project tree volume yield through time often requires the specific geographical or ecological zone, species compositions, a measure of productivity and density. However, linking this information at very large scales or macroscales can be computationally restrictive given each individual stand could result in a unique projection given the level of precision in the forest attributes information. In the Vegetation Resources Inventory (VRI) of British Columbia (BC), forest attributes like site index are often reported to the nearest decimeter. Thus, the combinations of input parameters could result in millions of possible curves; that consume valuable computer resources. One approach to alleviate this problem is to aggregate the yield projections into yield curve groups or anlaysis units.
+
+A major benefit of aggregation is the reduction in computer resources needed to query yield curve tables. However, aggregation results in a cost in terms of loss of information which may pose problems when simulating individal stand level decision making. Simulating forest management decision at very large scales involves assumptions with many based on volume yield estimates that contain error. Known sources of error arise from 1.) the forest inventory (initial state of the forest); 2.) the projection of the forest inventory (i.e., the growth and yield model); 3.) the loss of information through aggregation into yield curves; and 4.) changes in forest policy. All of these sources propagate through time which may provide barriers for confidentaly making decisions. 
+
+Recently, Robinson et al. (2016) recommended a simple way to incorpate error from volume yield projections into decision making through the use of observed scale data that is commonly collected following timber harvesting operations. They propose a calibration model approach to not only calibrate yields from a given growth model but also to provide a measure of error around the yield estimate. Thus, the value of the Robinson et al. (2016) approach is two fold: 1.) a calibration of the yields for use when simulating the management decisions and 2.) a measure of error around yield estimates. To further explain the later,  Robinson et al. (2016) estimate parameters of the error distribution (conditional mean and variance) for a given prediction. Once the conditional parameters of the error distribution are estimated, it is realtively simple to simulate the error by sampling the error distribtuion many times (i.e., 10000). The result is a distribution of plausible yields that can be summarized into statistics like: the proportion or probability above a specifed threshold (i.e., AAC) or the estimation of a prediction interval. Note that the prediction interval is not the same as the confidence interval because the prediction interval takes into account two sources of uncertainty - the uncertainty of the distrbution of the process and the uncertainty of the location of the prediction within the distribution. The impetus of this work is a data set with both observed volume yield, as measured from scale data and projected volume yields derived from forest inventory attributes and a growth and yield model. 
+
+To apply this approach in BC, this would require linking the harvest billing system data which provides observed billable harvest volumes at the resolution of the timber mark with VRI information before the date of harvest and then using the VRI information as the nessecary inputs for a growth and yield model. In the following sections, the spatial (timber mark boundaries) and temporal (harvest date, inventory projection) data are linked to re-create the approach by Robinson et al. (2016). The specific objective is to calibrate the projected volume yields from an aggregated growth and yield model (hereafter termed the meta-model) with observed volume yields reported in the harvest billing system. This proposed model will support the calibration of the volume yields as well as be used in the caribou and landuse model (CLUS) to provide an indication of volume yield uncertainty which should help provide some context surrounding impacts of conservation activities on harvest flows. 
+
+# Methods
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(sf)
+library(dplyr)
+library(velox)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+```
+
+## Study Area
+
+The study area was confined to the interior of the province of British Columbia. The interior of BC is spatially divided into 12 biogeoclimatic zones to provide a coarse spatial filter for forest ecosystem processes.   
+
+## Timber mark boundaries
+
+To estimate the spatial boundaries of the timber mark two spatial data sets were used: i), ii). The provides cutblock boundaries that are uniquely identified by opening_id
+
+## Meta-model of VDYP
+
+Using the 2018 version of the VRI each polygon was projected through time to 350 years using Variable Density Yield projection (VDYP). VDYP is a stand-level model that uses VRI attribution as inputs into the growth and yield projection algortihums. The result of this process was over 3.5 million yield curves which took 3 days to complete on a i7, 3.5 ghz computer with 64 GB of RAM. Both the input (VRI information) and outputs (yields over time) were uploaded into a PostgreSQL database for further processes. Using the layer 1 rank information  yield curve groups (yc_grp) / anlaysis units were constructed using: BEC zone, site index (2 m interval), height class (5 classes as per the VRI) and crown closure class (5 classes as per the VRI). Each yc_grp was then aggregated by area weighting the respsective individual polygon level yield curves.
+
+## Get the timber marks with projected yields
+
+```{r, Step6_develop_vri2011}
+
+feats<-getSpatialQuery("SELECT feature_id, shape FROM yt_vri2011")
+cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs")
+cnx_hbs<-lwgeom::st_make_valid(cnx_hbs)
+#plot(feats["feature_id"])
+#plot(cnx_hbs["harvestyr"])
+
+polys<- st_intersection(cnx_hbs, feats)
+polys$area<-st_area(polys)/10000
+
+#get the projections by featureid
+yt_prj<-getTableQuery("SELECT * FROM yt_vri2011prj ")
+print(head(yt_prj))
+
+#join with poly
+out.tbl<-merge(polys, yt_prj)
+
+out.tbl$vol<-out.tbl$area*out.tbl$itvol
+st_write(out.tbl, "test3.shp")
+
+#get the itvols that are NULL == don't match with the meta-model
+out.tbl2<-data.table(out.tbl)
+noMatch<-unique(out.tbl2[is.na(itvol), timber_mrk])
+
+out.tbl3<-out.tbl2[!(timber_mrk %in% noMatch), sum(vol), by =timber_mrk]
+setnames(out.tbl3, c("V1", "timber_mrk"), c("proj_vol","timber_mark"))
+
+```
+
+## get the hbs volumes
+
+```{r, step7_hbs_observed}
+hbs_obs<-getTableQuery("SELECT timber_mark, sum(volume_m3) as obs_vol FROM hbs_select_tmbr_mrk  where waste_type = 'Non-Waste' AND coast_interior = 'Interior' group by timber_mark")
+```
+
+
+## Calibrate
+
+```{r, calibrate}
+library(ggplot2)
+calb_data<-data.table(merge(hbs_obs, out.tbl3))
+calb_data$proj_vol<-as.numeric(calb_data$proj_vol)
+ggplot(calb_data, aes(obs_vol, proj_vol)) +
+  geom_point() +
+  geom_abline(intercept =0, slope=1) +
+  geom_smooth(method='lm', se = TRUE)
+cor(calb_data$obs_vol,calb_data$proj_vol)
+```
+
+# References
+
+Robinson, A.P., McLarin, M. and Moss, I., 2016. A simple way to incorporate uncertainty and risk into forest harvest scheduling. Forest Ecology and Management, 359, pp.11-18.
