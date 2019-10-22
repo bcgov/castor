@@ -5,9 +5,9 @@ output: html_document
 
 # Introduction
 
-Estimates of merchantable tree volume yields are neccessaary inputs into timber supply forecasts and also serve as surrogates for many ecological processes of interest to decision makers (e.g., biomass, carbon, wildlife habitat). Often these estimates are forecasted through time using empirically derived growth and yield models. The input parameters for these models can vary from individual tree level to stand level attributes with a forest inventory providing the majority of this information. In particular, stand-level information is often used to paramterize these models given its availability across very large spatial scales. At a minimum the required stand-level parameters tend  to include: specific geographical or ecological zone, species compositions, a measure of site productivity (e.g., site index) and density (e.g., trees per ha or basal area per ha). However, projecting this information across very large scales or macroscales like the province of BC can be computationally restrictive; given the level of precision in the forest attributes could result in numerous projections. For example, in the [Vegetation Resources Inventory](https://www.for.gov.bc.ca/hfd/library/documents/bib106996.pdf) (VRI) of British Columbia (BC), forest attributes like site index are reported to the nearest decimeter, species compositions can contain up to 6 species with an estimate of the percentage for each species to the nearest 1%, stand height is reported to the nearest decimeter and basal area to the nearest squared meter. Thus, the combinations of these highly precise input parameters would result in millions of possible yield curves; that consume valuable computer resources to project through growth and yield models.
+Estimates of merchantable tree volume yields are neccessaary inputs into timber supply forecasts and also serve as surrogates for many ecological processes of interest to decision makers (e.g., biomass, carbon, wildlife habitat). Often these estimates are forecasted through time using empirically derived growth and yield models. The input parameters for these models can vary from individual tree level to stand level attributes with a forest inventory providing the majority of this information. In particular, stand-level information is often used to paramterize these models given its availability across very large spatial scales. At a minimum the required stand-level parameters tend  to include: specific geographical or ecological zone, species compositions, a measure of site productivity (e.g., site index) and density (e.g., trees per ha or basal area per ha). However, projecting this information across very large scales or macroscales like the province of BC can be computationally restrictive; given the level of precision in the forest attributes could result in numerous projections. For example, in the [Vegetation Resources Inventory](https://www.for.gov.bc.ca/hfd/library/documents/bib106996.pdf) (VRI) of British Columbia (BC), forest attributes like site index are reported to the nearest decimeter, species compositions can contain up to 6 species with an estimate of the percentage for each species to the nearest 1%, stand height is reported to the nearest decimeter and basal area to the nearest squared meter. Thus, the combinations of these highly precise input parameters would result in millions of possible yield curves; that consume valuable computer resources to generate.
 
-One approach to alleviate this problem is to aggregate the yield projections by yield curve groups or analysis units. Aggregation may be warranted, given the accuracy of the forest inventory attributes may not support such high level of precision. The [current standard](https://www2.gov.bc.ca/assets/gov/environment/natural-resource-stewardship/nr-laws-policy/risc/vri_photo_interp_qa_proc_and_stds_v43_2019.pdf) for quality assurance of VRI variables varies by attribute with species compositions around 80% correspondance, height $\pm$ 3 - 4 m,  age $\pm$ 10 years, crown closure $\pm$ 10%, basal area $\pm$ 10-15 $m^2$, tph $\pm$ 100 stems. However, aggregation may results in costs in terms of the loss of information; this may pose serious problems when simulating individal stand level decision making. 
+One approach to alleviate this problem is to aggregate the yield projections by yield curve groups or analysis units. Aggregation may be warranted, given the accuracy of the forest inventory attributes may not support such a high level of precision. The [current standard](https://www2.gov.bc.ca/assets/gov/environment/natural-resource-stewardship/nr-laws-policy/risc/vri_photo_interp_qa_proc_and_stds_v43_2019.pdf) for quality assurance of VRI variables varies by attribute with species compositions around 80% correspondance, height $\pm$ 3 - 4 m,  age $\pm$ 10 years, crown closure $\pm$ 10%, basal area $\pm$ 10-15 $m^2$, trees per ha (tph) $\pm$ 100 stems. However, aggregation may results in costs in terms of the loss of information; this may pose serious problems when simulating individal stand level decision making. 
 
 Simulating forest management decision at very large scales involves a long list of assumptions; many based on volume yield estimates that contain error. Known sources of error arise from i.) the forest inventory (initial state of the forest); ii.) the projection of the forest inventory (i.e., the growth and yield model); iii.) the loss of information through aggregation into yield curves groups; and iv.) changes in forest policy. All of these sources of error propagate through time in complex ways which may provide barriers for confidentaly making forest management decisions. 
 
@@ -32,17 +32,17 @@ source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 ## Linking timber mark boundaries with VRI
 
-In order to link the timber mark boundaries with the VRI whcih is needed to link to a growth and yield model the following steps were completed (see [code](https://github.com/bcgov/clus/blob/master/SQL/develop_vri2011table.sql))
+In order to link the timber mark boundaries with the VRI which is needed to link to a growth and yield model the following steps were completed (see [code](https://github.com/bcgov/clus/blob/master/SQL/develop_vri2011table.sql))
 
 1. Estimate the spatial boundaries of the timber marks
 
-The spatial boundaries of the timber mark were estimated using two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). Using the ftn_c_b_pl_polygon, all timber marks comprised of openings (harvest units) that had disturbance start dates between 2012-01-01 and 2016-12-31 were selected (i.e., removed possible timber marks with some openings not in this range). This selected subset of ftn_c_b_pl_polygon was then joined with cns_cut_bl_polygon by the harvest unit identifier (viz. opening_id) to link the timber mark to a spatial boundary. Lastly, timber marks were removed that did not fully contain geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., removed retention patches). The result of this process was 2912 unique timber marks; this list was then used to query the Harvest Billing System.
+The spatial boundaries of the timber mark were estimated using two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). Using the ftn_c_b_pl_polygon, all timber marks comprised of openings (harvest units) that had disturbance start dates between 2012-01-01 and 2016-12-31 were selected (i.e., removed possible timber marks with some openings not in this range). This selected subset of ftn_c_b_pl_polygon was then joined with cns_cut_bl_polygon by the harvest unit identifier (viz. opening_id) to link the timber mark to a spatial boundary. Lastly, timber marks were removed if they did not fully contain geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., removed retention patches). The result of this process was 2912 unique timber marks; this list was then used to query the Harvest Billing System and retrieve the scaled or observed volumes.
 
 2. Intersect the timber mark spatial boundaries of the s with the VRI
 
-The resulting timber mark spatial boundaries were spatialy intersected with the 2011 VRI to provide the neccessary forest attribute information for linking to the growth and yield model. Only layer rank 1 forest attribution was used to link to the growth and yield model. However, as a result of this intersection 1604 of the timber marks did not have a portion of their total area that faild to provide the neccessary VRI information (i.e., Tree Farm Licenses, private areas) for a forest yield projection. 
+The resulting timber mark spatial boundaries were spatialy intersected with the 2011 VRI to provide the neccessary forest attribute information for linking to the growth and yield model. Only layer rank 1 forest attribution was used to link to the growth and yield model. However, as a result of this intersection, 1604 of the timber marks had a portion of their total area that faild to provide the neccessary VRI information (i.e., Tree Farm Licenses, private areas) for a forest yield projection. 
 
-The following is the distribution of the percentage of the total timber mark area without a yield estimate:
+The following is the distribution of the percentage of the total timber mark area without the information:
 
 ```{r, timber_mrks, echo = FALSE, fig.cap = 'FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.'}
 feats<-getSpatialQuery("SELECT feature_id, shape, bec_zone_code, site_index, crown_closure, proj_height_1, proj_age_1 FROM yt_vri2011")
@@ -86,7 +86,7 @@ ggplot(data = data.table(per.Area.Missing=percentNoMatch$pernomatch), aes(x=per.
 
 ```
 
-The majority (75%) of timber marks with harvest units that do not have the neccessary VRI attribution contribute less than 3.3% of the total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). For the non-forested areas, these may be wrongfully classified given the accuracy and precision of the spatial boundaries determined in the VRI. From a practical view, these relatively small areas would result in little contribution to the total projected volume estimate. Thus, timber marks with less than or equal to 3 percent of their total area that contained inadequate VRI information were retained in the analysis.
+The majority (75%) of timber marks with harvest units that do not have the neccessary VRI attribution contribute less than 3.3% of the total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be wrongfully classified given the accuracy and precision of the spatial boundaries determined in the VRI. From a practical view, these relatively small areas would result in little contribution to the total projected volume estimate. Thus, timber marks with less than or equal to 3 percent of their total area that contained inadequate VRI information were retained in the analysis.
 
 Following the previous two steps, a total of 2140 timber marks remained in the analysis. 
 
@@ -104,7 +104,7 @@ ggplot() +
 
 ## Growth and yield meta-model
 
-Using the VRI (2018 vintage), each polygon was projected through time to 350 years using Variable Density Yield projection (VDYP). VDYP is a stand-level empirical growth and yield model that uses VRI attribution as inputs into its algortihums. The result of this process was a dataset with over 3.5 million yield curves which took 3 days to complete on a intel xeon, 3.5 ghz processor with 64 GB of RAM. Both the input (VRI information) and outputs (yields over time) were uploaded into a PostgreSQL database for further processing. Using the layer 1 rank information (the dominant layer),  yield curve groups (yc_grp) or anlaysis units were constructed using: BEC zone, site index (2 m interval), height class (5 classes as per the VRI) and crown closure class (5 classes as per the VRI). Each yc_grp was then aggregated by area weighting the respsective individual polygon level yield curves. The result was a provincial database of composite yield curves that directly link to the 2018 VRI through the layer 1 rank attribution described above.
+Using the VRI (2018 vintage), each polygon was projected through time to 350 years using [Variable Density Yield projection](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) (VDYP). VDYP is a stand-level empirical growth and yield model that uses VRI attribution as inputs into its algortihums. The result of this process was a dataset with over 3.5 million yield curves which took 3 days to complete on a intel xeon, 3.5 ghz processor with 64 GB of RAM. Both the input (VRI information) and outputs (yields over time) were uploaded into a PostgreSQL database for further processing. Using the layer 1 rank information (the dominant layer),  yield curve groups (yc_grp) or anlaysis units were constructed using: BEC zone, site index (2 m interval), height class (5 classes as per the VRI) and crown closure class (5 classes as per the VRI). Each yc_grp was then aggregated by area weighting the respsective individual polygon level yield curves. The result was a provincial database of composite yield curves that directly link to the 2018 VRI through the layer 1 rank attribution described above.
 
 ## HBS volumes vs projected meta-model volumes
 
@@ -146,6 +146,11 @@ ggplot(calb_data2, aes(proj_vol, obs_vol)) +
 
 ```
 
+```{r, dist_proj_vol, fig.cap="FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=2140)"}
+ hist(calb_data2$proj_vol)
+```
+
+
 ## Predictors of error
 
 Following Robinson et al. (2016) the error between observed and projected volume yields was paritioned according to both forest quality class (high and low) and timber type (mature or mixedwood). This supported the conditional mean and variance to be modelled seperately for each of these factors. In the BC application, timber marks were subsetted by bclcs_level_2?, and further stand-level attribution was included to test hypotheses of which variables could be important predictors of error between observed and projected yield volumes.
@@ -160,23 +165,26 @@ setnames(pv_timber_mrk2, "timber_mrk" , "timber_mark" )
 calb_data3<-merge(calb_data2, pv_timber_mrk2, by = "timber_mark")
 calb_data3[, dif:=proj_vol-obs_vol]
 
+mean(calb_data3$site_index)
 cor.test(calb_data3$proj_height_1, calb_data3$dif)
 cor.test(calb_data3$site_index, calb_data3$dif)
 cor.test(calb_data3$crown_closure, calb_data3$dif)
 cor.test(calb_data3$proj_age_1, calb_data3$dif)
 
 #Site index and crown closure have larger cor than height and age.
-
+cor.test(calb_data3$site_index, calb_data3$proj_vol)
 ```
 
 
 ## The calibration model
 
-In Robinson et al. (2016) a double gamma model was used to model both the conditional mean and variance of the error distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the variance to scale with parameters. Below we try a few gamma models by incorporating site index and crown closure but land on using site index because crown closure may change with time which makes its harder to interpret. This area could be greatly improved to try other distributions (e.g., Exponential, Beta) or other parameters (e.g., variance of stand attributes, BEC zones?, etc) 
+In Robinson et al. (2016) a double gamma model was used to model both the conditional mean and variance of the error distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating site index and crown closure , however I prefer to soley use site index because crown closure may change with time which makes its harder to interpret. This area could be greatly improved to try other distributions (e.g., Exponential, Beta) or other parameters (e.g., variance of stand attributes, number of years projected?, dead pine?, BEC zones?, etc) 
 
-```{r, calibrate_model,  fig.cap= 'FIGURE 4. The calibration model with low site index (A) and high site index (B). Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals' }
+```{r, calibrate_model,  fig.cap= 'FIGURE 4. The calibration model with the smallest site index (A) and largest site index (B). Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals' }
 library(gamlss)
 library(cowplot)
+calb_data4<-calb_data3[proj_vol< 150000,]
+
 ## Fit and compare some models
 test.0 <- gamlss(obs_vol ~ proj_vol,
                  sigma.formula = ~ 1,
@@ -206,7 +214,7 @@ test.5 <- gamlss(obs_vol ~ log(proj_vol)+ log(site_index),
                  sigma.formula = ~ log(proj_vol),
                  sigma.link = "log",
                  family = GA(),
-                 data = calb_data3)
+                 data = calb_data4)
 
 test.6 <- gamlss(obs_vol ~ log(proj_vol) + log(site_index),
                  sigma.formula = ~ log(proj_vol) + log(crown_closure),
@@ -217,12 +225,12 @@ LR.test(test.5, test.6)
 summary(test.5)
 
 trajectory.l <-
-  with(calb_data3,
+  with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
                        to = max(proj_vol),
                        length.out = 100),
-                   site_index = min(site_index),
+                   site_index = 15.5,
                    crown_closure = mean(crown_closure)
                    ))
 
@@ -236,7 +244,7 @@ trajectory.l$upper.1 <- with(new.dist.l, qGA(0.67, mu = mu, sigma = sigma))
 trajectory.l$lower.1 <- with(new.dist.l, qGA(0.33, mu = mu, sigma = sigma))
 
 trajectory.h <-
-  with(calb_data3,
+  with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
                        to = max(proj_vol),
@@ -255,7 +263,7 @@ trajectory.h$upper.1 <- with(new.dist.h, qGA(0.67, mu = mu, sigma = sigma))
 trajectory.h$lower.1 <- with(new.dist.h, qGA(0.33, mu = mu, sigma = sigma))
 
 p.l <-
-  ggplot(calb_data3, aes(x = proj_vol, y = obs_vol) ) +
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
   geom_point(alpha=0.4) +
   #facet_wrap(~ ForestQualityClass) +
   xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
@@ -264,25 +272,33 @@ p.l <-
   geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l) +
   geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l) +
   geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l)
+  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l) +
+  geom_abline(intercept =0, slope=1, col ="yellow")
 
 p.h <-
-  ggplot(calb_data3, aes(x = proj_vol, y = obs_vol) ) +
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
   geom_point(alpha=0.4) +
   #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
+  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
+  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
   geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.h) +
   geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h) +
   geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h) +
   geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h)
+  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h) +
+  geom_abline(intercept =0, slope=1, col ="yellow")
 
 
 plot_grid(p.l, p.h, labels = "AUTO")
+
 ```
 
-Thus, a timber mark with a small site index results in a upward calibration - meaning for a given projected yield the observed volume will on average be greater but this also comes with greater uncertainty. Where as, a timber mark with a large site index, will result in a downward calibration or reducing the projected volumes but will result in less uncertainty.  
+
+Some observations- a timber mark with a small site index results in a upward calibration - meaning for a given projected yield the observed volume will on average be greater but this also comes with greater uncertainty (a larger sigma). Where as, a timber mark with a large site index, will result in a downward calibration or reducing the projected volumes but will result in less uncertainty.  
+
+Larger projected volumes inherantly have more variation in acheiving the actual volumes. Thus, uncertainty can be reduced with smaller harvest unit sizes. There is likely a correlation with larger harvest units having smaller site indexes? Do large harvest units include many unproductive areas lowering the site index? 
+
+In conclusion, the distribution of the projected volumes and their average site indexes are major determinant in the level of uncertainty in volume yield. A harvest seqeunce with harvest units resulting in few large projected volumes will have the greatest uncertatinty, versus a harvest seqeunce with many small projected volumes. 
 
 ## Exercises
 

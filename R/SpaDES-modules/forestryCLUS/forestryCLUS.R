@@ -222,10 +222,12 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
+      #TODO: Add site_index into pixels for uncertainty estimation
+      
       sql<-paste0("SELECT pixelid, blockid, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND ", partition, "
-                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/60), ") 
+                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") 
                   AND thlb > 0 AND zone_const = 0 AND ", partition, 
                   " ORDER BY blockid ")
   
@@ -252,9 +254,10 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         #Create landings
         #pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
         land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        
-        #TODO: this keeps getting overwritten and thus not simulating the roads because only the last compartment will have the landings,
         land_coord<-rbindlist(list(land_coord, sim$pts[pixelid %in% land_pixels, ]))
+        
+        #Create proj_vol for uncertainty in yields
+        to.cut<-queue[, sum(vol_h), by = blockid]
         #clean up
         rm(land_pixels, queue)
       }
@@ -283,7 +286,7 @@ forestryCLUS.calcUncertainty <-function() {
     sapply(1:10000,
            function(x)
              with(to.cut,
-                  sum(rGA(50, # if n = 1 then randoms are correlated!
+                  sum(rGA(nrow(to.cut), # if n = 1 then randoms are correlated!
                           mu = mu.hat,
                           sigma = sigma.hat))))
 
