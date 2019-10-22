@@ -37,12 +37,13 @@ defineModule(sim, list(
     
     ),
   inputObjects = bind_rows(
-    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
+    expectsInput(objectName = "clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
-    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
+    expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
+    expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -269,24 +270,29 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
   return(invisible(sim))
 }
-forestryCLUS.calcUncertainty <-function(sim) {
-  #Create a data.frame that houses the distribution of simulated achieved annual volume (aac)
-  #aac.sim<-sapply(1:1000,
-  #       function(x)
-  #         with(to.cut[base$cut.me == 1,],
-  #              sum(rGA(sum(base$cut.me), # if n = 1 then randoms are correlated!
-  #                      mu = mu.hat,
-  #                      sigma = sigma.hat)))) / 1000
+
+forestryCLUS.calcUncertainty <-function() {
+  #Get the list of harvest blocks and thier site index to be used as timber marks
+  to.cut<- data.frame(proj_vol = rGA(50, mu= 8000, sigma = 1.2), site_index = 14)
+  #get the mu.hat and sigma.hat  
+  cut.hat <- predictAll(test.5, newdata = to.cut)
+  to.cut$mu.hat<-cut.hat$mu
+  to.cut$sigma.hat<-cut.hat$sigma
   
-  #the mean expected return?
-  mean(aac.sim)
-  
-  #the probability of achieving the mean objective?
-  mean(aac.sim > 1000000)
-  
-  #the 90% prediction interval?
-  quantile(aac.sim, p = c(0.05, 0.95))
-  return(invisible(sim))
+  sim.volume <-
+    sapply(1:10000,
+           function(x)
+             with(to.cut,
+                  sum(rGA(50, # if n = 1 then randoms are correlated!
+                          mu = mu.hat,
+                          sigma = sigma.hat))))
+
+  return(list(
+    proj.volume =sum(to.cut$proj_vol),
+    calb.vol = mean(sim.volume),
+    prob.calb.gt.proj =   mean(sim.volume>sum(to.cut$proj_vol)),
+    pred90 =  quantile(sim.volume, p = c(0.05, 0.95))
+  ) )
 }
 
 
