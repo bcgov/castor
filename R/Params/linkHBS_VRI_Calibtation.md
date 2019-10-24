@@ -20,17 +20,7 @@ To apply this approach in the province of BC, this would require linking the har
 In the following sections, the spatial (timber mark boundaries) and temporal (harvest date, inventory projection) data are linked to re-create the approach by Robinson et al. (2016). The specific objectives are: i) to calibrate the projected volume yields from an aggregated growth and yield model (hereafter termed the meta-model) with observed volume yields reported in the harvest billing system and ii) demonstrate the use of this model in landscape simulations for assessing error in yields. The proposed calibration model will be used in the caribou and landuse model (CLUS) to provide an indication of volume yield uncertainty which will help provide some context surrounding the quantification of impacts from conservation activities on harvest flows. 
 
 # Methods
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(data.table)
-library(sf)
-library(dplyr)
-library(velox)
-library(ggplot2)
-library(Hmisc)
-library(bcmaps)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
-```
+
 
 ## Linking timber mark boundaries with VRI
 
@@ -46,62 +36,24 @@ The resulting timber mark spatial boundaries were spatialy intersected with the 
 
 The following is the distribution of the percentage of the total timber mark area without the information:
 
-```{r, timber_mrks, echo = FALSE, fig.cap = 'FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.'}
-feats<-getSpatialQuery("SELECT feature_id, shape, bec_zone_code, site_index, crown_closure, proj_height_1, proj_age_1 FROM yt_vri2011")
-cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs")
-cnx_hbs<-lwgeom::st_make_valid(cnx_hbs)
-
-polys<- st_intersection(cnx_hbs, feats) #spatialy join the timber mark boundaries with the id that links the VRI
-polys$area<-st_area(polys)/10000 #calc the area of the individual polygons within a timber mark
-
-
-yt_prj<-getTableQuery("SELECT * FROM yt_vri2011prj ") #get the projections by featureid
-
-#join with poly
-out.tbl<-merge(polys, yt_prj)
-
-out.tbl$vol<-out.tbl$area*out.tbl$itvol #calc the volumes for each of the individual polygons within a timber mark
-#st_write(out.tbl, "test3.shp")
-
-#get the itvols that are NULL == don't match with the meta-model
-out.tbl2<-data.table(out.tbl)
-units(out.tbl2$area) <- NULL
-
-#figure out the distrubution of area with no matching
-noMatchArea<-out.tbl2[is.na(itvol), sum(area), by =timber_mrk]
-setnames(noMatchArea, "V1", "area")
-totalArea<-out.tbl2[, sum(area), by =timber_mrk]
-setnames(totalArea, "V1", "totarea")
-percentNoMatch<-merge(noMatchArea, totalArea)
-percentNoMatch$pernomatch<-percentNoMatch$area/percentNoMatch$totarea
-
-
-#plot the distribution
-eq <- substitute(italic(q25)== a*","~~italic(q75)== b ,list(a=as.numeric(quantile(percentNoMatch$pernomatch,0.25)), b= as.numeric(quantile(percentNoMatch$pernomatch,0.75))))
-  
-ggplot(data = data.table(per.Area.Missing=percentNoMatch$pernomatch), aes(x=per.Area.Missing)) +
-  geom_histogram(bins =120)+
-  geom_vline(xintercept=quantile(percentNoMatch$pernomatch,0.25))+
-  geom_vline(xintercept=quantile(percentNoMatch$pernomatch,0.75))+
-  geom_text(aes(x = 0.30, y =800 , label = as.character(as.expression(eq)) ), parse = TRUE) + 
-  theme_bw()
 
 ```
+## type is 0
+## type is 0
+```
+
+```
+## Warning: attribute variables are assumed to be spatially constant
+## throughout all geometries
+```
+
+![FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.](linkHBS_VRI_Calibtation_files/figure-html/timber_mrks-1.png)
 
 The majority (75%) of timber marks with harvest units that do not have the neccessary VRI attribution contribute less than 3.3% of the total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be wrongfully classified given the accuracy and precision of the spatial boundaries determined in the VRI. From a practical view, these relatively small areas would result in little contribution to the total projected volume estimate. Thus, timber marks with less than or equal to 3 percent of their total area that contained inadequate VRI information were retained in the analysis.
 
 Following the previous two steps, a total of 2140 timber marks remained in the analysis. 
 
-```{r, sample, echo = FALSE, fig.cap = 'FIGURE 2. The location of timber marks used in the analysis (n = 2142).'}
-noMatch2<-unique(percentNoMatch[pernomatch > 0.3, timber_mrk])
-timbr_mrks<-out.tbl[!(out.tbl$timber_mrk %in% noMatch2),]
-
-ggplot() +
-  geom_sf(data = st_geometry(get_layer("bc_bound_hres")))+
-  geom_sf(data =timbr_mrks, aes(fill=bec_zone_code), lwd =0)
-
-
-```
+![FIGURE 2. The location of timber marks used in the analysis (n = 2142).](linkHBS_VRI_Calibtation_files/figure-html/sample-1.png)
 
 
 ## Growth and yield meta-model
@@ -112,53 +64,48 @@ Using the VRI (2018 vintage), each polygon was projected through time to 350 yea
 
 Each projected VRI polygon that intersected the timber mark boundary was summed to estimate the total projected volume for the timber mark.The HBS data was also aggregated by timber mark and matched with the projected volumes. The result is shown below that compares the projected volumes from the meta model with the observed volumes that were reported in the HBS.
 
-```{r, echo = FALSE, Step6_develop_vri2011, fig.cap = 'FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval.'}
-
-timbr_mrks<-data.table(timbr_mrks)
-timbr_mrks[is.na(vol), vol:=0]
-
-out.tbl3<-timbr_mrks[, sum(vol), by =timber_mrk]
-setnames(out.tbl3, c("V1", "timber_mrk"), c("proj_vol","timber_mark"))
-
-hbs_obs<-getTableQuery("SELECT timber_mark, sum(volume_m3) as obs_vol FROM hbs_select_tmbr_mrk  where waste_type = 'Non-Waste' AND coast_interior = 'Interior' group by timber_mark")
-
-calb_data<-data.table(merge(hbs_obs, out.tbl3))
-calb_data$proj_vol<-as.numeric(calb_data$proj_vol)
-model1 <- lm(obs_vol ~ proj_vol, data=calb_data)
-summary(model1)
-temp_var <- predict(model1, data =calb_data, interval="prediction")
-calb_data2 <- cbind(calb_data, temp_var)
-
-lm_eqn = function(m) {
-  l <- list(a = format(as.numeric(coef(m)[1]), digits = 2),
-      b = format(as.numeric(coef(m)[2]), digits = 2),
-      r2 = format(summary(m)$r.squared, digits = 3))
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2,l)
-  as.character(as.expression(eq))                 
-}
-
-ggplot(calb_data2, aes(proj_vol, obs_vol)) +
-  geom_point() +
-  geom_smooth(method='lm', se = TRUE)+
-  geom_line(aes(y=lwr), color = "red", linetype = "dashed")+
-  geom_line(aes(y=upr), color = "red", linetype = "dashed") +
-  geom_text(aes(x = 35000, y = 250000, label = lm_eqn(model1)), parse = TRUE) +
-    geom_abline(intercept =0, slope=1, col ="yellow") +
-  theme_bw()
 
 ```
+## 
+## Call:
+## lm(formula = obs_vol ~ proj_vol, data = calb_data)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -54159  -4799  -2486   2893 111375 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 4.125e+03  3.227e+02   12.78   <2e-16 ***
+## proj_vol    8.368e-01  9.310e-03   89.88   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 11110 on 2140 degrees of freedom
+## Multiple R-squared:  0.7906,	Adjusted R-squared:  0.7905 
+## F-statistic:  8078 on 1 and 2140 DF,  p-value: < 2.2e-16
+```
 
-```{r, dist_proj_vol, fig.cap="FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=2140)"}
+```
+## Warning in predict.lm(model1, data = calb_data, interval = "prediction"): predictions on current data refer to _future_ responses
+```
+
+![FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval.](linkHBS_VRI_Calibtation_files/figure-html/Step6_develop_vri2011-1.png)
+
+
+```r
  hist(calb_data2$proj_vol)
 ```
+
+![FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=2140)](linkHBS_VRI_Calibtation_files/figure-html/dist_proj_vol-1.png)
 
 
 ## Predictors of error
 
 Following Robinson et al. (2016) the error between observed and projected volume yields was paritioned according to both forest quality class (high and low) and timber type (mature or mixedwood). This supported the conditional mean and variance to be modelled seperately for each of these factors. In the BC application, timber marks were subsetted by bclcs_level_2?, and further stand-level attribution was included to test hypotheses of which variables could be important predictors of error between observed and projected yield volumes.
 
-```{r, predictors}
 
+```r
 # get the bec zone that makes up the majority of the timber mark 
 pv_timber_mrk<-merge(timbr_mrks, totalArea)
 pv_timber_mrk[,wt:=as.numeric(area/totarea)]
@@ -168,13 +115,101 @@ calb_data3<-merge(calb_data2, pv_timber_mrk2, by = "timber_mark")
 calb_data3[, dif:=proj_vol-obs_vol]
 
 mean(calb_data3$site_index)
-cor.test(calb_data3$proj_height_1, calb_data3$dif)
-cor.test(calb_data3$site_index, calb_data3$dif)
-cor.test(calb_data3$crown_closure, calb_data3$dif)
-cor.test(calb_data3$proj_age_1, calb_data3$dif)
+```
 
+```
+## [1] 15.51152
+```
+
+```r
+cor.test(calb_data3$proj_height_1, calb_data3$dif)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  calb_data3$proj_height_1 and calb_data3$dif
+## t = 4.1512, df = 2140, p-value = 3.437e-05
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.0472024 0.1312327
+## sample estimates:
+##        cor 
+## 0.08937659
+```
+
+```r
+cor.test(calb_data3$site_index, calb_data3$dif)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  calb_data3$site_index and calb_data3$dif
+## t = 6.9395, df = 2140, p-value = 5.197e-12
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.1066670 0.1895118
+## sample estimates:
+##       cor 
+## 0.1483496
+```
+
+```r
+cor.test(calb_data3$crown_closure, calb_data3$dif)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  calb_data3$crown_closure and calb_data3$dif
+## t = 7.5003, df = 2140, p-value = 9.274e-14
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.1184941 0.2010339
+## sample estimates:
+##       cor 
+## 0.1600437
+```
+
+```r
+cor.test(calb_data3$proj_age_1, calb_data3$dif)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  calb_data3$proj_age_1 and calb_data3$dif
+## t = 0.52299, df = 2140, p-value = 0.601
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  -0.03106308  0.05363185
+## sample estimates:
+##        cor 
+## 0.01130466
+```
+
+```r
 #Site index and crown closure have larger cor than height and age.
 cor.test(calb_data3$site_index, calb_data3$proj_vol)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  calb_data3$site_index and calb_data3$proj_vol
+## t = -1.5533, df = 2140, p-value = 0.1205
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  -0.075802945  0.008807572
+## sample estimates:
+##         cor 
+## -0.03355781
 ```
 
 
@@ -182,9 +217,125 @@ cor.test(calb_data3$site_index, calb_data3$proj_vol)
 
 In Robinson et al. (2016) a double gamma model was used to model both the conditional mean and variance of the error distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating site index and crown closure , however I prefer to soley use site index because crown closure may change with time which makes its harder to interpret. This area could be greatly improved to try other distributions (e.g., Exponential, Beta) or other parameters (e.g., variance of stand attributes, number of years projected?, dead pine?, BEC zones?, etc) 
 
-```{r, calibrate_model,  fig.cap= 'FIGURE 4. The calibration model with the smallest site index (A) and largest site index (B). Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals' }
+
+```r
 library(gamlss)
+```
+
+```
+## Loading required package: splines
+```
+
+```
+## Loading required package: gamlss.data
+```
+
+```
+## 
+## Attaching package: 'gamlss.data'
+```
+
+```
+## The following object is masked from 'package:datasets':
+## 
+##     sleep
+```
+
+```
+## Loading required package: gamlss.dist
+```
+
+```
+## Loading required package: MASS
+```
+
+```
+## 
+## Attaching package: 'MASS'
+```
+
+```
+## The following objects are masked from 'package:raster':
+## 
+##     area, select
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     select
+```
+
+```
+## Loading required package: nlme
+```
+
+```
+## 
+## Attaching package: 'nlme'
+```
+
+```
+## The following object is masked from 'package:raster':
+## 
+##     getData
+```
+
+```
+## The following object is masked from 'package:dplyr':
+## 
+##     collapse
+```
+
+```
+## Loading required package: parallel
+```
+
+```
+## Registered S3 method overwritten by 'gamlss':
+##   method   from
+##   print.ri bit
+```
+
+```
+##  **********   GAMLSS Version 5.1-5  **********
+```
+
+```
+## For more on GAMLSS look at http://www.gamlss.org/
+```
+
+```
+## Type gamlssNews() to see new features/changes/bug fixes.
+```
+
+```r
 library(cowplot)
+```
+
+```
+## 
+## ********************************************************
+```
+
+```
+## Note: As of version 1.0.0, cowplot does not change the
+```
+
+```
+##   default ggplot2 theme anymore. To recover the previous
+```
+
+```
+##   behavior, execute:
+##   theme_set(theme_cowplot())
+```
+
+```
+## ********************************************************
+```
+
+```r
 calb_data4<-calb_data3[proj_vol< 150000,]
 
 ## Fit and compare some models
@@ -193,38 +344,178 @@ test.0 <- gamlss(obs_vol ~ proj_vol,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data3)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 45775.17 
+## GAMLSS-RS iteration 2: Global Deviance = 45775.17
+```
+
+```r
 test.1 <- gamlss(obs_vol ~ proj_vol,
                  sigma.formula = ~ proj_vol,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data3)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 45747.62 
+## GAMLSS-RS iteration 2: Global Deviance = 45730.97 
+## GAMLSS-RS iteration 3: Global Deviance = 45727 
+## GAMLSS-RS iteration 4: Global Deviance = 45725.94 
+## GAMLSS-RS iteration 5: Global Deviance = 45725.64 
+## GAMLSS-RS iteration 6: Global Deviance = 45725.55 
+## GAMLSS-RS iteration 7: Global Deviance = 45725.52 
+## GAMLSS-RS iteration 8: Global Deviance = 45725.52 
+## GAMLSS-RS iteration 9: Global Deviance = 45725.51 
+## GAMLSS-RS iteration 10: Global Deviance = 45725.51
+```
+
+```r
 test.3 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ 1,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data3)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 46871.33 
+## GAMLSS-RS iteration 2: Global Deviance = 46871.33
+```
+
+```r
 test.4 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ log(proj_vol),
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data3)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 46478.43 
+## GAMLSS-RS iteration 2: Global Deviance = 45592.73 
+## GAMLSS-RS iteration 3: Global Deviance = 45057.91 
+## GAMLSS-RS iteration 4: Global Deviance = 44773.62 
+## GAMLSS-RS iteration 5: Global Deviance = 44658.23 
+## GAMLSS-RS iteration 6: Global Deviance = 44625.47 
+## GAMLSS-RS iteration 7: Global Deviance = 44618.24 
+## GAMLSS-RS iteration 8: Global Deviance = 44616.86 
+## GAMLSS-RS iteration 9: Global Deviance = 44616.65 
+## GAMLSS-RS iteration 10: Global Deviance = 44616.6 
+## GAMLSS-RS iteration 11: Global Deviance = 44616.6 
+## GAMLSS-RS iteration 12: Global Deviance = 44616.59 
+## GAMLSS-RS iteration 13: Global Deviance = 44616.59
+```
+
+```r
 test.5 <- gamlss(obs_vol ~ log(proj_vol)+ log(site_index),
                  sigma.formula = ~ log(proj_vol),
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data3)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 46374.78 
+## GAMLSS-RS iteration 2: Global Deviance = 45507.81 
+## GAMLSS-RS iteration 3: Global Deviance = 44977.66 
+## GAMLSS-RS iteration 4: Global Deviance = 44693.7 
+## GAMLSS-RS iteration 5: Global Deviance = 44580.47 
+## GAMLSS-RS iteration 6: Global Deviance = 44549.11 
+## GAMLSS-RS iteration 7: Global Deviance = 44542.9 
+## GAMLSS-RS iteration 8: Global Deviance = 44541.77 
+## GAMLSS-RS iteration 9: Global Deviance = 44541.6 
+## GAMLSS-RS iteration 10: Global Deviance = 44541.58 
+## GAMLSS-RS iteration 11: Global Deviance = 44541.58 
+## GAMLSS-RS iteration 12: Global Deviance = 44541.58 
+## GAMLSS-RS iteration 13: Global Deviance = 44541.58
+```
+
+```r
 test.6 <- gamlss(obs_vol ~ log(proj_vol) + log(site_index),
                  sigma.formula = ~ log(proj_vol) + log(crown_closure),
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data3)
+```
+
+```
+## GAMLSS-RS iteration 1: Global Deviance = 46374.1 
+## GAMLSS-RS iteration 2: Global Deviance = 45506.87 
+## GAMLSS-RS iteration 3: Global Deviance = 44972.77 
+## GAMLSS-RS iteration 4: Global Deviance = 44681.2 
+## GAMLSS-RS iteration 5: Global Deviance = 44561.84 
+## GAMLSS-RS iteration 6: Global Deviance = 44527.95 
+## GAMLSS-RS iteration 7: Global Deviance = 44520.7 
+## GAMLSS-RS iteration 8: Global Deviance = 44519.39 
+## GAMLSS-RS iteration 9: Global Deviance = 44519.17 
+## GAMLSS-RS iteration 10: Global Deviance = 44519.14 
+## GAMLSS-RS iteration 11: Global Deviance = 44519.13 
+## GAMLSS-RS iteration 12: Global Deviance = 44519.13
+```
+
+```r
 LR.test(test.5, test.6)
+```
+
+```
+##  Likelihood Ratio Test for nested GAMLSS models. 
+##  (No check whether the models are nested is performed). 
+##  
+##        Null model: deviance= 44541.58 with  5 deg. of freedom 
+##  Altenative model: deviance= 44519.13 with  6 deg. of freedom 
+##  
+##  LRT = 22.45069 with 1 deg. of freedom and p-value= 2.156078e-06
+```
+
+```r
 summary(test.5)
+```
+
+```
+## ******************************************************************
+## Family:  c("GA", "Gamma") 
+## 
+## Call:  gamlss(formula = obs_vol ~ log(proj_vol) + log(site_index),  
+##     sigma.formula = ~log(proj_vol), family = GA(),  
+##     data = calb_data3, sigma.link = "log") 
+## 
+## Fitting method: RS() 
+## 
+## ------------------------------------------------------------------
+## Mu link function:  log
+## Mu Coefficients:
+##                  Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)      3.775366   0.168218  22.443   <2e-16 ***
+## log(proj_vol)    0.747133   0.009882  75.607   <2e-16 ***
+## log(site_index) -0.413549   0.047837  -8.645   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------------------------------
+## Sigma link function:  log
+## Sigma Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    3.22124    0.07980   40.37   <2e-16 ***
+## log(proj_vol) -0.41340    0.00863  -47.90   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------------------------------
+## No. of observations in the fit:  2142 
+## Degrees of Freedom for the fit:  5
+##       Residual Deg. of Freedom:  2137 
+##                       at cycle:  13 
+##  
+## Global Deviance:     44541.58 
+##             AIC:     44551.58 
+##             SBC:     44579.92 
+## ******************************************************************
+```
+
+```r
 saveRDS(test.5, "calb_ymodel.rds")
 trajectory.l <-
   with(calb_data3,
@@ -292,8 +583,9 @@ p.h <-
 
 
 plot_grid(p.l, p.h, labels = "AUTO")
-
 ```
+
+![FIGURE 4. The calibration model with the smallest site index (A) and largest site index (B). Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals](linkHBS_VRI_Calibtation_files/figure-html/calibrate_model-1.png)
 
 
 Observations- a timber mark with a small site index results in a upward calibration - meaning for a given projected yield the observed volume will on average be greater but this also comes with greater uncertainty (a larger sigma). Where as, a timber mark with a large site index, will result in a downward calibration or reducing the projected volumes but will result in less uncertainty.  
