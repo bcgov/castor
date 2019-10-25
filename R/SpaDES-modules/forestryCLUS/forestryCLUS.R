@@ -37,12 +37,13 @@ defineModule(sim, list(
     
     ),
   inputObjects = bind_rows(
-    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
+    expectsInput(objectName = "clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName = "harvestFlow", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA),
-    expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
+    expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
+    expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -221,10 +222,12 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
+      #TODO: Add site_index into pixels for uncertainty estimation
+      
       sql<-paste0("SELECT pixelid, blockid, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND ", partition, "
-                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/60), ") 
+                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") 
                   AND thlb > 0 AND zone_const = 0 AND ", partition, 
                   " ORDER BY blockid ")
   
@@ -251,9 +254,10 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         #Create landings
         #pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
         land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        
-        #TODO: this keeps getting overwritten and thus not simulating the roads because only the last compartment will have the landings,
         land_coord<-rbindlist(list(land_coord, sim$pts[pixelid %in% land_pixels, ]))
+        
+        #Create proj_vol for uncertainty in yields
+        to.cut<-queue[, sum(vol_h), by = blockid]
         #clean up
         rm(land_pixels, queue)
       }
@@ -269,24 +273,29 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
   return(invisible(sim))
 }
-forestryCLUS.calcUncertainty <-function(sim) {
-  #Create a data.frame that houses the distribution of simulated achieved annual volume (aac)
-  #aac.sim<-sapply(1:1000,
-  #       function(x)
-  #         with(to.cut[base$cut.me == 1,],
-  #              sum(rGA(sum(base$cut.me), # if n = 1 then randoms are correlated!
-  #                      mu = mu.hat,
-  #                      sigma = sigma.hat)))) / 1000
+
+forestryCLUS.calcUncertainty <-function() {
+  #Get the list of harvest blocks and thier site index to be used as timber marks
+  to.cut<- data.frame(proj_vol = rGA(50, mu= 8000, sigma = 1.2), site_index = 14)
+  #get the mu.hat and sigma.hat  
+  cut.hat <- predictAll(test.5, newdata = to.cut)
+  to.cut$mu.hat<-cut.hat$mu
+  to.cut$sigma.hat<-cut.hat$sigma
   
-  #the mean expected return?
-  mean(aac.sim)
-  
-  #the probability of achieving the mean objective?
-  mean(aac.sim > 1000000)
-  
-  #the 90% prediction interval?
-  quantile(aac.sim, p = c(0.05, 0.95))
-  return(invisible(sim))
+  sim.volume <-
+    sapply(1:10000,
+           function(x)
+             with(to.cut,
+                  sum(rGA(nrow(to.cut), # if n = 1 then randoms are correlated!
+                          mu = mu.hat,
+                          sigma = sigma.hat))))
+
+  return(list(
+    proj.volume =sum(to.cut$proj_vol),
+    calb.vol = mean(sim.volume),
+    prob.calb.gt.proj =   mean(sim.volume>sum(to.cut$proj_vol)),
+    pred90 =  quantile(sim.volume, p = c(0.05, 0.95))
+  ) )
 }
 
 
