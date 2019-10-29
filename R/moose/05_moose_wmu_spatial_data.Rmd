@@ -368,7 +368,6 @@ I measured insect disturbance in management areas using data collected by the go
 
 I summarized the area of moderate (11 to 29%), severe (30 to 49%) and very severe (>50%) levels of disturbance from bettle's including: mountain pine beetle, spruce beetle, Dougals fir beetle, western balsam bark beetle and western pine beetle in each WMU. 
 
-
 ```{r, forest health data download and attribute beetle disturbance to management areas, echo = T, message = F, warning = F}
 library (downloader)
 library (sf)
@@ -376,89 +375,45 @@ library (data.table)
 library (dplyr)
 
 # Download data; this is an example; do these for each year
-download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/2003/fhdata_2003_20040223/2003_AOS_shapefiles.zip", 
-            dest = "C:\\Work\\caribou\\clus_data\\forest_health\\2003.zip", 
+download ("https://www.for.gov.bc.ca/ftp/HFP/external/!publish/Aerial_Overview/1999/shape/Prov_Shape.zip", 
+            dest = "C:\\Work\\caribou\\clus_data\\forest_health\\1999\\shape.zip", 
             mode = "wb")
-unzip ("C:\\Work\\caribou\\clus_data\\forest_health\\2003.zip", 
-       exdir = "C:\\Work\\caribou\\clus_data\\forest_health\\2003")
-file.remove ("C:\\Work
-             \\caribou\\clus_data\\forest_health\\2003.zip")
+unzip ("C:\\Work\\caribou\\clus_data\\forest_health\\1999\\shape.zip", 
+       exdir = "C:\\Work\\caribou\\clus_data\\forest_health\\1999")
+file.remove ("C:\\Work\\caribou\\clus_data\\forest_health\\1999\\shape.zip")
 
 #########
-# 2017 #
+# 1999 #
 #######
-fh.2003 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\forest_health\\2003\\SHAPE_FILES\\fhf_poly_2003.shp")
-bark.beetles.2003 <- dplyr::filter (fh.2003, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+fh.1999 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\forest_health\\1999\\Prov_Shape\\FHF_Poly_1999.shp")
+bark.beetles.1999 <- dplyr::filter (fh.1999, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
                                              FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                              FHF == "IBW")
-bark.beetles.vs.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "V")
-bark.beetles.s.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "S")
-bark.beetles.m.2003 <- dplyr::filter (bark.beetles.2003, SEVERITY == "M")
+bark.beetles.vs.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "V")
+bark.beetles.s.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "S")
+bark.beetles.m.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "M")
 
-bark.beetles.m.2003 <- st_transform (bark.beetles.m.2003, crs = 3005)
-wmu.bark.beetles.m.2003 <- sf::st_intersection (bark.beetles.m.2003, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"])
+bark.beetles.m.1999 <- st_transform (bark.beetles.m.1999, crs = 3005)
+wmu.bark.beetles.m.1999 <- sf::st_intersection (bark.beetles.m.1999, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"])
   
-table.wmu.bark.beetles.m.2003 <- as.data.table (wmu.bark.beetles.m.2003)  
+table.wmu.bark.beetles.m.1999 <- as.data.table (wmu.bark.beetles.m.1999)  
   
-table.wmu.bark.beetles.m.2003.sum <- table.wmu.bark.beetles.m.2003 %>% 
+table.wmu.bark.beetles.m.1999.sum <- table.wmu.bark.beetles.m.1999 %>% 
                                           group_by (WILDLIFE_MGMT_UNIT_ID) %>%
-                                          summarise (beetle_2003_m_area_ha = sum (POLY_AREA))
-names (table.wmu.bark.beetles.m.2003.sum) [names (table.wmu.bark.beetles.m.2003.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+                                          summarise (beetle_1999_m_area_ha = sum (POLY_AREA))
+names (table.wmu.bark.beetles.m.1999.sum) [names (table.wmu.bark.beetles.m.1999.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
 
 ## these next steps left-join the fire data to wmu data ##
-setkey (as.data.table (table.wmu.bark.beetles.m.2003.sum), wmu)
+setkey (as.data.table (table.wmu.bark.beetles.m.1999.sum), wmu)
 setkey (wmu.habitat, wmu)
-wmu.habitat <- merge (wmu.habitat, table.wmu.bark.beetles.m.2003.sum, all.x = TRUE)
+wmu.habitat <- merge (wmu.habitat, table.wmu.bark.beetles.m.1999.sum, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
-rm (bark.beetles.m.2003, wmu.bark.beetles.m.2003, table.wmu.bark.beetles.m.2003, table.wmu.bark.beetles.m.2003.sum, bark.beetles.m.2003)
+rm (bark.beetles.m.1999, wmu.bark.beetles.m.1999, table.wmu.bark.beetles.m.1999, table.wmu.bark.beetles.m.1999.sum, bark.beetles.m.1999)
 gc ()
-
 
 # save the data
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-
-
-
-
-
-
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #### Vegetation
 I obtained data on vegetation from the provincial government vegetation resources inventory (VRI), available [here](https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1). However, I used a version 'internal' to govenrmetn employees, becuase the interval version included data form tree farm licenses (TFLs), that is not available in the pulbic data because TFL data is typically not public and is owned by the licensee. However, agreements have been made to put the TFL data into upcomign versions of the pulbic VRI datsets. Thus, the same data used here will eventually be made available. Here I made the choice to use the internal data to minimize teh extent of missing data in the management areas. 
