@@ -15,7 +15,7 @@ CLEAN-----
 
 BUILD-----
   Step 5: Import in the VRI information and create a forest attribute key the will be the primary key for yield curves
-
+  Step 6. Build a yieldcurve table with all of the attribution needed in CLUS
 -- --------------------------------------------------------------------------*/  
 -- /*Step 1. Import the required data tables*/
 -- /*a. Import the vdyp input table - useful for determining which is the primary layer*/
@@ -463,3 +463,21 @@ group by yc_grp, prj_total_age);
 
 --select * from vdyp_test2 order by yc_grp limit 10000;
 select * from vdyp_test3 where yc_grp like 'BWBS_At(Ac)%';
+/*--------------------------------------------------------------------------*/
+/*Step 6. build the yieldcurve table. */
+
+Create table yieldcurves as
+SELECT ycid, yc_vat.yc_grp, prj_total_age as age,
+prj_vol_dwb as tvol, prj_dom_ht as height , (0.0) as con, (0) as eca FROM yc_vat
+JOIN vdyp_test3 ON
+yc_vat.yc_grp = vdyp_test3.yc_grp;
+Update yieldcurves set tvol = 0 where tvol is NULL;
+
+--add the lower limit of the yield curve
+insert into yieldcurves (ycid, yc_grp, age, tvol, height, con, eca)
+select distinct(ycid),  yc_grp, (0) as age, (0.0) as tvol, (0.0) as height, (0.0) as con, (0) as eca
+from yieldcurves;
+
+select * from yieldcurves order by yc_grp, age limit 1000;
+
+
