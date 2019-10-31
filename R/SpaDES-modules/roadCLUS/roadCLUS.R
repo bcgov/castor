@@ -75,7 +75,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- roadCLUS.PreSolve(sim)
       }else{
       # schedule future event(s)
-      sim <- scheduleEvent(sim, eventTime = start(sim), "roadCLUS", "buildRoads", 7)
+      sim <- scheduleEvent(sim, eventTime =  time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads", 7)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim", eventPriority=20)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim", eventPriority=21)
       }
@@ -218,23 +218,26 @@ roadCLUS.getClosestRoad <- function(sim){
 }
 
 roadCLUS.buildSnapRoads <- function(sim){
-  rdptsXY<-data.frame(sim$roads.close.XY) #convert to a data.frame
-  rdptsXY$id<-as.numeric(row.names(rdptsXY))
-  landings<-data.frame(sim$landings)
-  landings$id<-as.numeric(row.names(landings))
-  coodMatrix<-rbind(rdptsXY,landings)
-  coodMatrix$attr_data<-100
- 
-  mt<-coodMatrix %>% 
-    st_as_sf(coords=c("x","y"))%>% 
-    group_by(id) %>% summarize(m=mean(attr_data)) %>% 
-    filter(st_is(. , "MULTIPOINT")) %>% # Fixed. returns an error because the nearest road point is the landing point.
-    st_cast("LINESTRING")
-  
-  sim$paths.v<-unlist(sim$rasVelo$extract(mt), use.names = FALSE)
-  sim$roads[sim$ras[] %in% sim$paths.v] <- (time(sim)+1)
-  rm(rdptsXY, landings, mt, coodMatrix)
-  gc()
+  if(!is.null(sim$landings)){
+    rdptsXY<-data.frame(sim$roads.close.XY) #convert to a data.frame
+    rdptsXY$id<-as.numeric(row.names(rdptsXY))
+    landings<-data.frame(sim$landings)
+    landings$id<-as.numeric(row.names(landings))
+    coodMatrix<-rbind(rdptsXY,landings)
+    coodMatrix$attr_data<-100
+   
+    mt<-coodMatrix %>% 
+      st_as_sf(coords=c("x","y")) %>% 
+      group_by(as.integer(id)) %>% 
+      summarize(m=mean(attr_data)) %>% 
+      filter(st_is(. , "MULTIPOINT")) %>% # Fixed. returns an error because the nearest road point is the landing point.
+      st_cast("LINESTRING")
+    
+    sim$paths.v<-unlist(sim$rasVelo$extract(mt), use.names = FALSE)
+    sim$roads[sim$ras[] %in% sim$paths.v] <- (time(sim)+1)
+    rm(rdptsXY, landings, mt, coodMatrix)
+    gc()
+  }
   return(invisible(sim))
 }
 
