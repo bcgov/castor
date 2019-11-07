@@ -54,7 +54,7 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
-    createsOutput(objectName = "yielduncertain", objectClass = "list", desc = NA),
+    createsOutput(objectName = "yielduncertain", objectClass = "data.table", desc = NA),
     createsOutput(objectName ="scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
 ))
@@ -96,13 +96,13 @@ forestryCLUS.Init <- function(sim) {
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
-  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
-                       dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
-                       by.x = "reference_zone", by.y = "reference_zone"))
-  if(nrow(nhConstraints) > 0 ){
-    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
-  }
+  #nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+  #                     dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+  #                     by.x = "reference_zone", by.y = "reference_zone"))
+  #if(nrow(nhConstraints) > 0 ){
+  #  nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+  #  dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  #}
   
   #For printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
@@ -216,7 +216,7 @@ forestryCLUS.setConstraints<- function(sim) {
   #write the constraint raster
   const<-sim$ras
   datat<-dbGetQuery(sim$clusdb, "SELECT zone_const FROM pixels ORDER BY pixelid;")
-  print(head(datat))
+
   const[]<-datat$zone_const
   writeRaster(const, "constraints.tif", overwrite=TRUE)
   
@@ -231,6 +231,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
     harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
+    
     if(!is.na(harvestTarget)){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
@@ -312,13 +313,17 @@ simYieldUncertainty <-function(to.cut, calb_ymodel) {
                   sum(rGA(nrow(to.cut), 
                           mu = mu.hat,
                           sigma = sigma.hat))))
-
-  return(list(
-    proj.volume =sum(to.cut$proj_vol),
-    calb.vol = mean(sim.volume),
-    prob.calb.gt.proj =   mean(sim.volume>sum(to.cut$proj_vol)),
-    pred90 =  quantile(sim.volume, p = c(0.05, 0.95))
-  ) )
+  distquants<-quantile(sim.volume, p = c(0.05, 0.95))
+  
+  return(data.table(
+    scenario = scenario$name,
+    projvolume =sum(to.cut$proj_vol),
+    calibvol = mean(sim.volume),
+    prob =  mean(sim.volume>sum(to.cut$proj_vol)),
+    pred5 = distquants[1],
+    pred95 = distquants[2]
+    )
+  ) 
 }
 
 

@@ -36,7 +36,8 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="foreststate", objectClass ="data.table", desc = 'The current state of the forest from dataLoaderCLUS', sourceURL = NA)
   ),
   outputObjects = bind_rows(
     createsOutput(objectName = NA, objectClass = NA, desc = NA)
@@ -47,12 +48,13 @@ doEvent.uploaderCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim <- Init(sim)
+      sim <- Init(sim) #if the schema exists - delete all the rows that are labeled with the scenario and if it doesn't make it
       sim <- scheduleEvent(sim, end(sim), "uploaderCLUS", "save", 99999)
     },
     save = {
+      sim <- save.currentState(sim)
       sim <- save.reports(sim)
-      sim <- save.rasters(sim)
+      sim <- save.rasters(sim) 
     },
 
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -70,6 +72,10 @@ Init <- function(sim) {
   #Does the schema exist?
   if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
     #remove all the rows that have the scenario name in them
+    if(!is.null(sim$foreststate)){
+      dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "';"))
+    }
+    
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", scenario$name, "';"))
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
 
@@ -77,25 +83,42 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", scenario$name, "';"))
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", scenario$name, "';"))
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", scenario$name, "';"))
     dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
     dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "uploaderCLUS", "aoiName"),";"))
     dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO appuser;"))
     #Create the tables
-    tableList = list(scenarios = data.table(scenario =character(), description= character()), 
-                     harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric()), 
-                     growingstock = data.table(scenario = character(), timeperiod = integer(), growingstock = numeric(), compartid = character()), 
-                     rsf = data.table(scenario = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
-                     survival = data.table(scenario = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), survival_rate= numeric())
+    tableList = list(state = data.table(aoi=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
+                    scenarios = data.table(scenario =character(), description= character()), 
+                    harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric()), 
+                    growingstock = data.table(scenario = character(), timeperiod = integer(), growingstock = numeric(), compartid = character()), 
+                    rsf = data.table(scenario = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
+                    survival = data.table(scenario = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), survival_rate= numeric()),
+                    yielduncertainty = data.table(scenario = character(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
     )
-    tablesUpload<-c("scenarios", "harvest","growingstock", "rsf", "survival")
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "yielduncertainty")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
     }
     
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
+    dbDisconnect(connx)
+  }
+  return(invisible(sim))
+}
+
+save.currentState<- function(sim){
+  if(!is.null(sim$foreststate)){
+    connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
+                        user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
+                        password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+  
+    sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), sim$foreststate, append = T,row.names = FALSE)
+  
     dbDisconnect(connx)
   }
   return(invisible(sim))
@@ -121,6 +144,11 @@ save.reports <-function (sim){
   if(!is.null(sim$tableSurvival)){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), sim$tableSurvival, append = T,row.names = FALSE)
   }
+  
+  #yielduncertainty
+  if(!is.null(sim$yielduncertain)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), sim$yielduncertain, append = T,row.names = FALSE)
+  }
   dbDisconnect(connx)
   return(invisible(sim)) 
 }
@@ -128,17 +156,19 @@ save.reports <-function (sim){
 save.rasters <-function (sim){
   #rasters
   ##blocks
-  commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,'harvestBlocks.tif'), schema = P(sim, "uploaderCLUS", "aoiName"), 
-               name = paste0(scenario$name, "_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
-  dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_cutblocks")," to appuser;"))
-  
-  ##roads
-  commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
-               schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_roads"),
-               P(sim, "uploaderCLUS", "dbInfo"))
-  dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_roads")," to appuser;"))
-  ##rsfStart
-  ##rsfEND
+  if(is.null(sim$foreststate)){
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,'harvestBlocks.tif'), schema = P(sim, "uploaderCLUS", "aoiName"), 
+                 name = paste0(scenario$name, "_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_cutblocks")," to appuser;"))
+    
+    ##roads
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
+                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_roads"),
+                 P(sim, "uploaderCLUS", "dbInfo"))
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_roads")," to appuser;"))
+    ##rsfStart
+    ##rsfEND
+  }
   return(invisible(sim)) 
 }
 
