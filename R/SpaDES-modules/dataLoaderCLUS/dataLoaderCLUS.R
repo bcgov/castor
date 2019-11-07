@@ -78,7 +78,8 @@ defineModule(sim, list(
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
     createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
-    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances")
+    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
+    createsOutput(objectName = "foreststate", objectClass = "data.table", desc = "A data.table of the current state of the aoi")
   )
 ))
 
@@ -95,9 +96,12 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- dataLoaderCLUS.createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
+        sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
         sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         
+        sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=99) # runs after the inits are done
        }else{
+        sim$foreststate<-NULL
         message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))
          #TODO: Make a copy of the db here so that the clusdb is in memory
         userdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") ) # connext to pgdb
@@ -132,6 +136,9 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     removeDbCLUS={
       sim<- disconnectDbCLUS(sim)
       
+    },
+    calcCurrentState={
+      sim<-dataLoaderCLUS.calcForestState(sim) # summarizes the forest into seral class, area roaded and thlb, Needs more here.
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -553,9 +560,6 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   rm(pixels)
   gc()
   
-  message('...done')
-  
-  #print(head(dbGetQuery(sim$clusdb, 'SELECT * FROM pixels WHERE thlb > 0 limit 5 ')))
   return(invisible(sim))
 }
 dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
@@ -570,6 +574,34 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   }
   
   dbExecute(sim$clusdb, "VACUUM;")
+  message('...done')
+  return(invisible(sim))
+}
+
+dataLoaderCLUS.setTHLB<-function(sim){
+  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
+  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+                                  dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+                                  by.x = "reference_zone", by.y = "reference_zone"))
+  if(nrow(nhConstraints) > 0 ){
+    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  }
+  #thlb.ras<-sim$ras
+  #thlb.val<-dbGetQuery(sim$clusdb, "select thlb from pixels order by pixelid")
+  #thlb.ras[]<- thlb.val$thlb
+  #writeRaster(thlb.ras, "thlb.tif")
+  return(invisible(sim))
+}
+
+dataLoaderCLUS.calcForestState<-function(sim){
+sim$foreststate<- data.table(dbGetQuery(sim$clusdb, "SELECT sum(case when compartid is not null then 1 else 0 end) as total, 
+           sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
+           sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
+           sum(case when age >= 140 then 1 else 0 end) as old,
+           sum(case when roadyear >= 0  then 1 else 0 end) as road
+           FROM pixels")
+            )
   return(invisible(sim))
 }
 
