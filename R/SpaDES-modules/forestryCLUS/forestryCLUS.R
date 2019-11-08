@@ -25,7 +25,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "forestryCLUS.Rmd"),
-  reqdPkgs = list(),
+  reqdPkgs = list("gamlss"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -33,6 +33,7 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
+    defineParameter("useAdjacencyConstraint", "logical", FALSE, NA, NA, "Include Adjacency Constraint?"),
     defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending")
     
     ),
@@ -52,6 +53,8 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA),
     createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
+    createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
+    createsOutput(objectName = "yielduncertain", objectClass = "data.table", desc = NA),
     createsOutput(objectName ="scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
 ))
@@ -63,20 +66,21 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
       #sim <- forestryCLUS.setConstraints(sim) 
       sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 5)
+      sim <- scheduleEvent(sim, end(sim), "forestryCLUS", "uncertainty", 6)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
       sim <- forestryCLUS.setConstraints(sim)
       sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
-      
       sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 5)
-      
+    },
+    uncertainty = {
+      sim <- forestryCLUS.calcUncertainty(sim)
     },
     save = {
       sim <- forestryCLUS.save(sim)
     },
-    
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -92,13 +96,13 @@ forestryCLUS.Init <- function(sim) {
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
-  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
-                       dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
-                       by.x = "reference_zone", by.y = "reference_zone"))
-  if(nrow(nhConstraints) > 0 ){
-    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
-  }
+  #nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+  #                     dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+  #                     by.x = "reference_zone", by.y = "reference_zone"))
+  #if(nrow(nhConstraints) > 0 ){
+  #  nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+  #  dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  #}
   
   #For printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
@@ -192,19 +196,30 @@ forestryCLUS.setConstraints<- function(sim) {
       } 
     }
   }
-  #Update pixels in clusdb for adjacency constraints
-  query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 
+  
+  if(P(sim, "forestryCLUS", "useAdjacencyConstraint")){
+    #Update pixels in clusdb for adjacency constraints
+    query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3 
                                                             UNION 
                                                             SELECT b.adjblockid FROM 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND age >= 0 AND age < 20 ) a 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3) a 
                                                             LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ); ")))
-  dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }
+
   
-  dbExecute(sim$clusdb, "VACUUM;")
+  #dbExecute(sim$clusdb, "VACUUM;") #Vacuum occurs in growingstockCLUS after the yield update.
+  #write the constraint raster
+  const<-sim$ras
+  datat<-dbGetQuery(sim$clusdb, "SELECT zone_const FROM pixels ORDER BY pixelid;")
+
+  const[]<-datat$zone_const
+  writeRaster(const, "constraints.tif", overwrite=TRUE)
+  
   return(invisible(sim))
 }
 
@@ -216,17 +231,16 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
     harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
+    
     if(!is.na(harvestTarget)){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
       harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      #TODO: Add site_index into pixels for uncertainty estimation
-      
-      sql<-paste0("SELECT pixelid, blockid, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+      sql<-paste0("SELECT pixelid, blockid, siteindex, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
-                  compartid = '", compart ,"' AND zone_const = 0 AND ", partition, "
+                  compartid = '", compart ,"' AND zone_const = 0 AND blockid > 0 AND ", partition, "
                   ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") 
                   AND thlb > 0 AND zone_const = 0 AND ", partition, 
                   " ORDER BY blockid ")
@@ -257,7 +271,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         land_coord<-rbindlist(list(land_coord, sim$pts[pixelid %in% land_pixels, ]))
         
         #Create proj_vol for uncertainty in yields
-        to.cut<-queue[, sum(vol_h), by = blockid]
+        sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, queue[,c("blockid", "siteindex", "vol_h")]))
         #clean up
         rm(land_pixels, queue)
       }
@@ -267,35 +281,49 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   }
   
   #convert to class SpatialPoints needed for roadsCLUS
-  sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
+  if(nrow(land_coord) > 0 ){
+    sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
+  } else{
+    sim$landings <- NULL
+  }
   
   #write the blocks to a raster?
   writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 
-forestryCLUS.calcUncertainty <-function() {
-  #Get the list of harvest blocks and thier site index to be used as timber marks
-  to.cut<- data.frame(proj_vol = rGA(50, mu= 8000, sigma = 1.2), site_index = 14)
-  #get the mu.hat and sigma.hat  
-  cut.hat <- predictAll(test.5, newdata = to.cut)
+forestryCLUS.calcUncertainty <-function(sim) {
+  to.cut<<-sim$harvestBlockList[, list(sum(vol_h), mean(siteindex)), by = blockid]
+  setnames(to.cut, c("V1", "V2"), c("proj_vol", "site_index"))
+  sim$yielduncertain <- simYieldUncertainty(to.cut[,c("proj_vol", "site_index")], calb_ymodel)
+  print(sim$yielduncertain)
+  return(invisible(sim))
+}
+
+simYieldUncertainty <-function(to.cut, calb_ymodel) {
+  message(".....calc uncertainty of yields")
+  cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut) #get the mu.hat and sigma.hat 
   to.cut$mu.hat<-cut.hat$mu
   to.cut$sigma.hat<-cut.hat$sigma
-  
+  message(paste0(".......sim error: ", nrow(to.cut)))
   sim.volume <-
     sapply(1:10000,
            function(x)
              with(to.cut,
-                  sum(rGA(nrow(to.cut), # if n = 1 then randoms are correlated!
+                  sum(rGA(nrow(to.cut), 
                           mu = mu.hat,
                           sigma = sigma.hat))))
-
-  return(list(
-    proj.volume =sum(to.cut$proj_vol),
-    calb.vol = mean(sim.volume),
-    prob.calb.gt.proj =   mean(sim.volume>sum(to.cut$proj_vol)),
-    pred90 =  quantile(sim.volume, p = c(0.05, 0.95))
-  ) )
+  distquants<-quantile(sim.volume, p = c(0.05, 0.95))
+  
+  return(data.table(
+    scenario = scenario$name,
+    projvolume =sum(to.cut$proj_vol),
+    calibvol = mean(sim.volume),
+    prob =  mean(sim.volume>sum(to.cut$proj_vol)),
+    pred5 = distquants[1],
+    pred95 = distquants[2]
+    )
+  ) 
 }
 
 

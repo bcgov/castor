@@ -50,6 +50,7 @@ defineModule(sim, list(
     defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represents a compartment or supply block value attribute look up. CUrrently 'study_area_compart'?"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
     defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve"),
+    defineParameter("nameSiteIndexRaster", "character", "99999", NA, NA, desc = "Raster containing site index used in uncertainty model of yields"),
     defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
     defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
     defineParameter("nameZoneTable", "character", "99999", NA, NA, desc = "Name of the table documenting the zone types"),
@@ -77,7 +78,8 @@ defineModule(sim, list(
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
     createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
-    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances")
+    createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
+    createsOutput(objectName = "foreststate", objectClass = "data.table", desc = "A data.table of the current state of the aoi")
   )
 ))
 
@@ -94,9 +96,12 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- dataLoaderCLUS.createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
+        sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
         sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         
+        sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=99) # runs after the inits are done
        }else{
+        sim$foreststate<-NULL
         message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))
          #TODO: Make a copy of the db here so that the clusdb is in memory
         userdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") ) # connext to pgdb
@@ -132,6 +137,9 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim<- disconnectDbCLUS(sim)
       
     },
+    calcCurrentState={
+      sim<-dataLoaderCLUS.calcForestState(sim) # summarizes the forest into seral class, area roaded and thlb, Needs more here.
+    },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -163,7 +171,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, zone_const integer DEFAULT 0, thlb numeric , age numeric, vol numeric,
-crownclosure numeric, height numeric, eca numeric, roadyear integer)")
+crownclosure numeric, height numeric, siteindex numeric, eca numeric, roadyear integer)")
   return(invisible(sim))
 }
 
@@ -354,11 +362,12 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     }else{
       stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
     }
-    #Set the yields table
-    yields<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameYieldTable))
+    yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ")
+    #Set the yields table with yield curves that are only in the study area
+    yields<-getTableQuery(paste0("SELECT ycid, age, tvol, con, height, eca FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, con, height, eca) 
-                      values (:yieldid, :age, :tvol, :con, :height, :eca)", yields)
+                      values (:ycid, :age, :tvol, :con, :height, :eca)", yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -403,7 +412,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     
     if(!P(sim,"dataLoaderCLUS", "nameForestInventoryTable") == '99999'){
       
-      forest_attributes_clusdb<-sapply(c("Age","Height", "CrownClosure"), function(x){
+      forest_attributes_clusdb<-sapply(c("Age","Height", "CrownClosure", "SiteIndex"), function(x){
         if(!(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)) == '99999')){
           return(paste0(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)), " as ", tolower(x)))
         }
@@ -415,12 +424,16 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
         attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "dataLoaderCLUS", "nameForestInventoryKey"), " as fid, ", paste(forest_attributes_clusdb, collapse = ","), " FROM ",
                                                     P(sim,"dataLoaderCLUS", "nameForestInventoryTable"), " WHERE ", P(sim, "dataLoaderCLUS", "nameForestInventoryKey") ," IN (",
                                                     paste(fids, collapse = ","),");" )))
-        #TODO: merge this with the raster to get all the values?
+        #Merge this with the raster using fid which gives you the primary key -- pixelid
         print("...merging with fid")
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
-        #inv[,fid:=NULL] 
+        
+        #Merge to pixels using the pixelid
         pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
         pixels<-pixels[, fid:=NULL]#remove the fid key
+        #TODO: Test this change of names?
+        setnames(pixels, c(P(sim, "dataLoaderCLUS","nameForestInventoryAge"),P(sim, "dataLoaderCLUS","nameForestInventoryHeight"),P(sim, "dataLoaderCLUS","nameForestInventoryCrownClosure"),P(sim, "dataLoaderCLUS","nameForestInventorySiteIndex")),
+                           c("age", "height", "crownclosure", "siteindex"))
         rm(inv, attrib_inv,inv_id, fids)
       }else{
         stop("No forest attributes from the inventory specified")
@@ -503,15 +516,41 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     pixels[, height := 10]
   }
   
+  #---------------------
+  #Set the Site Index 
+  #---------------------
+  if(!(P(sim, "dataLoaderCLUS", "nameSiteIndexRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventorySiteIndex") == "99999"){
+    message(paste0('.....siteindex: ',P(sim, "dataLoaderCLUS", "nameSiteIndexRaster")))
+    ras.si<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameSiteIndexRaster"), 
+                         clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                         geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                         where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                         conn=NULL)
+    if(aoi == extent(ras.si)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.si)))))
+      setnames(pixels, "V1", "siteindex")
+      rm(ras.si)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameSiteIndexRaster")))
+    }
+  }
+  if(P(sim, "dataLoaderCLUS", "nameSiteIndexRaster") == "99999" & P(sim, "dataLoaderCLUS", "nameForestInventorySiteIndex") == "99999"){
+    message('.....siteindex: default 14')
+    pixels[, siteIndex:= 14]
+  }
+  
+  
   #*************************#
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, age, crownclosure, height, roadyear, zone',
+  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, age, crownclosure, height, siteindex, roadyear, zone',
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
-               values (:pixelid, :compartid, :yieldid, :own,  :thlb, :age, :crownclosure, :height, NULL, :zone', 
+               values (:pixelid, :compartid, :yieldid, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, :zone', 
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
   
+
   #pixels table
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, qry, pixels )
@@ -521,9 +560,6 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   rm(pixels)
   gc()
   
-  message('...done')
-  
-  #print(head(dbGetQuery(sim$clusdb, 'SELECT * FROM pixels WHERE thlb > 0 limit 5 ')))
   return(invisible(sim))
 }
 dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
@@ -538,6 +574,34 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   }
   
   dbExecute(sim$clusdb, "VACUUM;")
+  message('...done')
+  return(invisible(sim))
+}
+
+dataLoaderCLUS.setTHLB<-function(sim){
+  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
+  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+                                  dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+                                  by.x = "reference_zone", by.y = "reference_zone"))
+  if(nrow(nhConstraints) > 0 ){
+    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  }
+  #thlb.ras<-sim$ras
+  #thlb.val<-dbGetQuery(sim$clusdb, "select thlb from pixels order by pixelid")
+  #thlb.ras[]<- thlb.val$thlb
+  #writeRaster(thlb.ras, "thlb.tif")
+  return(invisible(sim))
+}
+
+dataLoaderCLUS.calcForestState<-function(sim){
+sim$foreststate<- data.table(dbGetQuery(sim$clusdb, "SELECT sum(case when compartid is not null then 1 else 0 end) as total, 
+           sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
+           sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
+           sum(case when age >= 140 then 1 else 0 end) as old,
+           sum(case when roadyear >= 0  then 1 else 0 end) as road
+           FROM pixels")
+            )
   return(invisible(sim))
 }
 

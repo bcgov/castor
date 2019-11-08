@@ -28,17 +28,16 @@ In order to link the timber mark boundaries with the VRI which is needed to link
 
 1. Estimate the spatial boundaries of the timber marks
 
-The spatial boundaries of the timber mark were estimated using two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). Using the ftn_c_b_pl_polygon, all timber marks comprised of openings (harvest units) that had disturbance start dates between 2012-01-01 and 2016-12-31 were selected (i.e., removed possible timber marks with some openings not in this range). This selected subset of ftn_c_b_pl_polygon was then joined with cns_cut_bl_polygon by the harvest unit identifier (viz. opening_id) to link the timber mark to a spatial boundary. Lastly, timber marks were removed if they did not fully contain geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., removed retention patches). The result of this process was 2912 unique timber marks; this list was then used to query the Harvest Billing System and retrieve the scaled or observed volumes.
+The spatial boundaries of the timber mark were estimated using two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). Using the ftn_c_b_pl_polygon, all timber marks comprised of openings (harvest units) that had disturbance start dates between 2012-01-01 and 2016-12-31 were selected (i.e., removed possible timber marks with some openings not in this range). This selected subset of ftn_c_b_pl_polygon was then joined with cns_cut_bl_polygon by the harvest unit identifier (viz. opening_id) to link the timber mark to a spatial boundary. Lastly, timber marks were removed if they did not fully contain geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., removed retention patches). The result of this process was 2390 unique timber marks; this list was then used to query the Harvest Billing System and retrieve the scaled or observed volumes.
 
 2. Intersect the timber mark spatial boundaries of the s with the VRI
 
-The resulting timber mark spatial boundaries were spatialy intersected with the 2011 VRI to provide the neccessary forest attribute information for linking to the growth and yield model. Only layer rank 1 forest attribution was used to link to the growth and yield model. However, as a result of this intersection, 1604 of the timber marks had a portion of their total area that faild to provide the neccessary VRI information (i.e., Tree Farm Licenses, private areas) for a forest yield projection. 
+The resulting timber mark spatial boundaries were spatialy intersected with the 2011 VRI to provide the neccessary forest attribute information for linking to the growth and yield model. Only layer rank 1 forest attribution was used to link to the growth and yield model. However, as a result of this intersection, 1265 of the timber marks had a portion of their total area that faild to provide the neccessary VRI information (i.e., Tree Farm Licenses, private areas) for a forest yield projection. 
 
 The following is the distribution of the percentage of the total timber mark area without the information:
 
 
 ```
-## type is 0
 ## type is 0
 ```
 
@@ -49,11 +48,11 @@ The following is the distribution of the percentage of the total timber mark are
 
 ![FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.](linkHBS_VRI_Calibtation_files/figure-html/timber_mrks-1.png)
 
-The majority (75%) of timber marks with harvest units that do not have the neccessary VRI attribution contribute less than 3.3% of the total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be wrongfully classified given the accuracy and precision of the spatial boundaries determined in the VRI. From a practical view, these relatively small areas would result in little contribution to the total projected volume estimate. Thus, timber marks with less than or equal to 3 percent of their total area that contained inadequate VRI information were retained in the analysis.
+The majority (75%) of timber marks with harvest units that do not have the neccessary VRI attribution contribute less than 2.7% of the total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be wrongfully classified given the accuracy and precision of the spatial boundaries determined in the VRI. From a practical view, these relatively small areas would result in little contribution to the total projected volume estimate. Thus, timber marks with less than or equal to 3 percent of their total area that contained inadequate VRI information were retained in the analysis.
 
-Following the previous two steps, a total of 2140 timber marks remained in the analysis. 
+Following the previous two steps, a total of 1672 timber marks remained in the analysis. 
 
-![FIGURE 2. The location of timber marks used in the analysis (n = 2142).](linkHBS_VRI_Calibtation_files/figure-html/sample-1.png)
+![FIGURE 2. The location of timber marks used in the analysis (n = 1672).](linkHBS_VRI_Calibtation_files/figure-html/sample-1.png)
 
 
 ## Growth and yield meta-model
@@ -72,25 +71,25 @@ Each projected VRI polygon that intersected the timber mark boundary was summed 
 ## 
 ## Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -54159  -4799  -2486   2893 111375 
+## -53707  -3472  -1426   2830  64760 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) 4.125e+03  3.227e+02   12.78   <2e-16 ***
-## proj_vol    8.368e-01  9.310e-03   89.88   <2e-16 ***
+## (Intercept) 2.344e+03  3.135e+02   7.476 1.22e-13 ***
+## proj_vol    8.447e-01  8.380e-03 100.804  < 2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 11110 on 2140 degrees of freedom
-## Multiple R-squared:  0.7906,	Adjusted R-squared:  0.7905 
-## F-statistic:  8078 on 1 and 2140 DF,  p-value: < 2.2e-16
+## Residual standard error: 9178 on 1679 degrees of freedom
+## Multiple R-squared:  0.8582,	Adjusted R-squared:  0.8581 
+## F-statistic: 1.016e+04 on 1 and 1679 DF,  p-value: < 2.2e-16
 ```
 
 ```
 ## Warning in predict.lm(model1, data = calb_data, interval = "prediction"): predictions on current data refer to _future_ responses
 ```
 
-![FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval.](linkHBS_VRI_Calibtation_files/figure-html/Step6_develop_vri2011-1.png)
+![FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval (n= 1672).](linkHBS_VRI_Calibtation_files/figure-html/Step6_develop_vri2011-1.png)
 
 
 ```r
@@ -118,7 +117,7 @@ mean(calb_data3$site_index)
 ```
 
 ```
-## [1] 15.51152
+## [1] 15.39729
 ```
 
 ```r
@@ -130,13 +129,13 @@ cor.test(calb_data3$proj_height_1, calb_data3$dif)
 ## 	Pearson's product-moment correlation
 ## 
 ## data:  calb_data3$proj_height_1 and calb_data3$dif
-## t = 4.1512, df = 2140, p-value = 3.437e-05
+## t = 5.1115, df = 1679, p-value = 3.561e-07
 ## alternative hypothesis: true correlation is not equal to 0
 ## 95 percent confidence interval:
-##  0.0472024 0.1312327
+##  0.07642845 0.17058702
 ## sample estimates:
-##        cor 
-## 0.08937659
+##       cor 
+## 0.1237864
 ```
 
 ```r
@@ -148,13 +147,13 @@ cor.test(calb_data3$site_index, calb_data3$dif)
 ## 	Pearson's product-moment correlation
 ## 
 ## data:  calb_data3$site_index and calb_data3$dif
-## t = 6.9395, df = 2140, p-value = 5.197e-12
+## t = 8.3773, df = 1679, p-value < 2.2e-16
 ## alternative hypothesis: true correlation is not equal to 0
 ## 95 percent confidence interval:
-##  0.1066670 0.1895118
+##  0.1539671 0.2457595
 ## sample estimates:
 ##       cor 
-## 0.1483496
+## 0.2003028
 ```
 
 ```r
@@ -166,13 +165,13 @@ cor.test(calb_data3$crown_closure, calb_data3$dif)
 ## 	Pearson's product-moment correlation
 ## 
 ## data:  calb_data3$crown_closure and calb_data3$dif
-## t = 7.5003, df = 2140, p-value = 9.274e-14
+## t = 7.6829, df = 1679, p-value = 2.627e-14
 ## alternative hypothesis: true correlation is not equal to 0
 ## 95 percent confidence interval:
-##  0.1184941 0.2010339
+##  0.1376910 0.2300712
 ## sample estimates:
 ##       cor 
-## 0.1600437
+## 0.1842881
 ```
 
 ```r
@@ -184,38 +183,19 @@ cor.test(calb_data3$proj_age_1, calb_data3$dif)
 ## 	Pearson's product-moment correlation
 ## 
 ## data:  calb_data3$proj_age_1 and calb_data3$dif
-## t = 0.52299, df = 2140, p-value = 0.601
+## t = -0.11446, df = 1679, p-value = 0.9089
 ## alternative hypothesis: true correlation is not equal to 0
 ## 95 percent confidence interval:
-##  -0.03106308  0.05363185
+##  -0.05059688  0.04502284
 ## sample estimates:
-##        cor 
-## 0.01130466
-```
-
-```r
-#Site index and crown closure have larger cor than height and age.
-cor.test(calb_data3$site_index, calb_data3$proj_vol)
-```
-
-```
-## 
-## 	Pearson's product-moment correlation
-## 
-## data:  calb_data3$site_index and calb_data3$proj_vol
-## t = -1.5533, df = 2140, p-value = 0.1205
-## alternative hypothesis: true correlation is not equal to 0
-## 95 percent confidence interval:
-##  -0.075802945  0.008807572
-## sample estimates:
-##         cor 
-## -0.03355781
+##          cor 
+## -0.002793406
 ```
 
 
 ## The calibration model
 
-In Robinson et al. (2016) a double gamma model was used to model both the conditional mean and variance of the error distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating site index and crown closure , however I prefer to soley use site index because crown closure may change with time which makes its harder to interpret. This area could be greatly improved to try other distributions (e.g., Exponential, Beta) or other parameters (e.g., variance of stand attributes, number of years projected?, dead pine?, BEC zones?, etc) 
+In Robinson et al. (2016) a gamma model was used to model both the conditional mean and conditional variance of the error distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating site index and crown closure , however I prefer to soley use site index because crown closure may change with time which makes its harder to interpret. This area could be greatly improved to try other distributions (e.g., Exponential, Beta) or other parameters (e.g., variance of stand attributes, number of years projected?, dead pine?, BEC zones?, etc) 
 
 
 ```r
@@ -336,138 +316,123 @@ library(cowplot)
 ```
 
 ```r
-calb_data4<-calb_data3[proj_vol< 150000,]
+calb_data4<-calb_data3[proj_vol > 1,]
 
 ## Fit and compare some models
 test.0 <- gamlss(obs_vol ~ proj_vol,
                  sigma.formula = ~ 1,
                  sigma.link = "log",
                  family = GA(),
-                 data = calb_data3)
+                 data = calb_data4)
 ```
 
 ```
-## GAMLSS-RS iteration 1: Global Deviance = 45775.17 
-## GAMLSS-RS iteration 2: Global Deviance = 45775.17
+## GAMLSS-RS iteration 1: Global Deviance = 35492.18 
+## GAMLSS-RS iteration 2: Global Deviance = 35492.18
 ```
 
 ```r
-test.1 <- gamlss(obs_vol ~ proj_vol,
-                 sigma.formula = ~ proj_vol,
+test.1 <- gamlss(obs_vol ~ log(proj_vol),
+                 sigma.formula = ~ 1,
                  sigma.link = "log",
                  family = GA(),
-                 data = calb_data3)
+                 data = calb_data4)
 ```
 
 ```
-## GAMLSS-RS iteration 1: Global Deviance = 45747.62 
-## GAMLSS-RS iteration 2: Global Deviance = 45730.97 
-## GAMLSS-RS iteration 3: Global Deviance = 45727 
-## GAMLSS-RS iteration 4: Global Deviance = 45725.94 
-## GAMLSS-RS iteration 5: Global Deviance = 45725.64 
-## GAMLSS-RS iteration 6: Global Deviance = 45725.55 
-## GAMLSS-RS iteration 7: Global Deviance = 45725.52 
-## GAMLSS-RS iteration 8: Global Deviance = 45725.52 
-## GAMLSS-RS iteration 9: Global Deviance = 45725.51 
-## GAMLSS-RS iteration 10: Global Deviance = 45725.51
+## GAMLSS-RS iteration 1: Global Deviance = 36065.87 
+## GAMLSS-RS iteration 2: Global Deviance = 36065.87
+```
+
+```r
+test.2 <- gamlss(obs_vol ~ proj_vol,
+                 sigma.formula = ~ proj_vol,
+                 sigma.link = "log",
+                 family = GA(),
+                 data = calb_data4)
+```
+
+```
+## GAMLSS-RS iteration 1: Global Deviance = 35492.12 
+## GAMLSS-RS iteration 2: Global Deviance = 35492.08 
+## GAMLSS-RS iteration 3: Global Deviance = 35492.06 
+## GAMLSS-RS iteration 4: Global Deviance = 35492.05 
+## GAMLSS-RS iteration 5: Global Deviance = 35492.05 
+## GAMLSS-RS iteration 6: Global Deviance = 35492.05
 ```
 
 ```r
 test.3 <- gamlss(obs_vol ~ log(proj_vol),
-                 sigma.formula = ~ 1,
+                 sigma.formula = ~ log(proj_vol),
                  sigma.link = "log",
                  family = GA(),
-                 data = calb_data3)
+                 data = calb_data4)
 ```
 
 ```
-## GAMLSS-RS iteration 1: Global Deviance = 46871.33 
-## GAMLSS-RS iteration 2: Global Deviance = 46871.33
+## GAMLSS-RS iteration 1: Global Deviance = 35412.05 
+## GAMLSS-RS iteration 2: Global Deviance = 34205.65 
+## GAMLSS-RS iteration 3: Global Deviance = 33742.07 
+## GAMLSS-RS iteration 4: Global Deviance = 33675.39 
+## GAMLSS-RS iteration 5: Global Deviance = 33671.07 
+## GAMLSS-RS iteration 6: Global Deviance = 33670.88 
+## GAMLSS-RS iteration 7: Global Deviance = 33670.87 
+## GAMLSS-RS iteration 8: Global Deviance = 33670.87
 ```
 
 ```r
 test.4 <- gamlss(obs_vol ~ log(proj_vol),
-                 sigma.formula = ~ log(proj_vol),
+                 sigma.formula = ~ proj_vol,
                  sigma.link = "log",
                  family = GA(),
-                 data = calb_data3)
+                 data = calb_data4)
 ```
 
 ```
-## GAMLSS-RS iteration 1: Global Deviance = 46478.43 
-## GAMLSS-RS iteration 2: Global Deviance = 45592.73 
-## GAMLSS-RS iteration 3: Global Deviance = 45057.91 
-## GAMLSS-RS iteration 4: Global Deviance = 44773.62 
-## GAMLSS-RS iteration 5: Global Deviance = 44658.23 
-## GAMLSS-RS iteration 6: Global Deviance = 44625.47 
-## GAMLSS-RS iteration 7: Global Deviance = 44618.24 
-## GAMLSS-RS iteration 8: Global Deviance = 44616.86 
-## GAMLSS-RS iteration 9: Global Deviance = 44616.65 
-## GAMLSS-RS iteration 10: Global Deviance = 44616.6 
-## GAMLSS-RS iteration 11: Global Deviance = 44616.6 
-## GAMLSS-RS iteration 12: Global Deviance = 44616.59 
-## GAMLSS-RS iteration 13: Global Deviance = 44616.59
+## GAMLSS-RS iteration 1: Global Deviance = 36008.79 
+## GAMLSS-RS iteration 2: Global Deviance = 35969.99 
+## GAMLSS-RS iteration 3: Global Deviance = 35960.72 
+## GAMLSS-RS iteration 4: Global Deviance = 35958.49 
+## GAMLSS-RS iteration 5: Global Deviance = 35957.96 
+## GAMLSS-RS iteration 6: Global Deviance = 35957.82 
+## GAMLSS-RS iteration 7: Global Deviance = 35957.78 
+## GAMLSS-RS iteration 8: Global Deviance = 35957.77 
+## GAMLSS-RS iteration 9: Global Deviance = 35957.77 
+## GAMLSS-RS iteration 10: Global Deviance = 35957.77
 ```
 
 ```r
-test.5 <- gamlss(obs_vol ~ log(proj_vol)+ log(site_index),
-                 sigma.formula = ~ log(proj_vol),
+test.5 <- gamlss(obs_vol ~ log(proj_vol),
+                 sigma.formula = ~ log(proj_vol) + site_index,
                  sigma.link = "log",
                  family = GA(),
-                 data = calb_data3)
+                 data = calb_data4)
 ```
 
 ```
-## GAMLSS-RS iteration 1: Global Deviance = 46374.78 
-## GAMLSS-RS iteration 2: Global Deviance = 45507.81 
-## GAMLSS-RS iteration 3: Global Deviance = 44977.66 
-## GAMLSS-RS iteration 4: Global Deviance = 44693.7 
-## GAMLSS-RS iteration 5: Global Deviance = 44580.47 
-## GAMLSS-RS iteration 6: Global Deviance = 44549.11 
-## GAMLSS-RS iteration 7: Global Deviance = 44542.9 
-## GAMLSS-RS iteration 8: Global Deviance = 44541.77 
-## GAMLSS-RS iteration 9: Global Deviance = 44541.6 
-## GAMLSS-RS iteration 10: Global Deviance = 44541.58 
-## GAMLSS-RS iteration 11: Global Deviance = 44541.58 
-## GAMLSS-RS iteration 12: Global Deviance = 44541.58 
-## GAMLSS-RS iteration 13: Global Deviance = 44541.58
+## GAMLSS-RS iteration 1: Global Deviance = 35411.52 
+## GAMLSS-RS iteration 2: Global Deviance = 34205.68 
+## GAMLSS-RS iteration 3: Global Deviance = 33731.14 
+## GAMLSS-RS iteration 4: Global Deviance = 33654.94 
+## GAMLSS-RS iteration 5: Global Deviance = 33649.11 
+## GAMLSS-RS iteration 6: Global Deviance = 33648.78 
+## GAMLSS-RS iteration 7: Global Deviance = 33648.76 
+## GAMLSS-RS iteration 8: Global Deviance = 33648.76 
+## GAMLSS-RS iteration 9: Global Deviance = 33648.76
 ```
 
 ```r
-test.6 <- gamlss(obs_vol ~ log(proj_vol) + log(site_index),
-                 sigma.formula = ~ log(proj_vol) + log(crown_closure),
-                 sigma.link = "log",
-                 family = GA(),
-                 data = calb_data3)
-```
-
-```
-## GAMLSS-RS iteration 1: Global Deviance = 46374.1 
-## GAMLSS-RS iteration 2: Global Deviance = 45506.87 
-## GAMLSS-RS iteration 3: Global Deviance = 44972.77 
-## GAMLSS-RS iteration 4: Global Deviance = 44681.2 
-## GAMLSS-RS iteration 5: Global Deviance = 44561.84 
-## GAMLSS-RS iteration 6: Global Deviance = 44527.95 
-## GAMLSS-RS iteration 7: Global Deviance = 44520.7 
-## GAMLSS-RS iteration 8: Global Deviance = 44519.39 
-## GAMLSS-RS iteration 9: Global Deviance = 44519.17 
-## GAMLSS-RS iteration 10: Global Deviance = 44519.14 
-## GAMLSS-RS iteration 11: Global Deviance = 44519.13 
-## GAMLSS-RS iteration 12: Global Deviance = 44519.13
-```
-
-```r
-LR.test(test.5, test.6)
+LR.test(test.3, test.5)
 ```
 
 ```
 ##  Likelihood Ratio Test for nested GAMLSS models. 
 ##  (No check whether the models are nested is performed). 
 ##  
-##        Null model: deviance= 44541.58 with  5 deg. of freedom 
-##  Altenative model: deviance= 44519.13 with  6 deg. of freedom 
+##        Null model: deviance= 33670.87 with  4 deg. of freedom 
+##  Altenative model: deviance= 33648.76 with  5 deg. of freedom 
 ##  
-##  LRT = 22.45069 with 1 deg. of freedom and p-value= 2.156078e-06
+##  LRT = 22.11439 with 1 deg. of freedom and p-value= 2.568775e-06
 ```
 
 ```r
@@ -478,56 +443,57 @@ summary(test.5)
 ## ******************************************************************
 ## Family:  c("GA", "Gamma") 
 ## 
-## Call:  gamlss(formula = obs_vol ~ log(proj_vol) + log(site_index),  
-##     sigma.formula = ~log(proj_vol), family = GA(),  
-##     data = calb_data3, sigma.link = "log") 
+## Call:  
+## gamlss(formula = obs_vol ~ log(proj_vol), sigma.formula = ~log(proj_vol) +  
+##     site_index, family = GA(), data = calb_data4, sigma.link = "log") 
 ## 
 ## Fitting method: RS() 
 ## 
 ## ------------------------------------------------------------------
 ## Mu link function:  log
 ## Mu Coefficients:
-##                  Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)      3.775366   0.168218  22.443   <2e-16 ***
-## log(proj_vol)    0.747133   0.009882  75.607   <2e-16 ***
-## log(site_index) -0.413549   0.047837  -8.645   <2e-16 ***
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    1.11759    0.09342   11.96   <2e-16 ***
+## log(proj_vol)  0.88635    0.00883  100.38   <2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
 ## ------------------------------------------------------------------
 ## Sigma link function:  log
 ## Sigma Coefficients:
-##               Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)    3.22124    0.07980   40.37   <2e-16 ***
-## log(proj_vol) -0.41340    0.00863  -47.90   <2e-16 ***
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    3.400250   0.104225  32.624  < 2e-16 ***
+## log(proj_vol) -0.412745   0.008362 -49.358  < 2e-16 ***
+## site_index    -0.025225   0.005341  -4.723 2.52e-06 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
 ## ------------------------------------------------------------------
-## No. of observations in the fit:  2142 
+## No. of observations in the fit:  1672 
 ## Degrees of Freedom for the fit:  5
-##       Residual Deg. of Freedom:  2137 
-##                       at cycle:  13 
+##       Residual Deg. of Freedom:  1667 
+##                       at cycle:  9 
 ##  
-## Global Deviance:     44541.58 
-##             AIC:     44551.58 
-##             SBC:     44579.92 
+## Global Deviance:     33648.76 
+##             AIC:     33658.76 
+##             SBC:     33685.87 
 ## ******************************************************************
 ```
 
 ```r
-saveRDS(test.5, "calb_ymodel.rds")
+chosen<-test.5
+saveRDS(chosen, "calb_ymodel.rds")
 trajectory.l <-
-  with(calb_data3,
+  with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
                        to = max(proj_vol),
                        length.out = 100),
-                   site_index = 15.5,
+                   site_index = min(site_index),
                    crown_closure = mean(crown_closure)
                    ))
 
-new.dist.l <- predictAll(test.5, newdata = trajectory.l)
+new.dist.l <- predictAll(chosen, newdata = trajectory.l)
 
 trajectory.l$mu <- new.dist.l$mu
 trajectory.l$sigma <- new.dist.l$sigma
@@ -537,7 +503,7 @@ trajectory.l$upper.1 <- with(new.dist.l, qGA(0.67, mu = mu, sigma = sigma))
 trajectory.l$lower.1 <- with(new.dist.l, qGA(0.33, mu = mu, sigma = sigma))
 
 trajectory.h <-
-  with(calb_data3,
+  with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
                        to = max(proj_vol),
@@ -546,7 +512,7 @@ trajectory.h <-
                    crown_closure = mean(crown_closure)
                    ))
 
-new.dist.h <- predictAll(test.5, newdata = trajectory.h)
+new.dist.h <- predictAll(chosen, newdata = trajectory.h)
 
 trajectory.h$mu <- new.dist.h$mu
 trajectory.h$sigma <- new.dist.h$sigma
@@ -556,12 +522,12 @@ trajectory.h$upper.1 <- with(new.dist.h, qGA(0.67, mu = mu, sigma = sigma))
 trajectory.h$lower.1 <- with(new.dist.h, qGA(0.33, mu = mu, sigma = sigma))
 
 p.l <-
-  ggplot(calb_data3, aes(x = proj_vol, y = obs_vol) ) +
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
   geom_point(alpha=0.4) +
   #facet_wrap(~ ForestQualityClass) +
   xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
   ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.l) +
+  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.l, lwd = 1.75) +
   geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l) +
   geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l) +
   geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l) +
@@ -569,12 +535,12 @@ p.l <-
   geom_abline(intercept =0, slope=1, col ="yellow")
 
 p.h <-
-  ggplot(calb_data3, aes(x = proj_vol, y = obs_vol) ) +
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
   geom_point(alpha=0.4) +
   #facet_wrap(~ ForestQualityClass) +
   xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
   ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.h) +
+  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.h, lwd = 1.75) +
   geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h) +
   geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h) +
   geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h) +
@@ -582,17 +548,17 @@ p.h <-
   geom_abline(intercept =0, slope=1, col ="yellow")
 
 
-plot_grid(p.l, p.h, labels = "AUTO")
+plot_grid(p.l, p.h, labels = c("min(SI)", "max(SI)"))
 ```
 
-![FIGURE 4. The calibration model with the smallest site index (A) and largest site index (B). Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals](linkHBS_VRI_Calibtation_files/figure-html/calibrate_model-1.png)
+![FIGURE 4. The calibration model with the smallest site index (A) and largest site index (B). Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals (n=1672)](linkHBS_VRI_Calibtation_files/figure-html/calibrate_model-1.png)
 
 
-Observations- a timber mark with a small site index results in a upward calibration - meaning for a given projected yield the observed volume will on average be greater but this also comes with greater uncertainty (a larger sigma). Where as, a timber mark with a large site index, will result in a downward calibration or reducing the projected volumes but will result in less uncertainty.  
+Observations- Larger projected volumes inherantly have more variation in acheiving the actual volumes. Thus, uncertainty can be reduced with smaller harvest unit sizes. Lower site index stand have great uncertainty in achviving volume yields as indicated by the 90% prediction intervals being wider with the min(SI) relative to the max(SI)
 
-Larger projected volumes inherantly have more variation in acheiving the actual volumes. Thus, uncertainty can be reduced with smaller harvest unit sizes. There is likely a correlation with larger harvest units having smaller site indexes? Do large harvest units include many unproductive areas lowering the site index? 
+There is likely a correlation with larger harvest units having smaller site indexes? Do large harvest units include many unproductive areas lowering the site index? 
 
-In conclusion, the distribution of the projected volumes and their average site indexes are major determinant in the level of uncertainty in volume yield. A harvest seqeunce with harvest units resulting in few large projected volumes will have the greatest uncertatinty, versus a harvest seqeunce with many small projected volumes. 
+In conclusion, the distribution of the projected volumes and their average site indexes are major determinant in the level of uncertainty in volume yield. 
 
 ## Exercises
 
