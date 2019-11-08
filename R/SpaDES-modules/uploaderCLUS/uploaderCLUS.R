@@ -125,6 +125,7 @@ save.currentState<- function(sim){
 }
 
 save.reports <-function (sim){
+ 
   connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
                         user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
                         password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
@@ -157,6 +158,10 @@ save.rasters <-function (sim){
   #rasters
   ##blocks
   if(is.null(sim$foreststate)){
+    connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
+                          user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
+                          password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+    
     commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,'harvestBlocks.tif'), schema = P(sim, "uploaderCLUS", "aoiName"), 
                  name = paste0(scenario$name, "_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_cutblocks")," to appuser;"))

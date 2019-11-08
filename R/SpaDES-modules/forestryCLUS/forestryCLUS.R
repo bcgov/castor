@@ -55,6 +55,7 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "yielduncertain", objectClass = "data.table", desc = NA),
+    createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
     createsOutput(objectName ="scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
 ))
@@ -108,11 +109,17 @@ forestryCLUS.Init <- function(sim) {
   sim$harvestBlocks<-sim$ras
   sim$harvestBlocks[]<-0
   
+  #Set the zone contraint raster
+  sim$ras.zoneConstraint<-sim$ras
+  sim$ras.zoneConstraint[]<-0
+  
   return(invisible(sim))
 }
 
 forestryCLUS.save<- function(sim) {
   #write.csv(sim$harvestReport, "harvestReport.csv")
+  writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)#write the blocks to a raster?
+  writeRaster(sim$ras.zoneConstraint, "constraints.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -216,17 +223,18 @@ forestryCLUS.setConstraints<- function(sim) {
   #write the constraint raster
   const<-sim$ras
   datat<-dbGetQuery(sim$clusdb, "SELECT zone_const FROM pixels ORDER BY pixelid;")
-
   const[]<-datat$zone_const
-  writeRaster(const, "constraints.tif", overwrite=TRUE)
   
+  sim$ras.zoneConstraint<-sim$ras.zoneConstraint + const
+  
+  rm(const)
   return(invisible(sim))
 }
 
 forestryCLUS.getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- could have it parallel?
   land_coord<- data.table() #initialize a temp object for storing landings
-  
+
   for(compart in sim$compartment_list){
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
@@ -258,10 +266,11 @@ forestryCLUS.getHarvestQueue<- function(sim) {
           rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
         dbClearResult(rs)
         dbCommit(sim$clusdb)
-        
+      
+
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)
-
+        
         #Set the harvesting report
         sim$harvestReport<- rbindlist(list(sim$harvestReport, data.table(scenario= scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h))))
       
@@ -283,12 +292,10 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   #convert to class SpatialPoints needed for roadsCLUS
   if(nrow(land_coord) > 0 ){
     sim$landings <- SpatialPoints(land_coord[,c("x", "y")],crs(sim$ras))
-  } else{
+  }else{
     sim$landings <- NULL
   }
   
-  #write the blocks to a raster?
-  writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -317,7 +324,7 @@ simYieldUncertainty <-function(to.cut, calb_ymodel) {
   
   return(data.table(
     scenario = scenario$name,
-    projvolume =sum(to.cut$proj_vol),
+    projvol =sum(to.cut$proj_vol),
     calibvol = mean(sim.volume),
     prob =  mean(sim.volume>sum(to.cut$proj_vol)),
     pred5 = distquants[1],
