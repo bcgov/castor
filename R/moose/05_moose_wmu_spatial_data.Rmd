@@ -74,8 +74,7 @@ write.csv (gmz.habitat, "C:\\Work\\caribou\\clus_data\\moose\\gmz_habitat.csv")
 
 ### Step 2: Compile Population Parameter Data
 I took the regional moose population number, density and composition (i.e., bull:cow and calf:cow ratios) estimates obtained from stratified random block (SRB) aerial surveys between 1996 to 2015 compiled by Hatter for this analysis. 
-  
-  
+
 ```{r, load the moose data, echo = T, message = F, warning = F}
 require (kableExtra)
 require (data.table)
@@ -89,7 +88,6 @@ wmu.moose.unique <- list (unique (as.character (data.moose$wmus))) # get list of
 #                  fixed_thead = T,
 #                  full_width = F)
 ```
-
 
 ### Step 3: Summarize Spatial Habitat Data by Management Unit
 I obtained spatial data from maintained, publicly accessible sources wherever possible to facilitate transparency of the analysis. The majority of the data is accessible through the BC government data portal, [DataBC](https://data.gov.bc.ca/). This approach allows others to obtain, evaluate and analyze the same data and facilitates re-analysis of updated data in the future for comparison to previous analyses. 
@@ -416,7 +414,7 @@ write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
 ```
 
 #### Vegetation
-I obtained data on vegetation from the provincial government vegetation resources inventory (VRI), available [here](https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1). However, I used a version 'internal' to govenrmetn employees, becuase the interval version included data form tree farm licenses (TFLs), that is not available in the pulbic data because TFL data is typically not public and is owned by the licensee. However, agreements have been made to put the TFL data into upcomign versions of the pulbic VRI datsets. Thus, the same data used here will eventually be made available. Here I made the choice to use the internal data to minimize teh extent of missing data in the management areas. 
+I obtained data on vegetation from the provincial government vegetation resources inventory (VRI), available [here](https://catalogue.data.gov.bc.ca/dataset/vri-forest-vegetation-composite-polygons-and-layer-1). However, I used a version 'internal' to govenrment employees, becuase the internal version included data form tree farm licenses (TFLs), that is not available in the pulbic data because TFL data is typically not public and is owned by the licensee. However, agreements have been made to put the TFL data into upcomign versions of the pulbic VRI datsets. Thus, the same data used here will eventually be made available. Here I made the choice to use the internal data to minimize teh extent of missing data in the management areas. 
 
 ```{r, VRI data download and attribute to management areas, echo = T, message = F, warning = F}
 library (sf)
@@ -429,269 +427,80 @@ poly.vri.clean <- poly.vri [sf::st_is_valid (poly.vri), ] # remove invalid topol
 rm (poly.vri)
 gc ()
 
-### Need to do this analysis by game management zone since the data is too large to do provincially or eve by region ###
-# Region 7 #
-poly.wmu.gmz3a <- poly.wmu [poly.wmu$GAME_MANAGEMENT_ZONE_ID == "3a" & poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-15" | poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-16" | poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-32" | poly.wmu$WILDLIFE_MGMT_UNIT_ID == "3-33",]
-# poly.wmu.reg7 <- poly.wmu [poly.wmu$REGION_RESPONSIBLE == 7,] 
-poly.wmu.gmz3a <- poly.wmu.gmz3a ["WILDLIFE_MGMT_UNIT_ID"] # drop the data fields we don't need
-poly.vri.clean.gmz3a <- sf::st_intersection (poly.vri.clean, poly.wmu.gmz3a) # intersect the VRI with WMU data
-gc ()
-poly.vri.clean.gmz3a <- poly.vri.clean.gmz3a %>% 
+### Need to do this analysis by game management zone since the data is too large to do provincially or by region ###
+poly.wmu.gmz8d <- poly.wmu [poly.wmu$GAME_MANAGEMENT_ZONE_ID == "8d" ,]
+poly.wmu.gmz8d <- poly.wmu.gmz8d ["WILDLIFE_MGMT_UNIT_ID"] # drop the data fields we don't need
+poly.vri.clean.gmz8d <- sf::st_intersection (poly.vri.clean, poly.wmu.gmz8d) # intersect the VRI with WMU data
+poly.vri.clean.gmz8d <- poly.vri.clean.gmz8d %>% 
                             mutate (area_m2 = st_area (.) %>% # calculate area of each polygon in m2
                             as.numeric ())
-tab.poly.vri.gmz3a <- as.data.table (poly.vri.clean.gmz3a) 
-tab.poly.vri.gmz3a <- tab.poly.vri.gmz3a [, "SHAPE" := NULL] 
-names (tab.poly.vri.gmz3a) [names (tab.poly.vri.gmz3a) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
-# https://stackoverflow.com/questions/54710574/how-to-do-a-full-union-with-the-r-package-sf
-tab.poly.vri.gmz3a$area_ha <- tab.poly.vri.gmz3a$area_m2 / 10000 # convert m^2 to ha
-rm (poly.wmu.gmz3a, poly.vri.clean.gmz3a)
+tab.poly.vri.gmz8d <- as.data.table (poly.vri.clean.gmz8d) 
+tab.poly.vri.gmz8d <- tab.poly.vri.gmz8d [, "SHAPE" := NULL] 
+names (tab.poly.vri.gmz8d) [names (tab.poly.vri.gmz8d) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+tab.poly.vri.gmz8d$area_ha <- tab.poly.vri.gmz8d$area_m2 / 10000 # convert m^2 to ha
+tab.poly.vri <- rbind (tab.poly.vri, tab.poly.vri.gmz8d)
+rm (poly.wmu.gmz8d, poly.vri.clean.gmz8d, tab.poly.vri.gmz8d)
 gc ()
-write.csv (tab.poly.vri.gmz3a, # save the data
-           "C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu_area_gmz3a.csv")
-
-
-
-
-
-gmz
-
-
-leh
-
-
-
-
-
+write.csv (tab.poly.vri, # save the data
+           "C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu.csv")
 ```
 
-I summarized the area of each biogeoclimatic zone type in each management area. 
+I summarized the area of each biogeoclimatic (BEC) zone in each management area. BEC represents broad classes of climatic and vegetation conditions. 
 
 ```{r, calculate area of BEC in each WMU, echo = T, message = F, warning = F}
 library (data.table)
+# tab.poly.vri.wmu <- as.data.table (read.csv ("C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu.csv"))
 # tab.poly.vri.wmu [, bec_class := paste0 (BEC_ZONE_CODE, BEC_SUBZONE, BEC_VARIANT)] # use this if you want a concatenated column of BEC variant
-# unique (tab.poly.vri.wmu.area$BEC_ZONE_CODE)
+# tab.poly.vri.wmu [, bec_subzone_c := paste0 (BEC_ZONE_CODE, BEC_SUBZONE)] # use this if you want a concatenated column of BEC subzone
+# unique (tab.poly.vri.wmu$bec_subzone_c)
 
-# BAFA
-# Region 6
-wmu.bafa.area <- tab.poly.vri.gmz3a [BEC_ZONE_CODE == "BAFA",
-                                     .(BAFA_area_ha = sum (area_ha)), 
-                                     by = .(wmu)] 
+### Summarize by BEC zone ###
+# unique (tab.poly.vri.wmu$BEC_ZONE_CODE)
+tab.poly.vri.wmu.BWBS <- dplyr::filter (tab.poly.vri.wmu, BEC_ZONE_CODE == "BWBS")
 
-setkey (wmu.bafa.area, wmu) # these four setps left-join the bafa area data to wmu data
+tab.poly.vri.wmu.BWBS.sum <- tab.poly.vri.wmu.BWBS %>% 
+                               group_by (wmu) %>%
+                               summarise (bec_BWBS_area_ha = sum (area_ha))
+
+## these next steps left-join the fire data to wmu data ##
+setkey (as.data.table (tab.poly.vri.wmu.BWBS.sum), wmu)
 setkey (wmu.habitat, wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.bafa.area, all.x = TRUE)
+wmu.habitat <- merge (wmu.habitat, tab.poly.vri.wmu.BWBS.sum, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.bafa.area)
+rm (tab.poly.vri.wmu.BWBS.sum, tab.poly.vri.wmu.BWBS.sum, tab.poly.vri.wmu.BWBS)
 gc ()
 
-# ESSF
-wmu.essf.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "ESSF",
-                                              .(essf_area_ha = sum (area_ha)), 
-                                              by = .(wmu)] 
-setkey (wmu.essf.area, wmu) # these four steps left-join the essf area data to wmu data
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.essf.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.essf.area)
-gc ()
-
-# ICH
-wmu.ich.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "ICH",
-                                            .(ich_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.ich.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.ich.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.ich.area)
-gc ()
-
-# PP
-wmu.pp.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "PP",
-                                            .(pp_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.pp.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.pp.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.pp.area)
-gc ()
-
-# IDF
-wmu.idf.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "IDF",
-                                            .(idf_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.idf.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.idf.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.idf.area)
-gc ()
-
-# MH
-wmu.mh.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "MH",
-                                            .(mh_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.mh.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.mh.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.mh.area)
-gc ()
-
-# cwh
-wmu.cwh.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "CWH",
-                                            .(cwh_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.cwh.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.cwh.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.cwh.area)
-gc ()
-
-# sbs
-wmu.sbs.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "SBS",
-                                            .(sbs_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.sbs.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.sbs.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.sbs.area)
-gc ()
-
-# sbps
-wmu.sbps.area <- tab.poly.vri.wmu.area [BEC_ZONE_CODE == "SBPS",
-                                        .(sbps_area_ha = sum (area_ha)), 
-                                        by = .(wmu)] 
-setkey (wmu.sbps.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.sbps.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.sbps.area)
-gc ()  
-
-# ms
-wmu.ms.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "MS",
-                                            .(ms_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.ms.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.ms.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.ms.area)
-gc ()  
-
-# cma
-wmu.cma.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "CMA",
-                                            .(cma_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.cma.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.cma.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.cma.area)
-gc ()  
-
-# bwbs
-wmu.bwbs.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "BWBS",
-                                              .(bwbs_area_ha = sum (area_ha)), 
-                                              by = .(wmu)] 
-setkey (wmu.bwbs.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.bwbs.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.bwbs.area)
-gc ()  
-
-# swb
-wmu.swb.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "SWB",
-                                            .(swb_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.swb.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.swb.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.swb.area)
-gc () 
-
-# bg
-wmu.bg.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "BG",
-                                            .(bg_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.bg.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.bg.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.bg.area)
-gc () 
-
-# cdf
-wmu.cdf.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "CDF",
-                                            .(cdf_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.cdf.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.cdf.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.cdf.area)
-gc () 
-
-# ima
-wmu.ima.area <- tab.poly.vri.gmz3a.wmu.area [BEC_ZONE_CODE == "IMA",
-                                            .(ima_area_ha = sum (area_ha)), 
-                                            by = .(wmu)] 
-setkey (wmu.ima.area, wmu) 
-setkey (wmu.habitat ,wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.ima.area, all.x = TRUE)
-wmu.habitat [is.na (wmu.habitat)] <- 0
-write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.ima.area)
-gc () 
 ```
 
 I summarized the area of shubs in each management area. I multiplied the area of each polygon by teh crown closure of shrubs as an estimate of shrub cover in a polygon. Then I added all polygons in a WMU to calculate area of shrub cover. 
 
 ```{r, calculate area of shrub, echo = T, message = F, warning = F}
-tab.poly.vri.wmu.area.shrub <- na.omit (tab.poly.vri.gmz3a.wmu.area, 
-                                        cols = ("SHRUB_CROWN_CLOSURE"), 
-                                        invert = FALSE)
-wmu.shrub.area <- tab.poly.vri.wmu.area.shrub [, .(shrub_area_ha = sum (area_ha * SHRUB_CROWN_CLOSURE)), 
-                                               by = .(wmu)] 
+# tab.poly.vri.wmu <- as.data.table (read.csv ("C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu.csv"))
+tab.poly.vri.wmu.shrub <- na.omit (tab.poly.vri.wmu,
+                                        cols = ("SHRUB_CROWN_CLOSURE"),
+                                        invert = FALSE) # remove NA
+wmu.shrub.area <- tab.poly.vri.wmu.shrub [, .(shrub_area_ha = sum (area_ha * SHRUB_CROWN_CLOSURE)), 
+                                              by = .(wmu)] 
 setkey (wmu.shrub.area, wmu) 
-setkey (wmu.habitat ,wmu)
+setkey (wmu.habitat, wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.shrub.area, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.shrub.area, tab.poly.vri.wmu.area.shrub)
+rm (wmu.shrub.area, tab.poly.vri.wmu.shrub)
 gc () 
 ```
 
 I summarized the area of forest types important for moose. This included area of: spruce and douglas fir leading forest stands aged 51 and over, in 20 year age classes (i.e., 51 to 70, 71 to 90, 91 to 110 and greater than 111 years old), spruce and douglas fir leading forest stands greater than 10 m tall and 40% crown closure (thermal cover), spruce and douglas fir leading forest stands greater than 60 years old and 40% crown closure (snow inteception cover), *Populus spp.* leading forest stands in 20 year age classes (i.e., 1 to 20, 21 to 40, 41 to 60, 61 to 80, 81 to 100, 101 to 120 and greater than 120). 
 
 ```{r, area of forest stand types, echo = T, message = F, warning = F}
+# tab.poly.vri.wmu <- as.data.table (read.csv ("C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu.csv"))
 # Douglas fir leading forest stands aged 51 to 70
-wmu.doug.fir.50.70.area <- tab.poly.vri.gmz3a.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 51, 70)),
+wmu.doug.fir.50.70.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 51, 70)),
                                         .(doug_fir_50_70_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir.50.70.area, wmu) 
-setkey (wmu.habitat ,wmu)
+setkey (wmu.habitat, wmu)
 wmu.habitat <- merge (wmu.habitat, wmu.doug.fir.50.70.area, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
@@ -699,7 +508,7 @@ rm (wmu.doug.fir.50.70.area)
 gc () 
 
 # Douglas fir leading forest stands aged 71 to 90
-wmu.doug.fir.71.90.area <- tab.poly.vri.gmz3a.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 71, 90)),
+wmu.doug.fir.71.90.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 71, 90)),
                                         .(doug_fir_71_90_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir.71.90.area, wmu) 
@@ -711,7 +520,7 @@ rm (wmu.doug.fir.71.90.area)
 gc () 
 
 # Douglas fir leading forest stands aged 91 to 110
-wmu.doug.fir.91.110.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 91, 110)),
+wmu.doug.fir.91.110.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (between (PROJ_AGE_1, 91, 110)),
                                         .(doug_fir_91_110_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir.91.110.area, wmu) 
@@ -723,7 +532,7 @@ rm (wmu.doug.fir.91.110.area)
 gc () 
 
 # Douglas fir leading forest stands aged >111
-wmu.doug.fir.gt110.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (PROJ_AGE_1 > 111),
+wmu.doug.fir.gt110.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (PROJ_AGE_1 > 111),
                                         .(doug_fir_gt110_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir.gt110.area, wmu) 
@@ -735,7 +544,7 @@ rm (wmu.doug.fir.gt110.area)
 gc () 
 
 # Spruce leading forest stands aged 51 to 70
-wmu.spruce.50.70.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (between (PROJ_AGE_1, 51, 70)),
+wmu.spruce.50.70.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (between (PROJ_AGE_1, 51, 70)),
                                         .(spruce_50_70_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.spruce.50.70.area, wmu) 
@@ -747,7 +556,7 @@ rm (wmu.spruce.50.70.area)
 gc () 
 
 # Spruce leading forest stands aged 71 to 90
-wmu.spruce.71.90.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (between (PROJ_AGE_1, 71, 90)),
+wmu.spruce.71.90.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (between (PROJ_AGE_1, 71, 90)),
                                         .(spruce_71_90_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.spruce.71.90.area, wmu) 
@@ -759,7 +568,7 @@ rm (wmu.spruce.71.90.area)
 gc () 
 
 # Spruce leading forest stands aged 91 to 110
-wmu.spruce.91.110.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (between (PROJ_AGE_1, 71, 90)),
+wmu.spruce.91.110.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (between (PROJ_AGE_1, 71, 90)),
                                         .(spruce_91_110_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.spruce.91.110.area, wmu) 
@@ -771,7 +580,7 @@ rm (wmu.spruce.91.110.area)
 gc () 
 
 # Spruce leading forest stands > 110
-wmu.spruce.gt110.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (PROJ_AGE_1 > 111),
+wmu.spruce.gt110.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (PROJ_AGE_1 > 111),
                                         .(spruce_gt110_area_ha = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.spruce.gt110.area, wmu) 
@@ -783,7 +592,7 @@ rm (wmu.spruce.gt110.area)
 gc () 
 
 # Spruce leading forest stands 10 m tall and 40% crown closure (thermal cover)
-wmu.spruce_h10_cc40.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (PROJ_HEIGHT_1 > 10) & (CROWN_CLOSURE > 40),
+wmu.spruce_h10_cc40.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (PROJ_HEIGHT_1 > 10) & (CROWN_CLOSURE > 40),
                                         .(spruce_h10_cc40 = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.spruce_h10_cc40.area, wmu) 
@@ -795,7 +604,7 @@ rm (wmu.spruce_h10_cc40.area)
 gc () 
 
 # Doug fir leading forest stands 10 m tall and 40% crown closure (thermal cover)
-wmu.doug.fir_h10_cc40.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (PROJ_HEIGHT_1 > 10) & (CROWN_CLOSURE > 40),
+wmu.doug.fir_h10_cc40.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (PROJ_HEIGHT_1 > 10) & (CROWN_CLOSURE > 40),
                                         .(doug_fir_h10_cc40 = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug.fir_h10_cc40.area, wmu) 
@@ -807,7 +616,7 @@ rm (wmu.doug.fir_h10_cc40.area)
 gc () 
 
 # Spruce leading forest stands >60 yo and 40% crown closure (snow interception)
-wmu.spruce_gt60yo_cc40.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (PROJ_AGE_1 > 60) & (CROWN_CLOSURE > 40),
+wmu.spruce_gt60yo_cc40.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "S" | SPECIES_CD_1 == "SE" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXW") & (PROJ_AGE_1 > 60) & (CROWN_CLOSURE > 40),
                                         .(spruce_gt60yo_cc40.area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.spruce_gt60yo_cc40.area, wmu) 
@@ -819,7 +628,7 @@ rm (wmu.spruce_gt60yo_cc40.area)
 gc () 
 
 # Doug fir leading forest stands >60 yo and 40% crown closure (snow interception)
-wmu.doug_fir_gt60yo_cc40.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (PROJ_AGE_1 > 60) & (CROWN_CLOSURE > 40),
+wmu.doug_fir_gt60yo_cc40.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "FDI" | SPECIES_CD_1 == "FDC") & (PROJ_AGE_1 > 60) & (CROWN_CLOSURE > 40),
                                         .(doug_fir_gt60yo_cc40.area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.doug_fir_gt60yo_cc40.area, wmu) 
@@ -831,7 +640,7 @@ rm (wmu.doug_fir_gt60yo_cc40.area)
 gc () 
 
 # Populus spp. leading forest stands 1 to 20
-wmu.poplar.1to20yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 1, 20)),
+wmu.poplar.1to20yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 1, 20)),
                                         .(poplar_1to20yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.1to20yo.area, wmu) 
@@ -843,7 +652,7 @@ rm (wmu.poplar.1to20yo.area)
 gc () 
 
 # Populus spp. leading forest stands 21 to 40
-wmu.poplar.21to40yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 21, 40)),
+wmu.poplar.21to40yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 21, 40)),
                                         .(poplar_21to40yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.21to40yo.area, wmu) 
@@ -855,7 +664,7 @@ rm (wmu.poplar.21to40yo.area)
 gc () 
 
 # Populus spp. leading forest stands 41 to 60
-wmu.poplar.41to60yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 41, 60)),
+wmu.poplar.41to60yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 41, 60)),
                                         .(poplar_41to60yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.41to60yo.area, wmu) 
@@ -867,7 +676,7 @@ rm (wmu.poplar.41to60yo.area)
 gc () 
 
 # Populus spp. leading forest stands 61 to 80
-wmu.poplar.61to80yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 61, 80)),
+wmu.poplar.61to80yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 61, 80)),
                                         .(poplar_61to80yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.61to80yo.area, wmu) 
@@ -879,7 +688,7 @@ rm (wmu.poplar.61to80yo.area)
 gc () 
 
 # Populus spp. leading forest stands 81 to 100
-wmu.poplar.81to100yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 81, 100)),
+wmu.poplar.81to100yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 81, 100)),
                                         .(poplar_81to100yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.81to100yo.area, wmu) 
@@ -891,7 +700,7 @@ rm (wmu.poplar.81to100yo.area)
 gc () 
 
 # Populus spp. leading forest stands 101 to 120
-wmu.poplar.101to120yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 101, 120)),
+wmu.poplar.101to120yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (between (PROJ_AGE_1, 101, 120)),
                                         .(poplar_101to120yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.101to120yo.area, wmu) 
@@ -903,7 +712,7 @@ rm (wmu.poplar.101to120yo.area)
 gc () 
 
 # Populus spp. leading forest stands >120
-wmu.poplar.gt120yo.area <- tab.poly.vri.wmu.area [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (PROJ_AGE_1 > 120),
+wmu.poplar.gt120yo.area <- tab.poly.vri.wmu [(SPECIES_CD_1 == "A" | SPECIES_CD_1 == "AC" | SPECIES_CD_1 == "ACB" | SPECIES_CD_1 == "ACT" | SPECIES_CD_1 == "AX" | SPECIES_CD_1 == "AT") & (PROJ_AGE_1 > 120),
                                         .(poplar_gt120yo_area = sum (area_ha)), 
                                         by = .(wmu)] 
 setkey (wmu.poplar.gt120yo.area, wmu) 
@@ -916,83 +725,87 @@ gc ()
 ```
 
 #### Wet Areas
-I estimated the total area of 'wet areas' in each WMU by calculating the area of [lakes](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-lakes), [wetlands](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-wetlands) and [watercourses](https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm)). Wet areas may be a useful index of food sources for improtant summer food sources for moose in riparian areas, lake shores and wetlands. 
+I estimated the total area of 'wet areas' in each WMU by calculating the area of lakes, wetlands and watercourses. These wet areas may be a useful index of food sources for important summer food sources for moose in riparian areas, lake shores and wetlands. 
 
 ##### Lakes
-I calculated the area of lakes using the freshwater atlas data. 
+I calculated the area of [lakes](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-lakes) using the freshwater atlas data. 
 ```{r, calculate area of lakes, echo = T, message = F, warning = F}
 library (bcdata)
 library (sf)
 library (data.table)
 
-poly.lakes <- bcdc_get_data ("freshwater-atlas-lakes") # name of the data in BCGW
-# plot (st_geometry (poly.lakes)) # check to make sure it looks ok
-
-
-
-
-
-
-
-tab.poly.lakes.wmu <- as.data.table (poly.lakes.wmu) # get the data from the sf object
-area_m2 <- sf::st_area (poly.lakes.wmu) # calculate area of the joined polygons
-units (area_m2) <- NULL # drop units
-tab_area_m2 <- as.data.table (area_m2) # turn the area into a data.table
-tab.poly.lakes.wmu.area <- cbind (tab.poly.lakes.wmu, tab_area_m2) # bind the area to the table 
-tab.poly.lakes.wmu.area$area_ha <- tab.poly.lakes.wmu.area$area_m2 / 10000 # convert m^2 to ha
-names (tab.poly.lakes.wmu.area) [names (tab.poly.lakes.wmu.area) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
-write.csv (tab.poly.lakes.wmu.area, # save the data
+# poly.lakes <- bcdc_get_data ("freshwater-atlas-lakes") # name of the data in BCGW
+# plot (st_geometry (poly.lakes)) # check to make sure it looks ok; again, not working; so loadign form BCGW via a gdb
+poly.lakes <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                           layer = "fwa_lakes_20191030")
+# intersect with WMU
+wmu.lakes <- sf::st_intersection (poly.lakes, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) 
+table.wmu.lakes <- as.data.table (wmu.lakes)
+table.wmu.lakes.sum <- table.wmu.lakes %>% 
+                             group_by (WILDLIFE_MGMT_UNIT_ID) %>%
+                             summarise (lake_area_ha = sum (AREA_HA)) 
+names (table.wmu.lakes.sum) [names (table.wmu.lakes.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+table.wmu.lakes.sum <- as.data.table (table.wmu.lakes.sum)
+write.csv (table.wmu.lakes.sum,
            "C:\\Work\\caribou\\clus_data\\moose\\table_lake_wmu_area.csv")
-
-wmu.lake.area <- tab.poly.lakes.wmu.area [WATERBODY_TYPE == "L",
-                                          .(lake_area_ha = sum (area_ha)), 
-                                          by = .(wmu)] 
-setkey (wmu.lake.area, wmu) # these four setps left-join the bafa area data to wmu data
+setkey (table.wmu.lakes.sum, wmu) 
 setkey (wmu.habitat, wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.lake.area, all.x = TRUE)
+wmu.habitat <- merge (wmu.habitat, table.wmu.lakes.sum, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
-rm (wmu.lake.area)
+rm (table.wmu.lakes.sum, table.wmu.lakes, wmu.lakes)
+gc ()
+```
+
+##### Wetlands
+I calculated the area of [wetlands](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-wetlands) using the freshwater atlas data. 
+```{r, calculate area of wetlands, echo = T, message = F, warning = F}
+library (bcdata)
+library (sf)
+library (data.table)
+
+# poly.wet <- bcdc_get_data ("freshwater-atlas-wetlands") # name of the data in BCGW
+# plot (st_geometry (poly.wet)) # check to make sure it looks ok; again, not working; so loading form BCGW via a gdb
+poly.wetlands <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                              layer = "fwa_wetlands_20191030")
+wmu.wetlands <- sf::st_intersection (poly.wetlands, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) 
+table.wmu.wetlands <- as.data.table (wmu.wetlands)
+table.wmu.wetlands.sum <- table.wmu.wetlands %>% 
+                             group_by (WILDLIFE_MGMT_UNIT_ID) %>%
+                             summarise (wetland_area_ha = sum (AREA_HA))
+table.wmu.wetlands.sum <- as.data.table (table.wmu.wetlands.sum)
+names (table.wmu.wetlands.sum) [names (table.wmu.wetlands.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+setkey (table.wmu.wetlands.sum, wmu)
+setkey (wmu.habitat, wmu)
+wmu.habitat <- merge (wmu.habitat, table.wmu.wetlands.sum, all.x = TRUE)
+wmu.habitat [is.na (wmu.habitat)] <- 0
+write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
+rm (wmu.wet.area)
 gc ()
 ```
 
 
-
-
-
-##### Wetlands
-I calculated the area of lakes using the freshwater atlas data. 
-```{r, calculate area of lakes, echo = T, message = F, warning = F}
+##### Watercourses
+I calculated the area of [watercourses](https://catalogue.data.gov.bc.ca/dataset/watercourses-trim-enhanced-base-map-ebm) using TRIM data.
+```{r, calculate area of watercourses, echo = T, message = F, warning = F}
 library (bcdata)
 library (sf)
 library (data.table)
 
-poly.wet <- bcdc_get_data ("freshwater-atlas-wetlands") # name of the data in BCGW
-# plot (st_geometry (poly.wet)) # check to make sure it looks ok
-poly.wet.wmu <- sf::st_union (poly.wet, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) 
-tab.poly.wet.wmu <- as.data.table (poly.wet.wmu) # get the data from the sf object
-area_m2 <- sf::st_area (poly.wet.wmu) # calculate area of the joined polygons
-units (area_m2) <- NULL # drop units
-tab_area_m2 <- as.data.table (area_m2) # turn the area into a data.table
-tab.poly.wet.wmu.area <- cbind (tab.poly.wet.wmu, tab_area_m2) # bind the area to the table 
-tab.poly.wet.wmu.area$area_ha <- tab.poly.wet.wmu.area$area_m2 / 10000 # convert m^2 to ha
-names (tab.poly.wet.wmu.area) [names (tab.poly.wet.wmu.area) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
-write.csv (tab.poly.wet.wmu.area, # save the data
-           "C:\\Work\\caribou\\clus_data\\moose\\table_wetland_wmu_area.csv")
-
-
-
-
-
-
-
-
-wmu.wet.area <- tab.poly.wet.wmu.area [WATERBODY_TYPE == "L",
-                                          .(wetland_area_ha = sum (area_ha)), 
-                                          by = .(wmu)] 
-setkey (wmu.wet.area, wmu) # these four setps left-join the bafa area data to wmu data
+# poly.wet <- bcdc_get_data ("freshwater-atlas-wetlands") # name of the data in BCGW
+# plot (st_geometry (poly.wet)) # check to make sure it looks ok; again, not working; so loading form BCGW via a gdb
+poly.watercourse <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\moose\\leh_wmu_habitat.gdb",
+                                 layer = "fwa_watercourses_20191030")
+wmu.watercourse <- sf::st_intersection (poly.watercourse, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"]) 
+table.wmu.watercourse <- as.data.table (wmu.watercourse)
+table.wmu.watercourse.sum <- table.wmu.watercourse %>% 
+                               group_by (WILDLIFE_MGMT_UNIT_ID) %>%
+                               summarise (watercourse_area_ha = sum (AREA))
+table.wmu.watercourse.sum <- as.data.table (table.wmu.watercourse.sum)
+names (table.wmu.watercourse.sum) [names (table.wmu.watercourse.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+setkey (table.wmu.watercourse.sum, wmu)
 setkey (wmu.habitat, wmu)
-wmu.habitat <- merge (wmu.habitat, wmu.wet.area, all.x = TRUE)
+wmu.habitat <- merge (wmu.habitat, table.wmu.watercourse.sum, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
 write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
 rm (wmu.wet.area)
@@ -1002,13 +815,5 @@ gc ()
 
 
 
-
-
-#### Climate
-
-
-### Step 3: Summarize Spatial Data by Management Unit
-#### Vegetation
-....
-
-
+- ocrrelations
+- data explore/
