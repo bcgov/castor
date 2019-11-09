@@ -380,33 +380,30 @@ unzip ("C:\\Work\\caribou\\clus_data\\forest_health\\1999\\shape.zip",
        exdir = "C:\\Work\\caribou\\clus_data\\forest_health\\1999")
 file.remove ("C:\\Work\\caribou\\clus_data\\forest_health\\1999\\shape.zip")
 
-#########
-# 1999 #
-#######
-fh.1999 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\forest_health\\1999\\Prov_Shape\\FHF_Poly_1999.shp")
-bark.beetles.1999 <- dplyr::filter (fh.1999, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
+#################
+# 1999 to 2018 #
+###############
+fh.2018 <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\forest_health\\2018\\AOS_2018_Poly_Jan21.shp")
+bark.beetles.2018 <- dplyr::filter (fh.2018, FHF == "IB" | FHF == "IBB" | FHF == "IBD" |
                                              FHF == "IBM" | FHF == "IBS" | FHF == "IBI" |
                                              FHF == "IBW")
-bark.beetles.vs.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "V")
-bark.beetles.s.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "S")
-bark.beetles.m.1999 <- dplyr::filter (bark.beetles.1999, SEVERITY == "M")
-
-bark.beetles.m.1999 <- st_transform (bark.beetles.m.1999, crs = 3005)
-wmu.bark.beetles.m.1999 <- sf::st_intersection (bark.beetles.m.1999, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"])
-  
-table.wmu.bark.beetles.m.1999 <- as.data.table (wmu.bark.beetles.m.1999)  
-  
-table.wmu.bark.beetles.m.1999.sum <- table.wmu.bark.beetles.m.1999 %>% 
+bark.beetles.vs.2018 <- dplyr::filter (bark.beetles.2018, SEVERITY == "V")
+bark.beetles.s.2018 <- dplyr::filter (bark.beetles.2018, SEVERITY == "S")
+bark.beetles.m.2018 <- dplyr::filter (bark.beetles.2018, SEVERITY == "M")
+st_crs (bark.beetles.vs.2018) = 3005
+wmu.bark.beetles.vs.2018 <- sf::st_intersection (bark.beetles.vs.2018, poly.wmu ["WILDLIFE_MGMT_UNIT_ID"])
+table.wmu.bark.beetles.vs.2018 <- as.data.table (wmu.bark.beetles.vs.2018)  
+table.wmu.bark.beetles.vs.2018.sum <- table.wmu.bark.beetles.vs.2018 %>% 
                                           group_by (WILDLIFE_MGMT_UNIT_ID) %>%
-                                          summarise (beetle_1999_m_area_ha = sum (POLY_AREA))
-names (table.wmu.bark.beetles.m.1999.sum) [names (table.wmu.bark.beetles.m.1999.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+                                          summarise (beetle_2018_vs_area_ha = sum (POLY_AREA))
+names (table.wmu.bark.beetles.vs.2018.sum) [names (table.wmu.bark.beetles.vs.2018.sum) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
 
 ## these next steps left-join the fire data to wmu data ##
-setkey (as.data.table (table.wmu.bark.beetles.m.1999.sum), wmu)
+setkey (as.data.table (table.wmu.bark.beetles.vs.2018.sum), wmu)
 setkey (wmu.habitat, wmu)
-wmu.habitat <- merge (wmu.habitat, table.wmu.bark.beetles.m.1999.sum, all.x = TRUE)
+wmu.habitat <- merge (wmu.habitat, table.wmu.bark.beetles.vs.2018.sum, all.x = TRUE)
 wmu.habitat [is.na (wmu.habitat)] <- 0
-rm (bark.beetles.m.1999, wmu.bark.beetles.m.1999, table.wmu.bark.beetles.m.1999, table.wmu.bark.beetles.m.1999.sum, bark.beetles.m.1999)
+rm (bark.beetles.vs.2018, wmu.bark.beetles.vs.2018, table.wmu.bark.beetles.vs.2018, table.wmu.bark.beetles.vs.2018.sum, bark.beetles.vs.2018, bark.beetles.2018, fh.2018)
 gc ()
 
 # save the data
@@ -811,9 +808,3 @@ write.csv (wmu.habitat, "C:\\Work\\caribou\\clus_data\\moose\\wmu_habitat.csv")
 rm (wmu.wet.area)
 gc ()
 ```
-
-
-
-
-- ocrrelations
-- data explore/
