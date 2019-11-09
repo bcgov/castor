@@ -80,7 +80,7 @@ Init <- function(sim) {
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
     
-    tab1<-dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
     (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as eca
@@ -88,7 +88,7 @@ Init <- function(sim) {
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
@@ -96,14 +96,16 @@ Init <- function(sim) {
     dbCommit(sim$clusdb)
   }else{
     
-    tab1<-dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    
+    print(tab1[pixelid == 19299,])
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
@@ -124,14 +126,22 @@ Init <- function(sim) {
 growingStockCLUS.Update<- function(sim) {
   #Note: See the SQLite approach to updating. The Update statement does not support JOIN
   #update the yields being tracked
-
+  message("...drop indexs")
   dbExecute(sim$clusdb, "DROP INDEX index_age")
   dbExecute(sim$clusdb, "DROP INDEX index_height")
   
+  message("...increment age")
+  #Update the pixels table
+  dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = age + 1 WHERE age >= 0")
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  message("...update yields")
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
     
-    tab1<-dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
     (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as eca
@@ -139,7 +149,7 @@ growingStockCLUS.Update<- function(sim) {
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
@@ -147,14 +157,14 @@ growingStockCLUS.Update<- function(sim) {
     dbCommit(sim$clusdb)
   }else{
     
-    tab1<-dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
@@ -162,11 +172,13 @@ growingStockCLUS.Update<- function(sim) {
     dbCommit(sim$clusdb)  
   }
   
+  message("...create indexes")
   
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
   dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
   
   #Vacuum the db
+  message("...vacuum db")
   dbExecute(sim$clusdb, "VACUUM;")
   
   rm(tab1)

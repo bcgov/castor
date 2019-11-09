@@ -99,7 +99,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
         sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         
-        sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=99) # runs after the inits are done
+        sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=98) # runs after the inits are done
        }else{
         sim$foreststate<-NULL
         message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))

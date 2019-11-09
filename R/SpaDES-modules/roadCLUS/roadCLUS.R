@@ -76,19 +76,19 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       }else{
       # schedule future event(s)
       sim <- scheduleEvent(sim, eventTime =  time(sim) + P(sim, "roadCLUS", "roadSeqInterval"), "roadCLUS", "buildRoads", 7)
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save.sim", eventPriority=20)
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot.sim", eventPriority=21)
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save", eventPriority=20)
+      #sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "plot", eventPriority=21)
       }
       
       if(!suppliedElsewhere("landings", sim)){
         sim <- scheduleEvent(sim, eventTime = start(sim),  "roadCLUS", "simLandings")
       }
     },
-    plot.sim = {
+    plot = {
       # do stuff for this event
       sim <- roadCLUS.plot(sim)
     },
-    save.sim = {
+    save = {
       # do stuff for this event
       sim <- roadCLUS.save(sim)
     },
@@ -212,50 +212,54 @@ roadCLUS.getClosestRoad <- function(sim){
   closest.roads.pts <-RANN::nn2(roads.pts[,1:2],coordinates(sim$landings), k =1) #package RANN function nn2()? - yes much faster
   sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts$nn.idx, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
   
+  
   rm(roads.pts, closest.roads.pts)
   gc()
   return(invisible(sim))
 }
 
 roadCLUS.buildSnapRoads <- function(sim){
-  if(!is.null(sim$landings)){
-    print(sim$landings)
+  message("build snap roads")
+
     rdptsXY<-data.frame(sim$roads.close.XY) #convert to a data.frame
     rdptsXY$id<-as.numeric(row.names(rdptsXY))
     landings<-data.frame(sim$landings)
     landings$id<-as.numeric(row.names(landings))
     coodMatrix<-rbind(rdptsXY,landings)
     coodMatrix$attr_data<-100
-   
-    mt<-coodMatrix %>% 
-      st_as_sf(coords=c("x","y")) %>% 
+    mt<-st_as_sf(coodMatrix, coords=c("x","y"), crs = 3005)  %>% 
       group_by(as.integer(id)) %>% 
       summarize(m=mean(attr_data)) %>% 
       filter(st_is(. , "MULTIPOINT")) %>% # Fixed. returns an error because the nearest road point is the landing point.
       st_cast("LINESTRING")
-    print(class(mt))
-    print(mt)
-    sim$paths.v<-unlist(sim$rasVelo$extract(mt), use.names = FALSE)
-    sim$roads[sim$ras[] %in% sim$paths.v] <- (time(sim)+1)
+
+    if(length(sf::st_is_empty(mt)) > 0){
+      mt2<- sf::as_Spatial(mt$geometry) #needed to run velox -- doesn't have sf compatability
+      sim$paths.v<-unlist(sim$rasVelo$extract(mt2), use.names = FALSE)
+      sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)
+    }
+    
     rm(rdptsXY, landings, mt, coodMatrix)
     gc()
-  }
+  
   return(invisible(sim))
 }
 
 roadCLUS.updateRoadsTable <- function(sim){
   message('updateRoadsTable')
   roadUpdate<-data.table(sim$paths.v)
-  setnames(roadUpdate, "pixelid")
-  roadUpdate[,roadyear := time(sim)+1]
-  #TODO: Fix--> Some pixels will be over written - so the road year isn't accurate.
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  
+  if(nrow(roadUpdate) > 0){
+    setnames(roadUpdate, "pixelid")
+    roadUpdate[,roadyear := time(sim)+1]
+ 
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }
   
   sim$paths.v<-NULL
-  
   return(invisible(sim))
 }
 
