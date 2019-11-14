@@ -165,13 +165,13 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, con numeric, height numeric, eca numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, zone_const integer DEFAULT 0, thlb numeric , age numeric, vol numeric,
-crownclosure numeric, height numeric, siteindex numeric, eca numeric, roadyear integer)")
+crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
   return(invisible(sim))
 }
 
@@ -364,10 +364,10 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     }
     yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ")
     #Set the yields table with yield curves that are only in the study area
-    yields<-getTableQuery(paste0("SELECT ycid, age, tvol, con, height, eca FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
+    yields<-getTableQuery(paste0("SELECT ycid, age, tvol, dec_pcnt, height, eca FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, con, height, eca) 
-                      values (:ycid, :age, :tvol, :con, :height, :eca)", yields)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca) 
+                      values (:ycid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -378,12 +378,12 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     #Set the yields table
     yields<-data.table(yieldid= 1, age= seq(from =0, to=190, by = 10), 
                        tvol = seq(1:20)**2, 
-                       con = 100, 
+                       dec_pcnt = 0, 
                        height = seq(1:20), 
                        eca = round(1-(seq(1:20)**2/20**2), 2))
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, con, height, eca ) 
-                      values (:yieldid, :age, :tvol, :con, :height, :eca)", yields)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca ) 
+                      values (:yieldid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
   }
@@ -545,9 +545,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, age, crownclosure, height, siteindex, roadyear, zone',
+  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
-               values (:pixelid, :compartid, :yieldid, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, :zone', 
+               values (:pixelid, :compartid, :yieldid, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, 0, :zone', 
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
   
 
@@ -595,15 +595,18 @@ dataLoaderCLUS.setTHLB<-function(sim){
 }
 
 dataLoaderCLUS.calcForestState<-function(sim){
-sim$foreststate<- data.table(dbGetQuery(sim$clusdb, "SELECT sum(case when compartid is not null then 1 else 0 end) as total, 
+sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
            sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
            sum(case when age >= 140 then 1 else 0 end) as old,
            sum(case when roadyear >= 0  then 1 else 0 end) as road
-           FROM pixels")
+           FROM pixels  where compartid 
+              in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
+                         group by compartid;"))
             )
   return(invisible(sim))
 }
+
 
 .inputObjects <- function(sim) {
 
