@@ -114,9 +114,12 @@ Init <- function(sim) {
     }
   
 
-  sim$growingStockReport<- data.table(scenario = scenario$name, timeperiod = time(sim), 
-                                     dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock, compartid FROM pixels group by compartid;"))
- 
+  sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
+                                     dbGetQuery(sim$clusdb, 
+                                     paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
+              in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
+                         group by compartid;")))
+                                     
   
   rm(tab1)
   gc()
@@ -187,7 +190,10 @@ growingStockCLUS.Update<- function(sim) {
 }
 
 growingStockCLUS.record<- function(sim) {
-  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  dbGetQuery(sim$clusdb, "SELECT sum(vol) as growingstock, compartid FROM pixels group by compartid;"))), use.names = TRUE)
+  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
+              dbGetQuery(sim$clusdb, paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
+              in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
+                         group by compartid;")))), use.names = TRUE)
   return(invisible(sim))
 }
 
