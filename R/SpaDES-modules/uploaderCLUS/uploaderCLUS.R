@@ -71,32 +71,34 @@ Init <- function(sim) {
 
   #Does the schema exist?
   if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
+    message("...remove old information")
     #remove all the rows that have the scenario name in them
     if(!is.null(sim$foreststate)){
-      dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "';"))
+      message("...Add new forest state")
+      dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     }
     
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", scenario$name, "';"))
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
-
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".harvest where scenario = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", scenario$name, "';"))
+    
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".harvest where scenario = '", scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", scenario$name,"' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", scenario$name, "';"))
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
     dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "uploaderCLUS", "aoiName"),";"))
     dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO appuser;"))
     #Create the tables
-    tableList = list(state = data.table(aoi=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
+    tableList = list(state = data.table(aoi=character(), compartment=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
                     scenarios = data.table(scenario =character(), description= character()), 
-                    harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric()), 
-                    growingstock = data.table(scenario = character(), timeperiod = integer(), growingstock = numeric(), compartid = character()), 
+                    harvest = data.table(scenario = character(), compartment = character(), timeperiod = integer(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric()), 
+                    growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
                     rsf = data.table(scenario = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
                     survival = data.table(scenario = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), survival_rate= numeric()),
-                    yielduncertainty = data.table(scenario = character(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
+                    yielduncertainty = data.table(scenario = character(), compartment = character(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
     )
     tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "yielduncertainty")
     for(i in 1:length(tablesUpload)){
@@ -148,7 +150,7 @@ save.reports <-function (sim){
   
   #yielduncertainty
   if(!is.null(sim$yielduncertain)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), sim$yielduncertain, append = T,row.names = FALSE)
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), sim$yielduncertain, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 

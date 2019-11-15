@@ -47,7 +47,7 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
-times <- list(start = 0, end = 20)
+times <- list(start = 0, end = 5)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
