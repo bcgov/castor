@@ -38,6 +38,7 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                       tabPanel("Disturbance", navlistPanel(
                         "Summary", 
                         tabPanel("Fire", plotlyOutput(outputId = "firePlot", height = "400px")),
+                        tabPanel("THLB", tableOutput(outputId = "thlbTable")),
                         tabPanel("Cutblock", plotlyOutput(outputId = "cutPlot", height = "400px")),
                         tabPanel("Road", tableOutput("rdTable"))
                       )

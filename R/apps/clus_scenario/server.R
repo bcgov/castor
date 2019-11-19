@@ -28,8 +28,12 @@ shinyServer(function(input, output, session) {
     #clime<<-getTableQuery("SELECT * FROM public.clim_plot_data")
   #----------------
   #get cached cutblock summary
-    progress$set(value = 0.9, message = 'Loading...')
+    progress$set(value = 0.8, message = 'Loading...')
     cb_sumALL<<-getTableQuery("SELECT * FROM public.cb_sum")
+  #----------------
+    #get cached thlb summary
+    progress$set(value = 0.9, message = 'Loading...')
+    gcbp_thlb<<-getTableQuery("SELECT herd_name, sum FROM public.gcbp_thlb_sum")
   #----------------
   #get cached fire summary
     #fire_sum<<-getTableQuery("SELECT * FROM public.fire_sum")
@@ -82,7 +86,8 @@ shinyServer(function(input, output, session) {
   
   totalArea<- reactive({
     req(input$map_shape_click$group)
-    sum(st_area(herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]))})
+    sum(st_area(herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]))
+    })
   
   caribouHerd<-reactive({
     req(input$map_shape_click$group)
@@ -121,7 +126,6 @@ shinyServer(function(input, output, session) {
   })
   
   dist_data <- reactive({
-   
     req(caribouHerd())
     req(cb_sumALL)
     req(input$sliderCutAge)
@@ -139,6 +143,16 @@ shinyServer(function(input, output, session) {
   #fire_data <- reactive({
    # fire_sum[which(fire_sum$herd_name == caribouHerd() & fire_sum$fire_year > 1960 ),]
    # })
+  
+  thlb_data<- reactive({
+    req(caribouHerd())
+    req(gcbp_thlb)
+    req(totalArea())
+    out<-gcbp_thlb[which(gcbp_thlb$herd_name ==caribouHerd()),]
+    out$percentBoundary<-(out$sum/(totalArea()/10000))*100
+    out$herd_name<-NULL
+    out
+  })
   
   #Spatial--
   whaHerdSelect<-reactive({
@@ -365,6 +379,32 @@ shinyServer(function(input, output, session) {
     })
   })
   
+  output$thlbTable<-renderTable({
+    withProgress(message = 'Running THLB Query', value = 0, {
+      if(input$queryType == 2){
+        incProgress(0.5)
+        #Convert the polygon object to sql polygon
+        table<-getTableQuery(paste0("SELECT (ST_SummaryStatsAgg(x.intersectx,1,true)).sum 
+          FROM
+        (SELECT ST_Intersection(rast,1,ST_AsRaster(geom, rast),1) as intersectx
+          FROM bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005) as geom ) as t 
+          WHERE ST_Intersects(geom, rast)) as x
+        WHERE x.intersectx IS NOT NULL;"))
+        incProgress(0.95)
+        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        table$per_boundary<-(table$sum/ta)*100
+        names(table)<-c("Sum THLB (ha)", "Percent of Drawn Area (%)")
+        table
+      }else{
+        incProgress(0.5)
+        table<-thlb_data()
+        names(table)<-c("Sum THLB (ha)", "Percent of Boundary Area (%)")
+        table
+      }
+    })
+  })
+  
+  
   output$whaTable<-renderTable({
     withProgress(message = 'Running WHA Query', value = 0, {
       whatab<-st_intersection(st_set_agr(herdSelect(), "constant"), st_set_agr(whaHerdSelect(), "constant"))
@@ -390,20 +430,15 @@ shinyServer(function(input, output, session) {
         table<-getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_km, 
                             st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
                               FROM public.integrated_roads AS r,  
-                             (SELECT ST_GeomFromText('POLYGON((", 
-                             extent(drawnPolys())[1]," ", extent(drawnPolys())[3] , ",", 
-                             extent(drawnPolys())[1]," ", extent(drawnPolys())[4],",",
-                             extent(drawnPolys())[2]," ", extent(drawnPolys())[4],",", 
-                             extent(drawnPolys())[2]," ", extent(drawnPolys())[3],",", 
-                             extent(drawnPolys())[1]," ", extent(drawnPolys())[3], "))', 3005)) as m 
+                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
                              WHERE
                              ST_Contains(m.st_geomfromtext,r.wkb_geometry) 
                              GROUP BY  r.road_surface
                              ORDER BY  r.road_surface"))
         incProgress(0.95)
-        ta<-as.numeric(totalArea()/10000)
+        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
         table$per_boundary<-(table$area_ha_buffer/ta)*100
-        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Boundary Area (%)")
+        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Drawn Area (%)")
         table
       }else{
         incProgress(0.5)
