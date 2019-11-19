@@ -417,6 +417,7 @@ I obtained data on vegetation from the provincial government vegetation resource
 library (sf)
 library (units)
 library (dplyr)
+library (data.table)
 poly.vri <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\caribou_habitat_model.gdb",
                          layer = "vri_internal_20180725",
                          query = "SELECT FEATURE_ID, POLYGON_ID, COAST_INTERIOR_CD, SHRUB_CROWN_CLOSURE, BEC_ZONE_CODE, BEC_SUBZONE, BEC_VARIANT, CROWN_CLOSURE, SPECIES_CD_1, SPECIES_PCT_1, SPECIES_CD_2, SPECIES_PCT_2, SPECIES_CD_3, SPECIES_PCT_3, PROJ_AGE_1, PROJ_AGE_CLASS_CD_1, PROJ_AGE_2, PROJ_AGE_CLASS_CD_2, PROJ_HEIGHT_1 FROM vri_internal_20180725") # select the data fields of interest
@@ -425,21 +426,25 @@ rm (poly.vri)
 gc ()
 
 ### Need to do this analysis by game management zone since the data is too large to do provincially or by region ###
-poly.wmu.gmz8d <- poly.wmu [poly.wmu$GAME_MANAGEMENT_ZONE_ID == "8d" ,]
-poly.wmu.gmz8d <- poly.wmu.gmz8d ["WILDLIFE_MGMT_UNIT_ID"] # drop the data fields we don't need
-poly.vri.clean.gmz8d <- sf::st_intersection (poly.vri.clean, poly.wmu.gmz8d) # intersect the VRI with WMU data
-poly.vri.clean.gmz8d <- poly.vri.clean.gmz8d %>% 
+poly.wmu.gmz7Pe <- poly.wmu [poly.wmu$GAME_MANAGEMENT_ZONE_ID == "7Pe" ,]
+poly.wmu.gmz7Pe <- poly.wmu.gmz7Pe ["WILDLIFE_MGMT_UNIT_ID"] # drop the data fields we don't need
+poly.vri.clean.gmz7Pe <- sf::st_intersection (poly.vri.clean, poly.wmu.gmz7Pe) # intersect the VRI with WMU data
+poly.vri.clean.gmz7Pe <- poly.vri.clean.gmz7Pe %>% 
                             mutate (area_m2 = st_area (.) %>% # calculate area of each polygon in m2
                             as.numeric ())
-tab.poly.vri.gmz8d <- as.data.table (poly.vri.clean.gmz8d) 
-tab.poly.vri.gmz8d <- tab.poly.vri.gmz8d [, "SHAPE" := NULL] 
-names (tab.poly.vri.gmz8d) [names (tab.poly.vri.gmz8d) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
-tab.poly.vri.gmz8d$area_ha <- tab.poly.vri.gmz8d$area_m2 / 10000 # convert m^2 to ha
-tab.poly.vri <- rbind (tab.poly.vri, tab.poly.vri.gmz8d)
-rm (poly.wmu.gmz8d, poly.vri.clean.gmz8d, tab.poly.vri.gmz8d)
+tab.poly.vri.gmz7Pe <- as.data.table (poly.vri.clean.gmz7Pe) 
+tab.poly.vri.gmz7Pe <- tab.poly.vri.gmz7Pe [, "SHAPE" := NULL] 
+names (tab.poly.vri.gmz7Pe) [names (tab.poly.vri.gmz7Pe) == "WILDLIFE_MGMT_UNIT_ID"] <- "wmu"
+tab.poly.vri.gmz7Pe$area_ha <- tab.poly.vri.gmz7Pe$area_m2 / 10000 # convert m^2 to ha
+tab.poly.vri <- rbind (tab.poly.vri, tab.poly.vri.gmz7Pe)
+rm (poly.wmu.gmz7Pe, poly.vri.clean.gmz7Pe, tab.poly.vri.gmz7Pe)
 gc ()
 write.csv (tab.poly.vri, # save the data
            "C:\\Work\\caribou\\clus_data\\moose\\table_vri_wmu.csv")
+
+
+
+
 ```
 
 I summarized the area of each biogeoclimatic (BEC) zone in each management area. BEC represents broad classes of climatic and vegetation conditions. 
