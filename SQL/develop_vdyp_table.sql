@@ -261,7 +261,7 @@ select feature_id from vdyp_output group by feature_id having count(feature_id) 
 */
 
 /*--------------------------------------------------------------------------*/
-/* Step 3. Set "Back" projections to NULL*/
+/* Step 3a. Set "Back" projections to NULL*/
 Update vdyp_output SET  prj_pcnt_stock  = NULL, prj_site_index = NULL, prj_dom_ht = NULL, prj_lorey_ht = NULL, prj_diameter = NULL,
   prj_tph = NULL, prj_ba = NULL, prj_vol_ws = NULL, prj_vol_cu = NULL, prj_vol_d = NULL, prj_vol_dw = NULL, prj_vol_dwb = NULL,
   prj_sp1_vol_ws = NULL, prj_sp1_vol_cu = NULL, prj_sp1_vol_d = NULL, prj_sp1_vol_dw = NULL, prj_sp1_vol_dwb = NULL,
@@ -273,7 +273,7 @@ Update vdyp_output SET  prj_pcnt_stock  = NULL, prj_site_index = NULL, prj_dom_h
   WHERE prj_mode = 'Back';
 
  /*VACUUM vdyp_output; Clean up the table*/
-  
+
 /*--------------------------------------------------------------------------*/
 /* Step 4. Remove Projections that have serious errors
 	a. Add a column to vdyp_err to parse out the feature_id*/
@@ -426,10 +426,13 @@ AND site_index > 0 and crown_closure_class_cd IS NOT NULL and proj_height_class_
 7	55.5 – 64.4m
 8	> 65.5m*/
 
-create table vdyp_test as (SELECT * from (select yc_grp, polygon_area, b.feature_id, opening_id, 
+create table vdyp_test as (SELECT * from (
+	select yc_grp, polygon_area, b.feature_id, opening_id, 
 										bclcs_level_2, prj_total_age, 
 prj_site_index, prj_dom_ht, prj_lorey_ht, prj_diameter, prj_tph, prj_ba, prj_vol_ws, prj_vol_cu, 
-										 prj_vol_d, prj_vol_dw, prj_vol_dwb
+										 prj_vol_d, prj_vol_dw, prj_vol_dwb, prj_sp1_vol_dwb, prj_sp2_vol_dwb,
+	prj_sp3_vol_dwb, prj_sp4_vol_dwb, prj_sp5_vol_dwb, prj_sp6_vol_dwb, species_1_code, species_2_code,
+	species_3_code,species_4_code,species_5_code,species_6_code
 FROM vdyp_output
 FULL JOIN (SELECT feature_id, yc_grp, polygon_area, opening_id, bclcs_level_2 FROM vdyp_vri2018) as b
 ON vdyp_output.feature_id = b.feature_id) as foo);
@@ -438,10 +441,35 @@ ON vdyp_output.feature_id = b.feature_id) as foo);
 DELETE from vdyp_test where opening_id is NOT NULL OR yc_grp Is NULL;
 DELETE from vdyp_test where feature_id IN (select feature_id from vdyp_test where prj_total_age is NULL);
 
+alter table vdyp_test add column perdec1 double precision; 
+update vdyp_test set perdec1 = case when species_1_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp1_vol_dwb end;
+
+alter table vdyp_test add column perdec2 double precision; 
+update vdyp_test set perdec2 = case when species_2_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp2_vol_dwb end;
+
+alter table vdyp_test add column perdec3 double precision; 
+update vdyp_test set perdec3 = case when species_3_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp3_vol_dwb end;
+
+alter table vdyp_test add column perdec4 double precision; 
+update vdyp_test set perdec4 = case when species_4_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp4_vol_dwb end;
+
+alter table vdyp_test add column perdec5 double precision; 
+update vdyp_test set perdec5 = case when species_5_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp5_vol_dwb end;
+
+alter table vdyp_test add column perdec6 double precision; 
+update vdyp_test set perdec6 = case when species_6_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp6_vol_dwb end;
+
+alter table vdyp_test add column decper double precision; 
+update vdyp_test set decper = ((coalesce(perdec1,0) + coalesce(perdec2,0) + coalesce(perdec3,0)+coalesce(perdec4,0) +coalesce(perdec5,0) + coalesce(perdec6,0)) / prj_vol_dwb)
+where prj_vol_dwb > 0;
+update vdyp_test set decper = ROUND(CAST(decper as numeric), 2);
+
+
+
 create table vdyp_test2 as (SELECT * from (select vdyp_test.yc_grp, polygon_area, total_area, polygon_area/total_area as wt, feature_id, opening_id, 
 										bclcs_level_2, prj_total_age, 
 prj_site_index, prj_dom_ht, prj_lorey_ht, prj_diameter, prj_tph, prj_ba, prj_vol_ws, prj_vol_cu, 
-										 prj_vol_d, prj_vol_dw, prj_vol_dwb
+										 prj_vol_d, prj_vol_dw, prj_vol_dwb, decper
 FROM vdyp_test
 FULL JOIN (select yc_grp,  sum(polygon_area) as total_area 
 							   from vdyp_test where prj_total_age = 10 group by yc_grp) as b
@@ -457,7 +485,8 @@ sum(case when prj_diameter is not null then prj_diameter*wt end) / sum(case when
 sum(case when prj_ba is not null then prj_ba*wt end) / sum(case when prj_ba is not null then wt end) as prj_ba,
 sum(case when prj_tph is not null then prj_tph*wt end) / sum(case when prj_tph is not null then wt end) as prj_tph,
 sum(case when prj_dom_ht is not null then prj_dom_ht*wt end) / sum(case when prj_dom_ht is not null then wt end) as prj_dom_ht,
-sum(case when prj_lorey_ht is not null then prj_lorey_ht*wt end) / sum(case when prj_lorey_ht is not null then wt end) as prj_lorey_ht
+sum(case when prj_lorey_ht is not null then prj_lorey_ht*wt end) / sum(case when prj_lorey_ht is not null then wt end) as prj_lorey_ht,
+sum(case when decper is not null then decper*wt end) / sum(case when decper is not null then wt end) as prj_decper
 FROM vdyp_test2
 group by yc_grp, prj_total_age);
 
@@ -468,16 +497,33 @@ select * from vdyp_test3 where yc_grp like 'BWBS_At(Ac)%';
 
 Create table yieldcurves as
 SELECT ycid, yc_vat.yc_grp, prj_total_age as age,
-prj_vol_dwb as tvol, prj_dom_ht as height , (0.0) as con, (0) as eca FROM yc_vat
+prj_vol_dwb as tvol, prj_dom_ht as height , prj_decper as dec_pcnt, (0) as eca FROM yc_vat
 JOIN vdyp_test3 ON
 yc_vat.yc_grp = vdyp_test3.yc_grp;
+
 Update yieldcurves set tvol = 0 where tvol is NULL;
 
 --add the lower limit of the yield curve
-insert into yieldcurves (ycid, yc_grp, age, tvol, height, con, eca)
-select distinct(ycid),  yc_grp, (0) as age, (0.0) as tvol, (0.0) as height, (0.0) as con, (0) as eca
+insert into yieldcurves (ycid, yc_grp, age, tvol, height, dec_pcnt, eca)
+select distinct(ycid),  yc_grp, (0) as age, (0.0) as tvol, (0.0) as height, (0.0) as dec_pcnt, (0) as eca
 from yieldcurves;
 
 select * from yieldcurves order by yc_grp, age limit 1000;
+update yieldcurves set dec_pcnt = ROUND(CAST(dec_pcnt as numeric), 2);
+update yieldcurves set height = ROUND(CAST(height as numeric), 2);
+update yieldcurves set tvol = ROUND(CAST(tvol as numeric), 2);
+
+/*STEP 7. Assign ECA. See https://www.for.gov.bc.ca/tasb/legsregs/fpc/FPCGUIDE/wap/WAPGdbk-Web.pdf*/
+---Table A2.2 Hydrological recovery for fully stocked stands that reach a maximum crown closure of 50%–70%.
+/*Average height of the main canopy (m) % Recovery
+0 – <3 0
+3 – <5 25
+5 – <7 50
+7 – <9 75
+9 + 90
+*/
+--ECA = A*(1-R). All VDYP curves are on 0 eca. TIPSY Curves will get this designation.
+
+/*STEP 8. Conifer percentage. From yield curves.
 
 

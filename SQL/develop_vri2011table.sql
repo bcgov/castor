@@ -56,6 +56,8 @@ select distinct(timber_mrk) FROM (
 where 1.2 < per_area OR per_area < 0.8);
 
 
+--DELETE BY5H37 -- missing a portion --but this portion is within +- 20%
+DELETE FROM cnx_hbs where timber_mrk = 'BY5H37';
 
 --Save to csv to get HBS volumes
 copy (SELECT distinct(timber_mrk) FROM cnx_hbs) to '/timber_mrks.csv' CSV HEADER;
@@ -141,7 +143,8 @@ CREATE TABLE yt_vri2011 AS
 SELECT l.feature_id, p.shape,
 basal_area, crown_closure, crown_closure_class_cd, proj_age_1, proj_age_class_cd_1, proj_height_1, proj_height_class_cd_1, 
 site_index, line_3_tree_species, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3,
-species_pct_3, species_cd_4,species_pct_4 , for_cover_rank_cd, bec_zone_code
+species_pct_3, species_cd_4,species_pct_4 , for_cover_rank_cd, bec_zone_code,
+(live_stand_volume_125/(dead_stand_volume_125 + live_stand_volume_125)) as pcnt_dead
 FROM public.whse_forest_vegetation_2011_veg_comp_layer as l
 Left JOIN (select  feature_id,shape, line_3_tree_species, polygon_area, bclcs_level_3, bclcs_level_2, reference_year, bec_zone_code from public.whse_forest_vegetation_2011_veg_comp_poly) as p 
 ON
