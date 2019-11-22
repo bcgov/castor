@@ -10,7 +10,7 @@ RUN apt-get clean
 RUN R -e "install.packages(c('shiny','shinydashboard', 'shinyBS', 'plotly', 'openxlsx','devtools'))"
 
 #Install from github
-RUN R -e "devtools::install_github('bcgov/CaribouBC')"
+RUN R -e "devtools::install_github('psolymos/CaribouBC')"
 
 # copy the app to the image 
 COPY global.R /srv/shiny-server/
