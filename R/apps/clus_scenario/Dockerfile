@@ -12,6 +12,7 @@ RUN R -e "install.packages(c('shiny','shinydashboard', 'shinyjs', 'V8', 'shinyth
 COPY server.R /srv/shiny-server/
 COPY ui.R /srv/shiny-server/
 COPY /www /srv/shiny-server/www
+COPY global.R /srv/shiny-server/
 
 # make all app files readable (solves issue when dev in Windows, but building in Ubuntu)
 RUN sudo chown -R shiny:shiny /srv/shiny-server/
