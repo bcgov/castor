@@ -10,8 +10,8 @@
 *.tmp
 /list_clus_data.xlsx
 .pdf
-*.html
 *.xlsx
+*.yml
 /scrap.R
 /global.R
 /tass/

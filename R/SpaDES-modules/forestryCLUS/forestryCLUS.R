@@ -93,18 +93,23 @@ forestryCLUS.Init <- function(sim) {
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric())
+  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
-  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
-  #nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
-  #                     dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
-  #                     by.x = "reference_zone", by.y = "reference_zone"))
-  #if(nrow(nhConstraints) > 0 ){
-  #  nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-  #  dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
-  #}
+  #Remove zones in a scenario
+  dbExecute(sim$clusdb, paste0("DELETE FROM zone WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
+  dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
   
+  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
+  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+                       dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+                       by.x = "reference_zone", by.y = "reference_zone"))
+  if(nrow(nhConstraints) > 0 ){
+    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+     dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  }
+  
+ 
   #For printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
   sim$harvestBlocks[]<-0
@@ -126,6 +131,7 @@ forestryCLUS.save<- function(sim) {
 forestryCLUS.setConstraints<- function(sim) {
   message("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
+  
   message("....assigning zone_const")
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
@@ -240,7 +246,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
     harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
     
-    if(!is.na(harvestTarget)){# Determine if there is a demand for volume to harvest
+    if(length(harvestTarget)>0){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
       harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
@@ -280,6 +286,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         temp_harvest_report<-data.table(scenario= scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList))
         temp_harvest_report<-temp_harvest_report[, age:=age/area]
         temp_harvest_report<-temp_harvest_report[, hsize:=area/hsize]
+        temp_harvest_report<-temp_harvest_report[, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, "SELECT sum(thlb) from pixels where zone_const = 0;"))]
         sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report))
       
         #Create landings
@@ -292,6 +299,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         rm(land_pixels, queue, temp_harvest_report, temp.harvestBlockList)
       }
     } else{
+      message("No volume demanded")
       next #No volume demanded in this compartment
     }
   }
