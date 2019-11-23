@@ -70,12 +70,12 @@ ui <- dashboardPage(skin = "black",
           valueBox("BAU", "RSF", icon = icon("paw"), color = "purple")
           ),
         fluidRow(
-          box(title = "Survival", collapsible = TRUE, solidHeader = TRUE, background = "purple", width =12,
-            plotlyOutput(outputId = "survivalPlot", height = "400px"))
-          ),
+          box(title = "Proportion Disturbed", collapsible = TRUE, solidHeader = TRUE, background = "purple", width =12,
+              plotlyOutput(outputId = "propAgePlot", height = "400px"))
+        ),
         fluidRow(
-          box(title = "Proportion Disturbed", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-            plotlyOutput(outputId = "propAgePlot", height = "400px"))
+          box(title = "Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+            plotlyOutput(outputId = "survivalPlot", height = "400px"))
           ),
         fluidRow(
           box(title = "Resource Selection", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,

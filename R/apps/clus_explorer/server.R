@@ -188,15 +188,18 @@ observeEvent(input$getMapLayersButton, {
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
+      data[ , survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, herd_bounds)]  # replace first() with shift() to get difference with previous year value instead of first year value
       #data$scenario <- reorder(data$scenario, data$survival_rate, function(x) -max(x) )
-      p<-ggplot(data, aes (x=timeperiod, y=survival_rate, color = scenario, type = scenario)) +
+      p<-ggplot(data, aes (x=timeperiod, y=survival_rate_change, color = scenario)) +
         facet_grid(.~herd_bounds)+
         geom_line() +
         xlab ("Future year") +
-        ylab ("Adult Female Survival Rate)") +
+        ylab ("Change in Annual Adult Female Survival Rate)") +
         scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
-        scale_alpha(range=c(0.4,0.8))+
-        scale_color_grey(start=0.8, end=0.2) +
+        #scale_alpha(range=c(0.4,0.8))+
+        #scale_color_grey(start=0.8, end=0.2) +
+        # scale_color_manual (name = "Scenario", #not working... tryign to get the legend names subsituted...
+        #                     labels = "Canada (Upper Ditchline)")+ # "Business as Usual (Lower Ditchline)", "Tyler"
         theme_bw()
       ggplotly(p)
     })
@@ -222,16 +225,17 @@ observeEvent(input$getMapLayersButton, {
   output$rsfPlot <- renderPlotly ({
     data<-reportList()$rsf
     data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-    p<-ggplot(data, aes (x=as.factor(timeperiod), y=sum_rsf_hat, fill = scenario)) +
+    data[ , rsf_perc_change := ((sum_rsf_hat - first(sum_rsf_hat))/sum_rsf_hat * 100), by = .(scenario, rsf_model)]  # replace first() with shift() to get difference with previous year value instead of first year value
+    p<-ggplot(data, aes (x=as.factor(timeperiod), y=rsf_perc_change, fill = scenario)) +
       facet_grid(rsf_model~.)+
       geom_bar(stat="identity",position = "dodge") +
       xlab ("Future year") +
-      ylab ("Sum RSF Value") +
+      ylab ("RSF Value Percent Change") +
       #scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
       scale_alpha_discrete(range=c(0.4,0.8))+
       scale_fill_grey(start=0.8, end=0.2) +
       theme_bw()
-    ggplotly(p)
+    ggplotly(p) # change seasonal values
   })  
 }
 
