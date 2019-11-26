@@ -65,11 +65,6 @@ ui <- dashboardPage(skin = "black",
       ),
       tabItem(tabName = "caribou",
         fluidRow(
-          valueBox("BAU", "Disturbance", icon = icon("paw"), color = "purple"),
-          valueBox("BAU", "Survival", icon = icon("paw"), color = "purple"),
-          valueBox("BAU", "RSF", icon = icon("paw"), color = "purple")
-          ),
-        fluidRow(
           box(title = "Proportion Disturbed", collapsible = TRUE, solidHeader = TRUE, background = "purple", width =12,
               plotlyOutput(outputId = "propAgePlot", height = "400px"))
         ),
@@ -83,11 +78,6 @@ ui <- dashboardPage(skin = "black",
         )
       ),
       tabItem(tabName = "forestry",
-        fluidRow(
-          valueBox("BAU", "Acheiving AAC", icon = icon("tree"), color = "green"),
-          valueBox("BAU", "Area Harvested", icon = icon("tree"), color = "green"),
-          valueBox("BAU", "Volume Harvested", icon = icon("tree"), color = "green")
-        ),
         fluidRow(
           box(title = "Harvest Flow", collapsible = TRUE, solidHeader = TRUE,background = "green", width =12,
             plotlyOutput(outputId = "harvestAreaPlot", height = "400px"),

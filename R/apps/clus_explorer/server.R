@@ -34,10 +34,13 @@ availableMapLayers <- reactive({
   list_layers<-list()
   i<-1
   k<-1
+  print (input$scenario)
   while(i < 2*length(input$scenario)){
-    list_layers[[i]]<-paste0(input$scenario[[k]], "_roads")
+    list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_roads")
     i<-i+1
-    list_layers[[i]]<-paste0(input$scenario[[k]], "_cutblocks")
+    list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_cutblocks")
+    i<-i+1
+    list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_constraint")
     k<- k +1
     i<-i+1
   }
@@ -54,8 +57,8 @@ reportList<-reactive({
   req(input$scenario)
   list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        growingstock = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
-       rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
-       survival = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');")))
+       rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
+       survival = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
     )
 })
 
@@ -63,7 +66,7 @@ observeEvent(input$getMapLayersButton, {
   print(length(input$maplayers))
   
   withProgress(message = 'Loading layers', value = 0.1, {
-    mapLayersStack <-getRasterQuery(c("chilcotin", tolower(input$maplayers)))
+    mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
   })
 
   colores <- c('red', 'green', 'blue', 'chocolate', 'deeppink', 'grey')
@@ -188,54 +191,91 @@ observeEvent(input$getMapLayersButton, {
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
-      data[ , survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, herd_bounds)]  # replace first() with shift() to get difference with previous year value instead of first year value
+      # data [order(data$scenario,  data$herd_bounds, data$timeperiod)]
+      # data.year0 <- data[data$timeperiod == 0, c ("scenario", "herd_bounds", "survival_rate")]
+      # setnames(data.year0, old = "survival_rate", new = "survival_rate_0")
+      # data <- merge (data, data.year0, by = c("scenario", "herd_bounds"))
+      data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, herd_bounds)]  # replace first() with shift() to get difference with previous year value instead of first year value
+      data [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+      data [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+      data [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
       #data$scenario <- reorder(data$scenario, data$survival_rate, function(x) -max(x) )
       p<-ggplot(data, aes (x=timeperiod, y=survival_rate_change, color = scenario)) +
         facet_grid(.~herd_bounds)+
         geom_line() +
+        geom_hline(yintercept=0, linetype="dashed", color = "black")+
         xlab ("Future year") +
         ylab ("Change in Annual Adult Female Survival Rate)") +
-        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
         #scale_alpha(range=c(0.4,0.8))+
         #scale_color_grey(start=0.8, end=0.2) +
         # scale_color_manual (name = "Scenario", #not working... tryign to get the legend names subsituted...
         #                     labels = "Canada (Upper Ditchline)")+ # "Business as Usual (Lower Ditchline)", "Tyler"
-        theme_bw()
-      ggplotly(p)
+        theme_bw()+
+        theme (legend.title = element_blank())
+      ggplotly(p) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0)
+                #yaxis = list (title=paste0(c(rep("&nbsp;", 50),"RSF Value Percent Change", rep("&nbsp;", 2000), rep("\n&nbsp;", 13))
+                )# change seasonal values
     })
   }) 
   
   output$propAgePlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
-      #data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x) )
+      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
+      data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+      data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+      data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
       p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
         facet_grid(.~herd_bounds)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age < 40 years") +
-        scale_x_continuous(breaks = seq(0, max(data1$timeperiod), by = 2))+
-        scale_alpha_discrete(range=c(0.4,0.8))+
-        scale_color_grey(start=0.8, end=0.2) +
-        theme_bw()
-      ggplotly(p)
+        scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        # scale_alpha_discrete(range=c(0.4,0.8))+
+        # scale_color_grey(start=0.8, end=0.2) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+      ggplotly(p) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
+                #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
+                )# change seasonal values
     })
   }) 
   
   output$rsfPlot <- renderPlotly ({
     data<-reportList()$rsf
-    data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-    data[ , rsf_perc_change := ((sum_rsf_hat - first(sum_rsf_hat))/sum_rsf_hat * 100), by = .(scenario, rsf_model)]  # replace first() with shift() to get difference with previous year value instead of first year value
-    p<-ggplot(data, aes (x=as.factor(timeperiod), y=rsf_perc_change, fill = scenario)) +
+    # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
+    data [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+    data [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+    data [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
+    data [rsf_model %in% c ('caribou_DU7_EW'), rsf_model := 'Early Winter (DU7)']
+    data [rsf_model %in% c ('caribou_DU7_LW'), rsf_model := 'Late Winter (DU7)']
+    data [rsf_model %in% c ('caribou_DU7_S'), rsf_model := 'Summer (DU7)']
+    # data [order(data$scenario, data$rsf_model, data$timeperiod)]
+    # data.year0 <- data[data$timeperiod == 0, c ("scenario", "sum_rsf_hat")]
+    # setnames(data.year0, old = "sum_rsf_hat", new = "sum_rsf_hate_0")
+    # data <- merge (data, data.year0, by = "scenario")
+    data[ , rsf_perc_change := ((first(sum_rsf_hat) - sum_rsf_hat)/first(sum_rsf_hat) * 100), by = .(scenario, rsf_model)]  # replace first() with shift() to get difference with previous year value instead of first year value
+    p<-ggplot(data, aes (x=timeperiod, y=rsf_perc_change, fill = scenario)) +
       facet_grid(rsf_model~.)+
       geom_bar(stat="identity",position = "dodge") +
+      geom_hline(yintercept=0, linetype="dashed", color = "black")+
       xlab ("Future year") +
       ylab ("RSF Value Percent Change") +
-      #scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
-      scale_alpha_discrete(range=c(0.4,0.8))+
-      scale_fill_grey(start=0.8, end=0.2) +
-      theme_bw()
-    ggplotly(p) # change seasonal values
+      scale_x_continuous(limits = c(0, 55), breaks = seq(0, 50, by = 10))+
+      # scale_alpha_discrete(range=c(0.4,0.8))+
+      # scale_fill_grey(start=0.8, end=0.2)+
+      theme_bw()+
+      theme (legend.title = element_blank())
+    ggplotly(p)  %>% 
+      layout (legend = list (orientation = "h", y = -0.1),
+              margin = list (l = 50, r = 40, b = 40, t = 10, pad = 0)
+              #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
+              )# change seasonal values
   })  
 }
 
