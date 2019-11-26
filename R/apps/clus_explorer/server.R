@@ -66,16 +66,17 @@ observeEvent(input$getMapLayersButton, {
     mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
   })
 
-  colores <- c('red', 'green', 'blue', 'chocolate', 'deeppink', 'grey')
-  at <- seq(0, 20, 1)
-  cb <- colorBin(palette = colores, bins = at, domain = at)
+  #colores <- c('red', 'green', 'blue', 'chocolate', 'deeppink', 'grey')
+  #at <- seq(0, 20, 1)
+  #cb <- colorBin(palette = colores, bins = at, domain = at)
+  cb<-colorNumeric("Spectral", domain = 0:100, na.color = "#00000000")
   
   leafletProxy("resultSetRaster") %>% 
     clearImages() %>% 
     clearTiles() %>%
     addTiles()  %>%
-    addRasterImage(mapLayersStack,  colors = cb, opacity = 0.8) %>% 
-    addLegend(pal = cb, values = at)
+    addRasterImage(mapLayersStack,  colors = , opacity = 0.8, project= TRUE) %>% 
+    addLegend(pal = cb, values = 0:100)
 })
 
 #---Observe
