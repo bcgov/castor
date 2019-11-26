@@ -41,7 +41,7 @@ ui <- dashboardPage(skin = "black",
         fluidRow( #Table query
           box(title = "Table Query", background = "black", solidHeader = TRUE,
                     #em("SELECT",style="color:#090909;font-size:80%")
-              selectInput(inputId = "queryTable", label = "FROM TABLE:", choices = c("scenarios", "harvest", "rsf",  "growingstock", "survival" ), selected = character(0)),
+              selectInput(inputId = "queryTable", label = "FROM TABLE:", choices = c("scenarios", "harvest", "rsf",  "growingstock", "survival" , "yielduncertainty"), selected = character(0)),
               fluidRow(
                 column(width = 6, textInput(inputId= "queryWHERE", label = "Where")),
                 column(width = 6, selectInput(inputId= "queryColumns", label = "Columns", choices = NULL))
@@ -65,7 +65,7 @@ ui <- dashboardPage(skin = "black",
       ),
       tabItem(tabName = "caribou",
         fluidRow(
-          box(title = "Proportion Disturbed", collapsible = TRUE, solidHeader = TRUE, background = "purple", width =12,
+          box(title = "Proportion Disturbed", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
               plotlyOutput(outputId = "propAgePlot", height = "400px"))
         ),
         fluidRow(
@@ -74,12 +74,12 @@ ui <- dashboardPage(skin = "black",
           ),
         fluidRow(
           box(title = "Resource Selection", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "rsfPlot", height = "400px"))
+              plotlyOutput(outputId = "rsfPlot", height = "500px"))
         )
       ),
       tabItem(tabName = "forestry",
         fluidRow(
-          box(title = "Harvest Flow", collapsible = TRUE, solidHeader = TRUE,background = "green", width =12,
+          box(title = "Harvest Flow", collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "green", width =12,
             plotlyOutput(outputId = "harvestAreaPlot", height = "400px"),
             plotlyOutput(outputId = "harvestVolumePlot", height = "400px")
           )

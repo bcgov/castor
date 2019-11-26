@@ -34,7 +34,6 @@ availableMapLayers <- reactive({
   list_layers<-list()
   i<-1
   k<-1
-  print (input$scenario)
   while(i < 2*length(input$scenario)){
     list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_roads")
     i<-i+1
@@ -56,15 +55,13 @@ reportList<-reactive({
   req(input$schema)
   req(input$scenario)
   list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
-       growingstock = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
+       growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
        survival = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
     )
 })
 
 observeEvent(input$getMapLayersButton, {
-  print(length(input$maplayers))
-  
   withProgress(message = 'Loading layers', value = 0.1, {
     mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
   })
