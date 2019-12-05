@@ -69,6 +69,14 @@ ui <- dashboardPage(skin = "black",
               plotlyOutput(outputId = "propAgePlot", height = "400px"))
         ),
         fluidRow(
+          box(title = "Proportion Mature", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+              plotlyOutput(outputId = "propMaturePlot", height = "400px"))
+        ),
+        fluidRow(
+          box(title = "Proportion Old", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+              plotlyOutput(outputId = "propOldPlot", height = "400px"))
+        ),
+        fluidRow(
           box(title = "Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
             plotlyOutput(outputId = "survivalPlot", height = "400px"))
           ),

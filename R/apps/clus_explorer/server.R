@@ -244,6 +244,56 @@ observeEvent(input$getMapLayersButton, {
     })
   }) 
   
+  output$propMaturePlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data1<-reportList()$survival
+      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
+      data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+      data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+      data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
+      p<-ggplot(data1, aes (x=timeperiod, y=prop_mature, color = scenario, type = scenario)) +
+        facet_grid(.~herd_bounds)+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Proportion Age 80 to 120 years") +
+        scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        # scale_alpha_discrete(range=c(0.4,0.8))+
+        # scale_color_grey(start=0.8, end=0.2) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+      ggplotly(p) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
+                #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
+        )# change seasonal values
+    })
+  }) 
+  
+  output$propOldPlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data1<-reportList()$survival
+      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
+      data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+      data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+      data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
+      p<-ggplot(data1, aes (x=timeperiod, y=prop_old, color = scenario, type = scenario)) +
+        facet_grid(.~herd_bounds)+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Proportion > 120 years") +
+        scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        # scale_alpha_discrete(range=c(0.4,0.8))+
+        # scale_color_grey(start=0.8, end=0.2) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+      ggplotly(p) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
+                #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
+        )# change seasonal values
+    })
+  }) 
+  
   output$rsfPlot <- renderPlotly ({
     data<-reportList()$rsf
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
