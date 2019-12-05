@@ -107,7 +107,9 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
     # it does this by each herd ('GROUP BY' statement)
     # the IS NOT NULL statements drop out the non-forested areas from the calculation, i.e., the denominator is the area of forest, not all land
   sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
-  # alternate way to specify the query: SELECT AVG (CASE WHEN age IS NOT NULL AND age BETWEEN 0 AND 40 THEN 1 WHEN age IS NOT NULL THEN 0 ELSE NULL END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL GROUP BY herd_bounds;
+  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;")) # mature and old forest indicators; not for 
+  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;")) # mature and old forest indicators; not for 
+    # alternate way to specify the query: SELECT AVG (CASE WHEN age IS NOT NULL AND age BETWEEN 0 AND 40 THEN 1 WHEN age IS NOT NULL THEN 0 ELSE NULL END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL GROUP BY herd_bounds;
 
   # The following equation calculates the survival rate in the herd area using the Wittmer et al. model 
     # The model is a threshold model; if the proportion of 1 to 40 year old forest is < 0.09, 

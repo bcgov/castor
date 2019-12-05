@@ -79,6 +79,8 @@ This module needs the 'age' field (i.e., age of forest) from the 'pixels' table 
 ## Output data
 This module outputs a table that has the herd name identifer, proportion of forest area that is 1 to 40 years old in the herd area and the estimated survival rate of the herd at each time interval of the sim.
 
+There was a request to summarize area of mature (prop_mature) and old forest (prtop_old) in caribou ranges, so these indicators were added to this module Dec. 2019. They are not needed to calcualte survival. Mature was defined as 80 to 120 years old and greater than 120 years old, respectively, but these can be modified as needed.  
+
 # Links to other modules
 The module will only work if the dataLoadDerCLUS clusdb is instantiated as part of the CLUS model. Otherwise you won't have the age data needed to make the survival rate calculation. 
 
