@@ -96,7 +96,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- dataLoaderCLUS.createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
         sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
-        sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
+        #sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
         sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         
         sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=98) # runs after the inits are done
@@ -112,7 +112,8 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         dbExecute(sim$clusdb, "PRAGMA synchronous = OFF") # update the database
         dbExecute(sim$clusdb, "PRAGMA journal_mode = OFF")
         
-        sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), # function sourced from R_Postgres file
+        sim$ras<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                              srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), # function sourced from R_Postgres file
                               clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                               geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                               where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -149,7 +150,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 disconnectDbCLUS<- function(sim) {
   if(P(sim)$save_clusdb){
     message('Saving clusdb')
-    con<-dbConnect(RSQLite::SQLite(), "clusdb.sqlite")
+    con<-dbConnect(RSQLite::SQLite(), paste0(P(sim, 'dataLoaderCLUS', 'nameBoundary'), "_clusdb.sqlite"))
     RSQLite::sqliteCopyDatabase(sim$clusdb, con)
     dbDisconnect(sim$clusdb)
     dbDisconnect(con)
@@ -182,7 +183,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #-----------------------
   if(!(P(sim, "dataLoaderCLUS", "nameCompartmentRaster") == "99999")){
     message(paste0('.....compartment ids: ', P(sim, "dataLoaderCLUS", "nameCompartmentRaster")))
-    sim$ras<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
+    sim$ras<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                          srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -215,7 +217,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   }else{
     message('.....compartment ids: default 1')
     #Set the empty table for values not supplied in the parameters
-    sim$ras<-RASTER_CLIP2(srcRaster= 'rast.bc_bound', 
+    sim$ras<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                          srcRaster= 'rast.bc_bound', 
                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), 
@@ -241,7 +244,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #------------
   if(!(P(sim, "dataLoaderCLUS", "nameOwnershipRaster") == "99999")){
     message(paste0('.....ownership: ',P(sim, "dataLoaderCLUS", "nameOwnershipRaster")))
-    ras.own<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameOwnershipRaster"), 
+    ras.own<- RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                           srcRaster= P(sim, "dataLoaderCLUS", "nameOwnershipRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -268,7 +272,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     zones_aoi<-data.table(zoneid='', zone_column='')
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:sim$zone.length){
-      ras.zone<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], 
+      ras.zone<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                             srcRaster= P(sim, "dataLoaderCLUS", "nameZoneRasters")[i], 
                              clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                              geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                              where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -324,7 +329,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #------------
   if(!(P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster") == "99999")){
     message(paste0('.....thlb: ',P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster")))
-    ras.thlb<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), 
+    ras.thlb<- RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                            srcRaster= P(sim, "dataLoaderCLUS", "nameMaskHarvestLandbaseRaster"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -349,7 +355,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #-----------------
   if(!(P(sim, "dataLoaderCLUS", "nameYieldsRaster") == "99999")){
     message(paste0('.....yield ids: ',P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
-    ras.ylds<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), 
+    ras.ylds<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                           srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                            where_clause = paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -394,7 +401,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     print("clipping inventory key")
     #dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN fid integer'))
     #fid<-c('fid,',':fid,') # used in the query to set the pixels table
-    ras.fid<- RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameForestInventoryRaster"), 
+    ras.fid<- RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                           srcRaster= P(sim, "dataLoaderCLUS", "nameForestInventoryRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -448,7 +456,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #-----------
   if(!(P(sim, "dataLoaderCLUS", "nameAgeRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryAge") == "99999"){
     message(paste0('.....age: ',P(sim, "dataLoaderCLUS", "nameAgeRaster")))
-    ras.age<-RASTER_CLIP2(srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), 
+    ras.age<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                          srcRaster= P(sim, "dataLoaderCLUS", "nameAgeRaster"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -473,7 +482,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #---------------------
   if(!(P(sim, "dataLoaderCLUS", "nameCrownClosureRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryCrownClosure") == "99999"){
     message(paste0('.....crownclosure: ',P(sim, "dataLoaderCLUS", "nameCrownClosureRaster")))
-    ras.cc<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), 
+    ras.cc<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                         srcRaster=P(sim, "dataLoaderCLUS", "nameCrownClosureRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -497,7 +507,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #---------------------
   if(!(P(sim, "dataLoaderCLUS", "nameHeightRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryHeight") == "99999"){
     message(paste0('.....height: ',P(sim, "dataLoaderCLUS", "nameHeightRaster")))
-    ras.ht<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), 
+    ras.ht<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                         srcRaster=P(sim, "dataLoaderCLUS", "nameHeightRaster"), 
                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -521,7 +532,8 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #---------------------
   if(!(P(sim, "dataLoaderCLUS", "nameSiteIndexRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventorySiteIndex") == "99999"){
     message(paste0('.....siteindex: ',P(sim, "dataLoaderCLUS", "nameSiteIndexRaster")))
-    ras.si<-RASTER_CLIP2(srcRaster=P(sim, "dataLoaderCLUS", "nameSiteIndexRaster"), 
+    ras.si<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                         srcRaster=P(sim, "dataLoaderCLUS", "nameSiteIndexRaster"), 
                          clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                          geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                          where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),

@@ -96,7 +96,7 @@ forestryCLUS.Init <- function(sim) {
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
-  #Remove zones in a scenario
+  #Remove zones as a scenario
   dbExecute(sim$clusdb, paste0("DELETE FROM zone WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
   dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
   
@@ -104,11 +104,11 @@ forestryCLUS.Init <- function(sim) {
   nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
                        dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
                        by.x = "reference_zone", by.y = "reference_zone"))
+  
   if(nrow(nhConstraints) > 0 ){
     nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-     dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
-  
  
   #For printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
@@ -123,8 +123,8 @@ forestryCLUS.Init <- function(sim) {
 
 forestryCLUS.save<- function(sim) {
   #write.csv(sim$harvestReport, "harvestReport.csv")
-  writeRaster(sim$harvestBlocks, "harvestBlocks.tif", overwrite=TRUE)#write the blocks to a raster?
-  writeRaster(sim$ras.zoneConstraint, "constraints.tif", overwrite=TRUE)
+  writeRaster(sim$harvestBlocks, paste0(scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
+  writeRaster(sim$ras.zoneConstraint, paste0(scenario$name, "_", P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -327,7 +327,7 @@ simYieldUncertainty <-function(to.cut) {
   to.cut$sigma.hat<-cut.hat$sigma
   message(paste0(".......sim error: ", nrow(to.cut)))
   sim.volume <-
-    sapply(1:10000,
+    sapply(1:1000,
            function(x)
              with(to.cut,
                   sum(rGA(nrow(to.cut), 

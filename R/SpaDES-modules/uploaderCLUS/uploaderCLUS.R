@@ -97,7 +97,7 @@ Init <- function(sim) {
                     harvest = data.table(scenario = character(), compartment = character(), timeperiod = integer(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric()), 
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
                     rsf = data.table(scenario = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
-                    survival = data.table(scenario = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), survival_rate= numeric()),
+                    survival = data.table(scenario = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric()),
                     yielduncertainty = data.table(scenario = character(), compartment = character(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
     )
     tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "yielduncertainty")
@@ -165,20 +165,22 @@ save.rasters <-function (sim){
                           password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
     ##blocks
     message('....cutblock raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,'harvestBlocks.tif'), schema = P(sim, "uploaderCLUS", "aoiName"), 
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,paste0(scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), schema = P(sim, "uploaderCLUS", "aoiName"), 
                  name = paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
     
     ##roads
+    if(!is.null(sim$roads)){
     message('....roads raster')
     commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
     
+    }
     ##zoneConstraint
     message('....constraint raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/constraints.tif"), 
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/", paste0(scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif")), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
                  P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
