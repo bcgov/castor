@@ -159,7 +159,8 @@ roadCLUS.save<-function(sim){
 
 ### Get the rasterized roads layer
 roadCLUS.getRoads <- function(sim) {
-    sim$roads<-RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameRoads"), 
+    sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                            srcRaster= P(sim, "roadCLUS", "nameRoads"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL)
@@ -193,7 +194,7 @@ roadCLUS.getCostSurface<- function(sim){
   rds[is.na(rds[])]<-1
 
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-  costSurf<-RASTER_CLIP2(srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
+  costSurf<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
   
   sim$costSurface[sim$costSurface[] == 0]<-0.00000000001 #giving some weight to roaded areas

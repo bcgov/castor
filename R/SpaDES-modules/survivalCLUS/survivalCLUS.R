@@ -75,7 +75,8 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
   
     herdbounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
-                                    RASTER_CLIP2 (srcRaster = P (sim, "survivalCLUS", "nameRasCaribouHerd") , # clip the herd boundary raster; defined in parameters, above
+                                    RASTER_CLIP2 (tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                                      srcRaster = P (sim, "survivalCLUS", "nameRasCaribouHerd") , # clip the herd boundary raster; defined in parameters, above
                                                   clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # by the study area; defined in parameters of dataLoaderCLUS
                                                   geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                                                   where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -106,10 +107,8 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
     # a value of 0.4  = AVG (0,0,1,1,0,1,1,0,0,0)
     # it does this by each herd ('GROUP BY' statement)
     # the IS NOT NULL statements drop out the non-forested areas from the calculation, i.e., the denominator is the area of forest, not all land
-  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
-  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;")) # mature and old forest indicators; not for 
-  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;")) # mature and old forest indicators; not for 
-    # alternate way to specify the query: SELECT AVG (CASE WHEN age IS NOT NULL AND age BETWEEN 0 AND 40 THEN 1 WHEN age IS NOT NULL THEN 0 ELSE NULL END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL GROUP BY herd_bounds;
+  sim$tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
+  # alternate way to specify the query: SELECT AVG (CASE WHEN age IS NOT NULL AND age BETWEEN 0 AND 40 THEN 1 WHEN age IS NOT NULL THEN 0 ELSE NULL END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL GROUP BY herd_bounds;
 
   # The following equation calculates the survival rate in the herd area using the Wittmer et al. model 
     # The model is a threshold model; if the proportion of 1 to 40 year old forest is < 0.09, 
@@ -133,17 +132,14 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
 
 survivalCLUS.PredictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
  
-  new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
+  new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
   new_tableSurvival[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
   new_tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
   new_tableSurvival[, scenario := scenario$name]
   
-  table_list <- list(sim$tableSurvival, new_tableSurvival)
-  sim$tableSurvival <- rbindlist (table_list) # bind the new survival rate table to the existing table
-  
-  rm (new_tableSurvival) # is this necessary?
-  
+  sim$tableSurvival <- rbindlist (list(sim$tableSurvival, new_tableSurvival)) # bind the new survival rate table to the existing table
+  rm (new_tableSurvival) # is this necessary? -- frees up memory
   return (invisible(sim))
 }
 

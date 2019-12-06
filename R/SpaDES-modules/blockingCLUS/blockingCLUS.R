@@ -131,7 +131,8 @@ blockingCLUS.getExistingCutblocks<-function(sim){
 
   if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
-    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
+    ras.blk<- RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                           srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -180,7 +181,7 @@ blockingCLUS.setSpreadProb<- function(sim) {
   
   if(!P(sim)$spreadProbRas == "99999"){
     #scale the spread probability raster so that the values are [0,1]
-    sim$ras.spreadProbBlock<-RASTER_CLIP2(srcRaster= P(sim, "blockingCLUS", "spreadProbRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    sim$ras.spreadProbBlock<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), srcRaster= P(sim, "blockingCLUS", "spreadProbRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
     sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
   }else{
     sim$ras.spreadProbBlock<-sim$aoi
