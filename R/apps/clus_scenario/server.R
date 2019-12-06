@@ -3,6 +3,8 @@
 test<-NULL
 # Define server function
 shinyServer(function(input, output, session) {
+  
+  
   #-------------------------------------------------------------------------------------------------
   #Functions for retrieving data from the postgres server (vector, raster and tables)
   #-------------------------------------------------------------------------------------------------
@@ -86,10 +88,10 @@ shinyServer(function(input, output, session) {
   }) 
   
   # to upload shapefile... 
-  uploadShp <- reactive({ # uploaded shapefile
+  uploadShp <- reactive({
     shpValid <- FALSE
     outShp <- NULL
-    
+    # shpdf is a data.frame with the name, size, type and datapath of the uploaded files
     if (!is.null(input$filemap)){
       shpValid <- TRUE
       shpdf <- input$filemap
@@ -113,6 +115,8 @@ shinyServer(function(input, output, session) {
       showModal(warningModal)}
       # if("shp" %in% fileList)
       # { print ("yes")}
+      
+      
       
       if (shpValid){
         # Rename files
@@ -142,7 +146,7 @@ shinyServer(function(input, output, session) {
   })
  
  
- totalArea<- reactive({ # need to make this reactive to drawn adn uploaded polygons
+ totalArea<- reactive({ # need to make this reactive to drawn and uploaded polygons
     req(input$map_shape_click$group)
     sum(st_area(herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]))
     })
@@ -282,7 +286,7 @@ shinyServer(function(input, output, session) {
                                                                           weight = 3, 
                                                                           clickable = TRUE))) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection', 'Shapefile Upload')) 
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
   })
   
   # Create a shapefile to download
@@ -603,7 +607,7 @@ shinyServer(function(input, output, session) {
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
                        overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
                        options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Caribou Selection', 'Shapefile Upload')) 
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection'))  
   })
   
   
@@ -640,7 +644,7 @@ shinyServer(function(input, output, session) {
       if(length(input$map_draw_all_features$features) > 0){
         proxy %>%
           addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
+                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
                            options = layersControlOptions(collapsed = TRUE))
       }
     }

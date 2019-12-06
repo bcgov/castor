@@ -25,12 +25,12 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                   # Output: Description, lineplot, and reference
                   mainPanel(
                     leafletOutput("map"),
-                    downloadLink("downloadDrawnData", "Download"),
-                    helpText("Save drawn polygons"),
+                    downloadLink("downloadDrawnData", "Download drawn polygons"),
                     fileInput (inputId = "filemap", #upload shapefile
+                               width = "450px",
                                label = "Upload a Shapefile",
                                placeholder = "Please include: .shp, .dbf, .shx, .sbn, .sbx, .prj and xml files",
-                               buttonLabel = "Upload",
+                               buttonLabel = "Click to Upload",
                                multiple = TRUE,
                                accept = c('.shp','.dbf','.sbn','.sbx','.shx','.prj', 'xml')),
                     tabsetPanel(
