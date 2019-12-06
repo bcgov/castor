@@ -44,6 +44,7 @@ shinyServer(function(input, output, session) {
     readData(session)
   }
 
+  
   #----------------  
   # Reactive Values 
   valueModal<-reactiveValues(atTable=NULL)
@@ -84,7 +85,64 @@ shinyServer(function(input, output, session) {
     SPDF
   }) 
   
-  totalArea<- reactive({
+  # to upload shapefile... 
+  uploadShp <- reactive({ # uploaded shapefile
+    shpValid <- FALSE
+    outShp <- NULL
+    
+    if (!is.null(input$filemap)){
+      shpValid <- TRUE
+      shpdf <- input$filemap
+      tempdirname <- dirname(shpdf$datapath[1])
+      fileList <- list()
+      i <- 1
+      for (file in shpdf$datapath) {
+        fileExt <- strsplit(file, "\\.")
+        fileExt <-fileExt[[1]][length(fileExt[[1]])]
+        fileList[[i]] <- fileExt
+        i <- i + 1
+        if (fileExt %in% c("shp","dbf", "shx", "sbn", "sbx", "prj", "xml"))
+        {print ("shp ext is good")}
+        else{
+          shpValid <- FALSE
+          showModal(warningModal)}
+      }
+      
+      if(!"shp" %in% fileList | !"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList )
+      { shpValid <- FALSE
+      showModal(warningModal)}
+      # if("shp" %in% fileList)
+      # { print ("yes")}
+      
+      if (shpValid){
+        # Rename files
+        for(i in 1:nrow(shpdf)){
+          file.rename(shpdf$datapath[i], paste0(tempdirname, "/", shpdf$name[i]))
+        }
+        tryCatch(
+          {outShp <-  spTransform(readOGR(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326"))},
+          error=function(cond) {
+            shpValid <- FALSE
+            showModal(warningModal)
+            outShp <- NULL
+            message("Here's the original error message:")
+            
+          },
+          finally ={print ("shape done")}
+        )
+      }
+      
+    }
+    if (!shpValid) {
+      outShp = NULL
+      
+    }
+    else{outShp}
+    outShp
+  })
+ 
+ 
+ totalArea<- reactive({ # need to make this reactive to drawn adn uploaded polygons
     req(input$map_shape_click$group)
     sum(st_area(herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]))
     })
@@ -95,6 +153,7 @@ shinyServer(function(input, output, session) {
       as.character(input$map_shape_click$group)
     }
   })
+  
   caribouEcoType<-reactive({ 
     req(input$map_shape_click$group)
     if(input$map_shape_click$group != "Wildlife Habitat Area"){
@@ -183,6 +242,8 @@ shinyServer(function(input, output, session) {
       empt
     }
   })
+  
+  
   #--------  
   # Outputs 
   ## Create scatterplot object the plotOutput function is expecting
@@ -191,7 +252,7 @@ shinyServer(function(input, output, session) {
   ## render the leaflet map  
   output$map = renderLeaflet({ 
     leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
-      setView(-121.7476, 53.7267, 4.3) %>%
+      setView(-121.7476, 53.7267, 4.3) %>% 
       addTiles() %>% 
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
       addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
@@ -216,11 +277,12 @@ shinyServer(function(input, output, session) {
         rectangleOptions = FALSE,
         markerOptions = FALSE,
         singleFeature = F,
-        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
-                                                                                         ,color = 'red'
-                                                                                         ,weight = 3, clickable = TRUE))) %>%
-      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
+        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
+                                                                          color = 'red',
+                                                                          weight = 3, 
+                                                                          clickable = TRUE))) %>%
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), options = layersControlOptions(collapsed = TRUE)) %>%
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection', 'Shapefile Upload')) 
   })
   
   # Create a shapefile to download
@@ -381,19 +443,31 @@ shinyServer(function(input, output, session) {
   
   output$thlbTable<-renderTable({
     withProgress(message = 'Running THLB Query', value = 0, {
-      if(input$queryType == 2){
+      if(input$queryType == 2){ # drawn polygon
         incProgress(0.5)
-        #Convert the polygon object to sql polygon
         table<-getTableQuery(paste0("SELECT (ST_SummaryStatsAgg(x.intersectx,1,true)).sum 
           FROM
         (SELECT ST_Intersection(rast,1,ST_AsRaster(geom, rast),1) as intersectx
-          FROM bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005) as geom ) as t 
+          FROM public.bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005) as geom ) as t 
           WHERE ST_Intersects(geom, rast)) as x
         WHERE x.intersectx IS NOT NULL;"))
         incProgress(0.95)
         ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
         table$per_boundary<-(table$sum/ta)*100
         names(table)<-c("Sum THLB (ha)", "Percent of Drawn Area (%)")
+        table
+      }else if(input$queryType == 3){ # uploaded polygon
+        incProgress(0.5)
+        table<-getTableQuery(paste0("SELECT (ST_SummaryStatsAgg(x.intersectx,1,true)).sum
+          FROM
+        (SELECT ST_Intersection(rast,1,ST_AsRaster(geom, rast),1) as intersectx
+          FROM public.bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(uploadShp()), EWKT = FALSE),"', 3005) as geom ) as t
+          WHERE ST_Intersects(geom, rast)) as x
+        WHERE x.intersectx IS NOT NULL;"))
+        incProgress(0.95)
+        ta<-as.numeric(sf::st_area(st_as_sfc(uploadShp()))/10000)
+        table$per_boundary<-(table$sum/ta)*100
+        names(table)<-c("Sum THLB (ha)", "Percent of Shapefile Area (%)")
         table
       }else{
         incProgress(0.5)
@@ -426,7 +500,6 @@ shinyServer(function(input, output, session) {
       req(totalArea())
       if(input$queryType == 2){
         incProgress(0.5)
-        #Convert the polygon object to sql polygon
         table<-getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_km, 
                             st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
                               FROM public.integrated_roads AS r,  
@@ -437,8 +510,26 @@ shinyServer(function(input, output, session) {
                              ORDER BY  r.road_surface"))
         incProgress(0.95)
         ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
-        table$per_boundary<-(table$area_ha_buffer/ta)*100
-        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Drawn Area (%)")
+        table$per_boundary<-(table$area_ha_buffer/ta)*100 #percent of area
+        table$density <- table$length_km/(ta*0.01) # road density
+        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Drawn Area (%)", "Road Density (km/km2)")
+        table
+      }else if (input$queryType == 3){
+        incProgress(0.5)
+        #Convert the polygon object to sql polygon
+        table<-getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_km, 
+                            st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
+                              FROM public.integrated_roads AS r,  
+                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(uploadShp()), EWKT = FALSE),"', 3005)) as m 
+                             WHERE
+                             ST_Contains(m.st_geomfromtext,r.wkb_geometry) 
+                             GROUP BY  r.road_surface
+                             ORDER BY  r.road_surface"))
+        incProgress(0.95)
+        ta<-as.numeric(sf::st_area(st_as_sfc(uploadShp()))/10000)
+        table$per_boundary<-(table$area_ha_buffer/ta)*100 #percent of area
+        table$density <- table$length_km/(ta*0.01) # road density
+        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Drawn Area (%)", "Road Density (km/km2)")
         table
       }else{
         incProgress(0.5)
@@ -456,7 +547,8 @@ shinyServer(function(input, output, session) {
         incProgress(0.95)
         ta<-as.numeric(totalArea()/10000)
         table$per_boundary<-(table$area_ha_buffer/ta)*100
-        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Boundary Area (%)")
+        table$density <- table$length_km/(ta*0.01) # road density
+        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Boundary Area (%)", "Road Density (km/km2)")
         table
         
       }
@@ -476,7 +568,7 @@ shinyServer(function(input, output, session) {
     
   })
   
-  ## Zoom to caribou herd being cliked
+  ## Zoom to caribou herd being clicked
   observe({
     if(is.null(input$map_shape_click))
       return()
@@ -503,24 +595,24 @@ shinyServer(function(input, output, session) {
         circleMarkerOptions = FALSE,
         rectangleOptions = FALSE,
         markerOptions = FALSE,
-        singleFeature = F,
-        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
-                                                                                         ,color = 'red'
-                                                                                         ,weight = 3, clickable = TRUE))) %>%
-      
+        singleFeature = FALSE,
+        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
+                                                                          color = 'red',
+                                                                          weight = 3, 
+                                                                          clickable = TRUE))) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
+                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
                        options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Caribou Selection')) 
+      hideGroup(c('Drawn', 'Caribou Selection', 'Shapefile Upload')) 
   })
   
   
-  ## rest map
+  ## reset map
   observeEvent(input$reset, {
     leafletProxy("map") %>%
       clearShapes() %>%
       clearControls() %>%
-      setView(-121.7476, 53.7267, 4.3) %>%
+      setView(-121.7476, 53.7267, 4.3) %>% 
       addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                               background-position: -31px -2px;"),position="bottomleft") %>%
       addPolygons(data=sp_herd_bound,  fillColor = ~pal(risk_stat), 
@@ -534,11 +626,36 @@ shinyServer(function(input, output, session) {
       addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) 
   })
   
+  # Observe uploaded shapefiles
+  observeEvent (uploadShp(), {
+    if(!is.null(uploadShp())){
+      proxy <- leafletProxy('map')
+      proxy %>%
+        clearGroup(group='Shapefile') %>%
+        addPolygons(data=uploadShp(), group='Shapefile',stroke = TRUE, color = "#03F", weight = 5, opacity = 0.5) %>%
+        addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
+                         options = layersControlOptions(collapsed = TRUE)) %>%
+        showGroup(c('Shapefile'))
+      if(length(input$map_draw_all_features$features) > 0){
+        proxy %>%
+          addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
+                           options = layersControlOptions(collapsed = TRUE))
+      }
+    }
+  })
+
   # Modal for labeling the drawn polygons
   labelModal = modalDialog(
     title = "Enter polygon label",
     textInput(inputId = "myLabel", label = "Enter a label for the drawn polygon: "),
     footer = actionButton("ok_modal",label = "Ok"))
+  
+  # Modal for improperly uploading shapefile
+  warningModal = modalDialog(
+    title = "Important message",
+    "Shapefile not valid")
   
   # New Feature plus show modal
   observeEvent(input$map_draw_new_feature, {
