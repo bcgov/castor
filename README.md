@@ -1,6 +1,6 @@
 ## Caribou and Land Use Simulator
 ### Usage
-The code here is currently in development and likely will not function. Contact tyler.muhly@gov.bc.ca for questions.  
+Much of the code here is currently in beta version. Contact tyler.muhly@gov.bc.ca for questions.  
 
 ### Requirements
 N/A
@@ -8,7 +8,8 @@ N/A
 ### Getting Help or Reporting an Issue
 Use the Issues tab to get help or report any issues.
 
-### Descriptions:
+### Description
+This repo consists of code to create and integrate timber harvest, timber supply, caribou, moose and wolf habitat, and caribou, moose and wolf population models. It also consists of code to create frontend apps to develop model scenarios and review model outputs. Models and apps are currently designed to support caribou recovery decision-making in British Columbia.
 
 ### License
 Copyright 2018-2019 Province of British Columbia
