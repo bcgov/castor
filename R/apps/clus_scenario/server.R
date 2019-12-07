@@ -46,7 +46,6 @@ shinyServer(function(input, output, session) {
     readData(session)
   }
 
-  
   #----------------  
   # Reactive Values 
   valueModal<-reactiveValues(atTable=NULL)
@@ -91,10 +90,10 @@ shinyServer(function(input, output, session) {
   uploadShp <- reactive({
     shpValid <- FALSE
     outShp <- NULL
-    # shpdf is a data.frame with the name, size, type and datapath of the uploaded files
+    
     if (!is.null(input$filemap)){
       shpValid <- TRUE
-      shpdf <- input$filemap
+      shpdf <- input$filemap # shpdf is a data.frame with the name, size, type and datapath of the uploaded files
       tempdirname <- dirname(shpdf$datapath[1])
       fileList <- list()
       i <- 1
@@ -110,29 +109,28 @@ shinyServer(function(input, output, session) {
           showModal(warningModal)}
       }
       
-      if(!"shp" %in% fileList | !"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList )
-      { shpValid <- FALSE
-      showModal(warningModal)}
+      if(!"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList ){ 
+        shpValid <- FALSE
+        showModal(warningModal)
+        }
       # if("shp" %in% fileList)
       # { print ("yes")}
-      
-      
       
       if (shpValid){
         # Rename files
         for(i in 1:nrow(shpdf)){
           file.rename(shpdf$datapath[i], paste0(tempdirname, "/", shpdf$name[i]))
         }
-        tryCatch(
-          {outShp <-  spTransform(readOGR(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326"))},
+        tryCatch({
+          outShp <-  spTransform(readOGR(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326"))},
           error=function(cond) {
             shpValid <- FALSE
             showModal(warningModal)
             outShp <- NULL
             message("Here's the original error message:")
-            
           },
-          finally ={print ("shape done")}
+          finally ={
+            print ("shape done")}
         )
       }
       
@@ -146,6 +144,32 @@ shinyServer(function(input, output, session) {
   })
  
  
+  # TBD - some code to upload shapefile as zip
+  #-------- READ ZIP --------#
+  # uploadShpfile <- reactive({
+  #   if (!is.null(input$zip)) {
+  #     zipFile <- input$zip
+  #     zipPath <- substr(zipFile$datapath, 1, nchar(zipFile$datapath) - 5)
+  #     unzip(zipFile$datapath, exdir = zipPath)
+  #     pwd <- getwd()
+  #     updir <- dirname(zipFile$datapath[1])
+  #     setwd(updir)
+  #     for (i in 1:nrow(zipFile)) {
+  #       file.rename(zipFile$datapath[i], zipFile$name[i])
+  #     }
+  #     shpName <- zipFile$name[grep(zipFile$name, pattern = "*.shp")]
+  #     shpPath <- paste(updir, shpName, sep = "/")
+  #     setwd(updir)
+  #     Layers <- ogrListLayers(shpPath)
+  #     shpName <- readOGR(shpPath)
+  #     shpName <- spTransform(shpName,CRS("+proj=longlat +datum=WGS84"))
+  #     shapefile(shpName, paste(shpPath, Layers, "_WGS84.shp", sep = ""))
+  #     shpName
+  #   }
+  # })
+  
+  
+  
  totalArea<- reactive({ # need to make this reactive to drawn and uploaded polygons
     req(input$map_shape_click$group)
     sum(st_area(herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]))
@@ -224,7 +248,7 @@ shinyServer(function(input, output, session) {
     if(length(ws$geom) > 0){
       ws
     }else{
-      empt
+     empt
     }
     
   })
@@ -238,7 +262,6 @@ shinyServer(function(input, output, session) {
     # FROM public.uwr_caribou_no_harvest_20180627 WHERE
     #                  ST_DWithin(uwr_caribou_no_harvest_20180627.geom, (SELECT geom FROM gcbp_carib_polygon WHERE 
     #                  gcbp_carib_polygon.herd_name = '",caribouHerd(),"'), 25000)"))
-    
     uw<-uwr[st_buffer(herdSelect(), dist=20000),,op=st_intersects]
     if(length(uw$geom) > 0){
       uw
@@ -246,7 +269,6 @@ shinyServer(function(input, output, session) {
       empt
     }
   })
-  
   
   #--------  
   # Outputs 
@@ -283,10 +305,12 @@ shinyServer(function(input, output, session) {
         singleFeature = F,
         polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
                                                                           color = 'red',
-                                                                          weight = 3, 
+                                                                          weight = 3,
                                                                           clickable = TRUE))) %>%
-      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
+                       options = layersControlOptions(collapsed = TRUE)) %>%
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area')) 
   })
   
   # Create a shapefile to download
@@ -605,9 +629,9 @@ shinyServer(function(input, output, session) {
                                                                           weight = 3, 
                                                                           clickable = TRUE))) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
+                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
                        options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection'))  
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area'))  
   })
   
   
@@ -634,17 +658,19 @@ shinyServer(function(input, output, session) {
   observeEvent (uploadShp(), {
     if(!is.null(uploadShp())){
       proxy <- leafletProxy('map')
+      bb <- bbox (uploadShp())
       proxy %>%
         clearGroup(group='Shapefile') %>%
+        flyToBounds (lng1 = bb[1],lat1 = bb[2], lng2 = bb[3], lat2=bb[4]) %>%
         addPolygons(data=uploadShp(), group='Shapefile',stroke = TRUE, color = "#03F", weight = 5, opacity = 0.5) %>%
         addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection', 'Shapefile Upload'), 
+                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
                          options = layersControlOptions(collapsed = TRUE)) %>%
         showGroup(c('Shapefile'))
       if(length(input$map_draw_all_features$features) > 0){
         proxy %>%
           addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
+                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
                            options = layersControlOptions(collapsed = TRUE))
       }
     }
