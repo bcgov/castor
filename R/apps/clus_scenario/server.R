@@ -90,7 +90,6 @@ shinyServer(function(input, output, session) {
   uploadShp <- reactive({
     shpValid <- FALSE
     outShp <- NULL
-    
     if (!is.null(input$filemap)){
       shpValid <- TRUE
       shpdf <- input$filemap # shpdf is a data.frame with the name, size, type and datapath of the uploaded files
@@ -108,7 +107,6 @@ shinyServer(function(input, output, session) {
           shpValid <- FALSE
           showModal(warningModal)}
       }
-      
       if(!"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList ){ 
         shpValid <- FALSE
         showModal(warningModal)
@@ -133,18 +131,18 @@ shinyServer(function(input, output, session) {
             print ("shape done")}
         )
       }
-      
-    }
+     }
     if (!shpValid) {
       outShp = NULL
       
-    }
-    else{outShp}
-    outShp
+    } else {
+      outShp 
+      }
+    outShp  
   })
  
- 
-  # TBD - some code to upload shapefile as zip
+  
+  # TBD - some example code to upload shapefile as zip; use to build this fxn?
   #-------- READ ZIP --------#
   # uploadShpfile <- reactive({
   #   if (!is.null(input$zip)) {
@@ -277,7 +275,7 @@ shinyServer(function(input, output, session) {
   pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  sp_herd_bound$risk_stat)
   ## render the leaflet map  
   output$map = renderLeaflet({ 
-    leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
+    leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom = TRUE)) %>% 
       setView(-121.7476, 53.7267, 4.3) %>% 
       addTiles() %>% 
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
@@ -302,19 +300,19 @@ shinyServer(function(input, output, session) {
         circleMarkerOptions = FALSE,
         rectangleOptions = FALSE,
         markerOptions = FALSE,
-        singleFeature = F,
+        singleFeature = FALSE,
         polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
                                                                           color = 'red',
                                                                           weight = 3,
                                                                           clickable = TRUE))) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
+                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Uploaded'), 
                        options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area')) 
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Uploaded')) 
   })
   
   # Create a shapefile to download
-  output$downloadDrawnData <- downloadHandler(
+  output$downloadPolyData <- downloadHandler(
     filename = 'CLUSshpExport.zip',
     content = function(file) {
       if (length(Sys.glob("CLUSshpExport.*"))>0){
@@ -327,6 +325,8 @@ shinyServer(function(input, output, session) {
       file.copy("CLUSshpExport.zip", file)
     })
   
+
+  # Plots
   output$becPlot <- renderPlotly ({
     withProgress(message = 'Making BEC Plot', value = 0.1, {
       incProgress(0.2)
@@ -335,7 +335,7 @@ shinyServer(function(input, output, session) {
       bec_data$year<- relevel(as.factor(bec_data$year), "Current")
       dplyr::filter (bec_data, herdname == caribouHerd() | herdname == caribouEcoType()[1])
       incProgress(0.5)
-      p<-ggplot(bec_data, aes (x = herdname, y=pct, fill = bec))+  
+      p<-ggplot(bec_data, aes (x = herdname, y = pct, fill = bec))+  
           facet_wrap(~year) +
           geom_bar (stat = "identity", position = "fill") +
           xlab ("Boundary") +
@@ -397,7 +397,7 @@ shinyServer(function(input, output, session) {
       data$per_harvest<-(data$Dist40/ta)*100
       incProgress(0.6)
       
-      p<- ggplot(data, aes(x =harvestyr, y=per_harvest) )+
+      p<- ggplot(data, aes(x = harvestyr, y = per_harvest) )+
         geom_line()+
         xlab ("Year") +
         ylab (paste0("% Boundary with Age < ", input$sliderCutAge)) + 
@@ -464,7 +464,22 @@ shinyServer(function(input, output, session) {
         as.factor(uwrtabo$approval_year)
         uwrtabo %>%
           group_by(approval_year) %>%
-          summarize(area_in_ha = sum(area_ha))
+          summarise(area_in_ha = sum(area_ha))
+      }
+    })
+  })
+  
+  output$whaTable<-renderTable({
+    withProgress(message = 'Running WHA Query', value = 0, {
+      whatab<-st_intersection(st_set_agr(herdSelect(), "constant"), st_set_agr(whaHerdSelect(), "constant"))
+      whatab$area_ha<-st_area(whatab)/10000
+      incProgress(0.2)
+      if(length(whatab$geom)> 0){
+        whatabo<-as.data.frame(st_set_geometry(whatab, NULL))[c("approval_year", "area_ha")]
+        as.factor(whatabo$approval_year)
+        whatabo %>%
+          group_by(approval_year) %>%
+          summarise(area_in_ha = sum(area_ha))
       }
     })
   })
@@ -489,7 +504,7 @@ shinyServer(function(input, output, session) {
         table<-getTableQuery(paste0("SELECT (ST_SummaryStatsAgg(x.intersectx,1,true)).sum
           FROM
         (SELECT ST_Intersection(rast,1,ST_AsRaster(geom, rast),1) as intersectx
-          FROM public.bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(uploadShp()), EWKT = FALSE),"', 3005) as geom ) as t
+          FROM public.bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(spTransform(uploadShp(), CRS("+init=epsg:3005"))), EWKT = FALSE),"', 3005) as geom ) as t
           WHERE ST_Intersects(geom, rast)) as x
         WHERE x.intersectx IS NOT NULL;"))
         incProgress(0.95)
@@ -506,21 +521,6 @@ shinyServer(function(input, output, session) {
     })
   })
   
-  
-  output$whaTable<-renderTable({
-    withProgress(message = 'Running WHA Query', value = 0, {
-      whatab<-st_intersection(st_set_agr(herdSelect(), "constant"), st_set_agr(whaHerdSelect(), "constant"))
-      whatab$area_ha<-st_area(whatab)/10000
-      incProgress(0.2)
-      if(length(whatab$geom)> 0){
-        whatabo<-as.data.frame(st_set_geometry(whatab, NULL))[c("approval_year", "area_ha")]
-        as.factor(whatabo$approval_year)
-        whatabo %>%
-          group_by(approval_year) %>%
-          summarize(area_in_ha = sum(area_ha))
-      }
-    })
-  })
   
   output$rdTable<-renderTable({
     withProgress(message = 'Running Roads Query...takes a while', value = 0, {
@@ -548,7 +548,7 @@ shinyServer(function(input, output, session) {
         table<-getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_km, 
                             st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
                               FROM public.integrated_roads AS r,  
-                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(uploadShp()), EWKT = FALSE),"', 3005)) as m 
+                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(spTransform(uploadShp(), CRS("+init=epsg:3005"))), EWKT = FALSE),"', 3005)) as m 
                              WHERE
                              ST_Contains(m.st_geomfromtext,r.wkb_geometry) 
                              GROUP BY  r.road_surface
@@ -601,7 +601,41 @@ shinyServer(function(input, output, session) {
     if(is.null(input$map_shape_click))
       return()
     
-    leafletProxy("map") %>%
+    if(!is.null(uploadShp())){
+      leafletProxy("map") %>%
+        clearShapes() %>%
+        clearControls() %>%
+        setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
+        addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)) , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
+                    options = pathOptions(clickable = FALSE)) %>%
+        addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "blue" 
+                    , fillColor="brown", group = "Ungulate Winter Range",
+                    options = pathOptions(clickable = FALSE))%>%
+        addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue"
+                    , fillColor="darkgreen", group = "Wildlife Habitat Area",
+                    options = pathOptions(clickable = FALSE)) %>%
+        addPolygons (data = uploadShp(), group = "Uploaded") %>%
+        addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
+                              background-position: -31px -2px;"),position="bottomleft") %>%
+        addScaleBar(position = "bottomright") %>%
+        addDrawToolbar(
+          editOptions = editToolbarOptions(),
+          targetGroup='Drawn',
+          circleOptions = FALSE,
+          circleMarkerOptions = FALSE,
+          rectangleOptions = FALSE,
+          markerOptions = FALSE,
+          singleFeature = FALSE,
+          polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
+                                                                            color = 'red',
+                                                                            weight = 3, 
+                                                                            clickable = TRUE))) %>%
+        addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Uploaded'), 
+                         options = layersControlOptions(collapsed = TRUE)) %>%
+        hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area'))
+      }else{
+      leafletProxy("map") %>%
       clearShapes() %>%
       clearControls() %>%
       setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
@@ -613,6 +647,7 @@ shinyServer(function(input, output, session) {
       addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue"
                   , fillColor="darkgreen", group = "Wildlife Habitat Area",
                   options = pathOptions(clickable = FALSE)) %>%
+      # addPolygons (data = uploadShp(), group = "Uploaded") %>%
       addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                               background-position: -31px -2px;"),position="bottomleft") %>%
       addScaleBar(position = "bottomright") %>%
@@ -629,9 +664,10 @@ shinyServer(function(input, output, session) {
                                                                           weight = 3, 
                                                                           clickable = TRUE))) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
+                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Uploaded'), 
                        options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area'))  
+      hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area'))  
+    }
   })
   
   
@@ -656,21 +692,22 @@ shinyServer(function(input, output, session) {
   
   # Observe uploaded shapefiles
   observeEvent (uploadShp(), {
-    if(!is.null(uploadShp())){
+
+      if(!is.null(uploadShp())){
       proxy <- leafletProxy('map')
       bb <- bbox (uploadShp())
       proxy %>%
         clearGroup(group='Shapefile') %>%
         flyToBounds (lng1 = bb[1],lat1 = bb[2], lng2 = bb[3], lat2=bb[4]) %>%
-        addPolygons(data=uploadShp(), group='Shapefile',stroke = TRUE, color = "#03F", weight = 5, opacity = 0.5) %>%
+        addPolygons(data=uploadShp(), group='Uploaded', stroke = TRUE, color = "yellow", weight = 5, opacity = 0.5) %>%
         addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
                          overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
                          options = layersControlOptions(collapsed = TRUE)) %>%
-        showGroup(c('Shapefile'))
+      showGroup(c('Uploaded', "Shapefile"))
       if(length(input$map_draw_all_features$features) > 0){
         proxy %>%
           addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
+                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Uploaded'), 
                            options = layersControlOptions(collapsed = TRUE))
       }
     }

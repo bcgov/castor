@@ -14,7 +14,7 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                     h2(textOutput("clickCaribou")),
                     helpText("Herd"),
                     radioButtons("queryType", label = h3("Query Options"),
-                                 choices = list("Herd Boundary" = 1, "Drawn" = 2, "Shapefile Upload" = 3), 
+                                 choices = list("Herd Boundary" = 1, "Drawn" = 2, "Uploaded" = 3), 
                                  selected = 1),
                     sliderInput("sliderBuffer", label = h4("Buffer (m)"), min = 0, 
                                 max = 1000, value = 500, step = 20),
@@ -24,8 +24,8 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                   
                   # Output: Description, lineplot, and reference
                   mainPanel(
-                    leafletOutput("map"),
-                    downloadLink("downloadDrawnData", "Download drawn polygons"),
+                    leafletOutput ("map"),
+                    downloadLink("downloadPolyData", "Download drawn polygons"),
                     fileInput (inputId = "filemap", #upload shapefile
                                width = "450px",
                                label = "Upload a Shapefile",
