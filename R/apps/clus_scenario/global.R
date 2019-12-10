@@ -16,6 +16,8 @@ library(flexdashboard)
 library(rgdal)
 library(lwgeom)
 library(tidyr)
+library (Hmisc)
+library (mapedit)
 
 
 getTableQuery<-function(sql){
