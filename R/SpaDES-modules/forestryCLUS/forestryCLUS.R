@@ -89,10 +89,10 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 forestryCLUS.Init <- function(sim) {
-  if(nrow(scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
+  if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
-  sim$compartment_list<-unique(harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
@@ -123,8 +123,8 @@ forestryCLUS.Init <- function(sim) {
 
 forestryCLUS.save<- function(sim) {
   #write.csv(sim$harvestReport, "harvestReport.csv")
-  writeRaster(sim$harvestBlocks, paste0(scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
-  writeRaster(sim$ras.zoneConstraint, paste0(scenario$name, "_", P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif"), overwrite=TRUE)
+  writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
+  writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_", P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -244,12 +244,12 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   for(compart in sim$compartment_list){
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
-    harvestTarget<-harvestFlow[compartment == compart,]$flow[time(sim)]
+    harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
     
     if(length(harvestTarget)>0){# Determine if there is a demand for volume to harvest
       message(paste0(compart, " harvest Target: ", harvestTarget))
-      partition<-harvestFlow[compartment==compart, "partition"][time(sim)]
-      harvestPriority<-harvestFlow[compartment==compart, partition][time(sim)]
+      partition<-sim$harvestFlow[compartment==compart, "partition"][time(sim)]
+      harvestPriority<-sim$harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
       sql<-paste0("SELECT pixelid, blockid, compartid, siteindex, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
@@ -283,7 +283,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
         
         #Set the harvesting report
-        temp_harvest_report<-data.table(scenario= scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList))
+        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList))
         temp_harvest_report<-temp_harvest_report[, age:=age/area]
         temp_harvest_report<-temp_harvest_report[, hsize:=area/hsize]
         temp_harvest_report<-temp_harvest_report[, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, "SELECT sum(thlb) from pixels where zone_const = 0;"))]
@@ -315,12 +315,12 @@ forestryCLUS.getHarvestQueue<- function(sim) {
 }
 
 forestryCLUS.calcUncertainty <-function(sim) {
-  sim$yielduncertain <-rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty))
+  sim$yielduncertain <-rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name))
   print(sim$yielduncertain)
   return(invisible(sim))
 }
 
-simYieldUncertainty <-function(to.cut) {
+simYieldUncertainty <-function(to.cut, calb_ymodel, scenarioNAme) {
   message(".....calc uncertainty of yields")
   cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut[,c("proj_vol", "site_index")]) #get the mu.hat and sigma.hat 
   to.cut$mu.hat<-cut.hat$mu
@@ -336,7 +336,7 @@ simYieldUncertainty <-function(to.cut) {
   distquants<-quantile(sim.volume, p = c(0.05, 0.95))
   
   return(data.table(
-    scenario = scenario$name,
+    scenario = scenarioNAme,
     compartment= max(to.cut$compartid),
     projvol =sum(to.cut$proj_vol),
     calibvol = mean(sim.volume),
