@@ -138,7 +138,7 @@ shinyServer(function(input, output, session) {
     } else {
       outShp 
       }
-    outShp  
+    outShp
   })
  
   
@@ -273,7 +273,7 @@ shinyServer(function(input, output, session) {
   ## Create scatterplot object the plotOutput function is expecting
   ## set the pallet for mapping
   pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  sp_herd_bound$risk_stat)
-  ## render the leaflet map  
+  ## render the main leaflet map  
   output$map = renderLeaflet({ 
     leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom = TRUE)) %>% 
       setView(-121.7476, 53.7267, 4.3) %>% 
@@ -310,6 +310,34 @@ shinyServer(function(input, output, session) {
                        options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Uploaded')) 
   })
+  
+  ## Shapefile Upload Map
+  output$mapEdit = renderLeaflet({ 
+    if(!is.null(uploadShp())){
+      bb <- bbox (uploadShp())
+      leaflet (uploadShp(), options = leafletOptions(doubleClickZoom = TRUE)) %>%
+        setView(lng = bb[1], lat = bb[2], zoom = 4) %>% 
+        addTiles() %>% 
+        addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+        addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
+        addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
+        addPolygons(data = outShp, weight = 1, opacity = 1, 
+                    color = "yellow", dashArray = "1", fillOpacity = 0.7) %>%
+        addScaleBar(position = "bottomright") %>%
+        addDrawToolbar(
+          circleOptions = FALSE,
+          circleMarkerOptions = FALSE,
+          rectangleOptions = FALSE,
+          markerOptions = FALSE,
+          singleFeature = FALSE,
+          polygonOptions = FALSE) %>%
+        addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Uploaded'), 
+                         options = layersControlOptions(collapsed = TRUE)) %>%
+        hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Uploaded'))
+    }
+  })
+  
   
   # Create a shapefile to download
   output$downloadPolyData <- downloadHandler(
@@ -690,9 +718,9 @@ shinyServer(function(input, output, session) {
       addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) 
   })
   
-  # Observe uploaded shapefiles
+  
+  # Observe uploaded shapefiles on map
   observeEvent (uploadShp(), {
-
       if(!is.null(uploadShp())){
       proxy <- leafletProxy('map')
       bb <- bbox (uploadShp())
@@ -703,7 +731,7 @@ shinyServer(function(input, output, session) {
         addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
                          overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Shapefile Upload'), 
                          options = layersControlOptions(collapsed = TRUE)) %>%
-      showGroup(c('Uploaded', "Shapefile"))
+      showGroup(c('Uploaded', "Shapefile")) 
       if(length(input$map_draw_all_features$features) > 0){
         proxy %>%
           addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 

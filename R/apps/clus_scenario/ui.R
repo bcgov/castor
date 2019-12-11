@@ -24,15 +24,22 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                   
                   # Output: Description, lineplot, and reference
                   mainPanel(
-                    leafletOutput ("map"),
-                    downloadLink("downloadPolyData", "Download drawn polygons"),
-                    fileInput (inputId = "filemap", #upload shapefile
-                               width = "450px",
-                               label = "Upload a Shapefile",
-                               placeholder = "Please include at a minimum: .shp, .dbf, and .shx files",
-                               buttonLabel = "Click to Upload",
-                               multiple = TRUE,
-                               accept = c('.shp','.dbf','.sbn','.sbx','.shx','.prj', 'xml')),
+                    tabsetPanel(
+                      tabPanel("Main Map",
+                               leafletOutput ("map"),
+                               downloadLink("downloadPolyData", "Download drawn polygons"),
+                               fileInput (inputId = "filemap", #upload shapefile
+                                          width = "450px",
+                                          label = "Upload a Shapefile",
+                                          placeholder = "Please include at a minimum: .shp, .dbf, and .shx files",
+                                          buttonLabel = "Click to Upload",
+                                          multiple = TRUE,
+                                          accept = c('.shp','.dbf','.sbn','.sbx','.shx','.prj', 'xml'))
+                               ),
+                      tabPanel ("Edit Uploaded Shapefile",
+                                leafletOutput ("mapEdit")
+                                )
+                      ),
                     tabsetPanel(
                       tabPanel("Herd Plan", uiOutput("pdfview")),
                       tabPanel("Population", plotlyOutput(outputId = "carbPopPlot", height = "400px")),
