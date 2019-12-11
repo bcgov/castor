@@ -198,9 +198,9 @@ RASTER_CLIP <- function(srcRaster, clipper, conn=NULL){
   #--Return the Raster Layer
   return(rout)           
 }
-RASTER_CLIP2 <- function(srcRaster, clipper, geom, where_clause, conn=NULL){
+RASTER_CLIP2 <- function(tmpRast, srcRaster, clipper, geom, where_clause, conn=NULL){
   
-  tmpRast = 'FAIB_RCL_TEMPRAST'
+  #tmpRast = 'FAIB_RCL_TEMPRAST_'
   #--Get a Connection to the Database if one not supplied
   if (is.null(conn)){
     conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
