@@ -146,17 +146,20 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 
 ```
 
-## VEG COMP 2002 feature id
+## VEG COMP 2018 feature id
 
 This id links to polygon level attribution. Also links to yield curve generation from results - TIPSY and feature projection - VDYP
 ```{r, veg_comp, echo = FALSE}
 #Harvest locations year
-layer<-getSpatialQuery("SELECT feature_id, wkb_geometry FROM public.")
+layer<-getSpatialQuery("SELECT feature_id, geometry FROM public.veg_comp_lyr_r1_poly2018")
 
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
-writeRaster(layer.ras, file="vri2002_id.tif", format="GTiff", overwrite=TRUE)
+rm(layer)
+gc()
 
-system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2002_id.tif -t 100x100 rast.vri2002_id | psql -d clus")
+writeRaster(layer.ras, file="vri2018_id.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2018_id.tif -t 100x100 rast.vri2018_id | psql -d clus")
 ```
 
 ## Water
