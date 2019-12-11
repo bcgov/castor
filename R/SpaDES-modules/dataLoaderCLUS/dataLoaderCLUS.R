@@ -440,8 +440,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
         pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
         pixels<-pixels[, fid:=NULL]#remove the fid key
         #TODO: Test this change of names?
-        setnames(pixels, c(P(sim, "dataLoaderCLUS","nameForestInventoryAge"),P(sim, "dataLoaderCLUS","nameForestInventoryHeight"),P(sim, "dataLoaderCLUS","nameForestInventoryCrownClosure"),P(sim, "dataLoaderCLUS","nameForestInventorySiteIndex")),
-                           c("age", "height", "crownclosure", "siteindex"))
+        #setnames(pixels, c(P(sim, "dataLoaderCLUS","nameForestInventoryAge"),P(sim, "dataLoaderCLUS","nameForestInventoryHeight"),P(sim, "dataLoaderCLUS","nameForestInventoryCrownClosure"),P(sim, "dataLoaderCLUS","nameForestInventorySiteIndex")), c("age", "height", "crownclosure", "siteindex"))
         rm(inv, attrib_inv,inv_id, fids)
       }else{
         stop("No forest attributes from the inventory specified")
