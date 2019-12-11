@@ -1,0 +1,107 @@
+---
+title: "draft-federal-recovery-aac-impact"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+library(SpaDES.core)
+library(RSQLite)
+library(kableExtra)
+library(formattable)
+library(ggplot2)
+library(plotly)
+
+getTableQuery2<-function(sql){
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), port='5432' ,
+                       user=keyring::key_get('vmdbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
+  on.exit(dbDisconnect(conn))
+  dbGetQuery(conn, sql)
+}
+
+getTableQuery3<-function(sql, tsa){
+  conn<-dbConnect(RSQLite::SQLite(), dbname = paste0("C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/", tsa, "_clusdb.sqlite"))
+  dbGetQuery(conn, sql)
+  on.exit(dbDisconnect(conn))
+}
+```
+
+## Comparison by TSA
+
+Comparison of Federal Recovery Critical Habitat Constraints to the Buisiness As Usual scenario. 
+
+```{r summary, echo = FALSE}
+data2<-data.table(getTableQuery2("Select sum(volume), scenario, compartment from province.harvest group by scenario, compartment order by compartment, scenario"))
+fed<-data2[scenario == 'federal_recovery', ]
+setnames(fed, "sum", "federal_recovery")
+bau<-data2[!(scenario == 'federal_recovery'), ]
+setnames(bau, "sum", "bau")
+
+data3<-merge(bau[, c("bau", "compartment")], fed[, c("federal_recovery", "compartment")])
+data3[, diff:= round(federal_recovery -bau, 1)]
+data3[, pcnt_diff:= round((diff/bau)*100, 1)]
+
+tsas<-c("Arrow_TSA","Bulkley_TSA", "Cascadia_TCC_TSA","Cascadia_TKO_TSA","Cascadia_TOC_TSA", "Cranbrook_TSA", "Dawson_Creek_TSA", "Fort_St_John_TSA", "Fort_St_John_Core_TSA", "Golden_TSA", "Hundred_Mile_House_TSA", "Invermere_TSA", "Kamloops_TSA", "Kootenay_Lake_TSA", "Lakes_TSA", "MacKenzie_TSA", "MacKenzie_SW_TSA",
+        "Morice_TSA", "Okanagan_TSA", "Prince_George_TSA", "Prince_George_North_TSA", "Quesnel_TSA", "Revelstoke_TSA", "Robson_Valley_TSA", "Williams_Lake_TSA")
+
+thlb_add<-lapply(tsas, function(x){
+   conn<-dbConnect(RSQLite::SQLite(), dbname = paste0("C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/",x[],"_clusdb.sqlite"))
+  out<-cbind(x[], as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels")), as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 >= 0")), as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 >= 0 and zone5 is null and zone4 is null and zone3 is null and zone2 is null")))
+  dbDisconnect(conn)
+  data.table(out)
+})
+
+thlb<-rbindlist(thlb_add)
+setnames(thlb, c("V1", "V2", "V3", "V4"), c("compartment", "total_thlb", "crit_habitat_thlb", "newly_added_crit_habitat_thlb"))
+aac<-merge(data3, thlb, all.x=TRUE)
+aac<-aac[order(diff),]
+#convert chr to intger
+aac[,total_thlb:=as.integer(total_thlb)]
+aac[,crit_habitat_thlb:=as.integer(crit_habitat_thlb)]
+aac[,newly_added_crit_habitat_thlb:=as.integer(newly_added_crit_habitat_thlb)]
+
+
+totals<-data.table(compartment = 'TOTAL', bau = sum(aac$bau), federal_recovery= sum(aac$federal_recovery), diff = sum(aac$diff), total_thlb = sum(as.integer(aac$total_thlb),na.rm=T), crit_habitat_thlb = sum(as.integer(aac$crit_habitat_thlb),na.rm=T), newly_added_crit_habitat_thlb = sum(as.integer(aac$newly_added_crit_habitat_thlb),na.rm=T))
+totals[,pcnt_diff:= round((diff/bau)*100, 1)]
+
+last<-rbind(aac, totals)
+last[,pnct_thlb:= round((as.integer(newly_added_crit_habitat_thlb)/as.integer(total_thlb))*100,1)]
+
+
+#change the names to make the table cleaner
+setnames(last, "compartment", "TSA")
+setnames(last, "bau", "Business as Usual Scenario")
+setnames(last, "federal_recovery", "Federal Recovery Scenario")
+setnames(last, "diff", "Difference (m3)")
+setnames(last, "pcnt_diff", "Percentage (%)")
+setnames(last, "total_thlb", "Total in TSA (ha)")
+setnames(last, "crit_habitat_thlb", "Federal Critical Habitat (ha)")
+setnames(last, "newly_added_crit_habitat_thlb", "Newly Added Federal Critical Habitat (ha)")
+setnames(last, "pnct_thlb", "Percentage (% Newly Added)")
+knitr::kable(last,format.args = list(big.mark = ","))%>%
+  kable_styling(fixed_thead = T,bootstrap_options = c("striped", "hover"))%>%
+  row_spec(nrow(last), bold = T) %>%
+  add_header_above(c(" ", "Total Volume Harvested (m3, over 100 years)" = 2, "AAC Impact" = 2, "THLB Impact" = 4))
+```
+
+## THLB vs AAC impact
+
+Scatter plots between thlb and aac impacts across various TSAs
+
+```{r, plots, echo = FALSE}
+setnames(last, "Federal Critical Habitat (ha)", "crit_habitat_thlb")
+setnames(last, "Difference (m3)", "diff")
+setnames(last, "Newly Added Federal Critical Habitat (ha)", "newly_added_crit_habitat_thlb")
+setnames(last, "Percentage (% Newly Added)", "pcnt_thlb")
+setnames(last, "Percentage (%)", "pcnt_diff")
+
+last<-last[!(TSA == 'TOTAL'),]
+ggplotly(ggplot(data =last, aes(crit_habitat_thlb, diff))+ geom_point() +xlab("Critical Habitat THLB (ha)") + ylab("AAC Impact (m3)") +geom_text(label= last$TSA, size = 2))
+ggplotly(ggplot(data =last, aes(newly_added_crit_habitat_thlb, diff))+ geom_point()+xlab("Newly Added Critical Habitat THLB (ha)") + ylab("AAC Impact (m3)")+geom_text(label= last$TSA, size = 2))
+ggplotly(ggplot(data =last, aes(pcnt_thlb, pcnt_diff))+ geom_point()+xlab("Percent Newly Added Critical Habitat THLB (%)") + ylab("AAC Impact in Percent of BAU (%)")+geom_text(label= last$TSA, size = 2))
+
+```
