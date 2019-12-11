@@ -119,7 +119,7 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
   sim$tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 
   sim$tableSurvival[!(prop_age < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
   sim$tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
-  sim$tableSurvival[, scenario := scenario$name] 
+  sim$tableSurvival[, scenario := sim$scenario$name] 
   
   #print(sim$tableSurvival)
   ### Future version could include a table parameter input with caribou number or density by herd 
@@ -136,7 +136,7 @@ survivalCLUS.PredictSurvival <- function (sim) { # this function calculates surv
   new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
   new_tableSurvival[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
   new_tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
-  new_tableSurvival[, scenario := scenario$name]
+  new_tableSurvival[, scenario := sim$scenario$name]
   
   sim$tableSurvival <- rbindlist (list(sim$tableSurvival, new_tableSurvival)) # bind the new survival rate table to the existing table
   rm (new_tableSurvival) # is this necessary? -- frees up memory
