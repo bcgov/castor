@@ -17,7 +17,7 @@ library(tidyverse)
 
 The critical habitat raster specifies the spatial zones used to summarize rsfCLUS outputs. In the case of caribou the critical habitats refer to core low elevation winter, core low elevation summer, core high elevation winter/summer, matrix etc.
 
-## Souther Mountain
+## Southern Mountain
 
 ### Central Group
 
@@ -26,13 +26,15 @@ The critical habitats may come in various data structure forms like .shp or .gdb
 #Canadian (Federal) contraints
 sm.cg.crit<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/Canada/Southern_Mtn/Central_Group/data/DraftSMCcg_CHLPU_20181016/DraftCHLPU_20181016.gdb", layer ='CH_638_Rangifer_tarandus_caribou_SouthMountain_CentralGroup')
 
+unique(sm.cg.crit$CHVariant)
+
 sm.cg.crit<-sm.cg.crit[!is.na(sm.cg.crit$CHVariant), c("SHAPE", "CHVariant")] #keep only the needed features
 sm.cg.crit<-st_zm(sm.cg.crit) #remove the z dimension
 sm.cg.crit<-st_cast(sm.cg.crit, "MULTIPOLYGON") #cast to a multipolygon
 
 sm.cg.crit3<-sm.cg.crit %>% group_by(CHVariant) %>% 
         summarise() #unique polygons for each CHVariant
-sm.cg.crit3[sm.cg.crit3$CHVariant == 'Connectivity Range',]$CHVariant<-'Matrix Range'
+sm.cg.crit3<-sm.cg.crit3[!(sm.cg.crit3$CHVariant == 'Connectivity Range'),]
 st_write(sm.cg.crit3, "sm_cg.shp")
 
 ```
@@ -40,6 +42,8 @@ st_write(sm.cg.crit3, "sm_cg.shp")
 ```{r, sm.cg}
 #Canadian (Federal) contraints
 sm.ng.crit<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/Canada/Southern_Mtn/Northern_Group/data/DraftSMCng_CHLPU_20181016/DraftCHLPU_20181016.gdb", layer ='CH_638_Rangifer_tarandus_caribou_SouthMountain_NorthernGroup')
+
+unique(sm.ng.crit$CHVariant)
 
 sm.ng.crit<-sm.ng.crit[!is.na(sm.ng.crit$CHVariant), c("SHAPE", "CHVariant")] #keep only the needed features
 sm.ng.crit<-st_zm(sm.ng.crit) #remove the z dimension
@@ -49,7 +53,7 @@ sm.ng.crit<-sm.ng.crit[!(sm.ng.crit$CHVariant == ''),]
 sm.ng.crit3<-sm.ng.crit %>% group_by(CHVariant) %>% 
         summarise() #unique polygons for each CHVariant
 
-sm.ng.crit3[sm.ng.crit3$CHVariant == 'Connectivity Range',]$CHVariant<-'Matrix Range'
+sm.ng.crit3<-sm.ng.crit3[!(sm.ng.crit3$CHVariant == 'Connectivity Range'),]
 st_write(sm.ng.crit3, "sm_ng.shp")
 
 ```
@@ -57,6 +61,8 @@ st_write(sm.ng.crit3, "sm_ng.shp")
 ```{r, sm.cg}
 #Canadian (Federal) contraints
 sm.sg.crit<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/Canada/Southern_Mtn/Southern_Group/data/DraftSMCsg_CHLPU_20181016/DraftCHLPU_20181016.gdb", layer ='CH_638_Rangifer_tarandus_caribou_SouthMountain_SouthernGroup')
+
+unique(sm.sg.crit$CHVariant)
 
 sm.sg.crit<-sm.sg.crit[!is.na(sm.sg.crit$CHVariant), c("Shape", "CHVariant")] #keep only the needed features
 sm.sg.crit<-st_zm(sm.sg.crit) #remove the z dimension
@@ -67,7 +73,8 @@ sm.sg.crit<-sm.sg.crit[!is.null(sm.sg.crit$CHVariant),]
 sm.sg.crit3<-sm.sg.crit %>% group_by(CHVariant) %>% 
         summarise() #unique polygons for each CHVariant
 
-sm.sg.crit3[sm.sg.crit3$CHVariant == 'Connectivity Range',]$CHVariant<-'Matrix Range'
+sm.sg.crit3<-sm.sg.crit3[!(sm.sg.crit3$CHVariant == 'Connectivity Range'),]
+sm.sg.crit3<-sm.sg.crit3[!(sm.sg.crit3$CHVariant == 'Matrix Range'),]
 st_write(sm.sg.crit3, "sm_sg.shp")
 
 ```
@@ -83,6 +90,7 @@ sm.cg<-st_read(paste0(here::here(),"/R/Params/sm_cg.shp"))
 sm.sg<-st_read(paste0(here::here(),"/R/Params/sm_sg.shp"))
 
 sm<-rbind(sm.ng,sm.cg,sm.sg)
+unique(sm$CHVariant)
 sm1<-sm[sm$CHVariant %in% c('Matrix Range', 'High Elevation Winter/Summer Range', 'Low Elevation Summer Range',  'High Elevation Winter Range', 'Core Range', 'Low Elevation Winter Range' ),]
 
 crit.vat<-data.table(CHVariant=unique(sm1$CHVariant))
@@ -132,13 +140,13 @@ test[, critid:= as.integer(substr(as.character(value), nchar(as.character(value)
 
 #get rid of the pixels that do not have a critical habitat
 remove<-test[critid == 0, value]
-ras.zone[ras.zone[] %in% remove]<-0
-ras.zone[ras.zone[] == 0]<-NA
+ras.zone[ras.zone[] %in% remove]<-NA
+
 
 
 #create the value attribute table (vat)
 sm.vat<- test[!(critid == 0), ]
-sm.vat[,caribid:= value - critid]
+sm.vat[,caribid:= value - critid] #get the caribou herd identifier
 sm.vat<-merge(sm.vat, carib.vat, all.x = TRUE)
 sm.vat<-merge(sm.vat, crit.vat, all.x = TRUE, by.x = 'critid', by.y ='critid')
 
@@ -149,9 +157,8 @@ sm.vat[, variable:= 'age']
 sm.vat[, type:= 'le']
 sm.vat[, threshold:= '40']
 
-sm.vat[CHVariant == 'Matrix Range', percentage:= 35]
-sm.vat[CHVariant == 'Low Elevation Winter Range', percentage:= 35]
-sm.vat[CHVariant == 'Core Range', percentage:= NA]
+sm.vat[CHVariant == 'Matrix Range', percentage:= 18]
+sm.vat[CHVariant == 'Low Elevation Winter Range', percentage:= 18]
 
 nh.zones<-sm.vat[is.na(percentage), zoneid]
 ras.zone[ras.zone[] %in% nh.zones]<-0
