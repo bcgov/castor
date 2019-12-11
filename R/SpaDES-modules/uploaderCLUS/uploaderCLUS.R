@@ -78,14 +78,14 @@ Init <- function(sim) {
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     }
     
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", scenario$name, "';"))
-    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", sim$scenario$name, "';"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
     
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".harvest where scenario = '", scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", scenario$name,"' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", scenario$name, "';"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".harvest where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", sim$scenario$name,"' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", sim$scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", sim$scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
@@ -106,7 +106,7 @@ Init <- function(sim) {
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
     }
     
-    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", scenario$name,"', '", scenario$description, "');"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
     dbDisconnect(connx)
   }
   return(invisible(sim))
@@ -165,25 +165,25 @@ save.rasters <-function (sim){
                           password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
     ##blocks
     message('....cutblock raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,paste0(scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), schema = P(sim, "uploaderCLUS", "aoiName"), 
-                 name = paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
-    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), schema = P(sim, "uploaderCLUS", "aoiName"), 
+                 name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
     
     ##roads
     if(!is.null(sim$roads)){
     message('....roads raster')
     commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
-                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
+                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  P(sim, "uploaderCLUS", "dbInfo"))
-    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
     
     }
     ##zoneConstraint
     message('....constraint raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/", paste0(scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif")), 
-                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/", paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif")), 
+                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
                  P(sim, "uploaderCLUS", "dbInfo"))
-    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
     ##rsfEND
   }
   return(invisible(sim)) 
