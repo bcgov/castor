@@ -57,7 +57,7 @@ ui <- dashboardPage(skin = "black",
       tabItem(tabName = "mapviewer",
         fluidRow(#Raster query
           box(title = "Map Query",  collapsible = T, background = "black", solidHeader = TRUE, width = 10,
-            selectInput("maplayers", label = "Available Layers", multiple = TRUE, choices = NULL),
+            selectInput("maplayers", label = "Available Layers", multiple = FALSE, choices = NULL),
             actionButton("getMapLayersButton", "Load")
           )
       ),

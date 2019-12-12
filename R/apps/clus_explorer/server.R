@@ -30,20 +30,8 @@ availableMapLayers <- reactive({
   req(input$schema)
   req(input$scenario)
   #print(paste0("SELECT r_table_name FROM public.raster_columns WHERE r_table_schema = '", input$schema , "' ;"))
-  #getSpatialQuery(paste0("SELECT r_table_name FROM public.raster_columns WHERE r_table_schema = '", input$schema , "' ;"))
-  list_layers<-list()
-  i<-1
-  k<-1
-  while(i < 2*length(input$scenario)){
-    list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_roads")
-    i<-i+1
-    list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_cutblocks")
-    i<-i+1
-    list_layers[[i]]<-paste0(input$scenario[[k]], "_quesnel_tsa_constraint")
-    k<- k +1
-    i<-i+1
-  }
-  list_layers
+  #print(getSpatialQuery(paste0("SELECT r_table_name FROM public.raster_columns WHERE r_table_schema = '", input$schema , "' ;")))
+  getTableQuery(paste0("SELECT r_table_name FROM public.raster_columns WHERE r_table_schema = '", input$schema , "' ;"))$r_table_name
 })
 
 scenariosList<-reactive({
@@ -64,19 +52,21 @@ reportList<-reactive({
 observeEvent(input$getMapLayersButton, {
   withProgress(message = 'Loading layers', value = 0.1, {
     mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
+    mapLayersStack[mapLayersStack[] == 0] <- NA
   })
-
-  #colores <- c('red', 'green', 'blue', 'chocolate', 'deeppink', 'grey')
-  #at <- seq(0, 20, 1)
-  #cb <- colorBin(palette = colores, bins = at, domain = at)
-  cb<-colorNumeric("Spectral", domain = 0:100, na.color = "#00000000")
-  
-  leafletProxy("resultSetRaster") %>% 
-    clearImages() %>% 
+  cb<-colorBin("Spectral", domain = 1:100,  na.color = "#00000000")
+  leafletProxy("resultSetRaster", session) %>% 
     clearTiles() %>%
-    addTiles()  %>%
-    addRasterImage(mapLayersStack,  colors = , opacity = 0.8, project= TRUE) %>% 
-    addLegend(pal = cb, values = 0:100)
+    clearImages() %>%
+    clearControls()%>%
+    addTiles() %>% 
+    addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+    addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
+    addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
+    addRasterImage(mapLayersStack,  colors = cb, opacity = 0.8, project= TRUE, group="Selected") %>% 
+    addLegend(pal = cb, values = 1:100) %>%
+    addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),overlayGroups ="Selected") %>%
+    addScaleBar(position = "bottomleft") 
 })
 
 #---Observe
@@ -104,11 +94,6 @@ observeEvent(input$getMapLayersButton, {
                       selected = character(0))
   })
 
-  observe({ 
-    leafletProxy("resultSetRaster") %>% 
-      clearImages() %>% 
-      addTiles()
-  }) 
   
 #---Outputs
  output$scenarioDescription<-renderTable({
