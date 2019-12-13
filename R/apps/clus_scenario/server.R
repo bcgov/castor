@@ -511,7 +511,8 @@ shinyServer(function(input, output, session) {
         incProgress(0.95)
         ta<-as.numeric(totalArea()/10000)
         table$per_boundary<-(table$area_ha_buffer/ta)*100
-        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Boundary Area (%)")
+        table$density <- table$length_km/(ta*0.01) # road density
+        names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Boundary Area (%)", "Road Density (km/km2)")
         table
         
       }
@@ -570,7 +571,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  ## rest map
+  ## reset map
   observeEvent(input$reset, {
     leafletProxy("map") %>%
       clearShapes() %>%
@@ -588,6 +589,7 @@ shinyServer(function(input, output, session) {
                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
       addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) 
   })
+  
   
   # Modal for labeling the drawn polygons
   labelModal = modalDialog(
@@ -615,8 +617,10 @@ shinyServer(function(input, output, session) {
 
   observe({
     if(!is.null(uploadShp())){
+      bb <- bbox (st_transform(uploadShp(), CRS("+init=epsg:4326")))
       leafletProxy("map") %>%
-        addPolygons (data = uploadShp(), group = "Drawn") 
+        addPolygons (data = uploadShp(), group = "Drawn") %>%
+        flyToBounds (lng1 = bb[1],lat1 = bb[2], lng2 = bb[3], lat2=bb[4])
     }
   }) 
   #--------------------------------

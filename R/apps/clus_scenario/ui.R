@@ -14,24 +14,20 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                     h2(textOutput("clickCaribou")),
                     helpText("Herd"),
                     radioButtons("queryType", label = h3("Query Options"),
-                                 choices = list("Herd Boundary" = 1, "Drawn" = 2), 
-                                 selected = 1),
-                    sliderInput("sliderBuffer", label = h4("Buffer (m)"), min = 0, 
-                                max = 1000, value = 500, step = 20),
-                    sliderInput("sliderCutAge", label = h4("Age (year)"), min = 20, 
-                                max = 50, value = 40, step = 1)
+                                 choices = list("Herd Boundary" = 1, "Uploaded/Drawn Shapefile" = 2), 
+                                 selected = 1)
                   ),
                   
                   # Output: Description, lineplot, and reference
                   mainPanel(
                     leafletOutput("map"),
-                    downloadLink("downloadDrawnData", "Download"),
+                    downloadButton("downloadDrawnData", "Download Drawn/Edited Shapefile"),
                     helpText("Save drawn polygons"),
                     fileInput (inputId = "filemap", #upload shapefile
                                width = "450px",
                                label = "Upload a Shapefile",
                                placeholder = "Please include at a minimum: .shp, .dbf, and .shx files",
-                               buttonLabel = "Click to Upload",
+                               buttonLabel = "Upload Shapefile",
                                multiple = TRUE,
                                accept = c('.shp','.dbf','.sbn','.sbx','.shx','.prj', 'xml')
                     ),
@@ -47,8 +43,12 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                         "Summary", 
                         tabPanel("Fire", plotlyOutput(outputId = "firePlot", height = "400px")),
                         tabPanel("THLB", tableOutput(outputId = "thlbTable")),
-                        tabPanel("Cutblock", plotlyOutput(outputId = "cutPlot", height = "400px")),
-                        tabPanel("Road", tableOutput("rdTable"))
+                        tabPanel("Cutblock", plotlyOutput(outputId = "cutPlot", height = "400px"),
+                                 sliderInput("sliderCutAge", label = h4("Age (year)"), min = 20, 
+                                             max = 50, value = 40, step = 1)),
+                        tabPanel("Road", tableOutput("rdTable"),
+                                 sliderInput("sliderBuffer", label = h4("Buffer (m)"), min = 0, 
+                                             max = 1000, value = 500, step = 20))
                       )
                       ),
                       tabPanel("Climate Change", navlistPanel(
