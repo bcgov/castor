@@ -205,12 +205,12 @@ shinyServer(function(input, output, session) {
           shpValid <- FALSE
           showModal(warningModal)}
       }
-      
-      if(!"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList ){ 
+
+      if(!"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList ){
         shpValid <- FALSE
         showModal(warningModal)
       }
-      
+
       if (shpValid){
         # Rename files
         for(i in 1:nrow(shpdf)){
@@ -232,9 +232,9 @@ shinyServer(function(input, output, session) {
     }
     if (!shpValid) {
       outShp = NULL
-      
+
     } else {
-      outShp 
+      outShp
     }
   })
   
@@ -271,9 +271,10 @@ shinyServer(function(input, output, session) {
         rectangleOptions = FALSE,
         markerOptions = FALSE,
         singleFeature = F,
-        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
-                                                                                         ,color = 'red'
-                                                                                         ,weight = 3, clickable = TRUE))) %>%
+        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
+                                                                          color = 'red',
+                                                                          weight = 3, 
+                                                                          clickable = TRUE))) %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
   })
@@ -288,6 +289,7 @@ shinyServer(function(input, output, session) {
       if(!is.null(input$map_draw_all_features)){
         rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
       }
+
       zip(zipfile='CLUSshpExport.zip', files=Sys.glob("CLUSshpExport.*"))
       file.copy("CLUSshpExport.zip", file)
     })
@@ -537,39 +539,74 @@ shinyServer(function(input, output, session) {
     if(is.null(input$map_shape_click))
       return()
     
-    leafletProxy("map") %>%
-      clearShapes() %>%
-      clearControls() %>%
-      setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
-      addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)) , fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
-                  options = pathOptions(clickable = FALSE)) %>%
-      addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "blue" 
-                  , fillColor="brown", group = "Ungulate Winter Range",
-                  options = pathOptions(clickable = FALSE))%>%
-      addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue"
-                  , fillColor="darkgreen", group = "Wildlife Habitat Area",
-                  options = pathOptions(clickable = FALSE)) %>%
-      addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
+    if(!is.null(uploadShp())){
+      leafletProxy("map") %>%
+        clearShapes() %>%
+        clearControls() %>%
+        setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
+        addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)), fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
+                    options = pathOptions(clickable = FALSE)) %>%
+        addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "blue", fillColor="brown", group = "Ungulate Winter Range",
+                    options = pathOptions(clickable = FALSE))%>%
+        addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue", fillColor="darkgreen", group = "Wildlife Habitat Area",
+                    options = pathOptions(clickable = FALSE)) %>%
+        addPolygons (data = uploadShp(), group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
+        addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                               background-position: -31px -2px;"),position="bottomleft") %>%
-      addScaleBar(position = "bottomright") %>%
-      addDrawToolbar(
-        editOptions = editToolbarOptions(),
-        targetGroup='Drawn',
-        circleOptions = FALSE,
-        circleMarkerOptions = FALSE,
-        rectangleOptions = FALSE,
-        markerOptions = FALSE,
-        singleFeature = F,
-        polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0
-                                                                                         ,color = 'red'
-                                                                                         ,weight = 3, clickable = TRUE))) %>%
-      
-      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                       overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
-                       options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Caribou Selection')) 
+        addScaleBar(position = "bottomright") %>%
+        addDrawToolbar(
+          editOptions = editToolbarOptions(),
+          targetGroup='Drawn',
+          circleOptions = FALSE,
+          circleMarkerOptions = FALSE,
+          rectangleOptions = FALSE,
+          markerOptions = FALSE,
+          singleFeature = FALSE,
+          polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
+                                                                            color = 'red',
+                                                                            weight = 3,
+                                                                            clickable = TRUE))) %>%
+        addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),
+                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'),
+                         options = layersControlOptions(collapsed = TRUE)) %>%
+        hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area'))
+
+      }else{
+    
+        leafletProxy("map") %>%
+          clearShapes() %>%
+          clearControls() %>%
+          setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
+          addPolygons(data=as_Spatial(st_transform(herdSelect(), 4326)), fillOpacity = 0.1, color = "red", weight =4,labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , textsize='13px'),
+                      options = pathOptions(clickable = FALSE)) %>%
+          addPolygons(data=sf::as_Spatial(st_transform(uwrHerdSelect(), 4326)), color = "blue" 
+                      , fillColor="brown", group = "Ungulate Winter Range",
+                      options = pathOptions(clickable = FALSE))%>%
+          addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue"
+                      , fillColor="darkgreen", group = "Wildlife Habitat Area",
+                      options = pathOptions(clickable = FALSE)) %>%
+          addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
+                                  background-position: -31px -2px;"),position="bottomleft") %>%
+          addScaleBar(position = "bottomright") %>%
+          addDrawToolbar(
+            editOptions = editToolbarOptions(),
+            targetGroup='Drawn',
+            circleOptions = FALSE,
+            circleMarkerOptions = FALSE,
+            rectangleOptions = FALSE,
+            markerOptions = FALSE,
+            singleFeature = F,
+            polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
+                                                                              color = 'red',
+                                                                              weight = 3, 
+                                                                              clickable = TRUE))) %>%
+          
+          addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
+                           options = layersControlOptions(collapsed = TRUE)) %>%
+          hideGroup(c('Drawn', 'Caribou Selection')) 
+      }
   })
-  
   
   ## reset map
   observeEvent(input$reset, {
@@ -591,7 +628,7 @@ shinyServer(function(input, output, session) {
   })
   
   
-  # Modal for labeling the drawn polygons
+  # Modal for labeling the drawn/edited polygons
   labelModal = modalDialog(
     title = "Enter polygon label",
     textInput(inputId = "myLabel", label = "Enter a label for the drawn polygon: "),
@@ -615,16 +652,39 @@ shinyServer(function(input, output, session) {
     
   })
 
+  # Edited feature modal
+  # observeEvent(input$map_draw_edited_features, {
+  #   showModal(labelModal)
+  # })
+  # 
+  # observeEvent(input$ok_modal, {
+  #   
+  #   # req(input$map_draw_edited_features$properties$`_leaflet_id`)
+  #   # df.edit <- as.data.frame(valueModal$atTable)
+  #   # colnames(df.edit)<-c("ID", "Label")
+  #   print (map_draw_edited_features$properties$`_leaflet_id`)
+  #   valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_edited_features$properties$`_leaflet_id`, input$myLabel))
+  #   removeModal()
+  #   
+  # })
+  # 
+  
+  # observe the uploaded shapefile on the map
   observe({
     if(!is.null(uploadShp())){
-      bb <- bbox (sf::as_Spatial (uploadShp()))
+
+     bb <- bbox (sf::as_Spatial (uploadShp()))
 
      leafletProxy("map") %>%
-        addPolygons (data = uploadShp(), group = "Drawn") %>%
+        addPolygons (data = uploadShp(), group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
         showGroup(c('Drawn'))  %>%
-        flyToBounds (lng1 = bb[1],lat1 = bb[2], lng2 = bb[3], lat2=bb[4])
+
+        flyToBounds (lng1 = bb[1],lat1 = bb[2], lng2 = bb[3], lat2=bb[4]) # zoom to upload
     }
-  }) 
+  })
+  
+  
+  
   #--------------------------------
   ##Useful observeEvent for drawing  
   # Edited Features

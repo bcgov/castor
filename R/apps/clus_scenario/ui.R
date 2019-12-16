@@ -14,7 +14,9 @@ shinyUI(fluidPage(theme = shinytheme("lumen"),
                     h2(textOutput("clickCaribou")),
                     helpText("Herd"),
                     radioButtons("queryType", label = h3("Query Options"),
-                                 choices = list("Herd Boundary" = 1, "Uploaded/Drawn Shapefile" = 2), 
+                                 choices = list("Herd Boundary" = 1, 
+                                                "Drawn/Edited Shapefile" = 2,
+                                                "Uploaded Shapefile" = 3), 
                                  selected = 1)
                   ),
                   
