@@ -16,6 +16,7 @@ library (rgdal)
 library (leaflet.extras)
 library (tidyr)
 library (dplyr)
+#ignore
 
 getTableQuery<-function(sql){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
