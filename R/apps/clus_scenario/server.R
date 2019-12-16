@@ -292,7 +292,8 @@ shinyServer(function(input, output, session) {
 
       # if(!is.null(input$map_draw_edited_features)){
       #   rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
-      # }
+      # } 
+      # Error in Polygons: Single ID required  
       
       zip(zipfile='CLUSshpExport.zip', files=Sys.glob("CLUSshpExport.*"))
       file.copy("CLUSshpExport.zip", file)
