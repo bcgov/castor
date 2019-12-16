@@ -290,6 +290,10 @@ shinyServer(function(input, output, session) {
         rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
       }
 
+      # if(!is.null(input$map_draw_edited_features)){
+      #   rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
+      # }
+      
       zip(zipfile='CLUSshpExport.zip', files=Sys.glob("CLUSshpExport.*"))
       file.copy("CLUSshpExport.zip", file)
     })
@@ -652,6 +656,14 @@ shinyServer(function(input, output, session) {
     
   })
 
+  # # observe edited feature
+  # observeEvent(input$map_draw_edited_features, {
+  #   drawnPolys() <- input$map_draw_edited_features
+  #   #print("Edited Features")
+  #   #print(input$map_draw_edited_features)
+  # })
+  
+  
   # Edited feature modal
   # observeEvent(input$map_draw_edited_features, {
   #   showModal(labelModal)
