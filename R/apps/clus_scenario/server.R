@@ -185,7 +185,7 @@ shinyServer(function(input, output, session) {
   })
   
   # to upload shapefile... 
-  uploadShp <- reactive({
+  uploadPolys <- reactive({ # drawnPolys
     shpValid <- FALSE
     outShp <- NULL
     if (!is.null(input$filemap)){
@@ -234,7 +234,7 @@ shinyServer(function(input, output, session) {
       outShp = NULL
 
     } else {
-      outShp
+      outShp 
     }
   })
   
@@ -290,11 +290,6 @@ shinyServer(function(input, output, session) {
         rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
       }
 
-      # if(!is.null(input$map_draw_edited_features)){
-      #   rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
-      # } 
-      # Error in Polygons: Single ID required  
-      
       zip(zipfile='CLUSshpExport.zip', files=Sys.glob("CLUSshpExport.*"))
       file.copy("CLUSshpExport.zip", file)
     })
@@ -543,8 +538,8 @@ shinyServer(function(input, output, session) {
   observe({
     if(is.null(input$map_shape_click))
       return()
-    
-    if(!is.null(uploadShp())){
+     
+    if(!is.null(uploadPolys())){ #  drawnPolys
       leafletProxy("map") %>%
         clearShapes() %>%
         clearControls() %>%
@@ -555,7 +550,8 @@ shinyServer(function(input, output, session) {
                     options = pathOptions(clickable = FALSE))%>%
         addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue", fillColor="darkgreen", group = "Wildlife Habitat Area",
                     options = pathOptions(clickable = FALSE)) %>%
-        addPolygons (data = uploadShp(), group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
+        addPolygons (data = uploadPolys(), # drawnPolys
+                     group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
         addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                               background-position: -31px -2px;"),position="bottomleft") %>%
         addScaleBar(position = "bottomright") %>%
@@ -657,39 +653,16 @@ shinyServer(function(input, output, session) {
     
   })
 
-  # # observe edited feature
-  # observeEvent(input$map_draw_edited_features, {
-  #   drawnPolys() <- input$map_draw_edited_features
-  #   #print("Edited Features")
-  #   #print(input$map_draw_edited_features)
-  # })
-  
-  
-  # Edited feature modal
-  # observeEvent(input$map_draw_edited_features, {
-  #   showModal(labelModal)
-  # })
-  # 
-  # observeEvent(input$ok_modal, {
-  #   
-  #   # req(input$map_draw_edited_features$properties$`_leaflet_id`)
-  #   # df.edit <- as.data.frame(valueModal$atTable)
-  #   # colnames(df.edit)<-c("ID", "Label")
-  #   print (map_draw_edited_features$properties$`_leaflet_id`)
-  #   valueModal$atTable<-rbind(valueModal$atTable, c(input$map_draw_edited_features$properties$`_leaflet_id`, input$myLabel))
-  #   removeModal()
-  #   
-  # })
-  # 
-  
+
   # observe the uploaded shapefile on the map
   observe({
-    if(!is.null(uploadShp())){
+    if(!is.null(uploadPolys())){ # drawnPolys
 
-     bb <- bbox (sf::as_Spatial (uploadShp()))
+     bb <- bbox (sf::as_Spatial (uploadPolys())) # drawnPolys
 
      leafletProxy("map") %>%
-        addPolygons (data = uploadShp(), group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
+        addPolygons (data = uploadPolys(), # drawnPolys
+                     group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
         showGroup(c('Drawn'))  %>%
 
         flyToBounds (lng1 = bb[1],lat1 = bb[2], lng2 = bb[3], lat2=bb[4]) # zoom to upload
