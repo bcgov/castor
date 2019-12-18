@@ -11,7 +11,7 @@ shinyServer(function(input, output, session) {
     progress$set(value = 0, message = 'Loading...')
   ##Data objects
   #----------------
-    herd_bound <<- sf::st_zm(getSpatialQuery("SELECT gid, herd_name, ecotype, risk_stat, geom FROM public.gcbp_carib_polygon WHERE herd_name <> 'NA'"))
+    herd_bound <<- sf::st_zm(getSpatialQuery("SELECT ogc_fid as gid, herd_name, eco_group as ecotype, trend_long as risk_stat, wkb_geometry FROM public.bc_carib_poly_20090904 WHERE herd_name <> 'NA'"))
     sp_herd_bound<<-sf::as_Spatial(st_transform(herd_bound, 4326))
     progress$set(value = 0.3, message = 'Loading...')
     uwr<<- getSpatialQuery("SELECT approval_year, geom FROM public.uwr_caribou_no_harvest_20180627 ")
@@ -242,7 +242,7 @@ shinyServer(function(input, output, session) {
   # Outputs 
   ## Create scatterplot object the plotOutput function is expecting
   ## set the pallet for mapping
-  pal <- colorFactor(palette = c("lightblue", "darkblue", "red"),  sp_herd_bound$risk_stat)
+  pal <- colorFactor(palette = c("red", "#000000", "darkblue", "#0000FF", "lightblue"),  sp_herd_bound$risk_stat)
   ## render the leaflet map  
   output$map = renderLeaflet({ 
     leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
@@ -262,7 +262,7 @@ shinyServer(function(input, output, session) {
       addScaleBar(position = "bottomright") %>%
       addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                               background-position: -31px -2px;"),position="bottomleft") %>%
-      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) %>%
+      addLegend("bottomright", pal = pal, values = unique(sp_herd_bound$risk_stat), title = "Population Trend", opacity = 1) %>%
       addDrawToolbar(
         editOptions = editToolbarOptions(),
         targetGroup='Drawn',
@@ -552,8 +552,6 @@ shinyServer(function(input, output, session) {
                     options = pathOptions(clickable = FALSE)) %>%
         addPolygons (data = uploadPolys(), # drawnPolys
                      group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
-        addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
-                              background-position: -31px -2px;"),position="bottomleft") %>%
         addScaleBar(position = "bottomright") %>%
         addDrawToolbar(
           editOptions = editToolbarOptions(),
@@ -570,7 +568,9 @@ shinyServer(function(input, output, session) {
         addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),
                          overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'),
                          options = layersControlOptions(collapsed = TRUE)) %>%
-        hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area'))
+        hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area')) %>%
+        addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
+                              background-position: -31px -2px;"),position="bottomleft") 
 
       }else{
     
@@ -625,7 +625,8 @@ shinyServer(function(input, output, session) {
                   label = ~herd_name,
                   labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
-      addLegend("bottomright", pal = pal, values = c("Red/Threatened","Blue/Special","Blue/Threatened"), title = "Risk Status", opacity = 1) 
+      addLegend("bottomright", pal = pal, values = unique(sp_herd_bound$risk_stat), title = "Population Trend", opacity = 1) 
+      
   })
   
   
