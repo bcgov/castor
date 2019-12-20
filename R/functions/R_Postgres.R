@@ -31,7 +31,12 @@ getTableQuery<-function(sql){
 getRasterQuery<-function(srcRaster, bb){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   on.exit(dbDisconnect(conn))
-  pgGetRast(conn, unlist(strsplit(srcRaster, "[.]")), boundary = c(bb[4],bb[2],bb[3],bb[1]))
+  if(is.null(bb)){
+    pgGetRast(conn, unlist(strsplit(srcRaster, "[.]")))
+  }else{
+    pgGetRast(conn, unlist(strsplit(srcRaster, "[.]")), boundary = c(bb[4],bb[2],bb[3],bb[1]))
+  }
+  
 }
 
 setCSVPostgresTable<-function(name, table){
