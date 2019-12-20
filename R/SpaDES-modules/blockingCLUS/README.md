@@ -2,7 +2,26 @@
 
 ### What it does
 
-blockingCLUS aggregates pixels into harvest units either at run time or in one step in the intitlization of the simulation. 
+Presents the logic for aggregating stands into harvestable units or cutblocks. Approached in two ways: 1) reactively during the simulation (termed 'dynamic') or 2) pre-determined during the intitialization of the simulation (termed 'pre'). 
+
+#### Management levers
+
+* Criteria for linking harvest block layout in the model- homogeneity of the harvest unit
+* Patch size targets - distributions of disturbance sizes
+
+### Required inputs
+
+* Interval for simulating blocks
+* Allowable variation within a block (see here[ https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md] )
+* Zones to apply patch size constraints (e.g., Landscape units)
+* Target patch size distribution (e.g., follow natural disturbance types)
+* Raster for spread probability
+* Raster of current cutblocks
+
+### Outputs
+
+* Raster of harvest units or blocks 
+
 This module depends on dataloaderCLUS which involves a postgres db that stores rasters at the provincial extent
 
 ## Licence
