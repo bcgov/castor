@@ -66,7 +66,7 @@ Tables
 
 The clusdb database.
 
-![](data/clusdb.jpeg)<!-- -->
+![](data/clusdb_v1.1.jpeg)<!-- -->
 
 
 ### Licence
