@@ -105,15 +105,12 @@ Init <- function(sim) {
     LEFT JOIN yields k 
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
-    print(tab1[pixelid == 19299,])
-    
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)  
     }
   
-
   sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
                                      dbGetQuery(sim$clusdb, 
                                      paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
