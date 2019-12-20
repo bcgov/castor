@@ -23,7 +23,7 @@ Presents the logic for aggregating stands into harvestable units or cutblocks. A
 
 ### Outputs
 
-* Raster of harvest units or blocks 
+* *harvestUnits*. Raster of harvest units or blocks 
 * Populates blocks table -see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
 * Populates adjacenctBlocks table for use in applying harvesting adjacency constraints -see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
 
