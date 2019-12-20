@@ -9,17 +9,21 @@ Presents the logic for aggregating stands into harvestable units or cutblocks. A
 * Criteria for linking harvest block layout in the model- homogeneity of the harvest unit
 * Patch size targets - distributions of disturbance sizes
 
-### Required inputs
+### Input Parameters
 
 * *clusdb*. Connection to clusdb - see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
 * *blockMethod*. This describes the type of blocking method (Default = 'pre', e.g., 'pre' or 'dynamic')
 * *blockSeqInterval*. Interval for simulating blocks (Default = 1)
 * *patchVariation*. Allowable distance (variation) within a block (Default = 6, -see [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md)
 * *patchZone*. Raster of zones to apply patch size constraints (Default = none, e.g., Landscape units)
-* *patchDist*. The target patch size distribution (Default e.g., follow natural disturbance types)
+* *patchDist*. The target patch size distribution (Default = < 40 ha, e.g., natural disturbance types patch size in [biodiversity guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf) )
 * *nameCutblockRaster*. Name of the raster with ID pertaining to cutlocks (e.g., consolidated cutblocks)
 * *spreadProbRas*. Raster for spread probability (required if blockMethod = 'dynamic')
 
+#### Data Needs
+
+* Rasters of crown closure and height are used to determine the multivariate distance between adjacent stands.
+* Raster for the spread probability of dynamic cutblocks (can also be dynamic in the model, e.g., Age or salvage)
 
 ### Outputs
 
