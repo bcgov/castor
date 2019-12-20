@@ -64,7 +64,8 @@ Tables
 
 ### Outputs
 
-The clusdb database.
+* Summary of the state of the forest in the area of interest
+* Populates the pixels, yields, zones and zoneConstraints tables in the clusdb database.
 
 ![](data/clusdb_v1.1.jpeg)<!-- -->
 

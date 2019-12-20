@@ -2,19 +2,42 @@
 
 ### What it does
 
-forestryCLUS is nothing more than a convenient calculator for massive calculations. 
-It should be used to explore possible futures - to identify where and where not to go, explore the consequences of policy and test sensitivity. 
-It was designed to provide rapid feeback - for exploring the solution space. 
+forestryCLUS is a convenient calculator for massive spatial calculations. Simply put, this module projects the state of the forest described by [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS) into the future by taking into account management constraints for harvesting and forest growth (see here for more on forest growth via [growingStock CLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/growingStockCLUS) ). It should be used to explore possible futures - to identify where and where not to harvest, explore the consequences of policy and test sensitivity. 
 
-### Scope
-
-
-forestryCLUS simulates the forestry-caribou system where forestry policy shocks or decisions impact caribou. 
-The figure below highlights some of the positive ('straight') and negative ('dashed') direct and indirect impacts on various agents within this system
-
+It was designed to provide rapid feeback - for exploring the decision space for caribou and forestry related impacts. The following diagram is a simple representation of these impacts. 
 
 ![](data/CaribouNetwork.jpeg)<!-- -->
 
+#### Management levers
+
+* Harvest flow targets - how much to cut in any given time period
+* Harvest flow priority - what should be harvested first
+* Constraints 
+---
+*Land cover*. Percentage of zone to be above or below a given threshold for a particular forest attribute
+*No havesting*. Removing area from the thlb
+*Equivalent Clear Cut Area*. Constraining aggregated disturbance for watershed indicators.
+
+### Input Parameters
+
+* *clusdb*. Connection to clusdb - see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+* *useAdjacencyConstraint*. A logical variable determining if adjaceny constraints should be enforced or not. Default = FALSE.
+* *harvestPriority*. The order in which harvest units are queued for harvesting. Greatest priority first (e.g., oldest or a priority from linear programming). DESC is decending, ASC is ascending
+* *harvestFlow*. A table with the target harvest for a given time period and location.
+* *scenario*. A description of the scenario being run.
+* *calb_ymodel*. A gamma model for adjusting yields and calculating prediction intervals on timber volumes. see [here](https://github.com/bcgov/clus/blob/master/R/Params/linkHBS_VRI_Calibtation.md)
+
+#### Data Needs
+
+* *calb_ydata*. The dataset used to build the calb_ymodel. This is required for a monte carlo simulation of yield errors.
+
+### Outputs
+
+* Estimate of the yield uncertainty (probability the harvest flow will be acheived, 90% prediction interval)
+* Harvesting report that tracks the growing stock, area harvested, volume harvested, avialable thlb for each year in the simulation
+* Raster of harvested blocks (labeled by year they were harvested)
+* Raster of the number of years over the simulation that the pixel was constrained to be harvested
+* Landing locations where roading can be simulated
 
 ## Licence
 
