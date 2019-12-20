@@ -12,7 +12,7 @@ Presents the logic for aggregating stands into harvestable units or cutblocks. A
 ### Required inputs
 
 * Interval for simulating blocks
-* Allowable variation within a block (see [here]() https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md))
+* Allowable variation within a block (see [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md)
 * Zones to apply patch size constraints (e.g., Landscape units)
 * Target patch size distribution (e.g., follow natural disturbance types)
 * Raster for spread probability
