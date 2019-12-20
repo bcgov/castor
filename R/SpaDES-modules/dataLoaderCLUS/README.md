@@ -6,7 +6,7 @@ Downloads, retrieves and manipulates data and information about the current stat
 
 #### Management levers
 
-* Add the current state of the forest
+* Add the state of the forest (e.g., current or historical)
 * Add spatial boundaries for zone constraints
 * Add any information required during the simulation (e.g., dead pine percentages, deciduous percentages, quadratic mean diameter, etc)
 
@@ -24,7 +24,7 @@ Downloads, retrieves and manipulates data and information about the current stat
 * *nameMaskHarvestLandbaseRaster*. Administrative boundary related to operability of the the timber harvesting landbase. Default = 1
 * *nameAgeRaster*. Name of the raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve
 * *nameSiteIndexRaster*. Name of the raster site index used in uncertainty model of yields,
-* *nameCrownClosureRaster*. Name of the raster containing crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/
+* *nameCrownClosureRaster*. Name of the raster containing crown closure. Note this could be a raster using [VCF](http://glcf.umd.edu/data/vcf/)?
 * *nameHeightRaster*. Name of the raster containing pixel height. Default = 12. e.g., Canopy height model
 * *nameZoneTable*. Name of the table documenting the zone types
 * *nameZoneRasters*. Administrative boundaries containing zones of management objectives. Input as a vector -e.g. c("rast.vqo", "rast.wha")
