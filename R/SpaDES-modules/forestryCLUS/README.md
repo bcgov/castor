@@ -2,9 +2,9 @@
 
 ### What it does
 
-forestryCLUS is a convenient calculator for massive spatial calculations. Simply put, this module projects the state of the forest described by [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS) into the future by taking into account management constraints for harvesting and forest growth (see here for more on forest growth via [growingStock CLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/growingStockCLUS) ). It should be used to explore possible futures - to identify where and where not to harvest, explore the consequences of policy and test sensitivity. 
+forestryCLUS is a convenient calculator for massive spatial calculations. Simply put, this module projects the state of the forest described in [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS) into the future by taking into account management constraints for harvesting and forest growth (via [growingStock CLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/growingStockCLUS) ). It should be used to explore possible futures - to identify where and where not to harvest, explore the consequences of policy and test sensitivity. 
 
-It was designed to provide rapid feeback - for exploring the decision space for caribou and forestry related impacts. The following diagram is a simple representation of these impacts. 
+It was designed to provide rapid feeback - for exploring the decision space for caribou and forestry related impacts. The following diagram is a simple representation of these impacts. The solid arrows are positive impacts, while the dashed arrows are negative impacts.
 
 ![](data/CaribouNetwork.jpeg)<!-- -->
 
