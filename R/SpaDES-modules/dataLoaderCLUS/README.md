@@ -54,12 +54,12 @@ Any spatial or tabular data can be entered into the design of clusdb. The minimu
 * Transition yield curve primary key
 * Ownership
 * Management zones
-* Timber harvesting land-base
+* Timber harvesting land-base (thlb)
 
 ##### Tables
 ---
-* Yield curves
-* Zone constraints
+* Yield curves (with PK)
+* Zone constraints (with PK)
 
 
 ### Outputs
