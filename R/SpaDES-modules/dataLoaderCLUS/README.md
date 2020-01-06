@@ -44,7 +44,7 @@ Downloads, retrieves and manipulates data and information about the current stat
 
 Any spatial or tabular data can be entered into the design of clusdb. The minimum amount of data needed to run the simulation includes:
 
-Rasters
+##### Rasters
 ----
 * Age
 * Height
@@ -56,7 +56,7 @@ Rasters
 * Management zones
 * Timber harvesting land-base
 
-Tables
+##### Tables
 ---
 * Yield curves
 * Zone constraints
