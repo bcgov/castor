@@ -52,7 +52,7 @@ shinyServer(function(input, output, session) {
     req(input$map_shape_click$group)
     herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]})
   
-  drawnPolys<-reactive({
+  drawnPolys <- reactive({
     req(valueModal)
     if(!is.null(input$map_draw_all_features)){
       f<-input$map_draw_all_features
