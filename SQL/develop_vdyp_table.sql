@@ -495,25 +495,27 @@ select * from vdyp_test3 where yc_grp like 'BWBS_At(Ac)%';
 /*--------------------------------------------------------------------------*/
 /*Step 6. build the yieldcurve table. */
 
-Create table yieldcurves as
-SELECT ycid, yc_vat.yc_grp, prj_total_age as age,
-prj_vol_dwb as tvol, prj_dom_ht as height , prj_decper as dec_pcnt, (0) as eca FROM yc_vat
+Create table yc_vdyp as
+SELECT ycid, yc_vdyp_vat.yc_grp, prj_total_age as age,
+prj_vol_dwb as tvol, prj_dom_ht as height , prj_decper as dec_pcnt, (0) as eca FROM yc_vdyp_vat
 JOIN vdyp_test3 ON
-yc_vat.yc_grp = vdyp_test3.yc_grp;
+yc_vdyp_vat.yc_grp = vdyp_test3.yc_grp;
 
-Update yieldcurves set tvol = 0 where tvol is NULL;
+Update yc_vdyp set tvol = 0 where tvol is NULL;
 
 --add the lower limit of the yield curve
-insert into yieldcurves (ycid, yc_grp, age, tvol, height, dec_pcnt, eca)
+insert into yc_vdyp (ycid, yc_grp, age, tvol, height, dec_pcnt, eca)
 select distinct(ycid),  yc_grp, (0) as age, (0.0) as tvol, (0.0) as height, (0.0) as dec_pcnt, (0) as eca
-from yieldcurves;
+from yc_vdyp;
 
-select * from yieldcurves order by yc_grp, age limit 1000;
-update yieldcurves set dec_pcnt = ROUND(CAST(dec_pcnt as numeric), 2);
-update yieldcurves set height = ROUND(CAST(height as numeric), 2);
-update yieldcurves set tvol = ROUND(CAST(tvol as numeric), 2);
+/*STEP 7. Conifer percentage. From yield curves.*/
 
-/*STEP 7. Assign ECA. See https://www.for.gov.bc.ca/tasb/legsregs/fpc/FPCGUIDE/wap/WAPGdbk-Web.pdf*/
+--select * from yc_vdyp order by yc_grp, age limit 1000;
+update yc_vdyp set dec_pcnt = ROUND(CAST(dec_pcnt as numeric), 2);
+update yc_vdyp set height = ROUND(CAST(height as numeric), 2);
+update yc_vdyp set tvol = ROUND(CAST(tvol as numeric), 2);
+
+/*STEP 8. Assign ECA. See https://www.for.gov.bc.ca/tasb/legsregs/fpc/FPCGUIDE/wap/WAPGdbk-Web.pdf*/
 ---Table A2.2 Hydrological recovery for fully stocked stands that reach a maximum crown closure of 50%–70%.
 /*Average height of the main canopy (m) % Recovery
 0 – <3 0
@@ -524,6 +526,6 @@ update yieldcurves set tvol = ROUND(CAST(tvol as numeric), 2);
 */
 --ECA = A*(1-R). All VDYP curves are on 0 eca. TIPSY Curves will get this designation.
 
-/*STEP 8. Conifer percentage. From yield curves.
+
 
 

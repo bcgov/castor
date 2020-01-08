@@ -2,10 +2,36 @@
 
 ### What it does
 
-blockingCLUS aggregates pixels into harvest units either at run time or in one step in the intitlization of the simulation. 
-This module depends on dataloaderCLUS which involves a postgres db that stores rasters at the provincial extent
+Presents the logic for aggregating stands into harvestable units or cutblocks. Approached in two ways: 1) reactively during the simulation (termed 'dynamic') or 2) pre-determined during the intitialization of the simulation (termed 'pre'). 
 
-## Licence
+#### Management levers
+
+* Criteria for linking harvest block layout in the model- homogeneity of the harvest unit
+* Patch size targets - distributions of disturbance sizes
+
+### Input Parameters
+
+* *clusdb*. Connection to clusdb - see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+* *blockMethod*. This describes the type of blocking method (Default = 'pre', e.g., 'pre' or 'dynamic')
+* *blockSeqInterval*. Interval for simulating blocks (Default = 1)
+* *patchVariation*. Allowable distance (variation) within a block (Default = 6, -see [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md)
+* *patchZone*. Raster of zones to apply patch size constraints (Default = none, e.g., Landscape units)
+* *patchDist*. The target patch size distribution (Default = < 40 ha, e.g., natural disturbance types patch size in [biodiversity guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf) )
+* *nameCutblockRaster*. Name of the raster with ID pertaining to cutlocks (e.g., consolidated cutblocks)
+* *spreadProbRas*. Raster for spread probability (required if blockMethod = 'dynamic')
+
+#### Data Needs
+
+* Rasters of crown closure and height are used to determine the multivariate distance between adjacent stands.
+* Raster for the spread probability of dynamic cutblocks (can also be dynamic in the model, e.g., Age or salvage)
+
+### Outputs
+
+* *harvestUnits*. Raster of harvest units or blocks 
+* Populates blocks table -see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+* Populates adjacenctBlocks table for use in applying harvesting adjacency constraints -see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+
+### Licence
 
     Copyright 2019 Province of British Columbia
 

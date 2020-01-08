@@ -269,7 +269,8 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         
         #Update the pixels table
         dbBegin(sim$clusdb)
-          rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
+          rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans WHERE pixelid = :pixelid", queue[, "pixelid"])
+          #rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
         dbClearResult(rs)
         dbCommit(sim$clusdb)
       

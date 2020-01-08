@@ -2,9 +2,23 @@
 
 ### What it does
 
-This module is used to update the clusdb at the end of every period in the simulation. 
-In particular, age of the forest is incremented based on the updateInterval.This module depends on dataLoaderCLUS to provide its input objects.
+Updates various yield parameters using a linear interpolation and provides maintenance to the clusdb. For example, age of the forest is incremented based on the updateInterval. Various indexes are re-created and the database is vacuumed to increase query efficency. 
 
+#### Management levers
+
+* Growing stock constraint - maintain an amount of forest structure throughout the simulation
+
+### Input Parameters
+
+* *updateInterval*. Time period from which to update the yield parameters. e.g., yearly. Default = 1 year
+    
+#### Data Needs
+
+Yield curves that describe the current projection and the transition of that projection following harvesting.
+
+### Outputs
+
+* growingStockReport - a report that describes the standing volume for each time period in the simulation.
 
 ## Licence
 

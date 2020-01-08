@@ -26,7 +26,6 @@ defineModule(sim, list(
   reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel", "tidyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter("nameSimilarityRas", "character", "rast.similarity_vri2003", NA, NA, desc = "Name of the cost surface raster"),
     defineParameter("useLandingsArea", "logical", FALSE, NA, NA, desc = "Use the area provided by the historical cutblocks?"),
     defineParameter("spreadProbRas", "character", "99999", NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
@@ -455,3 +454,12 @@ worker.init <- function(packages) { #used for setting up the environments of the
 }
 
 jgc <- function() .jcall("java/lang/System", method = "gc")
+
+.inputObjects <- function(sim) {
+  if(is.null(sim$patchSizeDist)){
+    sim$patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1), 
+                               sizeClass = c(40), 
+                               freq = c(1))
+  }
+  return(invisible(sim))
+}
