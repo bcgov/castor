@@ -8,11 +8,15 @@
 *.prj
 *.shx
 *.tmp
+*.ppk
+*.ini
+*.cpg
+*.qpj
 /list_clus_data.xlsx
 .pdf
 *.xlsx
 *.yml
-/scrap.R
+scrap.R
 /global.R
 /tass/
 /Get OpenSSH.docx
