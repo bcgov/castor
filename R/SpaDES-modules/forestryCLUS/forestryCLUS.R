@@ -1,5 +1,5 @@
 
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ defineModule(sim, list(
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("useAdjacencyConstraint", "logical", FALSE, NA, NA, "Include Adjacency Constraint?"),
+    defineParameter("growingStockConstraint", "numeric", 99999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
     defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending")
     
     ),
@@ -66,7 +67,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     init = {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
       #sim <- forestryCLUS.setConstraints(sim) 
-      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 5)
+      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 2)
       sim <- scheduleEvent(sim, end(sim), "forestryCLUS", "uncertainty", 6)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
@@ -74,7 +75,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- forestryCLUS.setConstraints(sim)
       sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
-      sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 5)
+      sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 2)
     },
     uncertainty = {
       sim <- forestryCLUS.calcUncertainty(sim)
@@ -265,11 +266,17 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         message("No stands to harvest")
           next #no cutblocks in the queue go to the next compartment
       }else{
+        
+        #Adjust the harvestFlow based on the growing stock constraint
+        if(!(P(sim, "forestryCLUS", "growingStockConstraint") == 9999)){
+          harvestTarget<- min(sim$growingStockReport[timeperiod == time(sim), m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint"), harvestTarget)
+          print(paste0("harvest after constarint", harvestTarget))
+        }
         queue<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]
         
         #Update the pixels table
         dbBegin(sim$clusdb)
-          rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans WHERE pixelid = :pixelid", queue[, "pixelid"])
+          rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol =0 WHERE pixelid = :pixelid", queue[, "pixelid"])
           #rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
         dbClearResult(rs)
         dbCommit(sim$clusdb)

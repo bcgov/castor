@@ -1,5 +1,5 @@
 
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,12 +51,12 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 9)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
     },
     updateGrowingStock= {
       sim <- growingStockCLUS.Update(sim)
       sim <- growingStockCLUS.record(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 9)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -187,6 +187,7 @@ growingStockCLUS.Update<- function(sim) {
 }
 
 growingStockCLUS.record<- function(sim) {
+  message("...recording")
   sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
               dbGetQuery(sim$clusdb, paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
