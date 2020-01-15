@@ -1,4 +1,4 @@
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,7 +55,9 @@ defineModule(sim, list(
     defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
     defineParameter("nameZoneTable", "character", "99999", NA, NA, desc = "Name of the table documenting the zone types"),
     defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
+    defineParameter("nameYieldsTransitionRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables that transition to a new table"),
     defineParameter("nameYieldTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields"),
+    defineParameter("nameYieldTransitionTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields that transition"),
     defineParameter("nameOwnershipRaster", "character", "99999", NA, NA, desc = "Name of the raster from GENERALIZED FOREST OWNERSHIP"),
     defineParameter("nameForestInventoryTable", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
     defineParameter("nameForestInventoryRaster", "character", "99999", NA, NA, desc = "Name of the veg comp - the forest inventory raster of the primary key"),
@@ -103,7 +105,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
        }else{
         sim$foreststate<-NULL
         message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))
-         #TODO: Make a copy of the db here so that the clusdb is in memory
+        #Make a copy of the db here so that the clusdb is in memory
         userdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "dataLoaderCLUS", "useCLUSdb") ) # connext to pgdb
         sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") # save the pgdb in memory (object in sim)
         RSQLite::sqliteCopyDatabase(userdb, sim$clusdb)
@@ -171,7 +173,7 @@ dataLoaderCLUS.createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, zone_const integer DEFAULT 0, thlb numeric , age numeric, vol numeric,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, thlb numeric , age numeric, vol numeric,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
   return(invisible(sim))
 }
@@ -369,9 +371,17 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
     }else{
       stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
     }
+    
+    #Check there is a table to link to
+    if(P(sim, "dataLoaderCLUS", "nameYieldTable") == "99999"){
+      stop(paste0("Specify the nameYieldTable =", P(sim, "dataLoaderCLUS", "nameYieldTable")))
+    }
+    
     yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ")
+    
     #Set the yields table with yield curves that are only in the study area
     yields<-getTableQuery(paste0("SELECT ycid, age, tvol, dec_pcnt, height, eca FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
+    
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca) 
                       values (:ycid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
@@ -381,7 +391,6 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   }else{
     message('.....yield ids: default 1')
     pixels[, yieldid := 1]
-    
     #Set the yields table
     yields<-data.table(yieldid= 1, age= seq(from =0, to=190, by = 10), 
                        tvol = seq(1:20)**2, 
@@ -393,6 +402,45 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
                       values (:yieldid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
+  }
+  
+  #---Transitionary yields 
+  if(!(P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster") == "99999")){
+    message(paste0('.....yield transition ids: ',P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster")))
+    
+    ras.ylds_trans<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                           srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster"), 
+                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                           where_clause = paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    if(aoi == extent(ras.ylds_trans)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ylds_trans)))))
+      setnames(pixels, "V1", "yieldid_trans")
+      rm(ras.ylds_trans)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster")))
+    }
+       #Check there is a table to link to
+    if(P(sim, "dataLoaderCLUS", "nameYieldTransitionTable") == "99999"){
+      stop(paste0("Specify the nameYieldTransitionTable =", P(sim, "dataLoaderCLUS", "nameYieldTransitionTable")))
+    }
+    
+    yld.ids.trans<-paste( unique(pixels[!is.na(yieldid_trans),"yieldid_trans"])$yieldid_trans, sep=" ", collapse = ", ")
+    
+    #Set the yields table with yield curves that are only in the study area
+    yields.trans<-getTableQuery(paste0("SELECT ycid, age, tvol, dec_pcnt, height, eca FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca) 
+                      values (:ycid, :age, :tvol, :dec_pcnt, :height, :eca)", yields.trans)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+  }else{
+    message('.....yield trans ids: default 1')
+    pixels[, yieldid_trans := 1]
   }
   
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
@@ -556,9 +604,9 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, own, thlb, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
+  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
-               values (:pixelid, :compartid, :yieldid, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, 0, :zone', 
+               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, 0, :zone', 
                paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
   
 
@@ -589,21 +637,21 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   return(invisible(sim))
 }
 
-dataLoaderCLUS.setTHLB<-function(sim){
-  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
-  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
-                                  dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
-                                  by.x = "reference_zone", by.y = "reference_zone"))
-  if(nrow(nhConstraints) > 0 ){
-    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
-  }
-  #thlb.ras<-sim$ras
-  #thlb.val<-dbGetQuery(sim$clusdb, "select thlb from pixels order by pixelid")
-  #thlb.ras[]<- thlb.val$thlb
-  #writeRaster(thlb.ras, "thlb.tif")
-  return(invisible(sim))
-}
+# dataLoaderCLUS.setTHLB<-function(sim){
+#   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
+#   nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
+#                                   dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+#                                   by.x = "reference_zone", by.y = "reference_zone"))
+#   if(nrow(nhConstraints) > 0 ){
+#     nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+#     dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+#   }
+#   #thlb.ras<-sim$ras
+#   #thlb.val<-dbGetQuery(sim$clusdb, "select thlb from pixels order by pixelid")
+#   #thlb.ras[]<- thlb.val$thlb
+#   #writeRaster(thlb.ras, "thlb.tif")
+#   return(invisible(sim))
+# }
 
 dataLoaderCLUS.calcForestState<-function(sim){
 sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
