@@ -3466,33 +3466,6 @@ table.kfold.results.du6.s <- table.kfold.results.du6.s %>%
 write.csv (table.kfold.results.du6.s, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du6\\summer\\table_kfold_summary_du6_s.csv")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ###############################
 ### RSF RASTER CALCULATION ###
 #############################
