@@ -508,24 +508,16 @@ insert into yc_vdyp (ycid, yc_grp, age, tvol, height, dec_pcnt, eca)
 select distinct(ycid),  yc_grp, (0) as age, (0.0) as tvol, (0.0) as height, (0.0) as dec_pcnt, (0) as eca
 from yc_vdyp;
 
-/*STEP 7. Conifer percentage. From yield curves.*/
+/*STEP 7. Formatting */
 
 --select * from yc_vdyp order by yc_grp, age limit 1000;
 update yc_vdyp set dec_pcnt = ROUND(CAST(dec_pcnt as numeric), 2);
 update yc_vdyp set height = ROUND(CAST(height as numeric), 2);
 update yc_vdyp set tvol = ROUND(CAST(tvol as numeric), 2);
 
-/*STEP 8. Assign ECA. See https://www.for.gov.bc.ca/tasb/legsregs/fpc/FPCGUIDE/wap/WAPGdbk-Web.pdf*/
----Table A2.2 Hydrological recovery for fully stocked stands that reach a maximum crown closure of 50%–70%.
-/*Average height of the main canopy (m) % Recovery
-0 – <3 0
-3 – <5 25
-5 – <7 50
-7 – <9 75
-9 + 90
-*/
---ECA = A*(1-R). All VDYP curves are on 0 eca. TIPSY Curves will get this designation.
+ALTER TABLE yc_vdyp
+ALTER COLUMN eca TYPE double precision;
 
-
-
+ALTER TABLE yc_vdyp
+ALTER COLUMN ycid TYPE integer;
 
