@@ -8,7 +8,7 @@ output:
 ---
 
 <!--
-Copyright 2018 Province of British Columbia
+Copyright 2020 Province of British Columbia
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,12 +79,6 @@ pars_scenario<-list(list("Prince_George_TSA", rbindlist(list(data.table(compartm
                                      )))
                     )
 
-pars_scenario<-list(list("Morice_TSA", rbindlist(list(data.table(compartment ="Morice_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2021, by = 1),1), 
-                                     flow = 60000)
-                                     )))
-                    )
 test<-lapply(pars_scenario, function(x){
   
   moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")

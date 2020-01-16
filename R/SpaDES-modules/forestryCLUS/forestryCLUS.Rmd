@@ -8,7 +8,7 @@ output:
 ---
 
 <!--
-Copyright 2018 Province of British Columbia
+Copyright 2020 Province of British Columbia
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
-  forestryCLUS = list( harvestPriority = "vol DESC, age DESC"),
+  forestryCLUS = list( harvestPriority = "vol DESC, age DESC", growingStockConstraint = 1.005),
   #roadCLUS = list(roadMethod = 'snap', nameCostSurfaceRas = 'rast.rd_cost_surface', nameRoads =  'rast.crds_resource'),
   #rsfCLUS = list(calculateInterval = 5, criticalHabitatTable = "public.criticalhabitat", writeRSFRasters = TRUE),
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
@@ -105,7 +105,7 @@ scenario = data.table(name="testing_transitions", description = "Simple flow- ju
 harvestFlow<- data.table(compartment ="Morice_TSA",
                                      partition = ' vol > 110 ',
                                      year = rep(seq(from = 2018, to=2022, by = 1),1), 
-                                     flow = 60000)
+                                     flow = 6000000)
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))

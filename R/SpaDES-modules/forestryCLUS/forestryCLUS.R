@@ -269,7 +269,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         
         #Adjust the harvestFlow based on the growing stock constraint
         if(!(P(sim, "forestryCLUS", "growingStockConstraint") == 9999)){
-          harvestTarget<- min(sim$growingStockReport[timeperiod == time(sim), m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint"), harvestTarget)
+          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim), m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
           print(paste0("harvest after constarint", harvestTarget))
         }
         queue<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]
@@ -325,6 +325,9 @@ forestryCLUS.getHarvestQueue<- function(sim) {
 forestryCLUS.calcUncertainty <-function(sim) {
   sim$yielduncertain <-rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name))
   print(sim$yielduncertain)
+  if(nrow(sim$yielduncertain) == 0){
+    sim$yielduncertain<-NULL
+  }
   return(invisible(sim))
 }
 
