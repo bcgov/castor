@@ -1,4 +1,4 @@
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 defineModule (sim, list (
   name = "survivalCLUS",
   description = "This module calculates adult female caribou survival rate in caribou herd ranges using the model developed by Wittmer et al. 2007.",
-  keywords = c ("caribou", "survival", "southern mountain", "adult female"), # c("insert key words here"),
+  keywords = c ("caribou", "survival", "southern mountain", "adult female"), 
   authors = c (person ("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character (0),
@@ -23,7 +23,7 @@ defineModule (sim, list (
   timeframe = as.POSIXlt (c (NA, NA)),
   timeunit = "year",
   citation = list ("citation.bib"),
-  documentation = list ("README.txt", "survivalCLUS.Rmd"),
+  documentation = list ("README.md", "survivalCLUS.Rmd"),
   reqdPkgs = list (),
   parameters = rbind (
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -31,20 +31,12 @@ defineModule (sim, list (
     defineParameter ("caribou_herd_density", "numeric", 0.05, 0, 1, "This is the caribou herd density that the user defines. It is necessary to fit the survival model. For now, we are keeping it static, but in the future it could be made dynamic by linking to a population model."),
     defineParameter ("nameRasCaribouHerd", "character", "rast.caribou_herd", NA, NA, "Name of the raster of the caribou herd boundaries raster that is stored in the psql clusdb. Created in Params/caribou_herd_raster.rmd."), # could be included in dataLoader instead for easier use in other modules?
     defineParameter ("tableCaribouHerd", "character", "public.caribou_herd", NA, NA, "The look up table to convert raster values to caribou herd name labels. The two values required are value and herd_name. Created in Params/caribou_herd_raster.rmd")
-    # defineParameter (".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
-    # defineParameter (".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
-    # defineParameter (".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
-    # defineParameter (".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    # defineParameter (".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    #expectsInput ("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the clusdb.', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
     ),
   outputObjects = bind_rows(
-    #createsOutput ("objectName", "objectClass", "output object description", ...),
-    #createsOutput (objectName = NA, objectClass = NA, desc = NA)
     createsOutput (objectName = "tableSurvival", objectClass = "data.table", desc = "A data.table object. Consists of survival rate estimates for each herd in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
     )
   )
@@ -56,11 +48,15 @@ doEvent.survivalCLUS = function (sim, eventTime, eventType) {
     init = { # identify herds in the study area, calculate survival rate at time 0 for those herds and save the survival rate estimate
       sim <- survivalCLUS.Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
       sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event 
+      sim <- scheduleEvent (sim, end(sim), "survivalCLUS", "adjustSurvivalTable", 9) #Need to add in the total area of herd_bounds + compartment for weighting these proportions across many compartments
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- survivalCLUS.PredictSurvival (sim) # this function calculates survival rate
       sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event  
+    },
+    adjustSurvivalTable ={ # calucalte the total area from which the proportions and survival rate applies
+      sim <- survivalCLUS.adjustSurvivalTable (sim)
     },
     
     warning (paste ("Undefined event type: '", current (sim) [1, "eventType", with = FALSE],
@@ -118,8 +114,7 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
     # Model was a logit function, so here I back-calculate to get survival rates exp(fxn)/(1+exp(fxn))
   sim$tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 
   sim$tableSurvival[!(prop_age < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  sim$tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
-  sim$tableSurvival[, scenario := sim$scenario$name] 
+  sim$tableSurvival[, c("timeperiod", "scenario", "compartment") := list(time(sim), sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
   
   #print(sim$tableSurvival)
   ### Future version could include a table parameter input with caribou number or density by herd 
@@ -135,11 +130,18 @@ survivalCLUS.PredictSurvival <- function (sim) { # this function calculates surv
   new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
   new_tableSurvival[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  new_tableSurvival[, timeperiod := time(sim)] # add the time of the survival calc
-  new_tableSurvival[, scenario := sim$scenario$name]
+  new_tableSurvival[, c("timeperiod", "scenario", "compartment") := list(time(sim), sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc
+  
   
   sim$tableSurvival <- rbindlist (list(sim$tableSurvival, new_tableSurvival)) # bind the new survival rate table to the existing table
   rm (new_tableSurvival) # is this necessary? -- frees up memory
+  return (invisible(sim))
+}
+
+survivalCLUS.adjustSurvivalTable <- function (sim) { # this function adds the total area of the herd_bounds + compartment area to be used for weighting in the dashboard
+  total_area<-data.table(dbGetQuery (sim$clusdb, "SELECT count(*)as area, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
+  sim$tableSurvival<-merge(sim$tableSurvival, total_area, by.x = "herd_bounds", by.y = "herd_bounds", all.x = TRUE )
+  print(sim$tableSurvival)
   return (invisible(sim))
 }
 
