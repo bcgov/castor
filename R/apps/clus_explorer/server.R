@@ -174,6 +174,9 @@ observeEvent(input$getMapLayersButton, {
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
+      data[, wt:= area/sum(area), by =c("scenario", "timeperiod", "herd_bounds")] #area weight the survival metrics
+      data<-data[,lapply(.SD, weighted.mean, w =wt), by =c("scenario", "timeperiod", "herd_bounds"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
+    
       # data [order(data$scenario,  data$herd_bounds, data$timeperiod)]
       # data.year0 <- data[data$timeperiod == 0, c ("scenario", "herd_bounds", "survival_rate")]
       # setnames(data.year0, old = "survival_rate", new = "survival_rate_0")
