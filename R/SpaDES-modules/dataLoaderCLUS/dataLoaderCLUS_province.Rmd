@@ -104,7 +104,7 @@ parameters <-  list(
 #rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU6' and  species = 'caribou' and season IN ('S', 'EW', 'LW')"))
 
 #rsf_model_coeff[, bounds := 'rast.crithabitat']
-scenario<-data.table(name="bau", description = "buisness as usual-projecting current trends")#NOTE: do not use special characters (.,/+=;'!@#$%^&*)
+scenario = data.table(name="testing_transitions", description = "Simple flow- just test that following harvesting the yields transition to another curve (i.e., TIPSY)")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,

@@ -1,5 +1,5 @@
 <!--
-Copyright 2018 Province of British Columbia
+Copyright 2020 Province of British Columbia
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ library(SpaDES)
 library(SpaDES.core)
 library(data.table)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_221') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
 
 setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
@@ -40,41 +41,30 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
-                         nameBoundaryFile="study_area_compart",
-                         nameBoundaryColumn="tsb_number",
-                         nameBoundary = c ("26A","26B", "26C"), #DU7
-                         #nameBoundary = c ("26A","26B", "26C", "26D","26E","26F","26G","26H","29A", "29B", "29C", "29D","29E","29F","29G","29H","29I","29J","29K","29L","29M","29N", "V 47C","V 46B", "V 46C", "V 46D","V 46E","V 46F"),  
-                         #DU7: 26 is Quesnel, 29 is Williams Lake, V 46 is GBR North, "V 47 is GBR South"
-                         
-                         #nameBoundary = c ("03A","03B", "03C", "14A", "14B", "14C", "14D", "14E", "14F", "14G", "16A", "16B", "16C", "16D", "16E", "16F", "16G", "16H", "16I", "16J","16K","16L", "16M", "20A", "20B", "20C", "20D", "20E", "24A", "24B", "24C", "24D","24E","24F","24G","24H"), #DU8: 03 is bulkley,  14 is Lakes, 16 is Mackenzie, 20 is Morice and 24 is prince george.
-                         
-                         #nameBoundary = c ("08A", "08B", "08C", "08D",  "40A", "40B", "40C", "40D", "40E", "40F", "41A", "41B", "41C", "41D"),
-                         #DU6; 08 is Fort Nelson, 40 is Fort St John, 41 is Dawson
-                         
-                         #nameBoundary = c ("11A", "11B", "11C", "11D", "17A", "17B", "17C", "17D", "17E", "17F", "17G", "17H", "17I"),
-                         #11 is kamloops, 17 is robson Valley, 27 revelstoke, 07 is golden, 45 is cascadia, 22 is okanagan
-                         
-                         #nameBoundary = c ("09A", "09B", "09C", "09D", "27A", "27B", "27C", "27D", "27E", "27F", "27G", "27H", "27I"),
-                         #01 is Arrow, 09 is Invermere, 05 is Cranbrook, 27 revelstoke, 13 is kootenay Lakes
+                         nameBoundaryFile="tsa_aac_bounds",
+                         nameBoundaryColumn="tsa_name",
+                         nameBoundary = "Morice_TSA",
                          nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "rast.forest_tenure",
-                         nameCompartmentTable = "forest_tenure_vat",
+                         nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         nameCompartmentTable = "tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv"),
+                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
                          nameZoneTable="zone_constraints",
-                         nameAgeRaster= "rast.vri2017_projage1",
-                         nameHeightRaster= "rast.vri2017_projheight1",
-                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
-                         nameSiteIndexRaster = "rast.vri2017_siteindex",
-                         nameYieldsRaster = "rast.yc",
-                         #nameForestInventoryRaster ="rast.vri2002_id",
-                         #nameForestInventoryKey = "feature_id",
-                         #nameForestInventoryTable = "veg_comp_lyr_r1_poly_finalv3_deliveryv2",
-                         #nameForestInventoryAge = "proj_age_1",
-                         #nameForestInventoryHeight = "proj_height_1",
-                         #nameForestInventoryCrownClosure = "crown_closure",
-                         #nameYieldTable ="yield_ex"
-                         nameYieldTable ="yieldcurves"
+                         #nameAgeRaster= "rast.vri2017_projage1",
+                         #nameHeightRaster= "rast.vri2017_projheight1",
+                         #nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         #nameSiteIndexRaster = "rast.vri2017_siteindex",
+                         nameYieldsRaster = "rast.ycid_vdyp",
+                         nameYieldTable ="yc_vdyp",
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                         nameYieldTransitionTable ="yc_tipsy",
+                         nameForestInventoryRaster ="rast.vri2018_id",
+                         nameForestInventoryKey = "feature_id",
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                         nameForestInventoryAge = "proj_age_1",
+                         nameForestInventoryHeight = "proj_height_1",
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventorySiteIndex = "site_index"
                     ),
     blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_cond_beo',
@@ -86,19 +76,20 @@ parameters <-  list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_resource'
                   ),
-    rsfCLUS = list(calculateInterval = 5, 
-                 criticalHabitatTable = "public.criticalhabitat",
-                 writeRSFRasters = TRUE),
+   # rsfCLUS = list(calculateInterval = 5, 
+   #              criticalHabitatTable = "public.criticalhabitat",
+   #              writeRSFRasters = TRUE),
     survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd"),
-    uploaderCLUS = list(aoiName = 'chilcotin',
+    uploaderCLUS = list(aoiName = 'morice',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL")))
   )
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('S', 'EW', 'LW')"))
-rsf_model_coeff[, bounds := 'rast.crithabitat']
-scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
+#rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('S', 'EW', 'LW')"))
+
+#rsf_model_coeff[, bounds := 'rast.crithabitat']
+scenario = data.table(name="testing_transitions", description = "Simple flow- just test that following harvesting the yields transition to another curve (i.e., TIPSY)")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
@@ -111,9 +102,12 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
-modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "rsfCLUS", "survivalCLUS", "uploaderCLUS")
+#modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "rsfCLUS", "survivalCLUS", "uploaderCLUS")
+modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "survivalCLUS", "uploaderCLUS")
 
-objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
+#objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
+objects <- list(patchSizeDist=patchSizeDist, scenario = scenario)
+
 inputs <- list()
 outputs <- list()
 
