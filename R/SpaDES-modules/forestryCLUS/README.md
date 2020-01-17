@@ -13,10 +13,10 @@ It was designed to provide rapid feeback - for exploring the decision space for 
 * Harvest flow targets - how much to cut in any given time period
 * Harvest flow priority - what should be harvested first
 * Constraints 
----
 *Land cover*. Percentage of zone to be above or below a given threshold for a particular forest attribute
 *No havesting*. Removing area from the thlb
 *Equivalent Clear Cut Area*. Constraining aggregated disturbance for watershed indicators.
+*Growing stck*. Forcing the future states of the forest to maintain a percentage of the current merchantable growing stock (i.e., standing volume)
 
 ### Input Parameters
 
@@ -26,6 +26,7 @@ It was designed to provide rapid feeback - for exploring the decision space for 
 * *harvestFlow*. A table with the target harvest for a given time period and location.
 * *scenario*. A description of the scenario being run.
 * *calb_ymodel*. A gamma model for adjusting yields and calculating prediction intervals on timber volumes. see [here](https://github.com/bcgov/clus/blob/master/R/Params/linkHBS_VRI_Calibtation.md)
+* *growingStockConstraint*. The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]
 
 #### Data Needs
 
