@@ -1245,8 +1245,6 @@ car::vif (glm.du7)
 
 write.csv (rsf.data.du7, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du7_v2.csv")
 
-
-
 #########################
 ### TRANSFORM COVARS ###
 #######################
@@ -2202,3 +2200,2240 @@ write.csv (rsf.data.du7, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_m
 ##############################
 
 #---------------------------------------------------------------------------
+
+##########################
+### CREATING THE DATA ###
+#########################
+
+## Pull in the previously processed GIS data
+rsf.data.forestry <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_forestry.csv", header = T, sep = "")
+rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
+rsf.data.veg <- rsf.data.veg %>% 
+  filter (!is.na (bec_label))
+rsf.data.forestry <- dplyr::mutate (rsf.data.forestry, distance_to_resource_road = pmin (distance_to_loose_road, 
+                                                                                         distance_to_petroleum_road,
+                                                                                         distance_to_rough_road,
+                                                                                         distance_to_trim_transport_road,
+                                                                                         distance_to_unknown_road))
+rsf.data.forestry.lean <- rsf.data.forestry [, c (1:13, 20)]
+rsf.data.veg.lean <- rsf.data.veg [, c (9:10)]
+
+rsf.data.combo <- dplyr::full_join (rsf.data.forestry.lean, 
+                                    rsf.data.veg.lean,
+                                    by = "ptID")
+
+rsf.data.du8 <- rsf.data.combo %>%
+  dplyr::filter (du == "du8")
+
+rm (rsf.data.forestry, rsf.data.veg, rsf.data.forestry.lean, rsf.data.veg.lean, rsf.data.combo)
+gc ()
+
+# save it
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8.csv")
+
+#####################
+### EXPLORE DATA ###
+###################
+
+rsf.data.du8$pttype <- as.factor (rsf.data.du8$pttype)
+
+## reclassify BEC and set ref category
+ggplot (rsf.data.du8, aes (x = bec_label, fill = pttype)) + 
+  geom_histogram (position = "dodge", stat = "count") +
+  labs (title = "Histogram du8, Summer, BEC Type\
+                          at Available (0) and Used (1) Locations",
+        x = "Biogeclimatic Unit Type",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type") +
+  theme (axis.text.x = element_text (angle = 45))
+
+rsf.data.du8$bec_label_reclass <- rsf.data.du8$bec_label
+
+rsf.data.du8$bec_label_reclass <- car::recode (rsf.data.du8$bec_label_reclass,
+                                               "'SBS vk' = 'SBS'") 
+rsf.data.du8$bec_label_reclass <- car::recode (rsf.data.du8$bec_label_reclass,
+                                               "'SBS wk 1' = 'SBS'") 
+rsf.data.du8$bec_label_reclass <- car::recode (rsf.data.du8$bec_label_reclass,
+                                               "'SBS wk 2' = 'SBS'") 
+rsf.data.du8 <- rsf.data.du8 %>%
+  dplyr::filter (bec_label_reclass != "NA")
+rsf.data.du8 <- rsf.data.du8 %>%
+  dplyr::filter (bec_label_reclass != "SBPSmc")
+
+ggplot (rsf.data.du8, aes (x = bec_label_reclass, fill = pttype)) + 
+  geom_histogram (position = "dodge", stat = "count") +
+  labs (title = "Histogram du8, Summer, BEC Type\
+                          at Available (0) and Used (1) Locations",
+        x = "Biogeclimatic Unit Type",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type") +
+  theme (axis.text.x = element_text (angle = 45))
+
+rsf.data.du8$bec_label_reclass <- relevel (rsf.data.du8$bec_label_reclass,
+                                           ref = "ESSFmvp") # reference category
+
+### OUTLIERS ###
+ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_resource_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du8, Distance to Resource Roads at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Resource Road")
+ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_1to4yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du8, Distance to Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock 1 to 4 Years Old")
+ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_5to9yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du8, Distance to Cutblock 5 to 9 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock 5 to 9 Years Old")
+ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_10to29yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du8, Distance to Cutblock 10 to 29 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock 10 to 29 Years Old")
+ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_30orOveryo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du8, Distance to Cutblock Greater than 30 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock Greater than 30 Years Old")
+rsf.data.du8 <- rsf.data.du8 %>% # removed outlier locations really far from  (>200km) from cutblocks
+  dplyr::filter (distance_to_cut_30orOveryo < 27500)
+
+### HISTOGRAMS ###
+ggplot (rsf.data.du8, aes (x = distance_to_resource_road, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du8, Distance to Resource Roads at Available (0) and Used (1) Locations",
+        x = "Distance to Resource Road",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du8, aes (x = distance_to_cut_1to4yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du8, Distance to  Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblock 1 to 4 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du8, aes (x = distance_to_cut_5to9yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du8, Distance to  Cutblock 5 to 9 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblock 5 to 9 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du8, aes (x = distance_to_cut_10to29yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du8, Distance to Cutblocks 10 to 29 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblocks 10 to 29 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du8, aes (x = distance_to_cut_30orOveryo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du8, Distance to Cutblocks Greater than 30 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblocks Greater than 30 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+
+### CORRELATION ###
+corr.rsf.data.du8 <- rsf.data.du8 [c (10:14)]
+corr.rsf.data.du8 <- round (cor (corr.rsf.data.du8, method = "spearman"), 3)
+ggcorrplot (corr.rsf.data.du8, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Resource Selection Function Model Covariate Correlations for du8")
+
+# Distance to cut 5 to 9, 10 to 29 and >30 not highly correlated
+
+### VIF 
+glm.du8 <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo +
+                  distance_to_cut_10to29yo + distance_to_cut_30orOveryo +
+                  distance_to_resource_road + bec_label_reclass, 
+                data = rsf.data.du8,
+                family = binomial (link = 'logit'))
+car::vif (glm.du8)
+
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8_v2.csv")
+
+
+#########################
+### TRANSFORM COVARS ###
+#######################
+
+# Transform distance to covars as exponentinal function, follwoing Demars (2018)[http://www.bcogris.ca/sites/default/files/bcip-2019-01-final-report-demars-ver-2.pdf]
+# decay.distance = exp (-0.002 8 distance to road)
+# 0.002 = distances > 1500-m essentially have a similar and limited effect
+rsf.data.du8$exp_dist_res_road <- exp ((rsf.data.du8$distance_to_resource_road * -0.002))
+rsf.data.du8$exp_dist_cut_1to4 <- exp ((rsf.data.du8$distance_to_cut_1to4yo * -0.002))
+rsf.data.du8$exp_dist_cut_5to9 <- exp ((rsf.data.du8$distance_to_cut_5to9yo * -0.002))
+rsf.data.du8$exp_dist_cut_10to29 <- exp ((rsf.data.du8$distance_to_cut_10to29yo * -0.002))
+rsf.data.du8$exp_dist_cut_30 <- exp ((rsf.data.du8$distance_to_cut_30orOveryo * -0.002))
+
+### Standardize the data (helps with model convergence) ###
+rsf.data.du8$std_exp_dist_res_road <- (rsf.data.du8$exp_dist_res_road - 
+                                         mean (rsf.data.du8$exp_dist_res_road)) / 
+                                         sd (rsf.data.du8$exp_dist_res_road)
+rsf.data.du8$std_exp_dist_cut_1to4 <- (rsf.data.du8$exp_dist_cut_1to4 - 
+                                         mean (rsf.data.du8$exp_dist_cut_1to4)) / 
+                                         sd (rsf.data.du8$exp_dist_cut_1to4)
+rsf.data.du8$std_exp_dist_cut_5to9 <- (rsf.data.du8$exp_dist_cut_5to9 - 
+                                         mean (rsf.data.du8$exp_dist_cut_5to9)) / 
+                                         sd (rsf.data.du8$exp_dist_cut_5to9)
+rsf.data.du8$std_exp_dist_cut_10to29 <- (rsf.data.du8$exp_dist_cut_10to29 - 
+                                         mean (rsf.data.du8$exp_dist_cut_10to29)) / 
+                                         sd (rsf.data.du8$exp_dist_cut_10to29)
+rsf.data.du8$std_exp_dist_cut_30 <- (rsf.data.du8$exp_dist_cut_30 - 
+                                      mean (rsf.data.du8$exp_dist_cut_30)) / 
+                                      sd (rsf.data.du8$exp_dist_cut_30)
+
+### Functional Response Covariates ###
+#### Calc mean available distance to road and cutblock in home range, by unique individual
+avail.rsf.data.du8 <- subset (rsf.data.du8, pttype == 0)
+
+std_exp_dist_res_road_E <- tapply (avail.rsf.data.du8$std_exp_dist_res_road, avail.rsf.data.du8$animal_id, mean)
+std_exp_dist_cut_1to4_E <- tapply (avail.rsf.data.du8$std_exp_dist_cut_1to4, avail.rsf.data.du8$animal_id, mean)
+std_exp_dist_cut_5to9_E <- tapply (avail.rsf.data.du8$std_exp_dist_cut_5to9, avail.rsf.data.du8$animal_id, mean)
+std_exp_dist_cut_10to29_E <- tapply (avail.rsf.data.du8$std_exp_dist_cut_10to29, avail.rsf.data.du8$animal_id, mean)
+std_exp_dist_cut_30_E <- tapply (avail.rsf.data.du8$std_exp_dist_cut_30, avail.rsf.data.du8$animal_id, mean)
+
+inds <- as.character (rsf.data.du8$animal_id)
+rsf.data.du8 <- cbind (rsf.data.du8, "dist_rd_E" = std_exp_dist_res_road_E[inds], 
+                       "dist_cut_1to4_E" = std_exp_dist_cut_1to4_E[inds],
+                       "dist_cut_5to9_E" = std_exp_dist_cut_5to9_E[inds],
+                       "dist_cut_10to29_E" = std_exp_dist_cut_10to29_E[inds],
+                       "dist_cut_30_E" = std_exp_dist_cut_30_E[inds])
+
+# to simplify available cutblock effect; interact with distance to any cutblock age
+rsf.data.du8$dist_cut_min_all <- pmin (rsf.data.du8$distance_to_cut_1to4,
+                                       rsf.data.du8$distance_to_cut_5to9yo,
+                                       rsf.data.du8$distance_to_cut_10to29yo,
+                                       rsf.data.du8$distance_to_cut_30orOveryo)
+rsf.data.du8$exp_dist_cut_min <- exp ((rsf.data.du8$dist_cut_min_all * -0.002))
+rsf.data.du8$std_exp_dist_cut_min <- (rsf.data.du8$exp_dist_cut_min - 
+                                        mean (rsf.data.du8$exp_dist_cut_min)) / 
+  sd (rsf.data.du8$exp_dist_cut_min)
+avail.rsf.data.du8 <- subset (rsf.data.du8, pttype == 0)
+std_exp_dist_cut_min_E <- tapply (avail.rsf.data.du8$std_exp_dist_cut_min, avail.rsf.data.du8$animal_id, mean)
+rsf.data.du8 <- cbind (rsf.data.du8, "dist_cut_min_E" = std_exp_dist_cut_min_E[inds])
+
+###################
+### FIT MODELS ###
+#################
+
+### Generalized Linear Mixed Models (GLMMs) ###
+#### First, determine the random effects structure
+
+# Individual animal
+model.lme4.du8.animal <- glmer (pttype ~ 1 + (1 | animal_id), # random effect for animal
+                                data = rsf.data.du8, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+
+#### Season
+model.lme4.du8.season <- glmer (pttype ~ 1 + (1 | season), # random effect for season
+                                data = rsf.data.du8, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+ss <- getME (model.lme4.du8.season, c ("theta","fixef")) # did not converge after 5x
+model.lme4.du8.animal <- update (model.lme4.du8.season, start = ss, control = glmerControl (optCtrl = list (maxfun=2e4)))
+
+#### Individual animal and Season
+model.lme4.du8.anim.seas <- glmer (pttype ~ 1 + (1 | animal_id) + (1 | season), # random effect intercepts for individual and season
+                                   data = rsf.data.du8, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+
+# Compare models 
+anova (model.lme4.du8.animal, model.lme4.du8.season, model.lme4.du8.anim.seas)
+
+# animal and season model had best fit; use both
+
+
+#### Second, determine the fixed effects structure
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.aic) <- c ("DU", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+#### BEC only model
+model.lme4.du8.bec <- glmer (pttype ~ bec_label_reclass + (1 | animal_id) + (1 | season), 
+                             data = rsf.data.du8, 
+                             family = binomial (link = "logit"),
+                             verbose = T) 
+# AIC
+table.aic [1, 1] <- "du8"
+table.aic [1, 2] <- "BEC variant"
+table.aic [1, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [1, 4] <-  AIC (model.lme4.du8.bec)
+
+# Dist Road model
+model.lme4.du8.road <- glmer (pttype ~ std_exp_dist_res_road + (1 | animal_id) + (1 | season),
+                              data = rsf.data.du8, 
+                              family = binomial (link = "logit"),
+                              verbose = T) 
+# AIC
+table.aic [2, 1] <- "du8"
+table.aic [2, 2] <- "Distance to Resource Road"
+table.aic [2, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [2, 4] <-  AIC (model.lme4.du8.road)
+
+# Dist Cut model
+model.lme4.du8.cut <- glmer (pttype ~ std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                               std_exp_dist_cut_10to29 + std_exp_dist_cut_30 +
+                               (1 | animal_id) + (1 | season),
+                             data = rsf.data.du8, 
+                             family = binomial (link = "logit"),
+                             verbose = T) 
+# AIC
+table.aic [3, 1] <- "du8"
+table.aic [3, 2] <- "Distance to Cutblock"
+table.aic [3, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [3, 4] <-  AIC (model.lme4.du8.cut)
+
+# Dist Road and Cut model
+model.lme4.du8.rd.cut <- glmer (pttype ~ std_exp_dist_res_road + std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                  std_exp_dist_cut_10to29 + std_exp_dist_cut_30 + (1 | animal_id) + (1 | season),
+                                data = rsf.data.du8, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [4, 1] <- "du8"
+table.aic [4, 2] <- "Distance to Resource Road + Distance to Cutblock"
+table.aic [4, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [4, 4] <-  AIC (model.lme4.du8.rd.cut)
+
+# Dist Road Fxn Response
+model.lme4.du8.rd.fxn <- glmer (pttype ~ std_exp_dist_res_road + dist_rd_E + std_exp_dist_res_road*dist_rd_E + (1 | animal_id) + (1 | season),
+                                data = rsf.data.du8, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [5, 1] <- "du8"
+table.aic [5, 2] <- "Distance to Resource Road + Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
+table.aic [5, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [5, 4] <-  AIC (model.lme4.du8.rd.fxn)
+
+scatter3D (rsf.data.du8$distance_to_resource_road, # pretty clear functional response; selection for roads in low road areas and inverse in high road areas
+           rsf.data.du8$dist_rd_E,
+           (predict (model.lme4.du8.rd.fxn,
+                     newdata = rsf.data.du8, 
+                     re.form = NA, type = "response")), 
+           xlab = "Dist. Road",
+           ylab = "Avail. Dist Road", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+# Dist Cut Fxn Response
+model.lme4.du8.cut.fxn <- glmer (pttype ~ std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                   std_exp_dist_cut_10to29 + std_exp_dist_cut_30 + 
+                                   dist_cut_min_E + std_exp_dist_cut_1to4*dist_cut_min_E + 
+                                   std_exp_dist_cut_5to9*dist_cut_min_E + 
+                                   std_exp_dist_cut_10to29*dist_cut_min_E +
+                                   std_exp_dist_cut_30*dist_cut_min_E +
+                                   (1 | animal_id) + (1 | season),
+                                 data = rsf.data.du8, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [6, 1] <- "du8"
+table.aic [6, 2] <- "Distance to Cutblock + Available Distance to Cutblock + Distance to Cutblock*Available Distance to Cutblock"
+table.aic [6, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [6, 4] <-  AIC (model.lme4.du8.cut.fxn)
+
+scatter3D (rsf.data.du8$distance_to_cut_30orOveryo, # a bit scattered, but general pattern is avoidance at low and high densities of cut
+           rsf.data.du8$dist_cut_min_E,
+           (predict (model.lme4.du8.cut.fxn,
+                     newdata = rsf.data.du8, 
+                     re.form = NA, type = "response")), 
+           xlab = "Dist. Cut 1to4",
+           ylab = "Avail. Dist Cut", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+# BEC, Dist Road and Cut model
+model.lme4.du8.all <- glmer (pttype ~ bec_label_reclass + std_exp_dist_res_road + 
+                               std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                               std_exp_dist_cut_10to29 + std_exp_dist_cut_30 + (1 | animal_id) + (1 | season),
+                             data = rsf.data.du8, 
+                             family = binomial (link = "logit"),
+                             verbose = T) 
+# AIC
+table.aic [7, 1] <- "du8"
+table.aic [7, 2] <- "BEC + Distance to Resource Road + Distance to Cutblock"
+table.aic [7, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [7, 4] <-  AIC (model.lme4.du8.all)
+
+# BEC, Dist Road (fxn) and Cut model
+model.lme4.du8.all.rd.fxn <- glmer (pttype ~ bec_label_reclass + std_exp_dist_res_road + 
+                                      std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                      std_exp_dist_cut_10to29 + std_exp_dist_cut_30 + 
+                                      dist_rd_E + std_exp_dist_res_road*dist_rd_E + 
+                                      (1 | animal_id) + (1 | season),
+                                    data = rsf.data.du8, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [8, 1] <- "du8"
+table.aic [8, 2] <- "BEC + Distance to Resource Road + Distance to Cutblock + Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
+table.aic [8, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [8, 4] <-  AIC (model.lme4.du8.all.rd.fxn)
+
+scatter3D (x = rsf.data.du8$distance_to_resource_road, # weird pattern where selection doesn't seem to vary by availability
+           y = rsf.data.du8$exp_dist_res_road, 
+           z = (predict (model.lme4.du8.all.rd.fxn,
+                         newdata = rsf.data.du8, 
+                         re.form = NA, type = "response")),
+           xlab = "Dist. Road",
+           ylab = "Avail. Dist Road", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+# BEC, Dist Road and Cut model (fxn)
+model.lme4.du8.all.cut.fxn <- glmer (pttype ~ bec_label_reclass + std_exp_dist_res_road + 
+                                       std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                       std_exp_dist_cut_10to29 + std_exp_dist_cut_30 + 
+                                       dist_cut_min_E + std_exp_dist_cut_1to4*dist_cut_min_E + 
+                                       std_exp_dist_cut_5to9*dist_cut_min_E + 
+                                       std_exp_dist_cut_10to29*dist_cut_min_E +
+                                       std_exp_dist_cut_30*dist_cut_min_E + (1 | animal_id) + (1 | season),
+                                     data = rsf.data.du8, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [9, 1] <- "du8"
+table.aic [9, 2] <- "BEC + Distance to Resource Road + Distance to Cutblock + Available Distance to Cutblock + Distance to Cutblock*Available Distance to Cutblock"
+table.aic [9, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [9, 4] <-  AIC (model.lme4.du8.all.cut.fxn)
+
+scatter3D (x = rsf.data.du8$distance_to_cut_10to29yo, # scatter shot
+           y = rsf.data.du8$dist_cut_min_E, 
+           z = (predict (model.lme4.du8.all.cut.fxn,
+                         newdata = rsf.data.du8, 
+                         re.form = NA, type = "response")),
+           xlab = "Dist. Cut 1 to 4",
+           ylab = "Avail. Dist Cut", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+## AIC comparison of MODELS ## 
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 4] - min (table.aic [1:9, 4])))), 
+                    (exp (-0.5 * (table.aic [2, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [3, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [4, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [5, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [6, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [7, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [8, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [9, 4] - min (table.aic [1:9, 4])))))
+table.aic [1, 5] <- round ((exp (-0.5 * (table.aic [1, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [2, 5] <- round ((exp (-0.5 * (table.aic [2, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [3, 5] <- round ((exp (-0.5 * (table.aic [3, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [4, 5] <- round ((exp (-0.5 * (table.aic [4, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [5, 5] <- round ((exp (-0.5 * (table.aic [5, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [6, 5] <- round ((exp (-0.5 * (table.aic [6, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [7, 5] <- round ((exp (-0.5 * (table.aic [7, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [8, 5] <- round ((exp (-0.5 * (table.aic [8, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [9, 5] <- round ((exp (-0.5 * (table.aic [9, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_du8_v2.csv", sep = ",")
+
+# used model without functional response because didn't appear to improve interpretation of model, 
+# on its own, road interatction caovraite showed fucntional response, but didn;t hold up when includign other
+# terms, so go without for now
+
+# save the top model
+save (model.lme4.du8.all, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_top_v2.rda")
+
+###################
+### SAVE MODEL ###
+#################
+
+# Create table of model coefficients from top model
+model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.all)))
+model.coeffs$mean_exp_neg0002 <- 0
+model.coeffs$sd_exp_neg0002 <- 0
+
+model.coeffs [10, 5] <- mean (exp ((rsf.data.du8$distance_to_resource_road * -0.002)))
+model.coeffs [11, 5] <- mean (exp ((rsf.data.du8$distance_to_cut_1to4yo * -0.002)))
+model.coeffs [12, 5] <- mean (exp ((rsf.data.du8$distance_to_cut_5to9yo * -0.002)))
+model.coeffs [13, 5] <- mean (exp ((rsf.data.du8$distance_to_cut_10to29yo * -0.002)))
+model.coeffs [14, 5] <- mean (exp ((rsf.data.du8$distance_to_cut_30orOveryo * -0.002)))
+
+model.coeffs [10, 6] <- sd (exp ((rsf.data.du8$distance_to_resource_road * -0.002)))
+model.coeffs [11, 6] <- sd (exp ((rsf.data.du8$distance_to_cut_1to4yo * -0.002)))
+model.coeffs [12, 6] <- sd (exp ((rsf.data.du8$distance_to_cut_5to9yo * -0.002)))
+model.coeffs [13, 6] <- sd (exp ((rsf.data.du8$distance_to_cut_10to29yo * -0.002)))
+model.coeffs [14, 6] <- sd (exp ((rsf.data.du8$distance_to_cut_30orOveryo * -0.002)))
+
+write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_summ_model_coeffs_top.csv", sep = ",")
+
+###############################
+### RSF RASTER CALCULATION ###
+#############################
+
+### LOAD RASTERS ###
+bec.bafa.un <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bafa_un.tif")
+bec.bwbs.mw <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bwbs_mw.tif")
+bec.bwbs.wk1 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bwbs_wk1.tif")
+bec.essf.mv2 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_mv2.tif")
+bec.essf.wc3 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wc3.tif")
+bec.essf.wcp <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wcp.tif")
+bec.essf.wk2 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wk2.tif")
+bec.sbs <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_sbs.tif")
+dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
+dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
+dist.cut.10to29 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_10to29yo.tif")
+dist.cut.30 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_30yo_over.tif")
+dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
+
+### Adjust the raster data for 'standardized' model covariates ###
+std.dist.resource.rd <- (exp (dist.resource.rd * -0.002) - 0.2640364) / 0.3216345
+std.dist.cut.1to4 <- (exp (dist.cut.1to4 * -0.002) - 0.008833636) / 0.06770627
+std.dist.cut.5to9 <- (exp (dist.cut.5to9 * -0.002) - 0.02159883) / 0.1068735
+std.dist.cut.10to29 <- (exp (dist.cut.10to29 * -0.002) - 0.07308026) / 0.1821456
+std.dist.cut.30 <- (exp (dist.cut.30 * -0.002) -  0.01283987) / 0.06634038
+
+### CALCULATE RASTER RSF ###
+raster.rsf <- (exp (-1.73 + (bec.bafa.un * 0.87) + (bec.bwbs.mw * -0.14) +
+                            (bec.bwbs.wk1 * -0.11) + (bec.essf.mv2 * -0.29) + 
+                            (bec.essf.wc3 * -0.21) + (bec.essf.wcp * -0.10) +
+                            (bec.essf.wk2 * -0.80) + (bec.sbs * 0.08) +
+                            (std.dist.resource.rd * -0.06) +
+                            (std.dist.cut.1to4 * 	-0.04) + 
+                            (std.dist.cut.5to9 * 0.02) +
+                            (std.dist.cut.10to29 * 0.04) +
+                            (std.dist.cut.30 * -0.08))) / 
+  (1 + exp (-1.73 + (bec.bafa.un * 0.87) + (bec.bwbs.mw * -0.14) +
+              (bec.bwbs.wk1 * -0.11) + (bec.essf.mv2 * -0.29) + 
+              (bec.essf.wc3 * -0.21) + (bec.essf.wcp * -0.10) +
+              (bec.essf.wk2 * -0.80) + (bec.sbs * 0.08) +
+              (std.dist.resource.rd * -0.06) +
+              (std.dist.cut.1to4 * 	-0.04) + 
+              (std.dist.cut.5to9 * 0.02) +
+              (std.dist.cut.10to29 * 0.04) +
+              (std.dist.cut.30 * -0.08)))
+
+plot (raster.rsf)
+
+writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\rsf_2pt0\\rasters\\du8\\rsf_du8_v2.tif", 
+             format = "GTiff", overwrite = T)
+
+##########################
+### k-fold Validation ###
+########################
+df.animal.id <- as.data.frame (unique (rsf.data.du8$animal_id))
+names (df.animal.id) [1] <-"animal_id"
+df.animal.id$group <- rep_len (1:5, nrow (df.animal.id)) # orderly selection of groups
+rsf.data.du8 <- dplyr::full_join (rsf.data.du8, df.animal.id, by = "animal_id")
+
+### FOLD 1 ###
+train.data.1 <- rsf.data.du8 %>%
+  filter (group < 5)
+test.data.1 <- rsf.data.du8 %>%
+  filter (group == 5)
+
+model.lme4.du8train1 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 std_exp_dist_cut_10to29 +
+                                 std_exp_dist_cut_30 +
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.1, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# create a table of k-fold outputs
+table.kfold <- data.frame (matrix (ncol = 12, nrow = 50))
+colnames (table.kfold) <- c ("test.number", "bin.mid", "bin.weight", "utilization", "used.count", 
+                             "expected.count", "lm.slope", "lm.slope.p.value", "lm.intercept",
+                             "lm.intercept.p.value", "adj.R.sq", "chi.sq.p.value")
+table.kfold [c (1:10), 1] <- 1
+table.kfold$bin.mid <- c (0.0165, 0.0495, 0.0825, 0.1155, 0.1485, 0.1815, 0.2145, 0.2475, 0.2805, 0.3135)
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du8$preds.train1 <- predict (model.lme4.du8train1, 
+                                      newdata = rsf.data.du8, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du8, aes (preds.train1)) +
+  geom_histogram()
+max (rsf.data.du8$preds.train1)
+min (rsf.data.du8$preds.train1)
+
+rsf.data.du8$preds.train1.class <- cut (rsf.data.du8$preds.train1, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                        labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                                    "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+rsf.data.du8.avail <- dplyr::filter (rsf.data.du8, pttype == 0)
+
+table.kfold [1, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.0165")) * 0.0165) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [2, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.0495")) * 0.0495)
+table.kfold [3, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.0825")) * 0.0825)
+table.kfold [4, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.1155")) * 0.1155)
+table.kfold [5, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.1485")) * 0.1485)
+table.kfold [6, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.1815")) * 0.1815)
+table.kfold [7, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.2145")) * 0.2145)
+table.kfold [8, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.2475")) * 0.2475)
+table.kfold [9, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.2805")) * 0.2805)
+table.kfold [10, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train1.class == "0.3135")) * 0.3135)
+
+table.kfold [1, 4] <- table.kfold [1, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [2, 4] <- table.kfold [2, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [3, 4] <- table.kfold [3, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [4, 4] <- table.kfold [4, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [5, 4] <- table.kfold [5, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [6, 4] <- table.kfold [6, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [7, 4] <- table.kfold [7, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [8, 4] <- table.kfold [8, 3] / sum  (table.kfold [c (1:10), 3])
+table.kfold [9, 4] <- table.kfold [9, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [10, 4] <- table.kfold [10, 3] / sum  (table.kfold [c (1:10), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+# data for estimating use
+test.data.1$preds <- predict (model.lme4.du8train1, newdata = test.data.1, re.form = NA, type = "response")
+test.data.1$preds.class <- cut (test.data.1$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                            "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+write.csv (test.data.1, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\rsf_preds_du8_train1.csv")
+test.data.1.used <- dplyr::filter (test.data.1, pttype == 1)
+
+table.kfold [1, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.0165"))
+table.kfold [2, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.0495"))
+table.kfold [3, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.0825"))
+table.kfold [4, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.1155"))
+table.kfold [5, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.1485"))
+table.kfold [6, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.1815"))
+table.kfold [7, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.2145"))
+table.kfold [8, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.2475"))
+table.kfold [9, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.2805"))
+table.kfold [10, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.3135"))
+
+table.kfold [1, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [1, 4], 0) # expected number of uses in each bin
+table.kfold [2, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [2, 4], 0) # expected number of uses in each bin
+table.kfold [3, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [3, 4], 0) # expected number of uses in each bin
+table.kfold [4, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [4, 4], 0) # expected number of uses in each bin
+table.kfold [5, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [5, 4], 0) # expected number of uses in each bin
+table.kfold [6, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [6, 4], 0) # expected number of uses in each bin
+table.kfold [7, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [7, 4], 0) # expected number of uses in each bin
+table.kfold [8, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [8, 4], 0) # expected number of uses in each bin
+table.kfold [9, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [9, 4], 0) # expected number of uses in each bin
+table.kfold [10, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [10, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test1 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 1))
+summary (glm.kfold.test1)
+
+table.kfold [1, 7] <- 0.9740
+table.kfold [1, 8] <- "<0.001"
+table.kfold [1, 9] <- 71.7651
+table.kfold [1, 10] <- 0.872
+table.kfold [1, 11] <- 0.9183 
+
+chisq.test(dplyr::filter(table.kfold, test.number == 1)$used.count, dplyr::filter(table.kfold, test.number == 1)$expected.count)
+table.kfold [1, 12] <-  0.2424
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+
+ggplot (dplyr::filter(table.kfold, test.number == 1), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 1 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 20000, by = 1000)) + 
+  scale_y_continuous (breaks = seq (0, 20000, by = 1000))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du8_grp1.png")
+
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8_preds.csv")
+
+### FOLD 2 ###
+train.data.2 <- rsf.data.du8 %>%
+  filter (group == 1 | group == 2 | group == 3 | group == 5)
+test.data.2 <- rsf.data.du8 %>%
+  filter (group == 4)
+
+model.lme4.du8train2 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 std_exp_dist_cut_10to29 +
+                                 std_exp_dist_cut_30 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.2, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du8$preds.train2 <- predict (model.lme4.du8train2, 
+                                      newdata = rsf.data.du8, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du8, aes (preds.train2)) +
+  geom_histogram()
+max (rsf.data.du8$preds.train2)
+min (rsf.data.du8$preds.train2)
+
+rsf.data.du8$preds.train2.class <- cut (rsf.data.du8$preds.train2, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                        labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                                    "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+table.kfold [c (11:20), 1] <- 2
+
+rsf.data.du8.avail <- dplyr::filter (rsf.data.du8, pttype == 0)
+
+table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.0165")) * 0.0165) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.0495")) * 0.0495)
+table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.0825")) * 0.0825)
+table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.1155")) * 0.1155)
+table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.1485")) * 0.1485)
+table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.1815")) * 0.1815)
+table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.2145")) * 0.2145)
+table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.2475")) * 0.2475)
+table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.2805")) * 0.2805)
+table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train2.class == "0.3135")) * 0.3135)
+
+table.kfold [11, 4] <- table.kfold [11, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [12, 4] <- table.kfold [12, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [13, 4] <- table.kfold [13, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [14, 4] <- table.kfold [14, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [15, 4] <- table.kfold [15, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [16, 4] <- table.kfold [16, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [17, 4] <- table.kfold [17, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [18, 4] <- table.kfold [18, 3] / sum  (table.kfold [c (11:20), 3])
+table.kfold [19, 4] <- table.kfold [19, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [20, 4] <- table.kfold [20, 3] / sum  (table.kfold [c (11:20), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+# data for estimating use
+test.data.2$preds <- predict (model.lme4.du8train2, newdata = test.data.2, re.form = NA, type = "response")
+test.data.2$preds.class <- cut (test.data.2$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                            "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+write.csv (test.data.2, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\rsf_preds_du8_train2.csv")
+test.data.2.used <- dplyr::filter (test.data.2, pttype == 1)
+
+table.kfold [11, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.0165"))
+table.kfold [12, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.0495"))
+table.kfold [13, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.0825"))
+table.kfold [14, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.1155"))
+table.kfold [15, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.1485"))
+table.kfold [16, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.1815"))
+table.kfold [17, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.2145"))
+table.kfold [18, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.2475"))
+table.kfold [19, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.2805"))
+table.kfold [20, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.3135"))
+
+table.kfold [11, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [11, 4], 0) # expected number of uses in each bin
+table.kfold [12, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [12, 4], 0) # expected number of uses in each bin
+table.kfold [13, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [13, 4], 0) # expected number of uses in each bin
+table.kfold [14, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [14, 4], 0) # expected number of uses in each bin
+table.kfold [15, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [15, 4], 0) # expected number of uses in each bin
+table.kfold [16, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [16, 4], 0) # expected number of uses in each bin
+table.kfold [17, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [17, 4], 0) # expected number of uses in each bin
+table.kfold [18, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [18, 4], 0) # expected number of uses in each bin
+table.kfold [19, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [19, 4], 0) # expected number of uses in each bin
+table.kfold [20, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [20, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test2 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 2))
+summary (glm.kfold.test2)
+
+table.kfold [11, 7] <- 0.96563
+table.kfold [11, 8] <- "<0.001"
+table.kfold [11, 9] <- 101.18977
+table.kfold [11, 10] <- 0.39
+table.kfold [11, 11] <- 0.9944
+
+chisq.test(dplyr::filter(table.kfold, test.number == 2)$used.count, dplyr::filter(table.kfold, test.number == 2)$expected.count)
+table.kfold [11, 12] <-  0.2313
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 2), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 2 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 20000, by = 1000)) + 
+  scale_y_continuous (breaks = seq (0, 20000, by = 1000))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du8_grp2.png")
+
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8_preds.csv")
+
+### FOLD 3 ###
+train.data.3 <- rsf.data.du8 %>%
+  filter (group == 1 | group == 2 | group == 4 | group == 5)
+test.data.3 <- rsf.data.du8 %>%
+  filter (group == 3)
+
+model.lme4.du8train3 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 std_exp_dist_cut_10to29 +
+                                 std_exp_dist_cut_30 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.3, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du8$preds.train3 <- predict (model.lme4.du8train3, 
+                                      newdata = rsf.data.du8, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du8, aes (preds.train3)) +
+  geom_histogram()
+max (rsf.data.du8$preds.train3)
+min (rsf.data.du8$preds.train3)
+
+rsf.data.du8$preds.train3.class <- cut (rsf.data.du8$preds.train3, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                        labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                                    "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+table.kfold [c (21:30), 1] <- 3
+
+rsf.data.du8.avail <- dplyr::filter (rsf.data.du8, pttype == 0)
+
+table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.0165")) * 0.0165) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.0495")) * 0.0495)
+table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.0825")) * 0.0825)
+table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.1155")) * 0.1155)
+table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.1485")) * 0.1485)
+table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.1815")) * 0.1815)
+table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.2145")) * 0.2145)
+table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.2475")) * 0.2475)
+table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.2805")) * 0.2805)
+table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train3.class == "0.3135")) * 0.3135)
+
+table.kfold [21, 4] <- table.kfold [21, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [22, 4] <- table.kfold [22, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [23, 4] <- table.kfold [23, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [24, 4] <- table.kfold [24, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [25, 4] <- table.kfold [25, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [26, 4] <- table.kfold [26, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [27, 4] <- table.kfold [27, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [28, 4] <- table.kfold [28, 3] / sum  (table.kfold [c (21:30), 3])
+table.kfold [29, 4] <- table.kfold [29, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [30, 4] <- table.kfold [30, 3] / sum  (table.kfold [c (21:30), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+# data for estimating use
+test.data.3$preds <- predict (model.lme4.du8train3, newdata = test.data.3, re.form = NA, type = "response")
+test.data.3$preds.class <- cut (test.data.3$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                            "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+write.csv (test.data.3, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\rsf_preds_du8_train3.csv")
+test.data.3.used <- dplyr::filter (test.data.3, pttype == 1)
+
+table.kfold [21, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.0165"))
+table.kfold [22, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.0495"))
+table.kfold [23, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.0825"))
+table.kfold [24, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.1155"))
+table.kfold [25, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.1485"))
+table.kfold [26, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.1815"))
+table.kfold [27, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.2145"))
+table.kfold [28, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.2475"))
+table.kfold [29, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.2805"))
+table.kfold [30, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.3135"))
+
+table.kfold [21, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [21, 4], 0) # expected number of uses in each bin
+table.kfold [22, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [22, 4], 0) # expected number of uses in each bin
+table.kfold [23, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [23, 4], 0) # expected number of uses in each bin
+table.kfold [24, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [24, 4], 0) # expected number of uses in each bin
+table.kfold [25, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [25, 4], 0) # expected number of uses in each bin
+table.kfold [26, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [26, 4], 0) # expected number of uses in each bin
+table.kfold [27, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [27, 4], 0) # expected number of uses in each bin
+table.kfold [28, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [28, 4], 0) # expected number of uses in each bin
+table.kfold [29, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [29, 4], 0) # expected number of uses in each bin
+table.kfold [30, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [30, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test3 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 3))
+summary (glm.kfold.test3)
+
+table.kfold [21, 7] <- 0.99592 
+table.kfold [21, 8] <- "<0.001"
+table.kfold [21, 9] <- 10.15575
+table.kfold [21, 10] <- 0.968
+table.kfold [21, 11] <- 0.9695 
+
+chisq.test(dplyr::filter(table.kfold, test.number == 3)$used.count, dplyr::filter(table.kfold, test.number == 3)$expected.count)
+table.kfold [21, 12] <-  0.09884
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 3), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 3 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 20000, by = 1000)) + 
+  scale_y_continuous (breaks = seq (0, 20000, by = 1000))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du8_grp3.png")
+
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8_preds.csv")
+
+### FOLD 4 ###
+train.data.4 <- rsf.data.du8 %>%
+  filter (group == 1 | group == 3 | group == 4 | group == 5)
+test.data.4 <- rsf.data.du8 %>%
+  filter (group == 2)
+
+model.lme4.du8train4 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 std_exp_dist_cut_10to29 +
+                                 std_exp_dist_cut_30 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.4, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du8$preds.train4 <- predict (model.lme4.du8train4, 
+                                      newdata = rsf.data.du8, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du8, aes (preds.train4)) +
+  geom_histogram()
+max (rsf.data.du8$preds.train4)
+min (rsf.data.du8$preds.train4)
+
+rsf.data.du8$preds.train4.class <- cut (rsf.data.du8$preds.train4, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                        labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                                    "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+table.kfold [c (31:40), 1] <- 4
+
+rsf.data.du8.avail <- dplyr::filter (rsf.data.du8, pttype == 0)
+
+table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.0165")) * 0.0165) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.0495")) * 0.0495)
+table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.0825")) * 0.0825)
+table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.1155")) * 0.1155)
+table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.1485")) * 0.1485)
+table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.1815")) * 0.1815)
+table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.2145")) * 0.2145)
+table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.2475")) * 0.2475)
+table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.2805")) * 0.2805)
+table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train4.class == "0.3135")) * 0.3135)
+
+table.kfold [31, 4] <- table.kfold [31, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [32, 4] <- table.kfold [32, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [33, 4] <- table.kfold [33, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [34, 4] <- table.kfold [34, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [35, 4] <- table.kfold [35, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [36, 4] <- table.kfold [36, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [37, 4] <- table.kfold [37, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [38, 4] <- table.kfold [38, 3] / sum  (table.kfold [c (31:40), 3])
+table.kfold [39, 4] <- table.kfold [39, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [40, 4] <- table.kfold [40, 3] / sum  (table.kfold [c (31:40), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+# data for estimating use
+test.data.4$preds <- predict (model.lme4.du8train4, newdata = test.data.4, re.form = NA, type = "response")
+test.data.4$preds.class <- cut (test.data.4$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                            "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+table.kfold [c (31:40), 1] <- 4
+write.csv (test.data.4, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\rsf_preds_du8_train4.csv")
+test.data.4.used <- dplyr::filter (test.data.4, pttype == 1)
+
+table.kfold [31, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.0165"))
+table.kfold [32, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.0495"))
+table.kfold [33, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.0825"))
+table.kfold [34, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.1155"))
+table.kfold [35, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.1485"))
+table.kfold [36, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.1815"))
+table.kfold [37, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.2145"))
+table.kfold [38, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.2475"))
+table.kfold [39, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.2805"))
+table.kfold [40, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.3135"))
+
+table.kfold [31, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [31, 4], 0) # expected number of uses in each bin
+table.kfold [32, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [32, 4], 0) # expected number of uses in each bin
+table.kfold [33, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [33, 4], 0) # expected number of uses in each bin
+table.kfold [34, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [34, 4], 0) # expected number of uses in each bin
+table.kfold [35, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [35, 4], 0) # expected number of uses in each bin
+table.kfold [36, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [36, 4], 0) # expected number of uses in each bin
+table.kfold [37, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [37, 4], 0) # expected number of uses in each bin
+table.kfold [38, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [38, 4], 0) # expected number of uses in each bin
+table.kfold [39, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [39, 4], 0) # expected number of uses in each bin
+table.kfold [40, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [40, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test4 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 4))
+summary (glm.kfold.test4)
+
+table.kfold [31, 7] <- 1.02302
+table.kfold [31, 8] <- "<0.001"
+table.kfold [31, 9] <- -61.63044
+table.kfold [31, 10] <- 0.633
+table.kfold [31, 11] <- 0.9954
+
+chisq.test(dplyr::filter(table.kfold, test.number == 4)$used.count, dplyr::filter(table.kfold, test.number == 4)$expected.count)
+table.kfold [31, 12] <-  0.2424
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 4), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 4 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 20000, by = 1000)) + 
+  scale_y_continuous (breaks = seq (0, 20000, by = 1000))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du8_grp4.png")
+
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8_preds.csv")
+
+### FOLD 5 ###
+train.data.5 <- rsf.data.du8 %>%
+  filter (group == 5 | group == 2 | group == 3 | group == 4)
+test.data.5 <- rsf.data.du8 %>%
+  filter (group == 1)
+
+model.lme4.du8train5 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 std_exp_dist_cut_10to29 +
+                                 std_exp_dist_cut_30 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.5, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du8$preds.train5 <- predict (model.lme4.du8train5, 
+                                      newdata = rsf.data.du8, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du8, aes (preds.train5)) +
+  geom_histogram()
+max (rsf.data.du8$preds.train5)
+min (rsf.data.du8$preds.train5)
+
+rsf.data.du8$preds.train5.class <- cut (rsf.data.du8$preds.train5, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                        labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                                    "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+table.kfold [c (41:50), 1] <- 5
+
+rsf.data.du8.avail <- dplyr::filter (rsf.data.du8, pttype == 0)
+
+table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.0165")) * 0.0165) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.0495")) * 0.0495)
+table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.0825")) * 0.0825)
+table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.1155")) * 0.1155)
+table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.1485")) * 0.1485)
+table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.1815")) * 0.1815)
+table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.2145")) * 0.2145)
+table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.2475")) * 0.2475)
+table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.2805")) * 0.2805)
+table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.du8.avail, preds.train5.class == "0.3135")) * 0.3135)
+
+table.kfold [41, 4] <- table.kfold [41, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [42, 4] <- table.kfold [42, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [43, 4] <- table.kfold [43, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [44, 4] <- table.kfold [44, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [45, 4] <- table.kfold [45, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [46, 4] <- table.kfold [46, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [47, 4] <- table.kfold [47, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [48, 4] <- table.kfold [48, 3] / sum  (table.kfold [c (41:50), 3])
+table.kfold [49, 4] <- table.kfold [49, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [50, 4] <- table.kfold [50, 3] / sum  (table.kfold [c (41:50), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+# data for estimating use
+test.data.5$preds <- predict (model.lme4.du8train5, newdata = test.data.5, re.form = NA, type = "response")
+test.data.5$preds.class <- cut (test.data.5$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.033, 0.066, 0.099, 0.132, 0.165, 0.198, 0.231, 0.264, 0.297, Inf), 
+                                labels = c ("0.0165", "0.0495", "0.0825", "0.1155", "0.1485",
+                                            "0.1815", "0.2145", "0.2475", "0.2805", "0.3135"))
+write.csv (test.data.5, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\rsf_preds_du8_train5.csv")
+test.data.5.used <- dplyr::filter (test.data.5, pttype == 1)
+
+table.kfold [41, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.0165"))
+table.kfold [42, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.0495"))
+table.kfold [43, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.0825"))
+table.kfold [44, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.1155"))
+table.kfold [45, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.1485"))
+table.kfold [46, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.1815"))
+table.kfold [47, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.2145"))
+table.kfold [48, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.2475"))
+table.kfold [49, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.2805"))
+table.kfold [50, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.3135"))
+
+table.kfold [41, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [41, 4], 0) # expected number of uses in each bin
+table.kfold [42, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [42, 4], 0) # expected number of uses in each bin
+table.kfold [43, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [43, 4], 0) # expected number of uses in each bin
+table.kfold [44, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [44, 4], 0) # expected number of uses in each bin
+table.kfold [45, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [45, 4], 0) # expected number of uses in each bin
+table.kfold [46, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [46, 4], 0) # expected number of uses in each bin
+table.kfold [47, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [47, 4], 0) # expected number of uses in each bin
+table.kfold [48, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [48, 4], 0) # expected number of uses in each bin
+table.kfold [49, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [49, 4], 0) # expected number of uses in each bin
+table.kfold [50, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [50, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test5 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 5))
+summary (glm.kfold.test5)
+
+table.kfold [41, 7] <- 0.9937
+table.kfold [41, 8] <- "<0.001"
+table.kfold [41, 9] <- 18.3863
+table.kfold [41, 10] <- 0.945
+table.kfold [41, 11] <- 0.9714
+
+chisq.test(dplyr::filter(table.kfold, test.number == 5)$used.count, dplyr::filter(table.kfold, test.number == 5)$expected.count)
+table.kfold [41, 12] <-  0.2313
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du8\\table_kfold_valid_du8.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 5), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 5 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 15000, by = 1000)) + 
+  scale_y_continuous (breaks = seq (0, 15000, by = 1000))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du8_grp5.png")
+
+write.csv (rsf.data.du8, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8_preds.csv")
+
+
+
+#--------------------------------------------------------------------------- 
+
+################################
+### Southern Mountain (DU9) ###
+##############################
+
+#---------------------------------------------------------------------------
+
+##########################
+### CREATING THE DATA ###
+#########################
+
+## Pull in the previously processed GIS data
+rsf.data.forestry <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_forestry.csv", header = T, sep = "")
+rsf.data.veg <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_veg.csv")
+rsf.data.veg <- rsf.data.veg %>% 
+  filter (!is.na (bec_label))
+rsf.data.forestry <- dplyr::mutate (rsf.data.forestry, distance_to_resource_road = pmin (distance_to_loose_road, 
+                                                                                         distance_to_petroleum_road,
+                                                                                         distance_to_rough_road,
+                                                                                         distance_to_trim_transport_road,
+                                                                                         distance_to_unknown_road))
+rsf.data.forestry.lean <- rsf.data.forestry [, c (1:13, 20)]
+rsf.data.veg.lean <- rsf.data.veg [, c (9:10)]
+
+rsf.data.combo <- dplyr::full_join (rsf.data.forestry.lean, 
+                                    rsf.data.veg.lean,
+                                    by = "ptID")
+
+rsf.data.du9 <- rsf.data.combo %>%
+  dplyr::filter (du == "du9")
+
+rm (rsf.data.forestry, rsf.data.veg, rsf.data.forestry.lean, rsf.data.veg.lean, rsf.data.combo)
+gc ()
+
+# save it
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9.csv")
+
+#####################
+### EXPLORE DATA ###
+###################
+
+rsf.data.du9$pttype <- as.factor (rsf.data.du9$pttype)
+
+## reclassify BEC and set ref category
+ggplot (rsf.data.du9, aes (x = bec_label, fill = pttype)) + 
+  geom_histogram (position = "dodge", stat = "count") +
+  labs (title = "Histogram du9, Summer, BEC Type\
+                          at Available (0) and Used (1) Locations",
+        x = "Biogeclimatic Unit Type",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type") +
+  theme (axis.text.x = element_text (angle = 45))
+
+rsf.data.du9$bec_label_reclass <- rsf.data.du9$bec_label
+
+rsf.data.du9$bec_label_reclass <- car::recode (rsf.data.du9$bec_label_reclass,
+                                               "'ESSFmv 2' = 'ESSFmv'") 
+rsf.data.du9$bec_label_reclass <- car::recode (rsf.data.du9$bec_label_reclass,
+                                               "'ESSFmvp' = 'ESSFmv'") 
+rsf.data.du9 <- rsf.data.du9 %>%
+  dplyr::filter (bec_label_reclass != "BWBSmw")
+rsf.data.du9 <- rsf.data.du9 %>%
+  dplyr::filter (bec_label_reclass != "IMA un")
+rsf.data.du9 <- rsf.data.du9 %>%
+  dplyr::filter (bec_label_reclass != "SWB mk")
+rsf.data.du9 <- rsf.data.du9 %>%
+  dplyr::filter (bec_label_reclass != "ICH vk 1")
+
+ggplot (rsf.data.du9, aes (x = bec_label_reclass, fill = pttype)) + 
+  geom_histogram (position = "dodge", stat = "count") +
+  labs (title = "Histogram du9, Summer, BEC Type\
+                          at Available (0) and Used (1) Locations",
+        x = "Biogeclimatic Unit Type",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type") +
+  theme (axis.text.x = element_text (angle = 45))
+
+rsf.data.du9$bec_label_reclass <- relevel (rsf.data.du9$bec_label_reclass,
+                                           ref = "ESSFwc 3") # reference category
+
+### OUTLIERS ###
+ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_resource_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du9, Distance to Resource Roads at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Resource Road")
+ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_cut_1to4yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du9, Distance to Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock 1 to 4 Years Old")
+ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_cut_5to9yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du9, Distance to Cutblock 5 to 9 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock 5 to 9 Years Old")
+ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_cut_10to29yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du9, Distance to Cutblock 10 to 29 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock 10 to 29 Years Old")
+ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_cut_30orOveryo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot du9, Distance to Cutblock Greater than 30 Years Old at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock Greater than 30 Years Old")
+
+### HISTOGRAMS ###
+ggplot (rsf.data.du9, aes (x = distance_to_resource_road, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du9, Distance to Resource Roads at Available (0) and Used (1) Locations",
+        x = "Distance to Resource Road",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du9, aes (x = distance_to_cut_1to4yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du9, Distance to  Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblock 1 to 4 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du9, aes (x = distance_to_cut_5to9yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du9, Distance to  Cutblock 5 to 9 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblock 5 to 9 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du9, aes (x = distance_to_cut_10to29yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du9, Distance to Cutblocks 10 to 29 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblocks 10 to 29 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+ggplot (rsf.data.du9, aes (x = distance_to_cut_30orOveryo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du9, Distance to Cutblocks Greater than 30 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblocks Greater than 30 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+
+### CORRELATION ###
+corr.rsf.data.du9 <- rsf.data.du9 [c (10:14)]
+corr.rsf.data.du9 <- round (cor (corr.rsf.data.du9, method = "spearman"), 3)
+ggcorrplot (corr.rsf.data.du9, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Resource Selection Function Model Covariate Correlations for du9")
+
+# Distance to cut 10 to 29 and >30  highly correlated with roads, removed these cut ages
+
+### VIF 
+glm.du9 <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo +
+                  distance_to_resource_road + bec_label_reclass, 
+                data = rsf.data.du9,
+                family = binomial (link = 'logit'))
+car::vif (glm.du9)
+
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9_v2.csv")
+
+
+#########################
+### TRANSFORM COVARS ###
+#######################
+
+# Transform distance to covars as exponentinal function, follwoing Demars (2018)[http://www.bcogris.ca/sites/default/files/bcip-2019-01-final-report-demars-ver-2.pdf]
+# decay.distance = exp (-0.002 8 distance to road)
+# 0.002 = distances > 1500-m essentially have a similar and limited effect
+rsf.data.du9$exp_dist_res_road <- exp ((rsf.data.du9$distance_to_resource_road * -0.002))
+rsf.data.du9$exp_dist_cut_1to4 <- exp ((rsf.data.du9$distance_to_cut_1to4yo * -0.002))
+rsf.data.du9$exp_dist_cut_5to9 <- exp ((rsf.data.du9$distance_to_cut_5to9yo * -0.002))
+
+### Standardize the data (helps with model convergence) ###
+rsf.data.du9$std_exp_dist_res_road <- (rsf.data.du9$exp_dist_res_road - 
+                                         mean (rsf.data.du9$exp_dist_res_road)) / 
+                                          sd (rsf.data.du9$exp_dist_res_road)
+rsf.data.du9$std_exp_dist_cut_1to4 <- (rsf.data.du9$exp_dist_cut_1to4 - 
+                                         mean (rsf.data.du9$exp_dist_cut_1to4)) / 
+                                          sd (rsf.data.du9$exp_dist_cut_1to4)
+rsf.data.du9$std_exp_dist_cut_5to9 <- (rsf.data.du9$exp_dist_cut_5to9 - 
+                                         mean (rsf.data.du9$exp_dist_cut_5to9)) / 
+                                          sd (rsf.data.du9$exp_dist_cut_5to9)
+
+### Functional Response Covariates ###
+#### Calc mean available distance to road and cutblock in home range, by unique individual
+avail.rsf.data.du9 <- subset (rsf.data.du9, pttype == 0)
+
+std_exp_dist_res_road_E <- tapply (avail.rsf.data.du9$std_exp_dist_res_road, avail.rsf.data.du9$animal_id, mean)
+std_exp_dist_cut_1to4_E <- tapply (avail.rsf.data.du9$std_exp_dist_cut_1to4, avail.rsf.data.du9$animal_id, mean)
+std_exp_dist_cut_5to9_E <- tapply (avail.rsf.data.du9$std_exp_dist_cut_5to9, avail.rsf.data.du9$animal_id, mean)
+
+inds <- as.character (rsf.data.du9$animal_id)
+rsf.data.du9 <- cbind (rsf.data.du9, "dist_rd_E" = std_exp_dist_res_road_E[inds], 
+                       "dist_cut_1to4_E" = std_exp_dist_cut_1to4_E[inds],
+                       "dist_cut_5to9_E" = std_exp_dist_cut_5to9_E[inds])
+
+# to simplify available cutblock effect; interact with distance to any cutblock age
+rsf.data.du9$dist_cut_min_all <- pmin (rsf.data.du9$distance_to_cut_1to4,
+                                       rsf.data.du9$distance_to_cut_5to9yo)
+rsf.data.du9$exp_dist_cut_min <- exp ((rsf.data.du9$dist_cut_min_all * -0.002))
+rsf.data.du9$std_exp_dist_cut_min <- (rsf.data.du9$exp_dist_cut_min - 
+                                        mean (rsf.data.du9$exp_dist_cut_min)) / 
+  sd (rsf.data.du9$exp_dist_cut_min)
+avail.rsf.data.du9 <- subset (rsf.data.du9, pttype == 0)
+std_exp_dist_cut_min_E <- tapply (avail.rsf.data.du9$std_exp_dist_cut_min, avail.rsf.data.du9$animal_id, mean)
+rsf.data.du9 <- cbind (rsf.data.du9, "dist_cut_min_E" = std_exp_dist_cut_min_E[inds])
+
+###################
+### FIT MODELS ###
+#################
+
+### Generalized Linear Mixed Models (GLMMs) ###
+#### First, determine the random effects structure
+
+# Individual animal
+model.lme4.du9.animal <- glmer (pttype ~ 1 + (1 | animal_id), # random effect for animal
+                                data = rsf.data.du9, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+
+#### Season
+model.lme4.du9.season <- glmer (pttype ~ 1 + (1 | season), # random effect for season
+                                data = rsf.data.du9, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+
+#### Individual animal and Season
+model.lme4.du9.anim.seas <- glmer (pttype ~ 1 + (1 | animal_id) + (1 | season), # random effect intercepts for individual and season
+                                   data = rsf.data.du9, 
+                                   family = binomial (link = "logit"),
+                                   verbose = T) 
+
+# Compare models 
+anova (model.lme4.du9.animal, model.lme4.du9.season, model.lme4.du9.anim.seas)
+
+# animal and season model had best fit; use both
+
+
+#### Second, determine the fixed effects structure
+### Build an AIC Table ###
+table.aic <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.aic) <- c ("DU", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
+
+#### BEC only model
+model.lme4.du9.bec <- glmer (pttype ~ bec_label_reclass + (1 | animal_id) + (1 | season), 
+                             data = rsf.data.du9, 
+                             family = binomial (link = "logit"),
+                             verbose = T) 
+# AIC
+table.aic [1, 1] <- "du9"
+table.aic [1, 2] <- "BEC variant"
+table.aic [1, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [1, 4] <-  AIC (model.lme4.du9.bec)
+
+# Dist Road model
+model.lme4.du9.road <- glmer (pttype ~ std_exp_dist_res_road + (1 | animal_id) + (1 | season),
+                              data = rsf.data.du9, 
+                              family = binomial (link = "logit"),
+                              verbose = T) 
+# AIC
+table.aic [2, 1] <- "du9"
+table.aic [2, 2] <- "Distance to Resource Road"
+table.aic [2, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [2, 4] <-  AIC (model.lme4.du9.road)
+
+# Dist Cut model
+model.lme4.du9.cut <- glmer (pttype ~ std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                               (1 | animal_id) + (1 | season),
+                             data = rsf.data.du9, 
+                             family = binomial (link = "logit"),
+                             verbose = T) 
+# AIC
+table.aic [3, 1] <- "du9"
+table.aic [3, 2] <- "Distance to Cutblock"
+table.aic [3, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [3, 4] <-  AIC (model.lme4.du9.cut)
+
+# Dist Road and Cut model
+model.lme4.du9.rd.cut <- glmer (pttype ~ std_exp_dist_res_road + std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                  (1 | animal_id) + (1 | season),
+                                data = rsf.data.du9, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [4, 1] <- "du9"
+table.aic [4, 2] <- "Distance to Resource Road + Distance to Cutblock"
+table.aic [4, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [4, 4] <-  AIC (model.lme4.du9.rd.cut)
+
+# Dist Road Fxn Response
+model.lme4.du9.rd.fxn <- glmer (pttype ~ std_exp_dist_res_road + dist_rd_E + std_exp_dist_res_road*dist_rd_E + (1 | animal_id) + (1 | season),
+                                data = rsf.data.du9, 
+                                family = binomial (link = "logit"),
+                                verbose = T) 
+# AIC
+table.aic [5, 1] <- "du9"
+table.aic [5, 2] <- "Distance to Resource Road + Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
+table.aic [5, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [5, 4] <-  AIC (model.lme4.du9.rd.fxn)
+
+scatter3D (rsf.data.du9$distance_to_resource_road, # pretty clear functional response; selection for roads in low road areas and less in high road areas
+           rsf.data.du9$dist_rd_E,
+           (predict (model.lme4.du9.rd.fxn,
+                     newdata = rsf.data.du9, 
+                     re.form = NA, type = "response")), 
+           xlab = "Dist. Road",
+           ylab = "Avail. Dist Road", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+# Dist Cut Fxn Response
+model.lme4.du9.cut.fxn <- glmer (pttype ~ std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                   dist_cut_min_E + std_exp_dist_cut_1to4*dist_cut_min_E + 
+                                   std_exp_dist_cut_5to9*dist_cut_min_E + 
+                                   (1 | animal_id) + (1 | season),
+                                 data = rsf.data.du9, 
+                                 family = binomial (link = "logit"),
+                                 verbose = T) 
+# AIC
+table.aic [6, 1] <- "du9"
+table.aic [6, 2] <- "Distance to Cutblock + Available Distance to Cutblock + Distance to Cutblock*Available Distance to Cutblock"
+table.aic [6, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [6, 4] <-  AIC (model.lme4.du9.cut.fxn)
+
+scatter3D (rsf.data.du9$distance_to_cut_5to9yo, # a bit scattered, but general pattern is less avoidance at  higher densities of cut
+           rsf.data.du9$dist_cut_min_E,
+           (predict (model.lme4.du9.cut.fxn,
+                     newdata = rsf.data.du9, 
+                     re.form = NA, type = "response")), 
+           xlab = "Dist. Cut 1to4",
+           ylab = "Avail. Dist Cut", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+# BEC, Dist Road and Cut model
+model.lme4.du9.all <- glmer (pttype ~ bec_label_reclass + std_exp_dist_res_road + 
+                               std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                               (1 | animal_id) + (1 | season),
+                             data = rsf.data.du9, 
+                             family = binomial (link = "logit"),
+                             verbose = T) 
+# AIC
+table.aic [7, 1] <- "du9"
+table.aic [7, 2] <- "BEC + Distance to Resource Road + Distance to Cutblock"
+table.aic [7, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [7, 4] <-  AIC (model.lme4.du9.all)
+
+# BEC, Dist Road (fxn) and Cut model
+model.lme4.du9.all.rd.fxn <- glmer (pttype ~ bec_label_reclass + std_exp_dist_res_road + 
+                                      std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                      dist_rd_E + std_exp_dist_res_road*dist_rd_E + 
+                                      (1 | animal_id) + (1 | season),
+                                    data = rsf.data.du9, 
+                                    family = binomial (link = "logit"),
+                                    verbose = T) 
+# AIC
+table.aic [8, 1] <- "du9"
+table.aic [8, 2] <- "BEC + Distance to Resource Road + Distance to Cutblock + Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
+table.aic [8, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [8, 4] <-  AIC (model.lme4.du9.all.rd.fxn)
+
+scatter3D (x = rsf.data.du9$distance_to_resource_road, # weird pattern where selection doesn't seem to vary by availability
+           y = rsf.data.du9$exp_dist_res_road, 
+           z = (predict (model.lme4.du9.all.rd.fxn,
+                         newdata = rsf.data.du9, 
+                         re.form = NA, type = "response")),
+           xlab = "Dist. Road",
+           ylab = "Avail. Dist Road", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+# BEC, Dist Road and Cut model (fxn)
+model.lme4.du9.all.cut.fxn <- glmer (pttype ~ bec_label_reclass + std_exp_dist_res_road + 
+                                       std_exp_dist_cut_1to4 + std_exp_dist_cut_5to9 + 
+                                       dist_cut_min_E + std_exp_dist_cut_1to4*dist_cut_min_E + 
+                                       std_exp_dist_cut_5to9*dist_cut_min_E + 
+                                       (1 | animal_id) + (1 | season),
+                                     data = rsf.data.du9, 
+                                     family = binomial (link = "logit"),
+                                     verbose = T) 
+# AIC
+table.aic [9, 1] <- "du9"
+table.aic [9, 2] <- "BEC + Distance to Resource Road + Distance to Cutblock + Available Distance to Cutblock + Distance to Cutblock*Available Distance to Cutblock"
+table.aic [9, 3] <- "(1 | animal_id) + (1 | season)"
+table.aic [9, 4] <-  AIC (model.lme4.du9.all.cut.fxn)
+
+scatter3D (x = rsf.data.du9$distance_to_cut_1to4yo, # scatter shot
+           y = rsf.data.du9$dist_cut_min_E, 
+           z = (predict (model.lme4.du9.all.cut.fxn,
+                         newdata = rsf.data.du9, 
+                         re.form = NA, type = "response")),
+           xlab = "Dist. Cut 1 to 4",
+           ylab = "Avail. Dist Cut", 
+           zlab = "Selection",
+           theta = 15, phi = 20)
+
+## AIC comparison of MODELS ## 
+list.aic.like <- c ((exp (-0.5 * (table.aic [1, 4] - min (table.aic [1:9, 4])))), 
+                    (exp (-0.5 * (table.aic [2, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [3, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [4, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [5, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [6, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [7, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [8, 4] - min (table.aic [1:9, 4])))),
+                    (exp (-0.5 * (table.aic [9, 4] - min (table.aic [1:9, 4])))))
+table.aic [1, 5] <- round ((exp (-0.5 * (table.aic [1, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [2, 5] <- round ((exp (-0.5 * (table.aic [2, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [3, 5] <- round ((exp (-0.5 * (table.aic [3, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [4, 5] <- round ((exp (-0.5 * (table.aic [4, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [5, 5] <- round ((exp (-0.5 * (table.aic [5, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [6, 5] <- round ((exp (-0.5 * (table.aic [6, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [7, 5] <- round ((exp (-0.5 * (table.aic [7, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [8, 5] <- round ((exp (-0.5 * (table.aic [8, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+table.aic [9, 5] <- round ((exp (-0.5 * (table.aic [9, 4] - min (table.aic [1:9, 4])))) / sum (list.aic.like), 3)
+
+write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_du9_v2.csv", sep = ",")
+
+# used model without functional response because was top model (although tnot he clear favourite) 
+# and fxn response didn't appear to improve interpretation of model, 
+# on its own, road interatction caovraite showed fucntional response, but didn;t hold up when includign other
+# terms, so go without for now
+
+# save the top model
+save (model.lme4.du9.all, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du9_top_v2.rda")
+
+###################
+### SAVE MODEL ###
+#################
+
+# Create table of model coefficients from top model
+model.coeffs <- as.data.frame (coef (summary (model.lme4.du9.all)))
+model.coeffs$mean_exp_neg0002 <- 0
+model.coeffs$sd_exp_neg0002 <- 0
+
+model.coeffs [19, 5] <- mean (exp ((rsf.data.du9$distance_to_resource_road * -0.002)))
+model.coeffs [20, 5] <- mean (exp ((rsf.data.du9$distance_to_cut_1to4yo * -0.002)))
+model.coeffs [21, 5] <- mean (exp ((rsf.data.du9$distance_to_cut_5to9yo * -0.002)))
+
+model.coeffs [19, 6] <- sd (exp ((rsf.data.du9$distance_to_resource_road * -0.002)))
+model.coeffs [20, 6] <- sd (exp ((rsf.data.du9$distance_to_cut_1to4yo * -0.002)))
+model.coeffs [21, 6] <- sd (exp ((rsf.data.du9$distance_to_cut_5to9yo * -0.002)))
+
+write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du9_summ_model_coeffs_top.csv", sep = ",")
+
+###############################
+### RSF RASTER CALCULATION ###
+#############################
+
+### LOAD RASTERS ###
+bec.bafa.un <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_bafa_un.tif")
+bec.essf.mv <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_mv_du9.tif")
+bec.essf.wc4 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wc4.tif")
+bec.essf.wcp <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wcp.tif")
+bec.essf.wcw <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wcw.tif")
+bec.essf.wh1 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wh1.tif")
+bec.essf.wh3 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wh3.tif")
+bec.essf.wk2 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wk2.tif")
+bec.essf.wm3 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wm3.tif")
+bec.essf.wm4 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wm4.tif")
+bec.essf.wmp <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wmp.tif")
+bec.essf.wmw <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_essf_wmw.tif")
+bec.ich.mw2 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_ich_mw2.tif")
+bec.ich.mw4 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_ich_mw4.tif")
+bec.ich.wk1 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_ich_wk1.tif")
+bec.sbs.vk <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_sbs_vk.tif")
+bec.sbs.wk1 <- raster ("C:\\Work\\caribou\\clus_data\\bec\\BEC_current\\raster\\bec_sbs_wk1.tif")
+dist.cut.1to4 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_1to4yo.tif")
+dist.cut.5to9 <- raster ("C:\\Work\\caribou\\clus_data\\cutblocks\\cutblock_tiffs\\raster_dist_cutblocks_5to9yo.tif")
+dist.resource.rd <- raster ("C:\\Work\\caribou\\clus_data\\roads_ha_bc\\dist_crds_resource.tif")
+
+### Adjust the raster data for 'standardized' model covariates ###
+std.dist.resource.rd <- (exp (dist.resource.rd * -0.002) - 0.1945082) / 0.2734546
+std.dist.cut.1to4 <- (exp (dist.cut.1to4 * -0.002) - 0.01632449) / 0.07921517
+std.dist.cut.5to9 <- (exp (dist.cut.5to9 * -0.002) - 0.008448977) / 0.05381447
+
+### CALCULATE RASTER RSF ###
+raster.rsf <- (exp (-2.58 + (bec.bafa.un * 0.59) + (bec.essf.mv * -0.64) +
+                      (bec.essf.wc4 * 0.94) + (bec.essf.wcp * 0.47) + 
+                      (bec.essf.wcw * 1.33) + (bec.essf.wh1 * 0.22) +
+                      (bec.essf.wh3 * 0.18) + (bec.essf.wk2 * -0.63) + 
+                      (bec.essf.wm3 * -0.01) + (bec.essf.wm4 * 	0.23) +  
+                      (bec.essf.wmp * -0.49) + (bec.essf.wmw * 	0.49) +
+                      (bec.ich.mw2 * 0.25) + (bec.ich.mw4 * -0.89) +
+                      (bec.ich.wk1 * 0.53) + (bec.sbs.vk * -0.80) +
+                      (bec.sbs.wk1 * 0.42) + (std.dist.resource.rd * -0.24) +
+                      (std.dist.cut.1to4 * 0.02) + 
+                      (std.dist.cut.5to9 * -0.06))) / 
+  (1 + exp (-2.58 + (bec.bafa.un * 0.59) + (bec.essf.mv * -0.64) +
+              (bec.essf.wc4 * 0.94) + (bec.essf.wcp * 0.47) + 
+              (bec.essf.wcw * 1.33) + (bec.essf.wh1 * 0.22) +
+              (bec.essf.wh3 * 0.18) + (bec.essf.wk2 * -0.63) + 
+              (bec.essf.wm3 * -0.01) + (bec.essf.wm4 * 	0.23) +  
+              (bec.essf.wmp * -0.49) + (bec.essf.wmw * 	0.49) +
+              (bec.ich.mw2 * 0.25) + (bec.ich.mw4 * -0.89) +
+              (bec.ich.wk1 * 0.53) + (bec.sbs.vk * -0.80) +
+              (bec.sbs.wk1 * 0.42) + (std.dist.resource.rd * -0.24) +
+              (std.dist.cut.1to4 * 0.02) + 
+              (std.dist.cut.5to9 * -0.06)))
+
+plot (raster.rsf)
+
+writeRaster (raster.rsf, "C:\\Work\\caribou\\clus_data\\rsf\\rsf_2pt0\\rasters\\du9\\rsf_du9_v2.tif", 
+             format = "GTiff", overwrite = T)
+
+##########################
+### k-fold Validation ###
+########################
+df.animal.id <- as.data.frame (unique (rsf.data.du9$animal_id))
+names (df.animal.id) [1] <-"animal_id"
+df.animal.id$group <- rep_len (1:5, nrow (df.animal.id)) # orderly selection of groups
+rsf.data.du9 <- dplyr::full_join (rsf.data.du9, df.animal.id, by = "animal_id")
+rsf.data.du9 <- rsf.data.du9 %>% # drop these animals because only animal using SBS wk 1 adn ESSFmv
+                 filter (animal_id != "car069") %>%
+                 filter (animal_id != "car078")
+  
+### FOLD 1 ###
+train.data.1 <- rsf.data.du9 %>%
+  filter (group < 5)
+test.data.1 <- rsf.data.du9 %>%
+  filter (group == 5)
+
+model.lme4.du9train1 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.1, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# create a table of k-fold outputs
+table.kfold <- data.frame (matrix (ncol = 12, nrow = 50))
+colnames (table.kfold) <- c ("test.number", "bin.mid", "bin.weight", "utilization", "used.count", 
+                             "expected.count", "lm.slope", "lm.slope.p.value", "lm.intercept",
+                             "lm.intercept.p.value", "adj.R.sq", "chi.sq.p.value")
+table.kfold [c (1:10), 1] <- 1
+table.kfold$bin.mid <- c (0.015, 0.045, 0.075, 0.105, 0.135, 0.165, 0.195, 0.225, 0.255, 0.285)
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du9$preds.train1 <- predict (model.lme4.du9train1, 
+                                      newdata = rsf.data.du9, 
+                                      re.form = NA, type = "response",
+                                      allow.new.levels = TRUE)
+
+ggplot (data = rsf.data.du9, aes (preds.train1)) +
+  geom_histogram()
+max (rsf.data.du9$preds.train1)
+min (rsf.data.du9$preds.train1)
+
+rsf.data.du9$preds.train1.class <- cut (rsf.data.du9$preds.train1, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                        labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                                    "0.165", "0.195", "0.225", "0.255", "0.285"))
+rsf.data.du9.avail <- dplyr::filter (rsf.data.du9, pttype == 0)
+
+table.kfold [1, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.015")) * 0.015) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [2, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.045")) * 0.045)
+table.kfold [3, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.075")) * 0.075)
+table.kfold [4, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.105")) * 0.105)
+table.kfold [5, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.135")) * 0.135)
+table.kfold [6, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.165")) * 0.165)
+table.kfold [7, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.195")) * 0.195)
+table.kfold [8, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.225")) * 0.225)
+table.kfold [9, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.255")) * 0.255)
+table.kfold [10, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train1.class == "0.285")) * 0.285)
+
+table.kfold [1, 4] <- table.kfold [1, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [2, 4] <- table.kfold [2, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [3, 4] <- table.kfold [3, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [4, 4] <- table.kfold [4, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [5, 4] <- table.kfold [5, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [6, 4] <- table.kfold [6, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [7, 4] <- table.kfold [7, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [8, 4] <- table.kfold [8, 3] / sum  (table.kfold [c (1:10), 3])
+table.kfold [9, 4] <- table.kfold [9, 3] / sum  (table.kfold [c (1:10), 3]) 
+table.kfold [10, 4] <- table.kfold [10, 3] / sum  (table.kfold [c (1:10), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+# data for estimating use
+test.data.1$preds <- predict (model.lme4.du9train1, newdata = test.data.1, re.form = NA, type = "response")
+test.data.1$preds.class <- cut (test.data.1$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                            "0.165", "0.195", "0.225", "0.255", "0.285"))
+
+write.csv (test.data.1, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\rsf_preds_du9_train1.csv")
+test.data.1.used <- dplyr::filter (test.data.1, pttype == 1)
+
+table.kfold [1, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.015"))
+table.kfold [2, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.045"))
+table.kfold [3, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.075"))
+table.kfold [4, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.105"))
+table.kfold [5, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.135"))
+table.kfold [6, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.165"))
+table.kfold [7, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.195"))
+table.kfold [8, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.225"))
+table.kfold [9, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.255"))
+table.kfold [10, 5] <- nrow (dplyr::filter (test.data.1.used, preds.class == "0.285"))
+
+table.kfold [1, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [1, 4], 0) # expected number of uses in each bin
+table.kfold [2, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [2, 4], 0) # expected number of uses in each bin
+table.kfold [3, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [3, 4], 0) # expected number of uses in each bin
+table.kfold [4, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [4, 4], 0) # expected number of uses in each bin
+table.kfold [5, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [5, 4], 0) # expected number of uses in each bin
+table.kfold [6, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [6, 4], 0) # expected number of uses in each bin
+table.kfold [7, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [7, 4], 0) # expected number of uses in each bin
+table.kfold [8, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [8, 4], 0) # expected number of uses in each bin
+table.kfold [9, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [9, 4], 0) # expected number of uses in each bin
+table.kfold [10, 6] <- round (sum (table.kfold [c (1:10), 5]) * table.kfold [10, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test1 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 1))
+summary (glm.kfold.test1)
+
+table.kfold [1, 7] <- 1.3547
+table.kfold [1, 8] <- "<0.001"
+table.kfold [1, 9] <- -57.1372
+table.kfold [1, 10] <- 0.213
+table.kfold [1, 11] <- 0.8575 
+
+chisq.test(dplyr::filter(table.kfold, test.number == 1)$used.count, dplyr::filter(table.kfold, test.number == 1)$expected.count)
+table.kfold [1, 12] <-  0.2424
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+
+ggplot (dplyr::filter(table.kfold, test.number == 1), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 1 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 1000, by = 100)) + 
+  scale_y_continuous (breaks = seq (0, 1000, by = 100))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du9_grp1.png")
+
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9_preds.csv")
+
+### FOLD 2 ###
+train.data.2 <- rsf.data.du9 %>%
+  filter (group == 1 | group == 2 | group == 3 | group == 5)
+test.data.2 <- rsf.data.du9 %>%
+  filter (group == 4)
+
+model.lme4.du9train2 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.2, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du9$preds.train2 <- predict (model.lme4.du9train2, 
+                                      newdata = rsf.data.du9, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du9, aes (preds.train2)) +
+  geom_histogram()
+max (rsf.data.du9$preds.train2)
+min (rsf.data.du9$preds.train2)
+
+rsf.data.du9$preds.train2.class <- cut (rsf.data.du9$preds.train2, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                        labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                                    "0.165", "0.195", "0.225", "0.255", "0.285"))
+table.kfold [c (11:20), 1] <- 2
+
+rsf.data.du9.avail <- dplyr::filter (rsf.data.du9, pttype == 0)
+
+table.kfold [11, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.015")) * 0.015) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [12, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.045")) * 0.045)
+table.kfold [13, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.075")) * 0.075)
+table.kfold [14, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.105")) * 0.105)
+table.kfold [15, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.135")) * 0.135)
+table.kfold [16, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.165")) * 0.165)
+table.kfold [17, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.195")) * 0.195)
+table.kfold [18, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.225")) * 0.225)
+table.kfold [19, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.255")) * 0.255)
+table.kfold [20, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train2.class == "0.285")) * 0.285)
+
+table.kfold [11, 4] <- table.kfold [11, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [12, 4] <- table.kfold [12, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [13, 4] <- table.kfold [13, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [14, 4] <- table.kfold [14, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [15, 4] <- table.kfold [15, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [16, 4] <- table.kfold [16, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [17, 4] <- table.kfold [17, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [18, 4] <- table.kfold [18, 3] / sum  (table.kfold [c (11:20), 3])
+table.kfold [19, 4] <- table.kfold [19, 3] / sum  (table.kfold [c (11:20), 3]) 
+table.kfold [20, 4] <- table.kfold [20, 3] / sum  (table.kfold [c (11:20), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+# data for estimating use
+test.data.2$preds <- predict (model.lme4.du9train2, newdata = test.data.2, re.form = NA, type = "response")
+test.data.2$preds.class <- cut (test.data.2$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                            "0.165", "0.195", "0.225", "0.255", "0.285"))
+write.csv (test.data.2, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\rsf_preds_du9_train2.csv")
+test.data.2.used <- dplyr::filter (test.data.2, pttype == 1)
+
+table.kfold [11, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.015"))
+table.kfold [12, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.045"))
+table.kfold [13, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.075"))
+table.kfold [14, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.105"))
+table.kfold [15, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.135"))
+table.kfold [16, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.165"))
+table.kfold [17, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.195"))
+table.kfold [18, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.225"))
+table.kfold [19, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.255"))
+table.kfold [20, 5] <- nrow (dplyr::filter (test.data.2.used, preds.class == "0.285"))
+
+table.kfold [11, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [11, 4], 0) # expected number of uses in each bin
+table.kfold [12, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [12, 4], 0) # expected number of uses in each bin
+table.kfold [13, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [13, 4], 0) # expected number of uses in each bin
+table.kfold [14, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [14, 4], 0) # expected number of uses in each bin
+table.kfold [15, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [15, 4], 0) # expected number of uses in each bin
+table.kfold [16, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [16, 4], 0) # expected number of uses in each bin
+table.kfold [17, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [17, 4], 0) # expected number of uses in each bin
+table.kfold [18, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [18, 4], 0) # expected number of uses in each bin
+table.kfold [19, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [19, 4], 0) # expected number of uses in each bin
+table.kfold [20, 6] <- round (sum (table.kfold [c (11:20), 5]) * table.kfold [20, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test2 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 2))
+summary (glm.kfold.test2)
+
+table.kfold [11, 7] <- 1.0511
+table.kfold [11, 8] <- "<0.001"
+table.kfold [11, 9] <- 1.0511
+table.kfold [11, 10] <- 0.732
+table.kfold [11, 11] <- 0.9222
+
+chisq.test(dplyr::filter(table.kfold, test.number == 2)$used.count, dplyr::filter(table.kfold, test.number == 2)$expected.count)
+table.kfold [11, 12] <-  0.09884
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 2), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 2 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 1000, by = 100)) + 
+  scale_y_continuous (breaks = seq (0, 1000, by = 100))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du9_grp2.png")
+
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9_preds.csv")
+
+### FOLD 3 ###
+train.data.3 <- rsf.data.du9 %>%
+  filter (group == 1 | group == 2 | group == 4 | group == 5)
+test.data.3 <- rsf.data.du9 %>%
+  filter (group == 3)
+
+model.lme4.du9train3 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.3, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du9$preds.train3 <- predict (model.lme4.du9train3, 
+                                      newdata = rsf.data.du9, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du9, aes (preds.train3)) +
+  geom_histogram()
+max (rsf.data.du9$preds.train3)
+min (rsf.data.du9$preds.train3)
+
+rsf.data.du9$preds.train3.class <- cut (rsf.data.du9$preds.train3, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                        labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                                    "0.165", "0.195", "0.225", "0.255", "0.285"))
+table.kfold [c (21:30), 1] <- 3
+
+rsf.data.du9.avail <- dplyr::filter (rsf.data.du9, pttype == 0)
+
+table.kfold [21, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.015")) * 0.015) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [22, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.045")) * 0.045)
+table.kfold [23, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.075")) * 0.075)
+table.kfold [24, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.105")) * 0.105)
+table.kfold [25, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.135")) * 0.135)
+table.kfold [26, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.165")) * 0.165)
+table.kfold [27, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.195")) * 0.195)
+table.kfold [28, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.225")) * 0.225)
+table.kfold [29, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.255")) * 0.255)
+table.kfold [30, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train3.class == "0.285")) * 0.285)
+
+table.kfold [21, 4] <- table.kfold [21, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [22, 4] <- table.kfold [22, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [23, 4] <- table.kfold [23, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [24, 4] <- table.kfold [24, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [25, 4] <- table.kfold [25, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [26, 4] <- table.kfold [26, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [27, 4] <- table.kfold [27, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [28, 4] <- table.kfold [28, 3] / sum  (table.kfold [c (21:30), 3])
+table.kfold [29, 4] <- table.kfold [29, 3] / sum  (table.kfold [c (21:30), 3]) 
+table.kfold [30, 4] <- table.kfold [30, 3] / sum  (table.kfold [c (21:30), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+# data for estimating use
+test.data.3$preds <- predict (model.lme4.du9train3, newdata = test.data.3, re.form = NA, type = "response")
+test.data.3$preds.class <- cut (test.data.3$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                            "0.165", "0.195", "0.225", "0.255", "0.285"))
+write.csv (test.data.3, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\rsf_preds_du9_train3.csv")
+test.data.3.used <- dplyr::filter (test.data.3, pttype == 1)
+
+table.kfold [21, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.015"))
+table.kfold [22, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.045"))
+table.kfold [23, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.075"))
+table.kfold [24, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.105"))
+table.kfold [25, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.135"))
+table.kfold [26, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.165"))
+table.kfold [27, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.195"))
+table.kfold [28, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.225"))
+table.kfold [29, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.255"))
+table.kfold [30, 5] <- nrow (dplyr::filter (test.data.3.used, preds.class == "0.285"))
+
+table.kfold [21, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [21, 4], 0) # expected number of uses in each bin
+table.kfold [22, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [22, 4], 0) # expected number of uses in each bin
+table.kfold [23, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [23, 4], 0) # expected number of uses in each bin
+table.kfold [24, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [24, 4], 0) # expected number of uses in each bin
+table.kfold [25, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [25, 4], 0) # expected number of uses in each bin
+table.kfold [26, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [26, 4], 0) # expected number of uses in each bin
+table.kfold [27, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [27, 4], 0) # expected number of uses in each bin
+table.kfold [28, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [28, 4], 0) # expected number of uses in each bin
+table.kfold [29, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [29, 4], 0) # expected number of uses in each bin
+table.kfold [30, 6] <- round (sum (table.kfold [c (21:30), 5]) * table.kfold [30, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test3 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 3))
+summary (glm.kfold.test3)
+
+table.kfold [21, 7] <- 1.2014 
+table.kfold [21, 8] <- "<0.001"
+table.kfold [21, 9] <- -40.8562
+table.kfold [21, 10] <- 0.291
+table.kfold [21, 11] <- 0.8983 
+
+chisq.test(dplyr::filter(table.kfold, test.number == 3)$used.count, dplyr::filter(table.kfold, test.number == 3)$expected.count)
+table.kfold [21, 12] <-  0.2313
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 3), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 3 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 1000, by = 100)) + 
+  scale_y_continuous (breaks = seq (0, 1000, by = 100))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du9_grp3.png")
+
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9_preds.csv")
+
+### FOLD 4 ###
+train.data.4 <- rsf.data.du9 %>%
+  filter (group == 1 | group == 3 | group == 4 | group == 5)
+test.data.4 <- rsf.data.du9 %>%
+  filter (group == 2)
+
+model.lme4.du9train4 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.4, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du9$preds.train4 <- predict (model.lme4.du9train4, 
+                                      newdata = rsf.data.du9, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du9, aes (preds.train4)) +
+  geom_histogram()
+max (rsf.data.du9$preds.train4)
+min (rsf.data.du9$preds.train4)
+
+rsf.data.du9$preds.train4.class <- cut (rsf.data.du9$preds.train4, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                        labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                                    "0.165", "0.195", "0.225", "0.255", "0.285"))
+table.kfold [c (31:40), 1] <- 4
+
+rsf.data.du9.avail <- dplyr::filter (rsf.data.du9, pttype == 0)
+
+table.kfold [31, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.015")) * 0.015) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [32, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.045")) * 0.045)
+table.kfold [33, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.075")) * 0.075)
+table.kfold [34, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.105")) * 0.105)
+table.kfold [35, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.135")) * 0.135)
+table.kfold [36, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.165")) * 0.165)
+table.kfold [37, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.195")) * 0.195)
+table.kfold [38, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.225")) * 0.225)
+table.kfold [39, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.255")) * 0.255)
+table.kfold [40, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train4.class == "0.285")) * 0.285)
+
+table.kfold [31, 4] <- table.kfold [31, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [32, 4] <- table.kfold [32, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [33, 4] <- table.kfold [33, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [34, 4] <- table.kfold [34, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [35, 4] <- table.kfold [35, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [36, 4] <- table.kfold [36, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [37, 4] <- table.kfold [37, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [38, 4] <- table.kfold [38, 3] / sum  (table.kfold [c (31:40), 3])
+table.kfold [39, 4] <- table.kfold [39, 3] / sum  (table.kfold [c (31:40), 3]) 
+table.kfold [40, 4] <- table.kfold [40, 3] / sum  (table.kfold [c (31:40), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+# data for estimating use
+test.data.4$preds <- predict (model.lme4.du9train4, newdata = test.data.4, re.form = NA, type = "response")
+test.data.4$preds.class <- cut (test.data.4$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                            "0.165", "0.195", "0.225", "0.255", "0.285"))
+table.kfold [c (31:40), 1] <- 4
+write.csv (test.data.4, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\rsf_preds_du9_train4.csv")
+test.data.4.used <- dplyr::filter (test.data.4, pttype == 1)
+
+table.kfold [31, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.015"))
+table.kfold [32, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.045"))
+table.kfold [33, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.075"))
+table.kfold [34, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.105"))
+table.kfold [35, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.135"))
+table.kfold [36, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.165"))
+table.kfold [37, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.195"))
+table.kfold [38, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.225"))
+table.kfold [39, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.255"))
+table.kfold [40, 5] <- nrow (dplyr::filter (test.data.4.used, preds.class == "0.285"))
+
+table.kfold [31, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [31, 4], 0) # expected number of uses in each bin
+table.kfold [32, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [32, 4], 0) # expected number of uses in each bin
+table.kfold [33, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [33, 4], 0) # expected number of uses in each bin
+table.kfold [34, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [34, 4], 0) # expected number of uses in each bin
+table.kfold [35, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [35, 4], 0) # expected number of uses in each bin
+table.kfold [36, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [36, 4], 0) # expected number of uses in each bin
+table.kfold [37, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [37, 4], 0) # expected number of uses in each bin
+table.kfold [38, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [38, 4], 0) # expected number of uses in each bin
+table.kfold [39, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [39, 4], 0) # expected number of uses in each bin
+table.kfold [40, 6] <- round (sum (table.kfold [c (31:40), 5]) * table.kfold [40, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test4 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 4))
+summary (glm.kfold.test4)
+
+table.kfold [31, 7] <- 0.9466
+table.kfold [31, 8] <- "<0.001"
+table.kfold [31, 9] <- 7.0369
+table.kfold [31, 10] <- 0.84366
+table.kfold [31, 11] <- 0.716
+
+chisq.test(dplyr::filter(table.kfold, test.number == 4)$used.count, dplyr::filter(table.kfold, test.number == 4)$expected.count)
+table.kfold [31, 12] <-  0.2313
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 4), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 4 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 1000, by = 100)) + 
+  scale_y_continuous (breaks = seq (0, 1000, by = 100))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du9_grp4.png")
+
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9_preds.csv")
+
+### FOLD 5 ###
+train.data.5 <- rsf.data.du9 %>%
+  filter (group == 5 | group == 2 | group == 3 | group == 4)
+test.data.5 <- rsf.data.du9 %>%
+  filter (group == 1)
+
+model.lme4.du9train5 <- glmer (pttype ~ bec_label_reclass + 
+                                 std_exp_dist_res_road + 
+                                 std_exp_dist_cut_1to4 + 
+                                 std_exp_dist_cut_5to9 + 
+                                 (1 | animal_id) + (1 | season), 
+                               data = train.data.5, 
+                               family = binomial (link = "logit"),
+                               verbose = T) 
+
+# data for esimating utilization; here I am using the available sample as the RSF GIS 'map'
+rsf.data.du9$preds.train5 <- predict (model.lme4.du9train5, 
+                                      newdata = rsf.data.du9, 
+                                      re.form = NA, type = "response")
+
+ggplot (data = rsf.data.du9, aes (preds.train5)) +
+  geom_histogram()
+max (rsf.data.du9$preds.train5)
+min (rsf.data.du9$preds.train5)
+
+rsf.data.du9$preds.train5.class <- cut (rsf.data.du9$preds.train5, # put into classes; 0 to 0.22, based on max and min values
+                                        breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                        labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                                    "0.165", "0.195", "0.225", "0.255", "0.285"))
+table.kfold [c (41:50), 1] <- 5
+
+rsf.data.du9.avail <- dplyr::filter (rsf.data.du9, pttype == 0)
+
+table.kfold [41, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.015")) * 0.015) # number of rows is the 'area' of the class on the 'map' (i.e., ha's)
+table.kfold [42, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.045")) * 0.045)
+table.kfold [43, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.075")) * 0.075)
+table.kfold [44, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.105")) * 0.105)
+table.kfold [45, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.135")) * 0.135)
+table.kfold [46, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.165")) * 0.165)
+table.kfold [47, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.195")) * 0.195)
+table.kfold [48, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.225")) * 0.225)
+table.kfold [49, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.255")) * 0.255)
+table.kfold [50, 3] <- (nrow (dplyr::filter (rsf.data.du9.avail, preds.train5.class == "0.285")) * 0.285)
+
+table.kfold [41, 4] <- table.kfold [41, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [42, 4] <- table.kfold [42, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [43, 4] <- table.kfold [43, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [44, 4] <- table.kfold [44, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [45, 4] <- table.kfold [45, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [46, 4] <- table.kfold [46, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [47, 4] <- table.kfold [47, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [48, 4] <- table.kfold [48, 3] / sum  (table.kfold [c (41:50), 3])
+table.kfold [49, 4] <- table.kfold [49, 3] / sum  (table.kfold [c (41:50), 3]) 
+table.kfold [50, 4] <- table.kfold [50, 3] / sum  (table.kfold [c (41:50), 3]) 
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+# data for estimating use
+test.data.5$preds <- predict (model.lme4.du9train5, newdata = test.data.5, re.form = NA, type = "response")
+test.data.5$preds.class <- cut (test.data.5$preds, # put into classes, based on max and min values
+                                breaks = c (-Inf, 0.03, 0.06, 0.09, 0.12, 0.15, 0.18, 0.21, 0.24, 0.27, Inf), 
+                                labels = c ("0.015", "0.045", "0.075", "0.105", "0.135",
+                                            "0.165", "0.195", "0.225", "0.255", "0.285"))
+write.csv (test.data.5, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\rsf_preds_du9_train5.csv")
+test.data.5.used <- dplyr::filter (test.data.5, pttype == 1)
+
+table.kfold [41, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.015"))
+table.kfold [42, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.045"))
+table.kfold [43, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.075"))
+table.kfold [44, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.105"))
+table.kfold [45, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.135"))
+table.kfold [46, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.165"))
+table.kfold [47, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.195"))
+table.kfold [48, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.225"))
+table.kfold [49, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.255"))
+table.kfold [50, 5] <- nrow (dplyr::filter (test.data.5.used, preds.class == "0.285"))
+
+table.kfold [41, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [41, 4], 0) # expected number of uses in each bin
+table.kfold [42, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [42, 4], 0) # expected number of uses in each bin
+table.kfold [43, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [43, 4], 0) # expected number of uses in each bin
+table.kfold [44, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [44, 4], 0) # expected number of uses in each bin
+table.kfold [45, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [45, 4], 0) # expected number of uses in each bin
+table.kfold [46, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [46, 4], 0) # expected number of uses in each bin
+table.kfold [47, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [47, 4], 0) # expected number of uses in each bin
+table.kfold [48, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [48, 4], 0) # expected number of uses in each bin
+table.kfold [49, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [49, 4], 0) # expected number of uses in each bin
+table.kfold [50, 6] <- round (sum (table.kfold [c (41:50), 5]) * table.kfold [50, 4], 0) # expected number of uses in each bin
+
+glm.kfold.test5 <- lm (used.count ~ expected.count, 
+                       data = dplyr::filter(table.kfold, test.number == 5))
+summary (glm.kfold.test5)
+
+table.kfold [41, 7] <-  1.1822
+table.kfold [41, 8] <- "<0.001"
+table.kfold [41, 9] <- -43.7446
+table.kfold [41, 10] <- 0.530649
+table.kfold [41, 11] <- 0.8013
+
+chisq.test(dplyr::filter(table.kfold, test.number == 5)$used.count, dplyr::filter(table.kfold, test.number == 5)$expected.count)
+table.kfold [41, 12] <-  0.02605
+
+write.csv (table.kfold, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\kfold\\du9\\table_kfold_valid_du9.csv")
+
+ggplot (dplyr::filter(table.kfold, test.number == 5), aes (x = expected.count, y = used.count)) +
+  geom_point () +
+  geom_smooth (method = 'lm') +
+  theme_bw () +
+  labs (title = "Group 5 independent sample of expected versus observed proportion of caribou 
+        locations in 10 RSF bins",
+        x = "Expected proportion",
+        y = "Observed proportion") + 
+  scale_x_continuous (breaks = seq (0, 1000, by = 100)) + 
+  scale_y_continuous (breaks = seq (0, 1000, by = 100))
+ggsave ("C:\\Work\\caribou\\clus_github\\reports\\caribou_rsf\\plots\\kfold_lm_du9_grp5.png")
+
+write.csv (rsf.data.du9, file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9_preds.csv")
+
+
