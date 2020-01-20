@@ -8,7 +8,7 @@ output:
 ---
 
 <!--
-Copyright 2018 Province of British Columbia
+Copyright 2020 Province of British Columbia
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,7 +79,6 @@ pars_scenario<-list(list("Prince_George_TSA", rbindlist(list(data.table(compartm
                                      )))
                     )
 
-
 test<-lapply(pars_scenario, function(x){
   
   moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
@@ -106,11 +105,17 @@ test<-lapply(pars_scenario, function(x){
                            nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
                            #nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv"),
                            nameZoneTable="zone_constraints",
-                           nameAgeRaster= "rast.vri2017_projage1",
-                           nameHeightRaster= "rast.vri2017_projheight1",
-                           nameCrownClosureRaster = "rast.vri2017_crownclosure",
-                           nameSiteIndexRaster = "rast.vri2017_siteindex",
-                           nameYieldTable ="yieldcurves"),
+                           nameYieldsRaster = "rast.ycid_vdyp",
+                           nameYieldTable ="yc_vdyp",
+                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                           nameYieldTransitionTable ="yc_tipsy",
+                           nameForestInventoryRaster ="rast.vri2018_id",
+                           nameForestInventoryKey = "feature_id",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryAge = "proj_age_1",
+                           nameForestInventoryHeight = "proj_height_1",
+                           nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventorySiteIndex = "site_index"),
    blockingCLUS = list(blockMethod='pre', 
                         patchZone = 'rast.zone_cond_beo',
                         patchVariation = 6,
@@ -153,8 +158,8 @@ test<-lapply(pars_scenario, function(x){
                                       0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                       0.1,0.02,0.02,0.02,0.02,0.8,
                                       0.3,0.3,0.1,0.1,0.1, 0.1)), 
-                  #scenario = data.table(name="bau", description = "buisness as usual-projecting current trends"),
-                  scenario =data.table(name="federal_recovery", description = "Upper bound ditchline representing Canadas federal caribou recovery strategy"),
+                  scenario = data.table(name="testing_transitions", description = "Simple flow- just test that following harvesting the yields transition to another curve (i.e., TIPSY)"),
+                  #scenario =data.table(name="federal_recovery", description = "Upper bound ditchline representing Canadas federal caribou recovery strategy"),
                   calb_ymodel=readRDS(paste0(here::here(), "/R/Params/calb_ymodel.rds")))
   
   paths <- list(

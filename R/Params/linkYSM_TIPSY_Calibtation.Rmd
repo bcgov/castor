@@ -1,0 +1,106 @@
+---
+title: "linkYSM_TIPSY_Calibration"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(ggplot2)
+library(plotly)
+library(plyr)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+```
+
+
+## Purpose
+
+Each spatial feature (i.e, feature_id) in the VRI, has a TIPSY curve projected based on RESULTS or an aggregated composite of RESULTS based on a BEC plus SIBEC analysis. To determine the accuracy of these curves, the young stand monitoring (YSM) plots - which is a ground sample of "young" stands was used as observed merchantable volume and compared to these TIPSY projections. The YSM plots include the spatial location (X,Y), the stand type (natural, harvest) and have been compiled to estimate merchantable volume (+12.5 DBH). In this analysis, the YSM plots are linked with the TIPSY curves to estimate the relationship between observed volumes from the YSM and the predicted volumes from TIPSY. Additionally the same analysis is carried out but using VDYP as the predictor of YSM merchantable volume
+
+## Data
+
+Import the intersection of YSM plots and a raster of provincial TIPSY yield curve Ids then interpolate the yield curves to the total stand age (rounded to nearest year) as determined in the YSM plots.
+
+```{r, datasets}
+
+raw.data<-getTableQuery("select (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as tipsy_vol,
+samp_id,meas_dt, nmerchvol_125, stand_type, stand_label, tot_stand_age, beclabel, t.ycid
+from 
+(SELECT samp_id,meas_dt, nmerchvol_125, stand_type, stand_label, tot_stand_age, 
+round(cast(tot_stand_age  as double precision)) as age, beclabel , 
+	  ST_Value(rast.tipsy2018_id.rast, 1, ysm_pts.wkb_geometry) As ycid
+FROM ysm_pts, rast.tipsy2018_id
+WHERE ST_Intersects(rast.tipsy2018_id.rast,ysm_pts.wkb_geometry)) as t
+LEFT JOIN yc_tipsy y 
+ON t.ycid = y.ycid AND CAST(t.age/10 AS INT)*10 = y.age
+LEFT JOIN yc_tipsy k 
+ON t.ycid = k.ycid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0;")
+
+#format away from text
+raw.data$tipsy_vol<-as.numeric(raw.data$tipsy_vol)
+raw.data$nmerchvol_125<-as.numeric(raw.data$nmerchvol_125)
+
+#Remove the Na from not matching
+raw.data<-raw.data[!is.na(raw.data$tipsy_vol),]
+count(raw.data$stand_label)
+
+```
+
+## Observed vs predicted
+
+
+```{r, obs_pred, fig.width=10,fig.height=70}
+cors <- ddply(raw.data, c("stand_label"), summarise, cor = round(cor(tipsy_vol,nmerchvol_125), 2))
+
+ggplotly(ggplot(data = raw.data, aes(x = tipsy_vol, y = nmerchvol_125)) +
+  geom_point()+
+  geom_abline(intercept =0, slope=1, col ="yellow") +
+  facet_wrap(~stand_label, ncol =1) +
+  geom_smooth(method = "lm") +
+  geom_text(data=cors, aes(label=paste("r=", cor, sep="")), x=30, y=900)
+)
+
+```
+
+
+## Compare with VDYP ????
+
+How well does VDYP do to predict these volumes?
+
+```{r, vdyp_test}
+raw.data.vdyp<-getTableQuery("select (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vdyp_vol,
+samp_id,meas_dt, nmerchvol_125, stand_type, stand_label, tot_stand_age, beclabel, t.ycid
+from 
+(SELECT samp_id,meas_dt, nmerchvol_125, stand_type, stand_label, tot_stand_age, 
+round(cast(tot_stand_age  as double precision)) as age, beclabel , 
+	  ST_Value(rast.ycid_vdyp.rast, 1, ysm_pts.wkb_geometry) As ycid
+FROM ysm_pts, rast.ycid_vdyp
+WHERE ST_Intersects(rast.ycid_vdyp.rast,ysm_pts.wkb_geometry)) as t
+LEFT JOIN yc_vdyp y 
+ON t.ycid = y.ycid AND CAST(t.age/10 AS INT)*10 = y.age
+LEFT JOIN yc_vdyp k 
+ON t.ycid = k.ycid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0;")
+
+#format away from text
+raw.data.vdyp$vdyp_vol<-as.numeric(raw.data.vdyp$vdyp_vol)
+raw.data.vdyp$nmerchvol_125<-as.numeric(raw.data.vdyp$nmerchvol_125)
+
+#Remove the Na from not matching
+raw.data.vdyp<-raw.data.vdyp[!is.na(raw.data.vdyp$vdyp_vol),]
+count(raw.data$stand_label)
+```
+
+## VDYP Observed vs predicted
+
+```{r, vdyp_obs_pred, fig.width=10,fig.height=70}
+cors <- ddply(raw.data.vdyp, c("stand_label"), summarise, cor = round(cor(vdyp_vol,nmerchvol_125), 2))
+
+ggplotly(ggplot(data = raw.data.vdyp, aes(x = vdyp_vol, y = nmerchvol_125)) +
+  geom_point()+
+  geom_abline(intercept =0, slope=1, col ="yellow") +
+  facet_wrap(~stand_label, ncol =1) +
+  geom_smooth(method = "lm") +
+  geom_text(data=cors, aes(label=paste("r=", cor, sep="")), x=30, y=900)
+)
+
+```

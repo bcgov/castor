@@ -1,4 +1,4 @@
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -404,8 +404,8 @@ rsfCLUS.PredictRSF <- function(sim){
     rsfdt[, rsf:=paste0(rsfPops[[1]][[i]])]
     setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "timeperiod", "rsf_model"))
     rsfdt[, scenario:=scenario$name]
-    lrsf<-list(sim$rsf, rsfdt)
-    sim$rsf<-rbindlist(lrsf)
+    rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
+    sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
 
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras

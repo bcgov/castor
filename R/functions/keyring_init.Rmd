@@ -40,6 +40,13 @@ key_set("dbpass", keyring ="postgreSQL")
 
 #to view the keys in the keyring use:
 key_list(keyring ="postgreSQL") # they will be labeled under 'service'
+
+#Virtual machine
+key_set("vmdbhost", keyring ="postgreSQL") 
+key_set("vmdbname", keyring ="postgreSQL") 
+key_set("vmdbuser", keyring ="postgreSQL")
+key_set("vmdbpass", keyring ="postgreSQL")
+
 ```
 ## Use the keyring in code
 
@@ -48,4 +55,9 @@ To get the values of the keys use:
 key_get("dbhost", keyring="postgreSQL")
 key_get("dbuser", keyring="postgreSQL")
 key_get("dbpass", keyring="postgreSQL")
+
+key_get("vmdbhost", keyring="postgreSQL")
+key_get("vmdbuser", keyring="postgreSQL")
+key_get("vmdbpass", keyring="postgreSQL")
+
 ```
