@@ -42,11 +42,27 @@ scenariosList<-reactive({
 reportList<-reactive({
   req(input$schema)
   req(input$scenario)
+  data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
+  data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
+  
   list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
-       growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
+       growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
-       survival = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
-    )
+       survival =data.survival)
+})
+
+radarList<-reactive({
+  DT.h<- reportList()$harvest[, sum(volume)/sum(target), by = c("scenario", "timeperiod")][ V1 > 0.9, .N, by = c("scenario")][,N:=N/100]
+  setnames(DT.h, "N", "Timber")
+  DT.s <-dcast(reportList()$survival[survival_rate > 0.75 & timeperiod > 0, .N/100, by =c("scenario", "herd_bounds") ], scenario ~herd_bounds, value.var =  "V1")
+  DT.all<-merge(DT.h, DT.s, by.x = "scenario", by.y = "scenario")
+  DT.g<-data.table(getTableQuery(paste0("select foo1.scenario, gs_100/gs_0 as GrowingStock  from (
+	(select sum(m_gs) as gs_0, scenario from ",input$schema, ".growingstock where timeperiod in (0)  and scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "')
+group by scenario, timeperiod) foo1
+JOIN (select sum(m_gs) as gs_100, scenario from ", input$schema, ".growingstock where timeperiod in (100) and scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') 
+group by scenario, timeperiod) foo2
+ON (foo1.scenario = foo2.scenario) )")))
+  merge(DT.all, DT.g, by.x = "scenario", by.y = "scenario")
 })
 
 observeEvent(input$getMapLayersButton, {
@@ -174,9 +190,6 @@ observeEvent(input$getMapLayersButton, {
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
-      data[, wt:= area/sum(area), by =c("scenario", "timeperiod", "herd_bounds")] #area weight the survival metrics
-      data<-data[,lapply(.SD, weighted.mean, w =wt), by =c("scenario", "timeperiod", "herd_bounds"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
-    
       # data [order(data$scenario,  data$herd_bounds, data$timeperiod)]
       # data.year0 <- data[data$timeperiod == 0, c ("scenario", "herd_bounds", "survival_rate")]
       # setnames(data.year0, old = "survival_rate", new = "survival_rate_0")
@@ -312,6 +325,37 @@ observeEvent(input$getMapLayersButton, {
               margin = list (l = 50, r = 40, b = 40, t = 10, pad = 0)
               #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
               )# change seasonal values
-  })  
+  })
+  
+  
+  output$radar<- renderPlotly ({
+    
+  radarLength<<-1:nrow(radarList()) 
+  radarNames<-paste(c(names(radarList())[2:length(radarList())],names(radarList())[2]), collapse= "', '")
+  radarData<-radarList()[, data:=paste(.SD, collapse = ',')  , .SDcols =c( names(radarList())[2:length(radarList())],names(radarList())[2]), by = scenario]
+  
+  eval(parse(text=paste0("plot_ly(
+  type = 'scatterpolar',
+  mode = 'lines+markers',
+  fill = 'toself'
+  ) %>%",paste(sapply(radarLength, function(x){
+      paste0("add_trace(
+      r = c(",radarData$data[x[]], "),
+      theta = c('", radarNames,"'),
+      name = '",radarList()$scenario[x[]], "'
+    ) %>%")
+    }),collapse = ''),"
+  layout(
+    polar = list(
+      radialaxis = list(
+        visible = T,
+        range = c(0,1.2)
+      )
+    )
+  ) "  )))
+    
+  })
 }
+
+
 
