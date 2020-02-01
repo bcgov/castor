@@ -33,8 +33,8 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("useAdjacencyConstraint", "logical", FALSE, NA, NA, "Include Adjacency Constraint?"),
-    defineParameter("growingStockConstraint", "numeric", 99999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
+    defineParameter("adjacencyConstraint", "logical", FALSE, NA, NA, "Include Adjacency Constraint?"),
+    defineParameter("growingStockConstraint", "numeric", 9999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
     defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending")
     
     ),
@@ -94,7 +94,7 @@ forestryCLUS.Init <- function(sim) {
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric())
+  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
   
   #Remove zones as a scenario
@@ -211,7 +211,7 @@ forestryCLUS.setConstraints<- function(sim) {
     }
   }
   
-  if(P(sim, "forestryCLUS", "useAdjacencyConstraint")){
+  if(P(sim, "forestryCLUS", "adjacencyConstraint")){
     #Update pixels in clusdb for adjacency constraints
     query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
                                                             (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3 
@@ -244,20 +244,19 @@ forestryCLUS.getHarvestQueue<- function(sim) {
 
   for(compart in sim$compartment_list){
     
-    #TODO: Need to figure out the harvest period mid point to reduce bias in reporting?
+    #TODO: Need to figure out the harvest period mid point to reduce bias in reporting? --Not important for 1 year time steps
     harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
     
-    if(length(harvestTarget)>0){# Determine if there is a demand for volume to harvest
+    if(length(harvestTarget)>0){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-sim$harvestFlow[compartment==compart, "partition"][time(sim)]
       harvestPriority<-sim$harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      sql<-paste0("SELECT pixelid, blockid, compartid, siteindex, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, siteindex, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND blockid > 0 AND ", partition, "
-                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") 
-                  AND thlb > 0 AND zone_const = 0 AND ", partition, 
+                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") AND thlb > 0 AND zone_const = 0 AND ", partition, 
                   " ORDER BY blockid ")
   
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
@@ -270,8 +269,9 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         #Adjust the harvestFlow based on the growing stock constraint
         if(!(P(sim, "forestryCLUS", "growingStockConstraint") == 9999)){
           harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim), m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
-          print(paste0("harvest after constarint", harvestTarget))
+          print(paste0("Adjust harvest flow | gs constraint: ", harvestTarget))
         }
+        
         queue<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]
         
         #Update the pixels table
@@ -291,11 +291,12 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
         
         #Set the harvesting report
-        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim), compartment = compart, area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList))
+        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim), compartment = compart, target = harvestTarget , area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)],  transition_volume  = queue[yieldid > 0, sum(vol_h)])
         temp_harvest_report<-temp_harvest_report[, age:=age/area]
         temp_harvest_report<-temp_harvest_report[, hsize:=area/hsize]
-        temp_harvest_report<-temp_harvest_report[, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, "SELECT sum(thlb) from pixels where zone_const = 0;"))]
-        sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report))
+        temp_harvest_report<-temp_harvest_report[, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition )))]
+        
+        sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
       
         #Create landings
         #pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
@@ -333,29 +334,14 @@ forestryCLUS.calcUncertainty <-function(sim) {
 
 simYieldUncertainty <-function(to.cut, calb_ymodel, scenarioNAme) {
   message(".....calc uncertainty of yields")
-  cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut[,c("proj_vol", "site_index")]) #get the mu.hat and sigma.hat 
-  to.cut$mu.hat<-cut.hat$mu
-  to.cut$sigma.hat<-cut.hat$sigma
-  message(paste0(".......sim error: ", nrow(to.cut)))
-  sim.volume <-
-    sapply(1:1000,
-           function(x)
-             with(to.cut,
-                  sum(rGA(nrow(to.cut), 
-                          mu = mu.hat,
-                          sigma = sigma.hat))))
-  distquants<-quantile(sim.volume, p = c(0.05, 0.95))
+  #cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut[,c("proj_vol", "site_index")]) #get the mu.hat and sigma.hat 
+  #to.cut$mu.hat<-cut.hat$mu
+  #to.cut$sigma.hat<-cut.hat$sigma
+  #message(paste0(".......sim error: ", nrow(to.cut)))
+  #sim.volume <-sapply(1:1000,function(x)with(to.cut,sum(rGA(nrow(to.cut), mu = mu.hat,sigma = sigma.hat))))
+  #distquants<-quantile(sim.volume, p = c(0.05, 0.95))
   
-  return(data.table(
-    scenario = scenarioNAme,
-    compartment= max(to.cut$compartid),
-    projvol =sum(to.cut$proj_vol),
-    calibvol = mean(sim.volume),
-    prob =  mean(sim.volume>sum(to.cut$proj_vol)),
-    pred5 = distquants[1],
-    pred95 = distquants[2]
-    )
-  ) 
+ # return(data.table(scenario = scenarioNAme,compartment= max(to.cut$compartid),projvol =sum(to.cut$proj_vol),calibvol = mean(sim.volume),prob =  mean(sim.volume>sum(to.cut$proj_vol)),pred5 = distquants[1],pred95 = distquants[2])) 
 }
 
 
