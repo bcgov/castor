@@ -387,6 +387,8 @@ roadCLUS.shortestPaths<- function(sim){
   #------finds the least cost paths between a list of two points
   if(length(sim$paths.list) > 0 ){
     paths<-unlist(lapply(sim$paths.list, function(x) get.shortest.paths(sim$g,  x[1], x[2], out = "both"))) #create a list of shortest paths
+    #Do all at once? 
+    #paths<-get.shortest.paths(sim$g,  sim$paths.list[1][1], sim$paths.list[2], out = "both") #create a list of shortest paths
     
     paths.e<-paths[grepl("epath",names(paths))]
     edge_attr(sim$g, index= E(sim$g)[E(sim$g) %in% paths.e], name= 'weight')<-0.001 #changes the cost(weight) associated with the edge that became a path (or road)
@@ -411,7 +413,7 @@ roadCLUS.randomLandings<-function(sim){
 roadCLUS.preSolve<-function(sim){
   message("pre-solve the roads")
   if(exists("histLandings", where = sim)){
-    targets <- as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+    targets <<- as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) ))
   }else{
     #TODO: get the centroid instead of the maximum pixelid?
@@ -423,26 +425,27 @@ roadCLUS.preSolve<-function(sim){
     set_vertex_attr("name", value = V(sim$g))
   
   #remove many of the isolated targets. Note that the vertex will change to start at 1 but since the names are set as pixelid it is ok. This is why I use as.character()
-  isolated = which(degree(sim$g)==0)
-  sim$g<-delete_vertices(sim$g, isolated)
+  #isolated = which(degree(sim$g)==0)
+  #sim$g<-delete_vertices(sim$g, isolated)
   
- #Solve Djkstra's for one source (random road location - most southern road?) to all possible targets. Then store the outcome into a list referenced by the target
+  #Solve Djkstra's for one source (random road location - most southern road?) to all possible targets. Then store the outcome into a list referenced by the target
   pre.paths<<-igraph::get.shortest.paths(sim$g, 
-                                         as.character(dbGetQuery(sim$clusdb, "SELECT max(pixelid) from pixels where roadyear = 0")), targets)
+                                         as.character(dbGetQuery(sim$clusdb, "SELECT pixelid from pixels where roadyear = 0 limit 1")), targets)
   message("pre-solve to a list")
-  
-  #TODO: minimize the size of road column in roadslist -- ex. roads[ !(roads[] %in% oldroads)]
+  #TODO: minimize the size of road column in roadslist -- ex. roads[ !(roads[] %in% oldroads)] - maybe not using this as a year indicator?
   sim$roadslist<-rbindlist(lapply(pre.paths$vpath ,function(x){
     data.table(landing = x[][]$name[length(x[][]$name)],road = toString(x[][]$name[]))
      }))
+  
+  #TODO: store roadslist in clusdb?
   return(invisible(sim)) 
 }
 
 roadCLUS.getRoadSegment<-function(sim){
   #Convert the landings to pixelid's
   targets<-cellFromXY(sim$ras, sim$landings)
-  roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
-  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear >= 0 and pixelid in (",paste(sim$paths.v, collapse = ", "),")"))
+  roadSegs<<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
+  alreadyRoaded<<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear > 0 and pixelid in (",paste(roadSegs, collapse = ", "),")"))
   sim$paths.v<-roadSegs[!(roadSegs[] %in% alreadyRoaded$pixelid)]
   
   #update the raster
