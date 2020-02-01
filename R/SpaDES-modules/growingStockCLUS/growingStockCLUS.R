@@ -34,6 +34,7 @@ defineModule(sim, list(
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("updateInterval", "numeric", 1, NA, NA, "The interval when the growinstock should be updated"),
+    defineParameter("vacuumInterval", "numeric", 5, NA, NA, "The interval when the database should be vacuumed"),
     defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock")
   ),
   inputObjects = bind_rows(
@@ -52,11 +53,16 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
     init = {
       sim <- Init(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
     },
     updateGrowingStock= {
       sim <- growingStockCLUS.Update(sim)
       sim <- growingStockCLUS.record(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
+    },
+    vacuumDB ={
+      sim <- growingStockCLUS.vacuumDB(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -176,14 +182,16 @@ growingStockCLUS.Update<- function(sim) {
   
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
   dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
-  
-  #Vacuum the db
-  message("...vacuum db")
-  dbExecute(sim$clusdb, "VACUUM;")
-  
+
   rm(tab1)
   gc()
   return(invisible(sim))
+}
+
+growingStockCLUS.vacuumDB<- function(sim){
+  message("...vacuum db")
+  dbExecute(sim$clusdb, "VACUUM;")
+  return(invisible(sim)) 
 }
 
 growingStockCLUS.record<- function(sim) {
@@ -192,10 +200,12 @@ growingStockCLUS.record<- function(sim) {
               dbGetQuery(sim$clusdb, paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
                          group by compartid;")))), use.names = TRUE)
-  return(invisible(sim))
+  
+   return(invisible(sim))
 }
 
 .inputObjects <- function(sim) {
   return(invisible(sim))
 }
+
 
