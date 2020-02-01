@@ -596,7 +596,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   }
   if(P(sim, "dataLoaderCLUS", "nameSiteIndexRaster") == "99999" & P(sim, "dataLoaderCLUS", "nameForestInventorySiteIndex") == "99999"){
     message('.....siteindex: default 14')
-    pixels[, siteIndex:= 14]
+    pixels[, siteindex:= 14]
   }
   
   
