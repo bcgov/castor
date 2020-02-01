@@ -1,4 +1,4 @@
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ blockingCLUS.getExistingCutblocks<-function(sim){
    
       #add to the clusdb
       dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+        rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid, yieldid = yieldid_trans where pixelid = :pixelid", exist_cutblocks)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
       
