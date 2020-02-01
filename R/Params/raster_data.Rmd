@@ -1,5 +1,5 @@
 <!--
-Copyright 2018 Province of British Columbia
+Copyright 2020 Province of British Columbia
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -162,6 +162,22 @@ writeRaster(layer.ras, file="vri2018_id.tif", format="GTiff", overwrite=TRUE)
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2018_id.tif -t 100x100 rast.vri2018_id | psql -d clus")
 ```
 
+## VEG COMP 2018 (Daves) feature id for TIPSY linkage
+
+This id links to polygon level attribution. Also links to yield curve generation from results - TIPSY and feature projection - VDYP
+```{r, veg_comp, echo = FALSE}
+#Harvest locations year
+layer<-getSpatialQuery("SELECT feature_id, wkb_geometry FROM public.veg_comp_spatial")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
+rm(layer)
+gc()
+
+writeRaster(layer.ras, file="tipsy2018_id.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/tipsy2018_id.tif -t 100x100 rast.tipsy2018_id | psql -d clus")
+```
+
 ## Water
 
 The BC [waterbodies dataset](https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm) is found on the BCGW oracle server under a user restriction. There are a few options for connecting to the BCGW
@@ -306,4 +322,14 @@ ras.forest_tenure<-fasterize::fasterize(fortenure_poly, ProvRast,
 writeRaster(ras.forest_tenure, file="forest_tenure.tif", format="GTiff", overwrite=TRUE)
 
 system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_tenure.tif -t 100x100 rast.forest_tenure | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+
+## Roads in 2001
+
+```{r, roads2001}
+library(RArcInfo)
+e00toavc("grnf000r02a_e.e00", "valencia")
+arcsmuni<-get.arcdata(".", "valencia")
+
 ```
