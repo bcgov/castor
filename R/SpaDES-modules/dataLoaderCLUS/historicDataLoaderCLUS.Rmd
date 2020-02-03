@@ -1,0 +1,138 @@
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "dataLoaderCLUS"
+author: ""
+date: "04 September 2018"
+output: pdf_document
+---
+
+# Overview
+
+The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`
+
+
+# Usage
+
+```{r module_usage}
+library(SpaDES)
+library(SpaDES.core)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
+getPaths() # shows where the 4 relevant paths are
+
+times <- list(start = 0, end = 43)
+parameters <-  list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list(dbName='clus',
+                         save_clusdb = FALSE,
+                         #nameBoundaryFile="bc_carib_poly_20090904",
+                         #nameBoundaryColumn="herd_name",
+                         #nameBoundary = "Tweedsmuir",
+                         nameBoundaryFile="tsa_aac_bounds",
+                         nameBoundaryColumn="tsa_name",
+                         nameBoundary = "Williams_Lake_TSA",
+                         nameBoundaryGeom='wkb_geometry'
+                         #nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         #nameCompartmentTable = "tsa_aac_bounds_vat",
+                         #nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         #nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
+                         #nameZoneTable="zone_constraints",
+                         #nameAgeRaster= "rast.vri2017_projage1",
+                         #nameHeightRaster= "rast.vri2017_projheight1",
+                         #nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         #nameSiteIndexRaster = "rast.vri2017_siteindex",
+                         #nameYieldsRaster = "rast.ycid_vdyp",
+                         #nameYieldTable ="yc_vdyp",
+                         #nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                         #nameYieldTransitionTable ="yc_tipsy",
+                        
+                         #nameForestInventoryRaster ="rast.veg_comp2003_id",
+                         #nameForestInventoryKey = "feature_id",
+                         #nameForestInventoryTable = "public.veg_comp_lyr_r1_poly_final_spatialv2_2003",
+                         #nameForestInventoryAge = "proj_age_1",
+                         #nameForestInventoryHeight = "proj_height_1",
+                         #nameForestInventoryCrownClosure = "crown_closure",
+                         #nameForestInventorySiteIndex = "site_index"
+                    ),
+    roadCLUS = list(roadMethod = 'pre', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.crds_resource'
+                  ),
+    cutblockSeqPrepCLUS = list(
+      startHarvestYear = 1975,
+      nameCutblockRaster= 'rast.cns_cut_bl',
+      nameCutblockTable= 'cns_cut_bl_polygon',
+      queryCutblocks = 'cutseq'
+    ),
+   # rsfCLUS = list(calculateInterval = 5, 
+   #              criticalHabitatTable = "public.criticalhabitat",
+   #              writeRSFRasters = TRUE),
+    survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+                       nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
+                       tableCaribouHerd = "public.caribou_herd")
+  )
+
+#rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('S', 'EW', 'LW')"))
+
+#rsf_model_coeff[, bounds := 'rast.crithabitat']
+scenario = data.table(name="testing_transitions", description = "Simple flow- just test that following harvesting the yields transition to another curve (i.e., TIPSY)")
+modules <- list("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS", "survivalCLUS")
+
+#objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
+objects <- list(scenario = scenario)
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+system.time({
+mysimout<-spades(mySim)
+})
+```
+
+# Dependendices
+
+First need an area of interest.
++nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
++nameBoundary<-The specific area of interest
++nameBoundaryColumn<-The column in the nameBoundaryFile that support the query for the area of interest
++nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
+
+The remaining files are:
++nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
++nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
++nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Defaults to 1 yield table
++nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to an age of 120
++nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaults to 0 crown closure
++nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaults to all of the area of interest being eligible for harvesting.
+
+# Events
+
+The module only has an inititialization event for connecting to a database and establishing database objects
+
+
+## Output data
+
+The outputs contain the database connection object, functions needed to generate queries and the boundary and bounding box of the boundary needed for other queries
+
+# Links to other modules
+
+Links to every module required by CLUS
+

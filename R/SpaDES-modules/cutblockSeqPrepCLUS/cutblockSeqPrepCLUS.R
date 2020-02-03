@@ -1,4 +1,4 @@
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ defineModule(sim, list(
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
     defineParameter("cutblockSeqInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
     defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
+    defineParameter("nameCutblockTable", "character", "99999", NA, NA, desc = "Name of the cutblocm attribution table with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -59,12 +60,22 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
     
     init = {
       sim<-cutblockSeqPrepCLUS.Init(sim)
-      sim <- scheduleEvent(sim, start(sim), "cutblockSeqPrepCLUS", "cutblockSeqPrep")
+      sim<-cutblockSeqPrepCLUS.getHistoricalLandings(sim) #Get the XY location of the historical cutblock landings
+      sim <- cutblockSeqPrepCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
+      sim <- cutblockSeqPrepCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
+
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep", 6)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
     },
     
     cutblockSeqPrep = {
       sim<-cutblockSeqPrepCLUS.getLandings(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep")
+    },
+    
+    updateAge = {
+      sim<-cutblockSeqPrepCLUS.incrementAge(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -74,14 +85,8 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
 }
 
 cutblockSeqPrepCLUS.Init <- function(sim) {
-  #Get the XY location of the historical cutblock landings
-  sim<-cutblockSeqPrepCLUS.getHistoricalLandings(sim)
   sim$landings<-NULL
   sim$landingsArea<-NULL
-  #Create a column in clusdb.pixels table with the cutblock ids
-  sim <- cutblockSeqPrepCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
-  sim <- cutblockSeqPrepCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
-  
   return(invisible(sim))
 }
 
@@ -99,9 +104,10 @@ cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
 ### Set a list of cutblock locations as a Spatial Points object
 cutblockSeqPrepCLUS.getLandings <- function(sim) {
   if(!is.null(sim$histLandings)){
-    landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) ##starting at 1980
+    landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) 
     if(nrow(landings)>0){
       print(paste0('geting landings in: ', time(sim)))
+      #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
       sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
       #TODO: put a unique statement here? so that there aren't duplicate of the same landing location
@@ -131,11 +137,12 @@ cutblockSeqPrepCLUS.createBlocksTable<-function(sim){
   return(invisible(sim)) 
 }
 
+
 cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
-  
   if(!(P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster")))
-    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster"), 
+    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster"),
+                           tmpRast = sim$boundaryInfo[3],
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -147,12 +154,25 @@ cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
       
       #add to the clusdb
+      message('...updating blockids')
       dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+        rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
       
-      rm(ras.blk,exist_cutblocks)
+      message('...getting age')
+      blocks.age<-getTableQuery(paste0("SELECT (harvestyr - ", P(sim)$startHarvestYear, ") as age, cutblockid as blockid from ", P(sim, "cutblockSeqPrepCLUS", "nameCutblockTable"), 
+                                       " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"))
+      
+      dbExecute(sim$clusdb, "CREATE INDEX index_blockid on pixels (blockid)")
+      #Set the age
+      message('...updating age')
+      dbBegin(sim$clusdb)
+        rs<-dbSendQuery(sim$clusdb, "Update pixels set age = :age where blockid = :blockid", blocks.age)
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
+      
+      rm(ras.blk,exist_cutblocks, blocks.age)
       gc()
     }else{
       stop(paste0("ERROR: extents are not the same check -", P(sim, "blockingCLUS", "nameCutblockRaster")))
@@ -161,15 +181,33 @@ cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
   return(invisible(sim))
 }
 
+
+cutblockSeqPrepCLUS.incrementAge<- function(sim) {
+  message("...increment age")
+  dbExecute(sim$clusdb, "DROP INDEX index_age")
+  #Update the pixels table
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = age + 1")
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
+  
+  #message("...write Raster")
+  #sim$age<-sim$ras
+  #sim$age[]<-unlist(c(dbGetQuery(sim$clusdb, "SELECT age FROM pixels order by pixelid")), use.names =FALSE)
+  #writeRaster(sim$age, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_age_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
+  
+  return(invisible(sim))
+}
+
+
 cutblockSeqPrepCLUS.setBlocksTable <- function(sim) {
   message("set the blocks table")
-  
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
                     SELECT blockid, round(AVG(age),0) as age
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
-  
   return(invisible(sim))
 }
 

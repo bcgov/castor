@@ -6,6 +6,7 @@ ui <- dashboardPage(skin = "black",
     sidebarMenu(
       menuItem("Settings", tabName = "settings", icon = icon("gears")),
       menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"),
+        menuSubItem("Summary", tabName = "summary", icon = icon("balance-scale")),
         menuSubItem("Caribou", tabName = "caribou", icon = icon("paw")),
         menuSubItem("Climate", tabName = "climate", icon = icon("thermometer-half")),
         menuSubItem("Fire", tabName = "fire", icon = icon("fire")),
@@ -62,6 +63,11 @@ ui <- dashboardPage(skin = "black",
           )
       ),
         leafletOutput("resultSetRaster", height = 750, width = "83%")     
+      ),
+      tabItem(tabName = "summary",
+        fluidRow(#Raster query
+          plotlyOutput(outputId = "radar", height = "400px")
+        )    
       ),
       tabItem(tabName = "caribou",
         fluidRow(
