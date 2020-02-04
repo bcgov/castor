@@ -141,7 +141,6 @@ survivalCLUS.PredictSurvival <- function (sim) { # this function calculates surv
 survivalCLUS.adjustSurvivalTable <- function (sim) { # this function adds the total area of the herd_bounds + compartment area to be used for weighting in the dashboard
   total_area<-data.table(dbGetQuery (sim$clusdb, "SELECT count(*)as area, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   sim$tableSurvival<-merge(sim$tableSurvival, total_area, by.x = "herd_bounds", by.y = "herd_bounds", all.x = TRUE )
-  print(sim$tableSurvival)
   return (invisible(sim))
 }
 
