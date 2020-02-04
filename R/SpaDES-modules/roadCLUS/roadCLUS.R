@@ -289,15 +289,52 @@ roadCLUS.getGraph<- function(sim){
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
   
+  #------Find edge connections for the remaining network
+  #Find the connections between points outside the graph and create edges there. This will minimize the issues with disconnected graph components
+  #Step 1: clip the road dataset and see which pixels are at the boundary
+  #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
+  #step 3: Label the edges with the correct vertex name
+  bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[4],") as geom from ",sim$boundaryInfo[1]," where 
+ ",sim$boundaryInfo[2]," in ('",paste(sim$boundaryInfo[3], collapse = "', '") ,"')"))
+  step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear >= 0 and 
+                                                pixelid in (",paste(step.one, collapse = ', '),")"))
+  
+  step.two.xy<-data.table(xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
+  step.two.xy[, id:= seq_len(.N)] # create a label (id) for each record to be bale to join back
+  
+  # Sequential Nearest Neighbour without replacement - find the closest pixel to create a loop
+  edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
+    if(nrow(step.two.xy) == i ){
+      data.table(from = nrow(step.two.xy), to = 1, weight.V1 = 1)
+    }else{
+      nn.edges<-RANN::nn2(step.two.xy[id > i, c("x", "y")], step.two.xy[id == i, c("x", "y")], k=1)
+      data.table(from = i, to = step.two.xy[ id > i,][as.integer(nn.edges$nn.idx),]$id, weight = nn.edges$nn.dists)
+    }
+  }))
+  
+  #Need link.cell to link the from, to id back to a vertex in the graph
+  link.cell<-data.table(step.two$pixelid)  # get the pixel id which is the vertex name
+  link.cell[, id:= seq_len(.N)] # create a lable id for each record
+  
+  #Few formatting steps to make the merge back to edges.weight (this matrix creates the graph)
+  edges.loop<-merge(edges.loop, link.cell, by.x = "from", by.y="id" )
+  edges.loop<-merge(edges.loop, link.cell, by.x = "to", by.y="id" )
+  setnames(edges.loop, c("from", "to", "weight.V1", "V1.x", "V1.y"), c("a1", "a2", "weight", "from", "to"))
+  edges.loop<-edges.loop[, c( "from", "to", "weight")]
+  edges.weight<-rbindlist(list(edges.weight,edges.loop)) #combine the loop edges back into the graph -- doesn't add any verticies only edges.
+  
   #------make the graph
   #sim$g<-make_lattice(c(ncol(sim$ras), nrow(sim$ras)))#instantiate the igraph object
   sim$g<-graph.edgelist(as.matrix(edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(sim$g)$weight<-as.matrix(edges.weight)[,3]#assign weights to the graph. Requires a matrix input
-  V(sim$g)$name<-V(sim$g)
-  #sim$g<-delete.vertices(sim$g, degree(sim$g) == 0) #remove non-connected verticies
- 
+  #set the names of the graph as the pixelids
+  sim$g<-sim$g %>% 
+    set_vertex_attr("name", value = V(sim$g))
+  
   #------clean up
-  rm(edges.w1,edges.w2, edges, weight)#remove unused objects
+  #sim$g<-delete.vertices(sim$g, degree(sim$g) == 0) #remove non-connected verticies????
+  rm(edges.w1,edges.w2, edges, weight, bound.line, step.one, step.two.xy, link.cell)#remove unused objects
   gc() #garbage collection
   return(invisible(sim))
 }
@@ -413,26 +450,22 @@ roadCLUS.randomLandings<-function(sim){
 roadCLUS.preSolve<-function(sim){
   message("pre-solve the roads")
   if(exists("histLandings", where = sim)){
-    targets <<- as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+    targets <- as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) ))
   }else{
     #TODO: get the centroid instead of the maximum pixelid?
     targets <- as.character(dbGetQuery(sim$clusdb, "SELECT max(pixelid) from pixels where blockid > 0 group by blockid;"))
   }
   
-  #set the names of the graph as the pixelids
-  sim$g<-sim$g %>% 
-    set_vertex_attr("name", value = V(sim$g))
-  
   #remove many of the isolated targets. Note that the vertex will change to start at 1 but since the names are set as pixelid it is ok. This is why I use as.character()
   #isolated = which(degree(sim$g)==0)
   #sim$g<-delete_vertices(sim$g, isolated)
   
   #Solve Djkstra's for one source (random road location - most southern road?) to all possible targets. Then store the outcome into a list referenced by the target
-  pre.paths<<-igraph::get.shortest.paths(sim$g, 
+  pre.paths<-igraph::get.shortest.paths(sim$g, 
                                          as.character(dbGetQuery(sim$clusdb, "SELECT pixelid from pixels where roadyear = 0 limit 1")), targets)
   message("pre-solve to a list")
-  #TODO: minimize the size of road column in roadslist -- ex. roads[ !(roads[] %in% oldroads)] - maybe not using this as a year indicator?
+  #TODO: minimize the size of string called road or the column road in roadslist -- ex. roads[ !(roads[] %in% oldroads)] - maybe not: using this as a year indicator?
   sim$roadslist<-rbindlist(lapply(pre.paths$vpath ,function(x){
     data.table(landing = x[][]$name[length(x[][]$name)],road = toString(x[][]$name[]))
      }))
