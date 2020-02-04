@@ -1166,12 +1166,12 @@ rsf.data.du7$bec_label_reclass <- relevel (rsf.data.du7$bec_label_reclass,
                                            ref = "ESSFmc") # reference category
 
 ### OUTLIERS ###
-ggplot (rsf.data.du7, aes (x = pttype, y = distance_to_resource_road)) +
+ggplot (rsf.data.du7 %>% filter (HERD_NAME == "Telkwa"), aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
   labs (title = "Boxplot DU7, Distance to Resource Roads at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road")
-ggplot (rsf.data.du7, aes (x = pttype, y = distance_to_cut_1to4yo)) +
+ggplot (rsf.data.du7 %>% filter (HERD_NAME == "Pink Mountain"), aes (x = pttype, y = distance_to_cut_1to4yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (title = "Boxplot DU7, Distance to Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations",
         x = "Available (0) and Used (1) Locations",
