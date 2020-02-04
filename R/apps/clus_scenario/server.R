@@ -653,7 +653,9 @@ shinyServer(function(input, output, session) {
     removeModal()
     
   })
-
+  observe({
+    print(input$map_draw_all_features)
+  })
 
   # observe the uploaded shapefile on the map
   observe({
