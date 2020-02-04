@@ -5,7 +5,7 @@ date: "04 May 2018"
 output: pdf_document
 ---
 ```{r, eval =FALSE}
-# Copyright 2018 Province of British Columbia
+# Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
