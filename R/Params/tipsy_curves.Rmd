@@ -1,0 +1,46 @@
+---
+title: "tipsy curves"
+author: "Kyle Lochhead"
+date: "July 24, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, eval = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+
+#input layer table
+input_tbl<-read.table("S:/ANA/PROJECTS/CLUS/Data/TIPSY/prov/tipsy_vols_prov.csv", sep= ",", header = TRUE,nrows = 5000)
+colnames(input_tbl)<-tolower(colnames(input_tbl))
+
+ht_tbl<-read.table("S:/ANA/PROJECTS/CLUS/Data/TIPSY/prov/tipsy_heights_prov/tipsy_heights_prov.csv", sep= ",", header = TRUE,nrows = 5000)
+colnames(ht_tbl)<-tolower(colnames(ht_tbl))
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "tipsy_prov"), value= input_tbl, row.names = FALSE, overwrite = TRUE) 
+DBI::dbWriteTable(conn, c("public", "tipsy_ht_prov"), value= ht_tbl, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+```
+
+
+## Commit to postgres
+```{r, load_output, eval = FALSE}
+cmd <- paste0("\\copy tipsy_prov from program 'cmd /c \"type F:\\Data\\tipsy_vols_prov.csv" , "\"' delimiter ',' csv header")
+cmd <- shQuote(cmd)
+system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
+
+cmd <- paste0("\\copy tipsy_ht_prov from program 'cmd /c \"type F:\\Data\\tipsy_heights_prov.csv" , "\"' delimiter ',' csv header")
+cmd <- shQuote(cmd)
+system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
+
+```
+
+## Spatialize the TIPSY curve ids
+
+```{r, tipsy}
+
+vri.ras<-raster(paste0(here::here(),"/R/params/vri_id2018.tif"))
+
+```
