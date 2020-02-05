@@ -42,10 +42,10 @@ parameters <-  list(
                          save_clusdb = FALSE,
                          #nameBoundaryFile="bc_carib_poly_20090904",
                          #nameBoundaryColumn="herd_name",
-                         #nameBoundary = "Tweedsmuir",
+                         #nameBoundary = "Telkwa",
                          nameBoundaryFile="tsa_aac_bounds",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Williams_Lake_TSA",
+                         nameBoundary = "Prince_George_TSA",
                          nameBoundaryGeom='wkb_geometry'
                          #nameCompartmentRaster = "rast.tsa_aac_boundary",
                          #nameCompartmentTable = "tsa_aac_bounds_vat",
