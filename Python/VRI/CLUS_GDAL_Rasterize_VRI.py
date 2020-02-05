@@ -173,11 +173,12 @@ if __name__ == '__main__':
                 if bRemoveTIFF:
                     os.remove(outTIFF)
                 if bSendEmails:
-                    send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', 'CLUS-Rasterize-Processed', '{0}\n{1}\n'.format(outDB, str(itm)))
+                    #send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', 'CLUS-Rasterize-Processed', '{0}\n{1}\n'.format(outDB, str(itm)))
+                    print()
             except:
                 WriteLog(kennyloggins, 'Error: {0}\n'.format(str(e)), True)
                 if bSendEmails:
-                    send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', '***CLUS-Rasterize-Error***', '{0}\n{1}'.format(str(itm), str(e)))
+                    #send_email('mfowler.bc@gmail.com', emailPwd, 'mike.fowler@gov.bc.ca', '***CLUS-Rasterize-Error***', '{0}\n{1}'.format(str(itm), str(e)))
                 errList.append(itm)
     if len(errList) > 0:
         WriteLog(kennyloggins, 'Writing out Errors......\n', True)
