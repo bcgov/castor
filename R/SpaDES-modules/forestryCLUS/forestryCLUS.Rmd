@@ -47,24 +47,24 @@ moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
 inputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/outputs")
 cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS")
-times <- list(start = 0, end = 5)
+times <- list(start = 0, end = 100)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list( 
                          dbName='clus',
                            #save_clusdb = TRUE,
-                           useCLUSdb = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/Morice_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile="tsa_aac_bounds",
                            nameBoundaryColumn="tsa_name",
-                           nameBoundary = "Morice_TSA",
+                           nameBoundary = "Revelstoke_TSA",
                            nameBoundaryGeom='wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                           nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
-                           #nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv"),
+                           #nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
+                           nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv"),
                            nameZoneTable="zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
@@ -83,13 +83,13 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
-  forestryCLUS = list( harvestPriority = "vol DESC, age DESC", growingStockConstraint = 1.005),
+  forestryCLUS = list( harvestPriority = "age DESC, vol DESC",adjacencyConstraint = TRUE),
   #roadCLUS = list(roadMethod = 'snap', nameCostSurfaceRas = 'rast.rd_cost_surface', nameRoads =  'rast.crds_resource'),
   #rsfCLUS = list(calculateInterval = 5, criticalHabitatTable = "public.criticalhabitat", writeRSFRasters = TRUE),
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd"), # look-up table of herd names
-  uploaderCLUS = list(aoiName = 'morice',
+  uploaderCLUS = list(aoiName = 'columbia_river',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                   )
 )
@@ -100,12 +100,45 @@ modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryC
 #rsf_model_coeff[, bounds := 'rast.crithabitat']
 
 
-scenario = data.table(name="testing_transitions", description = "Simple flow- just test that following harvesting the yields transition to another curve (i.e., TIPSY)")
+scenario = data.table(name="test_adj", description = "checking flow assumptions with adjacency constraint")
 
-harvestFlow<- data.table(compartment ="Morice_TSA",
+harvestFlow<- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2022, by = 1),1), 
-                                     flow = 6000000)
+                                     year = rep(seq(from = 2018, to=2020, by = 1),1), 
+                                     flow = 207100),
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2021, to=2030, by = 1),1), 
+                                     flow = 186390), 
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2031, to=2040, by = 1),1), 
+                                     flow = 165680),
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2041, to=2050, by = 1),1), 
+                                     flow = 144970),
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2051, to=2060, by = 1),1), 
+                                     flow = 135900),
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2061, to=2070, by = 1),1), 
+                                     flow = 144970),
+                              data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2071, to=2080, by = 1),1), 
+                                     flow = 165680),
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2081, to=2090, by = 1),1), 
+                                     flow = 186390),
+                             data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 110 ',
+                                     year = rep(seq(from = 2091, to=2118, by = 1),1), 
+                                     flow = 207100)
+))
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
