@@ -28,8 +28,7 @@ RSF's created for each DU. r
 Use fucntional repsonse. comapred osme models usign AIC and looked at fxn response fit to dtemrine 'best' model
 
 
-### Methods
-
+## Methods
 Data from GPS collars across BC, 2008 - 2018;  no capture info, but assume mostly females. (add these detials)
 
 Calcualted annual home rnages usign kernbel density to defien 'available sample' (add these detials)
@@ -40,16 +39,10 @@ RSF with GLMM appraoch, with random effects, random effect for season,herd and a
 
 
 ### Prepare data
+Load data 
 
-Load data and transform covariates
-
-
-Transform distance to covars as exponentinal function, following Demars (2018)[http://www.bcogris.ca/sites/default/files/bcip-2019-01-final-report-demars-ver-2.pdf]
-decay.distance = exp (-0.002 * distance to road)
-
-This essentialyl limtis the lienar efefct to 1.5km to 2km from the feature, and limited effect thereafter
-
-create fxn response covariate by takign average value for each covariet in each aniamls annual HR
+create fxn response covariate by takign average value for each covariet in each aniamls seasonal HR
+data orginally broekn down by season (early witner, late wirnter, summer); took average across season as 'available' sapce for aniamls: DU6 = 10,518 ha, DU7 = 12,538 ha, DU8 = 5,836 ha and DU9 = 4,895 ha.
 
 
 ```{r, Load data and transform, echo = F, message = F}
@@ -183,14 +176,51 @@ rsf.data.du6$pttype <- as.factor (rsf.data.du6$pttype)
 rsf.data.du7$pttype <- as.factor (rsf.data.du7$pttype)
 rsf.data.du8$pttype <- as.factor (rsf.data.du8$pttype)
 rsf.data.du9$pttype <- as.factor (rsf.data.du9$pttype)
+
+rm (avail.rsf.data.du6, avail.rsf.data.du7, avail.rsf.data.du8, avail.rsf.data.du9, inds, dist_cut_30_E, dist_cut_min_E, distance_to_cut_10to29_E, distance_to_cut_10yoorOver_E, distance_to_cut_1to4yo_E, dist_res_road_E, distance_to_cut_5to9yo_E, distance_to_cut_over4_E)
+gc ()
 ```
 
-### Herd Effect of Disturbance
+### Analysis by DU
+decided DU's shoudl be modeled spewrately because of sificant ecological differences, parrticualrly between borel an moutnain, but wanted to account for pteontail differetn moutanin beahvoiours (different use of low/high elev?)
 
+### DU7
+northern mtn, included animals from Itcha-Ilgachuz, Rainbows, Charlotte Alplands, Tweedsmuir, Spatsizi, Pink Mountain, Muskwa, Frog, Chase, Finlay, Graham, Tsenaglode, Telkwa (Table 1).
 
+Ranged from 1 to 35 aniamls and 856 to 41,837 locations by herd. 
+
+```{r, DU7, data sumamry, echo = F, message = F}
+# numebr of animals, by herd
+count.animals.herd <- rsf.data.du7  %>%
+  group_by(HERD_NAME) %>%
+  summarise(count = n_distinct(animal_id))
+
+count.locs.herd <- rsf.data.du7  %>%
+  group_by(HERD_NAME) %>%
+  filter (pttype == 1) %>%
+  summarise(count = n())
+
+table <- full_join(count.animals.herd, count.locs.herd, by = "HERD_NAME")
+
+table <- table %>% 
+  rename (Herd = HERD_NAME,
+          Animals = count.x,
+          Locations = count.y)
+
+kable (table,
+       caption = "<b>Table 1. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU7.<b>") %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) 
+
+```
+
+#### Herd Effect of Disturbance
 show that response to roads and cutbocks varies by herd
 
-pssobiel fucntional repsonse; difernt response dep[dnign on hoem rnage context, by herd
+possible fucntional repsonse; difernt response dependnign on hoem rnage context, by herd
 
 ```{r, DU7 Herd effect plots, echo = F, message = F}
 
@@ -214,11 +244,8 @@ ggplot (rsf.data.du7,
 
 ```
 
-
-### Season efefct
-
-not clearly different, so only include random intercept 
-
+#### Season efefct
+some differences, include as RE
 
 ```{r, DU7 season effect, echo = F, message = F}
 ggplot (rsf.data.du7, 
@@ -241,156 +268,25 @@ ggplot (rsf.data.du7,
 
 ```
 
-
-
-
-
-### Fit Models
-Fit models with fixed effects including cut + roads with no fucntioanl repsonse adn with RE slope,
-
-then fit models with fucntional repsonse, 
+#### Fit Models
+Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
 
 fucntional response calcualte at indivual level, i.e., available 'resrouce' calcualted within hoem rnage (coudl also try at herd level model); assumption is thta indivudal in herd will acocutn for herd varaibility (i.e., inidvudlas are rpeseeantiative untis of the herd); still incl RE for slope at herd scale to alow for vaariabiltiy there
 
+looked at fxn reponse predcitons and evaluated visually if clear fxn response; no clear fxn response with cutblcks when incl road fxn responses in models, so only incl road fxn response; 
 
-
-
-coamrped usign AIC
-
-looked at fxn reponse predcitons and evaluated visually if clear fxn response
-
-
+some high resiudlas at ~16 km form roads. looked at indivudals and no clear pattern (ddfiferen inds, herds, saeasons), so didn;t remove; perhasps males?
 
 ```{r, du7 model, echo = F, message = F}
-### Build an AIC Table ###
-table.aic <- data.frame (matrix (ncol = 5, nrow = 0))
-colnames (table.aic) <- c ("DU", "Fixed Effects Covariates", "Random Effects Covariates", "AIC", "AICw")
-
-## DU7 ##
-# RE only model
-model.lme4.du7.re <- glmer (pttype ~ 1 + (1 | animal_id) + (1 | HERD_NAME), 
-                                 data = rsf.data.du7, 
-                                 family = binomial (link = "logit"),
-                                 verbose = T) 
-# AIC
-table.aic [1, 1] <- "DU7"
-table.aic [1, 2] <- "Random Effect Model"
-table.aic [1, 3] <- "(1 | animal) + (1 | herd)"
-table.aic [1, 4] <-  AIC (model.lme4.du7.re)
-
-# Dist Road model
-model.lme4.du7.road <- glmer (pttype ~ distance_to_resource_road + 
-                                        (distance_to_resource_road || animal_id) + 
-                                        (distance_to_resource_road || HERD_NAME),
-                              data = rsf.data.du7, 
-                              family = binomial (link = "logit"),
-                              verbose = T) 
-# AIC
-table.aic [2, 1] <- "DU7"
-table.aic [2, 2] <- "Distance to Resource Road"
-table.aic [2, 3] <- "(1 | animal) + (Distance to Resource Road | animal) + (1 | herd) + (Distance to Resource Road | herd)"
-table.aic [2, 4] <-  AIC (model.lme4.du7.road)
-
-# Dist Cut model
-model.lme4.du7.cut <- glmer (pttype ~ dist_cut_min_all + 
-                                        (dist_cut_min_all || animal_id) + 
-                                        (dist_cut_min_all || HERD_NAME),
-                              data = rsf.data.du7, 
-                              family = binomial (link = "logit"),
-                              verbose = T) 
-# AIC
-table.aic [3, 1] <- "DU7"
-table.aic [3, 2] <- "Distance to Cutblock"
-table.aic [3, 3] <- "(1 | animal)  + (Distance to Cutblock | animal) + (1 | herd) + (Distance to Cutblock | herd)"
-table.aic [3, 4] <-  AIC (model.lme4.du7.cut)
-
-# Dist Road fxn model
-model.lme4.du7.road.fxn <- glmer (pttype ~ distance_to_resource_road + dist_rd_E +
-                                        distance_to_resource_road*dist_rd_E + 
-                                        (distance_to_resource_road || animal_id) + 
-                                        (distance_to_resource_road || HERD_NAME),
-                              data = rsf.data.du7, 
-                              family = binomial (link = "logit"),
-                              # control = glmerControl (optimizer = "nloptwrap"), # Nelder_Mead, bobyqa, nloptwrap, "optimx", optCtrl  = list(method="nlminb"
-                              verbose = T) 
-# AIC
-table.aic [4, 1] <- "DU7"
-table.aic [4, 2] <- "Distance to Resource Road +  Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
-table.aic [4, 3] <- "(1 | animal) + (Distance to Resource Road | animal) + (1 | herd) + (Distance to Resource Road | herd)"
-table.aic [4, 4] <-  AIC (model.lme4.du7.road.fxn)
-
-# Dist Cut fxn model
-model.lme4.du7.cut.fxn <- glmer (pttype ~ dist_cut_min_all + dist_cut_min_E +
-                                        dist_cut_min_all*dist_cut_min_E + 
-                                        (dist_cut_min_all || animal_id) + 
-                                        (dist_cut_min_all || HERD_NAME),
-                              data = rsf.data.du7, 
-                              family = binomial (link = "logit"),
-                              verbose = T) 
-# AIC
-table.aic [5, 1] <- "DU7"
-table.aic [5, 2] <- "Distance to Cutblock +  Available Distance to Cutblock + Distance to Cutblock*Available Distance to Cutblock"
-table.aic [5, 3] <- "(1 | animal) + (Distance to Cutblock | animal) + (1 | herd) + (Distance to Cutblock | herd)"
-table.aic [5, 4] <-  AIC (model.lme4.du7.cut.fxn)
-
-# Dist Cut and Road model
-model.lme4.du7.cut.rd <- glmer (pttype ~ dist_cut_min_all + 
-                                        distance_to_resource_road +
-                                        (dist_cut_min_all || animal_id) + 
-                                        (dist_cut_min_all || HERD_NAME) +
-                                    (distance_to_resource_road || animal_id) + 
-                                    (distance_to_resource_road || HERD_NAME),
-                                  data = rsf.data.du7, 
-                                  family = binomial (link = "logit"),
-                                  verbose = T) 
-# AIC
-table.aic [6, 1] <- "DU7"
-table.aic [6, 2] <- "Distance to Cutblock + Distance to Resource Road"
-table.aic [6, 3] <- "(1 | animal)  + (Distance to Cutblock | animal) + (Distance to Resource Road | animal) + (1 | herd) + (Distance to Cutblock | herd) + (Distance to Resource Road | herd)"
-table.aic [6, 4] <-  AIC (model.lme4.du7.cut.rd)
-
-# Dist Cut and Road fxn model
+# top model equation
 model.lme4.du7.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all + 
                                         distance_to_resource_road +
-                                        dist_cut_min_E +
-                                        dist_cut_min_all*dist_cut_min_E +
                                         dist_rd_E +
                                         distance_to_resource_road*dist_rd_E +
-                                        (dist_cut_min_all || animal_id) + 
-                                        (dist_cut_min_all || HERD_NAME) +
-                                    (distance_to_resource_road || animal_id) + 
-                                    (distance_to_resource_road || HERD_NAME),
+                                        (dist_cut_min_all + distance_to_resource_road || animal_id) +                                         (dist_cut_min_all + distance_to_resource_road || HERD_NAME) +                                         (dist_cut_min_all + distance_to_resource_road || season),
                                   data = rsf.data.du7, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
-# AIC
-table.aic [7, 1] <- "DU7"
-table.aic [7, 2] <- "Distance to Cutblock + Distance to Resource Road +  Available Distance to Cutblock + Distance to Cutblock*Available Distance to Cutblock + Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
-table.aic [7, 3] <- "(1 | animal)  + (Distance to Cutblock | animal) + (Distance to Resource Road | animal) + (1 | herd) + (Distance to Cutblock | herd) + (Distance to Resource Road | herd)"
-table.aic [7, 4] <-  AIC (model.lme4.du7.cut.rd.fxn)
-                                        
-# Dist Cut and Road fxn model
-model.lme4.du7.cut.rd.fxn2 <- glmer (pttype ~ dist_cut_min_all + 
-                                        distance_to_resource_road +
-                                        dist_rd_E +
-                                        distance_to_resource_road*dist_rd_E +
-                                        (dist_cut_min_all || animal_id) + 
-                                        (dist_cut_min_all || HERD_NAME) +
-                                    (distance_to_resource_road || animal_id) + 
-                                    (distance_to_resource_road || HERD_NAME),
-                                  data = rsf.data.du7, 
-                                  family = binomial (link = "logit"),
-                                  verbose = T) 
-# AIC
-table.aic [8, 1] <- "DU7"
-table.aic [8, 2] <- "Distance to Cutblock + Distance to Resource Road +  Available Distance to Resource Road + Distance to Resource Road*Available Distance to Resource Road"
-table.aic [8, 3] <- "(1 | animal)  + (Distance to Cutblock | animal) + (Distance to Resource Road | animal) + (1 | herd) + (Distance to Cutblock | herd) + (Distance to Resource Road | herd)"
-table.aic [8, 4] <-  AIC (model.lme4.du7.cut.rd.fxn2)
-
-
-
-
-
 
 
 
@@ -400,29 +296,44 @@ ss$which.OK
 ss$fixef
 
 
-binnedplot(fitted(model.lme4.du7.cut.rd.fxn2), 
-           residuals(model.lme4.du7.cut.rd.fxn2, type = "response"), 
-           nclass = NULL, 
-           xlab = "Expected Values", 
-           ylab = "Average residual", 
-           main = "Binned residual plot", 
-           cex.pts = 0.4, 
-           col.pts = 1, 
-           col.int = "red")
 
-binnedplot(rsf.data.du7$distance_to_resource_road, 
-           residuals(model.lme4.du7.cut.rd.fxn2, type = "response"), 
-           nclass = NULL, 
-           xlab = "Distance to Road", 
-           ylab = "Average residual", 
-           main = "Binned residual plot", 
-           cex.pts = 0.4, 
-           col.pts = 1, 
-           col.int = "red")
+# check residuals
+rsf.data.du7$resids <- residuals (model.lme4.du7.cut.rd.fxn, type = "response")
+rsf.data.du7$fit <- fitted (model.lme4.du7.cut.rd.fxn)
+ggplot (rsf.data.du7, aes (x = fit, y = resids)) +
+  geom_point ()
+binnedplot (fitted (model.lme4.du7.cut.rd.fxn), 
+             residuals(model.lme4.du7.cut.rd.fxn, type = "response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "Binned residual plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+binnedplot (rsf.data.du7$distance_to_resource_road, 
+             residuals(model.lme4.du7.cut.rd.fxn, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to Road", 
+             ylab = "Average residual", 
+             main = "Binned residual plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+binnedplot (rsf.data.du7$dist_cut_min_all, 
+             residuals(model.lme4.du7.cut.rd.fxn, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to Cutblock", 
+             ylab = "Average residual", 
+             main = "Binned residual plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
 
+# check fxn response
 scatter3D (rsf.data.du7$distance_to_resource_road, 
            rsf.data.du7$dist_rd_E,
-           (predict (model.lme4.du7.cut.rd.fxn2,
+           (predict (model.lme4.du7.cut.rd.fxn,
                      newdata = rsf.data.du7, 
                      re.form = NA, type = "response")), 
            xlab = "Dist Road",
@@ -430,111 +341,202 @@ scatter3D (rsf.data.du7$distance_to_resource_road,
            zlab = "Use/Select",
            theta = 15, phi = 20)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-rsf.data.du7$resids <- residuals(model.lme4.du7.road, type = "response")
-rsf.data.du7$fit <- fitted(model.lme4.du7.road)
-ggplot (rsf.data.du7, aes (x = fit, y = resids)) +
-  geom_point ()
-
-#mean resids by animal
-mean_resids <- tapply (rsf.data.du7$resids,  
-                       rsf.data.du7$animal_id, mean)
-inds <- as.character (rsf.data.du7$animal_id)
-rsf.data.du7 <- cbind (rsf.data.du7, "mean_resids" = mean_resids[inds])
-
-
-
-ggplot (rsf.data.du7, aes (x = HERD_NAME, y = resids)) +
-  geom_boxplot ()
-
-
-del <- rsf.data.du7 %>% filter (dist_cut_min_all > 24 & dist_cut_min_all < 25 )
-
-
-
-
-
-
-model.lme4.du7.itch <- glmer (pttype ~ distance_to_resource_road +
-                                       (1 + distance_to_resource_road | animal_id), 
-                                 data = rsf.data.du7 %>% filter (HERD_NAME == "Itcha-Ilgachuz"), 
-                                 family = binomial (link = "logit"),
-                                 verbose = T) 
-
-
-
-
-
-
-
-## AIC comparison of MODELS ## 
-list.aic.like <- c ((exp (-0.5 * (table.aic [6, 4] - min (table.aic [6:12, 4])))), 
-                    (exp (-0.5 * (table.aic [7, 4] - min (table.aic [6:12, 4])))),
-                    (exp (-0.5 * (table.aic [8, 4] - min (table.aic [6:12, 4])))),
-                    (exp (-0.5 * (table.aic [9, 4] - min (table.aic [6:12, 4])))),
-                    (exp (-0.5 * (table.aic [10, 4] - min (table.aic [6:12, 4])))),
-                    (exp (-0.5 * (table.aic [11, 4] - min (table.aic [6:12, 4])))),
-                    (exp (-0.5 * (table.aic [12, 4] - min (table.aic [6:12, 4])))))
-table.aic [6, 5] <- round ((exp (-0.5 * (table.aic [6, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-table.aic [7, 5] <- round ((exp (-0.5 * (table.aic [7, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-table.aic [8, 5] <- round ((exp (-0.5 * (table.aic [8, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-table.aic [9, 5] <- round ((exp (-0.5 * (table.aic [9, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-table.aic [10, 5] <- round ((exp (-0.5 * (table.aic [10, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-table.aic [11, 5] <- round ((exp (-0.5 * (table.aic [11, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-table.aic [12, 5] <- round ((exp (-0.5 * (table.aic [12, 4] - min (table.aic [6:12, 4])))) / sum (list.aic.like), 3)
-
-
-write.table (table.aic, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\table_aic_v3.csv", sep = ",")
-
-# used model with road functional response only (even though cutblock model was a better fit according to AIC) because cutblock fxn didn't appear to improve interpretation of model, i.e., the distance to cut covariate didn't change much over variability in available distance to cut
-
 # save the top model
-save (model.lme4.du7.rd.fxn.cut, 
+save (model.lme4.du7.cut.rd.fxn, 
       file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du7_top_v3.rda")
 
 # Create table of model coefficients from top model
-model.coeffs <- as.data.frame (coef (summary (model.lme4.du7.rd.fxn.cut)))
-model.coeffs$mean_exp_neg0002 <- 0
-model.coeffs$sd_exp_neg0002 <- 0
+model.coeffs <- as.data.frame (coef (summary (model.lme4.du7.cut.rd.fxn)))
+write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_fixed_coeffs_v3.csv", sep = ",")
 
-model.coeffs [2, 5] <- mean (exp ((rsf.data.du7$distance_to_cut_1to4yo * -0.002)))
-model.coeffs [3, 5] <- mean (exp ((rsf.data.du7$distance_to_cut_over4 * -0.002)))
-model.coeffs [4, 5] <- mean (exp ((rsf.data.du7$distance_to_resource_road * -0.002)))
-
-model.coeffs [2, 6] <- sd (exp ((rsf.data.du7$distance_to_cut_1to4yo * -0.002)))
-model.coeffs [3, 6] <- sd (exp ((rsf.data.du7$distance_to_cut_over4 * -0.002)))
-model.coeffs [4, 6] <- sd (exp ((rsf.data.du7$distance_to_resource_road * -0.002)))
-
-write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_fixed_coeffs.csv", sep = ",")
-
-# random effects
-re_coeffs.season <- as.data.frame (coef(model.lme4.du7.rd.fxn.cut)$season[1])
-re_coeffs.herd <- as.data.frame (coef(model.lme4.du7.rd.fxn.cut)$HERD_NAME[1])
-
-write.table (re_coeffs.season, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_season_re_coeffs.csv", sep = ",")
-write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_herd_re_coeffs.csv", sep = ",")
-
-
-
+# random effects by herd adn season
+re_coeffs.herd <- as.data.frame (coef(model.lme4.du7.cut.rd.fxn)$HERD_NAME)
+write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_herd_re_coeffs_v3.csv", sep = ",")
+re_coeffs.season <- as.data.frame (coef(model.lme4.du7.cut.rd.fxn)$season)
+write.table (re_coeffs.season, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_season_re_coeffs_v3.csv", sep = ",")
 
 ```
 
 
+### DU8
+Central mtn, included animals from Burnt Pine, Kennedy Siding, Moberly, Narraway, Qunittet adn Scott (Table 2).
+
+Ranged from 8 to 57 animals and 5,414 to 65,431 locations by herd. 
+
+```{r, DU8, data summary, echo = F, message = F}
+# numebr of animals, by herd
+count.animals.herd <- rsf.data.du8  %>%
+  group_by(HERD_NAME) %>%
+  summarise(count = n_distinct(animal_id))
+
+count.locs.herd <- rsf.data.du8  %>%
+  group_by(HERD_NAME) %>%
+  filter (pttype == 1) %>%
+  summarise(count = n())
+
+table <- full_join(count.animals.herd, count.locs.herd, by = "HERD_NAME")
+
+table <- table %>% 
+  rename (Herd = HERD_NAME,
+          Animals = count.x,
+          Locations = count.y)
+
+kable (table,
+       caption = "<b>Table 2. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU8.<b>") %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) 
+
+```
+
+#### Herd Effect of Disturbance
+show that response to roads and cutbocks varies by herd
+
+pssobiel fucntional repsonse; difernt response dependnign on hoem rnage context, by herd, e.g., more avodiance of roads in NArrawya and Quintette, no clear efefct in Kennedy Siging or Burnt Pine (note that Burtn Pine now extirpated); avoidance of cutblock in Quintette, but maybe selction in Narraway adn Burtn Pine
+
+```{r, DU8 Herd effect plots, echo = F, message = F}
+
+ggplot (rsf.data.du8, 
+        aes (x = pttype, y = distance_to_resource_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Distance to Resource Road at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Resource Road") +
+  facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 6))
+
+ggplot (rsf.data.du8, 
+        aes (x = pttype, y = dist_cut_min_all)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Distance to Cutblock at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock") +
+  facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 6))
+
+```
+
+#### Season efefct
+maybe some differences in early witner cutblocks adn roads, adn summer roads; include as RE
+
+```{r, DU8 season effect, echo = F, message = F}
+ggplot (rsf.data.du8, 
+        aes (x = pttype, y = distance_to_resource_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Distance to Resource Road at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Resource Road") +
+  facet_grid (. ~ season, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8))
+
+ggplot (rsf.data.du8, 
+        aes (x = pttype, y = dist_cut_min_all)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Distance to Cutblock at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Cutblock") +
+  facet_grid (. ~ season, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8))
+
+```
+
+
+
+
+
+
+#### Fit Models
+Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
+
+fucntional response calcualte at indivual level, i.e., available 'resrouce' calcualted within hoem rnage (coudl also try at herd level model); assumption is thta indivudal in herd will acocutn for herd varaibility (i.e., inidvudlas are rpeseeantiative untis of the herd); still incl RE for slope at herd scale to alow for vaariabiltiy there
+
+looked at fxn reponse predcitons and evaluated visually if clear fxn response; no clear fxn response with cutblcks when incl road fxn responses in models, so only incl road fxn response; 
+
+some high resiudlas at ~16 km form roads. looked at indivudals and no clear pattern (ddfiferen inds, herds, saeasons), so didn;t remove; perhasps males?
+
+```{r, du8 model, echo = F, message = F}
+
+model.lme4.du8.cut.rd <- glmer (pttype ~ distance_to_resource_road + dist_cut_min_all +
+                                         (dist_cut_min_all + distance_to_resource_road || season) +
+                                         (dist_cut_min_all + distance_to_resource_road|| animal_id) +                                          (dist_cut_min_all + distance_to_resource_road|| HERD_NAME),
+                                  data = rsf.data.du8, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+
+summary (model.lme4.du8.cut.rd)
+
+# top model equation
+model.lme4.du8.cut.rd.fxn2 <- glmer (pttype ~ dist_cut_min_all + 
+                                        distance_to_resource_road +
+                                        dist_rd_E +
+                                        distance_to_resource_road*dist_rd_E +
+                                        (dist_cut_min_all || animal_id) + 
+                                        (dist_cut_min_all || HERD_NAME) +
+                                        (distance_to_resource_road || animal_id) + 
+                                        (distance_to_resource_road || HERD_NAME),
+                                  data = rsf.data.du8, 
+                                  family = binomial (link = "logit"),
+                                  verbose = T) 
+
+# check residuals
+rsf.data.du8$resids <- residuals (model.lme4.du8.cut.rd, type = "response")
+rsf.data.du8$fit <- fitted (model.lme4.du8.cut.rd)
+ggplot (rsf.data.du8, aes (x = fit, y = resids)) +
+  geom_point ()
+binnedplot (fitted (model.lme4.du8.cut.rd), 
+             residuals(model.lme4.du8.cut.rd, type = "response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "Binned residual plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+binnedplot (rsf.data.du8$distance_to_resource_road, 
+             residuals(model.lme4.du8.cut.rd, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to Road", 
+             ylab = "Average residual", 
+             main = "Binned residual plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+binnedplot (rsf.data.du8$dist_cut_min_all, 
+             residuals(model.lme4.du8.cut.rd, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to Road", 
+             ylab = "Average residual", 
+             main = "Binned residual plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+# check fxn response
+scatter3D (rsf.data.du8$distance_to_resource_road, 
+           rsf.data.du8$dist_rd_E,
+           (predict (model.lme4.du8.cut.rd,
+                     newdata = rsf.data.du8, 
+                     re.form = NA, type = "response")), 
+           xlab = "Dist Road",
+           ylab = "HR Dist Road", 
+           zlab = "Use/Select",
+           theta = 15, phi = 20)
+
+# save the top model
+save (model.lme4.du8.cut.rd.fxn2, 
+      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_top_v3.rda")
+
+# Create table of model coefficients from top model
+model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.cut.rd.fxn2)))
+write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_model_fixed_coeffs_v3.csv", sep = ",")
+
+# random effects by herd
+re_coeffs.herd <- as.data.frame (coef(model.lme4.du8.cut.rd.fxn2)$HERD_NAME)
+write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_model_herd_re_coeffs_v3.csv", sep = ",")
+
+```
 
 
 
