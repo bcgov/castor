@@ -177,8 +177,10 @@ Once the graph is built, it is simple to get the least cost path between any two
 paths.matrix<-cbind(cellFromXY(ras,sC ), cellFromXY(ras, roads.close.XY ))
 paths.list<-split(paths.matrix, 1:nrow(paths.matrix)) #convert to a list for lapply
 
+
 #get the shortest paths
-paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both"))) #both the epath (edge paths) and vpath (vertex path) are required
+paths<-unlist(lapply(paths.list, function(x) get.shortest.paths(g, x[1], x[2], out = "both"))) #both the epath (edge paths) and vpath (vertex 
+
 paths.v<-NULL
 paths.v<-unique(rbind(data.table(paths[grepl("vpath",names(paths))] ), paths.v)) #remove same paths
 paths.e<-paths[grepl("epath",names(paths))] #get the edge paths because these have the raster id labels
