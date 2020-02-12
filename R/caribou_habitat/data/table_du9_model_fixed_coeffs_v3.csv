@@ -1,0 +1,6 @@
+Coefficient,Coefficient Estimate,Std. Error,z-value,p-value
+Intercept,-1.978514452,0.499072685,-3.964381364,7.36E-05
+Distance to Cutblock,0.042920565,0.06950798,0.61749118,0.536910797
+Distance to Resource Road,0.118338642,0.088254412,1.340880747,0.179959174
+Average Distance to Resource Road (Home Range),-0.1654579,0.092586411,-1.787064614,0.073927046
+Distance to Resource Road x Average Distance to Resource Road,-0.006091994,0.016250998,-0.3748689,0.707757969
