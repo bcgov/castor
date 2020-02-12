@@ -10,184 +10,83 @@ knitr::opts_chunk$set(echo = TRUE)
 library (dplyr)
 library (ggplot2)
 library (lme4)
-library (raster)
-library (rgdal)
 library (arm)
 library (car)
 library (optimx)
 library (dfoptim)
 library (kableExtra)
+library (here)
 ```
 
 ## Introduction
-Here I create a statistical model to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the model to indicate the influence of forestry on caribou use of habitat. The model will be integrated into the caribou and land use simulator (CLUS) as a module (i.e., rsfCLUS).  
+Here I create a statistical model to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the model to indicate the influence of current and potential future forestry development on caribou use of habitat, implemented as a module (i.e., rsfCLUS) in the caribou and land use simulator (CLUS). Statistical models were fit for the four caribou designatable units (DUs) in British Columbia (BC), (DU6, boreal; DU7, northern moutain; DU8, central mountain; DU9, southern moutnain), as defined by the [Committee on the Status of Endangered Wildlife in Canada (COSEWIC)](https://www.registrelep-sararegistry.gc.ca/default.asp?lang=En&n=E6271D78-1&offset=2#_01_4). DUs were modeled indepdently, as they are intended to represent groups with unique ecologicla characteristics, and potentially different responses to forestry disturbance. 
 
-I use a resource selection function (RSF) framework to develop the statistical model ( [Boyce et al. 1999](https://www.sciencedirect.com/science/article/pii/S0169534799015931), [Johnson et al. 2006](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.2193/0022-541X(2006)70[347:RSFBOU]2.0.CO;2)). This framework uses a logit model to calculate the relationship between caribou occurence and  habitat 'resources' measured using spatial data. Here I am only considering the effect of forestry disturbance, i.e., cutblocks and roads, on caribou occurrence. Other potential 'resources' (e.g., terrain, vegetation), are not considered. This approach simplifies and focuses the RSF onto modeling the effect of forestry disturbance on caribou dsitribution, and is not designed to accurately identify other factors that influence cariobu distribution, or the quality of habtiat in it's entirety.  
+I use a resource selection function (RSF) framework to develop the statistical model ( [Boyce et al. 1999](https://www.sciencedirect.com/science/article/pii/S0169534799015931), [Johnson et al. 2006](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.2193/0022-541X(2006)70[347:RSFBOU]2.0.CO;2)). This framework uses a logit model to calculate the relationship between caribou occurence and  habitat 'resources' measured using spatial data. Here I am only considering the effect of forestry disturbance 'resources', i.e., cutblocks and roads, on caribou occurrence. This approach simplifies and focuses the RSF onto modeling the effect of forestry disturbance on caribou dsitribution, and is not designed to accurately identify other factors that influence cariobu distribution.  
 
-The caribou-forestry disturbance model (CFDM) created here can be used as a spatial indicator of current and simulated future effects of forestry activity on caribou habitat quality. For example, the sum of CFDM outputs can be calculated within cariobu herd ranges or critical habitat types, and changes in the sum value can be used to indicate changes in forstry disturbance influencing caribou habitat quality over time. 
+The caribou-forestry disturbance model (CFDM) created here can be used as a spatial indicator of current and simulated future effects of forestry activity on caribou habitat quality. For example, the sum of CFDM outputs can be calculated within caribou herd ranges or critical habitat types, and changes in the sum value can be used to indicate changes in forstry disturbance influencing caribou habitat quality over time. 
 
 ## Methods
-I calculated the CFDM using a generalized linear mixed model (GLMM) with a logit link, using the [glmer function](https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/glmer) from the [lme4](https://cran.r-project.org/web/packages/lme4/lme4.pdf) package in [program R](https://www.r-project.org/). I fit the model using caribou location data from telemetry collars placed on a sample of caribou (n = 468 animals, 507,987 locations) from across British COlumbia, between 2008 to 2018. These data were compiled from the government of British Columbia's [Species Inventory (SPI) database](https://www2.gov.bc.ca/gov/content/environment/plants-animals-ecosystems/wildlife/wildlife-data-information/search-for-wildlife-data-information),  [BC Oil and Gas Research and Innovation Society (OGRIS) data](http://www.bcogris.ca/boreal-caribou-home), and data from regional wildlife biologists in the BC government that was not yet entered into these databases. These data specified the locations on the landscape that were 'used' by caribou (*sensu* Boyce et al. 1999), i.e., the 1's in the binomial distribution of the dependent variable. I had no capture data for these animals, but it is likely the majority of the animals sampled were adult females, as the focus of caribou monitoring in BC is on measuring survival of adult females and recruitment of calves. Data was collected using a wide variety of telemetry collar technologies (e.g., GPS, ARGOS) and suppliers (e.g., Lotek, ATS, Telonics), and with varying location fix rates (e.g., 2 hours to 12 hours). All data were collected under provincial government permits amd following provincial animal care and handling protocols.
+I calculated the CFDM using a generalized linear mixed model (GLMM) with a logit link, using the [glmer function](https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/glmer) from the [lme4](https://cran.r-project.org/web/packages/lme4/lme4.pdf) package in [program R](https://www.r-project.org/). I fit the model using caribou location data from telemetry collars placed on a sample of caribou (n = 468 animals, 507,987 locations) from across BC, between 2008 to 2018. These data were compiled from the government of BC's [Species Inventory (SPI) database](https://www2.gov.bc.ca/gov/content/environment/plants-animals-ecosystems/wildlife/wildlife-data-information/search-for-wildlife-data-information), [BC Oil and Gas Research and Innovation Society (OGRIS) data](http://www.bcogris.ca/boreal-caribou-home), and data from regional wildlife biologists in the BC government that was not yet entered into these databases. These data specified the locations on the landscape that were 'used' by caribou (*sensu* Boyce et al. 1999), i.e., the 1's in the binomial distribution of the dependent variable. I had no capture data for these animals, but it is likely the majority of the animals sampled were adult females, as the focus of caribou monitoring in BC is on measuring survival of adult females and recruitment of calves. Data was collected using a wide variety of telemetry collar technologies (e.g., GPS, ARGOS) and suppliers (e.g., Lotek, ATS, Telonics), and with varying location fix rates (e.g., 2 hours to 12 hours). All data were collected under provincial government permits amd following provincial animal care and handling protocols.
 
-I sampled locations 'available' to caribou by calculating the seasonal home ranges of individual animals using a kernel density estimator. Animals with less than 50 locations in a season were removed from the analysis, as this is considered the minimum number of locations needed to calculate a home range ( [Seaman et al. 1999](https://www.jstor.org/stable/3802664?seq=1), [Kernohan et al. 2001](https://www.sciencedirect.com/science/article/pii/B9780124977815500062)). Seasons were defined as: summer (15-May to 31-Oct), early winter (01-Nov to 15-Jan) and late winter	(16-Jan to 14-May), based on a review of the literature on variation in the seasonal distribution of caribou in British Columbia. I calculated home ranges using the kernelUD function in the adehabitatHR ( [Calenge et al. 2011](https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf)) package of Program R. I varied the smoothing parameter (*h*) in the bivariate normal kernel algorithm and visually assesed the fit of 95% kernel polygons to the telemetry data. I selected the polygons with an *h* value that appeared to best fit the data ( [Hemson et al. 2005](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2005.00944.x), [Calenge et al. 2011](https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf)), i.e., that reasonably formed contiguous habitat areas (i.e., connected patches) without including large extents greater than 1km from telemetry locations. Within each home range, I randomly sampled 1,000 locations. 
+I sampled locations 'available' to caribou, i.e., the 0's in the binomial distribution of the dependent variable, by calculating the seasonal home ranges of individual animals and randomly sampling locations within these areas. I calculated home ranges using the kernelUD function in the adehabitatHR ( [Calenge et al. 2011](https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf)) package of Program R. I varied the smoothing parameter (*h*) in the bivariate normal kernel algorithm and visually assesed the fit of 95% kernel polygons to the telemetry data. I selected the polygons with an *h* value that appeared to best fit the data ( [Hemson et al. 2005](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2005.00944.x), [Calenge et al. 2011](https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf)), i.e., that reasonably formed contiguous habitat areas (i.e., connected patches) without including large extents greater than 1km from telemetry locations. Animals with less than 50 locations in a season were removed from the analysis, as this is considered the minimum number of locations needed to calculate a home range ( [Seaman et al. 1999](https://www.jstor.org/stable/3802664?seq=1), [Kernohan et al. 2001](https://www.sciencedirect.com/science/article/pii/B9780124977815500062)). Seasons were defined as: summer (15-May to 31-Oct), early winter (01-Nov to 15-Jan) and late winter	(16-Jan to 14-May), based on a review of the literature on variation in the seasonal distribution of caribou in British Columbia. Within each seasonal home range, I randomly sampled 1,000 locations. 
 
-I estimated the  distance of 'used' and 'available' locations to the nearest resource road and cutblock. Cutblock locations were estimated using the [consolidated cutblocks](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) data compiled by the government of British Columbia. Road locations were estimated using data compiled to support the [British Columbia Cumulative Effects Framework](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/cumulative-effects-framework). This data is not easily accesible to the public, but can be requested from teh cumulative efefcts program. The data classifies roads into various types, and our focus was on roads developed for resource extraction (particularly forestry). Thus, we classified all unpaved road types as 'resource roads'. Cutblock and roads data were rasterized at a 1ha resolution, and the Euclidean distance of each raster with a cutblock or resource road was calculated in ArcGIS at 1 ha resolution and attributed to corresponding 'used' and 'available' caribou locations. 
+I estimated the distance of 'used' and 'available' locations to the nearest resource road and cutblock. Cutblock locations were estimated using the [consolidated cutblocks](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) data compiled by the BC government. Road locations were estimated using data compiled to support the [British Columbia Cumulative Effects Framework](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/cumulative-effects-framework). This data is not as easily accessible to the public, but is not private or proprietary, and thus can be requested from the cumulative effects program. The data classifies roads into various types. Our focus was on roads developed for resource extraction (particularly forestry), thus, we classified all unpaved road types as 'resource roads'. Cutblock and roads data were rasterized at a 1ha resolution, and the Euclidean distance of each raster with a cutblock or resource road was calculated in ArcGIS at 1 ha resolution and attributed to corresponding 'used' and 'available' caribou locations. 
 
-I fit GLMMs with distance to cutblock and distance to road covariates as fixed effects and random effects at the individual animal level. These random effects accounted for individual variation in response to cutblocks and roads in the model, so that the fixed effects can be considered as 'population‐level' effects (i.e.,the effect on an 'average' anaimal) of cutblocks and roads on caribou distribution ( [Gillies et al. 2006](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2006.01106.x)). I examined the data for variability in the response to cutblocks and roads at the herd-level, assuming animals from the same herd had similar reponses, and also fit GLMMs with random effects for cutblocks and roads at the herd level.   
+I fit GLMMs with distance to cutblock and distance to road covariates as fixed effects and random effects at the individual animal level. These random effects accounted for individual variation in response to cutblocks and roads in the model, so that the fixed effects can be considered as 'population‐level' effects (i.e.,the effect on an 'average' animal) of cutblocks and roads on caribou distribution ( [Gillies et al. 2006](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2006.01106.x)). I examined the data for variability in the response to cutblocks and roads at the herd-level, assuming animals from the same herd had similar reponses, and also fit GLMMs with random effects for cutblocks and roads at the herd level.   
 
 I also fit models with functional reponses by caribou to cutblocks and roads. 
-Individual wildlife, including caribou, likely respond to habitat differently (i.e., avoid or use roads or cutblocks) depending on the availability of that habitat to them (i.e., the degree that their home range is fragmented by roads or cutblocks). Functional response models in RSFs empirically account for this theroetical reponse by inlcuding an interaction term between the habitat feature of interest at a location and the availability of that feature in teh surronding environment ( [Matthiopoulos et al. 2011](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/10-0751.1)). I fit models with and without fucntional responses to roads and cutblocks and visualy assessed whether a fucntional response was evident, i.e., caribou distribtuion realtive to cutblocks and roads varied as the average distance t cutblocks and roads changed within their hoem ranges. I calculated the 'availability' of cutblocks and roads as the average disatnce to cutblocks and roads estimated in seasonal hoem ranges of each animal . I tested for fucntional repsonses by incluidng inteeractiosn between distance to cutblocks or roads at locations adn the average distance to cutblock or road in teh home range (see [Matthiopoulos et al. 2011](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/10-0751.1)).  
-This model fitting process was completed to identify the statsical relationship between cariobu distribtuion and forestry disturbance that was generalizable across a cariobu designtable unit (DU), without considerign teh effect of other factors that influence cariobu distribtuion. The theoretical basis for this approach is that these disturbance factors are the 'main effect' influencign cariobu dsitrbtuion. Indeed, cutblcoks and linear features from forestry have routniley shown to have  strogn influeicng on cariobu distribtuion ( [Courbin et al. 2009](https://link.springer.com/article/10.1007/s10980-009-9389-x), [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1), [Mumma et al. 2018](https://www.sciencedirect.com/science/article/pii/S0006320718307225)) abd surirval ( [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x), [Johnson et al. 2015](https://www.sciencedirect.com/science/article/pii/S0006320715001160), Boreal)
+Individual wildlife, including caribou, likely respond to habitat differently (i.e., avoid or use roads or cutblocks) depending on the availability of that habitat to them (i.e., the degree that their home range is fragmented by roads or cutblocks). Functional response models in RSFs empirically account for this theroetical response by including an interaction term between the habitat feature at a location and the availability of that feature in the surronding environment ( [Matthiopoulos et al. 2011](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/10-0751.1)). I fit models with and without functional responses to roads and cutblocks and visualy assessed whether a functional response was evident, i.e., caribou use of cutblocks and roads varied as the average distance to cutblocks and roads changed within their home ranges. I calculated the availability of cutblocks and roads to an individual animal as the average distance to cutblocks and roads at 'available' locations sampled in the home range of that animal (see [Matthiopoulos et al. 2011](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/10-0751.1)). 
 
-Clearly, other habitat characteristics besides forestry disturbance influence caribou distribtuion (e.g., terrain and vegetation, as they relate to food and predation risk; see for example, [Terry et al. 2000](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2000.00523.x), [Apps et al. 2001]( http://www.env.gov.bc.ca/cariboo/env_stewardship/wildlife/inventory/caribou/northcar/hmi/hsi06-01.pdf), [Johnson et al. 2004](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/j.0021-8901.2004.00899.x), [Apps & McLellan 2006](https://www.sciencedirect.com/science/article/pii/S000632070500546X)), and I initially attempted to fit models with some of these other factors. However, this led to the development of complex models that did notimprove my ability to estimate the effects of disturbance on cariobu. Instead, model building and interpretation became bogged down due to the diffciulty in fitting a generalizable model to unique habitats acorss a given DU. However, I did evaluate correlation between the forestry disturbance factros modeleed here and other habtiat features (e.g., elevation, slope, biogeoclimatic zone, wetland type (boreal only), forest stand canopy closure, forest stand height) to ensure they were not completely confounded. Specifically, I tested for correlations using a Spearman correlation, ensuring correaltion coeeficents between covariates were less than 0.7, and by evalauting variance inflation factors (VIFs) in simple generalized linear models (GLMs), and ensuring VIFs were less than 10 ( [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1)). This provided some reassurance that distance to cublocks or roads was not completely confounded with soem ohter habtiat factor driving cariobu distribtuion.      
+This model fitting process was completed to identify the statistical relationship between caribou distribution and forestry disturbance that was generalizable across a caribou DU, without considering the effect of other factors that influence caribou distribution. The theoretical basis for this approach is that these disturbance factors have a significant influence on caribou distribution, regardless of other habitat features. Indeed, cutblocks and linear features from forestry have routinely been shown to have a strong influence on caribou distribution (e.g., [Courbin et al. 2009](https://link.springer.com/article/10.1007/s10980-009-9389-x), [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1), [Mumma et al. 2018](https://www.sciencedirect.com/science/article/pii/S0006320718307225)) and survival ( [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x), [Johnson et al. 2015](https://www.sciencedirect.com/science/article/pii/S0006320715001160)).
 
+Clearly, other habitat characteristics besides forestry disturbance influence caribou distribution (e.g., terrain and vegetation, as they relate to food and predation risk; see for example, [Terry et al. 2000](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1046/j.1365-2664.2000.00523.x), [Apps et al. 2001]( http://www.env.gov.bc.ca/cariboo/env_stewardship/wildlife/inventory/caribou/northcar/hmi/hsi06-01.pdf), [Johnson et al. 2004](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/j.0021-8901.2004.00899.x), [Apps & McLellan 2006](https://www.sciencedirect.com/science/article/pii/S000632070500546X)), and I initially attempted to fit models with some of these other factors. However, this led to the development of complex habitat models that did not improve my ability to estimate the effects of disturbance on caribou distribution. Instead, model building and interpretation became bogged down due to the difficulty in fitting a generalizable habitat model to unique habitats acorss a given DU. However, I did evaluate correlation between the forestry disturbance factors modeled here and other habtiat features (e.g., elevation, slope, forest stand characteristics) to ensure they were not completely confounded. Specifically, I tested for correlations using a Spearman correlation, ensuring correlation coefficients between covariates were less than 0.7, and by evalauting variance inflation factors (VIFs) in simple generalized linear models (GLMs), and ensuring VIFs were less than 10 ( [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1)). This provided reassurance that distance to cublocks or roads was not completely confounded with some other habitat feature driving caribou distribution.      
 
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-### Prepare data
-Load data 
-
-create fxn response covariate by takign average value for each covariet in each aniamls seasonal HR
-data orginally broekn down by season (early witner, late wirnter, summer); took average across season as 'available' sapce for aniamls: DU6 = 10,518 ha, DU7 = 12,538 ha, DU8 = 5,836 ha and DU9 = 4,895 ha.
-
-
-```{r, Load data and transform, echo = F, message = F}
+```{r, Load data and transform, eval = T, echo = F, message = F, error = F, results = 'hide'}
 # load data
-rsf.data.du6 <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du6.csv")
-rsf.data.du7 <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du7.csv")
-rsf.data.du8 <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du8.csv")
-rsf.data.du9 <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\rsf_data_du9.csv")
-
-# Create new covars to deal with corelations, for fxn repsonse 
-rsf.data.du6$dist_cut_min_all <- pmin (rsf.data.du6$distance_to_cut_1to4,
-                                       rsf.data.du6$distance_to_cut_5to9yo,
-                                       rsf.data.du6$distance_to_cut_10yoorOver)
-
-rsf.data.du7 <- dplyr::mutate (rsf.data.du7, 
-                               distance_to_cut_over4 = pmin (distance_to_cut_5to9yo, 
-                                                             distance_to_cut_10to29yo,
-                                                             distance_to_cut_30orOveryo))
-rsf.data.du7$dist_cut_min_all <- pmin (rsf.data.du7$distance_to_cut_1to4,
-                                       rsf.data.du7$distance_to_cut_over4)
-
-rsf.data.du8 <- rsf.data.du8 %>% # removed outlier locations really far from  (>200km) from cutblocks
-                  dplyr::filter (distance_to_cut_30orOveryo < 27500)
-rsf.data.du8$dist_cut_min_all <- pmin (rsf.data.du8$distance_to_cut_1to4,
-                                       rsf.data.du8$distance_to_cut_5to9yo,
-                                       rsf.data.du8$distance_to_cut_10to29yo,
-                                       rsf.data.du8$distance_to_cut_30orOveryo)
-rsf.data.du9$dist_cut_min_all <- pmin (rsf.data.du9$distance_to_cut_1to4,
-                                       rsf.data.du9$distance_to_cut_5to9yo,
-                                       rsf.data.du9$distance_to_cut_10to29yo,
-                                       rsf.data.du9$distance_to_cut_30orOveryo)
-
-# convert m to km 
-rsf.data.du6$distance_to_resource_road <- rsf.data.du6$distance_to_resource_road/1000
-rsf.data.du6$distance_to_cut_1to4yo <- rsf.data.du6$distance_to_cut_1to4yo/1000
-rsf.data.du6$distance_to_cut_5to9yo <- rsf.data.du6$distance_to_cut_5to9yo/1000
-rsf.data.du6$distance_to_cut_10yoorOver <- rsf.data.du6$distance_to_cut_10yoorOver/1000
-rsf.data.du6$dist_cut_min_all <- rsf.data.du6$dist_cut_min_all/1000
-
-rsf.data.du7$distance_to_resource_road <- rsf.data.du7$distance_to_resource_road/1000
-rsf.data.du7$distance_to_cut_1to4yo <- rsf.data.du7$distance_to_cut_1to4yo/1000
-rsf.data.du7$distance_to_cut_over4 <- rsf.data.du7$distance_to_cut_over4/1000
-rsf.data.du7$dist_cut_min_all <- rsf.data.du7$dist_cut_min_all/1000
-
-rsf.data.du8$distance_to_resource_road <- rsf.data.du8$distance_to_resource_road/1000
-rsf.data.du8$distance_to_cut_1to4yo <- rsf.data.du8$distance_to_cut_1to4yo/1000
-rsf.data.du8$distance_to_cut_5to9yo <- rsf.data.du8$distance_to_cut_5to9yo/1000
-rsf.data.du8$distance_to_cut_10to29yo <- rsf.data.du8$distance_to_cut_10to29yo/1000
-rsf.data.du8$distance_to_cut_30orOveryo <- rsf.data.du8$distance_to_cut_30orOveryo/1000
-rsf.data.du8$dist_cut_min_all <- rsf.data.du8$dist_cut_min_all/1000
-
-rsf.data.du9$distance_to_resource_road <- rsf.data.du9$distance_to_resource_road/1000
-rsf.data.du9$distance_to_cut_1to4yo <- rsf.data.du9$distance_to_cut_1to4yo/1000
-rsf.data.du9$distance_to_cut_5to9yo <- rsf.data.du9$distance_to_cut_5to9yo/1000
-rsf.data.du9$dist_cut_min_all <- rsf.data.du9$dist_cut_min_all/1000
+rsf.data.du6 <- read.csv (here ("R/caribou_habitat/data", "rsf_data_du6.csv"))
+rsf.data.du7 <- read.csv (here ("R/caribou_habitat/data", "rsf_data_du7.csv"))
+rsf.data.du8 <- read.csv (here ("R/caribou_habitat/data", "rsf_data_du8.csv"))
+rsf.data.du9 <- read.csv (here ("R/caribou_habitat/data", "rsf_data_du9.csv"))
 
 # calculate fxn response covars
 avail.rsf.data.du6 <- subset (rsf.data.du6, pttype == 0)
-dist_res_road_E <- tapply (avail.rsf.data.du6$distance_to_resource_road, 
-                                   avail.rsf.data.du6$animal_id, mean)
-distance_to_cut_1to4yo_E <- tapply (avail.rsf.data.du6$distance_to_cut_1to4yo, 
-                           avail.rsf.data.du6$animal_id, mean)
-distance_to_cut_5to9yo_E <- tapply (avail.rsf.data.du6$distance_to_cut_5to9yo, 
-                                   avail.rsf.data.du6$animal_id, mean)
-distance_to_cut_10yoorOver_E <- tapply (avail.rsf.data.du6$distance_to_cut_10yoorOver, 
-                                 avail.rsf.data.du6$animal_id, mean)
+dist_res_road_E <- tapply (avail.rsf.data.du6$distance_to_resource_road,  
+                          avail.rsf.data.du6$animal_id, mean)
 dist_cut_min_E <- tapply (avail.rsf.data.du6$dist_cut_min,  
-                                  avail.rsf.data.du6$animal_id, mean)
+                          avail.rsf.data.du6$animal_id, mean)
 inds <- as.character (rsf.data.du6$animal_id)
-rsf.data.du6 <- cbind (rsf.data.du6, "dist_res_road_E" = dist_res_road_E[inds], 
-                       "distance_to_cut_1to4yo_E" = distance_to_cut_1to4yo_E[inds],
-                       "distance_to_cut_5to9yo_E" = distance_to_cut_5to9yo_E[inds],
-                       "distance_to_cut_10yoorOver_E" = distance_to_cut_10yoorOver_E[inds],
+rsf.data.du6 <- cbind (rsf.data.du6, 
+                       "dist_rd_E" = dist_res_road_E[inds], 
                        "dist_cut_min_E" = dist_cut_min_E[inds])
 
 avail.rsf.data.du7 <- subset (rsf.data.du7, pttype == 0)
 dist_res_road_E <- tapply (avail.rsf.data.du7$distance_to_resource_road, 
                            avail.rsf.data.du7$animal_id, mean)
-distance_to_cut_1to4yo_E <- tapply (avail.rsf.data.du7$distance_to_cut_1to4yo, 
-                           avail.rsf.data.du7$animal_id, mean)
-distance_to_cut_over4_E <- tapply (avail.rsf.data.du7$distance_to_cut_over4, 
-                            avail.rsf.data.du7$animal_id, mean)
 dist_cut_min_E <- tapply (avail.rsf.data.du7$dist_cut_min, 
-                                  avail.rsf.data.du7$animal_id, mean)
+                          avail.rsf.data.du7$animal_id, mean)
 inds <- as.character (rsf.data.du7$animal_id)
 rsf.data.du7 <- cbind (rsf.data.du7, 
                        "dist_rd_E" = dist_res_road_E[inds], 
-                       "distance_to_cut_1to4yo_E" = distance_to_cut_1to4yo_E[inds],
-                       "distance_to_cut_over4_E" = distance_to_cut_over4_E[inds],
                        "dist_cut_min_E" = dist_cut_min_E[inds])
-
 
 avail.rsf.data.du8 <- subset (rsf.data.du8, pttype == 0)
 dist_res_road_E <- tapply (avail.rsf.data.du8$distance_to_resource_road, 
                                    avail.rsf.data.du8$animal_id, mean)
-distance_to_cut_1to4yo_E <- tapply (avail.rsf.data.du8$distance_to_cut_1to4yo, 
-                                   avail.rsf.data.du8$animal_id, mean)
-distance_to_cut_5to9yo_E <- tapply (avail.rsf.data.du8$distance_to_cut_5to9yo, 
-                                   avail.rsf.data.du8$animal_id, mean)
-distance_to_cut_10to29_E <- tapply (avail.rsf.data.du8$distance_to_cut_10to29yo, 
-                                     avail.rsf.data.du8$animal_id, mean)
-dist_cut_30_E <- tapply (avail.rsf.data.du8$distance_to_cut_30orOveryo, 
-                                 avail.rsf.data.du8$animal_id, mean)
 dist_cut_min_E <- tapply (avail.rsf.data.du8$dist_cut_min, 
                           avail.rsf.data.du8$animal_id, mean)
 inds <- as.character (rsf.data.du8$animal_id)
-rsf.data.du8 <- cbind (rsf.data.du8, "dist_rd_E" = dist_res_road_E[inds], 
-                       "distance_to_cut_1to4yo_E" = distance_to_cut_1to4yo_E[inds],
-                       "distance_to_cut_5to9yo_E" = distance_to_cut_5to9yo_E[inds],
-                       "distance_to_cut_10yoorOverto29_E" = distance_to_cut_10to29_E[inds],
-                       "dist_cut_30_E" = dist_cut_30_E[inds],
+rsf.data.du8 <- cbind (rsf.data.du8, 
+                       "dist_rd_E" = dist_res_road_E[inds], 
                        "dist_cut_min_E" = dist_cut_min_E[inds])
-
 
 avail.rsf.data.du9 <- subset (rsf.data.du9, pttype == 0)
 dist_res_road_E <- tapply (avail.rsf.data.du9$distance_to_resource_road, 
                            avail.rsf.data.du9$animal_id, mean)
-distance_to_cut_1to4yo_E <- tapply (avail.rsf.data.du9$distance_to_cut_1to4yo, 
-                           avail.rsf.data.du9$animal_id, mean)
-distance_to_cut_5to9yo_E <- tapply (avail.rsf.data.du9$distance_to_cut_5to9yo, 
-                           avail.rsf.data.du9$animal_id, mean)
 dist_cut_min_E <- tapply (rsf.data.du9$dist_cut_min, 
                           rsf.data.du9$animal_id, mean)
 inds <- as.character (rsf.data.du9$animal_id)
-rsf.data.du9 <- cbind (rsf.data.du9, "dist_rd_E" = dist_res_road_E[inds], 
-                       "distance_to_cut_1to4yo_E" = distance_to_cut_1to4yo_E[inds],
-                       "distance_to_cut_5to9yo_E" = distance_to_cut_5to9yo_E[inds],
+rsf.data.du9 <- cbind (rsf.data.du9, 
+                       "dist_rd_E" = dist_res_road_E[inds], 
                        "dist_cut_min_E" = dist_cut_min_E[inds])
 
 rsf.data.du6$pttype <- as.factor (rsf.data.du6$pttype)
@@ -195,20 +94,16 @@ rsf.data.du7$pttype <- as.factor (rsf.data.du7$pttype)
 rsf.data.du8$pttype <- as.factor (rsf.data.du8$pttype)
 rsf.data.du9$pttype <- as.factor (rsf.data.du9$pttype)
 
-rm (avail.rsf.data.du6, avail.rsf.data.du7, avail.rsf.data.du8, avail.rsf.data.du9, inds, dist_cut_30_E, dist_cut_min_E, distance_to_cut_10to29_E, distance_to_cut_10yoorOver_E, distance_to_cut_1to4yo_E, dist_res_road_E, distance_to_cut_5to9yo_E, distance_to_cut_over4_E)
+rm (avail.rsf.data.du6, avail.rsf.data.du7, avail.rsf.data.du8, avail.rsf.data.du9, inds, 
+    dist_cut_min_E, dist_res_road_E)
 gc ()
 ```
 
-### Analysis by DU
-decided DU's shoudl be modeled spewrately because of sificant ecological differences, parrticualrly between borel an moutnain, but wanted to account for pteontail differetn moutanin beahvoiours (different use of low/high elev?)
-
-
+## Results
 ### DU6
-Boreal, included animals from Calendar, Chinchaga, Maxhamish, Westside Fort Nelson (formerly Parker and Prophet ranges), and Snake-Sahtaneh (Table 1).
+Telemetry data in DU6 was collected from 160 animals from the Calendar, Chinchaga, Maxhamish, Westside Fort Nelson (formerly Parker and Prophet ranges), and Snake-Sahtaneh herds. The number of animals sampled in each herd ranged form 5 to 43 animals and the numeber of telmetry locations ranged 8,144 to 57,307 (Table 1).
 
-Ranged from 5 to 43 animals and 8,144 to 57,307 locations by herd. 
-
-```{r, du6, data summary, echo = F, message = F}
+```{r, du6, data summary, eval = T, echo = F, message = F}
 # number of animals, by herd
 count.animals.herd <- rsf.data.du6  %>%
   group_by(HERD_NAME) %>%
@@ -236,34 +131,42 @@ kable (table,
 
 ```
 
-#### Herd Effect of Disturbance
-show that response to roads and cutbocks varies by herd
+#### Herd-Level Effect of FOrestry on Caribou Distribution
+There were some small differences in herd response to resoruce roads in DU6 (Fig. 1). For example, caribou in the Calendar, Chinchaga and Prophet herds tended to be further from roads then in other herds. A random efefct for distance to road was included in the   
 
-not a lot of variability in use of, or response to areas near roads acorss herds
-
-more variability in distance to cutblocks across herds, e.g., in Calendar, use closer to roads in area far from roads, but use further from roads in area closer to roads (Chinchaga)
-
-```{r, du6 Herd effect plots, echo = F, message = F}
-
-ggplot (rsf.data.du6, 
-        aes (x = pttype, y = distance_to_resource_road)) +
+```{r, du6 Herd road effect plot, echo = F, message = F}
+ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Resource Road at Available (0) and Used (1) Locations",
+  labs (title = "Figure 1. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
+  theme (strip.text.x = element_text (size = 6),
+         plot.title = element_text (size = 12))
+```
 
-ggplot (rsf.data.du6, 
-        aes (x = pttype, y = dist_cut_min_all)) +
+
+
+more variability in distance to cutblocks across herds, e.g., in Calendar, use closer to roads in area far from roads, but use further from roads in area closer to roads (Chinchaga)
+
+
+
+```{r, du6 Herd cutblock effect plot, echo = F, message = F}
+ggplot (rsf.data.du6, aes (x = pttype, y = dist_cut_min_all)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Cutblock at Available (0) and Used (1) Locations",
+  labs (title = "Figure 2. Distance to Cutblock at Available (0) and Used (1) Locations by Caribou Herd in DU6",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
-
+  theme (strip.text.x = element_text (size = 6),
+         plot.title = element_text (size = 12))
 ```
+
+
+
+
+
+
 
 #### Fit Models
 Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
@@ -277,8 +180,8 @@ some high resiudlas at ~16 km form roads. looked at indivudals and no clear patt
 ```{r, du6 model, echo = F, message = F}
 model.lme4.du6.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all + 
                                                 distance_to_resource_road +
-                                                dist_res_road_E +
-                                                distance_to_resource_road*dist_res_road_E +
+                                                dist_rd_E +
+                                                distance_to_resource_road*dist_rd_E +
                                       (dist_cut_min_all + distance_to_resource_road || HERD_NAME) +
                                       (dist_cut_min_all + distance_to_resource_road || animal_id),
                                       data = rsf.data.du6, 
