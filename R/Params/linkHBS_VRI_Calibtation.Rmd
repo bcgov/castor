@@ -1,5 +1,5 @@
 ---
-title: "Estimating volume yield uncertainty from a meta-model of VDYP"
+title: "Estimating uncertainty in forest inventory projections"
 output: 
   html_document: 
     keep_md: yes
@@ -21,19 +21,15 @@ See the License for the specific language governing permissions and limitations 
 
 # Introduction
 
-Accurate estimates of timber volume are an important impetus for forestry decision making. Since the impacts of forestry decisions lie in the future and across vast areas, estimates of timber volume projected through time and across landscapes are of great interest for assessing the sustainability of these decisions. The economic value of timber and many ecological processes of interest to decision makers (e.g., biomass, carbon, wildlife habitat) are all driven by projections of forest structure which are often characterized by timber volume. Thus, a common concern by forestry decision makers is the level of uncertainty behind these projections across large landscapes. 
+Estimates of timber volume projected through time and across landscapes are need to assess the sustainability of forestry decisions. The economic value of timber and many ecological processes of interest to decision makers (e.g., biomass, carbon, wildlife habitat) are all driven by projections of forest structure which are often characterized by timber volume. A common concern by forestry decision makers is the level of uncertainty behind these projections across large landscapes. 
 
-Often empirical growth and yield models are used to project timber volume through time because of their simplicity and ability to link to forest inventories and forecast entire landscapes. For large forested areas like the province of British Columbia, available stand-level forest attributes information supports the use of stand level growth and yield models. At a minimum the information required to parameterize these models includes: specific geographical or ecological zone, species compositions, a measure of site productivity (e.g., site index), the stands vertical (e.g., height) and horizontal (e.g., crown closure,trees per ha or basal area per ha) structure. This information is typically measured in a forest inventory which may have a high level of precision given the accuracy of the measured attributes which canbe challenging for generating timber volume projections across many landscapes. 
+There are many sources of uncertainty in timber volume projections and these sources propagate through time in complex ways which may provide barriers for confidentaly making forest management decisions. Past research has highlighted how sources of uncertainty related to errors in forest attributes reported in the forest inventory would propogate with errors in growth and yield models and thus, impact harvest scheduling. Recently, Robinson et al. (2016) recommended a simple way to incorpate this uncertainty into forestry decision making. Their approach relied on observed timber volumes measured from scaling and cruising operations following harvesting. In particular, the value of the Robinson et al. (2016) approach is two fold: i.) a calibration of the future timber volumes for use when simulating the forestry decisions and ii.) the ability to simulate the uncertainty of timber volume projection and thus calculate error statistics useful to decision makers. Robinson et al. (2016) modelled the distributional parameters of a prediction by specifying a seperate model for the mean and scale. These parameters were then used to reconstruct the response distribution for an individual harvest unit which can be summed to arrive at a distribution for the total volume harvested. Thereby allowing the construction of a prediction interval on the total volume harvested.
 
-In the [Vegetation Resources Inventory](https://www.for.gov.bc.ca/hfd/library/documents/bib106996.pdf) (VRI) of British Columbia (BC), many of the stand attributes information needed to link to a growth and yield model are highly precise. Forest attributes like site index are reported to the nearest decimeter, species compositions can contain up to 6 species with an estimate of the percentage for each species to the nearest 1%, stand height is reported to the nearest decimeter and basal area to the nearest squared meter. Thus, the combinations of these highly precise input parameters would result in the generation of tens of millions of possible timber yield projections that consume valuable computer resources.
+An important assumption of this approach is that the individual harvest units need to be independant of one another, in order to be able to sum the individual distributions. While this assumption was not formally tested, the authors highlight that if the individual harvest units were positively correlated then they would jointly contribute more to the uncertainty than their summation would suggest and conversely contribute less to uncertainty, if they were negatively correlated. This is an important point that could be leverage to develop harvest schedules that result in reduced uncertainty.
 
-One approach to alleviate this problem is to aggregate the timber yield projections into groups (also termmed analysis units). A certain level of aggregation may be warranted, given the accuracy of forest inventory  may not support such a high level of precision. The [current standard](https://www2.gov.bc.ca/assets/gov/environment/natural-resource-stewardship/nr-laws-policy/risc/vri_photo_interp_qa_proc_and_stds_v43_2019.pdf) for quality assurance of VRI variables varies by attribute with species compositions around 80% correspondance, height $\pm$ 3 - 4 m,  age $\pm$ 10 years, crown closure $\pm$ 10%, basal area $\pm$ 10-15 $m^2$, trees per ha (tph) $\pm$ 100 stems. However, aggregation of yield curves results in a loss of information which may lead to incorrect decision making at the stand-level and results in a further source of unceratinty for decision makers. 
+Currently, this approach has not been applied in the province of BC given issues with spatially tracking observed scaled volumes. The tracking of observed scaled volume is accomplished via the harvest billing system (HBS) which focuses on harvest volumes, needed for provincal revenue accounting, at a spatial unit known as a timber mark. The timber mark is a unique identifer stamped or marked on the end of each log to associate the log with the specific authority to harvest and move timber. Timber marks are assigned to harvested units that may be not be spatially contiguous nor contain a single harvest date. Thus, linking HBS and forest inventory data has been difficult due to issues with temporal and spatial accuracy in estimating the spatial boundaries of the timber marks. In particular, estimating the net area harvested (i.e., netting out roads, wildlife tree patches, etc) and its spatial boundary can be difficult to determine for historical cutblocks.
 
-Clearly, there are many sources of uncertainty in timber volume projections. These sources propagate through time in complex ways which may provide barriers for confidentaly making forest management decisions. Recently, Robinson et al. (2016) recommended a simple way to incorpate this uncertainty into forestry decision making. Thier approach used observed timber volumes measured from scaling and cruising operations following harvesting. In particular, they propose a calibration model to not only calibrate yields but also to provide a measure of error around the volume estimate. Thus, the value of the Robinson et al. (2016) approach is two fold: i.) a calibration of the future timber volumes for use when simulating the forestry decisions and ii.) the ability to simulate the uncertainty in timber volume and thus calculate error statistics useful to decision makers. Robinson et al. (2016) modelled the parameters of the error distribution (conditional mean and variance) for a given prediction. These parameters were then used to reconstruct the error distribution for any prediction. For many harvest blocks these distributions were then sampled many times (i.e., 10000) and then summed to arrive at a total distribution of plausible timber volumes (assuming indepednance). 
-
-Currently, this approach has not been applied in the province of BC given issues with tracking observed scaled volumes. The tracking of observed scaled volume is accomplished by the harvest billing system (HBS) which provides observed billable harvest volumes needed for provincal revenue accounting at a spatial unit known as a timber mark. The timber mark is a unique identifer stamped or marked on the end of each log to associate the log with the specific authority to harvest and move timber. Timber marks are assigned to harvested units that may be not be spatially contiguous nor contain a single harvest date. Thus, linking HBS and forest inventory data has been difficult due to issues with temporal and spatial accuracy in estimating the spatial boundaries of the timber marks. In particular, estimating the net area harvested (i.e., netting out roads, wildlife tree patches, etc) and its spatial boundary can be difficult to determine for historical cutblocks.
-
-In the following sections, I attempt to link the HBS with the provincial forest inventory. The spatial (timber mark boundaries) and temporal (harvest date, inventory projection) data are manipulated to follow the approach by Robinson et al. (2016) in BC. The specific objectives are: i) to calibrate the projected volume yields from an aggregated growth and yield model (hereafter termed the meta-model) with observed volume yields reported in the harvest billing system and ii) demonstrate the use of this model in landscape simulations for assessing error in yields. The proposed calibration model will be used in the caribou and landuse model (CLUS) to provide an indication of volume yield uncertainty which will help provide some context surrounding the quantification of impacts from caribou conservation activities on harvest flows. 
+In the following sections, the spatial (timber mark boundaries) and temporal (harvest date, inventory projection) data are manipulated to develop a calibration model that can be used to provide valuable information about timber projection uncertainty. It is believed that this calibration will support adaptive forest management by enhancing the link between strategic decisions and their implementation. The specific objectives were: i) to calibrate projected volume yields from an aggregated growth and yield model (hereafter termed the meta-model) with observed volume yields reported in the harvest billing system and ii) determine how uncertainty in total harvested volumes can be minimized. The proposed calibration model will be used in the caribou and landuse model (CLUS) to provide an estimate of volume yield uncertainty which will help provide some context surrounding the quantification of impacts from caribou conservation activities on harvest flows. 
 
 # Methods
 ```{r setup, include=FALSE}
@@ -56,17 +52,19 @@ source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 ## Linking timber mark boundaries with VRI
 
-To link the timber mark boundaries with the VRI (needed to link to a growth and yield model) the following steps were completed (see [code](https://github.com/bcgov/clus/blob/master/SQL/develop_vri2011table.sql))
+Linking the timber mark boundaries with the VRI (needed to link to a growth and yield model) involved the following: (see [code](https://github.com/bcgov/clus/blob/master/SQL/develop_vri2011table.sql))
 
-1. Estimate the spatial boundaries of the timber marks
+1. Subset and estimate the spatial boundaries of the timber marks
 
-The spatial boundaries of the timber mark were estimated using the compilation of two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). Using the forest tenure cutblock polygons, all timber marks comprised of openings (harvest units) that had disturbance start dates between 2012-01-01 and 2016-12-31 were selected (i.e., removed possible timber marks with some openings not in this range). This selected subset of forest tenure cutblock polygons was then joined with consolidated cutblock polygons by the harvest unit identifier (viz. opening_id). This join provided the link between the timber mark and its spatial geometry of the harvesting boundary. Lastly, timber marks were removed if they did not fully contain geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., retention patches were removed). Despite the accuracy of the RESULTS, there remain a number of issues with identifying retention patches which resulted in the consolidated cutblock polygons data missing portions of the harvest unit. Thus, timber marks were removed when the estimated timber mark area was not with $/pm$ 20% of the planned net area. The result of this process was 1941 unique timber marks.
+The spatial boundaries of the timber mark were estimated using the compilation of two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). While the forest tenure polygons provided the spatial boundary of the timber mark, these boundaries include retention areas which can be quite large. Thus, the consolidate cutblock polygons dataset was used to remove these non-harvested areas within a timber mark area.
+
+Using the forest tenure cutblock polygons, all timber marks comprised of harvest units that were spatially contiguous and had disturbance start dates between 2012-01-01 and 2016-12-31 were selected. This ensured timber marks would be roughly at the scale of a harvest unit or cutblock and would temporally link to the forest inventory. Further, timber marks with scaled dead wood were removed since the naive projections do not include standing dead timber. Lastly, timber marks were removed if they did not contained geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., retention patches were removed). Despite the accuracy of the RESULTS, there remain a number of issues with identifying non-harvest areas in the consolidated cutblock polygons. Thus, timber marks were removed when the estimated timber mark area was not within $\pm$ 20% of the planned net area.This subset of the forest tenure cutblock polygons was then joined with consolidated cutblock polygons to provide a spatial boundary that exluded non harvest areas. 
 
 2. Intersect the timber mark spatial boundaries with the VRI
 
-The resulting timber mark spatial boundaries were spatialy intersected with the 2011 VRI to provide the necessary forest attribute information for linking to the growth and yield model. Only the dominant layer (layer rank 1) of the forest invetnory was used to link to the growth and yield model. As a result of this intersection, 1264 of the timber marks had a portion of their total area that failed to provide the neccessary forest inventory information (i.e., areas that lack the publically available forest inventory such as Tree Farm Licenses). 
+The resulting spatial boundaries that excluded non-harvested areas were then spatialy intersected with the 2011 VRI to provide the necessary forest attribute information require to link to the growth and yield model. Only the dominant layer (layer rank 1) of the forest inventory was used, thereby simplifying the growth and yield proejction. As a result of this intersection, 1264 of the timber marks had a portion of their total area that failed to provide the neccessary forest inventory information (i.e., areas that lack the publically available forest inventory such as Tree Farm Licenses). 
 
-The following is a histogram of the percentage of the total timber mark area without the required inventory information:
+The following is a histogram of the percentage of the total timber mark area missing information:
 
 ```{r, timber_mrks, echo = FALSE, fig.cap = 'FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.'}
 feats<-getSpatialQuery("SELECT feature_id, shape, yc_grp, bec_zone_code, site_index, crown_closure, pcnt_dead, proj_height_1, proj_age_1 FROM yt_vri2011")
@@ -128,7 +126,7 @@ units(out.tbl2$area) <- NULL
 units(out.tbl2$vol) <- NULL
 
 #43118
-out.tbl2<-out.tbl2[!(timber_mrk == 'BY5H37'),] #this timber mark also has a missing portion but becuase its large this small portion was within +- 20%
+out.tbl2<-out.tbl2[!(timber_mrk == 'BY5H37'),] #this timber mark also has a missing portion 
 
 test.1 <-data.table(out.tbl2)
 number_obs<-test.1[, .(count = .N, var = sum(area)), by = timber_mrk ]
@@ -149,15 +147,15 @@ ggplot(data = data.table(per.Area.Missing=percentNoMatch$pernomatch), aes(x=per.
   geom_histogram(bins =120)+
   geom_vline(xintercept=quantile(percentNoMatch$pernomatch,0.25))+
   geom_vline(xintercept=quantile(percentNoMatch$pernomatch,0.75))+
-  geom_text(aes(x = 0.30, y =800 , label = as.character(as.expression(eq)) ), parse = TRUE) + 
+  geom_text(aes(x = 0.30, y =400 , label = as.character(as.expression(eq)) ), parse = TRUE) + 
   theme_bw()
 
 ```
 
-This histogram suggests that 75% of timber marks that do not have the neccessary forest inventory attribution are missing this information for less than 2.4% of their total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be wrongfully classified as determined in the VRI. From a practical view, these relatively small areas would result in little contribution to the total projected volume estimate. Thus, timber marks with less than or equal to 3 percent of their total area that contained inadequate forest inventory information were retained in the analysis.
+This histogram shows that 75% of timber marks were missing forest inventory attribution for only 1.4% of their total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be small spatial errors in the VRI and were thus important sources of uncertainty. However, from a practical view, these relatively small areas would contribute little to the total projected volume estimate. Thus, timber marks with greater than 3 percent of their total area containing inadequate forest inventory information were removed from the analysis.
 
 
-```{r, sample, echo = FALSE, fig.cap = 'FIGURE 2. The location of timber marks used in the analysis (n = 1672).'}
+```{r, sample, echo = FALSE, fig.cap = 'FIGURE 2. The location of timber marks used in the analysis (n = 326).'}
 noMatch2<-unique(percentNoMatch[pernomatch > 0.03, timber_mrk])
 timbr_mrks<-out.tbl2[!(out.tbl2$timber_mrk %in% noMatch2),]
 timbr_mrks[is.na(vol), vol:=0]
@@ -213,20 +211,20 @@ ras.elv2[timber_mark == '90884', V1:= 1372]
 calb_data<-merge(calb_data, ras.elv2, by.x ="timber_mark", by.y = "timber_mark", all.x = TRUE )
 setnames(calb_data, "V1", "elv")
 #map the observations?
-#bec <-get_layer("bec")
-#ggplot() + geom_sf(data = bec, aes(fill=ZONE), size =0.1)+ geom_point(data=calb_data, aes(x=MEAN_X, y=MEAN_Y), color="red")
+bec <-get_layer("bec")
+ggplot() + geom_sf(data = bec, aes(fill=ZONE), size =0.1)+ geom_point(data=calb_data, aes(x=X, y=Y), color="red")
 ```
 
 
 ## Growth and yield meta-model
 
-Each polygon was projected through time to 350 years using [Variable Density Yield projection](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) (VDYP) with the VRI (2018 vintage). VDYP is a stand-level empirical growth and yield model that uses VRI attribution as inputs into its algortihums. The result of this process was a dataset with over 3.5 million yield curves which took 3 days to complete on a intel xeon, 3.5 ghz processor with 64 GB of RAM. Both the input (VRI information) and outputs (yields over time) were uploaded into a PostgreSQL database for further processing. Using the layer 1 rank information (the dominant layer),  yield curve groups (yc_grp) or anlaysis units were constructed using: BEC zone, site index (2 m interval), height class (5 classes as per the VRI) and crown closure class (5 classes as per the VRI). Each yc_grp was then aggregated by area weighting the respsective individual polygon level yield curves. The result was a provincial database of composite yield curves that directly link to the 2018 VRI through the layer 1 rank attribution described above.
+In BC, forested stands from natural orgins are typically projected through time using [Variable Density Yield projection](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) (VDYP). VDYP is a stand-level empirical growth and yield model that uses VRI attribution as inputs into its sub-models. Using the 2018 vintage of the VRI, each polygon was projected for 350 years using 10 year time steps. The result of this process was a dataset with over 3.5 million yield curves which took 3 days to complete on a intel xeon, 3.5 ghz processor with 64 GB of RAM. Both the input (VRI information) and outputs (yields over time) were uploaded into a PostgreSQL database for further processing. Using the layer 1 rank information (the dominant layer),  yield curve groups (yc_grp) or anlaysis units were constructed using: BEC zone, site index (2 m interval), height class (5 classes as per the VRI) and crown closure class (5 classes as per the VRI). Each yc_grp was then aggregated by area weighting the respective individual polygon level yield curves. The result was a provincial database of composite yield curves that directly links to the VRI through the layer 1 rank attribution described above.
 
 ## HBS volumes vs projected meta-model volumes
 
-Each projected VRI polygon that intersected the timber mark boundary was summed to estimate the total projected volume for the timber mark.The HBS data was also aggregated by timber mark and matched with the projected volumes. The result is shown below that compares the projected volumes from the meta model with the observed volumes that were reported in the HBS. Timber marks with scaled dead wood were removed since the meta model of growth and yield did not estimate stand dead timber. The result was 768 timber marks.
+Each VRI polygon that intersected the timber mark boundary and contained a projected volume was summed to estimate the total projected timber volume for the timber mark. This projected timber volume represented the naive projection commonly used in forest estate modeling.  
 
-```{r, echo = FALSE, Step6_develop_vri2011, fig.cap = 'FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval (n= 1672).'}
+```{r, echo = FALSE, Step6_develop_vri2011, fig.cap = 'FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval (n= 326).'}
 
 model1 <- lm(obs_vol ~ proj_vol, data=calb_data)
 summary(model1)
@@ -253,42 +251,35 @@ ggplot(calb_data2, aes(proj_vol, obs_vol)) +
 
 ```
 
-### Histgram
-```{r, dist_proj_vol, fig.cap="FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=2140)"}
- hist(calb_data2$obs_vol)
+### Modelling assumptions
+
+The following assumptions of the calibration model need to be tested: i) the response is gamma distributed, ii) the model fits the data and iii) the residuals are independant.
+
+From the histogram below the gamma and log normal distributions appear to be candidates.
+
+```{r, dist_proj_vol, fig.cap="FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=326)"}
+#library(fitdistrplus)
+#param.1 <- MASS::fitdistr(calb_data4$obs_vol, "normal")
+#param.2 <- MASS::fitdistr(calb_data4$obs_vol, "lognormal")
+#param.3 <- fitdistr(calb_data4$obs_vol, "gamma", start = list(shape = 1.2, scale = 0.0001), lower = 0.01)
+
+hist(calb_data2$obs_vol, prob = T, ylim = c(0, 0.00007))
+curve(dgamma(x, 1.2, 0.0001), add=TRUE, col = 'red')
+curve(dnorm(x, 15138, 19838), add=TRUE)
+curve(dlnorm(x, 8.79, 1.41), add=TRUE, col = 'blue')
 ```
 
+## Calibration model
 
-## Predictors of error
+In Robinson et al. (2016) a gamma model was used to model both the  mean and  variance of the response distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating forest attributes as predictors of both the mean and variance. The results suggest a gamma model is better fit over a log normal model. Also, the VRI height is a important predictor of the response variance. However, these models assume no spatial correlation which needs to be tested.
 
-Following Robinson et al. (2016) the error between observed and projected volume yields was paritioned according to both forest quality class (high and low) and timber type (mature or mixedwood). This supported the conditional mean and variance to be modelled seperately for each of these factors. In this BC application, stand-level attribution was included to test hypotheses of which variables that could be important predictors of error between observed and projected yield volumes.
-
-```{r, predictors}
-
+```{r, calibrate_model,  fig.cap= 'FIGURE 4. Fit statistics of the calibration model (n=326)' }
 # get the bec zone that makes up the majority of the timber mark 
 pv_timber_mrk<-merge(timbr_mrks, totalArea)
 pv_timber_mrk[,wt:=as.numeric(area/totarea)]
 pv_timber_mrk2<-pv_timber_mrk[, lapply(.SD, function(x) {wtd.mean (x, wt)}), by =timber_mrk, .SDcols=c("proj_height_1", "site_index", "crown_closure", "proj_age_1", "pcnt_dead")]
 setnames(pv_timber_mrk2, "timber_mrk" , "timber_mark" )
 calb_data3<-merge(calb_data2, pv_timber_mrk2, by = "timber_mark")
-calb_data3[, dif:=proj_vol-obs_vol]
-
-cor.test(calb_data3$elv, calb_data3$dif)
-cor.test(calb_data3$proj_height_1, calb_data3$dif)
-cor.test(calb_data3$site_index, calb_data3$dif)
-cor.test(calb_data3$crown_closure, calb_data3$dif)
-cor.test(calb_data3$proj_age_1, calb_data3$dif)
-cor.test(calb_data3$pcnt_dead, calb_data3$dif)
-
-```
-
-
-## The calibration model
-
-In Robinson et al. (2016) a gamma model was used to model both the conditional mean and conditional variance of the error distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating forest attributes. This area could be greatly improved to try other distributions (e.g., Exponential, Beta) or other parameters (e.g., variance of stand attributes, number of years projected?, dead pine?, BEC zones?, etc) 
-
-```{r, calibrate_model,  fig.cap= 'FIGURE 4. The calibration model inder different assumptions of the forest attributes. Blue line is the conditional mean, blue dotted lines are the 66% prediction intervals and the red dashed lines are the 90% prediction intervals (n=1672)' }
-
 calb_data4<-na.omit(calb_data3)
 
 ## Fit and compare some models
@@ -299,10 +290,23 @@ test.0 <- gamlss(obs_vol ~ proj_vol,
                  family = GA(),
                  data = calb_data4)
 
+test.0 <- gamlss(obs_vol ~ proj_vol,
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = LOGNO(),
+                 data = calb_data4)
+
 test.1 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ 1,
                  sigma.link = "log",
                  family = GA(),
+                 data = calb_data4)
+test.1 <- gamlss(obs_vol ~ log(proj_vol),
+                 sigma.formula = ~ 1,
+                 mu.link = "log",
+                 sigma.link = "log",
+                 family = LOGNO(),
                  data = calb_data4)
 
 test.2 <- gamlss(obs_vol ~ log(proj_vol),
@@ -317,180 +321,27 @@ test.3 <- gamlss(obs_vol ~ log(proj_vol),
                  family = GA(),
                  data = calb_data4)
 
-test.4 <- gamlss(obs_vol ~ log(proj_vol),
+test.4.ga <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ log(proj_vol) + proj_height_1,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
 
+test.4.ln <- gamlss(obs_vol ~ log(proj_vol),
+                 sigma.formula = ~ log(proj_vol) + proj_height_1,
+                 sigma.link = "log",
+                 family = LOGNO(),
+                 data = calb_data4)
 
-LR.test(test.3, test.4)
-chosen<-test.4
+LR.test(test.4.ln, test.4.ga)
+chosen<-test.4.ga
 summary(chosen)
-wp(chosen)
 plot(chosen)
 ```
 
+### Testing for autocorrelation
 
-## Model plots
-```{r, plot_some_stuff}
-#res<-residuals(chosen)
-#saveRDS(chosen, "calb_ymodel.rds")
-#saveRDS(calb_data4, "calb_data.rds")
-
-trajectory.l.l <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= min(proj_height_1),
-                   proj_age_1= min(proj_age_1),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-new.dist.l <- predictAll(chosen, newdata = trajectory.l.l)
-
-trajectory.l.l$mu <- new.dist.l$mu
-trajectory.l.l$sigma <- new.dist.l$sigma
-trajectory.l.l$upper.2 <- with(new.dist.l, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.l.l$lower.2 <- with(new.dist.l, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.l.l$upper.1 <- with(new.dist.l, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.l.l$lower.1 <- with(new.dist.l, qGA(0.33, mu = mu, sigma = sigma))
-
-trajectory.l.h <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= mean(proj_height_1),
-                   proj_age_1= mean(proj_age_1),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-
-new.dist.l <- predictAll(chosen, newdata = trajectory.l.h)
-
-trajectory.l.h$mu <- new.dist.l$mu
-trajectory.l.h$sigma <- new.dist.l$sigma
-trajectory.l.h$upper.2 <- with(new.dist.l, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.l.h$lower.2 <- with(new.dist.l, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.l.h$upper.1 <- with(new.dist.l, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.l.h$lower.1 <- with(new.dist.l, qGA(0.33, mu = mu, sigma = sigma))
-
-trajectory.h.l <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= quantile(proj_height_1, 0.5),
-                   proj_age_1= quantile(proj_age_1, 0.5),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-new.dist.h <- predictAll(chosen, newdata = trajectory.h.l)
-
-trajectory.h.l$mu <- new.dist.h$mu
-trajectory.h.l$sigma <- new.dist.h$sigma
-trajectory.h.l$upper.2 <- with(new.dist.h, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.h.l$lower.2 <- with(new.dist.h, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.h.l$upper.1 <- with(new.dist.h, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.h.l$lower.1 <- with(new.dist.h, qGA(0.33, mu = mu, sigma = sigma))
-
-trajectory.h.h <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= max(proj_height_1),
-                   proj_age_1= max(proj_age_1),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-new.dist.h <- predictAll(chosen, newdata = trajectory.h.h)
-
-trajectory.h.h$mu <- new.dist.h$mu
-trajectory.h.h$sigma <- new.dist.h$sigma
-trajectory.h.h$upper.2 <- with(new.dist.h, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.h.h$lower.2 <- with(new.dist.h, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.h.h$upper.1 <- with(new.dist.h, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.h.h$lower.1 <- with(new.dist.h, qGA(0.33, mu = mu, sigma = sigma))
-
-p.l.l <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.l.l, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l.l) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l.l) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l.l) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l.l) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.l.h <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.l.h, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l.h) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.l.h) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l.h) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.l.h) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.h.l <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.h.l, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h.l) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h.l) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h.l) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h.l) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.h.h <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.h.h, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h.h) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.h.h) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h.h) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.h.h) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-plot_grid(p.l.l, p.h.l,p.l.h, p.h.h, labels = c("min(ht)", "mean(ht)","median(ht)", "max(ht)"))
-
-```
-
-
-## Autocorrelation
-
-A caveat of the uncertainty model is that the errors are independant - in order to be able to sum across many predictions and achieve the appropriate total. Here I test for autocorrelation in the residuals.
+An assumption of the uncertainty model is that the errors are independant - in order to be able to sum across many predictions and achieve the appropriate total. Here I test for autocorrelation in the residuals.
 
 ```{r, testing_auto_correlation}
 
@@ -499,7 +350,7 @@ ind.2<-cbind(calb_data4, ind.1$mu)
 ind.2$res<-ind.2$obs_vol - ind.2$V2
 
 #get distances
-dists <- as.matrix(dist(cbind(auto.2$X, auto.2$Y)))
+dists <- as.matrix(dist(cbind(ind.2$X, ind.2$Y)))
 dists.inv <- 1/dists 
 diag(dists.inv) <- 0
 #dists[1:50, 1:50] # check what they look like - units are in metres
@@ -512,7 +363,7 @@ xyspatial=SpatialPoints(cbind(ind.2$X,ind.2$Y))
 porspatial=data.frame(ind.2$res)
 spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
 
-vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 2500)
+vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 3000)
 plot(vario2)
 bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
@@ -520,15 +371,28 @@ bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", 
 
 ```
 
+The results from the Moran's I suggest that the residuals are independant (Moran's I = 0.0239, p = 0.06556). After building a variogram there doesn't seem to be a strong spatial effect.  However, the bubble map shows some spatial clustering -namely in the far east corner and around the kamloops area. Also the p value for Moran's I is providing enough evidence against the null hypothesis to warrant a check to see if the model can be further improved by taking into account any spatial autocorrelation.
 
-## Autocorrelated model
+### Autocorrelated model
 
-To account for the autocorrelation in the model we construct a random effect with mean zero and covariance structure modelled using the spatial lage between observations. Thus the off diagonal elements of the variance-covariance matrix will be estiamted using a spatial covariance structure that is parameterized from model assuming independance. 
+To account for the spatial autocorrelation in the model we construct a random effect with mean zero and covariance structure modelled using a spatial lag between observations. Thus, the off diagonal elements of the variance-covariance matrix will be estimated using a spatial covariance structure that is parameterized from a model assuming independance. The steps to fit this model included:
+
+1.) Fit a gamma model for the mu and sigma.
+
+2.) Use the residuals from this model to construct a spatially varying random variable that is normally distributed with mean 0 and covariance
+
+3.) Specifiy the structure of this covariance matrix to follow a spatial lag that uses a spherical model of the X and Y locations
+
+4.) Re-fit the gamma model with the spatially varying random variable
+
+5.) Iterate through 1-4 until convergence criterion has been met
+
+The result of this model is a Moran's I of 0.0235, p = 0.69, the bubble map shows less clustering, and the AIC of this spatial model is less (6162 versus 6170) than the model assuming independance. Thus, it appears the spatial model may be the prefered model. Lets see how well the predictions look. 
 
 ```{r, autocorr}
 calb_data4$dummy<-1
-chosen.a <- gamlss(obs_vol ~log(proj_vol) + re(random=~1|dummy, correlation = corSpher(2000, form = ~ X + Y, nugget = T), opt="optim"),
-                   sigma.formula = ~ log(proj_vol) + proj_height_1,
+chosen.a <- gamlss(obs_vol ~log(proj_vol) + re(random=~1|dummy, correlation = corSpher(2500, form = ~ X + Y, nugget = T), opt="optim", method = "REML"),
+                   sigma.formula = ~ log(proj_vol) + proj_height_1 ,
                    sigma.link = "log",
                    family = GA(), data = calb_data4, control = gamlss.control(c.crit = 0.005), method=CG())
 
@@ -563,40 +427,31 @@ summary(chosen)
 AIC(chosen.a)
 AIC(chosen)
 
-#The likelihood ratio test doesn't suggest change
-LR.test(chosen.a, chosen)
-
 #Much residuals slightly larger with autocorrelated model -- more uncertainty that the indepdnant more would suggest
-sum(auto.2$res**2)-sum(ind.2$res**2)
-
-
+#sum(auto.2$res**2)-sum(ind.2$res**2)
 
 ```
 
-Observations
-* Larger projected volumes inherantly have more variation in acheiving the actual volumes. 
+### Comparing the sum of distributional parameters to simulating via monte carlo
 
-* The variation around the calibration model is negatively affected by VRI projected height
+In Robinson et al. (2016), each of the response distributions were summed after sampling 10000 samples from each of the response distributions. However, this is computationally slow ( adds ~ 30 seconds for 326 harvest units). Instead of sampling each individual response distribution -- we can sum the means and sigmas because the individual responses are independant. Here is a comparison between mathematically estimating the total response distribution versus simulating it with many samples.
 
-#### Summing iid GA random variables -- rather than simulating via monte carlo
-
-```{r, iid}
+```{r, iid, echo = FALSE}
 #Assuming indepdnance model
 test.iid.data<-ind.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1")] 
 test.iid.0<- predictAll(chosen, newdata = test.iid.data) 
 test.iid.data$mu<-test.iid.0$mu 
 test.iid.data$sigma<-test.iid.0$sigma 
   
-sum(test.iid.data$obs_vol)
-sum(test.iid.data$proj_vol)
-sum(test.iid.data$mu)
-sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))
+#sum(test.iid.data$obs_vol)
+#sum(test.iid.data$proj_vol)
+#sum(test.iid.data$mu)
+#sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))
 
 #est param
-sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))/sum(test.iid.data$mu)
+#sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))/sum(test.iid.data$mu)
 summed<-rGA(20000, mu = sum(test.iid.data$mu), sigma = sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))/sum(test.iid.data$mu) )
-hist(summed)
-quantile(summed, c(0.05, 0.5, 0.95))
+#quantile(summed, c(0.05, 0.5, 0.95))
 
 #-------
 #Autocorrelated model
@@ -605,65 +460,218 @@ test.auto.0<- predictAll(chosen.a, newdata = test.auto.data)
 test.auto.data$mu<-test.auto.0$mu 
 test.auto.data$sigma<-test.auto.0$sigma 
   
-sum(test.auto.data$obs_vol)
-sum(test.auto.data$proj_vol)
-sum(test.auto.data$mu)
-sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))
-
-#est param
-sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu)
-summed.auto<-rGA(20000, mu = sum(test.auto.data$mu), 
-                 sigma = sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu))
-quantile(summed.auto, c(0.05, 0.5, 0.95))
-
-data.76<-rbind(data.table(vol = summed, type = "ass_iid"), data.table(vol = summed.auto, type = "auto"))
-ggplot(data.76, aes(vol, fill = type)) + 
-geom_histogram(alpha = 0.5, position = 'identity')+
-geom_vline(xintercept = sum(test.auto.data$obs_vol))
+#sum(test.auto.data$obs_vol)
+#sum(test.auto.data$proj_vol)
+#sum(test.auto.data$mu)
+#sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))
 
 #-------
 
 #simulate
 sim.volume <-
-    sapply(1:10000,
+    sapply(1:20000,
            function(x)
-             with(test.iid.data,
-                  sum(rGA(nrow(test.iid.data), 
+             with(test.auto.data,
+                  sum(rGA(nrow(test.auto.data), 
                           mu = mu,
                           sigma = sigma))))
-hist(sim.volume)
-quantile(sim.volume, c(0.05, 0.5, 0.95))
 
-data.77<-rbind(data.table(vol = summed, type = "math"), data.table(vol = sim.volume, type = "sim"))
+#hist(sim.volume)
+#quantile(sim.volume, c(0.05, 0.5, 0.95))
 
+
+#est param via math
+#sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu)
+summed.auto<-rGA(20000, mu = sum(test.auto.data$mu), 
+                 sigma = sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu))
+quantile(summed.auto, c(0.025, 0.05, 0.5, 0.95, 0.975))
+
+# compare the distributiongs for math and sim
+data.77<-rbind(data.table(vol = summed.auto, type = "math"), data.table(vol = sim.volume, type = "sim"))
 ggplot(data.77, aes(vol, fill = type)) + 
 geom_histogram(alpha = 0.5, position = 'identity') 
+
+```
+
+Now lets compare the model assuming independance and the spatial model. Here we see that the spatial model is less biased than the model that assumes independance. The mean of the spatial model is much closer to the observed total.
+
+```{r, spat_mod_compare, echo = FALSE}
+
+
+
+data.76<-rbind(data.table(vol = summed, type = "assume_iid"), data.table(vol = summed.auto, type = "spatial"))
+ggplot(data.76, aes(vol, fill = type)) + 
+geom_histogram(alpha = 0.5, position = 'identity') +
+geom_vline(xintercept = sum(test.auto.data$obs_vol), size = 1.5 ) +
+geom_text(aes(x=5250000, y=3500, label= "Observed"), hjust = 1)+
+geom_vline(xintercept = sum(test.auto.data$proj_vol), size = 1.5, linetype = 'dotted') +
+  geom_text(aes(x=6150000, y=3500, label= "Naively Projected"), hjust = 1)+
+geom_vline(xintercept = sum(test.auto.data$mu), color = '#619CFF') +
+geom_vline(xintercept = sum(test.iid.data$mu), color = '#F8766D') +
+  labs(x = "Total Volume (m3)", y = "Count") +
+  stat_function(fun = pnorm, n = 101, args = list(mean = 4935127, sd = 358751.2)) 
+
+
+#mean(test.auto.data$obs_vol)*length(test.auto.data$obs_vol)
+#sd.t<-((sd(test.auto.data$obs_vol)/sqrt(length(test.auto.data$obs_vol))))*length(test.auto.data$obs_vol)
+
+#ci<-data.frame(lb=sum(test.auto.data$obs_vol) - (2*sd.t),ub= sum(test.auto.data$obs_vol) + (2*sd.t))
+
 
 ##Very close - essentially the same
 ```
 
 ### Compare obs vs predicted distributions
+
+Here we compare the cummulative dsitributions to see any deviations between the predicted and response surfaces. They are very similar - a few deviations most notably at larger predictions of the response.
 ```{r, cdfs}
 #ECDF
 auto.2$surf<-"obs"
-obs.1<-cbind(auto.2$obs_vol,auto.2$surf)
+obs.1<-cbind(test.auto.data$obs_vol,auto.2$surf)
 auto.2$surf<-"prd"
-proj.1<-cbind(auto.2$V2,auto.2$surf)
+proj.1<-cbind(test.iid.data$mu,auto.2$surf)
 
 data.78<-rbind(obs.1, proj.1)
 data.78<-data.table(data.78)
 data.78$V1<-as.numeric(data.78$V1)
-
-plot_grid( ggplot(data.78, aes(V1, fill = V2)) + 
-geom_histogram(alpha = 0.5, position = 'identity'),
 ggplot(data.78, aes(V1, color = V2)) + 
-stat_ecdf(alpha = 0.5, position = 'identity'), nrow =2 )
+stat_ecdf(alpha = 0.5, position = 'identity')
 
 ```
 
+
+### Effects
+
+Now that the spatial model has passed the modelling assumptions. Let explore the effects that were modelled. In the spatial calibration model the naively projected volume and the VRI height.
+
+```{r, plot_some_stuff, echo = FALSE}
+#res<-residuals(chosen)
+#saveRDS(chosen, "calb_ymodel.rds")
+#saveRDS(calb_data4, "calb_data.rds")
+chosen<-chosen.a
+
+#--Min effect
+trajectory.min <-
+  with(calb_data4,
+       expand.grid(proj_vol =
+                   seq(from = min(proj_vol),
+                       to = max(proj_vol),
+                       length.out = 100),
+                   proj_height_1= min(proj_height_1),
+                   proj_age_1= min(proj_age_1),
+                   X = mean(X),
+                   Y = mean(Y),
+                   dummy = 1
+                   ))
+
+new.dist.min <- predictAll(chosen, newdata = trajectory.min)
+trajectory.min$mu <- new.dist.min$mu
+trajectory.min$sigma <- new.dist.min$sigma
+trajectory.min$upper.2 <- with(new.dist.min, qGA(0.95, mu = mu, sigma = sigma))
+trajectory.min$lower.2 <- with(new.dist.min, qGA(0.05, mu = mu, sigma = sigma))
+trajectory.min$upper.1 <- with(new.dist.min, qGA(0.67, mu = mu, sigma = sigma))
+trajectory.min$lower.1 <- with(new.dist.min, qGA(0.33, mu = mu, sigma = sigma))
+
+#--Mean effect
+trajectory.mean <-
+  with(calb_data4,
+       expand.grid(proj_vol =
+                   seq(from = min(proj_vol),
+                       to = max(proj_vol),
+                       length.out = 100),
+                   proj_height_1= mean(proj_height_1),
+                   proj_age_1= mean(proj_age_1),
+                   X = mean(X),
+                   Y = mean(Y),
+                   dummy = 1
+                   ))
+new.dist.mean <- predictAll(chosen, newdata = trajectory.mean)
+trajectory.mean$mu <- new.dist.mean$mu
+trajectory.mean$sigma <- new.dist.mean$sigma
+trajectory.mean$upper.2 <- with(new.dist.mean, qGA(0.95, mu = mu, sigma = sigma))
+trajectory.mean$lower.2 <- with(new.dist.mean, qGA(0.05, mu = mu, sigma = sigma))
+trajectory.mean$upper.1 <- with(new.dist.mean, qGA(0.67, mu = mu, sigma = sigma))
+trajectory.mean$lower.1 <- with(new.dist.mean, qGA(0.33, mu = mu, sigma = sigma))
+
+#Max effect
+trajectory.max <-
+  with(calb_data4,
+       expand.grid(proj_vol =
+                   seq(from = min(proj_vol),
+                       to = max(proj_vol),
+                       length.out = 100),
+                   proj_height_1= max(proj_height_1),
+                   proj_age_1= max(proj_age_1),
+                   X = mean(X),
+                   Y = mean(Y),
+                   dummy = 1
+                   ))
+
+new.dist.max <- predictAll(chosen, newdata = trajectory.max)
+
+trajectory.max$mu <- new.dist.max$mu
+trajectory.max$sigma <- new.dist.max$sigma
+trajectory.max$upper.2 <- with(new.dist.max, qGA(0.95, mu = mu, sigma = sigma))
+trajectory.max$lower.2 <- with(new.dist.max, qGA(0.05, mu = mu, sigma = sigma))
+trajectory.max$upper.1 <- with(new.dist.max, qGA(0.67, mu = mu, sigma = sigma))
+trajectory.max$lower.1 <- with(new.dist.max, qGA(0.33, mu = mu, sigma = sigma))
+
+
+p.min <-
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
+  geom_point(alpha=0.4) +
+  #facet_wrap(~ ForestQualityClass) +
+  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
+  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
+  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.min, lwd = 1.75) +
+  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.min) +
+  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.min) +
+  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.min) +
+  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.min) +
+  geom_abline(intercept =0, slope=1, col ="yellow")+
+  ylim(0,200000)
+
+p.max <-
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
+  geom_point(alpha=0.4) +
+  #facet_wrap(~ ForestQualityClass) +
+  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
+  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
+  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.max, lwd = 1.75) +
+  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.max) +
+  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.max) +
+  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.max) +
+  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.max) +
+  geom_abline(intercept =0, slope=1, col ="yellow")+
+  ylim(0,200000)
+
+p.mean <-
+  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
+  geom_point(alpha=0.4) +
+  #facet_wrap(~ ForestQualityClass) +
+  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
+  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
+  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.mean, lwd = 1.75) +
+  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.mean) +
+  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.mean) +
+  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.mean) +
+  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.mean) +
+  geom_abline(intercept =0, slope=1, col ="yellow")+
+  ylim(0,200000)
+
+plot_grid(p.min, p.mean,p.max, labels = c("min(ht)", "mean(ht)", "max(ht)"))
+```
+
+
+# Conclusions
+
+* Larger projected volumes inherently have more uncertainty. 
+
+* VRI projected height is negatively related to uncertainty.
+
 ## Exercises
 
-To demonstrate use of the calibration model we implemented a yield calibration module in [forestrycLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/forestryCLUS). 
+To demonstrate possible spatial effects of clustering use the calibration model in [forestryCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/forestryCLUS). 
 
 # References
 
