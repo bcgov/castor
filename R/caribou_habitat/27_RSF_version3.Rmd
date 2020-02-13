@@ -101,9 +101,9 @@ gc ()
 
 ## Results
 ### DU6
-Telemetry data in DU6 was collected from 160 animals from the Calendar, Chinchaga, Maxhamish, Westside Fort Nelson (formerly Parker and Prophet ranges), and Snake-Sahtaneh herds. The number of animals sampled in each herd ranged form 5 to 43 animals and the numeber of telmetry locations ranged 8,144 to 57,307 (Table 1).
+Caribou location data in DU6 was collected from 160 animals from the Calendar, Chinchaga, Maxhamish, Westside Fort Nelson (formerly Parker and Prophet ranges), and Snake-Sahtaneh herds. The number of animals sampled in each herd ranged from 5 to 43 and the number of telemetry locations ranged from 8,144 to 57,307 per herd (Table 1).
 
-```{r, du6, data summary, eval = T, echo = F, message = F}
+```{r, du6, data summary, eval = T, echo = F, message = F, eval = T}
 # number of animals, by herd
 count.animals.herd <- rsf.data.du6  %>%
   group_by(HERD_NAME) %>%
@@ -131,10 +131,9 @@ kable (table,
 
 ```
 
-#### Herd-Level Effect of FOrestry on Caribou Distribution
-There were some small differences in herd response to resoruce roads in DU6 (Fig. 1). For example, caribou in the Calendar, Chinchaga and Prophet herds tended to be further from roads then in other herds. A random efefct for distance to road was included in the   
-
-```{r, du6 Herd road effect plot, echo = F, message = F}
+#### Herd-Level Effect of Forestry on Caribou Distribution
+There were some small differences in herd response to resource roads in DU6 (Fig. 1). For example, caribou in the Calendar, Chinchaga and Prophet herds tended to be further from roads then in other herds. A random effect for distance to road was included in the GLMM to account for this variability.  
+```{r, du6 Herd road effect plot, echo = F, message = F, eval = T}
 ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
   labs (title = "Figure 1. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6",
@@ -145,13 +144,9 @@ ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_resource_road)) +
          plot.title = element_text (size = 12))
 ```
 
+There was variability in caribou response to cutblocks across herds in DU6 (Fig. 2). For example, caribou in the Calendar adn Maxhamish herds used areas closer to cutblocks compared to other herds. A random effect for distance to cutblock was included in the GLMM to account for this variability.
 
-
-more variability in distance to cutblocks across herds, e.g., in Calendar, use closer to roads in area far from roads, but use further from roads in area closer to roads (Chinchaga)
-
-
-
-```{r, du6 Herd cutblock effect plot, echo = F, message = F}
+```{r, du6 Herd cutblock effect plot, echo = F, message = F, eval = T}
 ggplot (rsf.data.du6, aes (x = pttype, y = dist_cut_min_all)) +
   geom_boxplot (outlier.colour = "red") +
   labs (title = "Figure 2. Distance to Cutblock at Available (0) and Used (1) Locations by Caribou Herd in DU6",
@@ -162,22 +157,11 @@ ggplot (rsf.data.du6, aes (x = pttype, y = dist_cut_min_all)) +
          plot.title = element_text (size = 12))
 ```
 
+#### Caribou-Forestry Disturbance Model
+I fit a model with a functional response for distance to road but not cutblock (Table 4). The model indicated a weak (non-significant), negative effect of cutblocks on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was clearly greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see interactive plot below). 
 
-
-
-
-
-
-#### Fit Models
-Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
-
-fucntional response calcualte at indivual level, i.e., available 'resrouce' calcualted within hoem rnage (coudl also try at herd level model); assumption is thta indivudal in herd will acocutn for herd varaibility (i.e., inidvudlas are rpeseeantiative untis of the herd); still incl RE for slope at herd scale to alow for vaariabiltiy there
-
-looked at fxn reponse predcitons and evaluated visually if clear fxn response; no clear fxn response with cutblcks when incl road fxn responses in models, so only incl road fxn response; 
-
-some high resiudlas at ~16 km form roads. looked at indivudals and no clear pattern (ddfiferen inds, herds, saeasons), so didn;t remove; perhasps males?
-
-```{r, du6 model, echo = F, message = F}
+```{r, du6 model, echo = T, message = F, eval = F}
+# model spec
 model.lme4.du6.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all + 
                                                 distance_to_resource_road +
                                                 dist_rd_E +
@@ -193,72 +177,62 @@ binnedplot (fitted (model.lme4.du6.cut.rd.fxn),
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
-             main = "Binned residual plot", 
+             main = "DU6 Model Binned Residual Plot", 
              cex.pts = 0.4, 
              col.pts = 1, 
              col.int = "red")
-binnedplot (rsf.data.du6$distance_to_resource_road, 
-             residuals(model.lme4.du6.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Road", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (rsf.data.du6$dist_cut_min_all, 
-             residuals(model.lme4.du6.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Cut", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
+```
 
-# check fxn response
-scatter3d (rsf.data.du6$distance_to_resource_road, 
-           rsf.data.du6$dist_res_road_E,
-           (predict (model.lme4.du6.cut.rd.fxn,
-                     newdata = rsf.data.du6, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           theta = 15, phi = 20)
+```{r, du6 model fixed effects coeffs, echo = F, message = F, eval = T}
+# model.coeffs <- as.data.frame (coef (summary (model.lme4.du6.cut.rd.fxn)))
 
-data.road.test <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\rd_fxn_test_data.csv")
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_res_road_E,
-           (predict (model.lme4.du6.cut.rd.fxn,
-                     newdata = data.road.test, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           theta = 15, phi = 20)
+du6.fe <- read.csv (here ("R/caribou_habitat/data", "table_du6_model_fixed_coeffs_v3.csv"))
 
-# save the top model
-save (model.lme4.du6.cut.rd.fxn, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du6_top_v3.rda")
-
-# Create table of model coefficients from top model
-model.coeffs <- as.data.frame (coef (summary (model.lme4.du6.cut.rd.fxn)))
-write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du6_model_fixed_coeffs_v3.csv", sep = ",")
-
-# random effects by herd
-re_coeffs.herd <- as.data.frame (coef(model.lme4.du6.cut.rd.fxn)$HERD_NAME)
-write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du6_model_herd_re_coeffs_v3.csv", sep = ",")
+kable (du6.fe,
+       caption = "<b>Table 4. Fixed Effect Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
 
 ```
 
+```{r, du6 model road fxn response, echo = F, message = F, eval = T}
+data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
+data.road.test <- data.road.test [c(1:248),] # first 10km only  
+scatter3d (data.road.test$distance_to_resource_road, 
+           data.road.test$dist_res_road_E,
+           data.road.test$predict_du6, 
+           xlab = "Distance to Road",
+           ylab = "Average Distance to Road (HR)", 
+           zlab = "Caribou Use",
+           surface = F,
+           pch = 6, point.col = "blue",
+           axis.ticks = T,
+           grid = T)
+```
+
+Random effects in the DU6 model indicated that caribou response to roads was relatively consistent across herds (Table 5). However, there was much more variability in the caribou response to cutblocks. Cariobu in the Calendar, Chinchaga and Prophet herds showed weak use of habtiat near cutblocks, whereas caribou in teh Maxhamish, Parker and Snake-Sahtaneh showed avoidance of cutblocks.
+
+```{r, du6 model random effects coeffs, echo = F, message = F, eval = T}
+du6.re <- read.csv (here ("R/caribou_habitat/data", "table_du6_model_herd_re_coeffs_v3.csv"))
+
+kable (du6.re,
+       caption = "<b>Table 5. Random Effect Herd-Level Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
 
 ### DU7
-northern mtn, included animals from Itcha-Ilgachuz, Rainbows, Charlotte Alplands, Tweedsmuir, Spatsizi, Pink Mountain, Muskwa, Frog, Chase, Finlay, Graham, Tsenaglode, Telkwa (Table 1).
+Caribou location data in DU7 was collected from 131 animals from the Charlotte Alplands, Chase, Finlay, Frog, Graham, Itch-Ilgachuz, Muskwa, Pink Mountain, Rainbows, Spatsizi, Telkwa, Tsenaglode and Tweedsmuir herds. The number of animals sampled ranged from 1 to 35 per herd and the number of telemetry locations ranged from 856 to 41,837 per herd (Table 6).
 
-Ranged from 1 to 35 aniamls and 856 to 41,837 locations by herd. 
-
-```{r, DU7, data summary, echo = F, message = F}
+```{r, DU7, data summary, echo = F, message = F, eval = T}
 count.animals.herd <- rsf.data.du7  %>%
   group_by(HERD_NAME) %>%
   summarise(count = n_distinct(animal_id))
@@ -276,7 +250,7 @@ table <- table %>%
           Locations = count.y)
 
 kable (table,
-       caption = "<b>Table 1. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU7.<b>") %>%
+       caption = "<b>Table 6. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU7.<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -285,44 +259,38 @@ kable (table,
 
 ```
 
-#### Herd Effect of Disturbance
-show that response to roads and cutbocks varies by herd
+#### Herd-Level Effect of Forestry on Caribou Distribution
+There was variability in caribou response to resource roads across caribou herds in DU7 (Fig. 3). For example, caribou in the Chase, Graham, Itcha-Ilgachuz, Tsenaglode and Tweedsmuir tended to be further from roads, whereas caribou in the Frog tended ot be closer to roads. A random effect for distance to road was included in the GLMM to account for this variability.
 
-possible fucntional repsonse; difernt response dependnign on hoem rnage context, by herd
-
-```{r, DU7 Herd effect plots, echo = F, message = F}
-
-ggplot (rsf.data.du7, 
-        aes (x = pttype, y = distance_to_resource_road)) +
+```{r, du7 Herd road effect plot, echo = F, message = F, eval = T}
+ggplot (rsf.data.du7, aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Resource Road at Available (0) and Used (1) Locations",
+  labs (title = "Figure 3. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU7",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
+  theme (strip.text.x = element_text (size = 6),
+         plot.title = element_text (size = 12))
+```
 
-ggplot (rsf.data.du7, 
-        aes (x = pttype, y = dist_cut_min_all)) +
+There was variability in caribou response to cutblocks across herds in DU7 (Fig. 4). For example, caribou in the Itcha-Ilgachuz, Muskwa, Pink Mountain and Rainbows herds used areas further from cutblocks, whereas cariou in the Frog and Tsenaglode herds used areas closer to cutblocks. A random effect for distance to cutblock was included in the GLMM to account for this variability.
+
+```{r, du7 Herd cutblock effect plot, echo = F, message = F, eval = T}
+ggplot (rsf.data.du7, aes (x = pttype, y = dist_cut_min_all)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Cutblock at Available (0) and Used (1) Locations",
+  labs (title = "Figure 4. Distance to Cutblock at Available (0) and Used (1) Locations by Caribou Herd in DU7",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
-
+  theme (strip.text.x = element_text (size = 6),
+         plot.title = element_text (size = 12))
 ```
 
+#### Caribou-Forestry Disturbance Model
+I fit a model with a functional response for distance to road but not cutblock (Table 5). The model indicated a weak (non-significant), negative effect of cutblocks on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see interactive plot below). 
 
-#### Fit Models
-Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
-
-fucntional response calcualte at indivual level, i.e., available 'resrouce' calcualted within hoem rnage (coudl also try at herd level model); assumption is thta indivudal in herd will acocutn for herd varaibility (i.e., inidvudlas are rpeseeantiative untis of the herd); still incl RE for slope at herd scale to alow for vaariabiltiy there
-
-looked at fxn reponse predcitons and evaluated visually if clear fxn response; no clear fxn response with cutblcks when incl road fxn responses in models, so only incl road fxn response; 
-
-some high resiudlas at ~16 km form roads. looked at indivudals and no clear pattern (ddfiferen inds, herds, saeasons), so didn;t remove; perhasps males?
-
-```{r, du7 model, echo = F, message = F}
+```{r, du7 model, echo = T, message = F, eval = F}
+# model spec
 model.lme4.du7.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all +
                                              distance_to_resource_road +
                                              dist_rd_E +
@@ -331,90 +299,64 @@ model.lme4.du7.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all +
                                   data = rsf.data.du7,
                                   family = binomial (link = "logit"),
                                   verbose = T)
-
-summary (model.lme4.du7.cut.rd.fxn)
-
-model.lme4.du7.cut.rd.fxn.all <- allFit (model.lme4.du7.cut.rd.fxn) # did not converge, ran with many optimizers and got very similar coeffecients, so model considered ok (see hlep ('convergence'))
-ss <- summary (model.lme4.du7.cut.rd.fxn.all)
-ss$which.OK
-ss$fixef
-
 # check residuals
-rsf.data.du7$resids <- residuals (model.lme4.du7.cut.rd.fxn, type = "response")
-rsf.data.du7$fit <- fitted (model.lme4.du7.cut.rd.fxn)
-ggplot (rsf.data.du7, aes (x = fit, y = resids)) +
-  geom_point ()
 binnedplot (fitted (model.lme4.du7.cut.rd.fxn), 
              residuals(model.lme4.du7.cut.rd.fxn, type = "response"), 
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
-             main = "Binned residual plot", 
+             main = "DU7 Model Binned Residual Plot", 
              cex.pts = 0.4, 
              col.pts = 1, 
              col.int = "red")
-binnedplot (rsf.data.du7$distance_to_resource_road, 
-             residuals(model.lme4.du7.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Road", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (rsf.data.du7$dist_cut_min_all, 
-             residuals(model.lme4.du7.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Cutblock", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
-# check fxn response
-scatter3d (rsf.data.du7$distance_to_resource_road, 
-           rsf.data.du7$dist_rd_E,
-           (predict (model.lme4.du7.cut.rd.fxn,
-                     newdata = rsf.data.du7, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           surface = T)
-data.road.test <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\rd_fxn_test_data.csv")
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_rd_E,
-           (predict (model.lme4.du7.cut.rd.fxn,
-                     newdata = data.road.test, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           surface = T,
-           fit = "smooth")
-
-# save the top model
-save (model.lme4.du7.cut.rd.fxn, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du7_top_v3.rda")
-
-# Create table of model coefficients from top model
-model.coeffs <- as.data.frame (coef (summary (model.lme4.du7.cut.rd.fxn)))
-write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_fixed_coeffs_v3.csv", sep = ",")
-
-# random effects by herd adn season
-re_coeffs.herd <- as.data.frame (coef(model.lme4.du7.cut.rd.fxn)$HERD_NAME)
-write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du7_model_herd_re_coeffs_v3.csv", sep = ",")
-
 ```
 
+```{r, du7 model fixed effects coeffs, echo = F, message = F, eval = T}
+# model.coeffs <- as.data.frame (coef (summary (model.lme4.du7.cut.rd.fxn)))
+du7.fe <- read.csv (here ("R/caribou_habitat/data", "table_du7_model_fixed_coeffs_v3.csv"))
+kable (du7.fe,
+       caption = "<b>Table 5. Fixed Effect Coefficients of the DU7 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
+
+```{r, du7 model road fxn response, echo = F, message = F, eval = T}
+data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
+scatter3d (data.road.test$distance_to_resource_road, 
+           data.road.test$dist_res_road_E,
+           data.road.test$predict_du7, 
+           xlab = "Distance to Road",
+           ylab = "Average Distance to Road (HR)", 
+           zlab = "Caribou Use",
+           surface = F,
+           pch = 6, point.col = "blue",
+           axis.ticks = T,
+           grid = T)
+```
+
+Random effects in the DU7 model indicated that caribou avodied roads consistently across herds, although there was significant variability in the strength of avoidance (Table 6). There was more variability in the caribou response to cutblocks. Cariobu in the Charlotte Alplands, Finlay, Frog, Graham, Pink Mountain, Spatsizi, Tsenaglode and TWeedsmuir tended to be closer to cutblocks, whereas caribou in other herds tended to avoid cutblocks. 
+
+```{r, du7 model random effects coeffs, echo = F, message = F, eval = T}
+du7.re <- read.csv (here ("R/caribou_habitat/data", "table_du7_model_herd_re_coeffs_v3.csv"))
+
+kable (du7.re,
+       caption = "<b>Table 6. Random Effect Herd-Level Coefficients of the DU7 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
 
 ### DU8
-Central mtn, included animals from Burnt Pine, Kennedy Siding, Moberly, Narraway, Qunittet adn Scott (Table 2).
+Caribou location data in DU8 was collected from 152 animals from the Burnt Pine, Kennedy Siding, Moberly, Narraway, Quintette and Scott herds. The number of animals sampled per herd ranged from 8 to 35 and the number of telemetry locations per herd ranged from 5,414 to 65,431 per herd (Table 6).
 
-Ranged from 8 to 57 animals and 5,414 to 65,431 locations by herd. 
-
-```{r, DU8, data summary, echo = F, message = F}
+```{r, DU8, data summary, echo = F, message = F, eval = T}
 count.animals.herd <- rsf.data.du8  %>%
   group_by(HERD_NAME) %>%
   summarise(count = n_distinct(animal_id))
@@ -432,7 +374,7 @@ table <- table %>%
           Locations = count.y)
 
 kable (table,
-       caption = "<b>Table 2. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU8.<b>") %>%
+       caption = "<b>Table 7. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU8.<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -441,43 +383,38 @@ kable (table,
 
 ```
 
-#### Herd Effect of Disturbance
-show that response to roads and cutbocks varies by herd
+#### Herd-Level Effect of Forestry on Caribou Distribution
+There was variability in caribou response to resource roads across caribou herds in DU8 (Fig. 5). For example, caribou in the Burnt Pine, Kennedy Siding and Scott herds tended to be closer to roads, whereas caribou in the Moberly, Narraway and Quintette tended to be further from roads. A random effect for distance to road was included in the GLMM to account for this variability.
 
-pssobiel fucntional repsonse; difernt response dependnign on hoem rnage context, by herd, e.g., more avodiance of roads in NArrawya and Quintette, no clear efefct in Kennedy Siging or Burnt Pine (note that Burtn Pine now extirpated); avoidance of cutblock in Quintette, but maybe selction in Narraway adn Burtn Pine
-
-```{r, DU8 Herd effect plots, echo = F, message = F}
-
-ggplot (rsf.data.du8, 
-        aes (x = pttype, y = distance_to_resource_road)) +
+```{r, du8 Herd road effect plot, echo = F, message = F, eval = T}
+ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Resource Road at Available (0) and Used (1) Locations",
+  labs (title = "Figure 5. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU8",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
+  theme (strip.text.x = element_text (size = 7),
+         plot.title = element_text (size = 10))
+```
 
-ggplot (rsf.data.du8, 
-        aes (x = pttype, y = dist_cut_min_all)) +
+There was variability in caribou response to cutblocks across herds in DU8 (Fig. 6). For example, caribou in the Quintette herd tended to use areas further from cutblocks, whereas caribou in the Narraway herd tended to be closer to cutblocks. A random effect for distance to cutblock was included in the GLMM to account for this variability.
+
+```{r, du8 Herd cutblock effect plot, echo = F, message = F, eval = T}
+ggplot (rsf.data.du8, aes (x = pttype, y = dist_cut_min_all)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Cutblock at Available (0) and Used (1) Locations",
+  labs (title = "Figure 4. Distance to Cutblock at Available (0) and Used (1) Locations by Caribou Herd in DU8",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
-
+  theme (strip.text.x = element_text (size = 6),
+         plot.title = element_text (size = 12))
 ```
 
-#### Fit Models
-Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
+#### Caribou-Forestry Disturbance Model
+I fit a model with a functional response for distance to road but not cutblock (Table 8). The model indicated a positive populaiton-level effect of cutblocks on caribou distribution and negative popaultion-level effect of roads on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see interactive plot below). 
 
-fucntional response calcualte at indivual level, i.e., available 'resrouce' calcualted within hoem rnage (coudl also try at herd level model); assumption is thta indivudal in herd will acocutn for herd varaibility (i.e., inidvudlas are rpeseeantiative untis of the herd); still incl RE for slope at herd scale to alow for vaariabiltiy there
-
-looked at fxn reponse predcitons and evaluated visually if clear fxn response; no clear fxn response with cutblcks when incl road fxn responses in models, so only incl road fxn response; 
-
-some high resiudlas at ~16 km form roads. looked at indivudals and no clear pattern (ddfiferen inds, herds, saeasons), so didn;t remove; perhasps males?
-
-```{r, DU8 model, echo = F, message = F}
+```{r, du8 model, echo = T, message = F, eval = F}
+# model spec
 model.lme4.du8.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all + 
                                             distance_to_resource_road +
                                             dist_rd_E + 
@@ -487,88 +424,64 @@ model.lme4.du8.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all +
                                   data = rsf.data.du8, 
                                   family = binomial (link = "logit"),
                                   verbose = T) 
-
-summary (model.lme4.du8.cut.rd.fxn)
-
 # check residuals
-rsf.data.du8$resids <- residuals (model.lme4.du8.cut.rd.fxn, type = "response")
-rsf.data.du8$fit <- fitted (model.lme4.du8.cut.rd.fxn)
-ggplot (rsf.data.du8, aes (x = fit, y = resids)) +
-  geom_point ()
 binnedplot (fitted (model.lme4.du8.cut.rd.fxn), 
              residuals(model.lme4.du8.cut.rd.fxn, type = "response"), 
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
-             main = "Binned residual plot", 
+             main = "DU8 Model Binned Residual Plot", 
              cex.pts = 0.4, 
              col.pts = 1, 
              col.int = "red")
-binnedplot (rsf.data.du8$distance_to_resource_road, 
-             residuals(model.lme4.du8.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Road", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (rsf.data.du8$dist_cut_min_all, 
-             residuals(model.lme4.du8.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Cut", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
-# fxn response
-scatter3d (rsf.data.du8$distance_to_resource_road, 
-           rsf.data.du8$dist_rd_E,
-           (predict (model.lme4.du8.cut.rd.fxn,
-                     newdata = rsf.data.du8, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           fir = "smooth")
-
-data.road.test <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\rd_fxn_test_data.csv")
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_rd_E,
-           (predict (model.lme4.du8.cut.rd.fxn,
-                     newdata = data.road.test, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           fir = "smooth")
-
-# save the top model
-save (model.lme4.du8.cut.rd.fxn, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du8_top_v3.rda")
-
-# Create table of model coefficients from top model
-model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.cut.rd.fxn)))
-write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_model_fixed_coeffs_v3.csv", sep = ",")
-
-# random effects by herd
-re_coeffs.herd <- as.data.frame (coef(model.lme4.du8.cut.rd.fxn)$HERD_NAME)
-write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du8_model_herd_re_coeffs_v3.csv", sep = ",")
-
 ```
 
+```{r, du8 model fixed effects coeffs, echo = F, message = F, eval = T}
+# model.coeffs <- as.data.frame (coef (summary (model.lme4.du8.cut.rd.fxn)))
+du8.fe <- read.csv (here ("R/caribou_habitat/data", "table_du8_model_fixed_coeffs_v3.csv"))
+kable (du8.fe,
+       caption = "<b>Table 8. Fixed Effect Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
+
+```{r, du8 model road fxn response, echo = F, message = F, eval = T}
+data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
+scatter3d (data.road.test$distance_to_resource_road, 
+           data.road.test$dist_res_road_E,
+           data.road.test$predict_du8, 
+           xlab = "Distance to Road",
+           ylab = "Average Distance to Road (HR)", 
+           zlab = "Caribou Use",
+           surface = F,
+           pch = 6, point.col = "blue",
+           axis.ticks = T,
+           grid = T)
+```
+
+Random effects in the DU8 model indicated that caribou avoided roads consistently across herds, although there was variability in the strength of avoidance (Table 9). There was also generally consistent use of areas close to cutblocks acorss herds, with the exception of the Quintette herd, where caribou avoided cutblocks.
+
+```{r, du8 model random effects coeffs, echo = F, message = F, eval = T}
+du8.re <- read.csv (here ("R/caribou_habitat/data", "table_du8_model_herd_re_coeffs_v3.csv"))
+
+kable (du8.re,
+       caption = "<b>Table 9. Random Effect Herd-Level Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
 
 ### DU9
-Southern mtn, included animals from HArt Ranges, Nakusp and Sotuh Selkirks
+Caribou location data in DU9 was collected from 25 animals from the Hart Ranges, Nakusp and South Selkirks herds. The number of animals sampled per herd ranged from 6 to 11 and the number of telemetry locations per herd ranged from 1,821 to 4,917 per herd (Table 10).
 
-(Table 3).
-
-Ranged from 6 to 11 animals and 1,821 to 4,917 locations by herd. 
-
-```{r, du9, data summary, echo = F, message = F}
-# numebr of animals, by herd
+```{r, du9, data summary, echo = F, message = F, eval = T}
 count.animals.herd <- rsf.data.du9  %>%
   group_by(HERD_NAME) %>%
   summarise(count = n_distinct(animal_id))
@@ -586,7 +499,7 @@ table <- table %>%
           Locations = count.y)
 
 kable (table,
-       caption = "<b>Table 3. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU9.<b>") %>%
+       caption = "<b>Table 10. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU9.<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -595,43 +508,38 @@ kable (table,
 
 ```
 
-#### Herd Effect of Disturbance
-show that response to roads and cutbocks varies by herd
+#### Herd-Level Effect of Forestry on Caribou Distribution
+There was variability in caribou response to resource roads across caribou herds in DU9 (Fig. 7). For example, caribou in the Hart Ranges tended to be closer to roads, whereas caribou in the Nakusp and South Slekirks tended to be further from roads. A random effect for distance to road was included in the GLMM to account for this variability.
 
-pssobiel fucntional repsonse; difernt response dependnign on hoem rnage context, by herd, e.g., more further from roads in Nakusp and South Selkirks, closer to roads in HArt Ranges ; use further form of cutblock in Nakusp, but closer in Hart Rnages and South Selkirks
-
-```{r, du9 Herd effect plots, echo = F, message = F}
-
-ggplot (rsf.data.du9, 
-        aes (x = pttype, y = distance_to_resource_road)) +
+```{r, du9 Herd road effect plot, echo = F, message = F, eval = T}
+ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_resource_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Resource Road at Available (0) and Used (1) Locations",
+  labs (title = "Figure 7. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU9",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 11))
+```
 
-ggplot (rsf.data.du9, 
-        aes (x = pttype, y = dist_cut_min_all)) +
+There was variability in caribou response to cutblocks across herds in DU9 (Fig. 8). For example, caribou in the Hart Ranges herd tended to use areas closer to cutblocks, whereas caribou in the Nakusp herd tended to be further from cutblocks. A random effect for distance to cutblock was included in the GLMM to account for this variability.
+
+```{r, du9 Herd cutblock effect plot, echo = F, message = F, eval = T}
+ggplot (rsf.data.du9, aes (x = pttype, y = dist_cut_min_all)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Distance to Cutblock at Available (0) and Used (1) Locations",
+  labs (title = "Figure 8. Distance to Cutblock at Available (0) and Used (1) Locations by Caribou Herd in DU9",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Cutblock") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6))
-
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 11))
 ```
 
-#### Fit Models
-Fit models with fixed effects including cut + roads with  fucntioanl repsonse adn with RE slope,
+#### Caribou-Forestry Disturbance Model
+I fit a model with a functional response for distance to road but not cutblock (Table 11). The model included negative population-level effects of cutblocks and roads on caribou distribution. However, the effect of cutblocks was weaker than for roads. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see interactive plot below). 
 
-fucntional response calcualte at indivual level, i.e., available 'resrouce' calcualted within hoem rnage (coudl also try at herd level model); assumption is thta indivudal in herd will acocutn for herd varaibility (i.e., inidvudlas are rpeseeantiative untis of the herd); still incl RE for slope at herd scale to alow for vaariabiltiy there
-
-looked at fxn reponse predcitons and evaluated visually if clear fxn response; no clear fxn response with cutblcks when incl road fxn responses in models, so only incl road fxn response; 
-
-some high resiudlas at ~16 km form roads. looked at indivudals and no clear pattern (ddfiferen inds, herds, saeasons), so didn;t remove; perhasps males?
-
-```{r, DU9 model, echo = F, message = F}
+```{r, du9 model, echo = T, message = F, eval = F}
+# model spec
 model.lme4.du9.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all + 
                                                 distance_to_resource_road +
                                                 dist_rd_E +
@@ -641,79 +549,66 @@ model.lme4.du9.cut.rd.fxn <- glmer (pttype ~ dist_cut_min_all +
                                       data = rsf.data.du9, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
-summary (model.lme4.du9.cut.rd.fxn)
-
 # check residuals
-rsf.data.du9$resids <- residuals (model.lme4.du9.cut.rd.fxn, type = "response")
-rsf.data.du9$fit <- fitted (model.lme4.du9.cut.rd.fxn)
-ggplot (rsf.data.du9, aes (x = fit, y = resids)) +
-  geom_point ()
 binnedplot (fitted (model.lme4.du9.cut.rd.fxn), 
              residuals(model.lme4.du9.cut.rd.fxn, type = "response"), 
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
-             main = "Binned residual plot", 
+             main = "DU9 Model Binned Residual Plot", 
              cex.pts = 0.4, 
              col.pts = 1, 
              col.int = "red")
-binnedplot (rsf.data.du9$distance_to_resource_road, 
-             residuals(model.lme4.du9.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Road", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (rsf.data.du9$dist_cut_min_all, 
-             residuals(model.lme4.du9.cut.rd.fxn, type = "response"), 
-             nclass = NULL, 
-             xlab = "Distance to Cut", 
-             ylab = "Average residual", 
-             main = "Binned residual plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
-# check fxn response
-scatter3d (rsf.data.du9$distance_to_resource_road, 
-           rsf.data.du9$dist_rd_E,
-           (predict (model.lme4.du9.cut.fxn.rd.fxn,
-                     newdata = rsf.data.du9, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           theta = 15, phi = 20)
-
-data.road.test <- read.csv ("C:\\Work\\caribou\\clus_data\\caribou\\telemetry_habitat_model_20180904\\rd_fxn_test_data.csv")
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_rd_E,
-           (predict (model.lme4.du9.cut.fxn.rd.fxn,
-                     newdata = data.road.test, 
-                     re.form = NA, type = "response")), 
-           xlab = "Dist Road",
-           ylab = "HR Dist Road", 
-           zlab = "Use/Select",
-           theta = 15, phi = 20)
-
-# save the top model
-save (model.lme4.du9.cut.rd.fxn, 
-      file = "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\Rmodels\\model_du9_top_v3.rda")
-
-# Create table of model coefficients from top model
-model.coeffs <- as.data.frame (coef (summary (model.lme4.du9.cut.rd.fxn)))
-write.table (model.coeffs, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du9_model_fixed_coeffs_v3.csv", sep = ",")
-
-# random effects by herd
-re_coeffs.herd <- as.data.frame (coef(model.lme4.du9.cut.rd.fxn)$HERD_NAME)
-write.table (re_coeffs.herd, "C:\\Work\\caribou\\clus_data\\caribou_habitat_model\\model_coefficients\\table_du9_model_herd_re_coeffs_v3.csv", sep = ",")
-
 ```
 
+```{r, du9 model fixed effects coeffs, echo = F, message = F, eval = T}
+# model.coeffs <- as.data.frame (coef (summary (model.lme4.du9.cut.rd.fxn)))
+du9.fe <- read.csv (here ("R/caribou_habitat/data", "table_du9_model_fixed_coeffs_v3.csv"))
+kable (du9.fe,
+       caption = "<b>Table 11. Fixed Effect Coefficients of the DU9 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
+
+```{r, du9 model road fxn response, echo = F, message = F, eval = T}
+data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
+scatter3d (data.road.test$distance_to_resource_road, 
+           data.road.test$dist_res_road_E,
+           data.road.test$predict_du9, 
+           xlab = "Distance to Road",
+           ylab = "Average Distance to Road (HR)", 
+           zlab = "Caribou Use",
+           surface = F,
+           pch = 6, point.col = "blue",
+           axis.ticks = T,
+           grid = T)
+```
+
+Random effects in the DU9 model indicated that caribou avoided roads consistently across herds, although there was variability in the strength of avoidance (Table 12). There was variability in use of areas close to cutblocks acorss herds, where caribou in teh Nakuysp herd tended to strongly avoid cutblocks, whereas cariobu in the other herds did not.
+
+```{r, du9 model random effects coeffs, echo = F, message = F, eval = T}
+du9.re <- read.csv (here ("R/caribou_habitat/data", "table_du9_model_herd_re_coeffs_v3.csv"))
+
+kable (du9.re,
+       caption = "<b>Table 12. Random Effect Herd-Level Coefficients of the DU9 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
 
 ### Conclusions
+
+
+
+
+
 difference sin effect, but consistent avoidance and fxn reponseot to roads
 
 efefct of cutblocks interstingly ambiguous, but egenral avoindace
