@@ -37,7 +37,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
 library(sf)
 library(dplyr)
-library(velox)
 library(ggplot2)
 library(Hmisc)
 library(bcmaps)
@@ -47,6 +46,7 @@ library(ade4)
 library(plotly)
 library(gamlss)
 library(cowplot)
+library(ncf)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 ```
 
@@ -365,6 +365,7 @@ spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
 
 vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 3000)
 plot(vario2)
+
 bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
 
@@ -395,10 +396,12 @@ chosen.a <- gamlss(obs_vol ~log(proj_vol) + re(random=~1|dummy, correlation = co
                    sigma.formula = ~ log(proj_vol) + proj_height_1 ,
                    sigma.link = "log",
                    family = GA(), data = calb_data4, control = gamlss.control(c.crit = 0.005), method=CG())
+summary(chosen.a)
+
 
 plot(chosen.a)
 
-auto.1<- predictAll(chosen.a, newdata = calb_data4)
+auto.1<- predictAll(chosen.reml, newdata = calb_data4)
 auto.2<-cbind(calb_data4, auto.1$mu)
 auto.2$res<-auto.2$obs_vol - auto.2$V2
 
@@ -418,6 +421,7 @@ bubble(spatialdata.auto, "auto.2.res", col = c("blue", "orange"), main = "Residu
 bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
 
+chosen.reml$mu.coefSmo[[1]]$coefficients$random
 #See how the coefficents change. Note the significance on the intercept. Intercept significance is different.
 chosen.a$mu.coefSmo
 summary(chosen.a)
@@ -546,9 +550,10 @@ Now that the spatial model has passed the modelling assumptions. Let explore the
 
 ```{r, plot_some_stuff, echo = FALSE}
 #res<-residuals(chosen)
+
+chosen<-chosen.a
 #saveRDS(chosen, "calb_ymodel.rds")
 #saveRDS(calb_data4, "calb_data.rds")
-chosen<-chosen.a
 
 #--Min effect
 trajectory.min <-
