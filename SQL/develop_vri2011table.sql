@@ -25,7 +25,7 @@ DELETE FROM ftn_results_2012_16 where timber_mrk IN  (select distinct(timber_mrk
 create table cnx_hbs as (
 select * from (
 (select harvestyr, openingid, ogc_fid, areaha, datasource, cutblockid, dstrbstdt, 
- wkb_geometry, st_area(wkb_geometry)/10000 as cns_area 
+ wkb_geometry , st_area(wkb_geometry)/10000 as cns_area 
  from cns_cut_bl_polygon) as b
 left join 
 	(select opening_id, timber_mrk, dstrbncstr, dstrbncndd
@@ -38,14 +38,14 @@ on a.timber_mrk = c.id)
 
 --Confine the datasource to timber marks that contain only RESULTS
 DELETE FROM cnx_hbs where timber_mrk IN 
-(select distinct(timber_mrk) from cnx_hbs where datasource = 'VRI');
+(select distinct(timber_mrk) from cnx_hbs2 where datasource = 'VRI');
 
 --Alter the end date
 ALTER TABLE public.cnx_hbs ALTER COLUMN dstrbncndd TYPE timestamp
 USING to_timestamp(dstrbncndd, 'YYYYMMDDHH24MISS');
 
 DELETE FROM cnx_hbs where timber_mrk 
-IN (select distinct(timber_mrk) FROM cnx_hbs where pln_net_ar <= 0);
+IN (select distinct(timber_mrk) FROM cnx_hbs2 where pln_net_ar <= 0);
 
 --Remove those timber marks that do not match in area
 DELETE FROM cnx_hbs where timber_mrk IN ( 	
