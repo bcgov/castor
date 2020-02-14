@@ -29,7 +29,7 @@ An important assumption of Robinson et al.'s (2016) approach is that the individ
 
 Robinson et al.'s (2016) approach has not been applied in the province of BC because of challenges with spatially tracking observed scaled volumes. Scaled volume is tracked by the harvest billing system (HBS) which focuses on measuring harvest volumes for accounting of provincal revenue. This tracking is accomplished at a spatial unit known as a timber mark. The timber mark is a unique identifer stamped or marked on the end of each harvested log to associate the log with the specific authority to harvest and move timber. Timber marks are typically assigned to multiple harvested units that may be not be spatially contiguous nor contain a single harvest date. Thus, linking HBS and forest inventory data has been difficult due to the complicated spatial and temporal boundaries of timber marks. In particular, estimating the net area harvested (i.e., netting out roads, wildlife tree patches, etc.) and its spatial boundary can be difficult to determine for historical cutblocks.
 
-Here I develop a calibration model for BC that can be used to provide valuable information about timber projection uncertainty. First, I develop an approach to link timber mark boundaries from the HBS to harvested forest stands, I then build on Robinson et al.'s (2016) approach by developing a calibration model that accounts for spatial correlation of timber volume estimates between harvested forest stands. I then further build on this approach by relating uncertainty estimates to stand characetirics, and highlight what stand types have greater uncertainty in their timber volume yields. The calibration model developed here will support adaptive forest management in BC, by identifying factors leading to greater or lesser uncertainty around strategic decisions. For example, such a model may inform a more robust AAC decision, by helping the Cheif Forster understand situations where uncertainty in yields could lead to over or under estimates in AAC. The proposed calibration model will also be used in the caribou and landuse simulator (CLUS) model to provide an estimate of volume yield uncertainty in the quantification of impacts from caribou conservation activities on harvest flows. 
+Here I develop a calibration model for BC that can be used to provide valuable information about timber projection uncertainty. First, I develop an approach to link timber mark boundaries from the HBS to harvested forest stands, I then build on Robinson et al.'s (2016) approach by developing a calibration model that accounts for spatial correlation of timber volume estimates between harvested forest stands. I then further build on this approach by relating uncertainty estimates to stand characetirics, and highlight what stand types have greater uncertainty in their timber volume yields. The calibration model developed here will support adaptive forest management in BC, by identifying factors leading to greater or lesser uncertainty around strategic decisions. For example, such a model may inform a more robust AAC decision, by helping the Chief Forester understand situations where uncertainty in yields could lead to over or under estimates in AAC. The proposed calibration model will also be used in the caribou and landuse simulator (CLUS) model to provide an estimate of volume yield uncertainty in the quantification of impacts from caribou conservation activities on harvest flows. 
 
 # Methods
 
@@ -46,7 +46,7 @@ Using the forest tenure cutblock polygons, all timber marks comprised of harvest
 
 2. Intersect the timber mark spatial boundaries with the VRI
 
-The resulting spatial boundaries that excluded non-harvested areas were then spatialy intersected with the 2011 VRI to provide the necessary forest attribute information require to link to the growth and yield model. Only the dominant layer (layer rank 1) of the forest inventory was used, thereby simplifying the growth and yield proejction. As a result of this intersection, 1264 of the timber marks had a portion of their total area that failed to provide the neccessary forest inventory information (i.e., areas that lack the publically available forest inventory such as Tree Farm Licenses). 
+The resulting spatial boundaries that excluded non-harvested areas were then spatially intersected with the 2011 VRI to provide the necessary forest attribute information require to link to the growth and yield model. Only the dominant layer (layer rank 1) of the forest inventory was used, thereby simplifying the growth and yield proejction. As a result of this intersection, 374 of the timber marks had a portion of their total area that failed to provide the neccessary forest inventory information (i.e., areas that lack the publically available forest inventory such as Tree Farm Licenses). 
 
 The following is a histogram of the percentage of the total timber mark area missing information:
 
@@ -78,7 +78,7 @@ The following is a histogram of the percentage of the total timber mark area mis
 
 ![FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.](linkHBS_VRI_Calibtation_files/figure-html/timber_mrks-1.png)
 
-This histogram shows that 75% of timber marks were missing forest inventory attribution for only 1.4% of their total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be small spatial errors in the VRI and were thus important sources of uncertainty. However, from a practical view, these relatively small areas would contribute little to the total projected volume estimate. Thus, timber marks with greater than 3 percent of their total area containing inadequate forest inventory information were removed from the analysis.
+This histogram shows that 75% of timber marks that were missing forest inventory attribution resulted in only 1.4% of their total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be small spatial errors in the VRI and were thus important sources of uncertainty. However, from a practical view, these relatively small areas would contribute little to the total projected volume estimate. Thus, timber marks with greater than 3 percent of their total area containing inadequate forest inventory information were removed from the analysis. A total of 326 timber marks remained in the analysis and their spatial locations are shown in FIGURE 2.
 
 
 
@@ -105,41 +105,39 @@ In BC, forested stands from natural orgins are typically projected through time 
 
 ### HBS volumes vs projected meta-model volumes
 
-Each VRI polygon that intersected the timber mark boundary and contained a projected volume was summed to estimate the total projected timber volume for the timber mark. This projected timber volume represented the naive projection commonly used in forest estate modeling.  
+Each VRI polygon that intersected the timber mark boundary and contained a projected volume was summed to estimate the total projected timber volume for the timber mark. This projected timber volume represented the naive projection commonly used in forest estate modeling. The relationship between the naive projection and the observed HBS volumes are shown in FIGURE 3. 
 
 
 ```
 ## 
 ## Call:
-## lm(formula = obs_vol ~ proj_vol, data = calb_data)
+## lm(formula = obs_vol ~ proj_vol, data = calb_data4)
 ## 
 ## Residuals:
 ##    Min     1Q Median     3Q    Max 
-## -41840  -2111   -925   1896  44645 
+## -41953  -2207  -1092   1826  44509 
 ## 
 ## Coefficients:
 ##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) 1.279e+03  4.880e+02   2.621   0.0091 ** 
-## proj_vol    7.195e-01  1.602e-02  44.917   <2e-16 ***
+## (Intercept) 1.446e+03  5.571e+02   2.596  0.00986 ** 
+## proj_vol    7.191e-01  1.762e-02  40.815  < 2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 7640 on 384 degrees of freedom
-## Multiple R-squared:  0.8401,	Adjusted R-squared:  0.8397 
-## F-statistic:  2017 on 1 and 384 DF,  p-value: < 2.2e-16
+## Residual standard error: 8030 on 324 degrees of freedom
+## Multiple R-squared:  0.8372,	Adjusted R-squared:  0.8367 
+## F-statistic:  1666 on 1 and 324 DF,  p-value: < 2.2e-16
 ```
 
 ```
-## Warning in predict.lm(model1, data = calb_data, interval = "prediction"): predictions on current data refer to _future_ responses
+## Warning in predict.lm(model1, data = calb_data4, interval = "prediction"): predictions on current data refer to _future_ responses
 ```
 
 ![FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval (n= 326).](linkHBS_VRI_Calibtation_files/figure-html/Step6_develop_vri2011-1.png)
 
 ### Modelling assumptions
 
-The following assumptions of the calibration model need to be tested: i) the response is gamma distributed, ii) the model fits the data and iii) the residuals are independant.
-
-From the histogram below the gamma and log normal distributions appear to be candidates distributions to model the response.
+The following assumptions of the calibration model need to be tested: i) the residuals are independant; ii) the model fits the data; and iii) the response follows the specifed distribution. A Morans'I test, variograms and graphical plots of the residuals were used as evidence for independance or presence of spatial autocorrelation. Various goodness of fit statistics including AIC, global deviance and Likelihod ratio tests were used to assess model fit. From the histogram below the gamma and log normal distributions appear to be candidate distributions to model the response.
 
 
 ```r
@@ -148,7 +146,7 @@ From the histogram below the gamma and log normal distributions appear to be can
 #param.2 <- MASS::fitdistr(calb_data4$obs_vol, "lognormal")
 #param.3 <- fitdistr(calb_data4$obs_vol, "gamma", start = list(shape = 1.2, scale = 0.0001), lower = 0.01)
 
-hist(calb_data2$obs_vol, prob = T, ylim = c(0, 0.00007))
+hist(calb_data4$obs_vol, prob = T, ylim = c(0, 0.00007))
 curve(dgamma(x, 1.2, 0.0001), add=TRUE, col = 'red')
 curve(dnorm(x, 15138, 19838), add=TRUE)
 curve(dlnorm(x, 8.79, 1.41), add=TRUE, col = 'blue')
@@ -164,14 +162,6 @@ In Robinson et al. (2016) a gamma model was used to model both the  mean and  va
 
 
 ```r
-# get the bec zone that makes up the majority of the timber mark 
-pv_timber_mrk<-merge(timbr_mrks, totalArea)
-pv_timber_mrk[,wt:=as.numeric(area/totarea)]
-pv_timber_mrk2<-pv_timber_mrk[, lapply(.SD, function(x) {wtd.mean (x, wt)}), by =timber_mrk, .SDcols=c("proj_height_1", "site_index", "crown_closure", "proj_age_1", "pcnt_dead")]
-setnames(pv_timber_mrk2, "timber_mrk" , "timber_mark" )
-calb_data3<-merge(calb_data2, pv_timber_mrk2, by = "timber_mark")
-calb_data4<-na.omit(calb_data3)
-
 ## Fit and compare some models
 test.0 <- gamlss(obs_vol ~ proj_vol,
                  sigma.formula = ~ 1,
@@ -419,15 +409,15 @@ bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", 
 
 ![](linkHBS_VRI_Calibtation_files/figure-html/testing_auto_correlation-2.png)<!-- -->
 
-The results from the Moran's I suggest that the residuals are independant (Moran's I = 0.0231, p = 0.0739). After building a variogram there doesn't seem to be a strong spatial effect.  However, the bubble map shows some spatial clustering -namely in the far east corner and around the kamloops area. Also the p value for Moran's I is providing enough evidence against the null hypothesis to warrant a check to see if the model can be further improved by taking into account any spatial autocorrelation.
+The results from the Moran's I test suggest that the residuals are independant (Moran's I = 0.0231, p = 0.0739). After building a variogram there doesn't seem to be a strong spatial effect.  However, the bubble map shows some spatial clustering -namely in the far east corner and around the kamloops area. Also the p value for Moran's I is providing enough evidence against the null hypothesis to warrant a check to see if the model can be further improved by taking into account any spatial autocorrelation.
 
 ### Autocorrelated model
 
-To account for the spatial autocorrelation in the model we construct a mixed effect model with on random component. This model specifies the structure of the covariance matrix using a spatial lag between observations. Thus, the off diagonal elements of the variance-covariance matrix will be estimated using a spatial covariance structure that is parameterized from a model assuming independance. The steps to fit this model follow an estimated generalized least squares approach:
+To account for the spatial autocorrelation in the model we construct a mixed effect model with one random component. This model specifies the structure of the covariance matrix using a spatial lag between observations. Thus, the off diagonal elements of the variance-covariance matrix will be estimated using a spatial covariance structure that is parameterized from the model assuming independance. The steps to fit this model follow an estimated generalized least squares approach:
 
 1.) Fit a gamma model for the mu and sigma components using fixed effects that assumes i.i.d. covariance structure.
 
-2.) Specify the pattern of the error covariance structure to a spatial lag that assumes a spherical variogram model. Since there is only one group of dependance this random effect is viewed as 'nuisance' and will only be used to get good estimates for the standard errors of the coefficients of the fixed component of the model and the mean of y given values for the x's. Note this is different from predicting a spatially random variable where the random effect is of interest - however, this could not accomplished given the samples used in this study are not well spaced.
+2.) Specify the pattern of the error covariance structure. In this case, a spatial lag that assumes a spherical variogram model. Since there is only one group of dependance this random effect is viewed as 'nuisance' and will only be used to get good estimates for the standard errors of the coefficients of the fixed component of the model and the mean of y given values for the x's. Note this is different from predicting a spatially random variable where the random effect is of interest - however, this could not accomplished given the samples used in this study are not well spaced (FIGURE 2).
 
 3.) Find estimates for the parameters of the covariance matrix. REML is used since the fixed effects part is already estimated and reduces the search to only the covariance parameters.
 
@@ -435,7 +425,7 @@ To account for the spatial autocorrelation in the model we construct a mixed eff
 
 5.) Iterate through 1-4 until convergence criterion has been met
 
-The result of this model is a Moran's I of 0.0229, p = 0.0754, which suggests some of remaining spatial autocorrelation is being accounted. The range of the spherical variogram is 2718 m, with a nugget effect of 0.34. The AIC of this spatial model is smaller (6159.75 versus 6166.3) than the model assuming independance. Thus, it appears the spatial model may be the prefered model.  
+The result of this spatial model was a Moran's I of 0.0229, p = 0.0754, which suggests some of remaining spatial autocorrelation was being accounted for in this spatial model. The range of the spherical variogram was 2718 m, with a nugget effect of 0.34. The AIC of this spatial model was smaller (6159.75 versus 6166.3) than the model assuming independance. Thus, it appears the spatial model may be the prefered model.  
 
 
 ```r
@@ -576,7 +566,7 @@ bubble(spatialdata, "auto.2.res", col = c("blue", "orange"), main = "Residuals",
 ![](linkHBS_VRI_Calibtation_files/figure-html/autocorr-3.png)<!-- -->
 
 
-Now lets compare the model assuming independance and the spatial model. Here we see that the spatial model is less biased than the model that assumes independance. The mean of the spatial model is much closer to the observed total.
+Now lets compare the model assuming independance with the spatial model. Here we see that the spatial model is less biased than the model that assumes independance. The mean of the spatial model is much closer to the observed total. Note that the prediction interval ranges ~ 1,000,000 m3 or roughly 20% of the mean. Also, the naive projection is not included in this interval.
 
 
 ```
@@ -589,7 +579,7 @@ Now lets compare the model assuming independance and the spatial model. Here we 
 
 ![](linkHBS_VRI_Calibtation_files/figure-html/spat_mod_compare-1.png)<!-- -->
 
-Here we compare the cummulative dsitributions to see any deviations between the predicted and response surfaces. They are very similar - a few deviations most notably at larger predictions of the response.
+Here we compare the cummulative dsitributions to see any deviations between the predicted and observed surfaces. While they are very similar there are some slight deviations most notably at larger predictions of the response.
 
 ```r
 #ECDF
@@ -610,7 +600,7 @@ stat_ecdf(alpha = 0.5, position = 'identity')
 
 ### Fixed effects
 
-Now that the spatial model has passed the modelling assumptions. Let explore the effects that were modelled. In the spatial calibration model the naively projected volume, VRI height and elevation were used.
+Now that the spatial model has passed the modelling assumptions. Let explore the fixed effects that were modelled. In the spatial calibration model the naively projected volume, VRI height and elevation were used.
 
 
 
@@ -645,7 +635,7 @@ Now that the spatial model has passed the modelling assumptions. Let explore the
 ![](linkHBS_VRI_Calibtation_files/figure-html/plot_some_stuff-1.png)<!-- -->
 
 
-## Results Summary
+## Results summary
 
 * Larger projected volumes inherently have more uncertainty. 
 
@@ -657,15 +647,15 @@ Now that the spatial model has passed the modelling assumptions. Let explore the
 
 First, the results from this modelling exercise suggest that the spatial model that accounts for the correlation between residuals is a better model. Using a spherical variogram model allowed individual observations to be weighted more effectively so that the effect of dependance was reduced. This provided a model that produced an estimated total volume that was closer to the observed total volume which is important for determining forestry decisions like AAC targets. 
 
-Next, the effects of the predictor variables in the spatial model showed that the meta-model of vdyp was over predicting total volume in harvet units that had larger volumes. It should be noted that this effect cannot be seperated into errors individually generated by VDYP nor the VRI, but rather their combined effect. The management impications for timber supply models and AAC analysis would be: i) in the strategic design of landscapes, developing more aggregated or larger harvest blocks is often of interest to reduce the fragmentation of the landscape - however the realized volume from these larger blocks was shown to be considerably less than one would expect from a naive projection using the VRI and the meta-model of vdyp, ii) further there is greater uncertainty in the AAC if the harvest units were much larger in size, iii) the uncertainty in AAC targets can also be greater for harvest units that are lower in elevation and harvest units with forest structure that is smaller in terms of tree height. 
+Next, the effects of the predictor variables in the spatial model showed that the meta-model of vdyp was over predicting total volume in harvet units that had larger volumes. It should be noted that this effect cannot be seperated into errors individually generated by VDYP nor the VRI, but rather their combined effect. The management implications for timber supply models and AAC analysis would be: i) in the strategic design of landscapes, developing more aggregated or larger harvest blocks in terms of is often of interest to reduce the fragmentation of the landscape - however in those cases where the large blocks result in larger volumes, the realized volume from these larger blocks was shown to be considerably less than one would expect from a naive projection using the VRI and the meta-model of vdyp, ii) further there is evidence of greater uncertainty in the AAC if the profile of harvest units are much larger in size, iii) the uncertainty in AAC can be reduced in higher elevation and harvest units with forest structure that is taller in terms of tree height. 
 
 I would speculate:
 
-* Larger harvest units may translate into a larger volume harvested and thus greater uncertainty. These larger units could also mean a greater number of different stands would be incorporated into the harvesting profile. Increasing the number of stands in a harvest profile may increase the probability of including polygons within the VRI that are erroneous. Conversely, for harvest units that are realtively smaller but still result in large volumes (i.e., highly productive areas) the total volume could be overestimated given the meta-model of vdyp was not taking into account the vertical structure that is likely to form through the development of the stand. Thus, the meta-model may project stands that are highly productive and are perceived to have growing space, but in fact they do not have the growing space because it is being occupied by vertical layers assumed that are assume to not exist. In other words, not accounting for the multi-layered structure of highly productive could lead to greater uncertainty.
+* Harvest units with greater footprint may translate into a larger volume harvested and thus greater uncertainty. These larger units could also mean a greater number of different stands would be incorporated into the harvesting profile. Increasing the number of stands in a harvest profile may increase the probability of including polygons within the VRI that are erroneous. Conversely, for harvest units that are realtively smaller but still result in large volumes (i.e., highly productive areas) the total volume could be overestimated given the meta-model of vdyp was not taking into account other layers within the vertical structure. Thus, the meta-model of vdyp may project did not take into account the competition from other vertical layers. In other words, not accounting for the multi-layered structure of highly productive stands could lead to greater uncertainty.
 
-* Lower elevation stands are likely to support mixed species which the meta model of vdyp and vdyp have a hard time predicting. Mixed species (and vertical layers as mentioned above) are porjected as individual species (orlayers) and then aggregated, thus removing the true intimate nature of how these species would grow.
+* Lower elevation stands are likely to support mixed species which the meta model of vdyp and vdyp in general are challenged to predict. Mixed species (and vertical layers as mentioned above) are projected as individual species (or layers) and then aggregated, thus removing the true intimate nature of how these species would grow.
 
-* Harvest units that have smaller tree heights are uncertain because the meta model of vdyp typically uses plots of older mature stands near rotation age to calibrate its algorithums. These smaller height stands may not be well represented?
+* Harvest units that have smaller tree heights are uncertain because the meta model of vdyp typically uses sample plots of older mature stands near rotation age to calibrate its algorithums. Since the objective of vdyp is for natural orgin stands near rotation age, these smaller height stands may not be well represented. Stands with smaller heights may be indcative of younger stands and the dynamics of growth and yield are confounded by many processes outside the scope of the model i.e., browsing, disease, frost, establishment delay, etc. 
 
 # Exercises
 
@@ -673,7 +663,7 @@ To demonstrate possible spatial effects of clustering use the calibration model 
 
 # APPENDIX: Comparing the sum of distributional parameters to simulating via monte carlo
 
-In Robinson et al. (2016), each of the response distributions were summed after sampling 10000 samples from each of the response distributions. However, this is computationally slow ( adds ~ 30 seconds for 326 harvest units). Instead of sampling each individual response distribution -- we can sum the means and sigmas because the individual responses are independant. Here is a comparison between mathematically estimating the total response distribution versus simulating it with many samples. By mathematically estimating the total response distribution, there is a large cost savings (~25 seconds) which when amplified over a simulation model with a 100 year time horizon and annual time step would result in ~ 42 minutes saved per simulation run. 
+In Robinson et al. (2016), each of the response distributions were summed after sampling 10000 samples from each of the individual harvest unit distributions. However, this is computationally slow ( adds ~ 30 seconds for 326 harvest units). Instead of sampling each individual response distribution -- we can sum the means and sigmas because the individual responses are independant. Here is a comparison between mathematically estimating the total response distribution versus simulating it with many samples. By mathematically estimating the total response distribution, there is a large cost savings (~25 seconds) which when amplified over a simulation model with a 100 year time horizon and annual time step would result in ~ 42 minutes saved per simulation run. 
 
 
 ```
