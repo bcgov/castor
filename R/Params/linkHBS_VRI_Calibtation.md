@@ -539,45 +539,37 @@ auto.1<- predictAll(chosen.a, newdata = calb_data4)
 auto.2<-cbind(calb_data4, auto.1$mu)
 auto.2$res<-auto.2$obs_vol - auto.2$V2
 
-#get distances
-dists <- as.matrix(dist(cbind(ind.2$X, ind.2$Y)))
-dists.inv <- 1/dists 
-diag(dists.inv) <- 0
-#dists[1:50, 1:50] # check what they look like - units are in metres
-
 #auto.2$res<-auto.2$res+runif(326, 1, 10000)
-Moran.I(ind.2$res, dists.inv)
+Moran.I(auto.2$res, dists.inv)
 ```
 
 ```
 ## $observed
-## [1] 0.0231245
+## [1] 0.02298711
 ## 
 ## $expected
 ## [1] -0.003076923
 ## 
 ## $sd
-## [1] 0.01465897
+## [1] 0.01465747
 ## 
 ## $p.value
-## [1] 0.07387307
+## [1] 0.07536956
 ```
 
 ```r
 #observed is significantly greater than expected  - positively correlated. Thus, jointly contribute more to the uncertainty then their sum would suggest.
 
-xyspatial=SpatialPoints(cbind(ind.2$X,ind.2$Y))
-porspatial=data.frame(ind.2$res)
+porspatial=data.frame(auto.2$res)
 spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
-
-vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 3000)
+vario2 <- variogram(auto.2$res~1, spatialdata, cutoff = 3000)
 plot(vario2)
 ```
 
 ![](linkHBS_VRI_Calibtation_files/figure-html/autocorr-2.png)<!-- -->
 
 ```r
-bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
+bubble(spatialdata, "auto.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
 ```
 
