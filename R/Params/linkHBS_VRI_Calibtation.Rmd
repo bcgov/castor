@@ -21,6 +21,7 @@ See the License for the specific language governing permissions and limitations 
 
 # Introduction
 
+<<<<<<< HEAD
 Accurate estimates of timber volume projected through time and across landscapes are needed to make effective strategic forest management decisions. These estimates, and estimates on the state of many other ecological processes of interest to decision makers (e.g., carbon capture, wildlife habitat) rely on accurate projections of forest structure and timber volume from models. A common concern of decision makers is the level of uncertainty behind model projections that occur both over time and across large landscapes (i.e., stand yield model + forest inventory).  For example, the Chief Forester of British Columbia (BC) is a statutory decision maker responsible for establishing the allowable annual cut (AAC) in timber supply units across the province. This desicision relies heavily on information provided by forest inventory data and stand yield models. Not accounting for uncertainty in AAC decisions can potentially result in decreased confidence in AAC targets.   
 
 There are many sources of uncertainty in timber volume projections and these sources may propagate through time in complex ways. Recently, Robinson et al. (2016) recommended a simple way to measure this uncertainty. Their approach was to calibrate model projections against observed timber volumes measured from scaling and cruising operations following harvesting. In particular, the value of the Robinson et al. (2016) approach is two fold: i.) simulated future timber volumes can be adjusted using this calibration, and ii.) uncertainty of timber volume projections can be estimated by calculating error statistics. Robinson et al. (2016) modelled not only the mean response of the relationship between the projected volume and the observed scale volume but also the variance (sigma). These two statistics specify the distributional parameters (mean and scale) of the prediction uncertainty. Using these distributional parameters, the distribution of possible yields for an individual harvest unit can be reconstructed and sampled. In the case of AAC targets, the harvest volume distributions for each harvest unit can then be summed to arrive at a distribution for the total volume harvested. This provides an estimate of the variance (i.e., prediction interval) around the total volume estimate or the AAC. The distributional parameters can also be conditional on stand characteristics which would help explain how uncertainty in yield projection can change between harvest units. Understanding which stand characteristics provide greater or lesser uncertainty in yields can be invaluable for strategic decision makers in priotizing where and when to harvest to minimize uncertainty.    
@@ -30,6 +31,17 @@ An important assumption of Robinson et al.'s (2016) approach is that the individ
 Robinson et al.'s (2016) approach has not been applied in the province of BC because of challenges with spatially tracking observed scaled volumes. Scaled volume is tracked by the harvest billing system (HBS) which focuses on measuring harvest volumes for accounting of provincal revenue. This tracking is accomplished at a spatial unit known as a timber mark. The timber mark is a unique identifer stamped or marked on the end of each harvested log to associate the log with the specific authority to harvest and move timber. Timber marks are typically assigned to multiple harvested units that may be not be spatially contiguous nor contain a single harvest date. Thus, linking HBS and forest inventory data has been difficult due to the complicated spatial and temporal boundaries of timber marks. In particular, estimating the net area harvested (i.e., netting out roads, wildlife tree patches, etc.) and its spatial boundary can be difficult to determine for historical cutblocks.
 
 Here I develop a calibration model for BC that can be used to provide valuable information about timber projection uncertainty. First, I develop an approach to link timber mark boundaries from the HBS to harvested forest stands, I then build on Robinson et al.'s (2016) approach by developing a calibration model that accounts for spatial correlation of timber volume estimates between harvested forest stands. I then further build on this approach by relating uncertainty estimates to stand characetirics, and highlight what stand types have greater uncertainty in their timber volume yields. The calibration model developed here will support adaptive forest management in BC, by identifying factors leading to greater or lesser uncertainty around strategic decisions. For example, such a model may inform a more robust AAC decision, by helping the Cheif Forster understand situations where uncertainty in yields could lead to over or under estimates in AAC. The proposed calibration model will also be used in the caribou and landuse simulator (CLUS) model to provide an estimate of volume yield uncertainty in the quantification of impacts from caribou conservation activities on harvest flows. 
+=======
+Estimates of timber volume projected through time and across landscapes are need to assess the sustainability of forestry decisions. The economic value of timber and many ecological processes of interest to decision makers (e.g., biomass, carbon, wildlife habitat) are all driven by projections of forest structure which are often characterized by timber volume. A common concern by forestry decision makers is the level of uncertainty behind these projections across large landscapes. 
+
+There are many sources of uncertainty in timber volume projections and these sources propagate through time in complex ways which may provide barriers for confidentaly making forest management decisions. Past research has highlighted how sources of uncertainty related to errors in forest attributes reported in the forest inventory would propogate with errors in growth and yield models and thus, impact harvest scheduling. Recently, Robinson et al. (2016) recommended a simple way to incorpate this uncertainty into forestry decision making. Their approach relied on observed timber volumes measured from scaling and cruising operations following harvesting. In particular, the value of the Robinson et al. (2016) approach is two fold: i.) a calibration of the future timber volumes for use when simulating the forestry decisions and ii.) the ability to simulate the uncertainty of timber volume projection and thus calculate error statistics useful to decision makers. Robinson et al. (2016) modelled the distributional parameters of a prediction by specifying a seperate model for the mean and scale. These parameters were then used to reconstruct the response distribution for an individual harvest unit which can be summed to arrive at a distribution for the total volume harvested. Thereby allowing the construction of a prediction interval on the total volume harvested.
+
+An important assumption of this approach is that the individual harvest units need to be independant of one another, in order to be able to sum the individual distributions. While this assumption was not formally tested, the authors highlight that if the individual harvest units were positively correlated then they would jointly contribute more to the uncertainty than their summation would suggest and conversely contribute less to uncertainty, if they were negatively correlated. This is an important point that could be leverage to develop harvest schedules that result in reduced uncertainty.
+
+Currently, this approach has not been applied in the province of BC given issues with spatially tracking observed scaled volumes. The tracking of observed scaled volume is accomplished via the harvest billing system (HBS) which focuses on harvest volumes, needed for provincal revenue accounting, at a spatial unit known as a timber mark. The timber mark is a unique identifer stamped or marked on the end of each log to associate the log with the specific authority to harvest and move timber. Timber marks are assigned to harvested units that may be not be spatially contiguous nor contain a single harvest date. Thus, linking HBS and forest inventory data has been difficult due to issues with temporal and spatial accuracy in estimating the spatial boundaries of the timber marks. In particular, estimating the net area harvested (i.e., netting out roads, wildlife tree patches, etc) and its spatial boundary can be difficult to determine for historical cutblocks.
+
+In the following sections, the spatial (timber mark boundaries) and temporal (harvest date, inventory projection) data are manipulated to develop a calibration model that can be used to provide valuable information about timber projection uncertainty. It is believed that this calibration will support adaptive forest management by enhancing the link between strategic decisions and their implementation. The specific objectives were: i) to calibrate projected volume yields from an aggregated growth and yield model (hereafter termed the meta-model) with observed volume yields reported in the harvest billing system and ii) determine how uncertainty in total harvested volumes can be minimized. The proposed calibration model will be used in the caribou and landuse model (CLUS) to provide an estimate of volume yield uncertainty which will help provide some context surrounding the quantification of impacts from caribou conservation activities on harvest flows. 
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 # Methods
 ```{r setup, include=FALSE}
@@ -54,11 +66,21 @@ source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
 Linking the timber mark boundaries with the VRI (needed to link to a growth and yield model) involved the following: (see [code](https://github.com/bcgov/clus/blob/master/SQL/develop_vri2011table.sql))
 
+<<<<<<< HEAD
 1. Subset and estimate the spatial boundaries of the timber marks
 
 The spatial boundaries of the timber mark were estimated using the compilation of two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). While the forest tenure polygons provided the spatial boundary of the timber mark, these boundaries include retention areas which can be quite large. Thus, the consolidate cutblock polygons dataset was used to remove these non-harvested areas within a timber mark area.
 
 Using the forest tenure cutblock polygons, all timber marks comprised of harvest units that were spatially contiguous and had disturbance start dates between 2012-01-01 and 2016-12-31 were selected. This ensured timber marks would be roughly at the scale of a harvest unit or cutblock and would temporally link to the forest inventory. Further, timber marks with scaled dead wood were removed since the naive projections do not include standing dead timber. Lastly, timber marks were removed if they did not contain geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., retention patches were removed). Despite the accuracy of the RESULTS, there remain a number of issues with identifying non-harvest areas in the consolidated cutblock polygons. Thus, timber marks were removed when the estimated timber mark area was not within $\pm$ 20% of the planned net area.This subset of the forest tenure cutblock polygons was then joined with consolidated cutblock polygons to provide a spatial boundary that exluded non harvest areas. 
+=======
+Linking the timber mark boundaries with the VRI (needed to link to a growth and yield model) involved the following: (see [code](https://github.com/bcgov/clus/blob/master/SQL/develop_vri2011table.sql))
+
+1. Subset and estimate the spatial boundaries of the timber marks
+
+The spatial boundaries of the timber mark were estimated using the compilation of two spatial data sets: i) [forest tenure cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-cutblock-polygons-fta-4-0) (aka. ftn_c_b_pl_polygon) and ii) [consolidated cutblock polygons](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) (a.k.a cns_cut_bl_polygon). While the forest tenure polygons provided the spatial boundary of the timber mark, these boundaries include retention areas which can be quite large. Thus, the consolidate cutblock polygons dataset was used to remove these non-harvested areas within a timber mark area.
+
+Using the forest tenure cutblock polygons, all timber marks comprised of harvest units that were spatially contiguous and had disturbance start dates between 2012-01-01 and 2016-12-31 were selected. This ensured timber marks would be roughly at the scale of a harvest unit or cutblock and would temporally link to the forest inventory. Further, timber marks with scaled dead wood were removed since the naive projections do not include standing dead timber. Lastly, timber marks were removed if they did not contained geometries reported by RESULTS (the most accurate form of reporting cutblock information). This ensured a more accurate net spatial description of the timber mark boundary (i.e., retention patches were removed). Despite the accuracy of the RESULTS, there remain a number of issues with identifying non-harvest areas in the consolidated cutblock polygons. Thus, timber marks were removed when the estimated timber mark area was not within $\pm$ 20% of the planned net area.This subset of the forest tenure cutblock polygons was then joined with consolidated cutblock polygons to provide a spatial boundary that exluded non harvest areas. 
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 2. Intersect the timber mark spatial boundaries with the VRI
 
@@ -69,12 +91,21 @@ The following is a histogram of the percentage of the total timber mark area mis
 ```{r, timber_mrks, echo = FALSE, fig.cap = 'FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.'}
 feats<-getSpatialQuery("SELECT feature_id, shape, yc_grp, bec_zone_code, site_index, crown_closure, pcnt_dead, proj_height_1, proj_age_1 FROM yt_vri2011")
 #cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs")
+<<<<<<< HEAD
 
 cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs where timber_mrk in (select timber_mrk from (
 select count(*) as no_opens, foo.timber_mrk from (select count(*) as no_opening_id, opening_id, timber_mrk from cnx_hbs 
 group by opening_id, timber_mrk order by timber_mrk) as foo
 group by foo.timber_mrk) as foo2 where no_opens = 1)")
 
+=======
+
+cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs where timber_mrk in (select timber_mrk from (
+select count(*) as no_opens, foo.timber_mrk from (select count(*) as no_opening_id, opening_id, timber_mrk from cnx_hbs 
+group by opening_id, timber_mrk order by timber_mrk) as foo
+group by foo.timber_mrk) as foo2 where no_opens = 1)")
+
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 cnx_hbs<-lwgeom::st_make_valid(cnx_hbs)
 
 polys<- st_intersection(cnx_hbs, feats) #spatialy join the timber mark boundaries with the id that links the VRI
@@ -255,7 +286,11 @@ ggplot(calb_data2, aes(proj_vol, obs_vol)) +
 
 The following assumptions of the calibration model need to be tested: i) the response is gamma distributed, ii) the model fits the data and iii) the residuals are independant.
 
+<<<<<<< HEAD
 From the histogram below the gamma and log normal distributions appear to be candidates distributions to model the response.
+=======
+From the histogram below the gamma and log normal distributions appear to be candidates.
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 ```{r, dist_proj_vol, fig.cap="FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=326)"}
 #library(fitdistrplus)
@@ -268,12 +303,19 @@ curve(dgamma(x, 1.2, 0.0001), add=TRUE, col = 'red')
 curve(dnorm(x, 15138, 19838), add=TRUE)
 curve(dlnorm(x, 8.79, 1.41), add=TRUE, col = 'blue')
 ```
+<<<<<<< HEAD
 
 # Results
 
 ### Calibration model
 
 In Robinson et al. (2016) a gamma model was used to model both the  mean and  variance of the response distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating forest attributes as predictors of both the mean and variance. The results suggest a gamma model is better fit over a log normal model. Also, the VRI height and elevation are important predictors of the response variance. However, these models assume independance which needs to be tested.
+=======
+
+## Calibration model
+
+In Robinson et al. (2016) a gamma model was used to model both the  mean and  variance of the response distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating forest attributes as predictors of both the mean and variance. The results suggest a gamma model is better fit over a log normal model. Also, the VRI height is a important predictor of the response variance. However, these models assume no spatial correlation which needs to be tested.
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 ```{r, calibrate_model,  fig.cap= 'FIGURE 4. Fit statistics of the calibration model (n=326)' }
 # get the bec zone that makes up the majority of the timber mark 
@@ -324,13 +366,21 @@ test.3 <- gamlss(obs_vol ~ log(proj_vol),
                  data = calb_data4)
 
 test.4.ga <- gamlss(obs_vol ~ log(proj_vol),
+<<<<<<< HEAD
                  sigma.formula = ~ log(proj_vol) + proj_height_1 + elv,
+=======
+                 sigma.formula = ~ log(proj_vol) + proj_height_1,
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
 
 test.4.ln <- gamlss(obs_vol ~ log(proj_vol),
+<<<<<<< HEAD
                  sigma.formula = ~ log(proj_vol) + proj_height_1 + elv,
+=======
+                 sigma.formula = ~ log(proj_vol) + proj_height_1,
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
                  sigma.link = "log",
                  family = LOGNO(),
                  data = calb_data4)
@@ -343,13 +393,18 @@ plot(chosen)
 
 ### Testing for autocorrelation
 
+<<<<<<< HEAD
 An assumption of the uncertainty model is that the errors are independant. This assumption is required in order to sum across many predictions and achieve an unbiased total. Here I test for autocorrelation in the residuals.
+=======
+An assumption of the uncertainty model is that the errors are independant - in order to be able to sum across many predictions and achieve the appropriate total. Here I test for autocorrelation in the residuals.
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 ```{r, testing_auto_correlation}
 
 ind.1<- predictAll(chosen, newdata = calb_data4)
 ind.2<-cbind(calb_data4, ind.1$mu)
 ind.2$res<-ind.2$obs_vol - ind.2$V2
+<<<<<<< HEAD
 
 #get distances
 dists <- as.matrix(dist(cbind(ind.2$X, ind.2$Y)))
@@ -407,13 +462,73 @@ auto.1<- predictAll(chosen.a, newdata = calb_data4)
 auto.2<-cbind(calb_data4, auto.1$mu)
 auto.2$res<-auto.2$obs_vol - auto.2$V2
 
+=======
+
+#get distances
+dists <- as.matrix(dist(cbind(ind.2$X, ind.2$Y)))
+dists.inv <- 1/dists 
+diag(dists.inv) <- 0
+#dists[1:50, 1:50] # check what they look like - units are in metres
+
+#auto.2$res<-auto.2$res+runif(326, 1, 10000)
+Moran.I(ind.2$res, dists.inv)
+#observed is significantly greater than expected  - positively correlated. Thus, jointly contribute more to the uncertainty then their sum would suggest.
+
+xyspatial=SpatialPoints(cbind(ind.2$X,ind.2$Y))
+porspatial=data.frame(ind.2$res)
+spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
+
+vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 3000)
+plot(vario2)
+bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
+    ylab = "Y-coordinates")
+
+
+```
+
+The results from the Moran's I suggest that the residuals are independant (Moran's I = 0.0239, p = 0.06556). After building a variogram there doesn't seem to be a strong spatial effect.  However, the bubble map shows some spatial clustering -namely in the far east corner and around the kamloops area. Also the p value for Moran's I is providing enough evidence against the null hypothesis to warrant a check to see if the model can be further improved by taking into account any spatial autocorrelation.
+
+### Autocorrelated model
+
+To account for the spatial autocorrelation in the model we construct a random effect with mean zero and covariance structure modelled using a spatial lag between observations. Thus, the off diagonal elements of the variance-covariance matrix will be estimated using a spatial covariance structure that is parameterized from a model assuming independance. The steps to fit this model included:
+
+1.) Fit a gamma model for the mu and sigma.
+
+2.) Use the residuals from this model to construct a spatially varying random variable that is normally distributed with mean 0 and covariance
+
+3.) Specifiy the structure of this covariance matrix to follow a spatial lag that uses a spherical model of the X and Y locations
+
+4.) Re-fit the gamma model with the spatially varying random variable
+
+5.) Iterate through 1-4 until convergence criterion has been met
+
+The result of this model is a Moran's I of 0.0235, p = 0.69, the bubble map shows less clustering, and the AIC of this spatial model is less (6162 versus 6170) than the model assuming independance. Thus, it appears the spatial model may be the prefered model. Lets see how well the predictions look. 
+
+```{r, autocorr}
+calb_data4$dummy<-1
+chosen.a <- gamlss(obs_vol ~log(proj_vol) + re(random=~1|dummy, correlation = corSpher(2500, form = ~ X + Y, nugget = T), opt="optim", method = "REML"),
+                   sigma.formula = ~ log(proj_vol) + proj_height_1 ,
+                   sigma.link = "log",
+                   family = GA(), data = calb_data4, control = gamlss.control(c.crit = 0.005), method=CG())
+
+plot(chosen.a)
+
+auto.1<- predictAll(chosen.a, newdata = calb_data4)
+auto.2<-cbind(calb_data4, auto.1$mu)
+auto.2$res<-auto.2$obs_vol - auto.2$V2
+
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 Moran.I(auto.2$res, dists.inv)
 #There is more evidence for the null hypothesis
 
 xyspatial.auto=SpatialPoints(cbind(auto.2$X,auto.2$Y))
 porspatial.auto=data.frame(auto.2$res)
 spatialdata.auto=SpatialPointsDataFrame(xyspatial.auto,porspatial.auto)
+<<<<<<< HEAD
 vario2 <- variogram(auto.2$res~1, spatialdata, cutoff = 5000)
+=======
+vario2 <- variogram(auto.2$res~1, spatialdata, cutoff = 2500)
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 plot(vario2)
 
 #look at the residuals -- less clustering going on
@@ -423,7 +538,10 @@ bubble(spatialdata.auto, "auto.2.res", col = c("blue", "orange"), main = "Residu
 bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
 
+<<<<<<< HEAD
 #chosen.a$mu.coefSmo[[1]]$coefficients$random
+=======
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 #See how the coefficents change. Note the significance on the intercept. Intercept significance is different.
 chosen.a$mu.coefSmo
 summary(chosen.a)
@@ -436,8 +554,20 @@ AIC(chosen)
 #Much residuals slightly larger with autocorrelated model -- more uncertainty that the indepdnant more would suggest
 #sum(auto.2$res**2)-sum(ind.2$res**2)
 
+<<<<<<< HEAD
 #Assuming indepdnance model
 test.iid.data<-ind.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1", "elv")] 
+=======
+```
+
+### Comparing the sum of distributional parameters to simulating via monte carlo
+
+In Robinson et al. (2016), each of the response distributions were summed after sampling 10000 samples from each of the response distributions. However, this is computationally slow ( adds ~ 30 seconds for 326 harvest units). Instead of sampling each individual response distribution -- we can sum the means and sigmas because the individual responses are independant. Here is a comparison between mathematically estimating the total response distribution versus simulating it with many samples.
+
+```{r, iid, echo = FALSE}
+#Assuming indepdnance model
+test.iid.data<-ind.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1")] 
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 test.iid.0<- predictAll(chosen, newdata = test.iid.data) 
 test.iid.data$mu<-test.iid.0$mu 
 test.iid.data$sigma<-test.iid.0$sigma 
@@ -454,7 +584,11 @@ summed<-rGA(20000, mu = sum(test.iid.data$mu), sigma = sqrt(sum((test.iid.data$m
 
 #-------
 #Autocorrelated model
+<<<<<<< HEAD
 test.auto.data<-auto.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1", "dummy", "elv")] 
+=======
+test.auto.data<-auto.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1", "dummy")] 
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 test.auto.0<- predictAll(chosen.a, newdata = test.auto.data) 
 test.auto.data$mu<-test.auto.0$mu 
 test.auto.data$sigma<-test.auto.0$sigma 
@@ -465,6 +599,7 @@ test.auto.data$sigma<-test.auto.0$sigma
 #sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))
 
 #-------
+<<<<<<< HEAD
 summed.auto<-rGA(20000, mu = sum(test.auto.data$mu), 
                  sigma = sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu))
 #quantile(summed.auto, c(0.025, 0.05, 0.5, 0.95, 0.975))
@@ -475,6 +610,41 @@ summed.auto<-rGA(20000, mu = sum(test.auto.data$mu),
 Now to compare the model assuming independance and the spatial model. Here we see that the spatial model is less biased than the model that assumes independance. The mean of the spatial model is much closer to the observed total.
 
 ```{r, spat_mod_compare, echo = FALSE}
+=======
+
+#simulate
+sim.volume <-
+    sapply(1:20000,
+           function(x)
+             with(test.auto.data,
+                  sum(rGA(nrow(test.auto.data), 
+                          mu = mu,
+                          sigma = sigma))))
+
+#hist(sim.volume)
+#quantile(sim.volume, c(0.05, 0.5, 0.95))
+
+
+#est param via math
+#sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu)
+summed.auto<-rGA(20000, mu = sum(test.auto.data$mu), 
+                 sigma = sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu))
+quantile(summed.auto, c(0.025, 0.05, 0.5, 0.95, 0.975))
+
+# compare the distributiongs for math and sim
+data.77<-rbind(data.table(vol = summed.auto, type = "math"), data.table(vol = sim.volume, type = "sim"))
+ggplot(data.77, aes(vol, fill = type)) + 
+geom_histogram(alpha = 0.5, position = 'identity') 
+
+```
+
+Now lets compare the model assuming independance and the spatial model. Here we see that the spatial model is less biased than the model that assumes independance. The mean of the spatial model is much closer to the observed total.
+
+```{r, spat_mod_compare, echo = FALSE}
+
+
+
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 data.76<-rbind(data.table(vol = summed, type = "assume_iid"), data.table(vol = summed.auto, type = "spatial"))
 ggplot(data.76, aes(vol, fill = type)) + 
 geom_histogram(alpha = 0.5, position = 'identity') +
@@ -484,11 +654,28 @@ geom_vline(xintercept = sum(test.auto.data$proj_vol), size = 1.5, linetype = 'do
   geom_text(aes(x=6150000, y=3500, label= "Naively Projected"), hjust = 1)+
 geom_vline(xintercept = sum(test.auto.data$mu), color = '#619CFF') +
 geom_vline(xintercept = sum(test.iid.data$mu), color = '#F8766D') +
+<<<<<<< HEAD
   labs(x = "Total Volume (m3)", y = "Count") 
 
 ```
 
 ## Compare obs vs predicted distributions
+=======
+  labs(x = "Total Volume (m3)", y = "Count") +
+  stat_function(fun = pnorm, n = 101, args = list(mean = 4935127, sd = 358751.2)) 
+
+
+#mean(test.auto.data$obs_vol)*length(test.auto.data$obs_vol)
+#sd.t<-((sd(test.auto.data$obs_vol)/sqrt(length(test.auto.data$obs_vol))))*length(test.auto.data$obs_vol)
+
+#ci<-data.frame(lb=sum(test.auto.data$obs_vol) - (2*sd.t),ub= sum(test.auto.data$obs_vol) + (2*sd.t))
+
+
+##Very close - essentially the same
+```
+
+### Compare obs vs predicted distributions
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 Here we compare the cummulative dsitributions to see any deviations between the predicted and response surfaces. They are very similar - a few deviations most notably at larger predictions of the response.
 ```{r, cdfs}
@@ -507,6 +694,7 @@ stat_ecdf(alpha = 0.5, position = 'identity')
 ```
 
 
+<<<<<<< HEAD
 ### Fixed effects
 
 Now that the spatial model has passed the modelling assumptions. Let explore the effects that were modelled. In the spatial calibration model the naively projected volume, VRI height and elevation were used.
@@ -517,6 +705,18 @@ Now that the spatial model has passed the modelling assumptions. Let explore the
 saveRDS(chosen.a, "calb_ymodel.rds")
 saveRDS(calb_data4, "calb_data.rds")
 
+=======
+### Effects
+
+Now that the spatial model has passed the modelling assumptions. Let explore the effects that were modelled. In the spatial calibration model the naively projected volume and the VRI height.
+
+```{r, plot_some_stuff, echo = FALSE}
+#res<-residuals(chosen)
+#saveRDS(chosen, "calb_ymodel.rds")
+#saveRDS(calb_data4, "calb_data.rds")
+chosen<-chosen.a
+
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 #--Min effect
 trajectory.min <-
   with(calb_data4,
@@ -525,13 +725,21 @@ trajectory.min <-
                        to = max(proj_vol),
                        length.out = 100),
                    proj_height_1= min(proj_height_1),
+<<<<<<< HEAD
                    elv= mean(elv),
+=======
+                   proj_age_1= min(proj_age_1),
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
                    X = mean(X),
                    Y = mean(Y),
                    dummy = 1
                    ))
 
+<<<<<<< HEAD
 new.dist.min <- predictAll(chosen.a, newdata = trajectory.min)
+=======
+new.dist.min <- predictAll(chosen, newdata = trajectory.min)
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 trajectory.min$mu <- new.dist.min$mu
 trajectory.min$sigma <- new.dist.min$sigma
 trajectory.min$upper.2 <- with(new.dist.min, qGA(0.95, mu = mu, sigma = sigma))
@@ -539,19 +747,29 @@ trajectory.min$lower.2 <- with(new.dist.min, qGA(0.05, mu = mu, sigma = sigma))
 trajectory.min$upper.1 <- with(new.dist.min, qGA(0.67, mu = mu, sigma = sigma))
 trajectory.min$lower.1 <- with(new.dist.min, qGA(0.33, mu = mu, sigma = sigma))
 
+<<<<<<< HEAD
 #--Min effect elv
 trajectory.elv.min <-
+=======
+#--Mean effect
+trajectory.mean <-
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
   with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
                        to = max(proj_vol),
                        length.out = 100),
                    proj_height_1= mean(proj_height_1),
+<<<<<<< HEAD
                    elv= min(elv),
+=======
+                   proj_age_1= mean(proj_age_1),
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
                    X = mean(X),
                    Y = mean(Y),
                    dummy = 1
                    ))
+<<<<<<< HEAD
 
 new.dist.min <- predictAll(chosen.a, newdata = trajectory.elv.min)
 trajectory.elv.min$mu <- new.dist.min$mu
@@ -575,6 +793,9 @@ trajectory.mean <-
                    dummy = 1
                    ))
 new.dist.mean <- predictAll(chosen.a, newdata = trajectory.mean)
+=======
+new.dist.mean <- predictAll(chosen, newdata = trajectory.mean)
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 trajectory.mean$mu <- new.dist.mean$mu
 trajectory.mean$sigma <- new.dist.mean$sigma
 trajectory.mean$upper.2 <- with(new.dist.mean, qGA(0.95, mu = mu, sigma = sigma))
@@ -584,6 +805,7 @@ trajectory.mean$lower.1 <- with(new.dist.mean, qGA(0.33, mu = mu, sigma = sigma)
 
 #Max effect
 trajectory.max <-
+<<<<<<< HEAD
   with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
@@ -607,18 +829,26 @@ trajectory.max$lower.1 <- with(new.dist.max, qGA(0.33, mu = mu, sigma = sigma))
 
 #Max elv effect
 trajectory.elv.max <-
+=======
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
   with(calb_data4,
        expand.grid(proj_vol =
                    seq(from = min(proj_vol),
                        to = max(proj_vol),
                        length.out = 100),
+<<<<<<< HEAD
                    proj_height_1= mean(proj_height_1),
                    elv= max(elv),
+=======
+                   proj_height_1= max(proj_height_1),
+                   proj_age_1= max(proj_age_1),
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
                    X = mean(X),
                    Y = mean(Y),
                    dummy = 1
                    ))
 
+<<<<<<< HEAD
 new.dist.max <- predictAll(chosen.a, newdata = trajectory.elv.max)
 
 trajectory.elv.max$mu <- new.dist.max$mu
@@ -627,6 +857,16 @@ trajectory.elv.max$upper.2 <- with(new.dist.max, qGA(0.95, mu = mu, sigma = sigm
 trajectory.elv.max$lower.2 <- with(new.dist.max, qGA(0.05, mu = mu, sigma = sigma))
 trajectory.elv.max$upper.1 <- with(new.dist.max, qGA(0.67, mu = mu, sigma = sigma))
 trajectory.elv.max$lower.1 <- with(new.dist.max, qGA(0.33, mu = mu, sigma = sigma))
+=======
+new.dist.max <- predictAll(chosen, newdata = trajectory.max)
+
+trajectory.max$mu <- new.dist.max$mu
+trajectory.max$sigma <- new.dist.max$sigma
+trajectory.max$upper.2 <- with(new.dist.max, qGA(0.95, mu = mu, sigma = sigma))
+trajectory.max$lower.2 <- with(new.dist.max, qGA(0.05, mu = mu, sigma = sigma))
+trajectory.max$upper.1 <- with(new.dist.max, qGA(0.67, mu = mu, sigma = sigma))
+trajectory.max$lower.1 <- with(new.dist.max, qGA(0.33, mu = mu, sigma = sigma))
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 
 p.min <-
@@ -671,6 +911,7 @@ p.mean <-
   geom_abline(intercept =0, slope=1, col ="yellow")+
   ylim(0,200000)
 
+<<<<<<< HEAD
 p.elv.min <-
   ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
   geom_point(alpha=0.4) +
@@ -749,6 +990,21 @@ ggplot(data.77, aes(vol, fill = type)) +
 geom_histogram(alpha = 0.5, position = 'identity') 
 
 ```
+=======
+plot_grid(p.min, p.mean,p.max, labels = c("min(ht)", "mean(ht)", "max(ht)"))
+```
+
+
+# Conclusions
+
+* Larger projected volumes inherently have more uncertainty. 
+
+* VRI projected height is negatively related to uncertainty.
+
+## Exercises
+
+To demonstrate possible spatial effects of clustering use the calibration model in [forestryCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/forestryCLUS). 
+>>>>>>> 6a205ab3d6b4f768bd550445e95a1b6bda9a5374
 
 # References
 
