@@ -32,23 +32,7 @@ Robinson et al.'s (2016) approach has not been applied in the province of BC bec
 Here I develop a calibration model for BC that can be used to provide valuable information about timber projection uncertainty. First, I develop an approach to link timber mark boundaries from the HBS to harvested forest stands, I then build on Robinson et al.'s (2016) approach by developing a calibration model that accounts for spatial correlation of timber volume estimates between harvested forest stands. I then further build on this approach by relating uncertainty estimates to stand characetirics, and highlight what stand types have greater uncertainty in their timber volume yields. The calibration model developed here will support adaptive forest management in BC, by identifying factors leading to greater or lesser uncertainty around strategic decisions. For example, such a model may inform a more robust AAC decision, by helping the Cheif Forster understand situations where uncertainty in yields could lead to over or under estimates in AAC. The proposed calibration model will also be used in the caribou and landuse simulator (CLUS) model to provide an estimate of volume yield uncertainty in the quantification of impacts from caribou conservation activities on harvest flows. 
 
 # Methods
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(data.table)
-library(sf)
-library(dplyr)
-library(ggplot2)
-library(Hmisc)
-library(bcmaps)
-library(gstat)
-library(ape)
-library(ade4)
-library(plotly)
-library(gamlss)
-library(cowplot)
-library(ncf)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
-```
+
 
 ### Linking Timber Mark Boundaries to Forest Stands
 
@@ -66,154 +50,53 @@ The resulting spatial boundaries that excluded non-harvested areas were then spa
 
 The following is a histogram of the percentage of the total timber mark area missing information:
 
-```{r, timber_mrks, echo = FALSE, fig.cap = 'FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.'}
-feats<-getSpatialQuery("SELECT feature_id, shape, yc_grp, bec_zone_code, site_index, crown_closure, pcnt_dead, proj_height_1, proj_age_1 FROM yt_vri2011")
-#cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs")
-
-cnx_hbs<-getSpatialQuery("SELECT * FROM cnx_hbs where timber_mrk in (select timber_mrk from (
-select count(*) as no_opens, foo.timber_mrk from (select count(*) as no_opening_id, opening_id, timber_mrk from cnx_hbs 
-group by opening_id, timber_mrk order by timber_mrk) as foo
-group by foo.timber_mrk) as foo2 where no_opens = 1)")
-
-cnx_hbs<-lwgeom::st_make_valid(cnx_hbs)
-
-polys<- st_intersection(cnx_hbs, feats) #spatialy join the timber mark boundaries with the id that links the VRI
-polys$area<-st_area(polys)/10000 #calc the area of the individual polygons within a timber mark
-polys$time_since_inv<-polys$harvestyr -2011
-polys$age_hrv<-polys$proj_age_1 + polys$time_since_inv
-
-
-#get elevation?
-ras.elv<-getTableQuery("SELECT  timber_mrk, (stats).*
-FROM (SELECT timber_mrk, ST_SummaryStats(ST_Clip(rast, feat.wkb_geometry)) As stats
-      FROM rast.dem
-      INNER JOIN  (SELECT timber_mrk, st_union(wkb_geometry) as wkb_geometry 
-				   FROM cnx_hbs where timber_mrk in (select timber_mrk from (
-select count(*) as no_opens, timber_mrk from (select count(*) as no_opening_id, opening_id, timber_mrk from cnx_hbs 
-group by opening_id, timber_mrk order by timber_mrk) as foo
-group by timber_mrk) as foo2 where no_opens = 1   ) group by timber_mrk
-   ) as feat
-    ON ST_Intersects(feat.wkb_geometry,rast) 
- ) As foo")
-    
-#Create a temp table?
-conn<-GetPostgresConn()
-dbWriteTable(conn, "polys",polys)
-dbDisconnect(conn)
-
-yt_prj<-getTableQuery("SELECT t.feature_id, t.yc_grp, t.bec_zone_code,
-  (((k.prj_vol_dwb - y.prj_vol_dwb*1.0)/10)*(t.age_hrv - CAST(t.age_hrv/10 AS INT)*10))+ y.prj_vol_dwb as itvol
-  FROM polys t
-  LEFT JOIN vdyp_test3 y 
-  ON t.yc_grp = y.yc_grp AND CAST(t.age_hrv/10 AS INT)*10 = y.prj_total_age
-  LEFT JOIN vdyp_test3 k 
-  ON t.yc_grp = k.yc_grp AND round(t.age_hrv/10+0.5)*10 = k.prj_total_age WHERE t.age_hrv > 0
-  ;")
-
-#delete the temp table
-conn<-GetPostgresConn()
-dbExecute(conn, "Drop table polys;")
-dbDisconnect(conn)
-
-#join with poly
-out.tbl<-merge(polys, yt_prj)
-out.tbl$vol<-out.tbl$area*out.tbl$itvol #calc the volumes for each of the individual polygons within a timber mark
-#st_write(out.tbl, "test3.shp")
-
-#get the itvols that are NULL == don't match with the meta-model
-out.tbl2<-data.table(out.tbl)
-units(out.tbl2$area) <- NULL
-units(out.tbl2$vol) <- NULL
-
-#43118
-out.tbl2<-out.tbl2[!(timber_mrk == 'BY5H37'),] #this timber mark also has a missing portion 
-
-test.1 <-data.table(out.tbl2)
-number_obs<-test.1[, .(count = .N, var = sum(area)), by = timber_mrk ]
-
-#figure out the distrubution of area with no matching
-noMatchArea<-out.tbl2[is.na(itvol), sum(area), by =timber_mrk]
-setnames(noMatchArea, "V1", "area")
-totalArea<-out.tbl2[, sum(area), by =timber_mrk]
-setnames(totalArea, "V1", "totarea")
-percentNoMatch<-merge(noMatchArea, totalArea)
-percentNoMatch$pernomatch<-percentNoMatch$area/percentNoMatch$totarea
-
-
-#plot the distribution
-eq <- substitute(italic(q25)== a*","~~italic(q75)== b ,list(a=as.numeric(quantile(percentNoMatch$pernomatch,0.25)), b= as.numeric(quantile(percentNoMatch$pernomatch,0.75))))
-  
-ggplot(data = data.table(per.Area.Missing=percentNoMatch$pernomatch), aes(x=per.Area.Missing)) +
-  geom_histogram(bins =120)+
-  geom_vline(xintercept=quantile(percentNoMatch$pernomatch,0.25))+
-  geom_vline(xintercept=quantile(percentNoMatch$pernomatch,0.75))+
-  geom_text(aes(x = 0.30, y =400 , label = as.character(as.expression(eq)) ), parse = TRUE) + 
-  theme_bw()
 
 ```
+## type is 0
+```
+
+```
+## Warning: attribute variables are assumed to be spatially constant
+## throughout all geometries
+```
+
+```
+## [1] TRUE
+```
+
+```
+## [1] TRUE
+```
+
+```
+## [1] 0
+```
+
+```
+## [1] TRUE
+```
+
+![FIGURE 1. A histogram of the percentage of the total timber mark area that did not match with forested VRI polygons. q25 and q75 are the 25th and 75th quantile, respectively.](linkHBS_VRI_Calibtation_files/figure-html/timber_mrks-1.png)
 
 This histogram shows that 75% of timber marks were missing forest inventory attribution for only 1.4% of their total area. After visually checking, two issues arose: i) the spatial boundaries of these timber marks extend into non-forested area as reported by the VRI; and ii) there wasn't enough information to parameterize the growth and yield model (outside the domain of the inputs, e.g., recently disturbed). In the case of the non-forested areas, these could be small spatial errors in the VRI and were thus important sources of uncertainty. However, from a practical view, these relatively small areas would contribute little to the total projected volume estimate. Thus, timber marks with greater than 3 percent of their total area containing inadequate forest inventory information were removed from the analysis.
 
 
-```{r, sample, echo = FALSE, fig.cap = 'FIGURE 2. The location of timber marks used in the analysis (n = 326).'}
-noMatch2<-unique(percentNoMatch[pernomatch > 0.03, timber_mrk])
-timbr_mrks<-out.tbl2[!(out.tbl2$timber_mrk %in% noMatch2),]
-timbr_mrks[is.na(vol), vol:=0]
-test.1 <-data.table(timbr_mrks)
-number_obs<-test.1[, .(count = .N, var = sum(area)), by = timber_mrk ]
 
-out.tbl3<-timbr_mrks[, sum(vol), by =timber_mrk]
-setnames(out.tbl3, c("V1", "timber_mrk"), c("proj_vol","timber_mark"))
-
-out.tbl3.area<-timbr_mrks[, sum(area), by =timber_mrk]
-setnames(out.tbl3.area, c("V1", "timber_mrk"), c("area","timber_mark"))
-
-out.tbl4<-merge(out.tbl3,out.tbl3.area)
-
-hbs_obs<-getTableQuery("SELECT timber_mark, sum(volume_m3) as obs_vol FROM hbs_select_tmbr_mrk  where waste_type = 'Non-Waste' AND coast_interior = 'Interior' group by timber_mark")
-
-dead_hbs_obs<-getTableQuery("SELECT distinct(timber_mark) FROM hbs_select_tmbr_mrk where grade = 'CB Dead'")
-hbs_obs<-hbs_obs[!(hbs_obs$timber_mark %in% dead_hbs_obs$timber_mark),]
-
-calb_data<-data.table(merge(hbs_obs, out.tbl4))
-units(calb_data$area) <- NULL
-units(calb_data$proj_vol) <- NULL
-
-calb_data<-calb_data[proj_vol > 100 , ] # get rid of small blcoks that may not be some sort of alternative cutting system
-calb_data<-calb_data[obs_vol > 100 , ] # get rid of small blcoks that may not be some sort of alternative cutting system
-
-#check outliers
-#'WAWVFF' ,'WBJKDD' , '88606', 'DE2270', '52/911', 'DE2621', 'EU6615'
-#WAWVFF is a small triangle problem with mapping the area its 0.6 ha so very small remove
-#WBJKDD is also less than 1 ha remove
-#No reason to remove 88606 -- looks ok VRI reporting a site index of 10
-#No reason to remove DE2270 -- looks ok VRI reporting a site index of 8
-#52/911 area wrong remove
-#No reason to remove - DE2621 -- VRI site index 10-12 (low)
-# Nor reason to remove EU6615 -- VRI site index 8
-
-calb_data<- calb_data[!(timber_mark %in% c('WAWVFF','WBJKDD', '52/911')),]
-calb_data$proj_vol<-as.numeric(calb_data$proj_vol)
-
-#Get the spatial X,Y coordinates
-cents<-st_read(paste0(here::here(), "/R/Params/centroid_timber_mkrs2.shp"))
-cents2<-st_coordinates(st_sf(cents))
-cents2<-data.table(cents2)
-cents2$timber_mark<-cents$tmbr_mr
-calb_data<-merge(calb_data, cents2, by.x = "timber_mark", by.y ="timber_mark", all.x = TRUE)
-
-#Get the elevation
-ras.elv<-data.table(ras.elv)
-setnames(ras.elv, "timber_mrk", "timber_mark")
-
-ras.elv2<-ras.elv[, weighted.mean(mean, count), by =timber_mark]
-ras.elv2[timber_mark == '90884', V1:= 1372]
-calb_data<-merge(calb_data, ras.elv2, by.x ="timber_mark", by.y = "timber_mark", all.x = TRUE )
-setnames(calb_data, "V1", "elv")
-#map the observations?
-bec <-get_layer("bec")
-ggplot() + geom_sf(data = bec, aes(fill=ZONE), size =0.1)+ geom_point(data=calb_data, aes(x=X, y=Y), color="red")
 ```
+## Reading layer `centroid_timber_mkrs2' from data source `C:\Users\klochhea\clus\R\Params\centroid_timber_mkrs2.shp' using driver `ESRI Shapefile'
+## Simple feature collection with 828 features and 25 fields
+## geometry type:  POINT
+## dimension:      XY
+## bbox:           xmin: 595907.3 ymin: 391311.3 xmax: 1833585 ymax: 1385545
+## epsg (SRID):    NA
+## proj4string:    +proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +ellps=GRS80 +units=m +no_defs
+```
+
+```
+## Loading file from cache...
+```
+
+![FIGURE 2. The location of timber marks used in the analysis (n = 326).](linkHBS_VRI_Calibtation_files/figure-html/sample-1.png)
 
 
 ### Growth and yield meta-model
@@ -224,32 +107,33 @@ In BC, forested stands from natural orgins are typically projected through time 
 
 Each VRI polygon that intersected the timber mark boundary and contained a projected volume was summed to estimate the total projected timber volume for the timber mark. This projected timber volume represented the naive projection commonly used in forest estate modeling.  
 
-```{r, echo = FALSE, Step6_develop_vri2011, fig.cap = 'FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval (n= 326).'}
-
-model1 <- lm(obs_vol ~ proj_vol, data=calb_data)
-summary(model1)
-temp_var <- predict(model1, data =calb_data, interval="prediction")
-calb_data2 <- cbind(calb_data, temp_var)
-
-lm_eqn = function(m) {
-  l <- list(a = format(as.numeric(coef(m)[1]), digits = 2),
-      b = format(as.numeric(coef(m)[2]), digits = 2),
-      r2 = format(summary(m)$r.squared, digits = 3))
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2,l)
-  as.character(as.expression(eq))                 
-}
-
-ggplot(calb_data2, aes(proj_vol, obs_vol)) +
-  geom_point() +
-  geom_smooth(method='lm', se = TRUE)+
-  geom_line(aes(y=lwr), color = "red", linetype = "dashed")+
-  geom_line(aes(y=upr), color = "red", linetype = "dashed") +
-  geom_text(aes(x = 35000, y = 100000, label = lm_eqn(model1)), parse = TRUE) +
-    geom_abline(intercept =0, slope=1, col ="yellow") +
-  theme_bw()
-
 
 ```
+## 
+## Call:
+## lm(formula = obs_vol ~ proj_vol, data = calb_data)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -41840  -2111   -925   1896  44645 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 1.279e+03  4.880e+02   2.621   0.0091 ** 
+## proj_vol    7.195e-01  1.602e-02  44.917   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 7640 on 384 degrees of freedom
+## Multiple R-squared:  0.8401,	Adjusted R-squared:  0.8397 
+## F-statistic:  2017 on 1 and 384 DF,  p-value: < 2.2e-16
+```
+
+```
+## Warning in predict.lm(model1, data = calb_data, interval = "prediction"): predictions on current data refer to _future_ responses
+```
+
+![FIGURE 3. The relationship between observed (obs_vol) and projected (proj_vol) volumes ($m^3$). The yellow line is a one to one relationship; the blue line is a linear line of best fit; the dashed red lines represent the 95% prediction interval (n= 326).](linkHBS_VRI_Calibtation_files/figure-html/Step6_develop_vri2011-1.png)
 
 ### Modelling assumptions
 
@@ -257,7 +141,8 @@ The following assumptions of the calibration model need to be tested: i) the res
 
 From the histogram below the gamma and log normal distributions appear to be candidates distributions to model the response.
 
-```{r, dist_proj_vol, fig.cap="FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=326)"}
+
+```r
 #library(fitdistrplus)
 #param.1 <- MASS::fitdistr(calb_data4$obs_vol, "normal")
 #param.2 <- MASS::fitdistr(calb_data4$obs_vol, "lognormal")
@@ -269,13 +154,16 @@ curve(dnorm(x, 15138, 19838), add=TRUE)
 curve(dlnorm(x, 8.79, 1.41), add=TRUE, col = 'blue')
 ```
 
+![FIGURE 4. Histogram of the projected volumes of timber marks between 2012 to 2016 (n=326)](linkHBS_VRI_Calibtation_files/figure-html/dist_proj_vol-1.png)
+
 # Results
 
 ### Calibration model
 
 In Robinson et al. (2016) a gamma model was used to model both the  mean and  variance of the response distribution. Gamma models are advantageous because they are highly flexible in the positive domain and allow the modeling of heteroskedastic variance. Below we try a few gamma models by incorporating forest attributes as predictors of both the mean and variance. The results suggest a gamma model is better fit over a log normal model. Also, the VRI height and elevation are important predictors of the response variance. However, these models assume independance which needs to be tested.
 
-```{r, calibrate_model,  fig.cap= 'FIGURE 4. Fit statistics of the calibration model (n=326)' }
+
+```r
 # get the bec zone that makes up the majority of the timber mark 
 pv_timber_mrk<-merge(timbr_mrks, totalArea)
 pv_timber_mrk[,wt:=as.numeric(area/totarea)]
@@ -291,63 +179,198 @@ test.0 <- gamlss(obs_vol ~ proj_vol,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6575.296 
+## GAMLSS-RS iteration 2: Global Deviance = 6575.295
+```
+
+```r
 test.0 <- gamlss(obs_vol ~ proj_vol,
                  sigma.formula = ~ 1,
                  mu.link = "log",
                  sigma.link = "log",
                  family = LOGNO(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6619.346 
+## GAMLSS-RS iteration 2: Global Deviance = 6619.346
+```
+
+```r
 test.1 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ 1,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
+```
+
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6202.212 
+## GAMLSS-RS iteration 2: Global Deviance = 6202.212
+```
+
+```r
 test.1 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ 1,
                  mu.link = "log",
                  sigma.link = "log",
                  family = LOGNO(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6191.291 
+## GAMLSS-RS iteration 2: Global Deviance = 6191.291
+```
+
+```r
 test.2 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ proj_vol,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6189.939 
+## GAMLSS-RS iteration 2: Global Deviance = 6189.888 
+## GAMLSS-RS iteration 3: Global Deviance = 6189.888
+```
+
+```r
 test.3 <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ log(proj_vol),
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6177.096 
+## GAMLSS-RS iteration 2: Global Deviance = 6176.263 
+## GAMLSS-RS iteration 3: Global Deviance = 6176.263
+```
+
+```r
 test.4.ga <- gamlss(obs_vol ~ log(proj_vol),
 
                  sigma.formula = ~ log(proj_vol) + proj_height_1 + elv,
                  sigma.link = "log",
                  family = GA(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6159.374 
+## GAMLSS-RS iteration 2: Global Deviance = 6154.384 
+## GAMLSS-RS iteration 3: Global Deviance = 6154.33 
+## GAMLSS-RS iteration 4: Global Deviance = 6154.33
+```
+
+```r
 test.4.ln <- gamlss(obs_vol ~ log(proj_vol),
                  sigma.formula = ~ log(proj_vol) + proj_height_1 + elv,
                  sigma.link = "log",
                  family = LOGNO(),
                  data = calb_data4)
+```
 
+```
+## GAMLSS-RS iteration 1: Global Deviance = 6167.102 
+## GAMLSS-RS iteration 2: Global Deviance = 6165.816 
+## GAMLSS-RS iteration 3: Global Deviance = 6165.81 
+## GAMLSS-RS iteration 4: Global Deviance = 6165.81
+```
+
+```r
 LR.test(test.4.ln, test.4.ga)
+```
+
+```
+##  Likelihood Ratio Test for nested GAMLSS models. 
+##  (No check whether the models are nested is performed). 
+##  
+##        Null model: deviance= 6165.809 with  6 deg. of freedom 
+##  Altenative model: deviance= 6154.33 with  6 deg. of freedom 
+##  
+##  LRT = 11.47978 with 0 deg. of freedom and p-value= 0
+```
+
+```r
 chosen<-test.4.ga
 summary(chosen)
+```
+
+```
+## ******************************************************************
+## Family:  c("GA", "Gamma") 
+## 
+## Call:  
+## gamlss(formula = obs_vol ~ log(proj_vol), sigma.formula = ~log(proj_vol) +  
+##     proj_height_1 + elv, family = GA(), data = calb_data4,  
+##     sigma.link = "log") 
+## 
+## Fitting method: RS() 
+## 
+## ------------------------------------------------------------------
+## Mu link function:  log
+## Mu Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.36896    0.17341   2.128   0.0341 *  
+## log(proj_vol)  0.94208    0.01821  51.729   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------------------------------
+## Sigma link function:  log
+## Sigma Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    1.481e+00  3.152e-01   4.700 3.87e-06 ***
+## log(proj_vol) -9.359e-02  2.680e-02  -3.492 0.000547 ***
+## proj_height_1 -4.046e-02  8.568e-03  -4.722 3.50e-06 ***
+## elv           -3.828e-04  2.616e-05 -14.632  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------------------------------
+## No. of observations in the fit:  326 
+## Degrees of Freedom for the fit:  6
+##       Residual Deg. of Freedom:  320 
+##                       at cycle:  4 
+##  
+## Global Deviance:     6154.33 
+##             AIC:     6166.33 
+##             SBC:     6189.051 
+## ******************************************************************
+```
+
+```r
 plot(chosen)
+```
+
+![FIGURE 4. Fit statistics of the calibration model (n=326)](linkHBS_VRI_Calibtation_files/figure-html/calibrate_model-1.png)
+
+```
+## ******************************************************************
+## 	      Summary of the Quantile Residuals
+##                            mean   =  0.03095719 
+##                        variance   =  1.024686 
+##                coef. of skewness  =  -0.2270175 
+##                coef. of kurtosis  =  4.557427 
+## Filliben correlation coefficient  =  0.9914084 
+## ******************************************************************
 ```
 
 ### Testing for autocorrelation
 
 An assumption of the uncertainty model is that the errors are independant. This assumption is required in order to sum across many predictions and achieve an unbiased total. Here I test for autocorrelation in the residuals.
 
-```{r, testing_auto_correlation}
 
+```r
 ind.1<- predictAll(chosen, newdata = calb_data4)
 ind.2<-cbind(calb_data4, ind.1$mu)
 ind.2$res<-ind.2$obs_vol - ind.2$V2
@@ -360,6 +383,23 @@ diag(dists.inv) <- 0
 
 #auto.2$res<-auto.2$res+runif(326, 1, 10000)
 Moran.I(ind.2$res, dists.inv)
+```
+
+```
+## $observed
+## [1] 0.0231245
+## 
+## $expected
+## [1] -0.003076923
+## 
+## $sd
+## [1] 0.01465897
+## 
+## $p.value
+## [1] 0.07387307
+```
+
+```r
 #observed is significantly greater than expected  - positively correlated. Thus, jointly contribute more to the uncertainty then their sum would suggest.
 
 xyspatial=SpatialPoints(cbind(ind.2$X,ind.2$Y))
@@ -368,12 +408,16 @@ spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
 
 vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 3000)
 plot(vario2)
+```
 
+![](linkHBS_VRI_Calibtation_files/figure-html/testing_auto_correlation-1.png)<!-- -->
+
+```r
 bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
-
-
 ```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/testing_auto_correlation-2.png)<!-- -->
 
 The results from the Moran's I suggest that the residuals are independant (Moran's I = 0.0231, p = 0.0739). After building a variogram there doesn't seem to be a strong spatial effect.  However, the bubble map shows some spatial clustering -namely in the far east corner and around the kamloops area. Also the p value for Moran's I is providing enough evidence against the null hypothesis to warrant a check to see if the model can be further improved by taking into account any spatial autocorrelation.
 
@@ -393,18 +437,105 @@ To account for the spatial autocorrelation in the model we construct a mixed eff
 
 The result of this model is a Moran's I of 0.0229, p = 0.0754, which suggests some of remaining spatial autocorrelation is being accounted. The range of the spherical variogram is 2718 m, with a nugget effect of 0.34. The AIC of this spatial model is smaller (6159.75 versus 6166.3) than the model assuming independance. Thus, it appears the spatial model may be the prefered model.  
 
-```{r, autocorr}
+
+```r
 calb_data4$dummy<-1
 chosen.a <- gamlss(obs_vol ~log(proj_vol) + re(random=~1|dummy, correlation = corSpher(2500, form = ~ X + Y, nugget = T), opt="optim", method = "REML"),
                    sigma.formula = ~ log(proj_vol) + proj_height_1 + elv ,
                    sigma.link = "log",
                    family = GA(), data = calb_data4, control = gamlss.control(c.crit = 0.005), method=CG())
+```
+
+```
+## GAMLSS-CG iteration 1: Global Deviance = 6460.426 
+## GAMLSS-CG iteration 2: Global Deviance = 6276.441 
+## GAMLSS-CG iteration 3: Global Deviance = 6185.328 
+## GAMLSS-CG iteration 4: Global Deviance = 6158.253 
+## GAMLSS-CG iteration 5: Global Deviance = 6154.696 
+## GAMLSS-CG iteration 6: Global Deviance = 6154.51 
+## GAMLSS-CG iteration 7: Global Deviance = 6154.425 
+## GAMLSS-CG iteration 8: Global Deviance = 6154.424
+```
+
+```r
 summary(chosen.a)
+```
 
+```
+## ******************************************************************
+## Family:  c("GA", "Gamma") 
+## 
+## Call:  gamlss(formula = obs_vol ~ log(proj_vol) + re(random = ~1 |  
+##     dummy, correlation = corSpher(2500, form = ~X +  
+##     Y, nugget = T), opt = "optim", method = "REML"),  
+##     sigma.formula = ~log(proj_vol) + proj_height_1 +  
+##         elv, family = GA(), data = calb_data4, method = CG(),  
+##     control = gamlss.control(c.crit = 0.005), sigma.link = "log") 
+## 
+## Fitting method: CG() 
+## 
+## ------------------------------------------------------------------
+## Mu link function:  log
+## Mu Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.29024    0.17452   1.663   0.0973 .  
+## log(proj_vol)  0.94162    0.01832  51.393   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------------------------------
+## Sigma link function:  log
+## Sigma Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    1.480e+00  3.155e-01   4.692 4.00e-06 ***
+## log(proj_vol) -9.373e-02  2.681e-02  -3.496 0.000538 ***
+## proj_height_1 -4.025e-02  8.593e-03  -4.684 4.16e-06 ***
+## elv           -3.855e-04  2.624e-05 -14.693  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## ------------------------------------------------------------------
+## NOTE: Additive smoothing terms exist in the formulas: 
+##  i) Std. Error for smoothers are for the linear effect only. 
+## ii) Std. Error for the linear terms maybe are not accurate. 
+## ------------------------------------------------------------------
+## No. of observations in the fit:  326 
+## Degrees of Freedom for the fit:  2.661641
+##       Residual Deg. of Freedom:  323.3384 
+##                       at cycle:  8 
+##  
+## Global Deviance:     6154.424 
+##             AIC:     6159.747 
+##             SBC:     6169.827 
+## ******************************************************************
+```
 
+```r
 plot(chosen.a)
+```
 
+![](linkHBS_VRI_Calibtation_files/figure-html/autocorr-1.png)<!-- -->
+
+```
+## ******************************************************************
+## 	      Summary of the Quantile Residuals
+##                            mean   =  0.01614593 
+##                        variance   =  1.020245 
+##                coef. of skewness  =  -0.2154011 
+##                coef. of kurtosis  =  4.571487 
+## Filliben correlation coefficient  =  0.9913511 
+## ******************************************************************
+```
+
+```r
 auto.1<- predictAll(chosen.a, newdata = calb_data4)
+```
+
+```
+## new prediction
+```
+
+```r
 auto.2<-cbind(calb_data4, auto.1$mu)
 auto.2$res<-auto.2$obs_vol - auto.2$V2
 
@@ -416,6 +547,23 @@ diag(dists.inv) <- 0
 
 #auto.2$res<-auto.2$res+runif(326, 1, 10000)
 Moran.I(ind.2$res, dists.inv)
+```
+
+```
+## $observed
+## [1] 0.0231245
+## 
+## $expected
+## [1] -0.003076923
+## 
+## $sd
+## [1] 0.01465897
+## 
+## $p.value
+## [1] 0.07387307
+```
+
+```r
 #observed is significantly greater than expected  - positively correlated. Thus, jointly contribute more to the uncertainty then their sum would suggest.
 
 xyspatial=SpatialPoints(cbind(ind.2$X,ind.2$Y))
@@ -424,62 +572,34 @@ spatialdata=SpatialPointsDataFrame(xyspatial,porspatial)
 
 vario2 <- variogram(ind.2$res~1, spatialdata, cutoff = 3000)
 plot(vario2)
+```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/autocorr-2.png)<!-- -->
+
+```r
 bubble(spatialdata, "ind.2.res", col = c("blue", "orange"), main = "Residuals", xlab = "X-coordinates", 
     ylab = "Y-coordinates")
-
-
 ```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/autocorr-3.png)<!-- -->
 
 
 Now lets compare the model assuming independance and the spatial model. Here we see that the spatial model is less biased than the model that assumes independance. The mean of the spatial model is much closer to the observed total.
 
-```{r, spat_mod_compare, echo = FALSE}
-
-#Assuming indepdnance model
-test.iid.data<-ind.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1", "elv")] 
-test.iid.0<- predictAll(chosen, newdata = test.iid.data) 
-test.iid.data$mu<-test.iid.0$mu 
-test.iid.data$sigma<-test.iid.0$sigma 
-  
-#sum(test.iid.data$obs_vol)
-#sum(test.iid.data$proj_vol)
-#sum(test.iid.data$mu)
-#sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))
-#est param
-#sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))/sum(test.iid.data$mu)
-summed<-rGA(20000, mu = sum(test.iid.data$mu), sigma = sqrt(sum((test.iid.data$mu*test.iid.data$sigma)**2))/sum(test.iid.data$mu) )
-#quantile(summed, c(0.05, 0.5, 0.95))
-
-test.auto.data<-auto.2[,c("obs_vol", "proj_vol", "X", "Y", "proj_age_1", "proj_height_1", "dummy", "elv")] 
-test.auto.0<- predictAll(chosen.a, newdata = test.auto.data) 
-test.auto.data$mu<-test.auto.0$mu 
-test.auto.data$sigma<-test.auto.0$sigma 
-  
-#sum(test.auto.data$obs_vol)
-#sum(test.auto.data$proj_vol)
-#sum(test.auto.data$mu)
-#sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))
-#-------
-
-summed.auto<-rGA(20000, mu = sum(test.auto.data$mu), 
-                 sigma = sqrt(sum((test.auto.data$mu*test.auto.data$sigma)**2))/sum(test.auto.data$mu))
-#quantile(summed.auto, c(0.025, 0.05, 0.5, 0.95, 0.975))
-
-data.76<-rbind(data.table(vol = summed, type = "assume_iid"), data.table(vol = summed.auto, type = "spatial"))
-ggplot(data.76, aes(vol, fill = type)) + 
-geom_histogram(alpha = 0.5, position = 'identity') +
-geom_vline(xintercept = sum(test.auto.data$obs_vol), size = 1.5 ) +
-geom_text(aes(x=5250000, y=3500, label= "Observed"), hjust = 1)+
-geom_vline(xintercept = sum(test.auto.data$proj_vol), size = 1.5, linetype = 'dotted') +
-  geom_text(aes(x=6150000, y=3500, label= "Naively Projected"), hjust = 1)+
-geom_vline(xintercept = sum(test.auto.data$mu), color = '#619CFF') +
-geom_vline(xintercept = sum(test.iid.data$mu), color = '#F8766D') +
-  labs(x = "Total Volume (m3)", y = "Count") 
 
 ```
+## new prediction
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/spat_mod_compare-1.png)<!-- -->
 
 Here we compare the cummulative dsitributions to see any deviations between the predicted and response surfaces. They are very similar - a few deviations most notably at larger predictions of the response.
-```{r, cdfs}
+
+```r
 #ECDF
 auto.2$surf<-"obs"
 obs.1<-cbind(test.auto.data$obs_vol,auto.2$surf)
@@ -491,8 +611,9 @@ data.78<-data.table(data.78)
 data.78$V1<-as.numeric(data.78$V1)
 ggplot(data.78, aes(V1, color = V2)) + 
 stat_ecdf(alpha = 0.5, position = 'identity')
-
 ```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/cdfs-1.png)<!-- -->
 
 
 ### Fixed effects
@@ -500,195 +621,36 @@ stat_ecdf(alpha = 0.5, position = 'identity')
 Now that the spatial model has passed the modelling assumptions. Let explore the effects that were modelled. In the spatial calibration model the naively projected volume, VRI height and elevation were used.
 
 
-```{r, plot_some_stuff, echo = FALSE}
-#res<-residuals(chosen)
-#saveRDS(chosen, "calb_ymodel.rds")
-#saveRDS(calb_data4, "calb_data.rds")
 
-#--Min effect
-trajectory.min <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= min(proj_height_1),
-                   elv= mean(elv),
-                   proj_age_1= min(proj_age_1),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-
-new.dist.min <- predictAll(chosen.a, newdata = trajectory.min)
-trajectory.min$mu <- new.dist.min$mu
-trajectory.min$sigma <- new.dist.min$sigma
-trajectory.min$upper.2 <- with(new.dist.min, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.min$lower.2 <- with(new.dist.min, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.min$upper.1 <- with(new.dist.min, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.min$lower.1 <- with(new.dist.min, qGA(0.33, mu = mu, sigma = sigma))
-
-
-#--Min effect elv
-trajectory.elv.min <-with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= mean(proj_height_1),
-                   elv= min(elv),
-                   proj_age_1= mean(proj_age_1),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-new.dist.min <- predictAll(chosen.a, newdata = trajectory.elv.min)
-trajectory.elv.min$mu <- new.dist.min$mu
-trajectory.elv.min$sigma <- new.dist.min$sigma
-trajectory.elv.min$upper.2 <- with(new.dist.min, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.elv.min$lower.2 <- with(new.dist.min, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.elv.min$upper.1 <- with(new.dist.min, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.elv.min$lower.1 <- with(new.dist.min, qGA(0.33, mu = mu, sigma = sigma))
-
-#--Mean effect
-trajectory.mean <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= mean(proj_height_1),
-                   elv= mean(elv),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-new.dist.mean <- predictAll(chosen.a, newdata = trajectory.mean)
-trajectory.mean$mu <- new.dist.mean$mu
-trajectory.mean$sigma <- new.dist.mean$sigma
-trajectory.mean$upper.2 <- with(new.dist.mean, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.mean$lower.2 <- with(new.dist.mean, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.mean$upper.1 <- with(new.dist.mean, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.mean$lower.1 <- with(new.dist.mean, qGA(0.33, mu = mu, sigma = sigma))
-
-#Max effect
-trajectory.max <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= max(proj_height_1),
-                   elv= mean(elv),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-new.dist.max <- predictAll(chosen.a, newdata = trajectory.max)
-trajectory.max$mu <- new.dist.max$mu
-trajectory.max$sigma <- new.dist.max$sigma
-trajectory.max$upper.2 <- with(new.dist.max, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.max$lower.2 <- with(new.dist.max, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.max$upper.1 <- with(new.dist.max, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.max$lower.1 <- with(new.dist.max, qGA(0.33, mu = mu, sigma = sigma))
-
-#Max elv effect
-trajectory.elv.max <-
-  with(calb_data4,
-       expand.grid(proj_vol =
-                   seq(from = min(proj_vol),
-                       to = max(proj_vol),
-                       length.out = 100),
-                   proj_height_1= mean(proj_height_1),
-                   elv= max(elv),
-                   X = mean(X),
-                   Y = mean(Y),
-                   dummy = 1
-                   ))
-
-new.dist.max <- predictAll(chosen.a, newdata = trajectory.elv.max)
-trajectory.elv.max$mu <- new.dist.max$mu
-trajectory.elv.max$sigma <- new.dist.max$sigma
-trajectory.elv.max$upper.2 <- with(new.dist.max, qGA(0.95, mu = mu, sigma = sigma))
-trajectory.elv.max$lower.2 <- with(new.dist.max, qGA(0.05, mu = mu, sigma = sigma))
-trajectory.elv.max$upper.1 <- with(new.dist.max, qGA(0.67, mu = mu, sigma = sigma))
-trajectory.elv.max$lower.1 <- with(new.dist.max, qGA(0.33, mu = mu, sigma = sigma))
-
-p.min <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.min, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.min) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.min) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.min) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.min) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.max <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield ", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield ", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.max, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.max) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.max) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.max) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.max) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.mean <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.mean, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.mean) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.mean) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.mean) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.mean) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.elv.min <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.elv.min, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.elv.min) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.elv.min) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.elv.min) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.elv.min) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-p.elv.max <-
-  ggplot(calb_data4, aes(x = proj_vol, y = obs_vol) ) +
-  geom_point(alpha=0.4) +
-  #facet_wrap(~ ForestQualityClass) +
-  xlab(expression(paste("Projected Volume Yield (", m^3, ")"))) +
-  ylab(expression(paste("Observed Volume Yield (", m^3, ")"))) +
-  geom_line(aes(y = mu, x = proj_vol), color = 'blue', data = trajectory.elv.max, lwd = 1.75) +
-  geom_line(aes(y = lower.2, x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.elv.max) +
-  geom_line(aes(y = upper.2 , x =  proj_vol), linetype = "dashed", color = 'red', data = trajectory.elv.max) +
-  geom_line(aes(y = lower.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.elv.max) +
-  geom_line(aes(y = upper.1 , x =  proj_vol), linetype = "dotted", color = 'blue', data = trajectory.elv.max) +
-  geom_abline(intercept =0, slope=1, col ="yellow")+
-  ylim(0,200000)
-
-plot_grid(p.min, p.mean, p.max, p.elv.min, p.elv.max, labels = c("min(ht)", "mean(all)", "max(ht)", "min(elv)", "max(elv)"))
 ```
+## new prediction
+```
+
+```
+## new prediction
+```
+
+```
+## new prediction
+```
+
+```
+## new prediction
+```
+
+```
+## new prediction
+```
+
+```
+## Warning: Removed 26 rows containing missing values (geom_path).
+```
+
+```
+## Warning: Removed 10 rows containing missing values (geom_path).
+```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/plot_some_stuff-1.png)<!-- -->
 
 
 ## Results Summary
@@ -721,22 +683,12 @@ To demonstrate possible spatial effects of clustering use the calibration model 
 
 In Robinson et al. (2016), each of the response distributions were summed after sampling 10000 samples from each of the response distributions. However, this is computationally slow ( adds ~ 30 seconds for 326 harvest units). Instead of sampling each individual response distribution -- we can sum the means and sigmas because the individual responses are independant. Here is a comparison between mathematically estimating the total response distribution versus simulating it with many samples. By mathematically estimating the total response distribution, there is a large cost savings (~25 seconds) which when amplified over a simulation model with a 100 year time horizon and annual time step would result in ~ 42 minutes saved per simulation run. 
 
-```{r, iid, echo = FALSE}
-#simulate
-sim.volume <-
-    sapply(1:20000,
-           function(x)
-             with(test.auto.data,
-                  sum(rGA(nrow(test.auto.data), 
-                          mu = mu,
-                          sigma = sigma))))
-
-# compare the distributiongs for math and sim
-data.77<-rbind(data.table(vol = summed.auto, type = "math"), data.table(vol = sim.volume, type = "sim"))
-ggplot(data.77, aes(vol, fill = type)) + 
-geom_histogram(alpha = 0.5, position = 'identity') 
 
 ```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](linkHBS_VRI_Calibtation_files/figure-html/iid-1.png)<!-- -->
 
 # References
 
