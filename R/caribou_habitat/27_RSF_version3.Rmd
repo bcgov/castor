@@ -21,14 +21,14 @@ library (magick)
 ```
 
 ## Introduction
-Here I develop a statistical models to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the model to indicate the influence of current and potential future forestry development on caribou use of habitat. Tne model will be implemented as a module (i.e., rsfCLUS) in the caribou and land use simulator (CLUS). Mmodels were fit for the four caribou designatable units (DUs) in British Columbia (BC), (DU6, boreal; DU7, northern moutain; DU8, central mountain; DU9, southern moutnain), as defined by the [Committee on the Status of Endangered Wildlife in Canada (COSEWIC)](https://www.registrelep-sararegistry.gc.ca/default.asp?lang=En&n=E6271D78-1&offset=2#_01_4). DUs were modeled independently, as they are intended to represent groups with unique ecologicla characteristics, and potentially different responses to forestry disturbance. 
+Here I develop statistical models to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the models to indicate the influence of current and potential future forestry development on caribou use of habitat. Tne model will be implemented as a module (i.e., rsfCLUS) in the caribou and land use simulator (CLUS). Models were fit for the four caribou designatable units (DUs) in British Columbia (BC): DU6, boreal; DU7, northern moutain; DU8, central mountain; DU9, southern moutnain, as defined by the [Committee on the Status of Endangered Wildlife in Canada (COSEWIC)](https://www.registrelep-sararegistry.gc.ca/default.asp?lang=En&n=E6271D78-1&offset=2#_01_4). DUs were modeled independently, as they are intended to represent groups of caribou with unique ecological characteristics, and potentially different responses to forestry disturbance. 
 
-I use a resource selection function (RSF) framework to develop the statistical model ( [Boyce et al. 1999](https://www.sciencedirect.com/science/article/pii/S0169534799015931), [Johnson et al. 2006](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.2193/0022-541X(2006)70[347:RSFBOU]2.0.CO;2)). This framework uses a logit model to calculate the relationship between caribou occurence and  habitat 'resources' measured using spatial data. Here I am only considering the effect of forestry disturbance 'resources', i.e., cutblocks and roads, on caribou occurrence. This approach simplifies and focuses the RSF onto modeling the effect of forestry disturbance on caribou dsitribution, and is not designed to accurately identify other factors that influence cariobu distribution. This model fitting process was completed to identify the statistical relationship between caribou distribution and forestry disturbance that was generalizable across a caribou DU, without considering the effect of other factors that influence caribou distribution. The theoretical basis for this approach is that these disturbance factors have a significant influence on caribou distribution, regardless of other habitat features. Indeed, cutblocks and linear features from forestry have routinely been shown to have a strong influence on caribou distribution (e.g., [Courbin et al. 2009](https://link.springer.com/article/10.1007/s10980-009-9389-x), [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1), [Mumma et al. 2018](https://www.sciencedirect.com/science/article/pii/S0006320718307225)) and survival ( [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x), [Johnson et al. 2015](https://www.sciencedirect.com/science/article/pii/S0006320715001160)).
+I use a resource selection function (RSF) framework to develop the statistical models ( [Boyce et al. 1999](https://www.sciencedirect.com/science/article/pii/S0169534799015931), [Johnson et al. 2006](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.2193/0022-541X(2006)70[347:RSFBOU]2.0.CO;2)). This framework uses a logit model to calculate the relationship between caribou occurence and  habitat 'resources' measured using spatial data. Here I am only considering the effect of forestry disturbance 'resources', i.e., cutblocks and roads, on caribou occurrence. This approach simplifies and focuses the RSF onto modeling a statistical relationship between caribou distribution and forestry disturbance that is generalizable across a caribou DU, and is not designed to accurately identify other habitat features that influence caribou distribution. The theoretical basis for this approach is that forestry disturbance has a significant influence on caribou distribution, regardless of other habitat features. Indeed, cutblocks and linear features from forestry have routinely been shown to influence caribou distribution (e.g., [Courbin et al. 2009](https://link.springer.com/article/10.1007/s10980-009-9389-x), [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1), [Mumma et al. 2018](https://www.sciencedirect.com/science/article/pii/S0006320718307225)) and survival ( [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x), [Johnson et al. 2015](https://www.sciencedirect.com/science/article/pii/S0006320715001160)).
 
-I also fit models with functional reponses by caribou to cutblocks and roads. 
-Individual wildlife, including caribou, likely respond to habitat differently (i.e., avoid or use roads or cutblocks) depending on the availability of that habitat to them (i.e., the degree that their home range is fragmented by roads or cutblocks). Functional response models in RSFs empirically account for this theroetical response by including an interaction term between the habitat feature at a location and the availability of that feature in the surronding environment ( [Matthiopoulos et al. 2011](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/10-0751.1)). I hypothesized that cariobu woudl be more likely to avoid cutblocks and roads as the amount of these features increased in cariobu home ranges, as patches of habtiat further form these disturbances would become increwasingly rare, adn thus increasingly improtant for avoiding predation. Thefroe, I tested for fucntional reponses and included them if a fucntional repsonse was evident in the reponse variable (i.e., caribou distrbution).  
+I fit statistical models with functional reponses by caribou to cutblocks and roads. 
+Individual animals, including caribou, likely respond to disturbances differently (i.e., avoid or use roads or cutblocks) depending on the amount of disturbance occuring around them (i.e., the degree that their home range is fragmented by roads or cutblocks). Functional response models in RSFs empirically account for this theroetical response by including an interaction term between the disturbance feature at a location and the availability of that feature in the surronding environment ( [Matthiopoulos et al. 2011](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1890/10-0751.1)). I hypothesized that caribou would be more likely to avoid cutblocks and roads as the amount of these features increased in their home ranges, as patches of habitat far from disturbances would become increasingly rare, and thus increasingly important to caribou for avoiding disturbance. I tested for functional responses by caribou to cutblocks and roads in each DU and included them in the model if they were evidently influencing the reponse variable based on visual assessment of model predictions.  
 
-The caribou-forestry disturbance model (CFDM) created here can be used as a spatial indicator of current and simulated future effects of forestry activity on caribou habitat quality. For example, the sum of CFDM outputs can be calculated within caribou herd ranges or critical habitat types, and changes in the sum value can be used to indicate changes in forstry disturbance influencing caribou habitat quality over time. 
+The caribou-forestry disturbance model (CFDM) created here can be used as a spatial indicator of current and simulated future effects of forestry activity on caribou habitat quality. For example, the sum of CFDM outputs can be calculated within caribou herd ranges or critical habitat types, and changes in the sum value can be used to indicate changes in forestry disturbance influencing caribou habitat quality over time. 
 
 ## Methods
 I calculated the CFDM using a generalized linear mixed model (GLMM) with a logit link, using the [glmer function](https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/glmer) from the [lme4](https://cran.r-project.org/web/packages/lme4/lme4.pdf) package in [program R](https://www.r-project.org/). I fit the model using caribou location data from telemetry collars placed on a sample of caribou (n = 468 animals, 507,987 locations) from across BC, between 2008 to 2018. These data were compiled from the government of BC's [Species Inventory (SPI) database](https://www2.gov.bc.ca/gov/content/environment/plants-animals-ecosystems/wildlife/wildlife-data-information/search-for-wildlife-data-information), [BC Oil and Gas Research and Innovation Society (OGRIS) data](http://www.bcogris.ca/boreal-caribou-home), and data from regional wildlife biologists in the BC government that was not yet entered into these databases. These data specified the locations on the landscape that were 'used' by caribou (*sensu* Boyce et al. 1999), i.e., the 1's in the binomial distribution of the dependent variable. I had no capture data for these animals, but it is likely the majority of the animals sampled were adult females, as the focus of caribou monitoring in BC is on measuring survival of adult females and recruitment of calves. Data was collected using a wide variety of telemetry collar technologies (e.g., GPS, ARGOS) and suppliers (e.g., Lotek, ATS, Telonics), and with varying location fix rates (e.g., 2 hours to 12 hours). All data were collected under provincial government permits amd following provincial animal care and handling protocols.
@@ -160,7 +160,7 @@ ggplot (rsf.data.du6, aes (x = pttype, y = dist_cut_min_all)) +
 ```
 
 #### Caribou-Forestry Disturbance Model
-I fit a model with a functional response for distance to road but not cutblock (Table 4). The model indicated a weak (non-significant), negative effect of cutblocks on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was clearly greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see interactive plot below). 
+I fit a model with a functional response for distance to road but not cutblock (Table 4). The model indicated a weak (non-significant), negative effect of cutblocks on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was clearly greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see 3d plots plot below). 
 
 ```{r, du6 model, echo = T, message = F, eval = F}
 # model spec
@@ -203,10 +203,9 @@ kable (du6.fe,
 
 ```{r, du6 model road fxn response, echo = T, message = F, eval = F}
 data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
-
 plot3d(x = data.road.test$distance_to_resource_road, 
        y = data.road.test$dist_res_road_E,
-       z = data.road.test$predict_du6, 
+       z = round (data.road.test$predict_du6, 2), 
        xlab = "Distance to Road",
        zlab = "Caribou Use" , 
        ylab = "Average Distance to Road (HR)",
@@ -214,24 +213,22 @@ plot3d(x = data.road.test$distance_to_resource_road,
        ylim = c(0, 15),
        zlim = c (0, 1),
        col = "blue", type = "p", size = 5, box = F)
-
-play3d( spin3d( axis = c(0, 0, 1), rpm = 6), duration = 5 )
-
-movie3d (spin3d (axis = c(0, 0, 1), 
+movie3d (spin3d (axis = c(0, 0.25, 1), 
                  rpm = 6), 
          movie = "du6_fxn", 
          dir = "C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\images\\", 
          type = "gif",  
-         duration = 5,
+         duration = 10,
          startTime = 0)
-
-
 ```
-```{r}
+
+```{r du6 fxn response gif, echo = F, message = F, eval = T}
 knitr::include_graphics( here ("R/caribou_habitat/images", "du6_fxn.gif"))
 ```
 
-
+```{r du6 fxn response image, echo = F, message = F, eval = T, fig.cap = "DU6 Caribou Functional Response to Road"}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du6_fxn.jpg"))
+```
 
 Random effects in the DU6 model indicated that caribou response to roads was relatively consistent across herds (Table 5). However, there was much more variability in the caribou response to cutblocks. Cariobu in the Calendar, Chinchaga and Prophet herds showed weak use of habtiat near cutblocks, whereas caribou in teh Maxhamish, Parker and Snake-Sahtaneh showed avoidance of cutblocks.
 
@@ -343,18 +340,34 @@ kable (du7.fe,
                  font_size = 11)
 ```
 
-```{r, du7 model road fxn response, echo = F, message = F, eval = T}
+```{r, du7 model road fxn response, echo = T, message = F, eval = F}
 data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_res_road_E,
-           data.road.test$predict_du7, 
-           xlab = "Distance to Road",
-           ylab = "Average Distance to Road (HR)", 
-           zlab = "Caribou Use",
-           surface = F,
-           pch = 6, point.col = "blue",
-           axis.ticks = T,
-           grid = T)
+plot3d(x = data.road.test$distance_to_resource_road, 
+       y = data.road.test$dist_res_road_E,
+       z = round (data.road.test$predict_du7, 2), 
+       xlab = "Distance to Road",
+       zlab = "Caribou Use" , 
+       ylab = "Average Distance to Road (HR)",
+       xlim = c (0, 30),
+       ylim = c(0, 30),
+       zlim = c (0, 1),
+       col = "blue", type = "p", size = 5, box = F)
+movie3d (spin3d (axis = c(0, 0.25, 1), 
+                 rpm = 6), 
+         movie = "du7_fxn", 
+         dir = "C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\images\\", 
+         type = "gif",  
+         duration = 10,
+         startTime = 0)
+
+```
+
+```{r, du7 fxn response gif, echo = F, message = F, eval = T}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du7_fxn.gif"))
+```
+
+```{r, du7 fxn response image, echo = F, message = F, eval = T, fig.cap = "DU7 Caribou Functional Response to Road"}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du7_fxn.jpg"))
 ```
 
 Random effects in the DU7 model indicated that caribou avodied roads consistently across herds, although there was significant variability in the strength of avoidance (Table 6). There was more variability in the caribou response to cutblocks. Cariobu in the Charlotte Alplands, Finlay, Frog, Graham, Pink Mountain, Spatsizi, Tsenaglode and TWeedsmuir tended to be closer to cutblocks, whereas caribou in other herds tended to avoid cutblocks. 
@@ -430,7 +443,7 @@ ggplot (rsf.data.du8, aes (x = pttype, y = dist_cut_min_all)) +
 ```
 
 #### Caribou-Forestry Disturbance Model
-I fit a model with a functional response for distance to road but not cutblock (Table 8). The model indicated a positive populaiton-level effect of cutblocks on caribou distribution and negative popaultion-level effect of roads on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see interactive plot below). 
+I fit a model with a functional response for distance to road but not cutblock (Table 8). The model indicated a positive populaiton-level effect of cutblocks on caribou distribution and negative popaultion-level effect of roads on caribou distribution. Visual assessment of model predictions indicated no clear change in caribou use of habitat near cutblocks as the average distance to cublock in their home ranges changed. However, there was greater avoidance of roads by caribou as the distance to roads sampled within home ranges decreased (see 3-d plots below). 
 
 ```{r, du8 model, echo = T, message = F, eval = F}
 # model spec
@@ -468,18 +481,34 @@ kable (du8.fe,
                  font_size = 11)
 ```
 
-```{r, du8 model road fxn response, echo = F, message = F, eval = T}
+```{r, du8 model road fxn response, echo = T, message = F, eval = F}
 data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_res_road_E,
-           data.road.test$predict_du8, 
-           xlab = "Distance to Road",
-           ylab = "Average Distance to Road (HR)", 
-           zlab = "Caribou Use",
-           surface = F,
-           pch = 6, point.col = "blue",
-           axis.ticks = T,
-           grid = T)
+plot3d(x = data.road.test$distance_to_resource_road, 
+       y = data.road.test$dist_res_road_E,
+       z = data.road.test$predict_du8, 
+       xlab = "Distance to Road",
+       zlab = "Caribou Use" , 
+       ylab = "Average Distance to Road (HR)",
+       xlim = c (0, 15),
+       ylim = c(0, 15),
+       zlim = c (0, 1),
+       col = "blue", type = "p", size = 5, box = F)
+movie3d (spin3d (axis = c(0, 0.25, 1), 
+                 rpm = 6), 
+         movie = "du8_fxn", 
+         dir = "C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\images\\", 
+         type = "gif",  
+         duration = 10,
+         startTime = 0)
+
+```
+
+```{r, du8 fxn response gif, echo = F, message = F, eval = T}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du8_fxn.gif"))
+```
+
+```{r, du8 fxn response image, echo = F, message = F, eval = T, fig.cap = "DU8 Caribou Functional Response to Road"}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du8_fxn.png"))
 ```
 
 Random effects in the DU8 model indicated that caribou avoided roads consistently across herds, although there was variability in the strength of avoidance (Table 9). There was also generally consistent use of areas close to cutblocks acorss herds, with the exception of the Quintette herd, where caribou avoided cutblocks.
@@ -593,18 +622,30 @@ kable (du9.fe,
                  font_size = 11)
 ```
 
-```{r, du9 model road fxn response, echo = F, message = F, eval = T}
+```{r, du9 model road fxn response, echo = T, message = F, eval = F}
 data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
-scatter3d (data.road.test$distance_to_resource_road, 
-           data.road.test$dist_res_road_E,
-           data.road.test$predict_du9, 
-           xlab = "Distance to Road",
-           ylab = "Average Distance to Road (HR)", 
-           zlab = "Caribou Use",
-           surface = F,
-           pch = 6, point.col = "blue",
-           axis.ticks = T,
-           grid = T)
+plot3d(x = data.road.test$distance_to_resource_road, 
+       y = data.road.test$dist_res_road_E,
+       z = data.road.test$predict_du9, 
+       xlab = "Distance to Road",
+       zlab = "Caribou Use" , 
+       ylab = "Average Distance to Road (HR)",
+       col = "blue", type = "p", size = 5, box = F)
+movie3d (spin3d (axis = c(0, 0.25, 1), 
+                 rpm = 6), 
+         movie = "du9_fxn", 
+         dir = "C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\images\\", 
+         type = "gif",  
+         duration = 10,
+         startTime = 0)
+```
+
+```{r, du9 fxn response gif, echo = F, message = F, eval = T}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du9_fxn.gif"))
+```
+
+```{r, du9 fxn response image, echo = F, message = F, eval = T, fig.cap = "DU9 Caribou Functional Response to Road"}
+knitr::include_graphics( here ("R/caribou_habitat/images", "du9_fxn.jpg"))
 ```
 
 Random effects in the DU9 model indicated that caribou avoided roads consistently across herds, although there was variability in the strength of avoidance (Table 12). There was variability in use of areas close to cutblocks acorss herds, where caribou in teh Nakuysp herd tended to strongly avoid cutblocks, whereas cariobu in the other herds did not.
@@ -629,7 +670,10 @@ Our CFDM consistently showed a negative effect of roads on cariobu distribtuion.
 
 Importantly, we identified a functional response between roads and caribou distribution, and included this in our model. Functional responses show how animal use of habtiat vaires as afucntion of the availability of that habitat to them on the ladnscape. Funcaiotnal repsonses can be particualrly improtatn for modelign the eefcts of distruabnes such as fortesty on cariobu, as cariobu avodiance, or use, of disturabnce features likely changes as the ladnscape is increasingly disturbed. We foudn that cariobu were more likely to avoid roads in ladnscapes with more roads. This suggests that unroaded habitat patches become increasingly improtatn to cariobu as the amount or roads in tehir hoem rnages increases. This efefct is imrptoant to consider when simuating the efefcts of forestry distruabnce on cariobu through space and tiem. Lacnsdape context is important, thus teh developemtn of roads in ladnscapes with low road developlemtn shoudl have realtively small efefct on cariobu habtiat use comapred to ladnscapes where a lot of road development has laready occurred. 
 
-The efefct of cutblocks on cariobu dsitribtuion was neagtive in DU's 6, 7 and 9, but positive in DU 8. In addtion, teh effect of cutlbocks on cariobu distribtuion was generally weaker than the efefct on roads, there was greater variability in herd reponses to cutblocks comapred to roads, adn tehre was no cler fucntional repsonse in use of areas near cutblocks, and therefore no fucntional repsonse was incldued in teh model. In general, cutblocks are believed to have a neagtive efefct on cariobu, as they provide more forage for ungualets such as moose, thus supporoting higher densities of ungualets adn their predators, such as wolves, that also predate on cariobu ( [Seip 1992](https://www.nrcresearchpress.com/doi/abs/10.1139/z92-206#.XkXfPTFKikw), [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x), [Serrouya et al. 2017](https://peerj.com/articles/3736/?utm_source=TrendMD&utm_campaign=PeerJ_TrendMD_1&utm_medium=TrendMD)). Hoiwever, tehre may be resons why we detcted a weak negative, adn sometimes positive efefct of cutblcosk on cariobu. First, cariobu may use cutblocks periodically throughout the year to access forage. Caribou will select for deciduous shrub species durign summer foraging ( [Denryter et al. 2017](https://www.nrcresearchpress.com/doi/full/10.1139/cjz-2016-0114#.XkbFSjFKikw)), adn these species tend to increase in cutblocks ( [Strong and Gates 2006](https://www.sciencedirect.com/science/article/pii/S0378112705006456)). Resarch in Quebec found that cariobu selected yuonger cutlbocks, presumably becuase of hteir forage benefit ( [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)). Second, the negative effect of cutblocks may occur at larger scales, outside of teh home range. [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1) foudn that cariobu avodied cutblocks at teh range scale (i.e., cariobu herds occurred in areas with fewer cutblocks), but not within their hoem ranges. This suggests the negative predation effect of cutblocks occurs at larger scales, that cariobu are less likely to establish hoem rnage sin areas with mroe cutblocks, perhaps becausethey are avoidng predation risk or they are unabel to survrive in those areas. Clearly, the efefcts of cutblocks on caribou distribtuion is more nuanced than roads. However, the CFDM appears to be a useful indcaotr of the efefcts of cutblocks on cariobu. In general, the effect of cutblocks on caribou distribution is negative in most DUs, which likely correctly represrntes the overall efefct of cutblocks on cariobu. However, it is weaker than teh efefct orf raods, which represents the poitential positive foragign efefcts of cutblocks that roads do not have. In additon, the model random efefcts can be used to adjust for herd-lvele variation in cariobu use of cutblocks.  
+The efefct of cutblocks on cariobu dsitribtuion was neagtive in DU's 6, 7 and 9, but positive in DU 8. In addtion, teh effect of cutlbocks on cariobu distribtuion was generally weaker than the efefct on roads, there was greater variability in herd reponses to cutblocks comapred to roads, adn tehre was no cler fucntional repsonse in use of areas near cutblocks, and therefore no fucntional repsonse was incldued in teh model. In general, cutblocks are believed to have a neagtive efefct on cariobu, as they provide more forage for ungualets such as moose, thus supporoting higher densities of ungualets adn their predators, such as wolves, that also predate on cariobu ( [Seip 1992](https://www.nrcresearchpress.com/doi/abs/10.1139/z92-206#.XkXfPTFKikw), [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x), [Serrouya et al. 2017](https://peerj.com/articles/3736/?utm_source=TrendMD&utm_campaign=PeerJ_TrendMD_1&utm_medium=TrendMD)). Hoiwever, tehre may be resons why we detcted a weak negative, adn sometimes positive efefct of cutblcosk on cariobu. First, cariobu may use cutblocks periodically throughout the year to access forage. Caribou will select for deciduous shrub species durign summer foraging ( [Denryter et al. 2017](https://www.nrcresearchpress.com/doi/full/10.1139/cjz-2016-0114#.XkbFSjFKikw)), adn these species tend to increase in cutblocks ( [Strong and Gates 2006](https://www.sciencedirect.com/science/article/pii/S0378112705006456)). Resarch in Quebec found that cariobu selected yuonger cutlbocks, presumably becuase of hteir forage benefit ( [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)). Second, the negative effect of cutblocks may occur at larger scales, outside of teh home range. [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1) foudn that cariobu avodied cutblocks at teh range scale (i.e., cariobu herds occurred in areas with fewer cutblocks), but not within their hoem ranges. This suggests the negative predation effect of cutblocks occurs at larger scales, that cariobu are less likely to establish hoem rnage sin areas with mroe cutblocks, perhaps becausethey are avoidng predation risk or they are unabel to survrive in those areas. Clearly, the efefcts of cutblocks on caribou distribtuion is more nuanced than roads. However, the CFDM appears to be a useful indcaotr of the efefcts of cutblocks on cariobu. In general, the effect of cutblocks on caribou distribution is negative in most DUs, which likely correctly represrntes the overall efefct of cutblocks on cariobu. However, it is weaker than teh efefct orf raods, which represents the poitential positive foragign efefcts of cutblocks that roads do not have. In additon, the model random efefcts can be used to adjust for herd-lvele variation in cariobu use of cutblocks.
+
+may need to address cutblock effects with second order model.
+
 The CFDM provides a framweork and modle for testign teh efefcts of simualted future forestry activities on cariobu. It includes random effects to account for variability in responses to cutblcoks and roads across herds, adn a fucntional response to account for the efefct of the ladnscape-level distruabnce on local use of habitat pacthes. These features provide a great deal of flexibility in estimating the effects of forestry cctitves on cariobu. 
 
 
