@@ -25,7 +25,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "forestryCLUS.Rmd"),
-  reqdPkgs = list("gamlss"),
+  reqdPkgs = list(),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -44,7 +44,6 @@ defineModule(sim, list(
     expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
-    expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
     expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
     ),
   outputObjects = bind_rows(
@@ -55,7 +54,6 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
-    createsOutput(objectName = "yielduncertain", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
     createsOutput(objectName ="scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
@@ -68,7 +66,6 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
       #sim <- forestryCLUS.setConstraints(sim) 
       sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 2)
-      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "uncertainty", 6)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
@@ -76,10 +73,6 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
       sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 2)
-    },
-    uncertainty = {
-      sim <- forestryCLUS.calcUncertainty(sim)
-      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "uncertainty", 6)
     },
     save = {
       sim <- forestryCLUS.save(sim)
@@ -119,6 +112,9 @@ forestryCLUS.Init <- function(sim) {
   #Set the zone contraint raster
   sim$ras.zoneConstraint<-sim$ras
   sim$ras.zoneConstraint[]<-0
+  
+  #Set the yield uncertainty covariate string to a blank
+  sim$yieldUncertaintyCovar<-""
   
   return(invisible(sim))
 }
@@ -252,7 +248,7 @@ forestryCLUS.getHarvestQueue<- function(sim) {
       harvestPriority<-sim$harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height,", sim$yieldUncertaintyCovar," (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND blockid > 0 AND ", partition, "
                   ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") AND thlb > 0 AND zone_const = 0 AND ", partition, 
@@ -290,9 +286,9 @@ forestryCLUS.getHarvestQueue<- function(sim) {
         setnames(land_coord,c("x", "y"), c("X", "Y"))
         
         #Create proj_vol for uncertainty in yields
-        temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height)), by = c("blockid", "compartid")]
-        setnames(temp.harvestBlockList, c("V1", "V2"), c("proj_vol", "proj_height_1"))
-        temp.harvestBlockList<-cbind(temp.harvestBlockList, land_coord)
+        temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
+        setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
+        #temp.harvestBlockList<-cbind(temp.harvestBlockList, land_coord)
         sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
 
         #Set the harvesting report
@@ -317,39 +313,6 @@ forestryCLUS.getHarvestQueue<- function(sim) {
   }
   
   return(invisible(sim))
-}
-
-forestryCLUS.calcUncertainty <-function(sim) {
-  sim$yielduncertain <-rbindlist(list(sim$yielduncertain,rbindlist(
-    lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name, time(sim)))))
-    
-  if(nrow(sim$yielduncertain) == 0){
-    sim$yielduncertain<-NULL
-  }
-  
-  sim$harvestBlockList<-NULL
-  return(invisible(sim))
-}
-
-simYieldUncertainty <-function(to.cut, calb_ymodel, scenarioName, time.sim) {
-  message(".....calc uncertainty of yields")
-  to.cut$dummy<-1
-  cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut[,c("proj_vol", "dummy","proj_height_1", "X", "Y")]) #get the mu.hat and sigma.hat 
-  to.cut$mu<-cut.hat$mu
-  to.cut$sigma<-cut.hat$sigma
-  message(paste0(".......sim error: ", nrow(to.cut)))
-  
-  sim.volume <-rGA(20000, mu = sum(to.cut$mu), sigma = sqrt(sum((to.cut$mu*to.cut$sigma)**2))/sum(to.cut$mu) )
-  distquants<-quantile(sim.volume, p = c(0.05, 0.95))
-  
-  return(data.table(scenario = scenarioName,
-                    compartment= max(to.cut$compartid),
-                    timeperiod = time.sim,
-                    projvol =sum(to.cut$proj_vol),
-                    calibvol = mean(sim.volume), 
-                    prob = mean(sim.volume>sum(to.cut$proj_vol)),
-                    pred5 = distquants[1],
-                    pred95 = distquants[2])) 
 }
 
 
