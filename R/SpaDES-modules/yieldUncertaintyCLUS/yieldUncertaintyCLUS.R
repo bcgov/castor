@@ -27,6 +27,7 @@ defineModule(sim, list(
   reqdPkgs = list(),
   parameters = rbind(
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The interval for calculating total harvest uncertainty. E.g., 1,5 or 10 year"),
+    defineParameter("elevationRaster", "character", "rast.dem", NA, NA, "The elevation raster used as a covariate in the calibration model"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -37,7 +38,7 @@ defineModule(sim, list(
     expectsInput(objectName = "clusdb", objectClass ="SQLiteConnection", desc = "A rSQLite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
+    #expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
     expectsInput(objectName = "yieldUncertaintyCovar", objectClass = "character", desc = "String of the yield uncertainty covariates", sourceURL = NA),
     expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
   
@@ -54,6 +55,11 @@ doEvent.yieldUncertaintyCLUS = function(sim, eventTime, eventType) {
     init = {
       sim <- Init(sim)
       # schedule future event(s)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCLUS", "calculateInterval"), "yieldUncertaintyCLUS", "calculateUncertainty", eventPriority= 12)
+    },
+    calculateUncertainty = {
+      sim <- yieldUncertaintyCLUS.calcUncertainty(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCLUS", "calculateInterval"), "yieldUncertaintyCLUS", "calculateUncertainty", eventPriority= 12)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -62,41 +68,58 @@ doEvent.yieldUncertaintyCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  #Add a column for the covariates list -- this is now hard coded -- needs to be generalized
-  dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN elv numeric)"))
+  #Add a column for the covariates list -- this is now hard coded -- needs to be generalized. Done in dataLoaderCLUS
+  #dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN elv numeric"))
   
-  #Get any covariates in the calibration model
-  bounds <- data.table (c (t (raster::as.matrix( 
+  #Get any covariates in the calibration model. Need an indicator if this has already been run and in the database
+  if(!(dbGetQuery(sim$clusdb, "SELECT count(*) from pixels where elv > 0") > 0)){
+    elevation<- data.table (c (t (raster::as.matrix( 
     RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
-                 srcRaster = paste0(), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
+                 srcRaster = P(sim, "yieldUncertaintyCLUS", "elevationRaster"), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
                  clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)))))
-  bounds[,V1:=as.integer(V1)] #make an integer for merging the values
-  bounds[,pixelid:=seq_len(.N)]#make a
+    elevation[,V1:=as.integer(V1)] #make an integer for merging the values
+    elevation[,pixelid:=seq_len(.N)]#make an index
+  
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET elv =  :V1 WHERE pixelid = :pixelid", elevation)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }
+ 
+  sim$yieldUncertaintyCovar<- ' elv ,'
 
   return(invisible(sim))
 }
 
 yieldUncertaintyCLUS.calcUncertainty <-function(sim) {
-  sim$yielduncertain <-rbindlist(list(sim$yielduncertain,rbindlist(
-    lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name, time(sim)))))
+  sim$yielduncertain <- rbindlist(list(sim$yielduncertain,
+  #lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name, time(sim)))))
+                rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$scenario$name, time(sim))
+                          )))
   
   if(nrow(sim$yielduncertain) == 0){
     sim$yielduncertain<-NULL
   }
   
+  #Remove any blocks from the list. This will 'accumulate' in the forestryCLUS module
   sim$harvestBlockList<-NULL
   return(invisible(sim))
 }
 
-yieldUncertaintyCLUS.simYieldUncertainty <-function(to.cut, calb_ymodel, scenarioName, time.sim) {
+simYieldUncertainty <-function(to.cut, scenarioName, time.sim) {
   message(".....calc uncertainty of yields")
-  to.cut$dummy<-1
-  cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut[,c("proj_vol", "dummy","proj_height_1", "X", "Y")]) #get the mu.hat and sigma.hat 
-  to.cut$mu<-cut.hat$mu
-  to.cut$sigma<-cut.hat$sigma
+  #to.cut$dummy<-1
+  #cut.hat <- gamlss::predictAll(calb_ymodel, newdata = to.cut[,c("proj_vol", "dummy","proj_height_1", "X", "Y")]) #get the mu.hat and sigma.hat 
+  #to.cut$mu<-cut.hat$mu
+  #to.cut$sigma<-cut.hat$sigma
+  
+  #Hard code the model...this is going to change once another calibration model for TASS yields has been developed...
+  to.cut[, mu:= exp(0.2902 + log(proj_vol)*0.9416)]
+  to.cut[, sigma:= exp(1.4803905 + log(proj_vol)*-0.0937275 + proj_height_1*-0.0402479 + elv*-0.0003855)]
+  
   message(paste0(".......sim error: ", nrow(to.cut)))
   
   sim.volume <-rGA(20000, mu = sum(to.cut$mu), sigma = sqrt(sum((to.cut$mu*to.cut$sigma)**2))/sum(to.cut$mu) )
