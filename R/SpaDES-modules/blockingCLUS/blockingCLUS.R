@@ -113,16 +113,9 @@ return(invisible(sim))
 
 blockingCLUS.createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
-  
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
-  
   return(invisible(sim)) 
 }
 
@@ -159,11 +152,9 @@ return(invisible(sim))
 
 blockingCLUS.setBlocksTable <- function(sim) {
   message("set the blocks table")
- 
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height) 
                     SELECT blockid, round(AVG(age),0) as age, round(AVG(height),0) as height
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
-  
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
   
 return(invisible(sim))
