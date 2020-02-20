@@ -6793,23 +6793,3 @@ st_write (obj = id.points.out.all.sf,
 dbDisconnect (connKyle) 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

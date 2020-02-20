@@ -32,16 +32,3 @@ $$ SD = (D - 0.0515)/0.0413 $$
 
 
 
-
-
-## Boreal Caribou Model
-
-[Environment Canada 2011](http://publications.gc.ca/site/eng/401605/publication.html)
-
-boreal 
-CR = 44.265 – (0.429 * D)
-
-
-Caribou recruitment, estimated as the number of calves per 100 cows 
-total_dist percent total non-overlapping fire and anthropogenic disturbance (500 m buffer on anthropogenic; reservoirs removed) Percent fire <40 years 
- Through enhanced mapping undertaken in support of this work (Appendix 7.2), anthropogenic disturbance data were also temporally matched to the available demographic data. Variables describing anthropogenic disturbance were buffered by 500 m, 
