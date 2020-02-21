@@ -1,0 +1,213 @@
+---
+title: "Provincial Caribou Habtiat Model"
+output:
+  
+  pdf_document: 
+    self_contained: yes
+  html_document:
+    pdf_print: paged
+    self_contained: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Rport on creation of caribou habitat model
+
+Met with wildife bios in PG, FSJ, Smithers adn Cranborrk to get input on model
+
+
+## Methods
+
+### key poitns from workshops with reagional biologists
+General:
+- lienar featrues in core cariobu habtait are bad; lienar density
+- Basal area is good representation of forest attributes desirable to caribou
+- fire
+- cutblock characteristics; slope, snow, roads
+- disatcne to permamabnet human ladn use (ag)
+
+Boreal:
+- Demars RSFs for boreal?
+- DU wetland data
+
+Nrothern
+- low elevation, pine-lichen stands
+- high leavtion
+- terretiral lichen
+- sub-alpine arboreal lichen
+
+
+Moutnain cariobu:
+- habtait could be simpyl dfined by elevation and BEC 
+  - some herds at high elevation yer round, others seasonal
+- snow is imrptoant in soutehrn herds; coudl use elvation as a proxy, but PAS may also be useufl 
+- BEC is a key covriate in moutnain cariobu ecoptype
+  - ineractison with snow depth and seral satge likely also important
+  - BEC and lichen?
+- old growth forest >150 y.o. adn arboral lichen
+- new colalr data form revelstoke affected by pen
+- balasm leading 
+- ESSF
+- low elevation cedar-hemlock
+
+
+
+### habitat covariates to include in model
+elevation (m) 
+  (Johnson et al. 2004 - Hart Ranges)
+  - winter - elevation + elevation^2; select elevations ~1200m,   distribtuion skewed left a bit
+  (Terry et al. 2000 - cariboo/narrow lake)
+  - select mid-elevation, 1526-1677m
+  (Apps and Kinley 2000 - Wells Gray, Columbia)
+  - higher elevation in late winter, lower in early winter
+  (Apps & McLellan 2006 - southern mountain, southern group)
+  - non-forested alpine
+  (Apps et al. 2001 - Itcha and Rainbows)
+  - high elevation in summer and winter
+
+slope (degrees) 
+(Johnson et al. 2004 - Hart Ranges - winter - slope + slope^2; select slopes ~35deg, normal distribtuon)
+(Terry et al. 2000 - cariboo/narrow lake - select 16-30deg)
+
+aspect (easting, northing, direction?)
+(Apps and Kinley 2000 - Wells Gray, Columbia)
+- NE aspect
+(Apps et al. 2001 - Itcha and Rainbows)
+- NE
+
+
+cutblock density (1 ha) 
+  <5 years old (yo)
+  5-10 yo
+  10-20 yo
+  20-30 yo
+  30-40 yo
+  40-50 yo
+  50-70 yo
+  >70 yo
+  
+fire density (1 ha)
+  <5 years old (yo)
+  5-10 yo
+  10-20 yo
+  20-30 yo
+  30-40 yo
+  40-50 yo
+  50-70 yo
+  >70 yo
+
+road length (density) (1 ha):
+  paved
+  loose
+  ....
+(Apps & McLellan 2006 - southern mountain, southern group)
+- select 'remoteness'
+- avoid summer motorized recreation
+- aovid linear road density
+- avoid major highways
+  
+timber volume:
+(Terry et al. 2000 - cariboo/narrow lake)
+- avoid >300m3/ha
+
+basal area:
+(Terry et al. 2000 - cariboo/narrow lake)
+- use lower basal area sites or foraging
+  
+forest age: (vri or cutblcok or fire)
+(Apps & McLellan 2006 - southern mountain, southern group - select age >140, avoid age 101-140)
+(Apps et al. 2001 - Itcha - old forests)
+
+stand/cover type:
+(Johnson et al. 2004 - Hart Ranges - winter):
+- subalpine fir (>80%; selected)
+- mix subapline fir (subalipmne fir dominated)
+- spruce (spruce dominated)
+- mix lodgepole pine dominated
+- cedar/hemlock dominated
+- alpine forest (high elevation forest; selected)
+- alpine (no trees; selected)
+- other (infrequent types)
+- subalpine fir x stand age
+- subalpine fir x site productivity
+- subalpine fir x elevation
+- subalpine fir x slope x slope^2
+
+(Apps and Kinley 2000 - Wells, Columbia)
+- subapline fir
+- low site index
+- older
+- avoid pine, doug fir, deciduous
+
+(Apps & McLellan 2006 - southern mountain, southern group)
+- select cedar/hemlock, spruce/subapline fir
+- select canopy closure
+- avoid deciduous
+- avoid non-forested alpine, large lakes, icefields
+
+(Denryter et al. 2016 - boreal and northern and central groups)
+- mountains: high forage value in alpine shrub areas, mid-elevation spruce/fir stands
+- boreal: high forage value intreed, rich fens and white spruce communities
+- low forage value in dry apline adn unproductive black spruce
+
+(Terry et al. 2000 - cariboo/narrow lake)
+- select >80% subalpine fir
+- avoid cedar-hemlock-spruce
+
+(Apps et al. 2001 - Itcha and Rainbows)
+- dry, alpine, little vegetation productivity or overstory cover
+- closed canopy lodgepole pine overstory and higher site productivity at lower elevation
+
+
+BEC:
+(Apps & McLellan 2006 - southern mountain, southern group)
+- select `wet`and `very wet` subzones of ICH and ESSF (Medinger and Pojar 1991)
+    -  ICHwk, ICHvk, ICHvc
+    - ESSFwm, ESSFwk, ESSFwc, ESSFwv, ESSFvc, ESSFvv
+    
+(Denryter et al. 2016 - boreal and northern and central groups)
+- low forage quality:
+  - BWBSmw, BWBSmk
+  - Af, Ag, Ah
+- high forage quality:
+  - wetland fens (Wf) in BWBSmw and BWBSmk
+  - BWBSwk2, BWBSwk1, SBSwk2
+  - SWBmk and Sc
+  - Wm, Wf in BWBS and ESSF
+
+
+
+### estimaetign hoem ranges
+remove animals with <50 locations  
+literature recommends minimum 50 locatiosn to calcualte a hoem range (eaman 1999, Kernohan 2001)
+
+Seaman, D. E., Millspaugh, J. J., Kernohan, B. J., Brundige, G. C., Raedeke, K. J., & Gitzen, R. A. (1999). Effects of sample size on kernel home range estimates. The journal of wildlife management, 739-747.
+
+Kernohan, B. J., R. A. Gitzen, and J. J. Millspaugh. 2001. Analysis of animal space use and movements. Pages 125–166 in J. J. Millspaugh and J. M. Marzluff, editors. Radio tracking and animal populations. Academic Press, San Diego, CA, USA
+
+
+
+
+## Literature Cited
+Apps, C. and Kinley, T. (2000) MULTISCALE HABITAT MODELING FOR MOUNTAIN CARIBOU IN THE COLUMBIA HIGHLANDS AND NORTHERN COLUMBIA MOUNTAINS ECOREGIONS, BRITISH COLUMBIA. Wildlife Section, Ministry of Water, Land and Air Protection, Williams Lake, British
+Columbia, Canada. Available from: http://www.env.gov.bc.ca/cariboo/env_stewardship/wildlife/inventory/caribou/mtncar/hmi/habitatmod04-00.pdf
+
+Apps, C. D., T. A. Kinley, and J. A. Young. 2001. Multi-scale habitat modeling for woodland
+caribou in the Itcha, Ilgachuz, and Rainbow mountains of west-central British Columbia.
+Wildlife Section, Ministry of Water, Land and Air Protection, Williams Lake, British
+Columbia, Canada. Available from: http://www.env.gov.bc.ca/cariboo/env_stewardship/wildlife/inventory/caribou/northcar/hmi/hsi06-01.pdf
+
+Apps, C. D., & McLellan, B. N. (2006). Factors influencing the dispersion and fragmentation of endangered mountain caribou populations. Biological Conservation, 130(1), 84-97.
+
+Denryter, K. A., Cook, R., Cook, J. G., & Parker, K. L. 2016. Straight from the caribou’s mouth: detailed observations of tame caribou reveal new insights into summer-autumn diets. Canadian Journal of Zoology
+
+Johnson, C. J., Seip, D. R., & Boyce, M. S. (2004). A quantitative approach to conservation planning: using resource selection functions to map the distribution of mountain caribou at multiple spatial scales. Journal of Applied Ecology, 41(2), 238-251.
+
+Meidinger,D.V. and Pojar, J. 1991. Ecosystems of British Columbia. Ministry of FOrests. Available: https://www.for.gov.bc.ca/hfd/pubs/Docs/Srs/Srs06.htm
+
+Terry, E. L., McLellan, B. N., & Watts, G. S. (2000). Winter habitat ecology of mountain caribou in relation to forest management. Journal of Applied Ecology, 37(4), 589-602.
+
