@@ -29,12 +29,12 @@ The dataloaderCLUS preps the database connectivitiy and other objects required t
 library(SpaDES)
 library(SpaDES.core)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
 
-times <- list(start = 0, end = 43)
+times <- list(start = 0, end = 2)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -45,7 +45,7 @@ parameters <-  list(
                          #nameBoundary = "Telkwa",
                          nameBoundaryFile="tsa_aac_bounds",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Prince_George_TSA",
+                         nameBoundary = "Revelstoke_TSA",
                          nameBoundaryGeom='wkb_geometry'
                          #nameCompartmentRaster = "rast.tsa_aac_boundary",
                          #nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -79,22 +79,22 @@ parameters <-  list(
       nameCutblockTable= 'cns_cut_bl_polygon',
       queryCutblocks = 'cutseq'
     ),
-   # rsfCLUS = list(calculateInterval = 5, 
-   #              criticalHabitatTable = "public.criticalhabitat",
-   #              writeRSFRasters = TRUE),
+    rsfCLUS = list(calculateInterval = 5, 
+                   criticalHabitatTable = "public.criticalhabitat",
+                   writeRSFRasters = TRUE),
     survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd")
   )
 
-#rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('S', 'EW', 'LW')"))
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM caribou_avoid_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 
-#rsf_model_coeff[, bounds := 'rast.crithabitat']
-scenario = data.table(name="testing_transitions", description = "Simple flow- just test that following harvesting the yields transition to another curve (i.e., TIPSY)")
-modules <- list("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS", "survivalCLUS")
+
+scenario = data.table(name="testing", description = "historical disturbances")
+modules <- list("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS", "survivalCLUS", "rsfCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
-objects <- list(scenario = scenario)
+objects <- list(scenario = scenario, rsf_model_coeff=rsf_model_coeff)
 
 inputs <- list()
 outputs <- list()
