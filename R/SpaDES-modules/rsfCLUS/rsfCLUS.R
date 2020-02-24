@@ -309,16 +309,29 @@ getREvariables<-function(sim){ #Random effects variables for the conditional mod
 }
 
 getRSvariables<-function(sim){# Re-sampled variables for the scale effects
-  
-  ras2<-raster::aggregate(ras.aoi2, fact = sqrt(12528*10000)/100, fun = mean)
-  ras3<-raster::resample(ras2, ras.aoi2)
-  ras4<-mask(ras3, ras.aoi2)
-  
+  rs_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RS', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+  for(layer_name in rs_list){
+    ras.var<-sim$ras
+    rs_var<-rsf_model_coeff[layer == rsf_model_coeff[layer_uni == layer_name, re_variable], layer_uni]
+    ras.var[]<-eval(parse(text=paste0("sim$rsfcovar$", rs_var)))
+    
+    ras.size<-as.integer(rsf_model_coeff[layer_uni == layer_name, "sql"])
+    ras.agg<-raster::aggregate(ras.var, fact = sqrt(ras.size*10000)/100, fun = mean)
+    ras.resample<-raster::resample(ras.agg, ras.var)
+    ras.rs<-mask(ras.resample, ras.var)
+    rs.value<-data.table(c(t(raster::as.matrix(ras.rs))))
+    sim$rsfcovar[,(layer_name) :=rs.value$V1 ]  
+  }
   return(invisible(sim))
 }
 
 getIvariables<-function(sim){
-  
+  i_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'I', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+  for(layer_name in i_list){
+    var1<-rsf_model_coeff[layer == strsplit(rsf_model_coeff[layer_uni == i_list[1], re_variable], ",")[[1]][[1]], layer_uni]
+    var2<-rsf_model_coeff[layer == strsplit(rsf_model_coeff[layer_uni == i_list[1], re_variable], ",")[[1]][[2]], layer_uni]
+    eval(parse(text=paste0("sim$rsfcovar[, ", layer_name, ":=", var1,"*", var2 ,"]")))  # This is a trick to allow dynamic variable names
+  }
   return(invisible(sim))
 }
 
