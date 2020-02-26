@@ -278,7 +278,7 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
             outPts[is.na(dist) & eval(pop_select) > 0, dist:=0] #those that are the distance to pixels, assign 
 
             sim$rsfcovar<-merge(sim$rsfcovar, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
-            sim$rsfcovar[, (dt_variable$layer_uni[j]):= dist]
+            sim$rsfcovar[, (dt_variable$layer_uni[j]):= dist/1000]
             sim$rsfcovar[, dist:=NULL]
           
           }else{
@@ -289,12 +289,10 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
         print(paste0(dt_sql[i], ": FALSE"))
         variables_non<-rsf_model_coeff[sql == eval(dt_sql[i]),]
         for(s in 1:nrow(variables_non)){
-          sim$rsfcovar[, (variables_non$layer_uni[1]):= nrow(sim$ras)*100] 
+          sim$rsfcovar[, (variables_non$layer_uni[1]):= 1] 
         }
       }
     }
-  
-    print(colnames(sim$rsfcovar))
   rm(outPts,dt_variable,dt_select)
   gc()
   }
@@ -304,7 +302,7 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
 getREvariables<-function(sim){ #Random effects variables for the conditional model
   #Need to Reclass
   re_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RE', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
-  message (re_list) 
+  #message (re_list) 
   for(layer_name in re_list){
     #Multiply by the re_variable
     re_var<-rsf_model_coeff[layer == rsf_model_coeff[layer_uni == layer_name, re_variable], layer_uni]
@@ -315,7 +313,7 @@ getREvariables<-function(sim){ #Random effects variables for the conditional mod
 
 getRSvariables<-function(sim){# Re-sampled variables for the scale effects
   rs_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RS', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
-  message (rs_list) 
+  #message (rs_list) 
    for(layer_name in rs_list){
     ras.var<-sim$ras
     rs_var<-rsf_model_coeff[layer == rsf_model_coeff[layer_uni == layer_name, re_variable], layer_uni]
@@ -333,7 +331,7 @@ getRSvariables<-function(sim){# Re-sampled variables for the scale effects
 
 getIvariables<-function(sim){
   i_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'I', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
-  message (i_list) 
+  #message (i_list) 
   for(layer_name in i_list){
     var1<-rsf_model_coeff[layer == strsplit(rsf_model_coeff[layer_uni == layer_name, re_variable], ",")[[1]][1], layer_uni]
     var2<-rsf_model_coeff[layer == strsplit(rsf_model_coeff[layer_uni == layer_name, re_variable], ",")[[1]][2], layer_uni]
