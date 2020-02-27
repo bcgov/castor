@@ -30,13 +30,10 @@ library(SpaDES)
 library(SpaDES.core)
 library(data.table)
 source(here::here("R/functions/R_Postgres.R"))
-#Sys.setenv(JAVA_HOME = Sys.getenv("JAVA_HOME"))
-<<<<<<< HEAD
-Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_221')
+
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_241')
 #Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
-=======
-Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
->>>>>>> a14c8ddd53311c41b424ac0542644123b3115caf
+
 
 setPaths(modulePath = here::here("R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
