@@ -32,6 +32,7 @@ defineModule(sim, list(
     defineParameter("checkRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the covariate rasters to disk. For checking in a GIS"),
     defineParameter("writeRSFRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the predicted RSF rasters. For checking in a GIS"),
     defineParameter("criticalHabitatTable", "character", "99999", NA, NA, "The name of the look up table to convert raster values to critical habitat labels. The two values required are value (int) and crithab (chr)"),
+    defineParameter("randomEffectsTable", "character", "99999", NA, NA, "The name of the look up table for rsf random effects"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -117,7 +118,7 @@ rsfCLUS.Init <- function(sim) {
       
       #STATIC BUT NON RECLASS
       # set the 'static' Covariates to the rsfcovar table that are Not Reclass types
-      static_list <- as.list (unlist (unique (rsf_model_coeff[static == 'Y' & layer != 'int' & type != 'RC',c("sql") ]), use.names = FALSE)) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+      static_list <- as.list (unlist (unique (rsf_model_coeff[static == 'Y' & layer != 'int' & type != 'RC' & type != 'RE',c("sql") ]), use.names = FALSE)) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
       for (layer_name in static_list){ # loop through the list of static covariates
           message(layer_name) # declare each 'name' in the list
           # if the covariate is not a reclass type, clip the raster to the study area and convert the covariate values to a data.table
@@ -154,13 +155,46 @@ rsfCLUS.Init <- function(sim) {
       }
       
       #RANDOM EFFECT RECLASS 
-      # set the 'static' Covariates to the rsfcovar table that are Reclass types. This also involves changing the sql column to the text in layer_uni. This is needed to ensure the standardize method works
-      re_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RE', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+      #### set the 'static' Covariates to the rsfcovar table that are Reclass types. This also involves changing the sql column to the text in layer_uni. This is needed to ensure the standardize method works
+      ##Intercepts
+      re_list <- as.list (rsf_model_coeff[static == 'Y' & layer != 'int' & type == 'RE', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
       for(layer_name in re_list){
         message(layer_name) # declare each 'name' in the list
-        rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
-        rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
-        layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
+        if(P(sim, "rsfCLUS", "randomEffectsTable") == '99999'){
+          rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
+          rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
+          layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
+            RASTER_CLIP_CAT(tmpRast = sim$boundaryInfo[[3]], 
+                            srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
+                            clipper = sim$boundaryInfo[[1]], 
+                            geom = sim$boundaryInfo[[4]], 
+                            where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                            out_reclass = rclass_text,
+                            conn=NULL)))))
+          
+          layer[is.na(V1), V1:=max(layer$V1, na.rm=TRUE)] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
+          sim$rsfcovar[, (layer_name):= layer$V1]
+        }else{
+          message("there is a re table")
+          re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCLUS", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
+          if(nrow(re_table) == 0){
+            print("int are 0")
+            sim$rsfcovar[, (layer_name):= 0]
+          }else{
+            print(as.numeric(re_table))
+            sim$rsfcovar[, (layer_name):= as.numeric(re_table)]
+          }
+        }
+      } 
+     
+      re_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RE', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+      ##Slopes
+      for(layer_name in re_list){
+        message(layer_name) # declare each 'name' in the list
+        if(P(sim, "rsfCLUS", "randomEffectsTable") == '99999'){
+          rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
+          rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
+          layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
           RASTER_CLIP_CAT(tmpRast = sim$boundaryInfo[[3]], 
                           srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                           clipper = sim$boundaryInfo[[1]], 
@@ -168,10 +202,22 @@ rsfCLUS.Init <- function(sim) {
                           where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           out_reclass = rclass_text,
                           conn=NULL)))))
-        layer[is.na(V1), V1:=0] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
-        sim$rsfcovar[, (paste0(layer_name, "_re")):= layer$V1] # suffix the layer name with 're' and attach to the rsfCovar table in the clusdb. 
-       } 
-      
+          layer[is.na(V1), V1:=max(layer$V1, na.rm=TRUE)] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
+          sim$rsfcovar[, (paste0(layer_name, "_re")):= layer$V1] # suffix the layer name with 're' and attach to the rsfCovar table in the clusdb. 
+        #eval(parse(text=paste0("sim$rsfcovar[!is.na(",rsf_model_coeff[layer_uni == layer_name, population ],") && ", layer_name , "_re == 0, ",layer_name, "_re := ",max_coeff,"]")))
+        }else{
+          re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCLUS", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
+          if(nrow(re_table) == 0){
+            print("slopes are 0")
+            sim$rsfcovar[, (paste0(layer_name, "_re")):= 0]
+          }else{
+            print(as.numeric(re_table))
+            sim$rsfcovar[, (paste0(layer_name, "_re")):= as.numeric(re_table)]
+          }
+          
+          }
+      }
+        
      #STANDARDIZE STATIC
      if("mean" %in% colnames (rsf_model_coeff)){
           rsfCLUS.StandardizeStaticRSFCovar(sim) # function that standardizes the RSF covariate values
@@ -205,7 +251,7 @@ rsfCLUS.Init <- function(sim) {
 }
 
 rsfCLUS.UpdateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie., 'distance to' and simulation updatable variables (ex. height)
-  #NOTE: Has to run in this order. So that RE, RS, and I types can rely on previous updates.
+  #NOTE: Has to run in this order. So that RE, RS, and I types can rely on previous updates. Dont really like all these ifs
   if(nrow(unique(rsf_model_coeff[type == 'UP']))>0){ #DT is distance to
     sim<-getUpvariables(sim)
   }  
@@ -301,7 +347,7 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
 
 getREvariables<-function(sim){ #Random effects variables for the conditional model
   #Need to Reclass
-  re_list <- as.list (rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RE', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
+  re_list <- as.list(rsf_model_coeff[static == 'N' & layer != 'int' & type == 'RE', layer_uni]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
   #message (re_list) 
   for(layer_name in re_list){
     #Multiply by the re_variable
@@ -437,7 +483,6 @@ rsfCLUS.PredictRSF <- function(sim){
 }
 
 rsfCLUS.Save<-function(sim){
-  print("nothing here to save....")
   return(invisible(sim))
 }
 
