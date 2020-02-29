@@ -444,7 +444,6 @@ rsfCLUS.checkRasters <- function(sim) {
     }
     writeRaster(outRas, paste0(layer, ".tif"), overwrite = TRUE)
   }
-
 #--------------------------
   return(invisible(sim))
 }
@@ -477,15 +476,12 @@ rsfCLUS.PredictRSF <- function(sim){
     #Remove the prediction
     rm(pred_rsf)
   }
-  
-  
   return(invisible(sim))
 }
 
 rsfCLUS.Save<-function(sim){
   return(invisible(sim))
 }
-
 
 rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
   message('standardizing static covariates')

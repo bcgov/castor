@@ -52,11 +52,12 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim <- rsfCLUS.Init (sim) # this function inits 
+      sim <- Init (sim) # this function inits 
       sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 50)
     },
     analysis = {
-      sim<- disturbanceCalcCLUS.analysis(sim)
+      sim<- distAnalysis(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 50)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -81,6 +82,7 @@ Init <- function(sim) {
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)))))
+    bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "disturbanceCalcCLUS", "criticalHabitatTable") == '99999')){
         crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCLUS", "criticalHabitatTable"))))
@@ -99,7 +101,7 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 
-disturbanceCalcCLUS.analysis <- function(sim) {
+distAnalysis <- function(sim) {
   dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE roadyear > 0 or (blockid > 0 and age < 40);")) # 
   dt_select[, field := 0]
   
@@ -114,17 +116,17 @@ disturbanceCalcCLUS.analysis <- function(sim) {
   sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
   
   #Sum the area up > 500 m
-  tempDisturbanceReport<-merge(dat[dist > 500, .(hab500 = uniqueN(.I)), critical_hab], dat[!is.na(critical_hab), .(total = uniqueN(.I)), critical_hab])
+  tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])
   tempDisturbanceReport[, c("scenario", "compartment", "timeperiod", "dist500_per", "dist500") := list(scenario$name,sim$boundaryInfo[[3]],time(sim),((total - hab500)/total)*100,total - hab500)]
   tempDisturbanceReport[, c("total","hab500") := list(NULL, NULL)]
 
-  sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport))
+  sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE )
   sim$disturbance[, dist:=NULL]
   
   return(invisible(sim))
 }
 
-disturbanceCalcCLUS.patch <- function(sim) {
+patchAnalysis <- function(sim) {
   #calculates the patch size distributions
   #For each landscape unit that has a patch size constraint
   # Make a graph 
