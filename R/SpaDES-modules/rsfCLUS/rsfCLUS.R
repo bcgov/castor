@@ -10,7 +10,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 #===========================================================================================
-#TODO: Be able to change raster values according to the time of the simulation. A RasterUpdate table that stores rasters for linear interpolation?
 
 defineModule(sim, list(
   name = "rsfCLUS",
@@ -61,14 +60,14 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there a
   switch (
     eventType,
     init = {
-      sim <- rsfCLUS.Init (sim) # this function inits two new data.tables in the RSQLite db: rsfCovar and rsf; clips the RSF boundary by the analysis area boundary (e.g., TSA); then clips each RSF area to the area of analysis (e.g., TSA)
-      sim <- rsfCLUS.PredictRSF (sim) # this function predicts each unique RSF 
+      sim <- Init (sim) # this function inits two new data.tables in the RSQLite db: rsfCovar and rsf; clips the RSF boundary by the analysis area boundary (e.g., TSA); then clips each RSF area to the area of analysis (e.g., TSA)
+      sim <- predictRSF (sim) # this function predicts each unique RSF 
       sim <- scheduleEvent (sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     calculateRSF = {
-      sim <- rsfCLUS.UpdateRSFCovar(sim) # this function updates the 'updateabale' and 'distance to' covariates in the model by querying the 'pixels' table in the RSQLite db
-      sim <- rsfCLUS.PredictRSF(sim) #  this function predicts each uniuue RSF score at each applicable pixelid as stores in the rsf object
-      sim <- rsfCLUS.Save(sim) #this function saves and summarizes rsf predictions for a time step
+      sim <- updateRSFCovar(sim) # this function updates the 'updateabale' and 'distance to' covariates in the model by querying the 'pixels' table in the RSQLite db
+      sim <- predictRSF(sim) #  this function predicts each uniuue RSF score at each applicable pixelid as stores in the rsf object
+      sim <- saveRSF(sim) #this function saves and summarizes rsf predictions for a time step
       sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -77,7 +76,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there a
   return(invisible(sim))
 }
 
-rsfCLUS.Init <- function(sim) {
+Init <- function(sim) {
   
   if(nrow(scenario) == 0) { stop('Include a scenario description as a data.table object with columns: name, description')}
   
@@ -220,18 +219,18 @@ rsfCLUS.Init <- function(sim) {
         
      #STANDARDIZE STATIC
      if("mean" %in% colnames (rsf_model_coeff)){
-          rsfCLUS.StandardizeStaticRSFCovar(sim) # function that standardizes the RSF covariate values
+          standardizeStaticRSFCovar(sim) # function that standardizes the RSF covariate values
      }
         
      #DYNAMIC (static = N)
      #Get the dynamic variables and standardize if need be
-     rsfCLUS.UpdateRSFCovar(sim) # update the 'dynmaic' Covariates to the rsfcovar table
+     updateRSFCovar(sim) # update the 'dynmaic' Covariates to the rsfcovar table
      
      #STORE
-     rsfCLUS.StoreRSFCovar(sim) # function that stores the rsfcovar in the RSQLite clusdb for future use
+     storeRSFCovar(sim) # function that stores the rsfcovar in the RSQLite clusdb for future use
       
      if(P(sim, "rsfCLUS", "checkRasters")){
-        sim <- rsfCLUS.checkRasters(sim)
+        sim <- checkRasters(sim)
      } 
     
   }else{ # if there is already an rsfcovar data.table in the RSQLite db then grab the table and load it into the sim
@@ -250,7 +249,7 @@ rsfCLUS.Init <- function(sim) {
   return(invisible(sim))
 }
 
-rsfCLUS.UpdateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie., 'distance to' and simulation updatable variables (ex. height)
+updateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie., 'distance to' and simulation updatable variables (ex. height)
   #NOTE: Has to run in this order. So that RE, RS, and I types can rely on previous updates. Dont really like all these ifs
   if(nrow(unique(rsf_model_coeff[type == 'UP']))>0){ #DT is distance to
     sim<-getUpvariables(sim)
@@ -269,7 +268,7 @@ rsfCLUS.UpdateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie
   }
   #STANDARDIZE (if neccessary)
   if("mean" %in% colnames (rsf_model_coeff)){
-    rsfCLUS.StandardizeDynamicRSFCovar(sim) # function that standardizes the RSF covariate values
+    standardizeDynamicRSFCovar(sim) # function that standardizes the RSF covariate values
   }
   return(invisible(sim))
 }
@@ -387,7 +386,7 @@ getIvariables<-function(sim){
   return(invisible(sim))
 }
 
-rsfCLUS.StoreRSFCovar<- function(sim){
+storeRSFCovar <- function(sim){
   message('storing covariates in rsfcovar table')
   #Stores the rsfCover in clusdb. This allows a clusdb to be created and used again without wait times for dataloading
   ##Create the table in clusdb
@@ -431,7 +430,7 @@ getglmobj <-function(parm_list){ #creates a predict glm object for each rsf
   return(lmFit)
 }
 
-rsfCLUS.checkRasters <- function(sim) {
+checkRasters <- function(sim) {
 #----Plotting the raster---
   for(layer in colnames(sim$rsfcovar)){
     message(paste0("ploting: ", layer))
@@ -449,7 +448,7 @@ rsfCLUS.checkRasters <- function(sim) {
   return(invisible(sim))
 }
 
-rsfCLUS.PredictRSF <- function(sim){
+predictRSF <- function(sim){
   #Loop through each population and season to predict its resource selection probability at each applicable pixel
   message("predicting RSF")
   rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
@@ -480,11 +479,11 @@ rsfCLUS.PredictRSF <- function(sim){
   return(invisible(sim))
 }
 
-rsfCLUS.Save<-function(sim){
+saveRSF<-function(sim){
   return(invisible(sim))
 }
 
-rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
+standardizeStaticRSFCovar<-function(sim){
   message('standardizing static covariates')
   static_list<-rsf_model_coeff[static == 'Y' & layer != 'int' & sql != layer_uni] # Get the static list that are not RC. These don't get standardized
   static_list <- within(static_list,  equate <- paste(layer_uni, sql, sep="=")) # concatenate two colums so that the new layer equals the old layer
@@ -512,7 +511,7 @@ rsfCLUS.StandardizeStaticRSFCovar<-function(sim){
   return(invisible(sim))
 }
 
-rsfCLUS.StandardizeDynamicRSFCovar<-function(sim){
+standardizeDynamicRSFCovar<-function(sim){
   message('standardizing dynamic covariates')
   dynamic_list<-rsf_model_coeff[static == 'N' & layer != 'int']
   
