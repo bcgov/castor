@@ -94,10 +94,25 @@ cutblockSeqPrepCLUS.Init <- function(sim) {
 cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
   sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[[4]], " FROM ", sim$boundaryInfo[[1]] , " WHERE ", sim$boundaryInfo[[2]] ," IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"')", ") as h
               WHERE h.", sim$boundaryInfo[[4]] ," && ",  P(sim)$queryCutblocks, ".point 
-                                         AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) AND harvestyr >= ", P(sim)$startHarvestYear,"
-                                         ORDER BY harvestyr"))
+                                         AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"))
   
-  if(length(sim$histLandings)==0){ sim$histLandings<-NULL}
+  if(length(sim$histLandings)==0){ 
+    sim$histLandings<-NULL
+  }else{
+    landings<-sim$histLandings %>% dplyr::filter(harvestyr < P(sim)$startHarvestYear) 
+    if(nrow(landings)>0){
+      print('geting pre landings')
+      #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
+      sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+      sim$landingsArea<-NULL
+    }else{
+      print('NO pre landings in: ')
+      sim$landings<-NULL
+      sim$landingsArea<-NULL
+    }
+  }
+  
   return(invisible(sim))
 }
 
@@ -161,7 +176,7 @@ cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
       dbCommit(sim$clusdb)
       
       message('...getting age')
-      blocks.age<-getTableQuery(paste0("SELECT (harvestyr - ", P(sim)$startHarvestYear, ") as age, cutblockid as blockid from ", P(sim, "cutblockSeqPrepCLUS", "nameCutblockTable"), 
+      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvestyr) as age, cutblockid as blockid from ", P(sim, "cutblockSeqPrepCLUS", "nameCutblockTable"), 
                                        " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"))
       
       dbExecute(sim$clusdb, "CREATE INDEX index_blockid on pixels (blockid)")
