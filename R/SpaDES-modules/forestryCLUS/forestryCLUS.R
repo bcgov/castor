@@ -55,7 +55,7 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
-    createsOutput(objectName ="scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
+    createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
 ))
 
@@ -63,19 +63,17 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim <- forestryCLUS.Init(sim) #note target flow is a data.table object-- dont need to get it.
-      #sim <- forestryCLUS.setConstraints(sim) 
+      sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
       sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 2)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
-      sim <- forestryCLUS.setConstraints(sim)
-      sim<-forestryCLUS.getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      #sim<-forestryCLUS.checkAdjConstraints(sim)# check the constraints, removing from the queue adjacent blocks
+      sim <- setConstraints(sim)
+      sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 2)
     },
     save = {
-      sim <- forestryCLUS.save(sim)
+      sim <- saveForestry(sim)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -83,7 +81,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-forestryCLUS.Init <- function(sim) {
+Init <- function(sim) {
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
   sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
@@ -119,14 +117,14 @@ forestryCLUS.Init <- function(sim) {
   return(invisible(sim))
 }
 
-forestryCLUS.save<- function(sim) {
+saveForestry<- function(sim) {
   #write.csv(sim$harvestReport, "harvestReport.csv")
   writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
   writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_", P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
-forestryCLUS.setConstraints<- function(sim) {
+setConstraints<- function(sim) {
   message("...setting constraints")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   
@@ -222,8 +220,6 @@ forestryCLUS.setConstraints<- function(sim) {
     dbCommit(sim$clusdb)
   }
 
-  
-  #dbExecute(sim$clusdb, "VACUUM;") #Vacuum occurs in growingstockCLUS after the yield update.
   #write the constraint raster
   const<-sim$ras
   datat<-dbGetQuery(sim$clusdb, "SELECT zone_const FROM pixels ORDER BY pixelid;")
@@ -235,8 +231,8 @@ forestryCLUS.setConstraints<- function(sim) {
   return(invisible(sim))
 }
 
-forestryCLUS.getHarvestQueue<- function(sim) {
-  #Right now its looping by compartment -- could have it parallel? So far it will be serializable at the aoi level then
+getHarvestQueue<- function(sim) {
+  #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting? --Not important for 1 year time steps
