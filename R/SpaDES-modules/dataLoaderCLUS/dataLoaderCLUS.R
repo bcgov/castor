@@ -95,14 +95,13 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       
       if(P(sim, "dataLoaderCLUS", "useCLUSdb") == "99999"){
         #build clusdb
-        sim <- dataLoaderCLUS.createCLUSdb(sim) # function (below) that creates an SQLLite database
+        sim <- createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
-        sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
-        #sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
-        sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
-        
+        sim <- setTablesCLUSdb(sim)
+        sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=98) # runs after the inits are done
        }else{
+         #copy existing clusdb
         sim$foreststate<-NULL
         message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))
         #Make a copy of the db here so that the clusdb is in memory
@@ -141,7 +140,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       
     },
     calcCurrentState={
-      sim<-dataLoaderCLUS.calcForestState(sim) # summarizes the forest into seral class, area roaded and thlb, Needs more here.
+      sim<-calcForestState(sim) # summarizes the forest into seral class, area roaded and thlb, Needs more here.
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -163,7 +162,7 @@ disconnectDbCLUS<- function(sim) {
   return(invisible(sim))
 }
 
-dataLoaderCLUS.createCLUSdb <- function(sim) {
+createCLUSdb <- function(sim) {
   message ('create clusdb')
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
@@ -178,7 +177,7 @@ crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca n
   return(invisible(sim))
 }
 
-dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
+setTablesCLUSdb <- function(sim) {
   message('...setting data tables')
   #-----------------------
   #Set the compartment IDS
@@ -621,7 +620,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   
   return(invisible(sim))
 }
-dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
+setIndexesCLUSdb <- function(sim) {
   
   dbExecute(sim$clusdb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid)")
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
@@ -637,6 +636,7 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   return(invisible(sim))
 }
 
+#Archaic --keeping if needed at a later point in time
 # dataLoaderCLUS.setTHLB<-function(sim){
 #   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
 #   nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
@@ -653,7 +653,7 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
 #   return(invisible(sim))
 # }
 
-dataLoaderCLUS.calcForestState<-function(sim){
+calcForestState<-function(sim){
 sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
            sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
