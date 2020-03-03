@@ -69,12 +69,17 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-      sim<-roadCLUS.Init(sim) # Get the existing roads and if required, the cost surface and graph
+      sim<-Init(sim) # Get the existing roads and if required, the cost surface and graph
       ## set seed ??
       #set.seed(sim$.seed)
       
       if(P(sim)$roadMethod == 'pre'){ # Pre-solve the road network
-        sim <- roadCLUS.preSolve(sim)
+        sim <- preSolve(sim)
+        if(!is.null(sim$landings)){
+          sim <- getRoadSegment(sim)
+          sim <- addInitialRoadsTable(sim)
+        }
+       
       }
       
       # schedule future event(s)
@@ -88,42 +93,36 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     
     plot = {
       # do stuff for this event
-      sim <- roadCLUS.plot(sim)
+      sim <- plotRoads(sim)
     },
     
     save = {
       # do stuff for this event
-      sim <- roadCLUS.save(sim)
+      sim <- saveRoads(sim)
     },
-    
-    analysis.sim = {
-      # do stuff for this event
-      sim <- roadCLUS.analysis(sim)
-    },
-    
     buildRoads = { # Builds or simulates roads at the roading interval
       if(!is.null(sim$landings)){ #Check if there are cutblock landings to simulate roading
         switch(P(sim)$roadMethod,
             snap={ # Individiually links landings to closest road segment with a straight line
-              sim <- roadCLUS.getClosestRoad(sim) # Uses nearest neighbour to find the closest road segement to the target
-              sim <- roadCLUS.buildSnapRoads(sim)
-              sim <- roadCLUS.updateRoadsTable(sim) # Updates the pixels table in clusdb to the proper year that pixel was roaded
+              sim <- getClosestRoad(sim) # Uses nearest neighbour to find the closest road segement to the target
+              sim <- buildSnapRoads(sim)
+              sim <- updateRoadsTable(sim) # Updates the pixels table in clusdb to the proper year that pixel was roaded
             },
             lcp ={ # Create a least-cost path on the fly -- updates the cost surface at each road interval
-              sim <- roadCLUS.getClosestRoad(sim) 
-              sim <- roadCLUS.lcpList(sim) # Prepares the target and closest road information
-              sim <- roadCLUS.shortestPaths(sim) # Uses Dijkstra to solve least cost paths -- includes update of the graph (sim$g)
-              sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- getClosestRoad(sim) 
+              sim <- lcpList(sim) # Prepares the target and closest road information
+              sim <- getShortestPaths(sim) # Uses Dijkstra to solve least cost paths -- includes update of the graph (sim$g)
+              sim <- updateRoadsTable(sim)
             },
             mst ={ # Create a minimum spanning tree before least-cost paths -- updates the cost surface at each road interval
-              sim <- roadCLUS.getClosestRoad(sim)
-              sim <- roadCLUS.mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
-              sim <- roadCLUS.shortestPaths(sim)
-              sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- getClosestRoad(sim)
+              sim <- mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
+              sim <- getShortestPaths(sim)
+              sim <- updateRoadsTable(sim)
             },
             pre ={ # Solve the road network initially -- assumes cost surface is static
-              sim <- roadCLUS.getRoadSegment(sim)
-              sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- getRoadSegment(sim)
+              sim <- updateRoadsTable(sim)
             }
 
         )
@@ -138,7 +137,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     simLandings = {
       message("simulating random landings")
       sim$landings<-NULL
-      sim<-roadCLUS.randomLandings(sim)
+      sim<-randomLandings(sim)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -147,27 +146,27 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   return(invisible(sim))
 }
 
-roadCLUS.Init <- function(sim) {
-  sim <- roadCLUS.getRoads(sim) # Get the existing roads
+Init <- function(sim) {
+  sim <- getExistingRoads(sim) # Get the existing roads
   if(!P(sim)$roadMethod == 'snap'){
-    sim <- roadCLUS.getCostSurface(sim) # Get the cost surface
-    sim <- roadCLUS.getGraph(sim) # build the graph
+    sim <- getCostSurface(sim) # Get the cost surface
+    sim <- getGraph(sim) # build the graph
   }
   return(invisible(sim))
 }
 
-roadCLUS.plot<-function(sim){
+plotRoads<-function(sim){
   Plot(sim$roads, title = paste("Simulated Roads ", time(sim)))
   return(invisible(sim))
 }
 
-roadCLUS.save<-function(sim){
+saveRoads<-function(sim){
   writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_",P(sim)$roadMethod,"_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
 ### Get the rasterized roads layer
-roadCLUS.getRoads <- function(sim) {
+getExistingRoads <- function(sim) {
     sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
                             srcRaster= P(sim, "roadCLUS", "nameRoads"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
@@ -197,7 +196,7 @@ roadCLUS.getRoads <- function(sim) {
 }
 
 ### Get the rasterized cost surface
-roadCLUS.getCostSurface<- function(sim){
+getCostSurface<- function(sim){
   #rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
   rds<-sim$roads
   rds[is.na(rds[])]<-1
@@ -214,7 +213,7 @@ roadCLUS.getCostSurface<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.getClosestRoad <- function(sim){
+getClosestRoad <- function(sim){
   message('getClosestRoad')
   
   sim$roads.close.XY<-NULL
@@ -228,7 +227,7 @@ roadCLUS.getClosestRoad <- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.buildSnapRoads <- function(sim){
+buildSnapRoads <- function(sim){
   message("build snap roads")
 
     rdptsXY<-data.frame(sim$roads.close.XY) #convert to a data.frame
@@ -255,7 +254,7 @@ roadCLUS.buildSnapRoads <- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.updateRoadsTable <- function(sim){
+updateRoadsTable <- function(sim){
   message('updateRoadsTable')
   roadUpdate<-data.table(sim$paths.v)
   
@@ -274,7 +273,7 @@ roadCLUS.updateRoadsTable <- function(sim){
 }
 
 ###Set the grpah which determines least cost paths
-roadCLUS.getGraph<- function(sim){
+getGraph<- function(sim){
   #------get the adjacency using SpaDES function adj
   edges<-data.table(SpaDES.tools::adj(returnDT= TRUE, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras), 
                                       directions = 8, cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras))))
@@ -350,7 +349,7 @@ roadCLUS.getGraph<- function(sim){
 }
 
 ##Get a list of paths from which there is a to and from point
-roadCLUS.lcpList<- function(sim){
+lcpList<- function(sim){
   message('lcp List')
   paths.matrix<-cbind(cellFromXY(sim$ras,sim$landings), cellFromXY(sim$ras,sim$roads.close.XY ))
   sim$paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
@@ -359,7 +358,7 @@ roadCLUS.lcpList<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.mstList<- function(sim){
+mstList<- function(sim){
   message('mstList')
   rd_pts<-cellFromXY(sim$ras, sim$roads.close.XY )
   land_pts<-cellFromXY(sim$ras, sim$landings)
@@ -424,7 +423,7 @@ roadCLUS.mstList<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.shortestPaths<- function(sim){
+getShortestPaths<- function(sim){
   message(paste0('shortestPaths for ', length(sim$paths.list)))
   
   sim$paths.list<-lapply(sim$paths.list, function(x) 
@@ -452,12 +451,12 @@ roadCLUS.shortestPaths<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.randomLandings<-function(sim){
+randomLandings<-function(sim){
   sim$landings<-xyFromCell(sim$roads, sample(1:ncell(sim$roads), 5), Spatial = TRUE)
   return(invisible(sim))
 }
 
-roadCLUS.preSolve<-function(sim){
+preSolve<-function(sim){
   
   message("pre-solve the roads")
   if(exists("histLandings", where = sim)){
@@ -484,7 +483,7 @@ roadCLUS.preSolve<-function(sim){
   return(invisible(sim)) 
 }
 
-roadCLUS.getRoadSegment<-function(sim){
+getRoadSegment<-function(sim){
   #Convert the landings to pixelid's
   targets<-cellFromXY(sim$ras, sim$landings)
   roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
@@ -496,7 +495,22 @@ roadCLUS.getRoadSegment<-function(sim){
   
   return(invisible(sim)) 
 }
-
+addInitialRoadsTable<- function(sim) {
+  roadUpdate<-data.table(sim$paths.v)
+  if(nrow(roadUpdate) > 0){
+    setnames(roadUpdate, "pixelid")
+    roadUpdate[,roadyear := 0.1]
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }
+  
+  sim$paths.v<-NULL
+  return(invisible(sim))
+} 
+  
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
     sim$boundaryInfo<-list("public.gcbp_carib_polygon","herd_name","Telkwa","geom")

@@ -102,18 +102,25 @@ Init <- function(sim) {
 }
 
 distAnalysis <- function(sim) {
-  dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE roadyear > 0 or (blockid > 0 and age < 40);")) # 
-  dt_select[, field := 0]
-  
-  outPts<-merge(sim$disturbance, dt_select, by = 'pixelid', all.x =TRUE) 
-  nearNeigh<-RANN::nn2(outPts[field==0 & !is.na(critical_hab), c('x', 'y')], 
+  dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE roadyear > 0 or (blockid > 0 and age BETWEEN 0 AND 40);")) # 
+  if(nrow(dt_select) > 0){
+    dt_select[, field := 0]
+    outPts<-merge(sim$disturbance, dt_select, by = 'pixelid', all.x =TRUE) 
+    nearNeigh<-RANN::nn2(outPts[field==0 & !is.na(critical_hab), c('x', 'y')], 
                        outPts[is.na(field) & !is.na(critical_hab) > 0, c('x', 'y')], 
                        k = 1)
   
-  outPts<-outPts[is.na(field) & !is.na(critical_hab) > 0, dist:=nearNeigh$nn.dists] # assign the distances
-  outPts[is.na(dist) & !is.na(critical_hab) > 0, dist:=0] # those that are the distance to pixels, assign 
+    outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
+    outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
   
-  sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
+    sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
+  }else{
+    sim$disturbance$dist<-501
+  }
+
+  #out.ras<-sim$ras
+  #out.ras[]<-sim$disturbance$dist
+  #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
   #Sum the area up > 500 m
   tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])

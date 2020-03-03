@@ -331,6 +331,9 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
             message(paste0(pop_select, " does not overlap"))
           }
         }
+        
+        rm(outPts,dt_variable,dt_select)
+        gc()
       } else {
         print(paste0(dt_sql[i], ": FALSE"))
         variables_non<-rsf_model_coeff[sql == eval(dt_sql[i]),]
@@ -339,8 +342,6 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
         }
       }
     }
-  rm(outPts,dt_variable,dt_select)
-  gc()
   }
   return(invisible(sim))
 }
