@@ -59,22 +59,22 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
     eventType,
     
     init = {
-      sim<-cutblockSeqPrepCLUS.Init(sim)
-      sim<-cutblockSeqPrepCLUS.getHistoricalLandings(sim) #Get the XY location of the historical cutblock landings
-      sim <- cutblockSeqPrepCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
-      sim <- cutblockSeqPrepCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
+      sim<-Init(sim)
+      sim <- getHistoricalLandings(sim) #Get the XY location of the historical cutblock landings
+      sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
+      sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep", 6)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
     },
     
     cutblockSeqPrep = {
-      sim<-cutblockSeqPrepCLUS.getLandings(sim)
+      sim <- getLandings(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep")
     },
     
     updateAge = {
-      sim<-cutblockSeqPrepCLUS.incrementAge(sim)
+      sim <- incrementAge(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
     },
     
@@ -84,32 +84,32 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
   return(invisible(sim))
 }
 
-cutblockSeqPrepCLUS.Init <- function(sim) {
-  sim$landings<-NULL
-  sim$landingsArea<-NULL
+Init <- function(sim) {
+  sim$landings <- NULL
+  sim$landingsArea <- NULL
   return(invisible(sim))
 }
 
 ### Set the list of the cutblock locations
-cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
-  sim$histLandings<-getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[[4]], " FROM ", sim$boundaryInfo[[1]] , " WHERE ", sim$boundaryInfo[[2]] ," IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"')", ") as h
+getHistoricalLandings <- function(sim) {
+  sim$histLandings <- getTableQuery(paste0("SELECT harvestyr, x, y, areaha from ", P(sim)$queryCutblocks , ", (Select ", sim$boundaryInfo[[4]], " FROM ", sim$boundaryInfo[[1]] , " WHERE ", sim$boundaryInfo[[2]] ," IN ('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"')", ") as h
               WHERE h.", sim$boundaryInfo[[4]] ," && ",  P(sim)$queryCutblocks, ".point 
                                          AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"))
   
   if(length(sim$histLandings)==0){ 
-    sim$histLandings<-NULL
+    sim$histLandings <- NULL
   }else{
-    landings<-sim$histLandings %>% dplyr::filter(harvestyr < P(sim)$startHarvestYear) 
-    if(nrow(landings)>0){
+    landings <- sim$histLandings %>% dplyr::filter(harvestyr < P(sim)$startHarvestYear) 
+    if(nrow(landings) > 0){
       print('geting pre landings')
       #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
-      sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+      sim$landings <- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
-      sim$landingsArea<-NULL
+      sim$landingsArea <- NULL
     }else{
       print('NO pre landings in: ')
-      sim$landings<-NULL
-      sim$landingsArea<-NULL
+      sim$landings <- NULL
+      sim$landingsArea <- NULL
     }
   }
   
@@ -117,10 +117,10 @@ cutblockSeqPrepCLUS.getHistoricalLandings <- function(sim) {
 }
 
 ### Set a list of cutblock locations as a Spatial Points object
-cutblockSeqPrepCLUS.getLandings <- function(sim) {
+getLandings <- function(sim) {
   if(!is.null(sim$histLandings)){
-    landings<-sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) 
-    if(nrow(landings)>0){
+    landings <- sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) 
+    if(nrow(landings) > 0){
       print(paste0('geting landings in: ', time(sim)))
       #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
       sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
@@ -130,19 +130,19 @@ cutblockSeqPrepCLUS.getLandings <- function(sim) {
       
     }else{
       print(paste0('NO landings in: ', time(sim)))
-      sim$landings<-NULL
-      sim$landingsArea<-NULL
+      sim$landings <- NULL
+      sim$landingsArea <- NULL
     }
   }
   return(invisible(sim))
 }
 
-cutblockSeqPrepCLUS.createBlocksTable<-function(sim){
+createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
   
   dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
+    rs <- dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
@@ -153,7 +153,7 @@ cutblockSeqPrepCLUS.createBlocksTable<-function(sim){
 }
 
 
-cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
+getExistingCutblocks<-function(sim){
   if(!(P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster")))
     ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster"),
@@ -171,7 +171,7 @@ cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
       #add to the clusdb
       message('...updating blockids')
       dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+        rs <- dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
       
@@ -183,7 +183,7 @@ cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
       #Set the age
       message('...updating age')
       dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "Update pixels set age = :age where blockid = :blockid", blocks.age)
+        rs <- dbSendQuery(sim$clusdb, "Update pixels set age = :age where blockid = :blockid", blocks.age)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
       
@@ -197,7 +197,7 @@ cutblockSeqPrepCLUS.getExistingCutblocks<-function(sim){
 }
 
 
-cutblockSeqPrepCLUS.incrementAge<- function(sim) {
+incrementAge <- function(sim) {
   message("...increment age")
   dbExecute(sim$clusdb, "DROP INDEX index_age")
   #Update the pixels table
@@ -216,7 +216,7 @@ cutblockSeqPrepCLUS.incrementAge<- function(sim) {
 }
 
 
-cutblockSeqPrepCLUS.setBlocksTable <- function(sim) {
+setBlocksTable <- function(sim) {
   message("set the blocks table")
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
                     SELECT blockid, round(AVG(age),0) as age
