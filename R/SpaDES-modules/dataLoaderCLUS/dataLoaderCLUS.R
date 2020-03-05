@@ -18,20 +18,20 @@ defineModule(sim, list(
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
     person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.1", dataLoaderCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", dataLoaderCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataLoaderCLUS.Rmd"),
-  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "velox"),
+  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
+    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
     defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
@@ -79,7 +79,7 @@ defineModule(sim, list(
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
-    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
+    #createsOutput("rasVelo", objectClass ="velox", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
     createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
     createsOutput(objectName = "foreststate", objectClass = "data.table", desc = "A data.table of the current state of the aoi")
   )
@@ -126,7 +126,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         pixels <- data.table(c(t(raster::as.matrix(sim$ras)))) # turn raster into table of pixels and give them a sequential ID
         pixels[, pixelid := seq_len(.N)]
         
-        sim$ras[] <- unlist(pixels[,"pixelid"], use.names = FALSE)
+        sim$ras[] <- pixels$pixelid
         sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
         #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
@@ -184,24 +184,24 @@ setTablesCLUSdb <- function(sim) {
   #-----------------------
   if(!(P(sim, "dataLoaderCLUS", "nameCompartmentRaster") == "99999")){
     message(paste0('.....compartment ids: ', P(sim, "dataLoaderCLUS", "nameCompartmentRaster")))
-    sim$ras<-RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+   sim$ras<-RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
                           srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           conn=NULL)
+
+    sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster than rasterTopoints
+    sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
-    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster than rasterTopoints
-    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
-    
-    pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
+    pixels <- data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     
     #Set V1 to merge in the vat table values so that the column is character
     if(!(P(sim, "dataLoaderCLUS", "nameCompartmentTable") == "99999")){
       compart_vat <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim, "dataLoaderCLUS", "nameCompartmentTable"))))
       pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value", all.x = TRUE )
-      pixels[,V1:= NULL]
+      pixels[, V1:= NULL]
       col_name<-data.table(colnames(compart_vat))[!V1 == "value"]
       setnames(pixels, col_name$V1 , "compartid")
       #sort the pixels table so that pixelid is in order.
@@ -211,7 +211,7 @@ setTablesCLUSdb <- function(sim) {
       setnames(pixels, "V1", "compartid")
     }
 
-    sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
+    sim$ras[]<-pixels$pixelid
     sim$rasVelo<-velox::velox(sim$ras)
     #writeRaster(sim$ras, "ras.tif", overwrite = TRUE)
     
@@ -637,7 +637,7 @@ setIndexesCLUSdb <- function(sim) {
 }
 
 #Archaic --keeping if needed at a later point in time
-# dataLoaderCLUS.setTHLB<-function(sim){
+# setTHLB<-function(sim){
 #   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
 #   nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
 #                                   dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
