@@ -18,7 +18,23 @@ library (dfoptim)
 library (kableExtra)
 library (here)
 library (magick)
+library (plotly)
 ```
+
+
+# NOTE
+This model is no longer in use; don't use it - see version 4! 
+
+We were having problems fitting the functional response model; version 4 will eliminate this part of the model. We believe we were unable to predict an appropriate functional response surface by caribou in low disturbance areas. It was predicting these habitats as low value, but we believe they should be viewed as high-value habitats. 
+
+We believe this poor model fit was likely due to a combination of small sample size of caribou in low disturbance areas and because caribou in those areas seemed to be closer to roads than the 'available' sample.  We think the model could only find a fit by defining these areas low value. Further work is needed to figure out a way to model the functional response effect; perhaps with polynomial terms or a more complete dataset.
+
+
+
+
+
+
+
 
 ## Introduction
 Here I develop statistical models to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the models to indicate the influence of current and potential future forestry development on caribou use of habitat. Tne model will be implemented as a module (i.e., rsfCLUS) in the caribou and land use simulator (CLUS). Models were fit for the four caribou designatable units (DUs) in British Columbia (BC): DU6, boreal; DU7, northern mountain; DU8, central mountain; and DU9, southern mountain, as defined by the [Committee on the Status of Endangered Wildlife in Canada (COSEWIC)](https://www.registrelep-sararegistry.gc.ca/default.asp?lang=En&n=E6271D78-1&offset=2#_01_4). DUs were modeled independently, as they are intended to represent groups of caribou with unique ecological characteristics, and potentially different responses to forestry disturbance. 
@@ -242,8 +258,6 @@ knitr::include_graphics( here ("R/caribou_habitat/images", "du6_fxn.gif"))
 knitr::include_graphics( here ("R/caribou_habitat/images", "du6_fxn.jpg"))
 ```
 
-
-
 Random effects in the DU6 model indicated that caribou response to roads was relatively consistent across herds (Table 3). However, there was much more variability in caribou herd-level response to cutblocks. Caribou in the Calendar, Chinchaga and Prophet herds showed weak use of habitat near cutblocks, whereas caribou in the Maxhamish, Parker and Snake-Sahtaneh showed avoidance of cutblocks.
 
 ```{r, du6 model random effects coeffs, echo = F, message = F, eval = T}
@@ -360,7 +374,7 @@ kable (du7.fe,
                  font_size = 11)
 ```
 
-```{r, du7 model road fxn response, echo = F, message = F, eval = F}
+```{r, du7 model road fxn response, echo = F, message = F, eval = F , include = F}
 data.road.test <- read.csv (here ("R/caribou_habitat/data", "rd_fxn_test_data.csv"))
 plot3d(x = data.road.test$distance_to_resource_road, 
        y = data.road.test$dist_res_road_E,
@@ -389,7 +403,6 @@ knitr::include_graphics( here ("R/caribou_habitat/images", "du7_fxn.gif"))
 ```{r, du7 fxn response image, echo = F, message = F, eval = T, fig.cap = "Figure 7. Functional response between distance to road and average distance to road in a caribou home range in DU7."}
 knitr::include_graphics( here ("R/caribou_habitat/images", "du7_fxn.jpg"))
 ```
-
 
 Random effects in the DU7 model indicated that caribou avoided roads consistently across herds, although there was significant variability in the strength of avoidance (Table 6). There was more variability in caribou response to cutblocks. Caribou in the Charlotte Alplands, Finlay, Frog, Graham, Pink Mountain, Spatsizi, Tsenaglode and TWeedsmuir tended to be closer to cutblocks, whereas caribou in other herds tended to be further from cutblocks then what was available in their home ranges. 
 
