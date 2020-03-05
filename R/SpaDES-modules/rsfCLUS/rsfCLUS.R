@@ -19,7 +19,7 @@ defineModule(sim, list(
     person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
     person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.3", rsfCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", rsfCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -34,8 +34,6 @@ defineModule(sim, list(
     defineParameter("randomEffectsTable", "character", "99999", NA, NA, "The name of the look up table for rsf random effects"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
-    defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
-    defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
@@ -177,10 +175,8 @@ Init <- function(sim) {
           message("there is a re table")
           re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCLUS", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
           if(nrow(re_table) == 0){
-            print("int are 0")
             sim$rsfcovar[, (layer_name):= 0]
           }else{
-            print(as.numeric(re_table))
             sim$rsfcovar[, (layer_name):= as.numeric(re_table)]
           }
         }
@@ -210,7 +206,6 @@ Init <- function(sim) {
             print("slopes are 0")
             sim$rsfcovar[, (paste0(layer_name, "_re")):= 0]
           }else{
-            print(as.numeric(re_table))
             sim$rsfcovar[, (paste0(layer_name, "_re")):= as.numeric(re_table)]
           }
           
