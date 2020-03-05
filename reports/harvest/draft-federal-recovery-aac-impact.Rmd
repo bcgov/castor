@@ -50,13 +50,16 @@ tsas<-c("Arrow_TSA","Bulkley_TSA", "Cascadia_TCC_TSA","Cascadia_TKO_TSA","Cascad
 
 thlb_add<-lapply(tsas, function(x){
    conn<-dbConnect(RSQLite::SQLite(), dbname = paste0("C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/",x[],"_clusdb.sqlite"))
-  out<-cbind(x[], as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels")), as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 >= 0")), as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 >= 0 and zone5 is null and zone4 is null and zone3 is null and zone2 is null")))
+  out<-cbind(x[], as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels")), as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 >= 0")), as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 >= 0 and zone5 is null and zone4 is null and zone3 is null and zone2 is null")),
+  as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 = 0")),
+  as.integer(dbGetQuery(conn, "SELECT sum(thlb) from pixels where zone6 > 0"))
+  )
   dbDisconnect(conn)
   data.table(out)
 })
 
 thlb<-rbindlist(thlb_add)
-setnames(thlb, c("V1", "V2", "V3", "V4"), c("compartment", "total_thlb", "crit_habitat_thlb", "newly_added_crit_habitat_thlb"))
+setnames(thlb, c("V1", "V2", "V3", "V4", "V5","V6"), c("compartment", "total_thlb", "crit_habitat_thlb", "newly_added_crit_habitat_thlb", "thlb_core", "thlb_matrix"))
 aac<-merge(data3, thlb, all.x=TRUE)
 aac<-aac[order(diff),]
 #convert chr to intger
@@ -68,9 +71,10 @@ aac[,newly_added_crit_habitat_thlb:=as.integer(newly_added_crit_habitat_thlb)]
 totals<-data.table(compartment = 'TOTAL', bau = sum(aac$bau), federal_recovery= sum(aac$federal_recovery), diff = sum(aac$diff), total_thlb = sum(as.integer(aac$total_thlb),na.rm=T), crit_habitat_thlb = sum(as.integer(aac$crit_habitat_thlb),na.rm=T), newly_added_crit_habitat_thlb = sum(as.integer(aac$newly_added_crit_habitat_thlb),na.rm=T))
 totals[,pcnt_diff:= round((diff/bau)*100, 1)]
 
-last<-rbind(aac, totals)
+last<-rbind(aac, totals, fill=TRUE)
 last[,pnct_thlb:= round((as.integer(newly_added_crit_habitat_thlb)/as.integer(total_thlb))*100,1)]
-
+last[,pnct_core_thlb:= round((as.integer(thlb_core)/as.integer(total_thlb))*100,1)]
+last[,pnct_matrix_thlb:= round((as.integer(thlb_matrix)/as.integer(total_thlb))*100,1)]
 
 #change the names to make the table cleaner
 setnames(last, "compartment", "TSA")
@@ -82,10 +86,15 @@ setnames(last, "total_thlb", "Total in TSA (ha)")
 setnames(last, "crit_habitat_thlb", "Federal Critical Habitat (ha)")
 setnames(last, "newly_added_crit_habitat_thlb", "Newly Added Federal Critical Habitat (ha)")
 setnames(last, "pnct_thlb", "Percentage (% Newly Added)")
+setnames(last, "thlb_core", "Core Habitat")
+setnames(last, "thlb_matrix", "Matrix (Type I) Habitat")
+setnames(last, "pnct_core_thlb", "Percent in Core (%)")
+setnames(last, "pnct_matrix_thlb", "Percent in Matrix (Type I, %)")
+
 knitr::kable(last,format.args = list(big.mark = ","))%>%
   kable_styling(fixed_thead = T,bootstrap_options = c("striped", "hover"))%>%
   row_spec(nrow(last), bold = T) %>%
-  add_header_above(c(" ", "Total Volume Harvested (m3, over 100 years)" = 2, "AAC Impact" = 2, "THLB Impact" = 4))
+  add_header_above(c(" ", "Total Volume Harvested (m3, over 100 years)" = 2, "AAC Impact" = 2, "THLB Impact" = 8))
 ```
 
 ## THLB vs AAC impact

@@ -12,6 +12,7 @@
 *.ini
 *.cpg
 *.qpj
+*.rds
 /list_clus_data.xlsx
 .pdf
 *.xlsx

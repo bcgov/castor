@@ -56,12 +56,12 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
     },
     updateGrowingStock= {
-      sim <- growingStockCLUS.Update(sim)
-      sim <- growingStockCLUS.record(sim)
+      sim <- updateGS(sim)
+      sim <- recordGS(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
     },
     vacuumDB ={
-      sim <- growingStockCLUS.vacuumDB(sim)
+      sim <- vacuumDB(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -129,7 +129,7 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 
-growingStockCLUS.Update<- function(sim) {
+updateGS<- function(sim) {
   #Note: See the SQLite approach to updating. The Update statement does not support JOIN
   #update the yields being tracked
   message("...drop indexs")
@@ -188,13 +188,13 @@ growingStockCLUS.Update<- function(sim) {
   return(invisible(sim))
 }
 
-growingStockCLUS.vacuumDB<- function(sim){
+vacuumDB<- function(sim){
   message("...vacuum db")
   dbExecute(sim$clusdb, "VACUUM;")
   return(invisible(sim)) 
 }
 
-growingStockCLUS.record<- function(sim) {
+recordGS<- function(sim) {
   message("...recording")
   sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
               dbGetQuery(sim$clusdb, paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 

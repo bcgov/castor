@@ -61,18 +61,18 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-      sim<-blockingCLUS.Init(sim) #Build the adjacent edges
+      sim<-Init(sim) #Build the adjacent edges
       
       switch(P(sim)$blockMethod,
              
              pre= {
                if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
                   message('Creating blocks...')
-                  sim <- blockingCLUS.createBlocksTable(sim)#create blockid column blocks and adjacency table
-                  sim <- blockingCLUS.getExistingCutblocks(sim) #updates pixels to include existing blocks
-                  sim <- blockingCLUS.preBlock(sim) #preforms the pre-blocking algorthium in Java
-                  sim <- blockingCLUS.setAdjTable(sim)
-                  sim <- blockingCLUS.setBlocksTable(sim) #inserts values into the blocks table
+                  sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
+                  sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
+                  sim <- preBlock(sim) #preforms the pre-blocking algorthium in Java
+                  sim <- setAdjTable(sim)
+                  sim <- setBlocksTable(sim) #inserts values into the blocks table
                   sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
                }
                
@@ -81,18 +81,18 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                },
              
              dynamic ={
-               sim <- blockingCLUS.setSpreadProb(sim)
+               sim <- setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
              }
           )
       
     },
     buildBlocks = {
-        sim <- blockingCLUS.spreadBlock(sim)
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
+      sim <- spreadBlock(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
     },
     UpdateBlocks = {
-      sim <- blockingCLUS.UpdateBlocks(sim)
+      sim <- updateBlocks(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
       
     },
@@ -105,28 +105,21 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   return(invisible(sim))
 }
 
-blockingCLUS.Init <- function(sim) {
+Init <- function(sim) {
   sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
 return(invisible(sim))
 }
 
-blockingCLUS.createBlocksTable<-function(sim){
+createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer")
-  
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = 0")
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  
+  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
-  
   return(invisible(sim)) 
 }
 
-blockingCLUS.getExistingCutblocks<-function(sim){
+getExistingCutblocks<-function(sim){
 
   if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
@@ -157,19 +150,17 @@ blockingCLUS.getExistingCutblocks<-function(sim){
 return(invisible(sim))
 }
 
-blockingCLUS.setBlocksTable <- function(sim) {
+setBlocksTable <- function(sim) {
   message("set the blocks table")
- 
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height) 
                     SELECT blockid, round(AVG(age),0) as age, round(AVG(height),0) as height
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
-  
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
   
 return(invisible(sim))
 }
 
-blockingCLUS.setSpreadProb<- function(sim) {
+setSpreadProb<- function(sim) {
   #Create a mask for the area of interst
   sim$aoi <- sim$ras #set the area of interest as the similarity raster
   sim$aoi[]<-dbGetQuery(sim$clusdb, "SELECT thlb FROM pixels")
@@ -189,7 +180,7 @@ blockingCLUS.setSpreadProb<- function(sim) {
   return(invisible(sim))
 }
 
-blockingCLUS.preBlock <- function(sim) {
+preBlock <- function(sim) {
   
   edges<-sim$edgesAdj
 
@@ -332,7 +323,7 @@ blockingCLUS.preBlock <- function(sim) {
   return(invisible(sim))
 }
 
-blockingCLUS.setAdjTable<-function(sim){
+setAdjTable<-function(sim){
   #set the adjacency table
   blockids<-data.table(dbGetQuery(sim$clusdb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
   setkey(blockids, pixelid)
@@ -355,7 +346,7 @@ blockingCLUS.setAdjTable<-function(sim){
   return(invisible(sim))
 }
 
-blockingCLUS.spreadBlock<- function(sim) {
+spreadBlock<- function(sim) {
   if (!is.null(sim$landings)) {
     
       if(P(sim)$useLandingsArea){
@@ -392,7 +383,7 @@ blockingCLUS.spreadBlock<- function(sim) {
   return(invisible(sim))
 }
 
-blockingCLUS.UpdateBlocks<-function(sim){
+updateBlocks<-function(sim){
   #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)

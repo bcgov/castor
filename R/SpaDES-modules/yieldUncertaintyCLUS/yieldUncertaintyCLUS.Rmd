@@ -1,0 +1,29 @@
+---
+title: "yieldUncertaintyCLUS"
+author: ""
+date: "18 February 2020"
+output: pdf_document
+---
+# Usage
+
+```{r module_usage}
+library(SpaDES)
+
+setPaths(modulePath = file.path("C:/Users/klochhea/clus/R/SpaDES-modules"))
+getPaths() # shows where the 4 relevant paths are
+
+times <- list(start = 0, end = 10)
+
+parameters <- list(
+)
+
+modules <- list("yieldUncertaintyCLUS")
+objects <- list()
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+mySimOut <- spades(mySim)
+```

@@ -1,4 +1,4 @@
-# Copyright 2020 Province of British Columbia
+# Copyright 2020rsf_ Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,9 @@ defineModule(sim, list(
   documentation = list("README.txt", "disturbanceCalcCLUS.Rmd"),
   reqdPkgs = list("raster"),
   parameters = rbind(
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("criticalHabitatTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the boundaries of the critical habitat"),
+    defineParameter("criticalHabRaster", "character", '99999', NA, NA, "Raster that describes the boundaries of the critical habitat"),
+    defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -33,37 +35,29 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput(objectName = "roads", objectClass = "RasterLayer", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA, sourceURL = NA)
+    expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
+    expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput("distInfo", "list", "Summary per simulation year of the disturbances")
+    createsOutput("disturbance", "data.table", "Disturbance table for every pixel"),
+    createsOutput("disturbanceReport", "data.table", "Summary per simulation year of the disturbance indicators")
   )
 ))
-
-## event types
-#   - type `init` is required for initialiazation
 
 doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim$distInfo <- list() #instantiate a new list
-      sim <- scheduleEvent(sim, P(sim, "roadCLUS", "roadSeqInterval"), "disturbanceCalcCLUS", "roads")
-      sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
-      sim <- scheduleEvent(sim, end(sim), "disturbanceCalcCLUS", "analysis", 50)
-    },
-    roads = {
-      sim<- disturbanceCalcCLUS.roads(sim)
-      sim <- scheduleEvent(sim, P(sim, "roadCLUS", "roadSeqInterval"), "disturbanceCalcCLUS", "roads")
-    },
-    cutblocks = {
-      sim<- disturbanceCalcCLUS.cutblocks(sim)
-      sim <- scheduleEvent(sim, P(sim, "blockingCLUS", "blockSeqInterval"), "disturbanceCalcCLUS", "cutblocks")
+      sim <- Init (sim) # this function inits 
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 50)
     },
     analysis = {
-      sim<- disturbanceCalcCLUS.analysis(sim)
+      sim<- distAnalysis(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 50)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -73,9 +67,73 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+  sim$disturbanceReport<-data.table(scenario = character(), compartment = character(), timeperiod= integer(),
+                                    critical_hab = character(), dist500 = numeric(), dist500_per = numeric())
+  sim$disturbance<-sim$pts
+  
+  #Get the critical habitat
+  if(P(sim, "disturbanceCalcCLUS", "criticalHabRaster") == '99999'){
+    sim$disturbance[, critical_hab:= 1]
+  }else{
+    bounds <- data.table (c (t (raster::as.matrix( 
+    RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+                 srcRaster = P(sim, "disturbanceCalcCLUS", "criticalHabRaster"), 
+                 clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                 geom = sim$boundaryInfo[[4]], 
+                 where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                 conn = NULL)))))
+    bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
+    if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
+      if(!(P(sim, "disturbanceCalcCLUS", "criticalHabitatTable") == '99999')){
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCLUS", "criticalHabitatTable"))))
+        bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
+      }else{
+        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCLUS", "criticalHabitatTable")))
+      }
+    }else{
+      stop(paste0(P(sim, "disturbanceCalcCLUS", "criticalHabRaster"), "- does not overlap with aoi"))
+    }
+    setorder(bounds, pixelid) #sort the bounds
+    sim$disturbance[, critical_hab:= bounds$crithab]
+  }
+  
+  
   return(invisible(sim))
 }
-disturbanceCalcCLUS.patch <- function(sim) {
+
+distAnalysis <- function(sim) {
+  dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE roadyear > 0 or (blockid > 0 and age BETWEEN 0 AND 40);")) # 
+  if(nrow(dt_select) > 0){
+    dt_select[, field := 0]
+    outPts<-merge(sim$disturbance, dt_select, by = 'pixelid', all.x =TRUE) 
+    nearNeigh<-RANN::nn2(outPts[field==0 & !is.na(critical_hab), c('x', 'y')], 
+                       outPts[is.na(field) & !is.na(critical_hab) > 0, c('x', 'y')], 
+                       k = 1)
+  
+    outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
+    outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
+  
+    sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
+  }else{
+    sim$disturbance$dist<-501
+  }
+
+  #out.ras<-sim$ras
+  #out.ras[]<-sim$disturbance$dist
+  #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
+  
+  #Sum the area up > 500 m
+  tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])
+  tempDisturbanceReport[, c("scenario", "compartment", "timeperiod", "dist500_per", "dist500") := list(scenario$name,sim$boundaryInfo[[3]],time(sim),((total - hab500)/total)*100,total - hab500)]
+  tempDisturbanceReport[, c("total","hab500") := list(NULL, NULL)]
+
+  sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE )
+  sim$disturbance[, dist:=NULL]
+  
+  return(invisible(sim))
+}
+
+patchAnalysis <- function(sim) {
   #calculates the patch size distributions
   #For each landscape unit that has a patch size constraint
   # Make a graph 
@@ -84,39 +142,7 @@ disturbanceCalcCLUS.patch <- function(sim) {
   return(invisible(sim))
 }
 
-disturbanceCalcCLUS.roads <- function(sim) {
-  if(!is.null(sim$roads)){
-    x<-sim$roads
-    x[x[] > 0] <-1
-    sim$distInfo$roads[[(time(sim))]]<- raster::cellStats(x, sum) 
-  }
-  return(invisible(sim))
-}
-
-disturbanceCalcCLUS.cutblocks <- function(sim) {
-  if(!is.null(sim$harvestUnits)){
-    x<-sim$harvestUnits
-    x[x[] > 0] <-1
-    sim$distInfo$cutblocks[[(time(sim))]]<- raster::cellStats(x, sum)
-  }
-
-  return(invisible(sim))
-}
-
-disturbanceCalcCLUS.analysis <- function(sim) {
-  print(sim$distInfo)
-  return(invisible(sim))
-}
-
 .inputObjects <- function(sim) {
-  
-  if(!suppliedElsewhere("roads", sim)){
-      sim$roads<-NULL
-  }
-  
-  if(!suppliedElsewhere("harvestUnits", sim)){
-    sim$harvestUnits<-NULL
-  }
   
   return(invisible(sim))
 }
