@@ -96,7 +96,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- plotRoads(sim)
     },
     
-    save = {
+    savePredRoads = {
       # do stuff for this event
       sim <- saveRoads(sim)
     },
