@@ -172,10 +172,11 @@ getExistingRoads <- function(sim) {
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL)
+    
     #Update the pixels table to set the roaded pixels
     roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
     roadUpdate[, pixelid := seq_len(.N)]
-    roadUpdate<-roadUpdate[V1 > 0, roadyear := 0]
+    roadUpdate<-roadUpdate[V1 > 0, roadyear := -1]
 
     if(exists("clusdb", where = sim)){
       dbBegin(sim$clusdb)
@@ -184,7 +185,7 @@ getExistingRoads <- function(sim) {
       dbCommit(sim$clusdb)
 
       roadpixels<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')
-      sim$roads[]<-unlist(c(roadpixels), use.names =FALSE)
+      sim$roads[]<-roadpixels$roadyear
     }
     
     sim$paths.v<-NULL #set the placeholder for simulated paths
@@ -197,10 +198,11 @@ getExistingRoads <- function(sim) {
 
 ### Get the rasterized cost surface
 getCostSurface<- function(sim){
-  #rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
+  
   rds<-sim$roads
-  rds[is.na(rds[])]<-1
-
+  rds[is.na(rds[])] <- 1
+  rds[rds[] < 0] <-0 #convert the roads that are not 'pre' start time roads back to zero
+  
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   costSurf<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
@@ -303,7 +305,7 @@ getGraph<- function(sim){
   bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[4],") as geom from ",sim$boundaryInfo[1]," where 
  ",sim$boundaryInfo[2]," in ('",paste(sim$boundaryInfo[3], collapse = "', '") ,"')"))
   step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
-  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear >= 0 and 
+  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear is not NULL and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")"))
   
   step.two.xy<-data.table(xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
@@ -479,15 +481,16 @@ preSolve<-function(sim){
     data.table(landing = x[][]$name[length(x[][]$name)],road = toString(x[][]$name[]))
      }))
   
-  #TODO: store roadslist in clusdb?
+  #TODO: store roadslist in clusdb? Maybe not....?
   return(invisible(sim)) 
 }
 
 getRoadSegment<-function(sim){
+  message("getRoadSegment")
   #Convert the landings to pixelid's
   targets<-cellFromXY(sim$ras, sim$landings)
   roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
-  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear > 0 and pixelid in (",paste(roadSegs, collapse = ", "),")"))
+  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear >= 0 and pixelid in (",paste(roadSegs, collapse = ", "),")"))
   sim$paths.v<-roadSegs[!(roadSegs[] %in% alreadyRoaded$pixelid)]
   
   #update the raster
@@ -499,8 +502,8 @@ addInitialRoadsTable<- function(sim) {
   roadUpdate<-data.table(sim$paths.v)
   if(nrow(roadUpdate) > 0){
     setnames(roadUpdate, "pixelid")
-    roadUpdate[,roadyear := 0.1]
-    
+    roadUpdate[,roadyear := 0]
+    message("Add initial roads")
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
     dbClearResult(rs)

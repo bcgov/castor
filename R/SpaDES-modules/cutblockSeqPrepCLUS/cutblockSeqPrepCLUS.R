@@ -99,9 +99,9 @@ getHistoricalLandings <- function(sim) {
   if(length(sim$histLandings)==0){ 
     sim$histLandings <- NULL
   }else{
-    landings <- sim$histLandings %>% dplyr::filter(harvestyr < P(sim)$startHarvestYear) 
+    landings <- sim$histLandings %>% dplyr::filter(harvestyr <= P(sim)$startHarvestYear) 
     if(nrow(landings) > 0){
-      print('geting pre landings')
+      message('geting pre landings')
       #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
       sim$landings <- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
