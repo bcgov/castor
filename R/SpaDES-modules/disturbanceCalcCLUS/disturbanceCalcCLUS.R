@@ -17,7 +17,7 @@ defineModule(sim, list(
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.3", disturbanceCalcCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", disturbanceCalcCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -53,11 +53,11 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init (sim) # this function inits 
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 50)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 9)
     },
     analysis = {
-      sim<- distAnalysis(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 50)
+      sim <- distAnalysis(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 9)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -96,8 +96,6 @@ Init <- function(sim) {
     setorder(bounds, pixelid) #sort the bounds
     sim$disturbance[, critical_hab:= bounds$crithab]
   }
-  
-  
   return(invisible(sim))
 }
 
