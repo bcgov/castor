@@ -82,11 +82,12 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
     herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
     herdbounds [, pixelid := seq_len(.N)] # add pixelid value
     
-    vat_table <- data.table (getTableQuery (paste0 ( "SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
-                                            
+    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
+
     herdbounds <- merge (herdbounds, vat_table, by.x = "herd_bounds", by.y = "value", all.x = TRUE) # left join the herd name to the intger
     herdbounds [, herd_bounds := NULL] # drop the integer value 
-    setnames (herdbounds, "herd_name", "herd_bounds") # rename the herd boundary column
+    
+    colnames(herdbounds) <- c("pixelid", "herd_bounds") # rename the herd boundary column
     setorder (herdbounds, "pixelid") # this helps speed up processing?
   
     dbBegin (sim$clusdb) # fire up the db and add the herd boundary values to the pixels table 
