@@ -276,6 +276,7 @@ updateRoadsTable <- function(sim){
 
 ###Set the grpah which determines least cost paths
 getGraph<- function(sim){
+  message("...Building graph")
   #------get the adjacency using SpaDES function adj
   edges<-data.table(SpaDES.tools::adj(returnDT= TRUE, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras), 
                                       directions = 8, cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras))))
@@ -302,10 +303,12 @@ getGraph<- function(sim){
   #Step 1: clip the road dataset and see which pixels are at the boundary
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
+  
   bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[4],") as geom from ",sim$boundaryInfo[1]," where 
  ",sim$boundaryInfo[2]," in ('",paste(sim$boundaryInfo[3], collapse = "', '") ,"')"))
+  
   step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
-  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear is not NULL and 
+  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear = -1 and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")"))
   
   step.two.xy<-data.table(xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
@@ -459,11 +462,13 @@ randomLandings<-function(sim){
 }
 
 preSolve<-function(sim){
-  
   message("pre-solve the roads")
   if(exists("histLandings", where = sim)){
-    targets <- as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) ))
+
+    targets<- unique(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) )))
+   
+      
   }else{
     #TODO: get the centroid instead of the maximum pixelid?
     targets <- as.character(dbGetQuery(sim$clusdb, "SELECT max(pixelid) from pixels where blockid > 0 group by blockid;"))
@@ -473,8 +478,11 @@ preSolve<-function(sim){
   #isolated = which(degree(sim$g)==0)
   #sim$g<-delete_vertices(sim$g, isolated)
   
+  vert_graph <- as.character(igraph::V(sim$g)$name) # Need to remove thos targets that are not in the graph
+  real_targts <-vert_graph[vert_graph[] %in% targets] # This removes cases where the border pixels are not included in the graph
+  
   #Solve Djkstra's for one source (random road location - most southern road?) to all possible targets. Then store the outcome into a list referenced by the target
-  pre.paths<-igraph::get.shortest.paths(sim$g, as.character(sim$roadSourceID), targets)
+  pre.paths<-igraph::get.shortest.paths(sim$g, as.character(sim$roadSourceID), real_targts)
   message("making road list")
   #TODO: Need a better data structure here. Minimize the size of string called road or the column road in roadslist -- ex. roads[ !(roads[] %in% oldroads)] - maybe not: using this as a year indicator?
   sim$roadslist<-rbindlist(lapply(pre.paths$vpath ,function(x){
