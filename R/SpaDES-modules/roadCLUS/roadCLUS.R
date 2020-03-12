@@ -167,31 +167,34 @@ saveRoads<-function(sim){
 
 ### Get the rasterized roads layer
 getExistingRoads <- function(sim) {
-    sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+    if(nrow(dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels where roadyear is not null limit 1')) > 0){
+      message("using already loaded roads")
+      sim$roads<-sim$ras
+    }else{
+      sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
                             srcRaster= P(sim, "roadCLUS", "nameRoads"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL)
     
-    #Update the pixels table to set the roaded pixels
-    roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
-    roadUpdate[, pixelid := seq_len(.N)]
-    roadUpdate<-roadUpdate[V1 > 0, roadyear := -1]
+      #Update the pixels table to set the roaded pixels
+      roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
+      roadUpdate[, pixelid := seq_len(.N)]
+      roadUpdate<-roadUpdate[V1 > 0, roadyear := -1]
 
-    if(exists("clusdb", where = sim)){
+      #Set the road year
       dbBegin(sim$clusdb)
         rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate[,2:3]  )
       dbClearResult(rs)
-      dbCommit(sim$clusdb)
-
-      roadpixels<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')
-      sim$roads[]<-roadpixels$roadyear
+      dbCommit(sim$clusdb)  
+      
+      rm(roadUpdate)
+      gc()
     }
     
+    sim$roads[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
     sim$paths.v<-NULL #set the placeholder for simulated paths
     
-    rm(roadUpdate)
-    gc()
     #print(dbGetQuery(sim$clusdb, "SELECT * FROM pixels WHERE roadyear >=0 limit 1"))
     return(invisible(sim))
 }
@@ -298,7 +301,7 @@ getGraph<- function(sim){
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
   
-  #------Find edge connections for the remaining network
+  #------Find edge connections for the remaining network - create a loop between edge pixels
   #Find the connections between points outside the graph and create edges there. This will minimize the issues with disconnected graph components
   #Step 1: clip the road dataset and see which pixels are at the boundary
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
@@ -317,7 +320,7 @@ getGraph<- function(sim){
   #Assign the road source the southern most pixelid?
   sim$roadSourceID<-min(step.two$pixelid)
   
-  # Sequential Nearest Neighbour without replacement - find the closest pixel to create a loop
+  # Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
   edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
     if(nrow(step.two.xy) == i ){
       data.table(from = nrow(step.two.xy), to = 1, weight.V1 = 1)
@@ -462,16 +465,14 @@ randomLandings<-function(sim){
 }
 
 preSolve<-function(sim){
-  message("pre-solve the roads")
+  message("Pre-solving the roads")
   if(exists("histLandings", where = sim)){
-
-    targets<- unique(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+    message("...using historical landings")
+    targets <- unique(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) )))
-   
-      
   }else{
-    #TODO: get the centroid instead of the maximum pixelid?
-    targets <- as.character(dbGetQuery(sim$clusdb, "SELECT max(pixelid) from pixels where blockid > 0 group by blockid;"))
+    #TODO: get the centroid instead of the maximum pixelid? This may involve having to convert to vector?
+    targets <- unique(dbGetQuery(sim$clusdb, "SELECT landing from blocks;")$landing)
   }
   
   #remove many of the isolated targets. Note that the vertex will change to start at 1 but since the names are set as pixelid it is ok. This is why I use as.character()
@@ -479,10 +480,11 @@ preSolve<-function(sim){
   #sim$g<-delete_vertices(sim$g, isolated)
   
   vert_graph <- as.character(igraph::V(sim$g)$name) # Need to remove thos targets that are not in the graph
-  real_targts <-vert_graph[vert_graph[] %in% targets] # This removes cases where the border pixels are not included in the graph
-  
+  real_targts <-vert_graph[vert_graph[] %in% as.character(targets)] # This removes cases where the border pixels are not included in the graph
+
   #Solve Djkstra's for one source (random road location - most southern road?) to all possible targets. Then store the outcome into a list referenced by the target
   pre.paths<-igraph::get.shortest.paths(sim$g, as.character(sim$roadSourceID), real_targts)
+  
   message("making road list")
   #TODO: Need a better data structure here. Minimize the size of string called road or the column road in roadslist -- ex. roads[ !(roads[] %in% oldroads)] - maybe not: using this as a year indicator?
   sim$roadslist<-rbindlist(lapply(pre.paths$vpath ,function(x){
@@ -503,9 +505,9 @@ getRoadSegment<-function(sim){
   
   #update the raster
   sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)
-  
   return(invisible(sim)) 
 }
+
 addInitialRoadsTable<- function(sim) {
   roadUpdate<-data.table(sim$paths.v)
   if(nrow(roadUpdate) > 0){
