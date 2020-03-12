@@ -244,7 +244,7 @@ getHarvestQueue<- function(sim) {
       harvestPriority<-sim$harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height,", sim$yieldUncertaintyCovar," (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND blockid > 0 AND ", partition, "
                   ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") AND thlb > 0 AND zone_const = 0 AND ", partition, 
@@ -277,15 +277,18 @@ getHarvestQueue<- function(sim) {
         sim$harvestBlocks[queue$pixelid]<-time(sim)
         
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
-        land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        land_coord<-sim$pts[pixelid %in% land_pixels, ]
+        #land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
+        land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
+                                paste(unique(queue$blockid), collapse = ", "), ");")))
+        
+        land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
         setnames(land_coord,c("x", "y"), c("X", "Y"))
         
         #Create proj_vol for uncertainty in yields
         temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
         setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
-        #temp.harvestBlockList<-cbind(temp.harvestBlockList, land_coord)
         sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
+    
 
         #Set the harvesting report
         temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim), compartment = compart, target = harvestTarget , area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)],  transition_volume  = queue[yieldid > 0, sum(vol_h)])
@@ -305,6 +308,7 @@ getHarvestQueue<- function(sim) {
   if(nrow(land_coord) > 0 ){
     sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
   }else{
+    message("no landings")
     sim$landings <- NULL
   }
   
