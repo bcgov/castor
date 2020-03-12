@@ -1,0 +1,77 @@
+---
+title: "Linear Feature Restoration"
+author: "Tyler Muhly"
+date: "10/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Here I review soem literature on linear feature and road restoration to try and identify an approirate way to parameterize lienar feature resotation in our model. 
+
+Lienar features appear to play an improtant role in cariobu delcine. They faciliatate movement by wolves (Latham et al. 2011)[https://s3.amazonaws.com/academia.edu.documents/48389764/Movement_responses_by_wolves_to_industri20160828-16700-72go7x.pdf?response-content-disposition=inline%3B%20filename%3DMovement_responses_by_wolves_to_industri.pdf&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWOWYYGZ2Y53UL3A%2F20200310%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200310T162117Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=3f89b0fe4f23afd463b528d24029792562fe211bcd5ddb10fcbfab3b904e301e], a key predadtor of cariobu. For example, wolves in northeast Alberta moved 2.8 (1.4 km/h from 0.5 km/h) times faster on linear features than in forest (James 1999)[https://era.library.ualberta.ca/items/b0ec7038-4742-4cb6-b66f-a028a5768b2e/view/2ed2671f-b891-4f7c-af8b-87b76fdd68c9/NQ46857.pdf]. This increases encoiunter rate between wolves and caribou (Whittington et al. 2011)[https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2664.2011.02043.x].  
+
+## Methods
+One approach to parameterizing the model is to establish a recovery time within the model as a target or policy, and assume that it will be implemented operationally. This is reasonable for a stretgic model, but it is likely there will be interest in applying some boudns to this paramter based on measured recovery rates. However, we caution reaserch on lieanr feature resoration in teh context of its affect on cariobu recovery is realtively recent and not extensive. Thus conclusions from any review shoudl be considered prelimnary. 
+
+Reviewed literature using key words in ggogle shoalr: "linear features", "roads", "wolves", "caribou", restoration"
+
+## Results 
+
+- some work lookign at sesimic line recovery in Alberta
+
+- a key feature of recovery appears to be human use, as it compacts soil and destroys vegetation, reducing recovery times
+
+- 'conventional' (5-8 m wide, created in 60's to early 2000's) seismic line recovery in boreal Alberta was low (Lee and Boutin 2006)[https://www.sciencedirect.com/science/article/pii/S0301479705001866?via%3Dihub]
+  - ~8% of seismic lines recovery to >50% woody veg in 35 years
+  - ~20% became 'tracked access' 
+  - ~64% were covered in grasses and herbs
+  - up to 15 year lag in line recovery
+  - recovery rates varied by forest type
+    - no recovery of at least 13% woody veg in lowland black spruce after 35 
+      years
+    - 10% of lines in aspen and white spruce stands recvoered to >50% woody veg 
+      after 35 years 
+    - time to recovery of seismic lines at median rate ~112 years
+  
+- recovery of seismic lines and wellsites in boreal Alberta (Osko and MacFarlane 2000) Osko, T. and MacFarlane, A., 2001. Natural reforestation on seismic lines and wellsites in comparison to natural burns or logged sites. Alberta-Pacific Forest Industries, Boyle, Alberta.
+  - Only 4% of stems on wellsites and 2% of stems on seismic lines were taller 
+    than 5 m after 28 years
+  - In burns and cutblocks, 80% of the stems were taller than 5 m after 28 years. 
+  
+- (Finnegan et al. 2018)[http://www.bera-project.org/wp-content/uploads/2018/01/1-s2.0-S0378112717318078-main.pdf]
+  - on ∼20–40 years  seismic lines, understory species on seismic lines and at seismic line edges are
+    different from species present in the interior forest
+  - seismic lines and edges contain more disturbance-tolerant species 
+
+- (Dickie et al. 2017)[https://esajournals.onlinelibrary.wiley.com/doi/pdf/10.1002/ecs2.1936]
+  - veg height > 0.5m casued drop in wolf movement rates (4.4 km/h to 1.5km/h)
+  - wolf movement rates on linear features higher than in forest until 34% of lieanr feature > 4.86m  
+
+- (Tattersall et al. 2020)[https://www.sciencedirect.com/science/article/pii/S0006320719307013] 
+  - tested efefcts of recent (3-6 years old?) restoration of lienar features on willdife spp. use of 
+    linear features (as detected usign camera traps)
+  - active resotration = mounding, cwd, planting of black and white spruce seedlings in densities 
+    ranging from 400 to 1200 stems per ha
+  - passive restoration = regeneration ≥1.5 m in height (roughly representing a caribou sightline) and
+    crown cover >50%
+  - more rpedator use of 'open' lines, but no efefct of resttoration on wolf use of lines
+  - only wt deer showed lower use of restored lines
+
+## Conclusions
+- there is a lack of research on this, particulalrly that is relevant to BC and the cariobu recovery context
+- most research is from boreal resgions of Alberta (and BC to a lesser extent) and essentially exclusively on seismic lines, so not much on roads or mountainous environments
+- but we can take soem cahracteristics form this reasrch and apply them as a rule of thunmb until resaerch improves
+- veg hiethgs of ~5m, and/or ~30 years to recovery, opmtiistically, to >100 years  
+- coudl use height form forest stand models as a metric of recvoery or apply an 'expert-based' time to recovery
+- if we want to develop a more site-specific rule set, we could adjust recovery time based on soil wetness and compaction; where roads that receive more use, in wetter areas have some delay before forest vegetation is initiated, or a longer recovery period to account for this delay
+
+
+
+
+
+
+
