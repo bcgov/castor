@@ -85,7 +85,7 @@ Init <- function(sim) {
     bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "disturbanceCalcCLUS", "criticalHabitatTable") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCLUS", "criticalHabitatTable"))))
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "disturbanceCalcCLUS", "criticalHabitatTable"))))
         bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
         stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCLUS", "criticalHabitatTable")))
