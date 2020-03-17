@@ -2,24 +2,6 @@
 #-----------------------
 test<-NULL
 
-#Simple database connectivity functions
-getSpatialQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
-                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
-                       password= keyring::key_get('dbpass', keyring = 'postgreSQL')
-  )
-  on.exit(dbDisconnect(conn))
-  st_read(conn, query = sql)
-}
-
-getTableQuery<-function(sql){
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-  on.exit(dbDisconnect(conn))
-  dbGetQuery(conn, sql)
-}
-
 # Define server function
 shinyServer(function(input, output, session) {
   #-------------------------------------------------------------------------------------------------
@@ -27,20 +9,21 @@ shinyServer(function(input, output, session) {
   #-------------------------------------------------------------------------------------------------
   readData<-function(session){
     progress<-Progress$new(session)
-    progress$set(value = 0, message = 'Loading...')
+    progress$set(value = 0.2, message = 'Loading...')
  
   ## Load spatial data objects from postgres server
   #----------------
     
     # THIS IS AN EXAMPLE: USES THE WHA DATA, which we've put on our postgres server
-    
-    wha<<- getSpatialQuery("SELECT * FROM public.wcp_whaply_polygon") # this query is a custom function, see above
-    progress$set(value = 0.3, message = 'Loading...')
-    empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
+    wha <<- sf::st_zm (getSpatialQuery("SELECT wha_tag, common_nam, wkb_geometry FROM public.wcp_whaply_polygon WHERE common_nam = 'Northern Caribou'")) # this query is a custom function, see script I sent you; change SELECT column (field) names if you want to select specific columns and change WHERE statement to get other species; foucs on Mtn Goadt here to save load time 
+    sp_wha <<- sf::as_Spatial(st_transform(wha, 4326))
+
     progress$set(value = 0.5, message = 'Loading...')
+    empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
+    progress$set(value = 0.75, message = 'Loading...')
     
   #----------------
-  # Load non-spatial data 
+  # Load non-spatial data; query for accessing tables in db that are not spatial; not used here, but here as an example
   #----------------
   #get cached cutblock summary
     # progress$set(value = 0.8, message = 'Loading...')
@@ -55,15 +38,13 @@ shinyServer(function(input, output, session) {
   }
 
   
-  
-  
   #----------------  
   # Reactive Values 
-  valueModal<-reactiveValues(atTable=NULL)
+  valueModal <- reactiveValues (atTable = NULL)
   
-  whaSelect<-reactive({ # this function lets you select the wha layer on the map, by species code (but can use whatever you want in data)
-    req(input$map_shape_click$group) # input$map_shape_click is the key command to allow active selection of the feature on the map
-    wha[wha$common_species_name == input$map_shape_click$group, ]}) # in this case, we're saying, make WHA selectable, by 'common_species_name' 
+  whaSelect <- reactive({ # this function lets you select the wha layer on the map, by wha_tag
+    req (input$map_shape_click$group) # input$map_shape_click is the key command to allow active selection of the feature on the map
+    wha[wha$wha_tag == input$map_shape_click$group, ]}) # in this case, we're saying, make WHA selectable, by 'wha_tag' 
   
   drawnPolys <- reactive({ # this is the function that lets you draw on the map
     req(valueModal)
@@ -74,68 +55,41 @@ shinyServer(function(input, output, session) {
       Longitudes<-lapply(coordz, function(coordz) {coordz[seq(1,length(coordz), 2)] })
       Latitudes<-lapply(coordz, function(coordz)  {coordz[seq(2,length(coordz), 2)] })
       
-      polys<-list()
+      polys<-list() # create a list of coords
       for (i in 1:length(Longitudes)){polys[[i]]<- Polygons(
         list(Polygon(cbind(Longitudes[[i]], Latitudes[[i]]))), ID=f$features[[i]]$properties$`_leaflet_id`
       )}
       spPolys<-SpatialPolygons(polys) # create a spatial polygon of the list of coordinates
       proj4string(spPolys)<-"+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
       
-      #Extract the ID's from spPolys
+      # Extract the ID's from spPolys
       pid <- sapply(slot(spPolys, "polygons"), function(x) slot(x, "ID")) 
-      #create a data.frame
+      # create a data.frame of teh ID's
       p.df <- data.frame(ID=pid, row.names = pid) 
-      #Get the list of labels and ID from the user
-      df <- as.data.frame(valueModal$atTable) 
-      colnames(df)<-c("ID", "Label")
-      #merge to the original ID of the polygons
+      # Get the list of labels and ID from the user
+      df <- as.data.frame (valueModal$atTable) 
+      colnames(df) < -c("ID", "Label")
+      # merge to the original ID of the polygons
       p.df$label<- df$Label[match(p.df$ID, df$ID)]
-      SPDF<-spTransform(SpatialPolygonsDataFrame(spPolys, data=p.df), CRS("+init=epsg:3005"))
+      SPDF <- spTransform(SpatialPolygonsDataFrame(spPolys, data=p.df), CRS("+init=epsg:3005"))
     }else{
       SDPF<-NULL
     }
     SPDF
   }) 
   
-  totalArea <- reactive({ # function to get the area value of the WHA common_species_name you clicked
+  totalArea <- reactive({ # function to get the area value of the WHA tag you clicked
     req(input$map_shape_click$group)
-    sum(st_area(wha[wha$common_species_name == input$map_shape_click$group, ]))
+    sum(st_area(wha[wha$wha_tag == input$map_shape_click$group, ]))
     })
   
-  whaName <- reactive({ # function to get the WHA common_species_name name
+  whaName <- reactive({ # function to get the WHA tag name
     req(input$map_shape_click$group)
-    if(input$map_shape_click$group != "Wildlife Habitat Area"){
-      as.character(input$map_shape_click$group)
-    }
+    as.character(input$map_shape_click$group)
   })
 
 
-  dist_data <- reactive({ # this function gets the area of cutblock by WHA common_species_name; requires 'caching' the sum of cutblock area by WHA common_species_name, i.e., cb_sumALL 
-    req(whaName())
-    req(cb_sumALL)
-    req(input$sliderCutAge)
-    cb_sum<-rbind(cb_sumALL[which(cb_sumALL$whaName == whaName()),],c(0,NA,1900),c(0,NA,2019)) #Add 50 years prior to the first cutblock date in cns_polys (~1950) and current date
-    
-    if(!is.null(cb_sum$harvestyr)){
-      cb2<-tidyr::complete(cb_sum, harvestyr = full_seq(harvestyr,1), fill = list(sumarea = 0))
-      cb2$Dist40<-zoo::rollapplyr(cb2$sumarea, input$sliderCutAge, FUN = sum, fill=0)
-    }else{
-      cb2 <- data.frame(harvestyr = 2000:2018, Dist40 = 0)
-    }
-    cb2 %>% filter(harvestyr>1960)
-  })
-
-  thlb_data<- reactive({ # this function gets the area of thlb by WHA common_species_name; requires 'caching' the sum of THLB area by WHA common_species_name, i.e., gcbp_thlb 
-    req(whaName())
-    req(gcbp_thlb)
-    req(totalArea())
-    out<-gcbp_thlb[which(gcbp_thlb$herd_name ==whaName()),]
-    out$percentBoundary<-(out$sum/(totalArea()/10000))*100
-    out$herd_name<-NULL
-    out
-  })
-  
-  #Spatial--
+  # Spatial functions------
 
   # function to upload a shapefile... 
   uploadPolys <- reactive({ # drawnPolys
@@ -196,23 +150,24 @@ shinyServer(function(input, output, session) {
 
    ## render the leaflet map; creates the map interface in the app  
   output$map = renderLeaflet({ 
-    leaflet(wha, options = leafletOptions(doubleClickZoom = TRUE)) %>% 
+    leaflet(sp_wha, options = leafletOptions(doubleClickZoom = TRUE)) %>% # zooms to the clicked WHA polygon
       setView(-121.7476, 53.7267, 4.3) %>% # sets the map view to the province
       addTiles() %>% # add some datasets
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>% # adds openstreet data
       addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>% # add ESRI imagery data
       addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>% # add ESRI delorme data
-      addPolygons(data=wha, fillColor = "blue", # add the data 
-                  weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
-                  layerId = ~common_species_name,
-                  group= ~common_species_name,
+      addPolygons(data = sp_wha, fillColor = "red", # add the WHA data 
+                  weight = 1, opacity = 1, color = "white", dashArray = "1", fillOpacity = 0.7,
+                  layerId = ~wha_tag,
+                  group= ~wha_tag,
                   smoothFactor = 0.5,
-                  label = ~common_species_name,
-                  labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
-                  highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
+                  label = ~wha_tag,
+                  labelOptions = labelOptions (noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
+                  highlight = highlightOptions (weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
       addScaleBar(position = "bottomright") %>%
-      addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
-                              background-position: -31px -2px;"),position="bottomleft") %>%
+      addControl(actionButton ("reset", "Refresh", icon = icon ("refresh"), 
+                               style = "background-position: -31px -2px;"),
+                               position = "bottomleft") %>% # Re-set button to re-set the map after zoom
       addDrawToolbar( # adds the toolbar to draw polys
         editOptions = editToolbarOptions(),
         targetGroup='Drawn',
@@ -220,13 +175,15 @@ shinyServer(function(input, output, session) {
         circleMarkerOptions = FALSE,
         rectangleOptions = FALSE,
         markerOptions = FALSE,
-        singleFeature = F,
+        singleFeature = FALSE,
         polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
                                                                           color = 'red',
                                                                           weight = 3, 
                                                                           clickable = TRUE))) %>%
-      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'), options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area')) 
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
+                       overlayGroups = c('Wildlife Habitat Area', 'Drawn'), 
+                       options = layersControlOptions(collapsed = TRUE)) %>%
+      hideGroup(c('Drawn')) 
   })
   
   # Create a shapefile to download
@@ -245,70 +202,25 @@ shinyServer(function(input, output, session) {
     })
   
  
-  output$cutPlot <- renderPlotly({ # a function to plot the area of cutblocks in selected WHA
-    withProgress(message = 'Running Cutblock Query', value = 0.1, {
-      ta<-as.numeric(totalArea())
-      incProgress(0.3)
-      data<-dist_data()
-      data$per_harvest<-(data$Dist40/ta)*100
-      incProgress(0.6)
-      
-      p<- ggplot(data, aes(x =harvestyr, y=per_harvest) )+
-        geom_line()+
-        xlab ("Year") +
-        ylab (paste0("% Boundary with Age < ", input$sliderCutAge)) + 
-        scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
-        expand_limits(y=0) +
-        #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
-        theme_bw()
-      
-      incProgress(0.8)
-      ggplotly(p)
-    })
-  })
-  
-  
-  output$thlbTable<-renderTable({ # a function to plot the area of THLB in drawn area or selected WHA
-    withProgress(message = 'Running THLB Query', value = 0, {
-      if(input$queryType == 2){
-        incProgress(0.5)
-        #Convert the polygon object to sql polygon
-        table<-getTableQuery(paste0("SELECT (ST_SummaryStatsAgg(x.intersectx,1,true)).sum 
-          FROM
-        (SELECT ST_Intersection(rast,1,ST_AsRaster(geom, rast),1) as intersectx
-          FROM bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005) as geom ) as t 
-          WHERE ST_Intersects(geom, rast)) as x
-        WHERE x.intersectx IS NOT NULL;"))
-        incProgress(0.95)
-        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
-        table$per_boundary<-(table$sum/ta)*100
-        names(table)<-c("Sum THLB (ha)", "Percent of Drawn Area (%)")
-        table
-      }else{
-        incProgress(0.5)
-        table<-thlb_data()
-        names(table)<-c("Sum THLB (ha)", "Percent of Boundary Area (%)")
-        table
-      }
-    })
-  })
-  
-  
-  output$rdTable<-renderTable({ # a function to plot the area of buffered roads in drawn area or selected WHA
+  output$rdTable<-renderTable({ # a function to create a table of the area of buffered roads in drawn area or selected WHA
     withProgress(message = 'Running Roads Query...takes a while', value = 0, {
       req(input$sliderBuffer)
       req(totalArea())
       if(input$queryType == 2){
         incProgress(0.5)
-        #Convert the polygon object to sql polygon
-        table<-getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_km, 
-                            st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
+        # The following functions query the road data (FROM public.integrated_roads), and by road type
+        # (road surface), calculate the length ST_Length (r.wkb_geometry), in km(/1000)
+        # calculate the area of disturbance ( st_area ), based on the input buffer width (input$sliderBuffer)
+        
+        # The first query does ths within a drawn polygon, the second does it by selected WHA
+        table<-getTableQuery(paste0("SELECT r.road_surface, sum (ST_Length (r.wkb_geometry))/1000 as length_km,
+                              st_area (st_union (st_buffer (r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
                               FROM public.integrated_roads AS r,  
-                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
-                             WHERE
-                             ST_Contains(m.st_geomfromtext,r.wkb_geometry) 
-                             GROUP BY  r.road_surface
-                             ORDER BY  r.road_surface"))
+                              (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+                              WHERE
+                              ST_Contains (m.st_geomfromtext,r.wkb_geometry) 
+                              GROUP BY  r.road_surface
+                              ORDER BY  r.road_surface"))
         incProgress(0.95)
         ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
         table$per_boundary<-(table$area_ha_buffer/ta)*100
@@ -322,9 +234,9 @@ shinyServer(function(input, output, session) {
                              st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
                               FROM 
                              public.integrated_roads AS r,  
-                             (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",whaName(),"') AS m 
+                             (SELECT * FROM wcp_whaply_polygon WHERE wha_tag = '",whaName(),"') AS m 
                              WHERE
-                             ST_Contains(m.geom,r.wkb_geometry) 
+                             ST_Contains(m.wkb_geometry, r.wkb_geometry) 
                              GROUP BY  r.road_surface
                              ORDER BY  r.road_surface"))
         incProgress(0.95)
@@ -338,10 +250,13 @@ shinyServer(function(input, output, session) {
     })
   })
   
+  # If you want, try to replciate teh above for cutblocks 
+  # cutlbocks data = public.cns_cut_bl_polygon
+  
   #-------
   # OBSERVE
 
-  ## Zoom to WHA being cliked
+  ## This is a fucntion to zoom to the WHA being clicked on the leaflet map
   observe({
     if(is.null(input$map_shape_click))
       return()
@@ -350,12 +265,12 @@ shinyServer(function(input, output, session) {
       leafletProxy("map") %>%
         clearShapes() %>%
         clearControls() %>%
-        setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
-        addPolygons(data=sf::as_Spatial(st_transform(whaHerdSelect(), 4326)), color = "blue", fillColor="darkgreen", group = "Wildlife Habitat Area",
-                    options = pathOptions(clickable = FALSE)) %>%
+        setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 10) %>% # set the view extent of the leaflet map to the clicked polygon
+        addPolygons (data=sf::as_Spatial(st_transform(whaName(), 4326)), color = "red", fillColor="darkgreen", group = "Wildlife Habitat Area",
+                     options = pathOptions(clickable = FALSE)) %>% # add the WHA data to the map
         addPolygons (data = uploadPolys(), # drawnPolys
                      group = "Drawn", color = "yellow", fillColor = "yellow", fillOpacity = 0.1) %>%
-        addScaleBar(position = "bottomright") %>%
+        addScaleBar (position = "bottomright") %>%
         addDrawToolbar(
           editOptions = editToolbarOptions(),
           targetGroup='Drawn',
@@ -364,29 +279,29 @@ shinyServer(function(input, output, session) {
           rectangleOptions = FALSE,
           markerOptions = FALSE,
           singleFeature = FALSE,
-          polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
-                                                                            color = 'red',
-                                                                            weight = 3,
-                                                                            clickable = TRUE))) %>%
+          polygonOptions = drawPolygonOptions (shapeOptions = drawShapeOptions (fillOpacity = 0,
+                                                                                color = 'red',
+                                                                                weight = 3,
+                                                                                clickable = TRUE))) %>%
         addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),
-                         overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'),
+                         overlayGroups = c('Wildlife Habitat Area', 'Drawn'),
                          options = layersControlOptions(collapsed = TRUE)) %>%
-        hideGroup(c('Ungulate Winter Range','Wildlife Habitat Area')) %>%
+        hideGroup(c('Drawn')) %>%
         addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
-                              background-position: -31px -2px;"),position="bottomleft") 
+                                background-position: -31px -2px;"),position="bottomleft") 
 
       }else{
     
         leafletProxy("map") %>%
-          clearShapes() %>%
-          clearControls() %>%
-          setView(lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
-          addPolygons(data=sf::as_Spatial(st_transform(whaSelect(), 4326)), color = "blue"
-                      , fillColor="darkgreen", group = "Wildlife Habitat Area",
+          clearShapes () %>%
+          clearControls () %>%
+          setView (lng = input$map_shape_click$lng,lat = input$map_shape_click$lat, zoom = 7.4) %>%
+          addPolygons(data=sf::as_Spatial(st_transform(whaSelect(), 4326)), color = "red", 
+                      fillColor="darkgreen", group = "Wildlife Habitat Area",
                       options = pathOptions(clickable = FALSE)) %>%
-          addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
+          addControl (actionButton("reset","Refresh", icon = icon("refresh"), style="
                                   background-position: -31px -2px;"),position="bottomleft") %>%
-          addScaleBar(position = "bottomright") %>%
+          addScaleBar (position = "bottomright") %>%
           addDrawToolbar(
             editOptions = editToolbarOptions(),
             targetGroup='Drawn',
@@ -394,36 +309,35 @@ shinyServer(function(input, output, session) {
             circleMarkerOptions = FALSE,
             rectangleOptions = FALSE,
             markerOptions = FALSE,
-            singleFeature = F,
+            singleFeature = FALSE,
             polygonOptions = drawPolygonOptions(shapeOptions=drawShapeOptions(fillOpacity = 0,
                                                                               color = 'red',
                                                                               weight = 3, 
                                                                               clickable = TRUE))) %>%
           
-          addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'), 
+          addLayersControl(baseGroups = c("OpenStreetMap", "WorldImagery", "DeLorme"), 
+                           overlayGroups = c('Wildlife Habitat Area', 'Drawn'), 
                            options = layersControlOptions(collapsed = TRUE)) %>%
           hideGroup(c('Drawn')) 
       }
   })
   
   ## reset map
-  observeEvent(input$reset, { # reset the map after a zoom
+  observeEvent(input$reset, { # reset the map by clicking the button after a zoom
     leafletProxy("map") %>%
       clearShapes() %>%
       clearControls() %>%
       setView(-121.7476, 53.7267, 4.3) %>%
-      addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
-                              background-position: -31px -2px;"),position="bottomleft") %>%
-      addPolygons(data = wha,  fillColor = "blue", 
+      addControl(actionButton("reset","Refresh", icon =icon("refresh"), 
+                              style = "background-position: -31px -2px;"),position="bottomleft") %>%
+      addPolygons(data = sp_wha,  fillColor = "red", 
                   weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.7,
-                  layerId = ~common_species_name,
-                  group= ~common_species_name,
+                  layerId = ~wha_tag,
+                  group= ~wha_tag,
                   smoothFactor = 0.5,
-                  label = ~common_species_name,
-                  labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
-                  highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
-      addLegend("bottomright", pal = pal, values = unique(wha$timber_harvest_code), title = "Population Trend", opacity = 1) 
+                  label = ~wha_tag,
+                  labelOptions = labelOptions (noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
+                  highlight = highlightOptions (weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE))  
       
   })
   
