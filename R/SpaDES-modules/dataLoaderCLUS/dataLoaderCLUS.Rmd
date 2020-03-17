@@ -29,10 +29,13 @@ The dataloaderCLUS preps the database connectivitiy and other objects required t
 library(SpaDES)
 library(SpaDES.core)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
-Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_221') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+source(here::here("R/functions/R_Postgres.R"))
 
-setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_241')
+#Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+
+setPaths(modulePath = here::here("R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
 
 times <- list(start = 0, end = 0)
