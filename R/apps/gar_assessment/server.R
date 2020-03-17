@@ -1,6 +1,25 @@
 #----------------
 #-----------------------
 test<-NULL
+
+#Simple database connectivity functions
+getSpatialQuery<-function(sql){
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL')
+  )
+  on.exit(dbDisconnect(conn))
+  st_read(conn, query = sql)
+}
+
+getTableQuery<-function(sql){
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  on.exit(dbDisconnect(conn))
+  dbGetQuery(conn, sql)
+}
+
 # Define server function
 shinyServer(function(input, output, session) {
   #-------------------------------------------------------------------------------------------------
@@ -10,31 +29,24 @@ shinyServer(function(input, output, session) {
     progress<-Progress$new(session)
     progress$set(value = 0, message = 'Loading...')
  
-    
   ## Load spatial data objects from postgres server
   #----------------
     
-    # THIS IS AN EXAMPLE: NEED TO UPLOAD THE DATA YOU NEED (e.g., WHA, UWR boundaries) to a 
-    # postgres server, or something similar; need to determine what data you want in there (species, year, id, etc.)
+    # THIS IS AN EXAMPLE: USES THE WHA DATA, which we've put on our postgres server
     
-    uwr<<- getSpatialQuery("SELECT approval_year, geom FROM public.uwr_caribou_no_harvest_20180627 ")
+    wha<<- getSpatialQuery("SELECT * FROM public.wcp_whaply_polygon") # this query is a custom function, see above
     progress$set(value = 0.3, message = 'Loading...')
-    wha<<- getSpatialQuery("SELECT common_species_name, approval_year, geom FROM public.wha_caribou_no_harvest_20180627 ")
     empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
     progress$set(value = 0.5, message = 'Loading...')
+    
   #----------------
   # Load non-spatial data 
   #----------------
   #get cached cutblock summary
-    progress$set(value = 0.8, message = 'Loading...')
-    cb_sumALL<<-getTableQuery("SELECT * FROM public.cb_sum")
+    # progress$set(value = 0.8, message = 'Loading...')
+    # cb_sumALL<<-getTableQuery("SELECT * FROM public.cb_sum")
   #----------------
-    #get cached thlb summary
-    progress$set(value = 0.9, message = 'Loading...')
-    gcbp_thlb<<-getTableQuery("SELECT herd_name, sum FROM public.gcbp_thlb_sum")
-  #----------------
-  #get cached fire summary
-    #fire_sum<<-getTableQuery("SELECT * FROM public.fire_sum")
+
     progress$close()
   }
   
