@@ -23,7 +23,7 @@ defineModule(sim, list(
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.1", harvestCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", harvestCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -41,7 +41,7 @@ defineModule(sim, list(
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
@@ -69,17 +69,22 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
-      sim<-roadCLUS.Init(sim) # Get the existing roads and if required, the cost surface and graph
+      sim<-Init(sim) # Get the existing roads and if required, the cost surface and graph
       ## set seed ??
       #set.seed(sim$.seed)
       
       if(P(sim)$roadMethod == 'pre'){ # Pre-solve the road network
-        sim <- roadCLUS.preSolve(sim)
+        sim <- preSolve(sim)
+        if(!is.null(sim$landings)){
+          sim <- getRoadSegment(sim)
+          sim <- addInitialRoadsTable(sim)
+        }
+       
       }
       
       # schedule future event(s)
       sim <- scheduleEvent(sim, eventTime =  time(sim) + P(sim, "roadCLUS", "roadSeqInterval"), "roadCLUS", "buildRoads", 7)
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "save", eventPriority=20)
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "savePredRoads", eventPriority=9)
       
       if(!suppliedElsewhere("landings", sim)){ # Simulate random landings for running this module independently
         sim <- scheduleEvent(sim, eventTime = start(sim),  "roadCLUS", "simLandings")
@@ -88,42 +93,36 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     
     plot = {
       # do stuff for this event
-      sim <- roadCLUS.plot(sim)
+      sim <- plotRoads(sim)
     },
     
-    save = {
+    savePredRoads = {
       # do stuff for this event
-      sim <- roadCLUS.save(sim)
+      sim <- saveRoads(sim)
     },
-    
-    analysis.sim = {
-      # do stuff for this event
-      sim <- roadCLUS.analysis(sim)
-    },
-    
     buildRoads = { # Builds or simulates roads at the roading interval
       if(!is.null(sim$landings)){ #Check if there are cutblock landings to simulate roading
         switch(P(sim)$roadMethod,
             snap={ # Individiually links landings to closest road segment with a straight line
-              sim <- roadCLUS.getClosestRoad(sim) # Uses nearest neighbour to find the closest road segement to the target
-              sim <- roadCLUS.buildSnapRoads(sim)
-              sim <- roadCLUS.updateRoadsTable(sim) # Updates the pixels table in clusdb to the proper year that pixel was roaded
+              sim <- getClosestRoad(sim) # Uses nearest neighbour to find the closest road segement to the target
+              sim <- buildSnapRoads(sim)
+              sim <- updateRoadsTable(sim) # Updates the pixels table in clusdb to the proper year that pixel was roaded
             },
             lcp ={ # Create a least-cost path on the fly -- updates the cost surface at each road interval
-              sim <- roadCLUS.getClosestRoad(sim) 
-              sim <- roadCLUS.lcpList(sim) # Prepares the target and closest road information
-              sim <- roadCLUS.shortestPaths(sim) # Uses Dijkstra to solve least cost paths -- includes update of the graph (sim$g)
-              sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- getClosestRoad(sim) 
+              sim <- lcpList(sim) # Prepares the target and closest road information
+              sim <- getShortestPaths(sim) # Uses Dijkstra to solve least cost paths -- includes update of the graph (sim$g)
+              sim <- updateRoadsTable(sim)
             },
             mst ={ # Create a minimum spanning tree before least-cost paths -- updates the cost surface at each road interval
-              sim <- roadCLUS.getClosestRoad(sim)
-              sim <- roadCLUS.mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
-              sim <- roadCLUS.shortestPaths(sim)
-              sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- getClosestRoad(sim)
+              sim <- mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
+              sim <- getShortestPaths(sim)
+              sim <- updateRoadsTable(sim)
             },
             pre ={ # Solve the road network initially -- assumes cost surface is static
-              sim <- roadCLUS.getRoadSegment(sim)
-              sim <- roadCLUS.updateRoadsTable(sim)
+              sim <- getRoadSegment(sim)
+              sim <- updateRoadsTable(sim)
             }
 
         )
@@ -138,7 +137,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     simLandings = {
       message("simulating random landings")
       sim$landings<-NULL
-      sim<-roadCLUS.randomLandings(sim)
+      sim<-randomLandings(sim)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -147,61 +146,66 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   return(invisible(sim))
 }
 
-roadCLUS.Init <- function(sim) {
-  sim <- roadCLUS.getRoads(sim) # Get the existing roads
+Init <- function(sim) {
+  sim <- getExistingRoads(sim) # Get the existing roads
   if(!P(sim)$roadMethod == 'snap'){
-    sim <- roadCLUS.getCostSurface(sim) # Get the cost surface
-    sim <- roadCLUS.getGraph(sim) # build the graph
+    sim <- getCostSurface(sim) # Get the cost surface
+    sim <- getGraph(sim) # build the graph
   }
   return(invisible(sim))
 }
 
-roadCLUS.plot<-function(sim){
+plotRoads<-function(sim){
   Plot(sim$roads, title = paste("Simulated Roads ", time(sim)))
   return(invisible(sim))
 }
 
-roadCLUS.save<-function(sim){
+saveRoads<-function(sim){
   writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_",P(sim)$roadMethod,"_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
 ### Get the rasterized roads layer
-roadCLUS.getRoads <- function(sim) {
-    sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+getExistingRoads <- function(sim) {
+    if(nrow(dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels where roadyear is not null limit 1')) > 0){
+      message("using already loaded roads")
+      sim$roads<-sim$ras
+    }else{
+      sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
                             srcRaster= P(sim, "roadCLUS", "nameRoads"), 
                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL)
-    #Update the pixels table to set the roaded pixels
-    roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
-    roadUpdate[, pixelid := seq_len(.N)]
-    roadUpdate<-roadUpdate[V1 > 0, roadyear := 0]
+    
+      #Update the pixels table to set the roaded pixels
+      roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
+      roadUpdate[, pixelid := seq_len(.N)]
+      roadUpdate<-roadUpdate[V1 > 0, roadyear := -1]
 
-    if(exists("clusdb", where = sim)){
+      #Set the road year
       dbBegin(sim$clusdb)
         rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate[,2:3]  )
       dbClearResult(rs)
-      dbCommit(sim$clusdb)
-
-      roadpixels<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')
-      sim$roads[]<-unlist(c(roadpixels), use.names =FALSE)
+      dbCommit(sim$clusdb)  
+      
+      rm(roadUpdate)
+      gc()
     }
     
+    sim$roads[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
     sim$paths.v<-NULL #set the placeholder for simulated paths
     
-    rm(roadUpdate)
-    gc()
     #print(dbGetQuery(sim$clusdb, "SELECT * FROM pixels WHERE roadyear >=0 limit 1"))
     return(invisible(sim))
 }
 
 ### Get the rasterized cost surface
-roadCLUS.getCostSurface<- function(sim){
-  #rds<-raster::reclassify(sim$roads, c(-1,0,1, 0.000000000001, maxValue(sim$roads),0))# if greater than 0 than 0 if not 0 than 1;
+getCostSurface<- function(sim){
+  
   rds<-sim$roads
-  rds[is.na(rds[])]<-1
-
+  rds[is.na(rds[])] <- 1
+  rds[rds[] < 0] <-0 #convert the roads that are not 'pre' start time roads back to zero
+  
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   costSurf<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
@@ -214,7 +218,7 @@ roadCLUS.getCostSurface<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.getClosestRoad <- function(sim){
+getClosestRoad <- function(sim){
   message('getClosestRoad')
   
   sim$roads.close.XY<-NULL
@@ -228,7 +232,7 @@ roadCLUS.getClosestRoad <- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.buildSnapRoads <- function(sim){
+buildSnapRoads <- function(sim){
   message("build snap roads")
 
     rdptsXY<-data.frame(sim$roads.close.XY) #convert to a data.frame
@@ -255,7 +259,7 @@ roadCLUS.buildSnapRoads <- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.updateRoadsTable <- function(sim){
+updateRoadsTable <- function(sim){
   message('updateRoadsTable')
   roadUpdate<-data.table(sim$paths.v)
   
@@ -274,7 +278,8 @@ roadCLUS.updateRoadsTable <- function(sim){
 }
 
 ###Set the grpah which determines least cost paths
-roadCLUS.getGraph<- function(sim){
+getGraph<- function(sim){
+  message("...Building graph")
   #------get the adjacency using SpaDES function adj
   edges<-data.table(SpaDES.tools::adj(returnDT= TRUE, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras), 
                                       directions = 8, cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras))))
@@ -296,15 +301,17 @@ roadCLUS.getGraph<- function(sim){
   #------get the edges list
   edges.weight<-edges.w2[complete.cases(edges.w2), c(1:2, 5)] #get rid of NAs caused by barriers. Drop the w1 and w2 costs.
   
-  #------Find edge connections for the remaining network
+  #------Find edge connections for the remaining network - create a loop between edge pixels
   #Find the connections between points outside the graph and create edges there. This will minimize the issues with disconnected graph components
   #Step 1: clip the road dataset and see which pixels are at the boundary
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
+  
   bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[4],") as geom from ",sim$boundaryInfo[1]," where 
  ",sim$boundaryInfo[2]," in ('",paste(sim$boundaryInfo[3], collapse = "', '") ,"')"))
+  
   step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
-  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear >= 0 and 
+  step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear = -1 and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")"))
   
   step.two.xy<-data.table(xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
@@ -313,7 +320,7 @@ roadCLUS.getGraph<- function(sim){
   #Assign the road source the southern most pixelid?
   sim$roadSourceID<-min(step.two$pixelid)
   
-  # Sequential Nearest Neighbour without replacement - find the closest pixel to create a loop
+  # Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
   edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
     if(nrow(step.two.xy) == i ){
       data.table(from = nrow(step.two.xy), to = 1, weight.V1 = 1)
@@ -350,7 +357,7 @@ roadCLUS.getGraph<- function(sim){
 }
 
 ##Get a list of paths from which there is a to and from point
-roadCLUS.lcpList<- function(sim){
+lcpList<- function(sim){
   message('lcp List')
   paths.matrix<-cbind(cellFromXY(sim$ras,sim$landings), cellFromXY(sim$ras,sim$roads.close.XY ))
   sim$paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
@@ -359,7 +366,7 @@ roadCLUS.lcpList<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.mstList<- function(sim){
+mstList<- function(sim){
   message('mstList')
   rd_pts<-cellFromXY(sim$ras, sim$roads.close.XY )
   land_pts<-cellFromXY(sim$ras, sim$landings)
@@ -424,7 +431,7 @@ roadCLUS.mstList<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.shortestPaths<- function(sim){
+getShortestPaths<- function(sim){
   message(paste0('shortestPaths for ', length(sim$paths.list)))
   
   sim$paths.list<-lapply(sim$paths.list, function(x) 
@@ -452,51 +459,71 @@ roadCLUS.shortestPaths<- function(sim){
   return(invisible(sim))
 }
 
-roadCLUS.randomLandings<-function(sim){
+randomLandings<-function(sim){
   sim$landings<-xyFromCell(sim$roads, sample(1:ncell(sim$roads), 5), Spatial = TRUE)
   return(invisible(sim))
 }
 
-roadCLUS.preSolve<-function(sim){
-  
-  message("pre-solve the roads")
+preSolve<-function(sim){
+  message("Pre-solving the roads")
   if(exists("histLandings", where = sim)){
-    targets <- as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) ))
+    message("...using historical landings")
+    targets <- unique(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) )))
   }else{
-    #TODO: get the centroid instead of the maximum pixelid?
-    targets <- as.character(dbGetQuery(sim$clusdb, "SELECT max(pixelid) from pixels where blockid > 0 group by blockid;"))
+    #TODO: get the centroid instead of the maximum pixelid? This may involve having to convert to vector?
+    targets <- unique(dbGetQuery(sim$clusdb, "SELECT landing from blocks;")$landing)
   }
   
   #remove many of the isolated targets. Note that the vertex will change to start at 1 but since the names are set as pixelid it is ok. This is why I use as.character()
   #isolated = which(degree(sim$g)==0)
   #sim$g<-delete_vertices(sim$g, isolated)
   
+  vert_graph <- as.character(igraph::V(sim$g)$name) # Need to remove thos targets that are not in the graph
+  real_targts <-vert_graph[vert_graph[] %in% as.character(targets)] # This removes cases where the border pixels are not included in the graph
+
   #Solve Djkstra's for one source (random road location - most southern road?) to all possible targets. Then store the outcome into a list referenced by the target
-  pre.paths<-igraph::get.shortest.paths(sim$g, as.character(sim$roadSourceID), targets)
+  pre.paths<-igraph::get.shortest.paths(sim$g, as.character(sim$roadSourceID), real_targts)
+  
   message("making road list")
   #TODO: Need a better data structure here. Minimize the size of string called road or the column road in roadslist -- ex. roads[ !(roads[] %in% oldroads)] - maybe not: using this as a year indicator?
   sim$roadslist<-rbindlist(lapply(pre.paths$vpath ,function(x){
     data.table(landing = x[][]$name[length(x[][]$name)],road = toString(x[][]$name[]))
      }))
   
-  #TODO: store roadslist in clusdb?
+  #TODO: store roadslist in clusdb? Maybe not....?
   return(invisible(sim)) 
 }
 
-roadCLUS.getRoadSegment<-function(sim){
+getRoadSegment<-function(sim){
+  message("getRoadSegment")
   #Convert the landings to pixelid's
   targets<-cellFromXY(sim$ras, sim$landings)
   roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
-  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear > 0 and pixelid in (",paste(roadSegs, collapse = ", "),")"))
+  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear >= 0 and pixelid in (",paste(roadSegs, collapse = ", "),")"))
   sim$paths.v<-roadSegs[!(roadSegs[] %in% alreadyRoaded$pixelid)]
   
   #update the raster
   sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)
-  
   return(invisible(sim)) 
 }
 
+addInitialRoadsTable<- function(sim) {
+  roadUpdate<-data.table(sim$paths.v)
+  if(nrow(roadUpdate) > 0){
+    setnames(roadUpdate, "pixelid")
+    roadUpdate[,roadyear := 0]
+    message("Add initial roads")
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  }
+  
+  sim$paths.v<-NULL
+  return(invisible(sim))
+} 
+  
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
     sim$boundaryInfo<-list("public.gcbp_carib_polygon","herd_name","Telkwa","geom")

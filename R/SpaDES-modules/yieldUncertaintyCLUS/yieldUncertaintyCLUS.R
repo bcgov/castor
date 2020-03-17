@@ -58,7 +58,7 @@ doEvent.yieldUncertaintyCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCLUS", "calculateInterval"), "yieldUncertaintyCLUS", "calculateUncertainty", eventPriority= 12)
     },
     calculateUncertainty = {
-      sim <- yieldUncertaintyCLUS.calcUncertainty(sim)
+      sim <- calculateYieldUncertainty(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCLUS", "calculateInterval"), "yieldUncertaintyCLUS", "calculateUncertainty", eventPriority= 12)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -94,7 +94,7 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 
-yieldUncertaintyCLUS.calcUncertainty <-function(sim) {
+calculateYieldUncertainty <-function(sim) {
   sim$yielduncertain <- rbindlist(list(sim$yielduncertain,
   #lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name, time(sim)))))
                 rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$scenario$name, time(sim))

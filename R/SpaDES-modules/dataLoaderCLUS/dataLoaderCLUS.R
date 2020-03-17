@@ -18,7 +18,7 @@ defineModule(sim, list(
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
     person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.1", dataLoaderCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", dataLoaderCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
@@ -31,7 +31,7 @@ defineModule(sim, list(
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
-    defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
+    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
     defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
@@ -79,7 +79,7 @@ defineModule(sim, list(
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
-    createsOutput("rasVelo", objectClass ="VeloxRaster", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
+    #createsOutput("rasVelo", objectClass ="velox", desc = "Velox Raster Layer of the cell index - used in roadCLUS for snapping roads"),
     createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
     createsOutput(objectName = "foreststate", objectClass = "data.table", desc = "A data.table of the current state of the aoi")
   )
@@ -95,14 +95,13 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       
       if(P(sim, "dataLoaderCLUS", "useCLUSdb") == "99999"){
         #build clusdb
-        sim <- dataLoaderCLUS.createCLUSdb(sim) # function (below) that creates an SQLLite database
+        sim <- createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
-        sim<-dataLoaderCLUS.setTablesCLUSdb(sim)
-        #sim<-dataLoaderCLUS.setTHLB(sim) #set the no harvest zones as nonthlb which will not contribute to block development
-        sim<-dataLoaderCLUS.setIndexesCLUSdb(sim) # creates index to facilitate db querying?
-        
-        sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=98) # runs after the inits are done
+        sim <- setTablesCLUSdb(sim)
+        sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
+        sim <- calcForestState(sim)
        }else{
+         #copy existing clusdb
         sim$foreststate<-NULL
         message(paste0("Loading existing db...", P(sim, "dataLoaderCLUS", "useCLUSdb")))
         #Make a copy of the db here so that the clusdb is in memory
@@ -127,7 +126,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         pixels <- data.table(c(t(raster::as.matrix(sim$ras)))) # turn raster into table of pixels and give them a sequential ID
         pixels[, pixelid := seq_len(.N)]
         
-        sim$ras[] <- unlist(pixels[,"pixelid"], use.names = FALSE)
+        sim$ras[] <- pixels$pixelid
         sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
         #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
@@ -139,9 +138,6 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     removeDbCLUS={
       sim<- disconnectDbCLUS(sim)
       
-    },
-    calcCurrentState={
-      sim<-dataLoaderCLUS.calcForestState(sim) # summarizes the forest into seral class, area roaded and thlb, Needs more here.
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -163,7 +159,7 @@ disconnectDbCLUS<- function(sim) {
   return(invisible(sim))
 }
 
-dataLoaderCLUS.createCLUSdb <- function(sim) {
+createCLUSdb <- function(sim) {
   message ('create clusdb')
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
@@ -178,31 +174,31 @@ crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca n
   return(invisible(sim))
 }
 
-dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
+setTablesCLUSdb <- function(sim) {
   message('...setting data tables')
   #-----------------------
   #Set the compartment IDS
   #-----------------------
   if(!(P(sim, "dataLoaderCLUS", "nameCompartmentRaster") == "99999")){
     message(paste0('.....compartment ids: ', P(sim, "dataLoaderCLUS", "nameCompartmentRaster")))
-    sim$ras<-RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+   sim$ras<-RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
                           srcRaster= P(sim, "dataLoaderCLUS", "nameCompartmentRaster"), 
                           clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
                           geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
                           where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           conn=NULL)
+
+    sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster than rasterTopoints
+    sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
-    sim$pts <-data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster than rasterTopoints
-    sim$pts<- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
-    
-    pixels<-data.table(c(t(raster::as.matrix(sim$ras))))
+    pixels <- data.table(c(t(raster::as.matrix(sim$ras))))
     pixels[, pixelid := seq_len(.N)]
     
     #Set V1 to merge in the vat table values so that the column is character
     if(!(P(sim, "dataLoaderCLUS", "nameCompartmentTable") == "99999")){
       compart_vat <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim, "dataLoaderCLUS", "nameCompartmentTable"))))
       pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value", all.x = TRUE )
-      pixels[,V1:= NULL]
+      pixels[, V1:= NULL]
       col_name<-data.table(colnames(compart_vat))[!V1 == "value"]
       setnames(pixels, col_name$V1 , "compartid")
       #sort the pixels table so that pixelid is in order.
@@ -212,7 +208,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
       setnames(pixels, "V1", "compartid")
     }
 
-    sim$ras[]<-unlist(pixels[,"pixelid"], use.names = FALSE)
+    sim$ras[]<-pixels$pixelid
     sim$rasVelo<-velox::velox(sim$ras)
     #writeRaster(sim$ras, "ras.tif", overwrite = TRUE)
     
@@ -621,7 +617,7 @@ dataLoaderCLUS.setTablesCLUSdb <- function(sim) {
   
   return(invisible(sim))
 }
-dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
+setIndexesCLUSdb <- function(sim) {
   
   dbExecute(sim$clusdb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid)")
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
@@ -637,7 +633,8 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
   return(invisible(sim))
 }
 
-# dataLoaderCLUS.setTHLB<-function(sim){
+#Archaic --keeping if needed at a later point in time
+# setTHLB<-function(sim){
 #   #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
 #   nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
 #                                   dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
@@ -653,7 +650,7 @@ dataLoaderCLUS.setIndexesCLUSdb <- function(sim) {
 #   return(invisible(sim))
 # }
 
-dataLoaderCLUS.calcForestState<-function(sim){
+calcForestState<-function(sim){
 sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
            sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,

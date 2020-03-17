@@ -46,17 +46,17 @@ doEvent.survivalCLUS = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { # identify herds in the study area, calculate survival rate at time 0 for those herds and save the survival rate estimate
-      sim <- survivalCLUS.Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
+      sim <- Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
       sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event 
       sim <- scheduleEvent (sim, end(sim), "survivalCLUS", "adjustSurvivalTable", 9) #Need to add in the total area of herd_bounds + compartment for weighting these proportions across many compartments
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
-      sim <- survivalCLUS.PredictSurvival (sim) # this function calculates survival rate
+      sim <- predictSurvival (sim) # this function calculates survival rate
       sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event  
     },
     adjustSurvivalTable ={ # calucalte the total area from which the proportions and survival rate applies
-      sim <- survivalCLUS.adjustSurvivalTable (sim)
+      sim <- adjustSurvivalTable (sim)
     },
     
     warning (paste ("Undefined event type: '", current (sim) [1, "eventType", with = FALSE],
@@ -65,7 +65,7 @@ doEvent.survivalCLUS = function (sim, eventTime, eventType) {
   return (invisible (sim))
 }
 
-survivalCLUS.Init <- function (sim) { # this function identifies the caribou herds in the 'study area' creates the survival rate table, calculates survival rate at time = 0, and saves the survival table in the clusdb
+Init <- function (sim) { # this function identifies the caribou herds in the 'study area' creates the survival rate table, calculates survival rate at time = 0, and saves the survival table in the clusdb
   #Added a condition here in those cases where the dataLoaderCLUS has already ran
   if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'herd_bounds',])== 0){
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
@@ -82,11 +82,12 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
     herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
     herdbounds [, pixelid := seq_len(.N)] # add pixelid value
     
-    vat_table <- data.table (getTableQuery (paste0 ( "SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
-                                            
+    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
+
     herdbounds <- merge (herdbounds, vat_table, by.x = "herd_bounds", by.y = "value", all.x = TRUE) # left join the herd name to the intger
     herdbounds [, herd_bounds := NULL] # drop the integer value 
-    setnames (herdbounds, "herd_name", "herd_bounds") # rename the herd boundary column
+    
+    colnames(herdbounds) <- c("pixelid", "herd_bounds") # rename the herd boundary column
     setorder (herdbounds, "pixelid") # this helps speed up processing?
   
     dbBegin (sim$clusdb) # fire up the db and add the herd boundary values to the pixels table 
@@ -125,7 +126,7 @@ survivalCLUS.Init <- function (sim) { # this function identifies the caribou her
 }
 
 
-survivalCLUS.PredictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
+predictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
  
   new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
@@ -138,7 +139,7 @@ survivalCLUS.PredictSurvival <- function (sim) { # this function calculates surv
   return (invisible(sim))
 }
 
-survivalCLUS.adjustSurvivalTable <- function (sim) { # this function adds the total area of the herd_bounds + compartment area to be used for weighting in the dashboard
+adjustSurvivalTable <- function (sim) { # this function adds the total area of the herd_bounds + compartment area to be used for weighting in the dashboard
   total_area<-data.table(dbGetQuery (sim$clusdb, "SELECT count(*)as area, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   sim$tableSurvival<-merge(sim$tableSurvival, total_area, by.x = "herd_bounds", by.y = "herd_bounds", all.x = TRUE )
   return (invisible(sim))
