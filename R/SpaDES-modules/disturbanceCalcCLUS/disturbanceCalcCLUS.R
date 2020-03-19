@@ -28,6 +28,7 @@ defineModule(sim, list(
     defineParameter("criticalHabitatTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the boundaries of the critical habitat"),
     defineParameter("criticalHabRaster", "character", '99999', NA, NA, "Raster that describes the boundaries of the critical habitat"),
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
+    defineParameter("permDisturbanceRaster", "character", '99999', NA, NA, "Raster of permanent disturbances"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -96,11 +97,44 @@ Init <- function(sim) {
     setorder(bounds, pixelid) #sort the bounds
     sim$disturbance[, critical_hab:= bounds$crithab]
   }
+  
+  #get the permanent disturbance raster
+  #check it a field already in sim$clusdb?
+  if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='perm_dist';")$exists_check == 0){
+    # add in the column
+    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
+    # add in the raster
+    if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
+      message("Need to supply a permanent disturbance raster parameter as permDisturbanceRaster = ")
+    }else{
+    perm_dist <- data.table (c(t(raster::as.matrix( 
+        RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+                     srcRaster = P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster"), 
+                     clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                     geom = sim$boundaryInfo[[4]], 
+                     where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                     conn = NULL)))))
+    perm_dist[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
+    setnames(perm_dist, "V1", "perm_dist")
+    #add to the clusdb
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "Update pixels set perm_dist = :perm_dist where pixelid = :pixelid", perm_dist)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+    #clean up
+    rm(perm_dist)
+    gc()
+    }
+  }else{
+    message("...using existing permanent disturbance raster")
+  }
+  
   return(invisible(sim))
 }
 
 distAnalysis <- function(sim) {
-  dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE roadyear > 0 or (blockid > 0 and age BETWEEN 0 AND 40);")) # 
+  dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear > 0 or (blockid > 0 and age BETWEEN 0 AND 40)")) # 
   if(nrow(dt_select) > 0){
     dt_select[, field := 0]
     outPts<-merge(sim$disturbance, dt_select, by = 'pixelid', all.x =TRUE) 
