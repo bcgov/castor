@@ -21,11 +21,9 @@ We use the CLUS model to simulate forest harvest on a landscape and estimate tim
 
 CLUS is flexible in its scale. Fundamentally it simulates forestry at a minimum within a timber supply area (TSA), and where possible a supply block within a TSA, but it can simulate all TSAs that overlap a caribou herd, because it applies common data and assumptions across TSA's. For each TSA independently, the model harvests timber annually with the objective of achieving the current legislated [allowable annual cut (AAC)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut).  
 
-<<<<<<< HEAD
 This anlsysi includes teh Quesnel and Williams Lake TSA's which overlap with teh majority of teh Itcha-Ilgachuz herds. A small portion fo teh herd occurs in teh Prince George TSA, but that was not included in teh scenario becuase of its small size realtive to teh TSA (<5%?).  It is improtant to note that CLUS is not an exact copy of TSR models used to establish AAC's. Rather, it follows similar logic and ssumptions, but because it is not the exact same it may or may not achieve a legally established AAC target.  Thus, scenarios need to be considered in the context of timber flow estiamted in a BAU scenario, and not against a legislated AAC. 
-=======
+
 It is improtant to note that CLUS is not an exact copy of TSR models used to establish AAC's. Rather, it follows similar logic and ssumptions, but because it is not the exact same it may or may not achieve a legally established AAC target.  Thus, scenarios need to be considered in the context of timber flow estiamted in a BAU scenario, and not against a legislated AAC. 
->>>>>>> ccb6e1ac5ac639a7fdc5e99d42965b7e96aecfc9
 
 CLUS is implemented using the [R programming language](https://www.R-project.org/) and all code to run the model is posted in the BC government [github repository](https://github.com/bcgov/clus) following all requirenemnts and guidelines. 
 
