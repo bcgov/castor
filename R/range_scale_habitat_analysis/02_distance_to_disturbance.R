@@ -10,11 +10,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
----
-  title: "Caribou habitat range scale model model at the scale of the range"
-author: "Elizabeth Kleynhans"
-date: "September 12, 2018"
-output: word_document
+#---
+#title: "Caribou habitat range scale model model at the scale of the range"
+#author: "Elizabeth Kleynhans"
+#date: 16 March 2020
 #  Script Name: 04_caribou_habitat_model_telemetry_data_prep_doc.Rmd
 #  Script Version: 1.0
 #  Script Purpose: Prep telemtery data for habitat model analysis. 
