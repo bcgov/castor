@@ -21,15 +21,18 @@ require (ROCR)
 #===============
 #rsf_data_forestry<-read.csv("C:\\Work\\caribou\\clus_data\\rsf_data_foresty.csv",header=FALSE,col.names=c("pt_id","pttype","uniqueID","du","season","animal_id","year","ECOTYPE","HERD_NAME","ptID","distance_to_cut_1to4yo","distance_to_cut_5to9yo","distance_to_cut_10to29yo","distance_to_cut_30orOveryo","distance_to_paved_road","distance_to_loose_road","distance_to_petroleum_road","distance_to_rough_road","distance_to_trim_transport_road","distance_to_unknown_road",".R_rownames"))
 
-rsf_data_cutblock_age<-read.csv("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\caribou\\telemetry_habitat_model_20180904\\rsf_data_cutblock_age.csv")
-head(rsf_data_cutblock_age)
+rsf.data.cut.age<-read.csv("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\caribou\\telemetry_habitat_model_20180904\\rsf_data_cutblock_age.csv")
+head(rsf.data.cut.age)
 
-points_used <- rsf_data_forestry %>% filter(pttype==0)
-points_used$pttype<-1 
+unique(rsf.data.cut.age$pttype)
+rsf_data_forestry <- rsf.data.cut.age %>% filter(pttype==0)
+rsf_data_forestry$pttype<-1 
 
 #=======================================================================
 # re-categorize forestry data and test correlations, beta coeffs again
 #=====================================================================
+# I need to join tylers points to mine then run a GLM (poison distribution) for each du or maybe herd for each year of distance to cutblock pulling out the p values, and coefficients
+
 
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -60,88 +63,34 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation")
 # ggcorrplot (corr, type = "lower", p.mat = p.mat, insig = "blank")
 
+#====================================
+# Join rsf.data.cut.age to rsf.large.scale.data.age
+#===================================
 
-#=================================
-# Data exploration/visualization
-#=================================
-# Correlations
-# broke into 10 year chunks;
-# first 10 years
-dist.cut.1.10.corr <- st_drop_geometry(rsf.large.scale.data.age [c (15,16,63,64,17:32)])
-corr.1.10 <- round (cor (dist.cut.1.10.corr, method = "spearman"), 3)
-p.mat.1.10 <- round (cor_pmat (dist.cut.1.10.corr), 2)
-ggcorrplot (corr.1.10, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "All Data Distance to Cutblock Correlation Years 1 to 10")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10.png")
-# ggcorrplot (corr, type = "lower", p.mat = p.mat, insig = "blank")
 
-# 10-20  years
-dist.cut.11.20.corr <- rsf.large.scale.data.age [c (20:29)]
-corr.11.20 <- round (cor (dist.cut.11.20.corr, method = "spearman"), 3)
-p.mat.11.20 <- round (cor_pmat (dist.cut.11.20.corr), 2)
-ggcorrplot (corr.11.20, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "All Data Distance to Cutblock Correlation Years 11 to 20")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20.png")
 
-# 21-30  years
-dist.cut.21.30.corr <- rsf.large.scale.data.age [c (30:39)]
-corr.21.30 <- round (cor (dist.cut.21.30.corr, method = "spearman"), 3)
-p.mat.21.30 <- round (cor_pmat (dist.cut.21.30.corr), 2)
-ggcorrplot (corr.21.30, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "All Data Distance to Cutblock Correlation Years 21 to 30")
 
-# 31-40  years
-dist.cut.31.40.corr <- rsf.large.scale.data.age [c (40:49)]
-corr.31.40 <- round (cor (dist.cut.31.40.corr, method = "spearman"), 3)
-p.mat.31.40 <- round (cor_pmat (dist.cut.31.40.corr), 2)
-ggcorrplot (corr.31.40, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "All Data Distance to Cutblock Correlation Years 31 to 40")
+#====================================
+# GLMs, by year
+#===================================
+Herd_name<-c("Central_Selkirks","Columbia_North","Groundhog", "Monashee", "Purcell_Central", "Purcell_South","South_Selkirks","Wells_Gray_South","Columbia_South","Hart_Ranges","North_Cariboo","Telkwa","Wells_Gray_North","Central_Rockies","Charlotte_Alplands","Itcha_Ilgachuz","Rainbows","Barkerville","Narrow_Lake","Frisby_Boulder","Redrock_Prairie_Creek")
 
-# >41  years
-dist.cut.41.50.corr <- rsf.large.scale.data.age [c (50:60)]
-corr.41.50 <- round (cor (dist.cut.41.50.corr, method = "spearman"), 3)
-p.mat.41.50 <- round (cor_pmat (dist.cut.41.50.corr), 2)
-ggcorrplot (corr.41.50, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "All Data Distance to Cutblock Correlation Years 41 to >50")
+distance_to_cut_list<-c("distance_to_cutblocks_1","distance_to_cutblocks_2","distance_to_cutblocks_3",)
+#test this
+paste("distance_to_cutblocsk",j,sep="_")
 
-#########
-## DU6 ## 
-#########
-dist.cut.corr.du.6 <- rsf.large.scale.data.age %>%
-  dplyr::filter (du == "du6")
+# summary table
+table.glm.summary <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.summary) <- c ("DU", "HERD_NAME", "Years Old", "Coefficient", "p-values")
 
-dist.cut.1.10.corr.du.6 <- st_drop_geometry(dist.cut.corr.du.6 [c (15,16,63,64,17:32)])
-corr.1.10.du6 <- round (cor (dist.cut.1.10.corr.du.6, method = "spearman"), 3)
-p.mat.1.10 <- round (cor_pmat (corr.1.10.du6), 2)
-ggcorrplot (corr.1.10.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
-            title = "DU6 Distance to Cutblock Correlation Years 1 to 10")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10_du6.png")
 
-dist.cut.11.20.corr.du.6 <- dist.cut.corr.du.6 [c (20:29)]
-corr.11.20.du6 <- round (cor (dist.cut.11.20.corr.du.6, method = "spearman"), 3)
-p.mat.11.20 <- round (cor_pmat (corr.11.20.du6), 2)
-ggcorrplot (corr.11.20.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
-            title = "DU6 Distance to Cutblock Correlation Years 11 to 20")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_11_20_du6.png")
+for (i in 1:length(Herd_name)){
+  for(j in 1:50){
 
-dist.cut.21.30.corr.du.6 <- dist.cut.corr.du.6 [c (30:39)]
-corr.21.30.du6 <- round (cor (dist.cut.21.30.corr.du.6, method = "spearman"), 3)
-p.mat.21.30 <- round (cor_pmat (corr.21.30.du6), 2)
-ggcorrplot (corr.21.30.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
-            title = "DU6 Distance to Cutblock Correlation Years 21 to 30")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_21_30_du6.png")
-
-dist.cut.31.40.corr.du.6 <- dist.cut.corr.du.6 [c (40:49)]
-corr.31.40.du6 <- round (cor (dist.cut.31.40.corr.du.6, method = "spearman"), 3)
-p.mat.31.40 <- round (cor_pmat (corr.31.40.du6), 2)
-ggcorrplot (corr.31.40.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
-            title = "DU6 Distance to Cutblock Correlation Years 31 to 40")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_31_40_du6.png")
-
-dist.cut.41.50.corr.du.6 <- dist.cut.corr.du.6 [c (50:60)]
-corr.41.50.du6 <- round (cor (dist.cut.41.50.corr.du.6, method = "spearman"), 3)
-p.mat.41.50 <- round (cor_pmat (corr.41.50.du6), 2)
-ggcorrplot (corr.41.50.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
-            title = "DU6 Distance to Cutblock Correlation Years 41 to >50")
-ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_41_50_du6.png")
+glm_results <- glm (pttype ~ distance_to_cut_1yo, 
+                        data = dist.cut.data.du.6.ew,
+                        family = binomial (link = 'logit'))
+table.glm.summary [1, 4] <- glm.du.6.ew.1yo$coefficients [[2]]
+table.glm.summary [1, 5] <- summary(glm.du.6.ew.1yo)$coefficients[2,4] # p-value
+rm (glm.du.6.ew.1yo)
 
