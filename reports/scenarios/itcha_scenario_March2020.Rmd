@@ -55,7 +55,7 @@ kable (table.scenarios,
                  fixed_thead = T,
                  full_width = F,
                  font_size = 11) %>%
-  footnote (general = "BAU = business-as-usual' scenario; ECCC = Environment and Climate Change Canada; BC = British Columbia; HEWR = high elevation winter range; HESR = high elevation summer range; LEWR = low elevation winter range; LEWR = low elevation winter range",
+  footnote (general = "BAU = business-as-usual' scenario; ECCC = Environment and Climate Change Canada; BC = British Columbia; HEWR = high elevation winter range; HESR = high elevation summer range; LEWR = low elevation winter range; LESR = low elevation summer range",
             fixed_small_size = T)
 
 ```
@@ -64,7 +64,7 @@ kable (table.scenarios,
 Below we highlight some of the key parameters in the model, as they have improtant implications in the CLUS model, and thus CLUS outputs and results should be interpreted within the context of these parameters. 
 
 #### Constraint Types
-The ECCC and BC plans use the spatial critical habitat data developed by the BC government. These critical habitat types are high elevation winter range (HEWR), high elevation summer range (HESR), which are grouped together in the Itcha-Ilgchuz herd range, low elevation winter range (LEWR), low elevation summer range (LESR) and matrix. Within each of those types a constraint on 'disturbance' is applied, and there are two types of contraints: no disturbance and 35% disturbance. 'No disturbance' areas are essentially caribou-specific protected areas, that restrict any forestry, or other types of development. The 35% distruabcne threshold was selected based on a model developed by [ECCC for boreal caribou](https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html). The model related disturbance, estimated as the area of non-overlapping fire and anthropogenic disturbance (e.g., cutblocks, roads, seismic lines, mapped usign sateliite imagery) buffered by 500 m, to caribou calf recruitment rate (Fig. 1), and then used this model to estimate the probability that a caribou popaultion trend (\( \lambda \)) is greater or equal to one as the area disturbed changes (Fig. 2).
+The ECCC and BC plans use the spatial critical habitat data developed by the BC government. These critical habitat types are high elevation winter range (HEWR), high elevation summer range (HESR), which are grouped together in the Itcha-Ilgchuz herd range as high elevation winter and summer range (HEWSR), low elevation winter range (LEWR), low elevation summer range (LESR) and matrix. Within each of those types a constraint on 'disturbance' is applied, and there are two types of contraints: no disturbance and 35% disturbance. 'No disturbance' areas are essentially caribou-specific protected areas, that restrict any forestry, or other types of development. The 35% distruabcne threshold was selected based on a model developed by [ECCC for boreal caribou](https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html). The model related disturbance, estimated as the area of non-overlapping fire and anthropogenic disturbance (e.g., cutblocks, roads, seismic lines, mapped usign sateliite imagery) buffered by 500 m, to caribou calf recruitment rate (Fig. 1), and then used this model to estimate the probability that a caribou popaultion trend (\( \lambda \)) is greater or equal to one as the area disturbed changes (Fig. 2).
 
 
 ```{r FIG 1 calf - disturb, echo = F, message = F, eval = T, fig.cap = "Figure 1. Modelled relationship between boreal caribou calf recruitment rate and habitat disturbance. Source: https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html", fig.width = 1, fig.height = 3}
@@ -80,10 +80,43 @@ knitr::include_graphics( here ("reports/scenarios/images", "eccc_lambda_disturb_
 The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted this model for establishing limits to disturbance in certain soutehrn mountain caribou critical habitat types (Table 1). While this model is useful because it establishes a linkage between habitat and caribou populations, there are important things to consider when using it. First, managing disturbance as a strategy to manage caribou habitat is a 'blunt instrument'. It limits our ability to model more direct and specific forest management actions, including, for example, the amount of forest harvest versus road disturbance in caribou range. Second, because it lumps all disturbance types (e.g., cutblocks, roads, fire) together, it doesn't indciate how these different types may be influecing cariobu habtait, which is improtant, because cutblocks and roads affect cariobu differently (e.g., [DeCesare et al. 2010](https://scholarworks.umt.edu/cgi/viewcontent.cgi?article=1016&context=wildbio_pubs)). Third, the model was developed for boreal caribou, which live in very different habitat and have very different behaviours. 
 
 #### Fire
-The CLUS model does not currently simulate fire into the future. Thus, we incorporate fire into the disturbance as a *post-hoc* analysis. We calculated the amount of area of <40 year old burns in each critical habitat type. We then calculated the distribution and median of the area of <40 year old burns over the past 40 years (Fig. 3). This data can then be used to determine how much additional disturbance coudl occur from fire, inaddtion to forestry.  
+The CLUS model does not currently simulate fire into the future. Thus, we incorporate fire into the disturbance as a *post-hoc* analysis. We calculated the amount of area of <40 year old burns in each critical habitat type. We then calculated the distribution and median of the area of <40 year old burns over the past 40 years. This data can then be used to determine how much additional disturbance could occur from fire, in addition to forestry.  
 
-This approach is simplistic and has two key considerations. First, fire hisotries across cariobu herdsa dn critical habtait types indicate that fire is highly cylcical. In general, there was a period of relatively regular and large fires in the early 1900's, until the 1960's or 1970's, at which point the frequency and size of fire decreased as fire suppresion becaame effective. Thus the area of <40 year old burns was slowly declining. However, more recently, in some caribou ranges including the Itch-Ilgachuz, there has been large fires. Thus the are of burn disturabnce shoudl be viewed as highly cyclical, with peridos of very high fire distruabcen followed by lengthy periods of habtait recovery. However, we caution that this trend may not continue into the future given climate cahnge. A second consideraiton is that we measured firte distruabce usign burn perimters, and thus we are overestimatign the area burned, as many areas within a perimeter may not be burned. Third, we did not cauclate fire distruabnce excolusive of other distuabcne types (e.g., cublocks). Thus, we are overestimating the area of distrubance form bursn. 
+We found that in general the average area of less than 40 year old burns in each habtiat type was low, i.e., up to 2,000 ha or 1% of the herd area (Table 2). However, fire is an episodic event, and in some years the area of less than 40 year old burns was large, i.e., 6% in HEWSR, 14% in LEWR, 18% in LESR and 36% in matrix. Managing fire disturbance in caribou range will likely be a challenge, because although on average fire disturbance may be low, periodic fire events will signficantly increase the area disturbed in a short period of time.
 
+```{r, table 2, fire, echo = F, error = F, eval = T, include = F, message = F}
+
+table.fire = data.table(
+  habiat_type = c ("HEWSR",  "LEWR", "LESR", "Matrix"),
+  med_area_ha = c (1208, 213, 2009, 137),
+  max_area_ha = c (9029, 101034, 38829, 314797),
+  min_area_ha = c ("2", "<1", "1", "<1"),
+  med_perc = c ("1", "<1", "1", "<1"),
+  max_perc = c (6, 14, 18, 36),
+  min_prec = c ("<1", "<1", "<1", "<1")
+)
+
+kable (table.fire,
+       caption = "<b>Table 2. Area Burned in a 40 Year Period in Itcha-Ilgachuz Caribou Herd Critical Habitats.<b>",
+       col.names = c("Habitat Type",
+                     "Average Area (ha)",
+                     "Maximum Area (ha)",
+                     "Minimum Area (ha)",
+                     "Average Percent Area",
+                     "Maximum Percent Area",
+                     "Minimum Percent Area"),
+       format.args = list (big.mark = ","),
+       align = rep( c('l', 'c', 'c', 'c', 'c', 'c', 'c'))) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "HEWSR = high elevation winter and summer range; LEWR = low elevation winter range; LESR = low elevation summer range",
+            fixed_small_size = T)
+```
+
+This approach to estimating fire disturbance is simplistic and has two key considerations. First, fire histories across cariobu herds and critical habtait types indicate that fire is highly cylcical. In general, there was a period of relatively regular and large fires in the early 1900's, until the 1960's or 1970's, at which point the frequency and size of fire decreased as fire suppresion becaame effective. Thus the area of <40 year old burns was slowly declining. However, more recently, in some caribou ranges including the Itch-Ilgachuz, there has been large fires. Thus the are of burn disturabnce shoudl be viewed as highly cyclical, with peridos of very high fire distruabcen followed by lengthy periods of habtait recovery. However, we caution that this trend may not continue into the future given climate cahnge. A second consideraiton is that we measured firte distruabce usign burn perimters, and thus we are overestimatign the area burned, as many areas within a perimeter may not be burned. Third, we did not cauclate fire distruabnce excolusive of other distuabcne types (e.g., cublocks). Thus, we are overestimating the area of distrubance form bursn. 
 
 In summary, our appraoch overestimated fire disturbance on average, and failed to account for the cyclical nature of fire disturbance. Future work on CLUS will improve how fire is accounted for and simulated. 
 
@@ -95,12 +128,26 @@ In these scenarios, teh CLUS model does not recover roads, rather, they are trea
 #### Cutblock Adjacency
 Foresty was simulated with adjacency constraints, i.e., a forest stand can only be cut adjacent to a forest stand that has acheieved a height of 5 m. This adjacency constraint can be removed to allow more flexibility in where the model can harvest. Removing this constraint can result in the creation of large continous cutblocks. 
 
-
-
-
 ## Results
+AS expected, the BAU scenario had the highest annual timber harvest, but lowest indicators of cariobu survival. 
+
+
+
+
+
+
+```{r FIG 3 radar bau-eccc, echo = F, message = F, eval = T, fig.cap = "Figure 3. Radar plot of indicators comapring outcome of business-as-usual (BAU) scenario to Environment adn Climate Chnage Canada Scenario", fig.width = 1, fig.height = 3}
+knitr::include_graphics( here ("reports/scenarios/images", "radar_bau_eccc.png"))
+```
+
+```{r FIG 4 radar bau-bc, echo = F, message = F, eval = T, fig.cap = "Figure 4. Radar plot of indicators comparing outcome of business-as-usual (BAU) scenario to British Columbia Herd Plan Scenario", fig.width = 1, fig.height = 3}
+knitr::include_graphics( here ("reports/scenarios/images", "radar_bau_bc.png"))
+```
 
 ### Annual Harvest Indicator
+
+
+
 
 ### Early Seral Forest Indicator
 
@@ -108,12 +155,9 @@ Foresty was simulated with adjacency constraints, i.e., a forest stand can only 
 
 
 ## Conclusions
-<<<<<<< HEAD
 - ECCC and BC plans not that diffetrnt because high levels of distruabne in crit habtait already and no road recovery; essentially they are locked out if distruabcne threshold is kept low
 - BC and ECCC scenarios likely to improve habtait and popautlion docitions fopr cariobu, but note dsipalcement to ther ranges in teh TSA's, 
-=======
 
->>>>>>> ccb6e1ac5ac639a7fdc5e99d42965b7e96aecfc9
 
 
 
