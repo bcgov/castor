@@ -1,23 +1,23 @@
 
 server <- function(input, output, session) {
 #---Functions
-buildClimateMap<-function(x){
-  dag<-data.table(from = c('Temperature_changes',	'Temperature_changes',	'Temperature_changes',	'Precipitation_changes',	'Precipitation_changes',	'Precipitation_changes',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Matrix_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Health_risk',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Growing_season_forage',	'Growing_season_forage',	'Early_seral_anthro',	'Current_practice_forestry',	'Land_conversion',	'Primary_prey_density',	'Primary_prey_density',	'Predator_density',	'Linear_feature_density',	'Energy_balance',	'Energy_balance',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival', 'Winter_displacement'),
-                  to = c('Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Predation_pressure',	'Matrix_habitat',	'Over_winter_prey_survival',	'Growing_season_forage',	'Primary_prey_density',	'Juvenile_recruitment',	'Adult_female_survival',	'Energy_balance',	'Energy_balance',	'Energy_balance',	'Primary_prey_density',	'Growing_season_forage',	'Early_seral_anthro',	'Early_seral_anthro',	'Health_risk',	'Predator_density',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival',	'Juvenile_recruitment',	'Adult_female_survival',	'Population_trend',	'Population_trend', 'Accessible_lichen_forage')
-  ) 
-  g<-graph_from_data_frame(dag, directed=TRUE)
-  
-  V(g)$color <- c("yellow", "yellow", "purple", "purple", "lightblue","red","purple","purple", "purple", "purple",
-                  "orange", "orange", "lightblue","lightblue", "orange","pink", "lightblue", "green", "green","orange", "green")
-  l <-layout_with_fr(g, niter =5, start.temp = 5.25)
-  rownames(l) <- V(g)$name
-  test<-data.frame(x=c(   3, 11, 2 , 10, 13, -1, 1, 2.5,  7,  13.5,  17, 17, 8.0, 11,  17, 4, 9, 4, 11, 7, 8),
-                   y=c(0.5, -1,4,  1.5,  5, 14,  11, 7.5,  6,   8.5,   9.5,  6.5, 9.5, 11, 14, 13,  13, 16, 16, 4, 19))
-  test<-as.matrix(test)
-  rownames(test) <- V(g)$name
-  return(list(g,test))
-}
-climateMap <- buildClimateMap()
+# buildClimateMap<-function(x){
+#   dag<-data.table(from = c('Temperature_changes',	'Temperature_changes',	'Temperature_changes',	'Precipitation_changes',	'Precipitation_changes',	'Precipitation_changes',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Matrix_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Health_risk',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Growing_season_forage',	'Growing_season_forage',	'Early_seral_anthro',	'Current_practice_forestry',	'Land_conversion',	'Primary_prey_density',	'Primary_prey_density',	'Predator_density',	'Linear_feature_density',	'Energy_balance',	'Energy_balance',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival', 'Winter_displacement'),
+#                   to = c('Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Predation_pressure',	'Matrix_habitat',	'Over_winter_prey_survival',	'Growing_season_forage',	'Primary_prey_density',	'Juvenile_recruitment',	'Adult_female_survival',	'Energy_balance',	'Energy_balance',	'Energy_balance',	'Primary_prey_density',	'Growing_season_forage',	'Early_seral_anthro',	'Early_seral_anthro',	'Health_risk',	'Predator_density',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival',	'Juvenile_recruitment',	'Adult_female_survival',	'Population_trend',	'Population_trend', 'Accessible_lichen_forage')
+#   ) 
+#   g<-graph_from_data_frame(dag, directed=TRUE)
+#   
+#   V(g)$color <- c("yellow", "yellow", "purple", "purple", "lightblue","red","purple","purple", "purple", "purple",
+#                   "orange", "orange", "lightblue","lightblue", "orange","pink", "lightblue", "green", "green","orange", "green")
+#   l <-layout_with_fr(g, niter =5, start.temp = 5.25)
+#   rownames(l) <- V(g)$name
+#   test<-data.frame(x=c(   3, 11, 2 , 10, 13, -1, 1, 2.5,  7,  13.5,  17, 17, 8.0, 11,  17, 4, 9, 4, 11, 7, 8),
+#                    y=c(0.5, -1,4,  1.5,  5, 14,  11, 7.5,  6,   8.5,   9.5,  6.5, 9.5, 11, 14, 13,  13, 16, 16, 4, 19))
+#   test<-as.matrix(test)
+#   rownames(test) <- V(g)$name
+#   return(list(g,test))
+# }
+# climateMap <- buildClimateMap()
 
 #---Reactive 
 queryColumnNames <- reactive({
@@ -48,7 +48,8 @@ reportList<-reactive({
   list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
-       survival =data.survival)
+       survival = data.survival,
+       disturbance = data.table (getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, compartment, critical_hab, timeperiod;"))))
 })
 
 radarList<-reactive({
@@ -220,6 +221,55 @@ observeEvent(input$getMapLayersButton, {
     })
   }) 
   
+  output$propDisturbPlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data1<-reportList()$disturbance
+      # data1$scenario <- reorder(data1$scenario, data1$dist_per, function(x) -min(x))
+      # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+      # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+      # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
+      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = compartment)) +
+        facet_grid(.~critical_hab)+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Percent Disturbed") +
+        scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        # scale_alpha_discrete(range=c(0.4,0.8))+
+        # scale_color_grey(start=0.8, end=0.2) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+      ggplotly(p) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
+                #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
+        )# change seasonal values
+    })
+  }) 
+  
+  output$propDisturbBuffPlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data1<-reportList()$disturbance
+      # data1$scenario <- reorder(data1$scenario, data1$dist500_per, function(x) -min(x))
+      # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
+      # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
+      # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
+      p<-ggplot(data1, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = compartment)) +
+        facet_grid(.~critical_hab)+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Percent Disturbed") +
+        scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        # scale_alpha_discrete(range=c(0.4,0.8))+
+        # scale_color_grey(start=0.8, end=0.2) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+      ggplotly(p) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
+                #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
+        )# change seasonal values
+    })
+  }) 
   output$propAgePlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
@@ -227,8 +277,8 @@ observeEvent(input$getMapLayersButton, {
       data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
       data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
       data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
-        facet_grid(.~herd_bounds)+
+      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = compartment)) +
+        facet_grid(.~critical_hab)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age < 40 years") +
