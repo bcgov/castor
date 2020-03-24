@@ -48,7 +48,8 @@ reportList<-reactive({
   list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
-       survival =data.survival)
+       survival = data.survival,
+       disturbance = data.table (getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, compartment, critical_hab, timeperiod;"))))
 })
 
 radarList<-reactive({
@@ -223,12 +224,12 @@ observeEvent(input$getMapLayersButton, {
   output$propDisturbPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
+      # data1$scenario <- reorder(data1$scenario, data1$dist_per, function(x) -min(x))
       # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
       # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
       # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, type = scenario)) +
-        facet_grid(.~herd_bounds)+
+      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = compartment)) +
+        facet_grid(.~critical_hab)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
@@ -248,12 +249,12 @@ observeEvent(input$getMapLayersButton, {
   output$propDisturbBuffPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
+      # data1$scenario <- reorder(data1$scenario, data1$dist500_per, function(x) -min(x))
       # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
       # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
       # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=dist500_per, color = scenario, type = scenario)) +
-        facet_grid(.~herd_bounds)+
+      p<-ggplot(data1, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = compartment)) +
+        facet_grid(.~critical_hab)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
@@ -276,8 +277,8 @@ observeEvent(input$getMapLayersButton, {
       data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
       data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
       data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
-        facet_grid(.~herd_bounds)+
+      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = compartment)) +
+        facet_grid(.~critical_hab)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age < 40 years") +
