@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 require (kableExtra)
 require (data.table)
 require (here)
+require (dplyr)
+require (scales)
 ```
 
 ## Introduction
@@ -21,9 +23,9 @@ We use the CLUS model to simulate forest harvest on a landscape and estimate tim
 
 CLUS is flexible in its scale. Fundamentally it simulates forestry at a minimum within a timber supply area (TSA), and where possible a supply block within a TSA, but it can simulate all TSAs that overlap a caribou herd, because it applies common data and assumptions across TSA's. For each TSA independently, the model harvests timber annually with the objective of achieving the current legislated [allowable annual cut (AAC)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut).  
 
-This anlsysi includes teh Quesnel and Williams Lake TSA's which overlap with teh majority of teh Itcha-Ilgachuz herds. A small portion fo teh herd occurs in teh Prince George TSA, but that was not included in teh scenario becuase of its small size realtive to teh TSA (<5%?).  It is improtant to note that CLUS is not an exact copy of TSR models used to establish AAC's. Rather, it follows similar logic and ssumptions, but because it is not the exact same it may or may not achieve a legally established AAC target.  Thus, scenarios need to be considered in the context of timber flow estiamted in a BAU scenario, and not against a legislated AAC. 
+This analysis includes the Quesnel and Williams Lake TSA's which overlap with the majority of the Itcha-Ilgachuz herds. A small portion of the herd occurs in the Prince George TSA, but that was not included in the scenario becuase of its small size relative to the TSA (<5%?). The CLUS model simulates the harvest of live trees only. Thus, it may underestimate the impact of forestry on caribou where there is significant harvest of dead volume. Our assumption is that the AAC uplift to harvest dead mountain pine beetle stands is reaching an end, an assumption evident in soem recent AAC determination (e.g., see [Morice TSA](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/morice_tsa_rationale.pdf) and [Prince George TSA](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/2017flnr0325-001717.pdf)). The AAC of live volume in the [Quesnel TSA was set at 1,250,000m^3^ in 2017](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/quesnel-tsa) and in the [Williams Lake TSA was set at 1,500,000m^3^ in 2015](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/williams-lake-tsa).  
 
-It is improtant to note that CLUS is not an exact copy of TSR models used to establish AAC's. Rather, it follows similar logic and ssumptions, but because it is not the exact same it may or may not achieve a legally established AAC target.  Thus, scenarios need to be considered in the context of timber flow estiamted in a BAU scenario, and not against a legislated AAC. 
+It is important to note that CLUS is not an exact copy of TSR models used to establish AAC's. Rather, it follows similar logic and assumptions, but because it is not the exact same it may or may not achieve a legally established AAC target.  Thus, scenarios need to be considered in the context of timber flow estiamted in a BAU scenario, and not against a legislated AAC. 
 
 CLUS is implemented using the [R programming language](https://www.R-project.org/) and all code to run the model is posted in the BC government [github repository](https://github.com/bcgov/clus) following all requirenemnts and guidelines. 
 
@@ -85,7 +87,6 @@ The CLUS model does not currently simulate fire into the future. Thus, we incorp
 We found that in general the average area of less than 40 year old burns in each habtiat type was low, i.e., up to 2,000 ha or 1% of the herd area (Table 2). However, fire is an episodic event, and in some years the area of less than 40 year old burns was large, i.e., 6% in HEWSR, 14% in LEWR, 18% in LESR and 36% in matrix. Managing fire disturbance in caribou range will likely be a challenge, because although on average fire disturbance may be low, periodic fire events will signficantly increase the area disturbed in a short period of time.
 
 ```{r, table 2, fire, echo = F, error = F, eval = T, include = F, message = F}
-
 table.fire = data.table(
   habiat_type = c ("HEWSR",  "LEWR", "LESR", "Matrix"),
   med_area_ha = c (1208, 213, 2009, 137),
@@ -129,37 +130,192 @@ In these scenarios, teh CLUS model does not recover roads, rather, they are trea
 Foresty was simulated with adjacency constraints, i.e., a forest stand can only be cut adjacent to a forest stand that has acheieved a height of 5 m. This adjacency constraint can be removed to allow more flexibility in where the model can harvest. Removing this constraint can result in the creation of large continous cutblocks. 
 
 ## Results
-AS expected, the BAU scenario had the highest annual timber harvest, but lowest indicators of cariobu survival. 
+AS expected, the BAU scenario had the highest annual timber harvest, but lowest indicators of caribou survival. However, the ECCC and BC herd plan sceanrio had similar results.
 
+### Modeled Annual Harvest Volume
+Over a 100 year period, the CLUS model harvested 241,955,640m^3^ in the BAU scenario, compared to 207,595,104m^3^ in the BC herd plan scenario and 205,793,848m^3^ in the ECCC scenario (Table 3). Thus, averaged over a 100 years period, the recovery scenarios reduced the harvest by 14% and 15%, respectively. Note that the BAU scenario was able to achieve the live volume AAC of 2,750,000m^3^ in 50% of the 100 years, whereas the BC herd plan and ECCC scenarios achieved the AAC in 33% and 32$ of years, respectively.  
 
-
-
-
-
-```{r FIG 3 radar bau-eccc, echo = F, message = F, eval = T, fig.cap = "Figure 3. Radar plot of indicators comapring outcome of business-as-usual (BAU) scenario to Environment adn Climate Chnage Canada Scenario", fig.width = 1, fig.height = 3}
-knitr::include_graphics( here ("reports/scenarios/images", "radar_bau_eccc.png"))
+```{r, table 3, results, echo = F, error = F, eval = T, include = F, message = F}
+table.volume = data.table(
+  scenario = c ("BAU", "BC Herd Plan", "ECCC Recovery Strategy"),
+  tot_volume = c (241955640, 207595104, 205793848),
+  annual_volume = c (2419556, 2075951, 2057938),
+  diff_annual_volume = c (0, -343605, -361618),
+  perc_diff_tot_volume = c ("0", "-14%", "-15%")
+)
+kable (table.volume,
+       caption = "<b>Table 3. Total Harvested Volume Over a 100 Year Period in the Quesnel and Williams Lake Timber Supply Areas.<b>",
+       col.names = c("Scenario",
+                     "Total Volume (m3)",
+                     "Annual Volume (m3)",
+                     "Difference in Annual Volume (m3)",
+                     "Percent Difference in Annual Volume (m3)"),
+       format.args = list (big.mark = ","),
+       align = rep( c('l', 'c', 'c', 'c', 'c'))) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual' scenario; ECCC = Environment and Climate Change Canada; BC = British Columbia",
+            fixed_small_size = T)
 ```
 
-```{r FIG 4 radar bau-bc, echo = F, message = F, eval = T, fig.cap = "Figure 4. Radar plot of indicators comparing outcome of business-as-usual (BAU) scenario to British Columbia Herd Plan Scenario", fig.width = 1, fig.height = 3}
-knitr::include_graphics( here ("reports/scenarios/images", "radar_bau_bc.png"))
+### Actual Harvested Volume
+Recent harvest in the Quesnel and Williams Lake TSA's has been below the current AAC in those units (Fig. 3). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the William's Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as mountain pine beetle killed stands have been harvested in response to previous AAC uplifts to harvest those stands. 
+
+```{r, FIG 3, harvest actual, echo = F, error = F, eval = T, include = F, message = F}
+data.harvest <- read.csv (here ("reports/scenarios/data", "volume_actual.csv"))
+data.harvest <- data.harvest %>%
+                  filter (SCALE_YEAR > 2016)
+ggplot (data.harvest, aes (x = SCALE_YEAR, y = volume_m3)) +
+  geom_point () + 
+  geom_line () +  
+  # geom_smooth () + 
+  facet_grid (. ~TFL_TSA_NAME) +
+  labs (title = "Figure 3. Actual Volume of Timber Harvest Billed in the Quesnel and 
+Williams Lake TSA's.", 
+        x = "Year", 
+        y = "Billed Volume (m3)") +
+  scale_y_continuous (labels = comma,
+                      breaks = seq (1500000, 2500000, by = 500000)) +
+  scale_x_continuous (breaks = seq (2017, 2019, by = 1))
+
 ```
-
-### Annual Harvest Indicator
-
-
-
 
 ### Early Seral Forest Indicator
+The amount of early seral forest (i.e., forest stands less than 40 years old) did not change among the scenarios in the HEWSR in the Quesnel TSA (Fig. 4). However, under the BAU scenario, the amount of early seral forest increased up to approximately 10% of area in the LESR and up to 25% in the LEWR at approximately 40 years into the future (Fig. 3). In all sceanrios, the proportion of early seral forest decreased in matrix habitat, however, it declined to less than 5% in approxiamtely 35 years in the BC and ECCC plans, and declined to approximately 15% in the BAU scenario.
 
-### Cariobu Survival Indicator
+```{r, FIG 4, Area LT40 Quesnel, echo = F, error = F, eval = T, include = F, message = F}
+data.surv <- read.csv (here ("reports/scenarios/data", "survival.csv"))
+data.surv <- data.surv %>%
+              filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
+              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
+                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
+data.surv.ques <- data.surv %>%
+                    filter (compartment == "Quesnel_TSA")
+ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
+  geom_line () + 
+  facet_grid (. ~herd_bounds) +
+  labs (title = "Figure 4. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
+Habitat Type in the Quesnel TSA", 
+        x = "Future Year", 
+        y = "Proportion Less Than 40 Year Old Forest",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
 
+```
+
+The amount of early seral forest decreased to 0 in the HEWSR at 25 years into the future under all scenarios, but in the BAU scenario the amount increased again to approximately 3% at year 25, and 12% at year 80 (Fig. 5). In the BC and ECCC scenarios, the amount of early seral forest in LESR, LEWR and Matrix decreased to 0. However, in teh BAU scenario the amount of early seral forest decreased in the first 30 years, but then increased again over time in the LESR, LEWR and Matrix habitat types.
+
+```{r, FIG 5, Area LT40 Williams Lake, echo = F, error = F, eval = T, include = F, message = F}
+data.surv <- read.csv (here ("reports/scenarios/data", "survival.csv"))
+data.surv <- data.surv %>%
+              filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
+              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
+                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
+
+data.surv.wl <- data.surv %>%
+                    filter (compartment == "Williams_Lake_TSA")
+ggplot (data.surv.wl, aes (x = timeperiod, y = prop_age, color = scenario)) +
+  geom_line () + 
+  facet_grid (. ~herd_bounds) +
+  labs (title = "Figure 5. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
+Habitat Type in the Williams Lake TSA", 
+        x = "Future Year", 
+        y = "Proportion Less Than 40 Year Old Forest",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))
+
+```
+
+### Disturbance Indicator
+Initially (i.e., at year 0 of the simulation) in the portion of Itcha-Ilgachuz herd in the Quesnel TSA, disturbance was very low (close to 0%) in HEWSR habitat, at approximately 20% in LESR habitat, approximately 25% in LEWR habitat and high (approximately 65%) matrix habitat (Fig. 6). Disturbance essentially did not change in HEWSR under any scenario. Under the BAU scenario, disturbance in LESR habitat increased to approximately 60% at year 50 and then stabilized. In LEWR habitat disturbance increased to approximately 50% at year 5, and then increased again to approximately 80% at year 50 and then stabilized. In Matrix habitat, disturbance increased to approximately 80% at year 10 and then essentially stabilized. 
+
+Under the BC herd plan scenario, disturbance increased in LESR habitat to approximately 45% at year 30 and then stabilized. In LEWR habitat disturbance increased to approximately 30% at year 5, and then stabilized. In Matrix habitat, disturbance essentially stabilized at approximately 65%.
+
+Under the ECCC scenario, disturbance stabilized in LESR habitat at approximately 20%. Similarly, in LEWR habitat disturbance slowly declined from approximately 25% to 20%. In Matrix habitat, disturbance declined from approximately 65% to 55% over the course of the scenario. 
+
+```{r, FIG 6, Area disturb 500m Itcha Quesnel, echo = F, error = F, eval = T, include = F, message = F}
+data.disturb <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
+data.disturb <- data.disturb %>%
+                  filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
+                  filter (critical_hab == "Itcha-Ilgachuz HEWSR" | critical_hab == "Itcha-Ilgachuz LESR" |
+                          critical_hab == "Itcha-Ilgachuz LEWR" | critical_hab == "Itcha-Ilgachuz Matrix")
+data.disturb.ques <- data.disturb %>%
+                      filter (compartment == "Quesnel_TSA")
+ggplot (data.disturb.ques, aes (x = timeperiod, y = dist500_per, color = scenario)) +
+  geom_line () + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 6. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
+Type in the portion of the Itcha-Ilgachuz Caribou Herd in the Quesnel TSA", 
+        x = "Future Year", 
+        y = "Percent (%) Disturbed",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
+```
+
+Initially (i.e., at year 0 of the simulation) in the portion of Itcha-Ilgachuz herd in the Williams Lake TSA, disturbance was very low (close to 0%) in HEWSR habitat, at approximately 45% in LESR habitat, approximately 70% in LEWR habitat and approximately 75% in matrix habitat (Fig. 7). Disturbance did not change in the HEWSR under the BC herd plan or ECCC scenario's, but increased to close to 70% at year 75 under the BAU scenario. Under the BAU scenario, disturbance in LESR habitat increased to approximately 75% at year 75 and then stabilized. In LEWR adn Matrix habitats, disturbance increased relatively steadily to approximately 85% and 80%, respectively.
+
+Under the BC herd plan and ECCC scenarios, disturbance decreased in LESR habitat to approximately 40% at year 25 and then stabilized. In LEWR habitat disturbance decreased to approximately 70% at year 25, and then stabilized. In Matrix habitat, these two sceanrios divirged slightly. Under the BC herd plan scenario, disturbance was essentially stable at 75% and under the ECCC scenario, disturabcne declined to just less than 70% and stabilized at yar 25. 
+
+```{r, FIG 7, Area disturb 500m Itcha Williams, echo = F, error = F, eval = T, include = F, message = F}
+data.disturb <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
+data.disturb <- data.disturb %>%
+                  filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
+                  filter (critical_hab == "Itcha-Ilgachuz HEWSR" | critical_hab == "Itcha-Ilgachuz LESR" |
+                          critical_hab == "Itcha-Ilgachuz LEWR" | critical_hab == "Itcha-Ilgachuz Matrix")
+data.disturb.wl <- data.disturb %>%
+                      filter (compartment == "Williams_Lake_TSA")
+ggplot (data.disturb.wl, aes (x = timeperiod, y = dist500_per, color = scenario)) +
+  geom_line () + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 7. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
+Type in the portion of the Itcha-Ilgachuz Caribou Herd in the Williams Lake TSA", 
+        x = "Future Year", 
+        y = "Percent (%) Disturbed",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
+```
+
+Under the BC herd plan and ECCC scenarios, we saw that distubance was displaced to herds where no new protections (as defined in the sceanrios) were implemented. For example, distubance was 20% higher between 25 and 35 years into the future in Barkerville HEWSR habitat under the BC herd plan and ECCC scenarios compared to the BAU scenario (Fig. 8). Similarly, distubance was 10% higher between 25 and 35 years into the future in Barkerville matrix habitat under the BC herd plan and ECCC scenarios compared to the BAU scenario
+
+```{r, FIG 8, Area disturb 500m Barkerville Williams, echo = F, error = F, eval = T, include = F, message = F}
+data.disturb <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
+data.disturb <- data.disturb %>%
+                  filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
+                  filter (critical_hab == "Barkerville HEWSR" | critical_hab == "Barkerville LESR" |
+                          critical_hab == "Barkerville LEWR" | critical_hab == "Barkerville Matrix")
+data.disturb.ques <- data.disturb %>%
+                      filter (compartment == "Quesnel_TSA")
+ggplot (data.disturb.ques, aes (x = timeperiod, y = dist500_per, color = scenario)) +
+  geom_line () + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 8. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
+Type in the portion of the Barkerville Caribou Herd in the Williams Lake TSA", 
+        x = "Future Year", 
+        y = "Percent (%) Disturbed",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
+
+```
 
 ## Conclusions
-- ECCC and BC plans not that diffetrnt because high levels of distruabne in crit habtait already and no road recovery; essentially they are locked out if distruabcne threshold is kept low
-- BC and ECCC scenarios likely to improve habtait and popautlion docitions fopr cariobu, but note dsipalcement to ther ranges in teh TSA's, 
+We found that the effects of the BC herd plan and ECCC scenarios reduced annual harvest in the CLUS model by approximately 350,000m^3^, or 15% from the BAU scenario. These scearnis also had teh desried effect fo redcutign teh amoutn of early seral forest and disturabnce in teh Itcha-Ilgachuz criticla habitat types. These effects were aprticualrly strogn in th LEWR critical habtiat in teh Quesenl TSA adn LESR in the Williams lake TSA. Notably, tehre was little difference between teh BC herd plan and ECCC sceanrios in terms of timber harvest or cariobu indicators. Thsi was likely because of the reatlively high disturabnce levels already in the LESR, LEWR adn particualrly Matrix habitats. Harvest was seevrely limtied in tehse areas because tehya were already at or close to the thresholds used to contraint forestry. Our results highlight the challenge with recovering habtiat in teh Itcha-Ilgachuz herd range. However, our moelling appraoh also highlights the limtiatiosn with using a caorse measure of didtriabnces as a management threshold. While the distruabnce model is useful to provide a corse indication of habtiat conditojns, it does not capture the complexities of cariobu habtiat recovery, particualry as they realte to predatin. The indicator does distibnugish between teh efefcts of roads or cutblocsk, and teh reeocvery of forest stands is very general and perhaps conseravtive. More detail on how these habitats can be recovered, adn managemtn thresholds for scpeific habtait recvoery coudl paint a more optimisitic picture of habtait recoefy for cariobu. In particualr, the lack of recovery of roads in our model scenarios make it nearly impossible for forest haervest to occur in teh future many cariobu critival habtait types. 
 
+Our resutsl also highlight the improtant issue of displacing disturabnce when considerign teh recovery of single caribou herds in isolation of other nearby herds. Even herds that are not adjacent or ecological contiguos are not necessarily inddpendent in terms of forest managment. Incrfeasign protectiosn in one range can displace distruabcne to otehr ranges. Ultimately, the effect of recoveing multiple herds on timber supply will not be lienar as more herds are ptoected.   
 
-
+The Itcha-Ilgachuz has highlighted imrptoant issues that we will explore in other scenarios. In particular, we will model the recovery of roads adn cutblocks at 40 years to assess how road recvoery coudl improve forest harvest while maitnatining low disturabmnce. We will also model a sceanrio wehre cutblocsk and roads recover at 30 years, to assess how measures to accerlerate habitat recvoery might influence timber harvest. Finally, we will model teh same scanrio as modelled here for teh Barkerwille and Wells Gray North cariobu herds, to esplore how these thresholds influence forest harvest adn cariobu indicaotrs in areas with different levesl of habtait disturbance form teh Itcha-Ilgachuz herd range.
 
 
 
