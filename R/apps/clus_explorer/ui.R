@@ -27,8 +27,9 @@ ui <- dashboardPage(skin = "black",
           fluidRow(
             box(title = "Area of interest", background = "black", solidHeader = TRUE,
                 "select an area of interest",
-                selectInput(inputId = "schema", label = NULL, 
-                            choices = availStudyAreas, selected = character(0)))
+                selectInput(inputId = "schema", label = NULL,
+                            choices = availStudyAreas, 
+                            selected = character(0)))
             ),
           fluidRow(
             box(title = "Scenarios", background = "black", solidHeader = TRUE,
@@ -71,7 +72,15 @@ ui <- dashboardPage(skin = "black",
       ),
       tabItem(tabName = "caribou",
         fluidRow(
-          box(title = "Proportion Disturbed", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                box(title = "Proportion Disturbed", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                    plotlyOutput(outputId = "propDisturbPlot", height = "400px"))
+        ),
+        fluidRow(
+          box(title = "Proportion Disturbed with 500m Buffer", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+              plotlyOutput(outputId = "propDisturbBuffPlot", height = "400px"))
+        ),
+        fluidRow(
+          box(title = "Proportion Less than 40 years Old", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
               plotlyOutput(outputId = "propAgePlot", height = "400px"))
         ),
         fluidRow(
