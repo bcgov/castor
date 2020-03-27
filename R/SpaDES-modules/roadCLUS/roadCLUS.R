@@ -543,6 +543,7 @@ addInitialRoadsTable<- function(sim) {
   }
   
   sim$paths.v<-NULL
+  sim$landings<-NULL
   return(invisible(sim))
 } 
   
