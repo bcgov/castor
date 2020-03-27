@@ -16,32 +16,32 @@ require (scales)
 ```
 
 ## Introduction
-Here we report on the results of simulations of caribou critical habitat management scenarios developed for the Itcha-Ilgachuz caribou herd recovery plan. We took habitat management scenarios developed by Environment and Climate Change Canada (ECCC) and British Columbia (BC) and compared them to a 'business-as-usual' (BAU) scenario in a caribou and land use simulator (CLUS). Scenarios were implemented in CLUS as additional constraints on forestry developement within caribou critical habitat areas. Below, we decribe the general methods and key parameters implemented in the CLUS model, results of model outputs and conclusions on the implications of model outputs.   
+Here we report on the results of simulations of caribou critical habitat management scenarios developed for the Itcha-Ilgachuz caribou herd recovery plan. We took habitat management scenarios developed by Environment and Climate Change Canada (ECCC) and British Columbia (BC) and compared them to a 'business-as-usual' (BAU) scenario in a caribou and land use simulator (CLUS). Scenarios were implemented in the CLUS as additional constraints on forestry developement within caribou critical habitat areas. Below, we decribe the general methods and key parameters implemented in the CLUS model, results of model outputs and conclusions on the implications of model outputs.   
 
 ## Methods
-We used the [CLUS model](https://github.com/bcgov/clus) to simulate forest harvest and regeneration on a landscape 100 years into the future. From the model, we estimated future timber harvest, i.e., annual cut, and caribou habitat quality indicators. The CLUS model mirrors models developed for timber supply reviews (TSRs), but integrates them with caribou habitat models and indicators. It uses the [provincial forest inventory](https://catalogue.data.gov.bc.ca/dataset/vri-2019-forest-vegetation-composite-layer-1-l1-) and road data developed for the provincial cumulative effects program as key inputs on the current state of the landscape. In addition, it implements existing spatial and legal constraints on forest harvest, i.e., the timber harvest land base (THLB), [government actions regulation (GAR) orders](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/laws-policies-standards-guidance/legislation-regulation/forest-range-practices-act/government-actions-regulation), [visual quality objectives](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/visual-resource-management), [old growth management areas (OGMAs)](https://catalogue.data.gov.bc.ca/dataset/old-growth-management-areas-legal-current) and [biodiversity emphasis options (BEOs)](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-all).  
+We used the [CLUS model](https://github.com/bcgov/clus) to simulate forest harvest and regeneration on a landscape 100 years into the future. From the model, we estimated future timber harvest, i.e., annual cut, and caribou habitat quality indicators. The CLUS model mirrors models developed for timber supply reviews (TSRs), but integrates them with caribou habitat models and indicators. It uses the [provincial forest inventory](https://catalogue.data.gov.bc.ca/dataset/vri-2019-forest-vegetation-composite-layer-1-l1-) and road data developed for the provincial cumulative effects program combined with [forest tenure roads](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-road-segment-lines) as key inputs on the current state of the landscape. In addition, it implements existing spatial and legal constraints on forest harvest, i.e., the timber harvest land base (THLB), [government actions regulation (GAR) orders](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/laws-policies-standards-guidance/legislation-regulation/forest-range-practices-act/government-actions-regulation), [visual quality objectives](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/visual-resource-management), [old growth management areas (OGMAs)](https://catalogue.data.gov.bc.ca/dataset/old-growth-management-areas-legal-current) and [biodiversity emphasis options (BEOs)](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-all).  
 
-CLUS is flexible in its scale. At a minimum it simulates forestry within a single timber supply area (TSA), and where possible a supply block within a TSA. However, it can simulate all TSAs that overlap a caribou herd, because it applies common data and assumptions across TSAs. It is important to note that the CLUS model is not a copy of TSR models used to establish AAC's. TSR models were designed to be specific for a particular AAC determination, whereas CLUS was designed to be general and flexible across TSAs. Although, these models all apply similar data, logic and assumptions, the CLUS model will differ from TSR models in some of these cases. Thus, CLUS model scenario outputs need to be assessed in the context of outputs from a CLUS BAU scenario, and not against a legislated AAC or other timber supply model. The BAU model in CLUS is similar to a base case in TSR where it *"...depends on the validity of the data and assumptions incorporated into the computer model used to generate it."* (quoted from the [2015 Williams Lake TSA rationale ](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/williams_lake_tsa_rationale.pdf)).
+CLUS is flexible in its scale. At a minimum it simulates forestry within a single timber supply area (TSA), and where possible a supply block within a TSA. However, it can simulate all TSAs that overlap a caribou herd, because it applies common data and assumptions across TSAs. It is important to note that the CLUS model is not a copy of TSR models used to establish allowable annual cut (AAC). TSR models were designed to be specific for a particular AAC determination, whereas CLUS was designed to be general and flexible across TSAs. Although, these models all apply similar data, logic and assumptions, the CLUS model will differ from TSR models in some specific cases. Thus, CLUS model scenario outputs need to be assessed in the context of outputs from a CLUS BAU scenario, and not against a legislated AAC or other timber supply model. 
 
-For each TSA, the CLUS model harvests timber annually with the objective of achieving the current legislated [allowable annual cut (AAC)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut) of live volume of timber. Thus, the CLUS model simulates the harvest of live trees only, and it may underestimate the impact of forestry on caribou where there is significant harvest of dead volume. However, the AAC uplift to harvest dead mountain pine beetle stands is reaching an end (e.g., see the current [Quesnel TSA 2017 rationale](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/quesnel_newsrelease_122-001246.pdf)), and thus the potential underestimate was expected to be minimal.
+For each TSA, the CLUS model harvests timber annually with the objective of achieving the current [legislated AAC](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut) of live volume of timber. Thus, the CLUS model simulates the harvest of live trees only, and it may underestimate the impact of forestry on caribou where there is significant harvest of dead volume. However, the AAC uplift to harvest dead mountain pine beetle stands is reaching an end (e.g., see the current [Quesnel TSA 2017 rationale](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/quesnel_newsrelease_122-001246.pdf)), and thus the potential underestimate of future salvage harvest was expected to be minimal.
 
-The CLUS model was implemented using the [R programming language](https://www.R-project.org/), and all code to run the model is posted in the BC government [GitHub repository](https://github.com/bcgov/clus), following all requirements and guidelines establshed by the BC government. 
+The CLUS model was implemented using the [R programming language](https://www.R-project.org/) and the [SpaDES](https://spades.predictiveecology.org/) R package. All code to run the model was posted to the BC government [GitHub repository](https://github.com/bcgov/clus), following all requirements and guidelines establshed by the BC government. 
 
 Here we simulated forestry in the Quesnel and Williams Lake TSA's because they overlapped with the majority of the Itcha-Ilgachuz caribou herd. A portion of the herd occurred in the Prince George TSA (<1%), but that was not included in the analysis because of its small overlap.  The AAC of live volume in the [Quesnel TSA was set at 1,250,000m^3^ in 2017](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/quesnel-tsa) and in the [Williams Lake TSA was set at 1,500,000m^3^ in 2015](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/williams-lake-tsa). These annual cut targets were implemented as parameters in the CLUS model.
 
 ### Scenarios
-We implemented three sceanrios in CLUS:
+We implemented three scenarios in CLUS:
 1. Business as Usual
 2. ECCC Recovery Strategy
 3. BC Itcha-Ilgachuz Herd Plan 
 
-The BAU scenario implements the model with current, existing legal constraints (see above). The ECCC and BC scenarios implement additional constraints on caribou critical habitat types (Table 1). Critical habitat areas were spatially defined by BC government caribou biologists with expertise working in the Itcha-Ilgachuz caribou herd range. Details on these constraints are described in the *Key Model Parameters*, below. 
+The BAU scenario implemented the model with current, existing legal constraints (see above). The ECCC and BC scenarios implemented additional constraints on caribou critical habitat types (Table 1). Critical habitat areas were spatially defined by BC government caribou biologists with expertise working in the Itcha-Ilgachuz caribou herd range. Details on these constraints are described in the *Key Model Parameters*, below. 
 
 ```{r, table 1, scenarios, echo = F, error = F, eval = T, include = T, message = F}
 
 table.scenarios = data.table(
   constraint = c ("HEWR", "HESR", "LEWR", "LESR", "Matrix", "Cutblock Recovery", "Road Recovery", "500m Buffer"),
-  bau = c ("None", "None", "None", "None", "None", "None", "None", "None"),
+  bau = c ("No constraint", "No constraint", "No constraint", "No constraint", "No constraint", "40 years", "None", "None"),
   eccc = c ("No Disturbance", "No Disturbance", "No Disturbance", "No Disturbance", "35% Disturbance Threshold", "40 years", "None", "In all habitat types"),
   bc = c ("No Disturbance", "No Disturbance", "35% Disturbance Threshold", "35% Disturbance Threshold", "35% Disturbance Threshold", "40 years", "None",  "HEWR, HESR, LEWR, LESR")
 )
@@ -66,20 +66,15 @@ kable (table.scenarios,
 Below we highlight some of the key parameters used in the CLUS model, as they have important implications for CLUS model outputs. Model results must be interpreted within the context of these parameters. 
 
 #### Critical Habitat Constraint Types
-The ECCC and BC scenarios both use the spatial caribou critical habitat data developed by the BC government. Critical habitat is divided into several types, including high elevation winter range (HEWR), high elevation summer range (HESR), which are grouped together in the Itcha-Ilgachuz herd range as high elevation winter and summer range (HEWSR), low elevation winter range (LEWR), low elevation summer range (LESR) and Matrix. Within each of those types a constraint on 'disturbance' is applied, and there are two types of constraint thresholds: 'no disturbance' and '35% disturbance'. No disturbance areas restrict any forestry or other types of development. The 35% disturbance threshold restricts development to 35% of the area of the critical habitat type. This threshold was selected based on a model developed by [ECCC for boreal caribou](https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html). The model related disturbance, estimated as the area of non-overlapping fire and anthropogenic disturbance (e.g., cutblocks, roads, seismic lines, etc., mapped using sateliite imagery) buffered by 500m, to boreal caribou calf recruitment rate (Fig. 1), and then used this model to estimate the probability that a boreal caribou population trend (\( \lambda \)) is greater or equal to one as the area disturbed changes (Fig. 2).
+The ECCC and BC scenarios both use the spatial caribou critical habitat data developed by the BC government. Critical habitat is divided into several types, including high elevation winter range (HEWR), high elevation summer range (HESR), which are grouped together in the Itcha-Ilgachuz herd range as high elevation winter and summer range (HEWSR), low elevation winter range (LEWR), low elevation summer range (LESR) and Matrix. Within each of those types a constraint on 'disturbance' is applied, and there are two types of constraint thresholds: 'no disturbance' and '35% disturbance'. No disturbance areas restrict any forestry or other types of development. The 35% disturbance threshold restricts development to 35% of the area of the critical habitat type. This threshold was selected based on a model developed by [ECCC for boreal caribou](https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html). The model related disturbance, estimated as the area of non-overlapping fire and anthropogenic disturbance (e.g., cutblocks, roads, seismic lines, etc., mapped using sateliite imagery) buffered by 500m, to boreal caribou calf recruitment rate, and then this model was used to estimate the probability that a boreal caribou population trend (\( \lambda \)) is greater or equal to one as the area of disturbance changes (Fig. 1).
 
-```{r FIG 1 calf - disturb, echo = F, message = F, eval = T, fig.cap = "Figure 1. Modelled relationship between boreal caribou calf recruitment rate and habitat disturbance. Source: https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html", fig.width = 1, fig.height = 3}
-knitr::include_graphics( here ("reports/scenarios/images", "eccc_recruit_disturb_fig.jpg"))
-```
-
-```{r FIG 2 lambda - disturb, echo = F, message = F, eval = T, fig.cap = "Figure 2. Modelled relationship between boreal caribou population trend and habitat disturbance. Source: https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html", fig.width = 1, fig.height = 3}
+```{r FIG 1 lambda - disturb, echo = F, message = F, eval = T, fig.cap = "Figure 1. Modelled relationship between boreal caribou population trend and habitat disturbance. Source: https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html", fig.width = 1, fig.height = 3}
 knitr::include_graphics( here ("reports/scenarios/images", "eccc_lambda_disturb_fig.jpg"))
 ```
 
-The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some southern mountain caribou critical habitat types (Table 1). While this model is useful because it establishes a linkage between habitat and caribou populations, there are important things to consider when using it as a threshold for managing forestry activity. First, managing disturbance as a strategy to manage forestry activity in caribou habitat is a 'blunt instrument'. It limits our ability to model more direct and specific forest management actions that may benefit caribou, including, for example, different silvicultural practices that may limit shrub production in cutblocks. Second, because it lumps all disturbance types (e.g., cutblocks, roads, fire) together, it doesn't indicate how these different types may be influencing caribou habitat, which is important, because cutblocks and roads influence mountain caribou differently (e.g., [DeCesare et al. 2010](https://scholarworks.umt.edu/cgi/viewcontent.cgi?article=1016&context=wildbio_pubs)). Third, the model was developed for boreal caribou, which live in very different habitat and have very different behaviours than mountain caribou. For example, it's not known whether a 500 m buffer on disturbance is appropriate for mountain caribou.  
-
+The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some southern mountain caribou critical habitat types (Table 1). While this model is useful because it establishes a linkage between habitat and caribou populations, there are important things to consider when using it as a threshold for managing forestry activity. First, managing disturbance as a strategy to manage forestry activity in caribou habitat is a 'blunt instrument'. It limits our ability to model more direct and specific forest management actions that may benefit caribou, including, for example, different silvicultural practices that may limit shrub production in cutblocks. Second, because it lumps all disturbance types (e.g., cutblocks, roads, fire) together, it limits our ability to account for these indpendently in the model. This is important, because cutblocks and roads influence mountain caribou differently (e.g., [DeCesare et al. 2010](https://scholarworks.umt.edu/cgi/viewcontent.cgi?article=1016&context=wildbio_pubs)). Third, the model was developed for boreal caribou, which live in very different habitat and have very different behaviours than mountain caribou. The model has not been tested to determine whether it is applicable to southern mountain caribou populations.  
 #### Road and Cutblock Disturbance and Recovery
-In the modelled scenarios we considered 1 to 40 year old cutblocks as 'disturbed', and anything older as 'undisturbed' (i.e., recovered caribou habitat). Cutblocks were considered undisturbed at 40 years old because it is a general 'rule-of-thumb' used to define a change from early to mid seral forest and lower to higher quality caribou habitat. Early seral forest stands are considered poor quality caribou habitat because they provide more forage for moose (i.e., shrubs), which can potentially increase moose and wolf density in caribou ranges, and ultimately predation on caribou ( [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x); [McLellan et al. 2010](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/09-0286.1)). However, the ECCC disturbance model did not assess forest stand age and caribou habitat recovery. Disturbances, including cutblocks, were defined based on visual interpretation of satellite imagery. Thus, it is unknown whether a 40 year forest age threshold is appropriate for defining low vs. high quality caribou habitat. There is some evidence that moose prefer 10 to 30 year old stands in some part of BC ( [Poole and Stuart-Smith 2004](https://www.researchgate.net/profile/Kim_Poole/publication/228974009_Winter_habitat_selection_by_moose_in_the_East_Kootenay_British_Columbia_final_report/links/55bbdc0708ae092e9660b312.pdf), [Schneideman 2018](http://web.unbc.ca/~michael/Pubs/Matt%20Scheideman%20Thesis%20Final%20for%20distribution.pdf)), suggesting a lower age threshold is more appropriate, but ultimately this parameter must be considered carefully in the context of caribou and forest ecology in the area being modelled. Also important to consider is that a single forest age threshold may not necessarily represent shrub cover across a diversity of forest stand types. Some stands will mature faster or slower than 40 years, depending on other factors such as tree species and site productivity. The forest age recovery parameter is highly influential on the model and thus requires careful consideration based on local knowledge of stand characteristics as they relate to moose forage in the area being modelled.   
+In the modelled scenarios we considered 1 to 40 year old cutblocks as 'disturbed', and anything older as 'undisturbed' (i.e., recovered caribou habitat). Cutblocks were considered undisturbed at 40 years old because it is a general 'rule-of-thumb' used to define a change from early to mid seral forest and lower to higher quality caribou habitat. Early seral forest stands are considered poor quality caribou habitat because they provide more forage for moose (i.e., shrubs), which can potentially increase moose and wolf density in caribou ranges, and ultimately predation on caribou ( [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x); [McLellan et al. 2010](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/09-0286.1)). However, the ECCC disturbance model did not assess forest stand age and caribou habitat recovery. Disturbances, including cutblocks, were defined based on visual interpretation of satellite imagery. Thus, it is unknown whether a 40 year forest age threshold is appropriate for defining low vs. high quality caribou habitat. There is some evidence that moose prefer 10 to 30 year old stands in some parts of BC ( [Poole and Stuart-Smith 2004](https://www.researchgate.net/profile/Kim_Poole/publication/228974009_Winter_habitat_selection_by_moose_in_the_East_Kootenay_British_Columbia_final_report/links/55bbdc0708ae092e9660b312.pdf), [Schneideman 2018](http://web.unbc.ca/~michael/Pubs/Matt%20Scheideman%20Thesis%20Final%20for%20distribution.pdf)), suggesting a lower age threshold is more appropriate. Also important to consider is that a single forest age threshold may not necessarily represent shrub cover across a diversity of forest stand types. Some stands will mature faster or slower than 40 years, depending on other factors such as tree species and site productivity. The forest age recovery parameter is highly influential on the model and thus requires careful consideration based on knowledge of caribou ecology and forest stand characteristics as they relate to moose forage in the area being modelled.   
 
 In these scenarios, the CLUS model did not recover roads, rather, roads were treated as permanent disturbances. Therefore, roads had a significant influence on the disturbance outputs, and in limiting forest harvest in disturbed areas. Unfortunately, while there is research indicating that roads are poor habitat for caribou (e.g., [Dyer et al. 2002](https://www.nrcresearchpress.com/doi/abs/10.1139/z02-060#.XnuL1ohKiUk); [Whittington et al. 2011](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2664.2011.02043.x); [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)), there appears to be limited research on how road recovery might influence caribou. Much of the research on linear feature recovery has focussed on seismic lines in the boreal forest (e.g., [Dickie et al. 2016](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2664.12732); [Finnegan et al. 2018](https://www.sciencedirect.com/science/article/pii/S0378112717318078); [Tattersall et al. 2019](https://www.sciencedirect.com/science/article/pii/S0006320719307013)). Careful consideration of an appropriate road recovery parameter is needed when using CLUS. 
 
@@ -93,7 +88,7 @@ Foresty was simulated with adjacency constraints, i.e., a forest stand could onl
 The BAU scenario had the highest annual timber harvest, but lowest indicators of caribou habitat and survival. The ECCC recovery strategy and BC herd plan scenarios both reduced timber harvest and positively influenced caribou indicators. These two scenarios had similar results. Detailed results on each indicator for each scenario are provided below.
 
 ### Modeled Annual Harvested Volume
-Over a 100 year period, the CLUS model harvested 241,955,640m^3^ in the BAU scenario, compared to 207,595,104m^3^ in the BC scenario and 205,793,848m^3^ in the ECCC scenario (Table 2). Thus, the recovery scenarios reduced the harvest by 14% and 15%, respectively. Note that the BAU scenario was able to achieve the live volume AAC of 2,750,000m^3^ in 50% of the 100 simulated years, whereas the BC and ECCC scenarios achieved the AAC in 33% and 32% of years, respectively.  
+Over a 100 year period, the CLUS model harvested 241,955,640m^3^ in the BAU scenario, compared to 207,595,104m^3^ in the BC scenario and 205,793,848m^3^ in the ECCC scenario (Table 2). Thus, the recovery scenarios reduced the harvest by 14% and 15%, respectively. The BAU scenario was able to achieve the live volume AAC of 2,750,000m^3^ in 50% of the 100 simulated years, whereas the BC and ECCC scenarios achieved the AAC in 33% and 32% of years, respectively.  
 
 ```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
 table.volume = data.table(
@@ -121,10 +116,10 @@ kable (table.volume,
             fixed_small_size = T)
 ```
 
-### Actual Recent Annual Harvested Volume
-Recent harvest in the Quesnel and Williams Lake TSA's has been below the current live and dead stand AAC in those units (Fig. 3). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the William's Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as the majority of mountain pine beetle killed stands may have already been harvested. However, it is worth noting that recently the AAC was not being achieved in these TSAs.  
+### Actual Annual Harvested Volume
+Recent billed harvest in the Quesnel and Williams Lake TSA's has been below the current live and dead stand AAC in those units (Fig. 2). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the William's Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as the majority of mountain pine beetle killed stands may have already been harvested. However, it is worth noting that recently the AAC was not being achieved in these TSAs.  
 
-```{r, FIG 3, harvest actual, echo = F, error = F, eval = T, include = T, message = F}
+```{r, FIG 2, harvest actual, echo = F, error = F, eval = T, include = T, message = F}
 data.harvest <- read.csv (here ("reports/scenarios/data", "volume_actual.csv"))
 data.harvest <- data.harvest %>%
                   filter (SCALE_YEAR > 2016)
@@ -133,10 +128,11 @@ ggplot (data.harvest, aes (x = SCALE_YEAR, y = volume_m3)) +
   geom_line () +  
   # geom_smooth () + 
   facet_grid (. ~TFL_TSA_NAME) +
-  labs (title = "Figure 3. Actual Volume of Timber Harvest Billed in the Quesnel and 
-Williams Lake TSA's.", 
+  labs (title = "Figure 2. Actual Volume of Timber Harvest Billed in the Quesnel and 
+Williams Lake TSA's", 
         x = "Year", 
-        y = "Billed Volume (m3)") +
+        y = "Billed Volume (m3)",
+        caption = "Quesnel AAC = 2,607,000m3                                         Williams Lake AAC = 3,000,000") +
   scale_y_continuous (labels = comma,
                       breaks = seq (1500000, 2500000, by = 500000)) +
   scale_x_continuous (breaks = seq (2017, 2019, by = 1))
@@ -144,9 +140,9 @@ Williams Lake TSA's.",
 ```
 
 ### Early Seral Forest Indicator
-The amount of early seral forest (i.e., forest stands less than 40 years old) did not change among the scenarios in the HEWSR in the Quesnel TSA (Fig. 4). However, under the BAU scenario, the amount of early seral forest increased up to approximately 10% of area in the LESR and up to 25% of area in the LEWR at approximately 40 years into the future (Fig. 3). In all scenarios, the proportion of early seral forest decreased in Matrix habitat, however, it declined to less than 5% in approximately 35 years in the BC and ECCC scenarios, and declined to approximately 15% in the BAU scenario.
+The amount of early seral forest (i.e., forest stands less than 40 years old) did not change in the HEWSR in the Quesnel TSA in any of the scenarios (Fig. 3). However, under the BAU scenario, the amount of early seral forest increased up to approximately 10% of area in the LESR and up to 25% of area in the LEWR at approximately 40 years into the future. In all scenarios, the proportion of early seral forest decreased in Matrix habitat, however, it declined to less than 5% in approximately 35 years in the BC and ECCC scenarios, and declined to approximately 15% in the BAU scenario.
 
-```{r, FIG 4, Area LT40 Quesnel, echo = F, error = F, eval = T, include = T, message = F}
+```{r, FIG 3, Area LT40 Quesnel, echo = F, error = F, eval = T, include = T, message = F}
 data.surv <- read.csv (here ("reports/scenarios/data", "survival.csv"))
 data.surv <- data.surv %>%
               filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
@@ -157,7 +153,7 @@ data.surv.ques <- data.surv %>%
 ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
   geom_line () + 
   facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 4. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
+  labs (title = "Figure 3. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
 Habitat Type in the Quesnel TSA", 
         x = "Future Year", 
         y = "Proportion Less Than 40 Year Old Forest",
@@ -168,9 +164,9 @@ BC = British Columbia") +
 
 ```
 
-In the Williams Lake TSA, the amount of early seral forest decreased to 0 in the HEWSR at 25 years into the future under all scenarios, but in the BAU scenario the amount increased again to approximately 3% at year 25, and 12% at year 80 (Fig. 5). In the BC and ECCC scenarios, the amount of early seral forest in LESR, LEWR and Matrix decreased to 0. However, in the BAU scenario the amount of early seral forest decreased in the first 30 years, but then increased again over time in the LESR, LEWR and Matrix habitat types.
+In the Williams Lake TSA, the amount of early seral forest decreased to 0 in the HEWSR at 25 years into the future under all scenarios, but in the BAU scenario the amount increased to 12% at year 80 (Fig. 4). In the BC and ECCC scenarios, the amount of early seral forest in LESR, LEWR and Matrix decreased to 0. However, in the BAU scenario the amount of early seral forest decreased in the first 30 years, but then increased again over time in the LESR, LEWR and Matrix habitat types.
 
-```{r, FIG 5, Area LT40 Williams Lake, echo = F, error = F, eval = T, include = T, message = F}
+```{r, FIG 4, Area LT40 Williams Lake, echo = F, error = F, eval = T, include = T, message = F}
 data.surv <- read.csv (here ("reports/scenarios/data", "survival.csv"))
 data.surv <- data.surv %>%
               filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
@@ -182,7 +178,7 @@ data.surv.wl <- data.surv %>%
 ggplot (data.surv.wl, aes (x = timeperiod, y = prop_age, color = scenario)) +
   geom_line () + 
   facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 5. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
+  labs (title = "Figure 4. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
 Habitat Type in the Williams Lake TSA", 
         x = "Future Year", 
         y = "Proportion Less Than 40 Year Old Forest",
@@ -194,13 +190,13 @@ BC = British Columbia") +
 ```
 
 ### Disturbance Indicator
-Initially (i.e., at year 0 of the simulation) in the portion of the Itcha-Ilgachuz critical habitat that was in the Quesnel TSA, disturbance was very low (close to 0%) in HEWSR habitat, at approximately 20% in LESR habitat, approximately 25% in LEWR habitat and approximately 65% in Matrix habitat (Fig. 6). Disturbance essentially did not change in HEWSR under any scenario. Under the BAU scenario, disturbance in LESR habitat increased to approximately 60% at year 50 and then stabilized. In LEWR habitat, disturbance increased to approximately 50% at year 5, and then increased again to approximately 80% at year 50 and then stabilized. In Matrix habitat, disturbance increased to approximately 80% at year 10 and then essentially stabilized. 
+Initially (i.e., at year 0 of the simulation) in the portion of the Itcha-Ilgachuz critical habitat that was in the Quesnel TSA, disturbance was very low (close to 0%) in HEWSR habitat, at approximately 20% in LESR habitat, approximately 25% in LEWR habitat and approximately 65% in Matrix habitat (Fig. 5). Disturbance essentially did not change in HEWSR under any scenario. Under the BAU scenario, disturbance in LESR habitat increased to approximately 60% at year 50 and then stabilized. In LEWR habitat, disturbance increased to approximately 50% at year 5, and then increased again to approximately 80% at year 50 and then stabilized. In Matrix habitat, disturbance increased to approximately 80% at year 10 and then essentially stabilized. 
 
 Under the BC scenario, disturbance increased in LESR habitat to approximately 45% at year 30 and then stabilized. In LEWR habitat, disturbance increased to approximately 30% at year 5, and then stabilized. In Matrix habitat, disturbance essentially stabilized at approximately 65%.
 
 Under the ECCC scenario, disturbance stabilized in LESR habitat at approximately 20%. In LEWR habitat, disturbance slowly declined from approximately 25% to 20%. In Matrix habitat, disturbance declined from approximately 65% to 55% over the course of the scenario. 
 
-```{r, FIG 6, Area disturb 500m Itcha Quesnel, echo = F, error = F, eval = T, include = T, message = F}
+```{r, FIG 5, Area disturb 500m Itcha Quesnel, echo = F, error = F, eval = T, include = T, message = F}
 data.disturb <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
 data.disturb <- data.disturb %>%
                   filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
@@ -211,7 +207,7 @@ data.disturb.ques <- data.disturb %>%
 ggplot (data.disturb.ques, aes (x = timeperiod, y = dist500_per, color = scenario)) +
   geom_line () + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 6. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
+  labs (title = "Figure 5. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
 Type in the portion of the Itcha-Ilgachuz Caribou Herd in the Quesnel TSA", 
         x = "Future Year", 
         y = "Percent (%) Disturbed",
@@ -221,11 +217,11 @@ BC = British Columbia") +
   scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
 ```
 
-Initially in the portion of Itcha-Ilgachuz herd in the Williams Lake TSA, disturbance was very low (close to 0%) in HEWSR habitat, at approximately 45% in LESR habitat, approximately 70% in LEWR habitat and approximately 75% in Matrix habitat (Fig. 7). Disturbance did not change in the HEWSR habitat under the BC or ECCC scenario's, but increased to close to 70% at year 75 under the BAU scenario. Under the BAU scenario, disturbance in LESR habitat increased to approximately 75% at year 75 and then stabilized. In LEWR and Matrix habitats, disturbance increased relatively steadily to approximately 85% and 80%, respectively.
+Initially in the portion of Itcha-Ilgachuz herd in the Williams Lake TSA, disturbance was very low (close to 0%) in HEWSR habitat, at approximately 45% in LESR habitat, approximately 70% in LEWR habitat and approximately 75% in Matrix habitat (Fig. 6). Disturbance did not change in the HEWSR habitat under the BC or ECCC scenario's, but increased to close to 70% at year 75 under the BAU scenario. Under the BAU scenario, disturbance in LESR habitat increased to approximately 75% at year 75 and then stabilized. In LEWR and Matrix habitats, disturbance increased relatively steadily to approximately 85% and 80%, respectively.
 
 Under the BC and ECCC scenarios, disturbance decreased in LESR habitat to approximately 40% at year 25 and then stabilized. In LEWR habitat, disturbance decreased to approximately 70% at year 25, and then stabilized. In Matrix habitat, these two scenarios divirged slightly. Under the BC scenario, disturbance was essentially stable at 75% and under the ECCC scenario, disturbance declined to just less than 70% and stabilized at year 25. 
 
-```{r, FIG 7, Area disturb 500m Itcha Williams, echo = F, error = F, eval = T, include = T, message = F}
+```{r, FIG 6, Area disturb 500m Itcha Williams, echo = F, error = F, eval = T, include = T, message = F}
 data.disturb <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
 data.disturb <- data.disturb %>%
                   filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
@@ -236,7 +232,7 @@ data.disturb.wl <- data.disturb %>%
 ggplot (data.disturb.wl, aes (x = timeperiod, y = dist500_per, color = scenario)) +
   geom_line () + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 7. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
+  labs (title = "Figure 6. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
 Type in the portion of the Itcha-Ilgachuz Caribou Herd in the Williams Lake TSA", 
         x = "Future Year", 
         y = "Percent (%) Disturbed",
@@ -246,9 +242,9 @@ BC = British Columbia") +
   scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
 ```
 
-Under the BC and ECCC scenarios, we saw that disturbance was displaced to other herds' critical habitat areas where no constraints were implemented. For example, disturbance was 20% higher between 25 and 35 years into the future in Barkerville HEWSR habitat under the BC and ECCC scenarios compared to the BAU scenario (Fig. 8). Similarly, disturbance was 10% higher between 25 and 35 years into the future in Barkerville Matrix habitat under the BC and ECCC scenarios compared to the BAU scenario.
+Under the BC and ECCC scenarios, we saw that disturbance was displaced to other herds' critical habitat areas where no constraints were implemented. For example, disturbance was 20% higher between 25 and 35 years into the future in Barkerville HEWSR habitat under the BC and ECCC scenarios compared to the BAU scenario (Fig. 7). Similarly, disturbance was 10% higher between 25 and 35 years into the future in Barkerville Matrix habitat under the BC and ECCC scenarios compared to the BAU scenario.
 
-```{r, FIG 8, Area disturb 500m Barkerville Williams, echo = F, error = F, eval = T, include = F, message = F}
+```{r, FIG 7, Area disturb 500m Barkerville Williams, echo = F, error = F, eval = T, include = F, message = F}
 data.disturb <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
 data.disturb <- data.disturb %>%
                   filter (scenario == "bau" | scenario == "bc_herd_plan" | scenario == "eccc") %>%
@@ -259,7 +255,7 @@ data.disturb.ques <- data.disturb %>%
 ggplot (data.disturb.ques, aes (x = timeperiod, y = dist500_per, color = scenario)) +
   geom_line () + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 8. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
+  labs (title = "Figure 7. Proportion of Area Within 500m of a Cutblock or Road by Critical Habitat 
 Type in the portion of the Barkerville Caribou Herd in the Williams Lake TSA", 
         x = "Future Year", 
         y = "Percent (%) Disturbed",
@@ -271,7 +267,7 @@ BC = British Columbia") +
 ```
 
 ### Fire
-We found that the average area of less than 40 year old burns in each caribou critical habtiat type was low, i.e., up to 2,000 ha or 1% of the herd area (Table 3). However, burns were an episodic event, and in some years the percentatge of area of less than 40 year old burns was much larger, i.e., up to 6% in HEWSR, 14% in LEWR, 18% in LESR and 36% in Matrix habitat. Managing fire disturbance in caribou range will likely be a challenge, because although on average fire disturbance may be low, periodic fire events will significantly increase the area disturbed in a short period of time.
+We found that the average area of less than 40 year old burns in each caribou critical habtiat type was low, i.e., up to 2,000 ha or 1% of the critical habitat area (Table 3). However, burns were an episodic event, and in some years the percentatge of area of less than 40 year old burns was much larger, i.e., up to 6% in HEWSR, 14% in LEWR, 18% in LESR and 36% in Matrix habitat. Although on average fire disturbance was low, periodic fire events significantly increased the area disturbed in a short period of time.
 
 ```{r, table 3, fire, echo = F, error = F, eval = T, include = T, message = F}
 table.fire = data.table(
@@ -304,10 +300,10 @@ kable (table.fire,
             fixed_small_size = T)
 ```
 
-Our approach to estimating fire disturbance was simplistic but informative. Fire histories across caribou herds and critical habitat types indicated that fire was highly cyclical. In general, there was a period of relatively regular and large fires in the early 1900's, until the 1960's or 1970's, at which point the frequency and size of fires decreased, perhaps as fire suppresion became more effective. Thus, the area of less than 40 year old burns was declining over recent decades. However, more recently, in some caribou ranges, including the Itcha-Ilgachuz, there were large fires, suddenly increasing the amount of disturbance in caribou critical habitat types. However, two important consideratons with our approach are that we estimated the area of fire disturbance using burn perimeters, which likely included unburned areas, and we did not calculate fire disturbance exclusive of other overlapping disturbance types (e.g., cublocks). Thus, we likely overestimated the area burned in each critical habitat type. Future work on CLUS will improve how fire is accounted for and simulated. 
+Our approach to estimating fire disturbance was simplistic but informative. Fire histories across caribou herds and critical habitat types indicated that fire was highly cyclical. In general, there was a period of relatively regular and large fires in the early 1900's, until the 1960's or 1970's, at which point the frequency and size of fires decreased, perhaps as fire suppresion became more effective. Thus, the area of less than 40 year old burns was declining over recent decades. However, more recently, in some caribou ranges, including the Itcha-Ilgachuz, there were large fires, suddenly increasing the amount of disturbance in caribou critical habitat types. Two important considerations with our approach are that we estimated the area of fire disturbance using burn perimeters, which likely included unburned areas, and we did not calculate fire disturbance exclusive of other overlapping disturbance types (e.g., cublocks). Thus, we likely overestimated the area burned in each critical habitat type. Future work on CLUS will improve how fire is accounted for and simulated. 
 
 ## Conclusions
-We found that compared to a BAU scenario, the BC herd plan and ECCC recovery strategy scenarios reduced annual harvest in the CLUS model by approximately 350,000m^3^, or 15%. These scenarios also had the desired effect of reducing the amount of early seral forest and disturbance in the Itcha-Ilgachuz critical habitat types. These effects were particularly strong in the LEWR habitat in the Quesnel TSA and LESR habitat in the Williams lake TSA. Notably, there was little difference between the BC and ECCC scenarios in terms of timber harvest or caribou indicators. This was likely because of the relatively high disturbance levels already in the LESR, LEWR and Matrix habitats. Harvest was severely limited in these areas because they were already above or close to the thresholds used to constrain forestry. Our results highlight the challenge with recovering caribou habitat in highly disturbed areas, such as the Itcha-Ilgachuz herd range. 
+We found that compared to a BAU scenario, the BC herd plan and ECCC recovery strategy scenarios reduced annual harvest in the CLUS model by approximately 350,000m^3^, or 15%. These scenarios also had the desired effect of reducing the amount of early seral forest and disturbance in the Itcha-Ilgachuz critical habitat types. These effects were particularly strong in the LEWR habitat in the Quesnel TSA and LESR habitat in the Williams lake TSA. Notably, there was little difference between the BC and ECCC scenarios in terms of timber harvest or caribou indicators. This was likely because of the relatively high disturbance levels already in the LESR, LEWR and Matrix habitats. Harvest was very limited in these areas because they were already above or close to the thresholds used to constrain forestry. Indeed, our model was unable to achieve the disturbance targets in some critical habitat types. Our results highlight the challenge with recovering caribou habitat in highly disturbed areas, such as the Itcha-Ilgachuz herd range. 
 
 Our modelling approach emphasizes the limitations with using a coarse measure of 'disturbance' as a management threshold. While the disturbance model provides an indicator of caribou habitat conditions and population trends, it does not capture the complexities of caribou habitat recovery. For example, the indicator does not distinguish between the effects of roads or cutblocks on caribou, or of different forest stand types. In particular, the lack of recovery of roads in our model scenarios make it nearly impossible for forest harvest to occur in the future in many caribou critical habitat types. More detail on how these habitats can be recovered, and management thresholds for specific habitat recovery measures are needed to create more realistic and optimistic CLUS model scenarios. 
 
