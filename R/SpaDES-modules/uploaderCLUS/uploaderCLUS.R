@@ -99,7 +99,7 @@ Init <- function(sim) {
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
                     rsf = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
-                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric()),
+                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric(), dist= numeric(), dist_per = numeric()),
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
     )
     tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty")
