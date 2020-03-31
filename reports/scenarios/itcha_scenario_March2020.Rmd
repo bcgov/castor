@@ -82,7 +82,7 @@ In these scenarios, the CLUS model did not recover roads, rather, roads were tre
 The CLUS model did not simulate fire. Thus, we estimated potential fire disturbance in Itcha-Ilgachuz critical habitat with a *post-hoc* analysis. We calculated the amount of area of less than 40 year old burns in each critical habitat type over the last 40 years. We then calculated the median, minimum and maximum of those values, and used this data to estimate how much disturbance could occur from fire, in addition to forestry.  
 
 #### Cutblock Adjacency
-Foresty was simulated with adjacency constraints, i.e., a forest stand could only be cut adjacent to a forest stand that had acheieved a height of 5 m. This adjacency constraint can be removed to allow more flexibility in where the model can harvest. However, removing this constraint will result in the creation of large continous cutblocks in some areas. 
+Foresty was simulated with adjacency constraints, i.e., a forest stand could only be cut adjacent to a forest stand that had acheieved a height of 3 m. This adjacency constraint can be removed to allow more flexibility in where the model can harvest. However, removing this constraint will result in the creation of large continous cutblocks in some areas. 
 
 ## Results
 The BAU scenario had the highest annual timber harvest, but lowest indicators of caribou habitat and survival. The ECCC recovery strategy and BC herd plan scenarios both reduced timber harvest and positively influenced caribou indicators. These two scenarios had similar results. Detailed results on each indicator for each scenario are provided below.
