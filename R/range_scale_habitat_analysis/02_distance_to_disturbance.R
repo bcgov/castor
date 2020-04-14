@@ -20,7 +20,7 @@
 ---
   
   
-#=================================
+  #=================================
 # Load Packages
 #=================================
 require (sf)
@@ -53,7 +53,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    password = "postgres",
                    port = "5432")
 hab_locations <- sf::st_read  (dsn = conn, # connKyle
-                              query = "SELECT * FROM caribou.bc_caribou_samp_pnts_herd_boundaries")
+                               query = "SELECT * FROM caribou.bc_caribou_samp_pnts_herd_boundaries")
 dbDisconnect (conn) # connKyle
 
 hab_locations<-samp_locations_df
@@ -112,7 +112,7 @@ y<-gsub(".tif","",x)
 for (i in 1:length(x)){
   foo<-raster(x[i])
   foo2 <- raster::extract (foo, hab_locations_sp, method = 'simple',
-                                          factors = T, df = T, sp = T)
+                           factors = T, df = T, sp = T)
   #names (rsf.large.locations) [7] <- y[i]
   
   rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (1, 7)], 
@@ -158,7 +158,7 @@ for (i in 1:length(x)){
   # rm (foo)
   # rm(foo2)
   # gc()
-   print(i)
+  print(i)
 }
 
 # save data 
@@ -187,7 +187,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    password = "postgres",
                    port = "5432")
 rsf.large.scale.data <- sf::st_read  (dsn = conn,
-                                       query = "SELECT * FROM caribou.dist_to_disturbance2")
+                                      query = "SELECT * FROM caribou.dist_to_disturbance2")
 dbDisconnect (conn) # connKyle
 
 
@@ -313,5 +313,5 @@ rsf.large.scale.data.age2<-st_set_geometry(rsf.large.scale.data.age,NULL)
 write.csv (rsf.large.scale.data.age2, "C:\\Work\\caribou\\clus\\R\\range_scale_habitat_analysis\\data\\Range_scale_data.csv")
 
 
-Range_scale_data<-rsf.large.scale.data.age
+Range_scale_data<-rsf.large.scale.data.age2
 

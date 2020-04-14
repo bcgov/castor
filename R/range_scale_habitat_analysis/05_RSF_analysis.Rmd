@@ -49,78 +49,84 @@ I fit GLMMs with distance to cutblock and distance to road covariates as fixed e
 
 
 Range_scale_data <- read.csv ("C:/Work/caribou/clus/R/range_scale_habitat_analysis/data/Range_scale_data.csv")
+#Range_scale_data<-rsf.large.scale.data.age2
 
-Range_scale_data$distance_to_cut_1yo<-Range_scale_data$distance_to_cut_1yo*100
-Range_scale_data$distance_to_cut_2yo<-Range_scale_data$distance_to_cut_2yo*100
-Range_scale_data$distance_to_cut_3yo<-Range_scale_data$distance_to_cut_3yo*100
-Range_scale_data$distance_to_cut_4yo<-Range_scale_data$distance_to_cut_4yo*100
-Range_scale_data$distance_to_cut_5yo<-Range_scale_data$distance_to_cut_5yo*100
-Range_scale_data$distance_to_cut_6yo<-Range_scale_data$distance_to_cut_6yo*100
-Range_scale_data$distance_to_cut_7yo<-Range_scale_data$distance_to_cut_7yo*100
-Range_scale_data$distance_to_cut_8yo<-Range_scale_data$distance_to_cut_8yo*100
-Range_scale_data$distance_to_cut_9yo<-Range_scale_data$distance_to_cut_9yo*100
-Range_scale_data$distance_to_cut_10yo<-Range_scale_data$distance_to_cut_10yo*100
-Range_scale_data$distance_to_cut_11yo<-Range_scale_data$distance_to_cut_11yo*100
-Range_scale_data$distance_to_cut_12yo<-Range_scale_data$distance_to_cut_12yo*100
-Range_scale_data$distance_to_cut_13yo<-Range_scale_data$distance_to_cut_13yo*100
-Range_scale_data$distance_to_cut_14yo<-Range_scale_data$distance_to_cut_14yo*100
-Range_scale_data$distance_to_cut_15yo<-Range_scale_data$distance_to_cut_15yo*100
-Range_scale_data$distance_to_cut_16yo<-Range_scale_data$distance_to_cut_16yo*100
-Range_scale_data$distance_to_cut_17yo<-Range_scale_data$distance_to_cut_17yo*100
-Range_scale_data$distance_to_cut_18yo<-Range_scale_data$distance_to_cut_18yo*100
-Range_scale_data$distance_to_cut_19yo<-Range_scale_data$distance_to_cut_19yo*100
-Range_scale_data$distance_to_cut_20yo<-Range_scale_data$distance_to_cut_20yo*100
-Range_scale_data$distance_to_cut_21yo<-Range_scale_data$distance_to_cut_21yo*100
-Range_scale_data$distance_to_cut_22yo<-Range_scale_data$distance_to_cut_22yo*100
-Range_scale_data$distance_to_cut_23yo<-Range_scale_data$distance_to_cut_23yo*100
-Range_scale_data$distance_to_cut_24yo<-Range_scale_data$distance_to_cut_24yo*100
-Range_scale_data$distance_to_cut_25yo<-Range_scale_data$distance_to_cut_25yo*100
-Range_scale_data$distance_to_cut_26yo<-Range_scale_data$distance_to_cut_26yo*100
-Range_scale_data$distance_to_cut_27yo<-Range_scale_data$distance_to_cut_27yo*100
-Range_scale_data$distance_to_cut_28yo<-Range_scale_data$distance_to_cut_28yo*100
-Range_scale_data$distance_to_cut_29yo<-Range_scale_data$distance_to_cut_29yo*100
-Range_scale_data$distance_to_cut_30yo<-Range_scale_data$distance_to_cut_30yo*100
-Range_scale_data$distance_to_cut_31yo<-Range_scale_data$distance_to_cut_31yo*100
-Range_scale_data$distance_to_cut_32yo<-Range_scale_data$distance_to_cut_32yo*100
-Range_scale_data$distance_to_cut_33yo<-Range_scale_data$distance_to_cut_33yo*100
-Range_scale_data$distance_to_cut_34yo<-Range_scale_data$distance_to_cut_34yo*100
-Range_scale_data$distance_to_cut_35yo<-Range_scale_data$distance_to_cut_35yo*100
-Range_scale_data$distance_to_cut_36yo<-Range_scale_data$distance_to_cut_36yo*100
-Range_scale_data$distance_to_cut_37yo<-Range_scale_data$distance_to_cut_37yo*100
-Range_scale_data$distance_to_cut_38yo<-Range_scale_data$distance_to_cut_38yo*100
-Range_scale_data$distance_to_cut_39yo<-Range_scale_data$distance_to_cut_39yo*100
-Range_scale_data$distance_to_cut_40yo<-Range_scale_data$distance_to_cut_40yo*100
-Range_scale_data$distance_to_cut_41yo<-Range_scale_data$distance_to_cut_41yo*100
-Range_scale_data$distance_to_cut_42yo<-Range_scale_data$distance_to_cut_42yo*100
-Range_scale_data$distance_to_cut_43yo<-Range_scale_data$distance_to_cut_43yo*100
-Range_scale_data$distance_to_cut_44yo<-Range_scale_data$distance_to_cut_44yo*100
-Range_scale_data$distance_to_cut_45yo<-Range_scale_data$distance_to_cut_45yo*100
-Range_scale_data$distance_to_cut_46yo<-Range_scale_data$distance_to_cut_46yo*100
-Range_scale_data$distance_to_cut_47yo<-Range_scale_data$distance_to_cut_47yo*100
-Range_scale_data$distance_to_cut_48yo<-Range_scale_data$distance_to_cut_48yo*100
-Range_scale_data$distance_to_cut_49yo<-Range_scale_data$distance_to_cut_49yo*100
-Range_scale_data$distance_to_cut_50yo<-Range_scale_data$distance_to_cut_50yo*100
-Range_scale_data$dist_crds_resource<-Range_scale_data$dist_crds_resource*100
+#convert distances to km
 
-Range_scale_data$distance_to_resource_road<-Range_scale_data$dist_crds_resource
+Range_scale_data$distance_to_cut_1yo<-Range_scale_data$distance_to_cut_1yo/100
+Range_scale_data$distance_to_cut_2yo<-Range_scale_data$distance_to_cut_2yo/100
+Range_scale_data$distance_to_cut_3yo<-Range_scale_data$distance_to_cut_3yo/100
+Range_scale_data$distance_to_cut_4yo<-Range_scale_data$distance_to_cut_4yo/100
+Range_scale_data$distance_to_cut_5yo<-Range_scale_data$distance_to_cut_5yo/100
+Range_scale_data$distance_to_cut_6yo<-Range_scale_data$distance_to_cut_6yo/100
+Range_scale_data$distance_to_cut_7yo<-Range_scale_data$distance_to_cut_7yo/100
+Range_scale_data$distance_to_cut_8yo<-Range_scale_data$distance_to_cut_8yo/100
+Range_scale_data$distance_to_cut_9yo<-Range_scale_data$distance_to_cut_9yo/100
+Range_scale_data$distance_to_cut_10yo<-Range_scale_data$distance_to_cut_10yo/100
+Range_scale_data$distance_to_cut_11yo<-Range_scale_data$distance_to_cut_11yo/100
+Range_scale_data$distance_to_cut_12yo<-Range_scale_data$distance_to_cut_12yo/100
+Range_scale_data$distance_to_cut_13yo<-Range_scale_data$distance_to_cut_13yo/100
+Range_scale_data$distance_to_cut_14yo<-Range_scale_data$distance_to_cut_14yo/100
+Range_scale_data$distance_to_cut_15yo<-Range_scale_data$distance_to_cut_15yo/100
+Range_scale_data$distance_to_cut_16yo<-Range_scale_data$distance_to_cut_16yo/100
+Range_scale_data$distance_to_cut_17yo<-Range_scale_data$distance_to_cut_17yo/100
+Range_scale_data$distance_to_cut_18yo<-Range_scale_data$distance_to_cut_18yo/100
+Range_scale_data$distance_to_cut_19yo<-Range_scale_data$distance_to_cut_19yo/100
+Range_scale_data$distance_to_cut_20yo<-Range_scale_data$distance_to_cut_20yo/100
+Range_scale_data$distance_to_cut_21yo<-Range_scale_data$distance_to_cut_21yo/100
+Range_scale_data$distance_to_cut_22yo<-Range_scale_data$distance_to_cut_22yo/100
+Range_scale_data$distance_to_cut_23yo<-Range_scale_data$distance_to_cut_23yo/100
+Range_scale_data$distance_to_cut_24yo<-Range_scale_data$distance_to_cut_24yo/100
+Range_scale_data$distance_to_cut_25yo<-Range_scale_data$distance_to_cut_25yo/100
+Range_scale_data$distance_to_cut_26yo<-Range_scale_data$distance_to_cut_26yo/100
+Range_scale_data$distance_to_cut_27yo<-Range_scale_data$distance_to_cut_27yo/100
+Range_scale_data$distance_to_cut_28yo<-Range_scale_data$distance_to_cut_28yo/100
+Range_scale_data$distance_to_cut_29yo<-Range_scale_data$distance_to_cut_29yo/100
+Range_scale_data$distance_to_cut_30yo<-Range_scale_data$distance_to_cut_30yo/100
+Range_scale_data$distance_to_cut_31yo<-Range_scale_data$distance_to_cut_31yo/100
+Range_scale_data$distance_to_cut_32yo<-Range_scale_data$distance_to_cut_32yo/100
+Range_scale_data$distance_to_cut_33yo<-Range_scale_data$distance_to_cut_33yo/100
+Range_scale_data$distance_to_cut_34yo<-Range_scale_data$distance_to_cut_34yo/100
+Range_scale_data$distance_to_cut_35yo<-Range_scale_data$distance_to_cut_35yo/100
+Range_scale_data$distance_to_cut_36yo<-Range_scale_data$distance_to_cut_36yo/100
+Range_scale_data$distance_to_cut_37yo<-Range_scale_data$distance_to_cut_37yo/100
+Range_scale_data$distance_to_cut_38yo<-Range_scale_data$distance_to_cut_38yo/100
+Range_scale_data$distance_to_cut_39yo<-Range_scale_data$distance_to_cut_39yo/100
+Range_scale_data$distance_to_cut_40yo<-Range_scale_data$distance_to_cut_40yo/100
+Range_scale_data$distance_to_cut_41yo<-Range_scale_data$distance_to_cut_41yo/100
+Range_scale_data$distance_to_cut_42yo<-Range_scale_data$distance_to_cut_42yo/100
+Range_scale_data$distance_to_cut_43yo<-Range_scale_data$distance_to_cut_43yo/100
+Range_scale_data$distance_to_cut_44yo<-Range_scale_data$distance_to_cut_44yo/100
+Range_scale_data$distance_to_cut_45yo<-Range_scale_data$distance_to_cut_45yo/100
+Range_scale_data$distance_to_cut_46yo<-Range_scale_data$distance_to_cut_46yo/100
+Range_scale_data$distance_to_cut_47yo<-Range_scale_data$distance_to_cut_47yo/100
+Range_scale_data$distance_to_cut_48yo<-Range_scale_data$distance_to_cut_48yo/100
+Range_scale_data$distance_to_cut_49yo<-Range_scale_data$distance_to_cut_49yo/100
+Range_scale_data$distance_to_cut_50yo<-Range_scale_data$distance_to_cut_50yo/100
+Range_scale_data$dist_crds_resource<-Range_scale_data$dist_crds_resource/100
+Range_scale_data$dist_crds_loose<-Range_scale_data$dist_crds_loose/100
+Range_scale_data$dist_crds_paved<-Range_scale_data$dist_crds_paved/100
+Range_scale_data$dist_crds_petroleum<-Range_scale_data$dist_crds_petroleum/100
+Range_scale_data$dist_crds_rough<-Range_scale_data$dist_crds_rough/100
+Range_scale_data$dist_crds_trim_transport<-Range_scale_data$dist_crds_trim_transport/100
+Range_scale_data$dist_crds_unknown<-Range_scale_data$dist_crds_unknown/100
+
+Range_scale_data$cnt<-1
+
+#Range_scale_data$distance_to_resource_road<-Range_scale_data$dist_crds_resource
+#Range_scale_data$distance_to_resource_road_log<-log(Range_scale_data$distance_to_resource_road+0.00001)
+
 
 # Binning the data into groups that are less correlated
 Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_1to5yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo))
 
 Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_6to10yo = pmin (distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo))
 
-Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_11to30yo = pmin (distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo,distance_to_cut_15yo,distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo, distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo))
+Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_11to50yo = pmin (distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo,distance_to_cut_15yo,distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo, distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo, distance_to_cut_41yo, distance_to_cut_42yo, distance_to_cut_43yo, distance_to_cut_44yo, distance_to_cut_45yo, distance_to_cut_46yo, distance_to_cut_47yo, distance_to_cut_48yo, distance_to_cut_49yo, distance_to_cut_50yo))
 
-Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_31to50 = pmin (distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo, distance_to_cut_41yo, distance_to_cut_42yo, distance_to_cut_43yo, distance_to_cut_44yo, distance_to_cut_45yo, distance_to_cut_46yo, distance_to_cut_47yo, distance_to_cut_48yo, distance_to_cut_49yo, distance_to_cut_50yo))
+Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_road = pmin (dist_crds_resource, dist_crds_paved,  dist_crds_petroleum, dist_crds_loose, dist_crds_rough, dist_crds_unknown))
 
-
-
-# convert m to km
-Range_scale_data$distance_to_cut_1to5yo <- Range_scale_data$distance_to_cut_1to5yo/1000
-Range_scale_data$distance_to_cut_6to10yo <- Range_scale_data$distance_to_cut_6to10yo/1000
-Range_scale_data$distance_to_cut_11to30yo <- Range_scale_data$distance_to_cut_11to30yo/1000
-Range_scale_data$distance_to_cut_31to50 <- Range_scale_data$distance_to_cut_31to50/1000
-
+#Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_21to50 = pmin (distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo, distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo, distance_to_cut_41yo, distance_to_cut_42yo, distance_to_cut_43yo, distance_to_cut_44yo, distance_to_cut_45yo, distance_to_cut_46yo, distance_to_cut_47yo, distance_to_cut_48yo, distance_to_cut_49yo, distance_to_cut_50yo))
 
 dist.cut.corr <- (Range_scale_data [c (66:69)])
 corr <- round (cor (dist.cut.corr), 3)
@@ -167,32 +173,33 @@ In DU6, the home ranges of individual animals were calculated from 160 animals f
 
 ```{r, du6, data summary, eval = T, echo = F, message = F, eval = T}
 # number of animals, by herd
-count.animals.herd <- du6  %>%
-  group_by(HERD_NAME) %>%
-  summarise(count = n_distinct(year))
-count.animals.herd<- count.animals.herd %>%  rename(Herd.years=count)
+count.individual.home.range <- du6  %>%
+  filter(pttype==1) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Used=count)
 
-count.locs.herd <- du6  %>%
-  group_by(HERD_NAME) %>%
-  filter (pttype == 1) %>%
-  summarise(count = n()) %>%
-  rename(Herd.count=count)
-
-count.locs.range <- du6  %>%
-  group_by(HERD_NAME) %>%
-  filter (pttype == 0) %>%
-  summarise(count = n()) %>%
-  rename(Range.count=count)
+count.herd.range <- du6  %>%
+  filter(pttype==0) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Available=count)
 
 
+summary_du6 <- du6 %>% 
+  group_by(HERD_NAME, pttype) %>% 
+  summarise(mean=mean(distance_to_road),
+            sd = sd(distance_to_road),
+            count = sum(cnt),
+            se= sd(distance_to_road)/(sqrt(sum(cnt))))
 
-table <- full_join(count.animals.herd, count.locs.herd,count.locs.range, by = "HERD_NAME")
-table <- full_join(table,count.locs.range, by = "HERD_NAME")
+
+
+table <- full_join(count.individual.home.range, count.herd.range)
 
 
 kable (table,
-       caption = "<b>Table 1. Number of Animals and Telemetry Locations Sampled by Caribou 
-Herd in DU6 (Boreal).<b>") %>%
+       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in DU6 (Boreal).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -202,57 +209,60 @@ Herd in DU6 (Boreal).<b>") %>%
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-There were some small differences in herd response to resource roads in DU6 (Fig. 2). For example, caribou in the Calendar, Chinchaga, Parker and Snake-Sahtaneh herds were further from roads then what was available on average in their home range. A random effect for distance to road was included in the GLMM to account for this variability. 
+Overall there was a slight tendency for caribou in DU 6 to avoid roads but this relationship was not signficant (fig 2). For example, caribou in the Chinchaga, Maxhamish, Parker and Prophet herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Calendar and Snake-Sahtaneh. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
 
 ```{r, du6 Herd road effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_resource_road)) +
+p=ggplot (du6, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 2. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou 
-Herd in DU6",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Resource Road") +
+  labs (title = "Figure 2. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to road (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
+  theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
+
+# compute lower and upper whiskers
+ylim1 = boxplot.stats(du6$distance_to_road)$stats[c(1, 5)]
+
+# scale y limits based on ylim1
+p + coord_cartesian(ylim = c(0,ylim1[2]+15))
+
 ```
 
-There was variability in caribou response to 1 to 4 year old cutblocks across herds in DU6 (Fig. 3). For example, caribou in the Chinchaga and Prohpet herds were closer to 1 to 4 year old cutblocks then what was available on average in their home range, whereas caribou in the Maxhamish, Parker and Snake-Sahtaneh were further from 1 to 4 year old cutblocks. A random effect for distance to 1 to 4 year old cutblocks was included in the GLMM to account for this variability.
+There was variability in the caribou response to 1 to 5 year old cutblocks in DU6 (Fig. 3). For example, caribou in the Chinchaga, Maxhamish and Snake_Sahtaneh herds were slightly further from 1 to 5 year old cutblocks than what was available on average in their home range. Whereas, caribou in the Calendar and Parker herds showed no preference and Caribou in the Prophet herd were slightly closer to 1 to 5 year old cutblocks than what was available. A random effect for distance to 1 to 5 year old cutblocks was included in the GLMM to account for this variability.
 
 ```{r, du6 Herd cutblock 1to4yo effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_cut_1to4)) +
+ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 3. Distance to 1 to 4 Year Old Cutblock at Available (0) and Used (1) Locations by 
-Caribou Herd in DU6",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock") +
+  labs (title = "Figure 3. Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to 5 to 9 year old cutblocks across herds in DU6 (Fig. 4). For example, caribou in the Calendar, Maxhamish and Prophet herds were closer to 5 to 9 year old cutblocks then what was available on average in their home range, compared to other herds. A random effect for distance to 5 to 9 year old cutblocks was included in the GLMM to account for this variability.
+There was variability in the response of caribou herds to 6 to 10 year old cutblocks in DU6 (Fig. 4). Caribou in the Chinchaga, Maxhamish, Parker, and Snake-Sahtaneh herds were further from 6 to 10 year old cutblocks than what was available on average in their home range. In contrast Calendar and Prophet were slightly closer to 5 to 10 year old cutblocks than what was available on average. A random effect for distance to 6 to 10 year old cutblocks was included in the GLMM to account for this variability.
 
 ```{r, du6 Herd cutblock 5to9yo effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_cut_5to9)) +
+ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 4. Distance to 5 to 9 Year Old Cutblock at Available (0) and Used (1) Locations by 
-Caribou Herd in DU6",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock") +
+  labs (title = "Figure 4. Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock(km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to 10 to 40 year old cutblocks across herds in DU6 (Fig. 5). For example, caribou in the Maxhamish and Prophet herds were closer to 10 to 40 year old cutblocks then what was available on average in their home range, comapred to other herds. A random effect for distance to 10 to 40 year old cutblocks was included in the GLMM to account for this variability.
+All Caribou herds were further from 11 to 50 years old cutblocks than what was available on average in DU6 (Fig. 5). Although the trends were similar across herds the degree of this difference varied thus a random effect for distance to 11 to 50 year old cutblocks was included in the GLMM.
 
 ```{r, du6 Herd cutblock 10to40yo effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_cut_10to40)) +
+ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_11to50yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 5. Distance to 10 to 40 Year Old Cutblock at Available (0) and Used (1) Locations by 
-Caribou Herd in DU6",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock") +
+  labs (title = "Figure 5. Distance to 11 to 50 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
@@ -263,24 +273,33 @@ There was a statistically significant (p-value < 0.05), negative population-leve
 
 ```{r, du6 model, echo = T, message = F, eval = F}
 # model spec
-model.lme4.du6.cut.rd <- glmer (pttype ~ distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                         distance_to_cut_10to40 +
-                                        (distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                         distance_to_cut_10to40 || HERD_NAME) +
-                                        (distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                         distance_to_cut_10to40 || animal_id),
-                                      data = rsf.data.du6, 
+# varying intercept and slope for each factor. Essentially I am assuming that a increase in 1 of resource road is not the same in each herd (slopes are allowed to vary)
+
+# Centering the input variables. I did not scale them because it makes interpreting the coefficients more difficult.
+du6$distance_to_road_scale<-scale(du6$distance_to_road,center=TRUE,scale = FALSE)
+du6$distance_to_cut_1to5yo_scale<-scale(du6$distance_to_cut_1to5yo,center = TRUE,scale=FALSE)
+du6$distance_to_cut_6to10yo_scale<-scale(du6$distance_to_cut_6to10yo,center = TRUE, scale = FALSE)
+du6$distance_to_cut_11to50yo_scale<-scale(du6$distance_to_cut_11to50yo,center = TRUE, scale=FALSE)
+
+model.lme4.du6.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale +
+                                        (distance_to_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale ||HERD_NAME) +
+                                        (distance_to_road_scale|year) +
+                                         (distance_to_cut_1to5yo_scale|year) +
+                                         (distance_to_cut_6to10yo_scale|year) +
+                                         (distance_to_cut_11to50yo_scale|year),
+                                      data = du6, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
+VarCorr(model.lme4.du6.cut.rd)
 # check residuals
-binnedplot (fitted (model.lme4.du6.cut.rd), 
-             residuals(model.lme4.du6.cut.rd, type = "response"), 
+binnedplot (fitted (model.lme4.du6.cut.rd.yr2), 
+            (residuals(model.lme4.du6.cut.rd.yr2, type = "response")), 
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
@@ -288,13 +307,84 @@ binnedplot (fitted (model.lme4.du6.cut.rd),
              cex.pts = 0.4, 
              col.pts = 1, 
              col.int = "red")
+
+binnedplot (du6$distance_to_cut_1to5yo_scale, 
+             residuals(model.lme4.du6.cut.rd.yr2, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to Cut 1 to 5 years old", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_road_scale, 
+             residuals(model.lme4.du6.cut.rd.yr2, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to Road", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_cut_6to10yo_scale, 
+             residuals(model.lme4.du6.cut.rd.yr2, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to 6 to 10 year old cutblocks", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_cut_11to50yo_scale, 
+             residuals(model.lme4.du6.cut.rd.yr2, type = "response"), 
+             nclass = NULL, 
+             xlab = "Distance to 11 to 50 year old cutblocks", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+summary(model.lme4.du6.cut.rd.yr2)
+Anova(model.lme4.du6.cut.rd.yr2,type="III")
+
 ```
 
 ```{r, du6 model fixed effects coeffs, echo = F, message = F, eval = T}
-# model.coeffs <- as.data.frame (coef (summary (model.lme4.du6.cut.rd.fxn)))
-du6.fe <- read.csv (here ("R/caribou_habitat/data", "table_du6_model_fixed_coeffs_v4.csv"))
+# summary table
+table.glm.summary.du6 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.summary.du6) <- c ("Coefficient", "Coefficient.Estimate", "Std.Error","z.value", "p.values")
 
-kable (du6.fe,
+table.glm.summary.du6[1,1]<-"Intercept"
+table.glm.summary.du6[2,1]<-"Distance to Resource Road"
+table.glm.summary.du6[3,1]<-"Distance to Cutblock 1 to 5 years old"
+table.glm.summary.du6[4,1]<-"Distance to Cutblock 6 to 10 years old"
+table.glm.summary.du6[5,1]<-"Distance to Cutblock 11 to 50 years old"
+table.glm.summary.du6 [1, 2] <-fixef(model.lme4.du6.cut.rd.yr)[1]
+table.glm.summary.du6 [2, 2] <-fixef(model.lme4.du6.cut.rd.yr)[2]
+table.glm.summary.du6 [3, 2] <-fixef(model.lme4.du6.cut.rd.yr)[3]
+table.glm.summary.du6 [4, 2] <-fixef(model.lme4.du6.cut.rd.yr)[4]
+table.glm.summary.du6 [5, 2] <-fixef(model.lme4.du6.cut.rd.yr)[5]
+table.glm.summary.du6 [1, 3] <-se.fixef(model.lme4.du6.cut.rd.yr)[1]
+table.glm.summary.du6 [2, 3] <-se.fixef(model.lme4.du6.cut.rd.yr)[2]
+table.glm.summary.du6 [3, 3] <-se.fixef(model.lme4.du6.cut.rd.yr)[3]
+table.glm.summary.du6 [4, 3] <-se.fixef(model.lme4.du6.cut.rd.yr)[4]
+table.glm.summary.du6 [5, 3] <-se.fixef(model.lme4.du6.cut.rd.yr)[5]
+table.glm.summary.du6 [1, 4] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"z value"][1]
+table.glm.summary.du6 [2, 4] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"z value"][2]
+table.glm.summary.du6 [3, 4] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"z value"][3]
+table.glm.summary.du6 [4, 4] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"z value"][4]
+table.glm.summary.du6 [5, 4] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"z value"][5]
+table.glm.summary.du6 [1, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|)"][1]
+table.glm.summary.du6 [2, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|)"][2]
+table.glm.summary.du6 [3, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|)"][3]
+table.glm.summary.du6 [4, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|)"][4]
+table.glm.summary.du6 [5, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|)"][5]
+
+kable (table.glm.summary.du6,
        caption = "<b>Table 2. Fixed Effect Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
@@ -308,9 +398,49 @@ kable (du6.fe,
 Random effects in the DU6 model indicated that caribou consitently avoided roads across herds (Table 3, Fig. 6). There was consistency in caribou response to cutblocks across herds (Table 3, Fig. 7, Fig. 8, Fig. 9). Caribou consistently used areas near 1 to 9 year old cutblocks and avoided 10 to 40 year old cutblocks.
 
 ```{r, du6 model random effects coeffs, echo = F, message = F, eval = T}
-du6.re <- read.csv (here ("R/caribou_habitat/data", "table_du6_model_herd_re_coeffs_v4.csv"))
+table.glm.summary.raneff <- data.frame (matrix (ncol = 6, nrow = 0))
+colnames (table.glm.summary.raneff) <- c ("Herd", "Intercept", "Distance to road","Distance to cutblock 1 to 4 years old", "Distance to cutblock 5 to 10 years old", "Distance to cutblock 11 to 50 years old")
+tab<-as.data.frame(ranef(model.lme4.du6.cut.rd.yr))
 
-kable (du6.re,
+table.glm.summary.raneff[1,1]<- "Calendar"
+table.glm.summary.raneff[2,1]<-"Chinchaga"
+table.glm.summary.raneff[3,1]<-"Maxhamish"
+table.glm.summary.raneff[4,1]<-"Parker"
+table.glm.summary.raneff[5,1]<-"Prophet"
+table.glm.summary.raneff[6,1]<-"Snake-Sahtaneh"
+table.glm.summary.raneff[1,2]<-(tab[,"condval"][1])
+table.glm.summary.raneff[2,2]<-(tab[,"condval"][2])
+table.glm.summary.raneff[3,2]<-(tab[,"condval"][3])
+table.glm.summary.raneff[4,2]<-(tab[,"condval"][4])
+table.glm.summary.raneff[5,2]<-(tab[,"condval"][5])
+table.glm.summary.raneff[6,2]<-(tab[,"condval"][6])
+table.glm.summary.raneff[1,3]<-(tab[,"condval"][7])
+table.glm.summary.raneff[2,3]<-(tab[,"condval"][8])
+table.glm.summary.raneff[3,3]<-(tab[,"condval"][9])
+table.glm.summary.raneff[4,3]<-(tab[,"condval"][10])
+table.glm.summary.raneff[5,3]<-(tab[,"condval"][11])
+table.glm.summary.raneff[6,3]<-(tab[,"condval"][12])
+table.glm.summary.raneff[1,4]<-(tab[,"condval"][13])
+table.glm.summary.raneff[2,4]<-(tab[,"condval"][14])
+table.glm.summary.raneff[3,4]<-(tab[,"condval"][15])
+table.glm.summary.raneff[4,4]<-(tab[,"condval"][16])
+table.glm.summary.raneff[5,4]<-(tab[,"condval"][17])
+table.glm.summary.raneff[6,4]<-(tab[,"condval"][18])
+table.glm.summary.raneff[1,5]<-(tab[,"condval"][19])
+table.glm.summary.raneff[2,5]<-(tab[,"condval"][20])
+table.glm.summary.raneff[3,5]<-(tab[,"condval"][21])
+table.glm.summary.raneff[4,5]<-(tab[,"condval"][22])
+table.glm.summary.raneff[5,5]<-(tab[,"condval"][23])
+table.glm.summary.raneff[6,5]<-(tab[,"condval"][24])
+table.glm.summary.raneff[1,6]<-(tab[,"condval"][25])
+table.glm.summary.raneff[2,6]<-(tab[,"condval"][26])
+table.glm.summary.raneff[3,6]<-(tab[,"condval"][27])
+table.glm.summary.raneff[4,6]<-(tab[,"condval"][28])
+table.glm.summary.raneff[5,6]<-(tab[,"condval"][29])
+table.glm.summary.raneff[6,6]<-(tab[,"condval"][30])
+
+
+kable (table.glm.summary.raneff,
        caption = "<b>Table 3. Random Effect Herd-Level Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
@@ -511,20 +641,33 @@ There was a statistically significant (p-value < 0.05), negative population-leve
 
 ```{r, du7 model, echo = T, message = F, eval = F}
 # model spec
-model.lme4.du7.cut.rd <- glmer (pttype ~ distance_to_resource_road +
-                                             distance_to_cut_1to4 +
-                                             distance_to_cut_5to40 +
-                                            (distance_to_resource_road +
-                                             distance_to_cut_1to4 +
-                                             distance_to_cut_5to40 || animal_id) +                                                               (distance_to_resource_road +
-                                             distance_to_cut_1to4 +
-                                             distance_to_cut_5to40 || HERD_NAME),
-                                  data = rsf.data.du7,
-                                  family = binomial (link = "logit"),
-                                  verbose = T)
+du7$distance_to_road_scale<-scale(du7$distance_to_road, center=TRUE)
+du7$distance_to_cut_1to5yo_scale<-scale(du7$distance_to_cut_1to5yo, center=TRUE)
+du7$distance_to_cut_6to10yo_scale<-scale(du7$distance_to_cut_6to10yo, center=TRUE)
+du7$distance_to_cut_11to50yo_scale<-scale(du7$distance_to_cut_11to50yo, center=TRUE)
+
+model.lme4.du7.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale +
+                                        (distance_to_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale ||HERD_NAME) +
+                                        (distance_to_road_scale|year) +
+                                         (distance_to_cut_1to5yo_scale|year) +
+                                         (distance_to_cut_6to10yo_scale|year) +
+                                         (distance_to_cut_11to50yo_scale|year),
+                                      data = du7, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T)  
+
+summary(model.lme4.du7.cut.rd.yr2)
+Anova(model.lme4.du7.cut.rd.yr2,type="III")
+
 # check residuals
-binnedplot (fitted (model.lme4.du7.cut.rd), 
-             residuals(model.lme4.du7.cut.rd, type = "response"), 
+binnedplot (fitted (model.lme4.du7.cut.rd.yr2), 
+             residuals(model.lme4.du7.cut.rd.yr2, type = "response"), 
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
@@ -749,20 +892,30 @@ Caribou Herd in DU8",
 There was a statistically significant (p-value < 0.05), negative fixed (population-level) effect of roads on caribou distribution (Table 8). There were generally positive fixed effects of cutblocks on caribou distribution. There was essentially no effect of 1 to 4 year old cutblocks on caribou distribution, a weak (p = 0.166) positive effect of 5 to 9 year old cutblocks, and a close to statistically significant (p-value = 0.07) positive effect of 10 to 40 year old cutblocks on caribou distribution. 
 ```{r, du8 model, echo = T, message = F, eval = F}
 # model spec
-model.lme4.du8.cut.rd <- glmer (pttype ~ distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                         distance_to_cut_10to40 +
-                                        (distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                         distance_to_cut_10to40 || animal_id) +                                                              (distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                         distance_to_cut_10to40 || HERD_NAME),
-                                  data = rsf.data.du8, 
-                                  family = binomial (link = "logit"),
-                                  verbose = T) 
+du8$distance_to_road_scale<-scale(du8$distance_to_road, center=TRUE)
+du8$distance_to_cut_1to5yo_scale<-scale(du8$distance_to_cut_1to5yo, center=TRUE)
+du8$distance_to_cut_6to10yo_scale<-scale(du8$distance_to_cut_6to10yo, center=TRUE)
+du8$distance_to_cut_11to50yo_scale<-scale(du8$distance_to_cut_11to50yo, center=TRUE)
+
+model.lme4.du8.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale +
+                                        (distance_to_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale ||HERD_NAME) +
+                                        (distance_to_road_scale|year) +
+                                         (distance_to_cut_1to5yo_scale|year) +
+                                         (distance_to_cut_6to10yo_scale|year) +
+                                         (distance_to_cut_11to50yo_scale|year),
+                                      data = du8, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T)  
+ 
+
+summary(model.lme4.du8.cut.rd)
+Anova(model.lme4.du8.cut.rd,type="III")
 # check residuals
 binnedplot (fitted (model.lme4.du8.cut.rd), 
              residuals(model.lme4.du8.cut.rd, type = "response"), 
@@ -992,17 +1145,26 @@ The model included a statistically significant (p < 0.05), negative population-l
 
 ```{r, du9 model, echo = T, message = F, eval = F}
 # model spec
-model.lme4.du9.cut.rd <- glmer (pttype ~ distance_to_resource_road + # roads highly correlated with 10 to 40 yo cutblocks
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 +
-                                        (distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 || animal_id) +                                                                (distance_to_resource_road +
-                                         distance_to_cut_1to4 +
-                                         distance_to_cut_5to9 || HERD_NAME),
-                                      data = rsf.data.du9, 
+du9$distance_to_resource_road_scale<-scale(du9$distance_to_resource_road, center=TRUE, scale=TRUE)
+du9$distance_to_cut_1to5yo_scale<-scale(du9$distance_to_cut_1to5yo, center=TRUE, scale=TRUE)
+du9$distance_to_cut_6to10yo_scale<-scale(du9$distance_to_cut_6to10yo, center=TRUE, scale=TRUE)
+du9$distance_to_cut_11to50yo_scale<-scale(du9$distance_to_cut_11to50yo, center=TRUE, scale=TRUE)
+
+model.lme4.du9.cut.rd <- glmer (pttype ~ distance_to_resource_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale +
+                                        (distance_to_resource_road_scale +
+                                         distance_to_cut_1to5yo_scale +
+                                         distance_to_cut_6to10yo_scale +
+                                         distance_to_cut_11to50yo_scale || HERD_NAME),
+                                      data = du9, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
+
+
+summary(model.lme4.du9.cut.rd)
+Anova(model.lme4.du9.cut.rd,type="III")
 # check residuals
 binnedplot (fitted (model.lme4.du9.cut.rd), 
              residuals(model.lme4.du9.cut.rd, type = "response"), 
