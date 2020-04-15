@@ -19,6 +19,10 @@ library (here)
 library (magick)
 library (data.table)
 require (ggcorrplot)
+require (sf)
+require (RPostgreSQL)
+require (rpostgis)
+
 ```
 
 
@@ -48,8 +52,18 @@ I fit GLMMs with distance to cutblock and distance to road covariates as fixed e
 # load data
 
 
-Range_scale_data <- read.csv ("C:/Work/caribou/clus/R/range_scale_habitat_analysis/data/Range_scale_data.csv")
-#Range_scale_data<-rsf.large.scale.data.age2
+
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+Range_scale_data <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM caribou.dist_to_disturbance_summary")
+dbDisconnect (conn) # connKyle
+
+Range_scale_data<-st_set_geometry(Range_scale_data,NULL)
 
 #convert distances to km. I created distance rasters in QGIS in pixel (ha) scale so here I convert the number of pixels i.e. ha between points to km
 
@@ -282,18 +296,20 @@ du6$distance_to_cut_1to5yo_c<-du6$distance_to_cut_1to5yo-mean(du6$distance_to_cu
 du6$distance_to_cut_6to10yo_c<-du6$distance_to_cut_6to10yo-mean(du6$distance_to_cut_6to10yo)
 du6$distance_to_cut_11to40yo_c<-du6$distance_to_cut_11to40yo-mean(du6$distance_to_cut_11to40yo)
 
-model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road_c +
-                                         distance_to_cut_1to5yo_c +
-                                         distance_to_cut_6to10yo_c +
-                                         distance_to_cut_11to40yo_c +
-                                        (distance_to_road_c|HERD_NAME) +
-                                        (distance_to_cut_1to5yo_c|HERD_NAME) +
-                                        (distance_to_cut_6to10yo_c|HERD_NAME) +
-                                        (distance_to_cut_11to40yo_c|HERD_NAME) +
-                                        (distance_to_road_c|year) +
-                                        (distance_to_cut_1to5yo_c|year) +
-                                        (distance_to_cut_6to10yo_c|year) +
-                                        (distance_to_cut_11to40yo_c|year),
+# determined specification of model using Harrison et al.2018 (https://peerj.com/articles/4794/)
+
+model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road +
+                                         distance_to_cut_1to5yo +
+                                         distance_to_cut_6to10yo +
+                                         distance_to_cut_11to40yo +
+                                        (distance_to_road +
+                                         distance_to_cut_1to5yo +
+                                         distance_to_cut_6to10yo +
+                                         distance_to_cut_11to40yo || HERD_NAME) +
+                                        (distance_to_road +
+                                         distance_to_cut_1to5yo +
+                                         distance_to_cut_6to10yo +
+                                         distance_to_cut_11to40yo|year),
                                       data = du6, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
