@@ -145,19 +145,32 @@ setConstraints<- function(sim) {
        switch(
           as.character(query_parms[1, "type"]),
             ge = {
-              sql<-paste0("UPDATE pixels 
-                      SET zone_const = 1
-                      WHERE pixelid IN ( 
-                      SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
-                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
-                      LIMIT :limits);")
-              
+              if(as.character(query_parms[1, "variable"]) == 'dist' ){
+                num500<- dbGetQuery(sim$clusdb, paste0("select count(*) as count from pixels where dist > 500 and ", as.character(query_parms[1, "zone_column"]), " = ", query_parms[1, "zoneid"]))$count
+               print(num500)
+               print(query_parms$limits )
+                 if(num500 < query_parms$limits ){
+                  message(paste0(query_parms[1, "zoneid"]," in ",query_parms[1, "zone_column"], " surpassed disturbance threshold - shutting off harvesting"))
+                  query_parms[1, limits:= t_area] 
+                }
+                sql<-paste0("UPDATE pixels SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC, age DESC
+                        LIMIT :limits);")
+              }else{
+                sql<-paste0("UPDATE pixels 
+                        SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                            " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
+                        LIMIT :limits);")
+              }
               #Update pixels in clusdb for zonal constraints
               dbBegin(sim$clusdb)
               rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
               dbClearResult(rs)
               dbCommit(sim$clusdb)
-          
             },
             le = {
               if(as.character(query_parms[1, "variable"]) == 'eca' ){

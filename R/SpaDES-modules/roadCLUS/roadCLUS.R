@@ -73,15 +73,6 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       ## set seed ??
       #set.seed(sim$.seed)
       
-      if(P(sim)$roadMethod == 'pre'){ # Pre-solve the road network
-        sim <- preSolve(sim)
-        if(!is.null(sim$landings)){
-          sim <- getRoadSegment(sim)
-          sim <- addInitialRoadsTable(sim)
-        }
-       
-      }
-      
       # schedule future event(s)
       sim <- scheduleEvent(sim, eventTime =  time(sim) + P(sim, "roadCLUS", "roadSeqInterval"), "roadCLUS", "buildRoads", 7)
       sim <- scheduleEvent(sim, eventTime = end(sim),  "roadCLUS", "savePredRoads", eventPriority=9)
@@ -148,7 +139,23 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 
 Init <- function(sim) {
   sim <- getExistingRoads(sim) # Get the existing roads
-  if(!P(sim)$roadMethod == 'snap'){
+  
+  if(P(sim)$roadMethod == 'pre'){ # Pre-solve the road network
+    
+    if(length(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_master WHERE type='table' AND name='roadslist';")$name) == 0){ #already built the roadslist
+      sim <- getCostSurface(sim) # Get the cost surface
+      sim <- getGraph(sim) # build the graph
+      sim <- preSolve(sim)
+      if(!is.null(sim$landings)){
+        sim <- getRoadSegment(sim)
+        sim <- addInitialRoadsTable(sim)
+      }
+    }else{
+      sim$roadslist<-data.table(dbGetQuery(sim$clusdb, "select * from roadslist;"))
+    }
+  }
+  
+  if(P(sim)$roadMethod %in% c('mst', 'lst')){ #the other methods
     sim <- getCostSurface(sim) # Get the cost surface
     sim <- getGraph(sim) # build the graph
   }
@@ -211,9 +218,16 @@ getCostSurface<- function(sim){
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
   
   sim$costSurface[sim$costSurface[] == 0]<-0.00000000001 #giving some weight to roaded areas
+  
+  #Add in the age
+  age<-sim$ras
+  age[]<-dbGetQuery(sim$clusdb, "SELECT age from pixels order by pixelid;")$age
+  age[]<-(1/(age[] + 1))*800
+  
+  sim$costSurface <- sim$costSurface + age
   #writeRaster(sim$costSurface, file="cost.tif", format="GTiff", overwrite=TRUE)
   
-  rm(rds, costSurf)
+  rm(rds,age, costSurf)
   gc()
   return(invisible(sim))
 }
@@ -222,7 +236,7 @@ getClosestRoad <- function(sim){
   message('getClosestRoad')
   
   sim$roads.close.XY<-NULL
-  roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= 0})
+  roads.pts <- raster::rasterToPoints(sim$roads, fun=function(x){x >= -1})
   closest.roads.pts <-RANN::nn2(roads.pts[,1:2],coordinates(sim$landings), k =1) #package RANN function nn2 is much faster
   sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts$nn.idx, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
   
@@ -491,7 +505,15 @@ preSolve<-function(sim){
     data.table(landing = x[][]$name[length(x[][]$name)],road = toString(x[][]$name[]))
      }))
   
-  #TODO: store roadslist in clusdb? Maybe not....?
+  #TODO: store roadslist in clusdb
+  message("store road list in clusdb")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadslist ( landing integer,  road character )")
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "INSERT INTO roadslist (landing, road ) 
+                      values (:landing, :road)", sim$roadslist)
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
   return(invisible(sim)) 
 }
 
@@ -521,6 +543,7 @@ addInitialRoadsTable<- function(sim) {
   }
   
   sim$paths.v<-NULL
+  sim$landings<-NULL
   return(invisible(sim))
 } 
   

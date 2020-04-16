@@ -11,11 +11,129 @@ library(sf)
 library(data.table)
 source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 library(tidyverse)
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(getSpatialQuery("Select * from bc_carib_poly_20090904 limit 1"))$proj4string, resolution = c(100, 100), vals = 0)
 ```
 
 ## Purpose
 
 The critical habitat raster specifies the spatial zones used to summarize rsfCLUS outputs. In the case of caribou the critical habitats refer to core low elevation winter, core low elevation summer, core high elevation winter/summer, matrix etc.
+
+## BC line work
+
+```{r, sm.cg}
+#Canadian (Federal) contraints
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+
+#all
+all.bc<-bc.crit
+all.bc$crithab<-paste(all.bc$Herd_Name, all.bc$BCHab_code)
+all.vat<-data.table(unique(all.bc$crithab))
+setnames(all.vat, "V1", "crithab")
+all.vat[, value:= seq_len(.N)]
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "criticalhabitat_bc_vat"), value= all.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+all.bc2<-merge(all.bc, all.vat, by.x = "crithab",by.y = "crithab")
+
+ras.all.bc <-fasterize::fasterize(all.bc2, prov.rast, field = "value") #this is a
+writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+
+c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
+
+herds<-c("Barkerville","Wells_Gray_North","Wells_Gray_South","Itcha_Ilgachuz")
+for(herd in herds){
+  bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
+                                             herd,"',]")))
+  vat<-data.table(unique(bc.crit.selected$bchab_code))
+  setnames(vat, "V1", "crithab")
+  vat[, zoneid:= seq_len(.N)]
+  
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  DBI::dbWriteTable(conn, c("public", paste0("criticalhabitat_",tolower(herd),"_vat")), value= vat, row.names = FALSE, overwrite = TRUE)
+  dbDisconnect(conn)
+  
+  bc.crit.selected2 <-merge(bc.crit.selected, vat, by.x = "bchab_code",by.y = "crithab")
+  ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected2, prov.rast, field = "zoneid")
+
+  eccc.vat<-vat
+  eccc.vat[, reference_zone:= paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab')]
+  eccc.vat[, variable:= 'dist']
+  eccc.vat[, type:= 'ge']
+  eccc.vat[, ndt:= 0]
+  eccc.vat[, threshold:= 500]
+  eccc.vat[ crithab %in% c('Matrix'), percentage:= 85]
+  eccc.nh.zones<-eccc.vat[is.na(percentage), zoneid]
+  
+  ras.eccc<-ras.bc.crit.selected
+  ras.eccc[ras.eccc[] %in% eccc.nh.zones]<-0
+  
+  zone.eccc.crithab<-eccc.vat[!(zoneid %in% eccc.nh.zones),]
+  zone.eccc.crithab<-zone.eccc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage' )]
+  zone.eccc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+
+  zone.eccc.crithab<-rbindlist(list(zone.eccc.crithab, zone.eccc.crithab.nh))
+  writeRaster(ras.eccc, "rasecccrit.tif", overwrite = TRUE)
+
+  zone.eccc.crithab<-zone.eccc.crithab[,zoneid:=as.integer(zoneid)]
+  zone.eccc.crithab<-zone.eccc.crithab[,ndt:=as.integer(ndt)]
+  zone.eccc.crithab<-zone.eccc.crithab[,threshold:=as.numeric(threshold)]
+
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("public", paste0("zone_eccc_",tolower(herd),"_crithab")), value= zone.eccc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone_eccc_",tolower(herd),"_crithab INHERIT zone_constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasecccrit.tif -t 100x100', paste0(' rast.zone_cond_eccc_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+  bc.vat<-vat
+  bc.vat[, reference_zone:= paste0('rast.zone_cond_bc_', tolower(herd),'_crithab')]
+  bc.vat[, variable:= 'dist']
+  bc.vat[, type:= 'ge']
+  bc.vat[, threshold:= 500]
+  bc.vat[ crithab %in% c('Matrix'), percentage:= 65]
+  bc.vat[ crithab %in% c('Matrix'), threshold:= 0]
+  bc.vat[ crithab %in% c('LEWR', 'LEWSR'), percentage:= 85]
+  bc.nh.zones<-bc.vat[is.na(percentage), zoneid]
+  
+  ras.bc<-ras.bc.crit.selected
+  ras.bc[ras.bc[] %in% bc.nh.zones]<-0
+  writeRaster(ras.bc, "rasbccrit.tif", overwrite = TRUE)
+  
+  zone.bc.crithab<-bc.vat[!(zoneid %in% bc.nh.zones),]
+  zone.bc.crithab<-zone.bc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage' )]
+  zone.bc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_bc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+
+  zone.bc.crithab<-rbindlist(list(zone.bc.crithab, zone.bc.crithab.nh))
+  zone.bc.crithab<-zone.bc.crithab[,zoneid:=as.integer(zoneid)]
+  zone.bc.crithab<-zone.bc.crithab[,ndt:=as.integer(ndt)]
+  zone.bc.crithab<-zone.bc.crithab[,threshold:=as.numeric(threshold)]
+  
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("public", paste0("zone_bc_",tolower(herd),"_crithab")), value= zone.bc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone_bc_",tolower(herd),"_crithab INHERIT zone_constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasbccrit.tif -t 100x100', paste0(' rast.zone_cond_bc_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+}
+
+
+```
+
+---
+
+## Fed line work
 
 ## Southern Mountain
 
@@ -98,10 +216,7 @@ crit.vat[, critid:=seq_len(.N)]
 
 sm2<-merge(sm1, crit.vat)
 
-#rasterize the critical habitats
-prov.rast <- raster::raster(
-  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(sm.ng)$proj4string, resolution = c(100, 100), vals = 0)
+#rasterize the critical habitat
 
 ras.sm <-fasterize::fasterize(sm2, prov.rast, field = "critid") #this is a
 raster::plot(ras.sm)
@@ -141,8 +256,6 @@ test[, critid:= as.integer(substr(as.character(value), nchar(as.character(value)
 #get rid of the pixels that do not have a critical habitat
 remove<-test[critid == 0, value]
 ras.zone[ras.zone[] %in% remove]<-NA
-
-
 
 #create the value attribute table (vat)
 sm.vat<- test[!(critid == 0), ]
