@@ -48,56 +48,58 @@ rsf_tyler<-rsf_data_forestry[,c(1,7,6,8,3,10:59)]
 head(rsf.large.scale)
 head(rsf_tyler)
 
-rsf.large.scale$distance_to_cut_1yo<-rsf.large.scale$distance_to_cut_1yo*100
-rsf.large.scale$distance_to_cut_2yo<-rsf.large.scale$distance_to_cut_2yo*100
-rsf.large.scale$distance_to_cut_3yo<-rsf.large.scale$distance_to_cut_3yo*100
-rsf.large.scale$distance_to_cut_4yo<-rsf.large.scale$distance_to_cut_4yo*100
-rsf.large.scale$distance_to_cut_5yo<-rsf.large.scale$distance_to_cut_5yo*100
-rsf.large.scale$distance_to_cut_6yo<-rsf.large.scale$distance_to_cut_6yo*100
-rsf.large.scale$distance_to_cut_7yo<-rsf.large.scale$distance_to_cut_7yo*100
-rsf.large.scale$distance_to_cut_8yo<-rsf.large.scale$distance_to_cut_8yo*100
-rsf.large.scale$distance_to_cut_9yo<-rsf.large.scale$distance_to_cut_9yo*100
-rsf.large.scale$distance_to_cut_10yo<-rsf.large.scale$distance_to_cut_10yo*100
-rsf.large.scale$distance_to_cut_11yo<-rsf.large.scale$distance_to_cut_11yo*100
-rsf.large.scale$distance_to_cut_12yo<-rsf.large.scale$distance_to_cut_12yo*100
-rsf.large.scale$distance_to_cut_13yo<-rsf.large.scale$distance_to_cut_13yo*100
-rsf.large.scale$distance_to_cut_14yo<-rsf.large.scale$distance_to_cut_14yo*100
-rsf.large.scale$distance_to_cut_15yo<-rsf.large.scale$distance_to_cut_15yo*100
-rsf.large.scale$distance_to_cut_16yo<-rsf.large.scale$distance_to_cut_16yo*100
-rsf.large.scale$distance_to_cut_17yo<-rsf.large.scale$distance_to_cut_17yo*100
-rsf.large.scale$distance_to_cut_18yo<-rsf.large.scale$distance_to_cut_18yo*100
-rsf.large.scale$distance_to_cut_19yo<-rsf.large.scale$distance_to_cut_19yo*100
-rsf.large.scale$distance_to_cut_20yo<-rsf.large.scale$distance_to_cut_20yo*100
-rsf.large.scale$distance_to_cut_21yo<-rsf.large.scale$distance_to_cut_21yo*100
-rsf.large.scale$distance_to_cut_22yo<-rsf.large.scale$distance_to_cut_22yo*100
-rsf.large.scale$distance_to_cut_23yo<-rsf.large.scale$distance_to_cut_23yo*100
-rsf.large.scale$distance_to_cut_24yo<-rsf.large.scale$distance_to_cut_24yo*100
-rsf.large.scale$distance_to_cut_25yo<-rsf.large.scale$distance_to_cut_25yo*100
-rsf.large.scale$distance_to_cut_26yo<-rsf.large.scale$distance_to_cut_26yo*100
-rsf.large.scale$distance_to_cut_27yo<-rsf.large.scale$distance_to_cut_27yo*100
-rsf.large.scale$distance_to_cut_28yo<-rsf.large.scale$distance_to_cut_28yo*100
-rsf.large.scale$distance_to_cut_29yo<-rsf.large.scale$distance_to_cut_29yo*100
-rsf.large.scale$distance_to_cut_30yo<-rsf.large.scale$distance_to_cut_30yo*100
-rsf.large.scale$distance_to_cut_31yo<-rsf.large.scale$distance_to_cut_31yo*100
-rsf.large.scale$distance_to_cut_32yo<-rsf.large.scale$distance_to_cut_32yo*100
-rsf.large.scale$distance_to_cut_33yo<-rsf.large.scale$distance_to_cut_33yo*100
-rsf.large.scale$distance_to_cut_34yo<-rsf.large.scale$distance_to_cut_34yo*100
-rsf.large.scale$distance_to_cut_35yo<-rsf.large.scale$distance_to_cut_35yo*100
-rsf.large.scale$distance_to_cut_36yo<-rsf.large.scale$distance_to_cut_36yo*100
-rsf.large.scale$distance_to_cut_37yo<-rsf.large.scale$distance_to_cut_37yo*100
-rsf.large.scale$distance_to_cut_38yo<-rsf.large.scale$distance_to_cut_38yo*100
-rsf.large.scale$distance_to_cut_39yo<-rsf.large.scale$distance_to_cut_39yo*100
-rsf.large.scale$distance_to_cut_40yo<-rsf.large.scale$distance_to_cut_40yo*100
-rsf.large.scale$distance_to_cut_41yo<-rsf.large.scale$distance_to_cut_41yo*100
-rsf.large.scale$distance_to_cut_42yo<-rsf.large.scale$distance_to_cut_42yo*100
-rsf.large.scale$distance_to_cut_43yo<-rsf.large.scale$distance_to_cut_43yo*100
-rsf.large.scale$distance_to_cut_44yo<-rsf.large.scale$distance_to_cut_44yo*100
-rsf.large.scale$distance_to_cut_45yo<-rsf.large.scale$distance_to_cut_45yo*100
-rsf.large.scale$distance_to_cut_46yo<-rsf.large.scale$distance_to_cut_46yo*100
-rsf.large.scale$distance_to_cut_47yo<-rsf.large.scale$distance_to_cut_47yo*100
-rsf.large.scale$distance_to_cut_48yo<-rsf.large.scale$distance_to_cut_48yo*100
-rsf.large.scale$distance_to_cut_49yo<-rsf.large.scale$distance_to_cut_49yo*100
-rsf.large.scale$distance_to_cut_50yo<-rsf.large.scale$distance_to_cut_50yo*100
+rsf.large.scale<-rsf.large.scale.data.age
+
+rsf.large.scale$distance_to_cut_1yo<-rsf.large.scale$distance_to_cut_1yo/100
+rsf.large.scale$distance_to_cut_2yo<-rsf.large.scale$distance_to_cut_2yo/100
+rsf.large.scale$distance_to_cut_3yo<-rsf.large.scale$distance_to_cut_3yo/100
+rsf.large.scale$distance_to_cut_4yo<-rsf.large.scale$distance_to_cut_4yo/100
+rsf.large.scale$distance_to_cut_5yo<-rsf.large.scale$distance_to_cut_5yo/100
+rsf.large.scale$distance_to_cut_6yo<-rsf.large.scale$distance_to_cut_6yo/100
+rsf.large.scale$distance_to_cut_7yo<-rsf.large.scale$distance_to_cut_7yo/100
+rsf.large.scale$distance_to_cut_8yo<-rsf.large.scale$distance_to_cut_8yo/100
+rsf.large.scale$distance_to_cut_9yo<-rsf.large.scale$distance_to_cut_9yo/100
+rsf.large.scale$distance_to_cut_10yo<-rsf.large.scale$distance_to_cut_10yo/100
+rsf.large.scale$distance_to_cut_11yo<-rsf.large.scale$distance_to_cut_11yo/100
+rsf.large.scale$distance_to_cut_12yo<-rsf.large.scale$distance_to_cut_12yo/100
+rsf.large.scale$distance_to_cut_13yo<-rsf.large.scale$distance_to_cut_13yo/100
+rsf.large.scale$distance_to_cut_14yo<-rsf.large.scale$distance_to_cut_14yo/100
+rsf.large.scale$distance_to_cut_15yo<-rsf.large.scale$distance_to_cut_15yo/100
+rsf.large.scale$distance_to_cut_16yo<-rsf.large.scale$distance_to_cut_16yo/100
+rsf.large.scale$distance_to_cut_17yo<-rsf.large.scale$distance_to_cut_17yo/100
+rsf.large.scale$distance_to_cut_18yo<-rsf.large.scale$distance_to_cut_18yo/100
+rsf.large.scale$distance_to_cut_19yo<-rsf.large.scale$distance_to_cut_19yo/100
+rsf.large.scale$distance_to_cut_20yo<-rsf.large.scale$distance_to_cut_20yo/100
+rsf.large.scale$distance_to_cut_21yo<-rsf.large.scale$distance_to_cut_21yo/100
+rsf.large.scale$distance_to_cut_22yo<-rsf.large.scale$distance_to_cut_22yo/100
+rsf.large.scale$distance_to_cut_23yo<-rsf.large.scale$distance_to_cut_23yo/100
+rsf.large.scale$distance_to_cut_24yo<-rsf.large.scale$distance_to_cut_24yo/100
+rsf.large.scale$distance_to_cut_25yo<-rsf.large.scale$distance_to_cut_25yo/100
+rsf.large.scale$distance_to_cut_26yo<-rsf.large.scale$distance_to_cut_26yo/100
+rsf.large.scale$distance_to_cut_27yo<-rsf.large.scale$distance_to_cut_27yo/100
+rsf.large.scale$distance_to_cut_28yo<-rsf.large.scale$distance_to_cut_28yo/100
+rsf.large.scale$distance_to_cut_29yo<-rsf.large.scale$distance_to_cut_29yo/100
+rsf.large.scale$distance_to_cut_30yo<-rsf.large.scale$distance_to_cut_30yo/100
+rsf.large.scale$distance_to_cut_31yo<-rsf.large.scale$distance_to_cut_31yo/100
+rsf.large.scale$distance_to_cut_32yo<-rsf.large.scale$distance_to_cut_32yo/100
+rsf.large.scale$distance_to_cut_33yo<-rsf.large.scale$distance_to_cut_33yo/100
+rsf.large.scale$distance_to_cut_34yo<-rsf.large.scale$distance_to_cut_34yo/100
+rsf.large.scale$distance_to_cut_35yo<-rsf.large.scale$distance_to_cut_35yo/100
+rsf.large.scale$distance_to_cut_36yo<-rsf.large.scale$distance_to_cut_36yo/100
+rsf.large.scale$distance_to_cut_37yo<-rsf.large.scale$distance_to_cut_37yo/100
+rsf.large.scale$distance_to_cut_38yo<-rsf.large.scale$distance_to_cut_38yo/100
+rsf.large.scale$distance_to_cut_39yo<-rsf.large.scale$distance_to_cut_39yo/100
+rsf.large.scale$distance_to_cut_40yo<-rsf.large.scale$distance_to_cut_40yo/100
+rsf.large.scale$distance_to_cut_41yo<-rsf.large.scale$distance_to_cut_41yo/100
+rsf.large.scale$distance_to_cut_42yo<-rsf.large.scale$distance_to_cut_42yo/100
+rsf.large.scale$distance_to_cut_43yo<-rsf.large.scale$distance_to_cut_43yo/100
+rsf.large.scale$distance_to_cut_44yo<-rsf.large.scale$distance_to_cut_44yo/100
+rsf.large.scale$distance_to_cut_45yo<-rsf.large.scale$distance_to_cut_45yo/100
+rsf.large.scale$distance_to_cut_46yo<-rsf.large.scale$distance_to_cut_46yo/100
+rsf.large.scale$distance_to_cut_47yo<-rsf.large.scale$distance_to_cut_47yo/100
+rsf.large.scale$distance_to_cut_48yo<-rsf.large.scale$distance_to_cut_48yo/100
+rsf.large.scale$distance_to_cut_49yo<-rsf.large.scale$distance_to_cut_49yo/100
+rsf.large.scale$distance_to_cut_50yo<-rsf.large.scale$distance_to_cut_50yo/100
 
 rsf.large.scale<-st_set_geometry(rsf.large.scale,NULL)
 
@@ -106,45 +108,35 @@ write.csv(sample_data,"C:\\Work\\caribou\\clus\\R\\range_scale_habitat_analysis\
 dim(sample_data)
 names(sample_data)
 
-
+sample_data<-rsf.large.scale
 #====================================
-# Frequency plot of distance to cutblock by point type
+# Frequency plot of distance to cutblock by point type, du and year
 #===================================
 setwd("C:\\Work\\caribou\\clus_data\\disturbance\\Cutblock_figures")
 
 for (i in 1:50){
-   # cutblock_mean<- sample_data %>%
-   #   group_by(du, pttype) %>%
-   #   summarise(median_dist=(median(get(paste("distance_to_cut_",i,"yo",sep="")))))
-  # 
-  # P<-ggplot(sample_data, aes(x = get(paste("distance_to_cut_",i,"yo",sep="")))) + 
-  # theme_bw() +
-  # theme(text = element_text(size=14))+
-  # geom_histogram(bins=50) +
-  # facet_grid(pttype~.) +
-  # labs(y="Frequency", x="Distance to cutblocks (m)")+
-  #   ggtitle(paste("Distance to cut in year", i))+
-  # geom_vline(data=cutblock_mean, aes(xintercept=median_dist))
 
-  
   plot2 <- ggplot(sample_data, aes(x = get(paste("distance_to_cut_",i,"yo",sep="")),fill=as.factor(pttype))) +
     theme_bw() +
     geom_density(position="identity",alpha=0.6) +
     facet_grid(du~.) +
     scale_fill_brewer(palette="Accent")+
-    scale_x_continuous(name="Distance to cutblocks (m)",limits=c(0, 300000)) +
+    scale_x_continuous(name="Distance to cutblocks (m)") +
     scale_y_continuous(name = "Density") + 
     ggtitle(paste("Distance to cut in year", i))
    # geom_vline(xintercept=cutblock_mean$median_dist, size=1,colour="black",linetype="dashed")
 
-#nam<-paste("dist_to_cut",i,"pdf",sep=".")
-nam2<-paste("density.plot.year",i,"jpeg",sep=".")
+nam<-paste("dist_to_cut",i,"pdf",sep=".")
+#nam2<-paste("density.plot.year",i,"jpeg",sep=".")
 #assign(nam,P)
-assign(nam2,plot2)
+assign(nam,plot2)
 
-ggsave(nam2)
+ggsave(nam)
 }
 
+#======================================
+#Making a table of the difference between the mean distance of cutblocks used versus available. My thinking was that a possitive value indicated avoidance, zero = no preference and negative = using areas closer to cutblocks more frequently than they are available.
+#======================================
 
 table.diff.dist <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.diff.dist) <- c ("cutblock_age", "du6","du7","du8","du9")
@@ -154,7 +146,7 @@ for (i in 1:50){
 
 cutblock_mean<- sample_data %>%
      group_by(du,pttype) %>%
-     summarise(mean_dist=(mean(get(paste("distance_to_cut_",i,"yo",sep="")))),
+     summarise(median_dist=(mean(get(paste("distance_to_cut_",i,"yo",sep="")))),
                sd_dist=sd(get(paste("distance_to_cut_",i,"yo",sep=""))),
                n_dist = sum(count),
                se_dist=sd_dist/sqrt(n_dist))
@@ -190,8 +182,6 @@ colnames (table.glm.summary) <- c ("Years_Old", "Coefficient", "AIC", "p-values"
 
 # analysis for all data together
 for (i in 1:50) {
-  
-  
 var1<-paste("distance_to_cut_",i,"yo",sep="")
 
 m1<-glm(pttype ~ get(var1), 

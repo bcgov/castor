@@ -56,12 +56,12 @@ hab_locations <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM caribou.bc_caribou_samp_pnts_herd_boundaries")
 dbDisconnect (conn) # connKyle
 
-hab_locations<-samp_locations_df
+hab_locations<-samp_locations_Tyler_points_df
 names(hab_locations)
 hab_locations$ECOTYPE<-hab_locations$avail.ecotype
 
 hab_locations$ptID<-(max(points_used$ptID)+1):(max(points_used$ptID)+length(hab_locations$HERD_NAME))
-hab_locations$pttype<-0
+hab_locations$pttype<-1
 
 hab_locations2<-hab_locations[,c(7:9,3:5)]
 names(hab_locations2)
@@ -69,7 +69,7 @@ hab_locations2<-st_transform(hab_locations2,3005)
 
 
 #----------------------------------------------------------
-#Join Tylers points to my points with distance to cutblocks
+#Join Tylers points to my points if using Tylers sampled points with distance to cutblocks
 #----------------------------------------------------------
 
 rsf_locations_caribou_bc<-st_read(dsn="C:\\Work\\caribou\\clus_data\\rsf_locations_caribou_bc.shp", stringsAsFactors = T)
@@ -115,7 +115,7 @@ for (i in 1:length(x)){
                            factors = T, df = T, sp = T)
   #names (rsf.large.locations) [7] <- y[i]
   
-  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (1, 7)], 
+  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (2, 7)], 
                                             by = c ("ptID" = "ptID")) 
   rm (foo)
   rm(foo2)
@@ -132,7 +132,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    port = "5432")
 st_write (obj = rsf.large.scale.data, 
           dsn = conn, 
-          layer = c ("caribou", "dist_to_cutblocks_per_year_Liz_and_Tyler_points"),
+          layer = c ("caribou", "dist_to_cutblocks_per_year_Tyler_points"),
           overwrite=TRUE)
 dbDisconnect (conn)  
 
@@ -153,7 +153,7 @@ for (i in 1:length(x)){
                            factors = T, df = T, sp = T)
   #names (rsf.large.locations) [7] <- y[i]
   
-  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (1, 7)], 
+  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (2, 7)], 
                                             by = c ("ptID" = "ptID")) 
   # rm (foo)
   # rm(foo2)
@@ -170,7 +170,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    port = "5432")
 st_write (obj = rsf.large.scale.data, 
           dsn = conn, 
-          layer = c ("caribou", "dist_to_disturbance2"),
+          layer = c ("caribou", "dist_to_disturbance2_tyler_points"),
           overwrite=TRUE)
 dbDisconnect (conn)  
 
@@ -179,6 +179,8 @@ write.csv (rsf.large.scale.data, "C:\\Work\\caribou\\clus_data\\rsf_large_scale_
 #===================================================
 # Cutblocks
 #===================================================
+
+rsf.large.scale.data_tyler<-rsf.large.scale.data
 
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -190,6 +192,9 @@ rsf.large.scale.data <- sf::st_read  (dsn = conn,
                                       query = "SELECT * FROM caribou.dist_to_disturbance2")
 dbDisconnect (conn) # connKyle
 
+Used_available_points<-rbind(rsf.large.scale.data,rsf.large.scale.data_tyler)
+
+rsf.large.scale.data<-Used_available_points
 
 rsf.large.scale.data$distance_to_cut_1yo <- ifelse (rsf.large.scale.data$year == 2018, rsf.large.scale.data$dist_rast_cutblocks_2017, ifelse (rsf.large.scale.data$year == 2017, rsf.large.scale.data$dist_rast_cutblocks_2016, ifelse (rsf.large.scale.data$year == 2016, rsf.large.scale.data$dist_rast_cutblocks_2015, ifelse (rsf.large.scale.data$year == 2015, rsf.large.scale.data$dist_rast_cutblocks_2014, ifelse (rsf.large.scale.data$year == 2014, rsf.large.scale.data$dist_rast_cutblocks_2013, ifelse (rsf.large.scale.data$year == 2013, rsf.large.scale.data$dist_rast_cutblocks_2012, ifelse (rsf.large.scale.data$year == 2012, rsf.large.scale.data$dist_rast_cutblocks_2011, ifelse (rsf.large.scale.data$year == 2011, rsf.large.scale.data$dist_rast_cutblocks_2010, ifelse (rsf.large.scale.data$year == 2010, rsf.large.scale.data$dist_rast_cutblocks_2009, ifelse (rsf.large.scale.data$year == 2009, rsf.large.scale.data$dist_rast_cutblocks_2008, rsf.large.scale.data$dist_rast_cutblocks_2007))))))))))
 
@@ -312,6 +317,4 @@ dbDisconnect (conn)
 rsf.large.scale.data.age2<-st_set_geometry(rsf.large.scale.data.age,NULL)
 write.csv (rsf.large.scale.data.age2, "C:\\Work\\caribou\\clus\\R\\range_scale_habitat_analysis\\data\\Range_scale_data.csv")
 
-
-Range_scale_data<-rsf.large.scale.data.age2
 

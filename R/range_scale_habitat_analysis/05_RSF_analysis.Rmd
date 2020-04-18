@@ -63,117 +63,115 @@ Range_scale_data <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM caribou.dist_to_disturbance_summary")
 dbDisconnect (conn) # connKyle
 
-Range_scale_data<-st_set_geometry(Range_scale_data,NULL)
+Range_scale_data1<-st_set_geometry(Range_scale_data,NULL)
 
 #convert distances to km. I created distance rasters in QGIS in pixel (ha) scale so here I convert the number of pixels i.e. ha between points to km
 
-Range_scale_data$distance_to_cut_1yo<-Range_scale_data$distance_to_cut_1yo/100
-Range_scale_data$distance_to_cut_2yo<-Range_scale_data$distance_to_cut_2yo/100
-Range_scale_data$distance_to_cut_3yo<-Range_scale_data$distance_to_cut_3yo/100
-Range_scale_data$distance_to_cut_4yo<-Range_scale_data$distance_to_cut_4yo/100
-Range_scale_data$distance_to_cut_5yo<-Range_scale_data$distance_to_cut_5yo/100
-Range_scale_data$distance_to_cut_6yo<-Range_scale_data$distance_to_cut_6yo/100
-Range_scale_data$distance_to_cut_7yo<-Range_scale_data$distance_to_cut_7yo/100
-Range_scale_data$distance_to_cut_8yo<-Range_scale_data$distance_to_cut_8yo/100
-Range_scale_data$distance_to_cut_9yo<-Range_scale_data$distance_to_cut_9yo/100
-Range_scale_data$distance_to_cut_10yo<-Range_scale_data$distance_to_cut_10yo/100
-Range_scale_data$distance_to_cut_11yo<-Range_scale_data$distance_to_cut_11yo/100
-Range_scale_data$distance_to_cut_12yo<-Range_scale_data$distance_to_cut_12yo/100
-Range_scale_data$distance_to_cut_13yo<-Range_scale_data$distance_to_cut_13yo/100
-Range_scale_data$distance_to_cut_14yo<-Range_scale_data$distance_to_cut_14yo/100
-Range_scale_data$distance_to_cut_15yo<-Range_scale_data$distance_to_cut_15yo/100
-Range_scale_data$distance_to_cut_16yo<-Range_scale_data$distance_to_cut_16yo/100
-Range_scale_data$distance_to_cut_17yo<-Range_scale_data$distance_to_cut_17yo/100
-Range_scale_data$distance_to_cut_18yo<-Range_scale_data$distance_to_cut_18yo/100
-Range_scale_data$distance_to_cut_19yo<-Range_scale_data$distance_to_cut_19yo/100
-Range_scale_data$distance_to_cut_20yo<-Range_scale_data$distance_to_cut_20yo/100
-Range_scale_data$distance_to_cut_21yo<-Range_scale_data$distance_to_cut_21yo/100
-Range_scale_data$distance_to_cut_22yo<-Range_scale_data$distance_to_cut_22yo/100
-Range_scale_data$distance_to_cut_23yo<-Range_scale_data$distance_to_cut_23yo/100
-Range_scale_data$distance_to_cut_24yo<-Range_scale_data$distance_to_cut_24yo/100
-Range_scale_data$distance_to_cut_25yo<-Range_scale_data$distance_to_cut_25yo/100
-Range_scale_data$distance_to_cut_26yo<-Range_scale_data$distance_to_cut_26yo/100
-Range_scale_data$distance_to_cut_27yo<-Range_scale_data$distance_to_cut_27yo/100
-Range_scale_data$distance_to_cut_28yo<-Range_scale_data$distance_to_cut_28yo/100
-Range_scale_data$distance_to_cut_29yo<-Range_scale_data$distance_to_cut_29yo/100
-Range_scale_data$distance_to_cut_30yo<-Range_scale_data$distance_to_cut_30yo/100
-Range_scale_data$distance_to_cut_31yo<-Range_scale_data$distance_to_cut_31yo/100
-Range_scale_data$distance_to_cut_32yo<-Range_scale_data$distance_to_cut_32yo/100
-Range_scale_data$distance_to_cut_33yo<-Range_scale_data$distance_to_cut_33yo/100
-Range_scale_data$distance_to_cut_34yo<-Range_scale_data$distance_to_cut_34yo/100
-Range_scale_data$distance_to_cut_35yo<-Range_scale_data$distance_to_cut_35yo/100
-Range_scale_data$distance_to_cut_36yo<-Range_scale_data$distance_to_cut_36yo/100
-Range_scale_data$distance_to_cut_37yo<-Range_scale_data$distance_to_cut_37yo/100
-Range_scale_data$distance_to_cut_38yo<-Range_scale_data$distance_to_cut_38yo/100
-Range_scale_data$distance_to_cut_39yo<-Range_scale_data$distance_to_cut_39yo/100
-Range_scale_data$distance_to_cut_40yo<-Range_scale_data$distance_to_cut_40yo/100
-Range_scale_data$distance_to_cut_41yo<-Range_scale_data$distance_to_cut_41yo/100
-Range_scale_data$distance_to_cut_42yo<-Range_scale_data$distance_to_cut_42yo/100
-Range_scale_data$distance_to_cut_43yo<-Range_scale_data$distance_to_cut_43yo/100
-Range_scale_data$distance_to_cut_44yo<-Range_scale_data$distance_to_cut_44yo/100
-Range_scale_data$distance_to_cut_45yo<-Range_scale_data$distance_to_cut_45yo/100
-Range_scale_data$distance_to_cut_46yo<-Range_scale_data$distance_to_cut_46yo/100
-Range_scale_data$distance_to_cut_47yo<-Range_scale_data$distance_to_cut_47yo/100
-Range_scale_data$distance_to_cut_48yo<-Range_scale_data$distance_to_cut_48yo/100
-Range_scale_data$distance_to_cut_49yo<-Range_scale_data$distance_to_cut_49yo/100
-Range_scale_data$distance_to_cut_50yo<-Range_scale_data$distance_to_cut_50yo/100
-Range_scale_data$dist_crds_resource<-Range_scale_data$dist_crds_resource/100
-Range_scale_data$dist_crds_loose<-Range_scale_data$dist_crds_loose/100
-Range_scale_data$dist_crds_paved<-Range_scale_data$dist_crds_paved/100
-Range_scale_data$dist_crds_petroleum<-Range_scale_data$dist_crds_petroleum/100
-Range_scale_data$dist_crds_rough<-Range_scale_data$dist_crds_rough/100
-Range_scale_data$dist_crds_trim_transport<-Range_scale_data$dist_crds_trim_transport/100
-Range_scale_data$dist_crds_unknown<-Range_scale_data$dist_crds_unknown/100
+Range_scale_data1$distance_to_cut_1yo<-Range_scale_data1$distance_to_cut_1yo/100
+Range_scale_data1$distance_to_cut_2yo<-Range_scale_data1$distance_to_cut_2yo/100
+Range_scale_data1$distance_to_cut_3yo<-Range_scale_data1$distance_to_cut_3yo/100
+Range_scale_data1$distance_to_cut_4yo<-Range_scale_data1$distance_to_cut_4yo/100
+Range_scale_data1$distance_to_cut_5yo<-Range_scale_data1$distance_to_cut_5yo/100
+Range_scale_data1$distance_to_cut_6yo<-Range_scale_data1$distance_to_cut_6yo/100
+Range_scale_data1$distance_to_cut_7yo<-Range_scale_data1$distance_to_cut_7yo/100
+Range_scale_data1$distance_to_cut_8yo<-Range_scale_data1$distance_to_cut_8yo/100
+Range_scale_data1$distance_to_cut_9yo<-Range_scale_data1$distance_to_cut_9yo/100
+Range_scale_data1$distance_to_cut_10yo<-Range_scale_data1$distance_to_cut_10yo/100
+Range_scale_data1$distance_to_cut_11yo<-Range_scale_data1$distance_to_cut_11yo/100
+Range_scale_data1$distance_to_cut_12yo<-Range_scale_data1$distance_to_cut_12yo/100
+Range_scale_data1$distance_to_cut_13yo<-Range_scale_data1$distance_to_cut_13yo/100
+Range_scale_data1$distance_to_cut_14yo<-Range_scale_data1$distance_to_cut_14yo/100
+Range_scale_data1$distance_to_cut_15yo<-Range_scale_data1$distance_to_cut_15yo/100
+Range_scale_data1$distance_to_cut_16yo<-Range_scale_data1$distance_to_cut_16yo/100
+Range_scale_data1$distance_to_cut_17yo<-Range_scale_data1$distance_to_cut_17yo/100
+Range_scale_data1$distance_to_cut_18yo<-Range_scale_data1$distance_to_cut_18yo/100
+Range_scale_data1$distance_to_cut_19yo<-Range_scale_data1$distance_to_cut_19yo/100
+Range_scale_data1$distance_to_cut_20yo<-Range_scale_data1$distance_to_cut_20yo/100
+Range_scale_data1$distance_to_cut_21yo<-Range_scale_data1$distance_to_cut_21yo/100
+Range_scale_data1$distance_to_cut_22yo<-Range_scale_data1$distance_to_cut_22yo/100
+Range_scale_data1$distance_to_cut_23yo<-Range_scale_data1$distance_to_cut_23yo/100
+Range_scale_data1$distance_to_cut_24yo<-Range_scale_data1$distance_to_cut_24yo/100
+Range_scale_data1$distance_to_cut_25yo<-Range_scale_data1$distance_to_cut_25yo/100
+Range_scale_data1$distance_to_cut_26yo<-Range_scale_data1$distance_to_cut_26yo/100
+Range_scale_data1$distance_to_cut_27yo<-Range_scale_data1$distance_to_cut_27yo/100
+Range_scale_data1$distance_to_cut_28yo<-Range_scale_data1$distance_to_cut_28yo/100
+Range_scale_data1$distance_to_cut_29yo<-Range_scale_data1$distance_to_cut_29yo/100
+Range_scale_data1$distance_to_cut_30yo<-Range_scale_data1$distance_to_cut_30yo/100
+Range_scale_data1$distance_to_cut_31yo<-Range_scale_data1$distance_to_cut_31yo/100
+Range_scale_data1$distance_to_cut_32yo<-Range_scale_data1$distance_to_cut_32yo/100
+Range_scale_data1$distance_to_cut_33yo<-Range_scale_data1$distance_to_cut_33yo/100
+Range_scale_data1$distance_to_cut_34yo<-Range_scale_data1$distance_to_cut_34yo/100
+Range_scale_data1$distance_to_cut_35yo<-Range_scale_data1$distance_to_cut_35yo/100
+Range_scale_data1$distance_to_cut_36yo<-Range_scale_data1$distance_to_cut_36yo/100
+Range_scale_data1$distance_to_cut_37yo<-Range_scale_data1$distance_to_cut_37yo/100
+Range_scale_data1$distance_to_cut_38yo<-Range_scale_data1$distance_to_cut_38yo/100
+Range_scale_data1$distance_to_cut_39yo<-Range_scale_data1$distance_to_cut_39yo/100
+Range_scale_data1$distance_to_cut_40yo<-Range_scale_data1$distance_to_cut_40yo/100
+Range_scale_data1$distance_to_cut_41yo<-Range_scale_data1$distance_to_cut_41yo/100
+Range_scale_data1$distance_to_cut_42yo<-Range_scale_data1$distance_to_cut_42yo/100
+Range_scale_data1$distance_to_cut_43yo<-Range_scale_data1$distance_to_cut_43yo/100
+Range_scale_data1$distance_to_cut_44yo<-Range_scale_data1$distance_to_cut_44yo/100
+Range_scale_data1$distance_to_cut_45yo<-Range_scale_data1$distance_to_cut_45yo/100
+Range_scale_data1$distance_to_cut_46yo<-Range_scale_data1$distance_to_cut_46yo/100
+Range_scale_data1$distance_to_cut_47yo<-Range_scale_data1$distance_to_cut_47yo/100
+Range_scale_data1$distance_to_cut_48yo<-Range_scale_data1$distance_to_cut_48yo/100
+Range_scale_data1$distance_to_cut_49yo<-Range_scale_data1$distance_to_cut_49yo/100
+Range_scale_data1$distance_to_cut_50yo<-Range_scale_data1$distance_to_cut_50yo/100
+Range_scale_data1$dist_crds_resource<-Range_scale_data1$dist_crds_resource/100
+Range_scale_data1$dist_crds_loose<-Range_scale_data1$dist_crds_loose/100
+Range_scale_data1$dist_crds_paved<-Range_scale_data1$dist_crds_paved/100
+Range_scale_data1$dist_crds_petroleum<-Range_scale_data1$dist_crds_petroleum/100
+Range_scale_data1$dist_crds_rough<-Range_scale_data1$dist_crds_rough/100
+Range_scale_data1$dist_crds_trim_transport<-Range_scale_data1$dist_crds_trim_transport/100
+Range_scale_data1$dist_crds_unknown<-Range_scale_data1$dist_crds_unknown/100
 
-Range_scale_data$cnt<-1
+Range_scale_data1$cnt<-1
 
-#Range_scale_data$distance_to_resource_road<-Range_scale_data$dist_crds_resource
-#Range_scale_data$distance_to_resource_road_log<-log(Range_scale_data$distance_to_resource_road+0.00001)
+#Range_scale_data1$distance_to_resource_road<-Range_scale_data1$dist_crds_resource
+#Range_scale_data1$distance_to_resource_road_log<-log(Range_scale_data1$distance_to_resource_road+0.00001)
 
 
 # Binning the data into groups that are less correlated
-Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_1to5yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo))
+Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_1to5yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo))
 
-Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_6to10yo = pmin (distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo))
+Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_6to10yo = pmin (distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo))
 
-Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_11to40yo = pmin (distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo,distance_to_cut_15yo,distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo, distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
+Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_11to40yo = pmin (distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo,distance_to_cut_15yo,distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo, distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
 
-Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_road = pmin (dist_crds_resource, dist_crds_paved,  dist_crds_petroleum))
+Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_road = pmin (dist_crds_resource, dist_crds_paved,  dist_crds_petroleum))
 
-#Range_scale_data <- dplyr::mutate (Range_scale_data, distance_to_cut_21to50 = pmin (distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo, distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo, distance_to_cut_41yo, distance_to_cut_42yo, distance_to_cut_43yo, distance_to_cut_44yo, distance_to_cut_45yo, distance_to_cut_46yo, distance_to_cut_47yo, distance_to_cut_48yo, distance_to_cut_49yo, distance_to_cut_50yo))
-
-dist.cut.corr <- (Range_scale_data [c (66:69)])
+dist.cut.corr <- (Range_scale_data1 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "All Data Distance to Cutblock Correlation")
 
-du6<- Range_scale_data %>% filter(du=="du6")
-dist.cut.corr <- (du6 [c (66:69)])
+du6<- Range_scale_data1 %>% filter(du=="du6")
+dist.cut.corr <- (du6 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU6 Distance to Cutblock Correlation")
 
 
-du7<- Range_scale_data %>% filter(du=="du7")
-dist.cut.corr <- (du6 [c (66:69)])
+du7<- Range_scale_data1 %>% filter(du=="du7")
+dist.cut.corr <- (du7 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU7 Distance to Cutblock Correlation")
 
 
-du8<- Range_scale_data %>% filter(du=="du8")
-dist.cut.corr <- (du6 [c (66:69)])
+du8<- Range_scale_data1 %>% filter(du=="du8")
+dist.cut.corr <- (du8 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU8 Distance to Cutblock Correlation")
 
 
-du9<- Range_scale_data %>% filter(du=="du9")
-dist.cut.corr <- (du6 [c (66:69)])
+du9<- Range_scale_data1 %>% filter(du=="du9")
+dist.cut.corr <- (du9 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
@@ -183,7 +181,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 
 ## Results
 ### DU6
-In DU6, the home ranges of individual animals were calculated from 160 animals from the Calendar, Chinchaga, Maxhamish, Parker and Prophet (now grouped together and known as Westside Fort Nelson), and Snake-Sahtaneh herds. .
+In DU6, the home ranges of individual animals were calculated from 160 animals from the Calendar, Chinchaga, Maxhamish, Parker and Prophet (now grouped together and known as Westside Fort Nelson), and Snake-Sahtaneh herds.
 
 ```{r, du6, data summary, eval = T, echo = F, message = F, eval = T}
 # number of animals, by herd
@@ -223,12 +221,12 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-Overall there was a slight tendency for caribou in DU 6 to avoid roads but this relationship was not signficant (fig 2). For example, caribou in the Chinchaga, Maxhamish, Parker and Prophet herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Calendar and Snake-Sahtaneh. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
+Overall there was a slight tendency for caribou in DU 6 to avoid roads but this relationship was not signficant (fig 1). For example, caribou in the Chinchaga, Maxhamish, Parker and Prophet herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Calendar and Snake-Sahtaneh. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
 
 ```{r, du6 Herd road effect plot, echo = F, message = F, eval = T}
 p=ggplot (du6, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 2. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6",
+  labs (title = "Figure 1. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6",
         x = "Available (0) and used (1) locations",
         y = "Distance to road (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
@@ -243,12 +241,12 @@ p + coord_cartesian(ylim = c(0,ylim1[2]+15))
 
 ```
 
-There was a non-significant tendency for caribou to avoid to 1 to 5 year old cutblocks in DU6 (Fig. 3). For example, caribou in all herds except Prophet tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Prophet herd showed no preference or avoidance of 1 to 5 year old cutblocks. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
+There was a non-significant tendency for caribou to avoid to 1 to 5 year old cutblocks in DU6 (Fig. 2). For example, caribou in all herds except Calendar tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Calendar herd showed no preference or avoidance of 1 to 5 year old cutblocks. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
 
 ```{r, du6 Herd cutblock 1to4yo effect plot, echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 3. Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
+  labs (title = "Figure 2. Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
         x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
@@ -256,12 +254,12 @@ ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
          plot.title = element_text (size = 12))
 ```
 
-There was variability in the response of caribou herds to 6 to 10 year old cutblocks in DU6 (Fig. 4). Caribou in the Chinchaga, Maxhamish, Parker, and Snake-Sahtaneh herds were further from 6 to 10 year old cutblocks than what was available on average in their home range. In contrast Calendar and Prophet were slightly closer to 5 to 10 year old cutblocks than what was available on average. A random effect for distance to 6 to 10 year old cutblocks was included in the GLMM to account for this variability.
+There was variability in the response of caribou herds to 6 to 10 year old cutblocks in DU6 (Fig. 3). Caribou in the Chinchaga, Maxhamish, Parker, and Snake-Sahtaneh herds were further from 6 to 10 year old cutblocks than what was available on average in their home range. In contrast Calendar and Prophet were slightly closer to 5 to 10 year old cutblocks than what was available on average. A random effect for distance to 6 to 10 year old cutblocks was included in the GLMM to account for this variability.
 
 ```{r, du6 Herd cutblock 5to9yo effect plot, echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 4. Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
+  labs (title = "Figure 3. Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
         x = "Available (0) and used (1) locations",
         y = "Distance to cutblock(km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
@@ -269,12 +267,12 @@ ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
          plot.title = element_text (size = 12))
 ```
 
-All Caribou herds were further from 11 to 50 years old cutblocks than what was available on average in DU6 (Fig. 5). Although the trends were similar across herds the degree of this difference varied thus a random effect for distance to 11 to 50 year old cutblocks was included in the GLMM.
+All Caribou herds were further from 11 to 40 years old cutblocks than what was available on average in DU6 (Fig. 4). Although the trends were similar across herds the degree of this difference varied thus a random effect for distance to 11 to 50 year old cutblocks was included in the GLMM.
 
 ```{r, du6 Herd cutblock 10to40yo effect plot, echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 5. Distance to 11 to 50 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
+  labs (title = "Figure 4. Distance to 11 to 50 year old cutblock at available (0) and used (1) locations by caribou herds in DU6",
         x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
@@ -291,25 +289,22 @@ There was a statistically significant (p-value < 0.05), negative population-leve
 # varying intercept and slope for each factor. Essentially I am assuming that a increase in 1 of resource road is not the same in each herd (slopes are allowed to vary)
 
 # Centering the input variables. I did not scale them because it makes interpreting the coefficients more difficult.
-du6$distance_to_road_c<-du6$distance_to_road-mean(du6$distance_to_road)
-du6$distance_to_cut_1to5yo_c<-du6$distance_to_cut_1to5yo-mean(du6$distance_to_cut_1to5yo)
-du6$distance_to_cut_6to10yo_c<-du6$distance_to_cut_6to10yo-mean(du6$distance_to_cut_6to10yo)
-du6$distance_to_cut_11to40yo_c<-du6$distance_to_cut_11to40yo-mean(du6$distance_to_cut_11to40yo)
+du6$distance_to_road_s<-scale(du6$distance_to_road)
+du6$distance_to_cut_1to5yo_s<-scale(du6$distance_to_cut_1to5yo)
+du6$distance_to_cut_6to10yo_s<-scale(du6$distance_to_cut_6to10yo)
+du6$distance_to_cut_11to40yo_s<-scale(du6$distance_to_cut_11to40yo)
 
 # determined specification of model using Harrison et al.2018 (https://peerj.com/articles/4794/)
 
-model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road +
-                                         distance_to_cut_1to5yo +
-                                         distance_to_cut_6to10yo +
-                                         distance_to_cut_11to40yo +
-                                        (distance_to_road +
-                                         distance_to_cut_1to5yo +
-                                         distance_to_cut_6to10yo +
-                                         distance_to_cut_11to40yo || HERD_NAME) +
-                                        (distance_to_road +
-                                         distance_to_cut_1to5yo +
-                                         distance_to_cut_6to10yo +
-                                         distance_to_cut_11to40yo|year),
+model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road_s +
+                                         distance_to_cut_1to5yo_s +
+                                         distance_to_cut_6to10yo_s +
+                                         distance_to_cut_11to40yo_s +
+                                        (distance_to_road_s +
+                                         distance_to_cut_1to5yo_s +
+                                         distance_to_cut_6to10yo_s +
+                                         distance_to_cut_11to40yo_s || HERD_NAME) +
+                                        (1|year),
                                       data = du6, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
@@ -325,7 +320,7 @@ binnedplot (fitted (model.lme4.du6.cut.rd.yr),
              col.pts = 1, 
              col.int = "red")
 
-binnedplot (du6$distance_to_cut_1to5yo_scale, 
+binnedplot (du6$distance_to_cut_1to5yo, 
              residuals(model.lme4.du6.cut.rd.yr, type = "response"), 
              nclass = NULL, 
              xlab = "Distance to Cut 1 to 5 years old", 
@@ -335,7 +330,7 @@ binnedplot (du6$distance_to_cut_1to5yo_scale,
              col.pts = 1, 
              col.int = "red")
 
-binnedplot (du6$distance_to_road_c, 
+binnedplot (du6$distance_to_road, 
              residuals(model.lme4.du6.cut.rd.yr, type = "response"), 
              nclass = NULL, 
              xlab = "Distance to Road", 
@@ -345,7 +340,7 @@ binnedplot (du6$distance_to_road_c,
              col.pts = 1, 
              col.int = "red")
 
-binnedplot (du6$distance_to_cut_6to10yo_c, 
+binnedplot (du6$distance_to_cut_6to10yo, 
              residuals(model.lme4.du6.cut.rd.yr, type = "response"), 
              nclass = NULL, 
              xlab = "Distance to 6 to 10 year old cutblocks", 
@@ -355,8 +350,8 @@ binnedplot (du6$distance_to_cut_6to10yo_c,
              col.pts = 1, 
              col.int = "red")
 
-binnedplot (du6$distance_to_cut_11to40yo_c, 
-             residuals(model.lme4.du6.cut.rd.yr2, type = "response"), 
+binnedplot (du6$distance_to_cut_11to40yo, 
+             residuals(model.lme4.du6.cut.rd.yr), 
              nclass = NULL, 
              xlab = "Distance to 11 to 50 year old cutblocks", 
              ylab = "Average residual", 
@@ -364,6 +359,12 @@ binnedplot (du6$distance_to_cut_11to40yo_c,
              cex.pts = 0.4, 
              col.pts = 1, 
              col.int = "red")
+
+plot(pttype~distance_to_road,
+     data=du6,
+     xlab="Distance to road (km)",
+     ylab="Probability of used",
+     pch=19)
 
 summary(model.lme4.du6.cut.rd.yr)
 Anova(model.lme4.du6.cut.rd.yr,type="III")
@@ -412,7 +413,7 @@ kable (table.glm.summary.du6,
 
 ```
 
-Random effects in the DU6 model indicated that caribou consitently avoided roads across herds (Table 3, Fig. 6). There was consistency in caribou response to cutblocks across herds (Table 3, Fig. 7, Fig. 8, Fig. 9). Caribou consistently used areas near 1 to 9 year old cutblocks and avoided 10 to 40 year old cutblocks.
+Random effects in the DU6 model indicated that caribou consitently avoided roads across herds (Table 3, Fig. 5). There was consistency in caribou response to cutblocks across herds (Table 3, Fig. 6, Fig. 7, Fig. 8). Caribou consistently used areas near 1 to 9 year old cutblocks and avoided 10 to 40 year old cutblocks.
 
 ```{r, du6 model random effects coeffs, echo = F, message = F, eval = T}
 table.glm.summary.raneff <- data.frame (matrix (ncol = 6, nrow = 0))
@@ -488,7 +489,7 @@ ggplot (data = data.plot.rd,
                                   "seagreen", "darkorange")) +
   scale_size_manual (name = "Herd Name",
                      values = c (0.3, 0.3, 0.3, 0.3, 1.1, 0.3, 0.3)) +
-  labs (title = "Figure 6. Population and herd level effects of roads on caribou 
+  labs (title = "Figure 5. Population and herd level effects of roads on caribou 
 habitat use in DU6.",
         x = "Distance to Road (km)",
         y = "Caribou Use") +
@@ -516,7 +517,7 @@ ggplot (data = data.plot.c14,
                                   "seagreen", "darkorange")) +
   scale_size_manual (name = "Herd Name",
                      values = c (0.3, 0.3, 0.3, 0.3, 1.1, 0.3, 0.3)) +
-  labs (title = "Figure 7. Population and herd level effects of 1 to 4 year old cutblocks on 
+  labs (title = "Figure 6. Population and herd level effects of 1 to 4 year old cutblocks on 
 caribou habitat use in DU6.",
         x = "Distance to 1 to 4 Year Old Cutblock (km)",
         y = "Caribou Use") +
@@ -544,7 +545,7 @@ ggplot (data = data.plot.c59,
                                   "seagreen", "darkorange")) +
   scale_size_manual (name = "Herd Name",
                      values = c (0.3, 0.3, 0.3, 0.3, 1.1, 0.3, 0.3)) +
-  labs (title = "Figure 8. Population and herd level effects of 5 to 9 year old cutblocks on 
+  labs (title = "Figure 7. Population and herd level effects of 5 to 9 year old cutblocks on 
 caribou habitat use in DU6.",
         x = "Distance to 5 to 9 Year Old Cutblock (km)",
         y = "Caribou Use") +
@@ -573,7 +574,7 @@ ggplot (data = data.plot.c1040,
                                   "seagreen", "darkorange")) +
   scale_size_manual (name = "Herd Name",
                      values = c (0.3, 0.3, 0.3, 0.3, 1.1, 0.3, 0.3)) +
-  labs (title = "Figure 9. Population and herd level effects of 10 to 40 year old cutblocks on 
+  labs (title = "Figure 8. Population and herd level effects of 10 to 40 year old cutblocks on 
 caribou habitat use in DU6.",
         x = "Distance to 10 to 40 Year Old Cutblock (km)",
         y = "Caribou Use") +
@@ -582,27 +583,37 @@ caribou habitat use in DU6.",
 ```
 
 ### DU7
-In DU7, caribou location data was collected from 131 animals from the Charlotte Alplands, Chase, Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Pink Mountain, Rainbows, Spatsizi, Telkwa, Tsenaglode and Tweedsmuir herds. The number of animals sampled ranged from 1 to 35 per herd, and the number of telemetry locations ranged from 856 to 41,837 per herd (Table 4).
+In DU7, the home ranges of individual animals were calculated from 131 animals from the Charlotte Alplands, Chase, Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Pink Mountain, Rainbows, Spatsizi, Telkwa, Tsenaglode and Tweedsmuir herds.
 
 ```{r, DU7, data summary, echo = F, message = F, eval = T}
-count.animals.herd <- rsf.data.du7  %>%
-  group_by(HERD_NAME) %>%
-  summarise(count = n_distinct(animal_id))
+# number of animals, by herd
+count.individual.home.range <- du7  %>%
+  filter(pttype==1) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Used=count)
 
-count.locs.herd <- rsf.data.du7  %>%
-  group_by(HERD_NAME) %>%
-  filter (pttype == 1) %>%
-  summarise(count = n())
+count.herd.range <- du7  %>%
+  filter(pttype==0) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Available=count)
 
-table <- full_join(count.animals.herd, count.locs.herd, by = "HERD_NAME")
 
-table <- table %>% 
-  rename (Herd = HERD_NAME,
-          Animals = count.x,
-          Locations = count.y)
+summary_du7 <- du7 %>% 
+  group_by(HERD_NAME, pttype) %>% 
+  summarise(mean=mean(distance_to_road),
+            sd = sd(distance_to_road),
+            count = sum(cnt),
+            se= sd(distance_to_road)/(sqrt(sum(cnt))))
+
+
+
+table <- full_join(count.individual.home.range, count.herd.range)
+
 
 kable (table,
-       caption = "<b>Table 4. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU7.<b>") %>%
+       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in du7 (Northern).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -611,80 +622,77 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-There was variability in caribou response to resource roads across caribou herds in DU7 (Fig. 10). The majority of the herds tended to be further from roads, but caribou in the Frog and Finlay herds tended to be closer to roads then what was available on average in their home ranges. A random effect for distance to road was included in the GLMM to account for this variability.
+There was a mixed response of caribou to the presence of roads (fig 9). For example, caribou in the Chase, Frog, Graham, Itcha-Ilgachuz, Muskwa, Rainbows, Telkwa, Tsenaglode, and Tweedsmuir herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Charlotte Alplands, Finlay, and Spatsizi. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
 
 ```{r, du7 Herd road effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du7, aes (x = pttype, y = distance_to_resource_road)) +
+ggplot (du7, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 10. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou 
-Herd in DU7",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Resource Road") +
+  labs (title = "Figure 9. Distance to Resource Road at Available (0) and Used (1) Locations \n by Caribou Herd in du7",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to road (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
+
+```
+Similar to road, caribou in du7 had a mixed response to 1 to 5 year old cutblocks (Fig. 10). For example, caribou in the Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Rainbows, Spatsizi, Telkwa, Tsenaglode, and Tweedsmuir herds tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Charlotte Alplands, Chase, and Pink Mountain herds utilized habitats closer to 1 to 5 year old cutblocks than what was available. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
+
+```{r, du7 Herd cutblock 1to4yo effect plot, echo = F, message = F, eval = T}
+ggplot (du7, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Figure 10. Distance to 1 to 5 year old cutblock at available (0) and used (1) locations \n by caribou herds in du7",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
+  facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to cutblocks 1 to 4 years old across herds in DU7 (Fig. 11). For example, caribou in the Charlotte Alplands, Finlay, Graham, Itcha-Ilgachuz, Muskwa, Pink Mountain, Spatsizi and Tsenaglode herds used areas further from 1 to 4 year old cutblocks, whereas caribou in the Chase, Rainbows and Tweedsmuir herds used areas closer to 1 to 4 year old cutblocks then what was available on average in their home range. A random effect for distance to 1 to 4 year old cutblocks was included in the GLMM to account for this variability.
+Distance to 6 to 10 year old cutblocks and 11 to 40 year old cutblocks were highly correlated ($\rho$ = 0.89), therefore these two variables were combined into a single variable of distance to 6 to 40 year old cutblocks.
 
-```{r, du7 Herd cutblock 1 to 4 effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du7, aes (x = pttype, y = distance_to_cut_1to4)) +
+There was variability in the response of caribou herds to 6 to 40 year old cutblocks in du7 (Fig. 12). Caribou in the Chase, Grahm, Itcha-Ilgachuz, Muskwa, Rainbows, Telkwa, Tsenaglode and Tweedsmuir herds were further from 6 to 40 year old cutblocks than what was available on average in their home range. In contrast Charlotte Alplands, Finlay, Frog and Spatsizi were closer to 6 to 10 year old cutblocks than what was available on average. A random effect for distance for 6 to 40 year old cutblocks was included in the GLMM to account for this variability.
+
+```{r, du7 Herd cutblock 5to9yo effect plot, echo = F, message = F, eval = T}
+du7 <- dplyr::mutate (du7, distance_to_cut_6to40yo = pmin (distance_to_cut_6to10yo, distance_to_cut_11to40yo))
+
+
+ggplot (du7, aes (x = as.factor(pttype), y = distance_to_cut_6to40yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 11. Distance to Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations by 
-Caribou Herd in DU7",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock") +
+  labs (title = "Figure 11. Distance to 6 to 40 year old cutblock at available (0) and used (1) locations \n by caribou herds in du7",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock(km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
+  theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to cutblocks 5 to 40 years old across herds in DU7 (Fig. 12). For example, caribou in the Charlotte Alplands, Chase, Finlay, Graham, Itcha-Ilgachuz, Muskwa, Pink Mountain, Rainbows, Spatsizi, Telkwa and Tweedsmuir herds  used areas further from 5 to 40 year old cutblocks, whereas caribou in the Frog and Tsenaglode used areas closer to 5 to 40 year old cutblocks then what was available on average in their home range. A random effect for distance to 5 to 40 year old cutblocks was included in the GLMM to account for this variability.
-
-```{r, du7 Herd cutblock 5 to 40 effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du7, aes (x = pttype, y = distance_to_cut_5to40)) +
-  geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 12. Distance to Cutblock 5 to 40 Years Old at Available (0) and Used (1) Locations by Caribou 
-Herd in DU7",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock") +
-  facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
-         plot.title = element_text (size = 12))
-```
 
 #### Caribou-Forestry Disturbance Model
 There was a statistically significant (p-value < 0.05), negative population-level (fixed) effect of roads on caribou distribution (Table 5). Thus, on average, across caribou individuals and herds, caribou used areas further from roads (note that a positive coefficient is a negative effect, because the covariate is a 'distance to' metric). The model indicated a weak (non-significant), negative fixed effect of 5 to 40 year old cutblocks on caribou distribution, but a weak, positive effect of 1 to 4 year old cutblocks on caribou distribution. 
 
 ```{r, du7 model, echo = T, message = F, eval = F}
 # model spec
-du7$distance_to_road_scale<-scale(du7$distance_to_road, center=TRUE)
-du7$distance_to_cut_1to5yo_scale<-scale(du7$distance_to_cut_1to5yo, center=TRUE)
-du7$distance_to_cut_6to10yo_scale<-scale(du7$distance_to_cut_6to10yo, center=TRUE)
-du7$distance_to_cut_11to50yo_scale<-scale(du7$distance_to_cut_11to50yo, center=TRUE)
+du7$distance_to_road_scale<-scale(du7$distance_to_road)
+du7$distance_to_cut_1to5yo_scale<-scale(du7$distance_to_cut_1to5yo)
+du7$distance_to_cut_6to40yo_scale<-scale(du7$distance_to_cut_6to40yo)
 
-model.lme4.du7.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
+model.lme4.du7.cut.rd.yr <- glmer (pttype ~ distance_to_road_scale +
                                          distance_to_cut_1to5yo_scale +
-                                         distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale +
+                                         distance_to_cut_6to40yo_scale +
                                         (distance_to_road_scale +
                                          distance_to_cut_1to5yo_scale +
-                                         distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale ||HERD_NAME) +
-                                        (distance_to_road_scale|year) +
-                                         (distance_to_cut_1to5yo_scale|year) +
-                                         (distance_to_cut_6to10yo_scale|year) +
-                                         (distance_to_cut_11to50yo_scale|year),
+                                         distance_to_cut_6to40yo_scale ||HERD_NAME) +
+                                         (1|year),
                                       data = du7, 
                                       family = binomial (link = "logit"),
                                       verbose = T)  
 
-summary(model.lme4.du7.cut.rd.yr2)
-Anova(model.lme4.du7.cut.rd.yr2,type="III")
+summary(model.lme4.du7.cut.rd.yr)
+Anova(model.lme4.du7.cut.rd.yr,type="III")
 
 # check residuals
-binnedplot (fitted (model.lme4.du7.cut.rd.yr2), 
-             residuals(model.lme4.du7.cut.rd.yr2, type = "response"), 
+binnedplot (fitted (model.lme4.du7.cut.rd.yr), 
+             residuals(model.lme4.du7.cut.rd.yr, type = "response"), 
              nclass = NULL, 
              xlab = "Expected Values", 
              ylab = "Average residual", 
@@ -823,24 +831,34 @@ caribou habitat use in DU7.",
 In DU8, caribou location data was collected from 152 animals from the Burnt Pine, Kennedy Siding, Moberly, Narraway, Quintette and Scott herds. The number of animals sampled per herd ranged from 8 to 57 and the number of telemetry locations per herd ranged from 5,414 to 65,431 per herd (Table 7).
 
 ```{r, DU8, data summary, echo = F, message = F, eval = T}
-count.animals.herd <- rsf.data.du8  %>%
-  group_by(HERD_NAME) %>%
-  summarise(count = n_distinct(animal_id))
+# number of animals, by herd
+count.individual.home.range <- du8  %>%
+  filter(pttype==1) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Used=count)
 
-count.locs.herd <- rsf.data.du8  %>%
-  group_by(HERD_NAME) %>%
-  filter (pttype == 1) %>%
-  summarise(count = n())
+count.herd.range <- du8  %>%
+  filter(pttype==0) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Available=count)
 
-table <- full_join(count.animals.herd, count.locs.herd, by = "HERD_NAME")
 
-table <- table %>% 
-  rename (Herd = HERD_NAME,
-          Animals = count.x,
-          Locations = count.y)
+summary_du8 <- du8 %>% 
+  group_by(HERD_NAME, pttype) %>% 
+  summarise(mean=mean(distance_to_road),
+            sd = sd(distance_to_road),
+            count = sum(cnt),
+            se= sd(distance_to_road)/(sqrt(sum(cnt))))
+
+
+
+table <- full_join(count.individual.home.range, count.herd.range)
+
 
 kable (table,
-       caption = "<b>Table 7. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU8.<b>") %>%
+       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in DU8 (Northern).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -850,69 +868,67 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-There was variability in caribou response to resource roads across caribou herds in DU8 (Fig. 16). For example, caribou in the Burnt Pine, Kennedy Siding and Scott herds tended to be closer to roads, whereas caribou in the Moberly, Narraway and Quintette tended to be further from roads then what was available. A random effect for distance to road was included in the GLMM to account for this variability.
+In general caribou herds avoided roads in DU8 (Fig. 16). For example, caribou in the Burnt Pine, Kennedy Siding, Moberly, Narraway and Scott herds tended to be further from roads, whereas caribou in the Narraway herd utlized habitat in the same proportion as what was available. A random effect for distance to road was included in the GLMM to account for this variability.
 
 ```{r, du8 Herd road effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_resource_road)) +
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
   labs (title = "Figure 16. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU8",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Resource Road") +
+        x = "Available (0) and used (1) locations",
+        y = "Distance to road (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 7),
-         plot.title = element_text (size = 10))
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to cutblocks 1 to 4 years old across herds in DU8 (Fig. 17). For example, caribou in the Burnt Pine, Kennedy Siding, Narraway and Quintette herds tended to use areas closer to 1 to 4 year old cutblocks, whereas caribou in the Moberly and Scott herds tended to be further from 1 to 4 year old cutblocks then what was available. A random effect for distance to cutblock 1 to 4 years old was included in the GLMM to account for this variability.
+Caribou tended to avoid cutblocks 1 to 5 years old across herds in DU8 (Fig. 17). For example, all herds except Narraway tended to use areas further from to 1 to 5 year old cutblocks than what was available. A random effect for distance to cutblock 1 to 4 years old was included in the GLMM to account for this variability.
 
 ```{r, du8 Herd cutblock 1 to 4 effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_1to4)) +
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 17. Distance to Cutblock 1 to 4 Years Old at Available (0) and Used (1) Locations by 
-Caribou Herd in DU8",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock 1 to 4 Years Old") +
+  labs (title = "Figure 17. Distance to 1 to 5 year old cutblock at available (0) and used (1) locations \n by caribou herds in DU8",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
+  theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to cutblocks 5 to 9 years old across herds in DU8 (Fig. 18). Most caribou herds tended to use areas closer to 5 to 9 year old cutblocks, with perhaps the exception being the Moberly herd. A random effect for distance to cutblock 5 to 9 years old was included in the GLMM to account for this variability.
+Caribou tended to avoid cutblocks 6 to 10 years of age across herds in DU8 (Fig. 17). For example, all herds except Narraway used areas further from to 6 to 10 year old cutblocks than what was available. A random effect for distance to cutblock 6 to 10 years old was included in the GLMM to account for this variability.
 
 ```{r, du8 Herd cutblock 5 to 9 effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_5to9)) +
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 18. Distance to Cutblock 5 to 9 Years Old at Available (0) and Used (1) 
-Locations by Caribou Herd in DU8",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock 5 to 9 Years Old") +
+  labs (title = "Figure 18. Distance to 6 to 10 year old cutblock at available (0) and used (1) locations \n by caribou herds in DU8",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
+  theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in caribou response to cutblocks 10 to 40 years old across herds in DU8 (Fig. 19). The Kennedy Siding, Moberly and Narraway caribou herds tended to use areas closer to 10 to 40 year old cutblocks, whereas the Quintette and Scott herds tended to be further from 10 to 40 year old cutblocks. A random effect for distance to cutblock 10 to 40 years old was included in the GLMM to account for this variability.
+Caribou tended to avoid cutblocks 11 to 40 years of age across herds in DU8 (Fig. 17). For example, all herds except Narraway used areas further from to 11 to 40 year old cutblocks than what was available. A random effect for distance to cutblock 11 to 40 years old was included in the GLMM to account for this variability.
 
 ```{r, du8 Herd cutblock 5 to 40 effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du8, aes (x = pttype, y = distance_to_cut_10to40)) +
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 19. Distance to Cutblock 10 to 40 Years Old at Available (0) and Used (1) Locations by 
-Caribou Herd in DU8",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Cutblock 10 to 40 Years Old") +
+  labs (title = "Figure 19. Distance to 11 to 40 year old cutblock at available (0) and used (1) locations \n by caribou herds in DU8",
+        x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
-  theme (strip.text.x = element_text (size = 6),
+  theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
+
 
 #### Caribou-Forestry Disturbance Model
 There was a statistically significant (p-value < 0.05), negative fixed (population-level) effect of roads on caribou distribution (Table 8). There were generally positive fixed effects of cutblocks on caribou distribution. There was essentially no effect of 1 to 4 year old cutblocks on caribou distribution, a weak (p = 0.166) positive effect of 5 to 9 year old cutblocks, and a close to statistically significant (p-value = 0.07) positive effect of 10 to 40 year old cutblocks on caribou distribution. 
 ```{r, du8 model, echo = T, message = F, eval = F}
 # model spec
-du8$distance_to_road_scale<-scale(du8$distance_to_road, center=TRUE)
-du8$distance_to_cut_1to5yo_scale<-scale(du8$distance_to_cut_1to5yo, center=TRUE)
-du8$distance_to_cut_6to10yo_scale<-scale(du8$distance_to_cut_6to10yo, center=TRUE)
-du8$distance_to_cut_11to50yo_scale<-scale(du8$distance_to_cut_11to50yo, center=TRUE)
+du8$distance_to_road_scale<-scale(du8$distance_to_road)
+du8$distance_to_cut_1to5yo_scale<-scale(du8$distance_to_cut_1to5yo)
+du8$distance_to_cut_6to10yo_scale<-scale(du8$distance_to_cut_6to10yo)
+du8$distance_to_cut_11to50yo_scale<-scale(du8$distance_to_cut_11to50yo)
 
 model.lme4.du8.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
                                          distance_to_cut_1to5yo_scale +
@@ -921,11 +937,8 @@ model.lme4.du8.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
                                         (distance_to_road_scale +
                                          distance_to_cut_1to5yo_scale +
                                          distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale ||HERD_NAME) +
-                                        (distance_to_road_scale|year) +
-                                         (distance_to_cut_1to5yo_scale|year) +
-                                         (distance_to_cut_6to10yo_scale|year) +
-                                         (distance_to_cut_11to50yo_scale|year),
+                                         distance_to_cut_11to50yo_scale||HERD_NAME) +
+                                        (1|year),
                                       data = du8, 
                                       family = binomial (link = "logit"),
                                       verbose = T)  
@@ -1088,40 +1101,48 @@ caribou habitat use in DU8.",
 In DU9, caribou location data was collected from 25 animals from the Hart Ranges, Nakusp and South Selkirks herds (Table 10). The number of animals sampled per herd ranged from 6 to 11 and the number of telemetry locations per herd ranged from 1,821 to 4,917 per herd.
 
 ```{r, du9, data summary, echo = F, message = F, eval = T}
-count.animals.herd <- rsf.data.du9  %>%
-  group_by(HERD_NAME) %>%
-  summarise(count = n_distinct(animal_id))
+# number of animals, by herd
+count.individual.home.range <- du9  %>%
+  filter(pttype==1) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Used=count)
 
-count.locs.herd <- rsf.data.du9  %>%
-  group_by(HERD_NAME) %>%
-  filter (pttype == 1) %>%
-  summarise(count = n())
+count.herd.range <- du9  %>%
+  filter(pttype==0) %>%
+  group_by(HERD_NAME,year) %>%
+  summarise(count = n()) %>% 
+  rename(Available=count)
 
-table <- full_join(count.animals.herd, count.locs.herd, by = "HERD_NAME")
 
-table <- table %>% 
-  rename (Herd = HERD_NAME,
-          Animals = count.x,
-          Locations = count.y)
+summary_du9 <- du9 %>% 
+  group_by(HERD_NAME, pttype) %>% 
+  summarise(mean=mean(distance_to_road),
+            sd = sd(distance_to_road),
+            count = sum(cnt),
+            se= sd(distance_to_road)/(sqrt(sum(cnt))))
+
+
+
+table <- full_join(count.individual.home.range, count.herd.range)
+
 
 kable (table,
-       caption = "<b>Table 10. Number of Animals and Telemetry Locations Sampled by Caribou Herd in DU9.<b>") %>%
+       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in du9 (Northern).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
                  full_width = F,
                  font_size = 11) 
-
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-There was variability in caribou response to resource roads across caribou herds in DU9 (Fig. 24). For example, caribou in the Hart Ranges tended to be closer to roads, whereas caribou in the Nakusp and South Selkirks tended to be further from roads then what was available. A random effect for distance to road was included in the GLMM to account for this variability. Distance to resource road has highly correlated with distance to 10 to 40 year old cutblock ($\rho$ = 0.84), amd thus was not included in this analysis.
+All herds in DU9 avoided roads, however, the degree to which they avoided roads varied between herds. Hart Ranges avoided roads most strongly while South Selkirks only showed minor avoidance. A random effect for distance to road was included in the GLMM to account for this variability. Distance to resource road has highly correlated with distance to 10 to 40 year old cutblock ($\rho$ = 0.84), amd thus was not included in this analysis.
 
 ```{r, du9 Herd road effect plot, echo = F, message = F, eval = T}
-ggplot (rsf.data.du9, aes (x = pttype, y = distance_to_resource_road)) +
+ggplot (du9, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 24. Distance to Resource Road at Available (0) and Used (1) Locations by Caribou 
-Herd in DU9",
+  labs (title = "Figure 24. Distance to Resource Road at Available (0) and Used (1) Locations /n by Caribou Herd in DU9",
         x = "Available (0) and Used (1) Locations",
         y = "Distance to Resource Road") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
