@@ -46,7 +46,7 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 
 c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
 
-herds<-c("Barkerville","Wells_Gray_North","Wells_Gray_South","Itcha_Ilgachuz")
+herds<-c("Narrow_Lake","North_Cariboo")
 for(herd in herds){
   bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
                                              herd,"',]")))
@@ -129,6 +129,40 @@ for(herd in herds){
 }
 
 
+```
+
+
+
+### No harvest in any critical habitat 
+```{r, noharvet}
+#Canadian (Federal) contraints
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+
+herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
+
+for(herd in herds){
+bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
+                                             herd,"',]")))
+bc.crit.selected$zoneid<-0
+  
+ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected, prov.rast, field = "zoneid")
+writeRaster(ras.bc.crit.selected , "rasnhcrit.tif", overwrite = TRUE)
+
+zone.eccc.crithab<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_nh_crit_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+zone.eccc.crithab<-zone.eccc.crithab[,zoneid:=as.integer(zoneid)]
+zone.eccc.crithab<-zone.eccc.crithab[,ndt:=as.integer(ndt)]
+zone.eccc.crithab<-zone.eccc.crithab[,threshold:=as.numeric(threshold)]
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", paste0("zone_nh_crit_",tolower(herd),"_crithab")), value= zone.eccc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone_nh_crit_",tolower(herd),"_crithab INHERIT zone_constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasnhcrit.tif -t 100x100', paste0(' rast.zone_cond_nh_crit_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+}
 ```
 
 ---
