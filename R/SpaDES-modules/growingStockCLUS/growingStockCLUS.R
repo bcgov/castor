@@ -85,11 +85,10 @@ Init <- function(sim) {
 
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as eca
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -146,11 +145,10 @@ updateGS<- function(sim) {
   message("...update yields")
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as eca
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -161,6 +159,7 @@ updateGS<- function(sim) {
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)
+    
   }else{
     
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
