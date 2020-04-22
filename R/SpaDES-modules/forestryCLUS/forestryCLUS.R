@@ -33,7 +33,7 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("adjacencyConstraint", "logical", FALSE, NA, NA, "Include Adjacency Constraint?"),
+    defineParameter("adjacencyConstraint", "numeric", 9999, NA, NA, "Include Adjacency Constraint at the user specified height in metres"),
     defineParameter("growingStockConstraint", "numeric", 9999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
     defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending")
     
@@ -146,17 +146,17 @@ setConstraints<- function(sim) {
           as.character(query_parms[1, "type"]),
             ge = {
               if(as.character(query_parms[1, "variable"]) == 'dist' ){
-                num500<- dbGetQuery(sim$clusdb, paste0("select count(*) as count from pixels where dist > 500 and ", as.character(query_parms[1, "zone_column"]), " = ", query_parms[1, "zoneid"]))$count
-               print(num500)
-               print(query_parms$limits )
-                 if(num500 < query_parms$limits ){
-                  message(paste0(query_parms[1, "zoneid"]," in ",query_parms[1, "zone_column"], " surpassed disturbance threshold - shutting off harvesting"))
-                  query_parms[1, limits:= t_area] 
-                }
+                #num500<- dbGetQuery(sim$clusdb, paste0("select count(*) as count from pixels where dist > 500 and ", as.character(query_parms[1, "zone_column"]), " = ", query_parms[1, "zoneid"]))$count
+               #print(num500)
+               #print(query_parms$limits )
+                 #if(num500 < query_parms$limits ){
+                  #message(paste0(query_parms[1, "zoneid"]," in ",query_parms[1, "zone_column"], " surpassed disturbance threshold - shutting off harvesting"))
+                  #query_parms[1, limits:= t_area] 
+                #}
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
                         SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
-                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC, age DESC
+                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
                         LIMIT :limits);")
               }else{
                 sql<-paste0("UPDATE pixels 
@@ -174,12 +174,14 @@ setConstraints<- function(sim) {
             },
             le = {
               if(as.character(query_parms[1, "variable"]) == 'eca' ){
+                
                 #get the correct limits -- currently assuming the entire area is at the threshold
                 eca_current<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT ",as.character(query_parms[1, "zone_column"]),", sum(eca*thlb) as eca FROM pixels WHERE ",
                                                          as.character(query_parms[1, "zone_column"]), " IN (",
                                                          paste(query_parms$zoneid, collapse=", "),") GROUP BY ",as.character(query_parms[1, "zone_column"]), 
                                                          " ORDER BY ",as.character(query_parms[1, "zone_column"])) ))
-      
+                
+                
                 query_parms<-merge(query_parms, eca_current, by.x ="zoneid", by.y =as.character(query_parms[1, "zone_column"]) , all.x =TRUE )
                 query_parms[,limits:=as.integer((1-(threshold/100 - eca/t_area))*t_area)]
 
@@ -219,13 +221,13 @@ setConstraints<- function(sim) {
     }
   }
   
-  if(P(sim, "forestryCLUS", "adjacencyConstraint")){
+  if(!(P(sim, "forestryCLUS", "adjacencyConstraint") == 9999)){
     #Update pixels in clusdb for adjacency constraints
     query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3 
-                                                            UNION 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint") ,
+                                                            " UNION 
                                                             SELECT b.adjblockid FROM 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3) a 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint"),") a 
                                                             LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ); ")))
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
@@ -267,6 +269,7 @@ getHarvestQueue<- function(sim) {
       
       if(nrow(queue) == 0) {
         message("No stands to harvest")
+        land_coord <- NULL
           next #no cutblocks in the queue go to the next compartment
       }else{
         
@@ -318,7 +321,7 @@ getHarvestQueue<- function(sim) {
   }
   
   #convert to class SpatialPoints needed for roadsCLUS
-  if(nrow(land_coord) > 0 ){
+  if(!is.null(land_coord)){
     sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
   }else{
     message("no landings")
