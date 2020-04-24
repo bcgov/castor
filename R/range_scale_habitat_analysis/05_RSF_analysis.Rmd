@@ -2,7 +2,8 @@
 title: "05_RSF_analysis"
 author: "Elizabeth Kleynhans"
 date: "01/04/2020"
-output: html_document
+output:
+  bookdown::html_document2
 ---
   
 ```{r setup, include = FALSE}
@@ -34,7 +35,7 @@ library(ggpubr)
 
 
 ## Introduction {#intro}
-Here I develop statistical models to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the models to indicate the influence of current and potential future forestry development on caribou use of habitat. The model may be implemented as a module in the caribou and land use simulator (CLUS). Seperate models were fit for the four caribou designatable units (DUs) in British Columbia (BC): DU6, boreal; DU7, northern mountain; DU8, central mountain; and DU9, southern mountain, as defined by the [Committee on the Status of Endangered Wildlife in Canada (COSEWIC)](https://www.registrelep-sararegistry.gc.ca/default.asp?lang=En&n=E6271D78-1&offset=2#_01_4). DUs were modeled independently, as they are intended to represent groups of caribou with unique ecological characteristics, and potentially different responses to forestry disturbance. 
+Here I develop statistical models to quantify the effect of forestry disturbance on caribou distribution. The intent is to use the models to indicate the influence of current and potential future forestry development on caribou use of habitat. The model may be added to the pre-existing rsf module in the caribou and land use simulator (CLUS). This is because this model is run at a larger spatial scale (Second-order selection) than the existing rsf model (Third-order selection). Following [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/10.1890/11-1610.1) second-order selection compares  points sampled within individual caribou home ranges (used) to points sampled within the population home range (available), while third-order selection compares individual caribou telemetry locations (used) to points sampled within the individual caribou's home range (available). By multiplying the probabilities of  second- and third-order selection together one can estimate an integrated relative probability of use for a given pixel on the landscape. For this analysis I fitted separate second-order selection models for the four caribou designatable units (DUs) in British Columbia (BC): DU6, boreal; DU7, northern mountain; DU8, central mountain; and DU9, southern mountain, as defined by the [Committee on the Status of Endangered Wildlife in Canada (COSEWIC)](https://www.registrelep-sararegistry.gc.ca/default.asp?lang=En&n=E6271D78-1&offset=2#_01_4). DUs were modeled independently, as they are intended to represent groups of caribou with unique ecological characteristics, and potentially different responses to forestry disturbance. 
 
 I use a resource selection function (RSF) framework to develop the statistical models ( [Boyce et al. 1999](https://www.sciencedirect.com/science/article/pii/S0169534799015931), [Johnson et al. 2006](https://wildlife.onlinelibrary.wiley.com/doi/pdf/10.2193/0022-541X%282006%2970%5B347%3ARSFBOU%5D2.0.CO%3B2)). This framework uses a logit regression model to calculate the relationship between caribou occurence and habitat 'resources' measured using spatial data. Here I am only considering the effect of forestry disturbance 'resources', i.e., cutblocks and roads, on caribou occurrence. This approach simplifies and focuses the RSF onto modeling a statistical relationship between caribou distribution and forestry disturbance that is generalizable across a caribou DU, and is not designed to accurately identify other habitat features that influence caribou distribution. The theoretical basis for this approach is that forestry disturbance has a significant influence on caribou distribution, regardless of other habitat features. Indeed, cutblocks and linear features from forestry have routinely been shown to influence caribou distribution (e.g., [Courbin et al. 2009](https://link.springer.com/article/10.1007/s10980-009-9389-x), [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1), [Mumma et al. 2018](https://www.sciencedirect.com/science/article/pii/S0006320718307225)) and survival ( [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x), [Johnson et al. 2015](https://www.sciencedirect.com/science/article/pii/S0006320715001160)).
 
@@ -42,17 +43,16 @@ The caribou-forestry disturbance models (CFDMs) created here can be used as a sp
 
 ## Methods {#methods}
 
-I calculated the CFDMs using generalized linear mixed models (GLMMs) with a logit link, using the [glmer function](https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/glmer) from the [lme4](https://cran.r-project.org/web/packages/lme4/lme4.pdf) package in [program R](https://www.r-project.org/). The model investigated whether locations within the individual home ranges of caribou (second order selection in DeCesare et al. 2012 )[https://esajournals.onlinelibrary.wiley.com/doi/10.1890/11-1610.1] were further from disturbance than randomly sampled locations within the BC defined population home ranges (third order selection in DeCesare et al. 2012).
+I calculated the CFDMs using generalized linear mixed models (GLMMs) with a logit link, using the [glmer function](https://www.rdocumentation.org/packages/lme4/versions/1.1-21/topics/glmer) from the [lme4](https://cran.r-project.org/web/packages/lme4/lme4.pdf) package in [program R](https://www.r-project.org/). The model investigated whether locations within the individual home ranges of caribou were further from disturbance than randomly sampled locations within the BC defined population home ranges.
 
-Individual home ranges of caribou were calculated by Tyler Muhley following the methods described in the folder caribou_habitat (12_RSF_version4.Rmd). Briefly caribou location data collected from telemetry collars placed on a sample of caribou (n = 468 animals, 507,987 locations) from across BC, between 2008 to 2018 was used. Most animals were likely female as the focus of caribou monitoring in BC is on measuring survival of adult females and the recruitment of their calves. All data were collected under provincial government permits and following provincial animal care and handling protocols. 
+Individual home ranges of caribou were calculated by Tyler Muhley following the methods described in the folder caribou_habitat (12_RSF_version4.Rmd). Briefly caribou location data was collected from telemetry collars placed on a sample of caribou (n = 468 animals, 507,987 locations) from across BC, between 2008 to 2018. These telemetry locations were then used to create seasonal home ranges of individual collared animals within herds for each year. However, for this analysis I lumped the seasonal home ranges together to get a annual home range for each animal. Home ranges for animals within the same herd were also amalgamated to get a herd by year individual home range. From these herd by year home ranges I sampled points on a 300m x 300m grid. These points became the ones in this analysis.
 
-The home ranges of individual collared animals were calculated using the kernelUD function in the adehabitatHR ( [Calenge et al. 2011](https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf)) package of Program R. A variety of smoothing parameter (*h*) values implemented on the telemetry data and the resulting fit of the 95% kernel polygons were visually assessed. Polygons with an *h* = 500 appeared to be the best fit to the data ( [Hemson et al. 2005](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2005.00944.x), [Calenge et al. 2011](https://cran.r-project.org/web/packages/adehabitatHR/vignettes/adehabitatHR.pdf)), i.e., they reasonably formed contiguous habitat areas (i.e., connected polygons) without including large extents greater than 1km from telemetry locations. Seasons were defined as: summer (15-May to 31-Oct), early winter (01-Nov to 15-Jan) and late winter (16-Jan to 14-May), based on a review of the literature on variation in the seasonal distribution of caribou in British Columbia. Within each seasonal home range 1,000 locations were randomly sampled. These points became the ones in this analysis.
 
-BC defined population home ranges were downloaded from [https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc]. A buffer of 25km was created around each home range. If the buffer overlapped another herds home range, the overlapping area was clipped out. I also clipped out the home ranges (estimated above) estimated for each radio collared animal. The home ranges of radio collared animals were estimated for each season in each year. I decided to lump all seasonal home ranges together to get a annual home range for each collared animal. These annual home ranges were then clipped out from the buffered BC defined home range for each year. After clipping and buffering the BC home range data points were sampled every kilometer in the remaining area. This created an average of 10 000 point per home range per year.
+BC defined population home ranges were downloaded from [https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc]. A buffer of 25km was created around each home range. If the buffer overlapped another herds home range, the overlapping area was clipped out. For each year I also clipped out the individual home ranges (estimated above) for each radio collared animal sampled in that year. After clipping and buffering the BC home range, data points were sampled every kilometer in the remaining area. This created an average of 10 000 point per home range per year.
 
-I estimated the distance of 'used' and 'available' caribou locations to the nearest resource road and cutblock. Cutblock locations were estimated using the [consolidated cutblocks](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) data compiled by the BC government. Road locations were estimated using data compiled to support the [British Columbia Cumulative Effects Framework](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/cumulative-effects-framework). This data is not accessible to the public via a webpage, but it is not private or proprietary, and thus can be requested from the cumulative effects program. The roads data classifies roads into various types. Our focus was on roads developed specifically for resource extraction (particularly forestry), thus, we classified all unpaved road types as 'resource roads' and estimated caribou distance to these types. Cutblock and roads data were rasterized at a 1ha resolution, and the Euclidean distance of each raster pixel to a cutblock or resource road in the pixel was calculated in ArcGIS and attributed to corresponding 'used' and 'available' caribou locations.
+I estimated the distance of 'used' and 'available' caribou locations to the nearest resource road and cutblock. Cutblock locations were estimated using the [consolidated cutblocks](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) data compiled by the BC government. Road locations were estimated using data compiled to support the [British Columbia Cumulative Effects Framework](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/cumulative-effects-framework). This data is not accessible to the public via a webpage, but it is not private or proprietary, and thus can be requested from the cumulative effects program. The roads data classifies roads into various types. Our focus was on roads developed specifically for resource extraction (particularly forestry), thus, we classified all unpaved road types as 'resource roads' and estimated caribou distance to these types. Cutblock and roads data were rasterized at a 1ha resolution, and the Euclidean distance of each raster pixel to a cutblock or resource road in the pixel was calculated in QGIS and attributed to corresponding 'used' and 'available' caribou locations.
 
-I fit GLMMs with distance to cutblock and distance to road covariates as fixed effects and random effects at the herd levels. The random effects accounted for herd variation in response to cutblocks and roads in the model, so that the fixed effects coefficients can be considered as 'population‐level' effects (i.e.,the effect on an 'average' animal) of cutblocks and roads on caribou distribution ( [Gillies et al. 2006](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2006.01106.x)). 
+I fitted GLMMs with distance to cutblock and distance to road covariates as fixed effects and random effects at the herd and year levels. Year was included to account variability in harvesting The random effects accounted for variation in the herd and year response to cutblocks and roads in the model, so that the fixed effects coefficients can be considered as 'population‐level' effects (i.e.,the effect on an 'average' animal) of cutblocks and roads on caribou distribution ( [Gillies et al. 2006](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2006.01106.x)). 
 
 
 ```{r, Load data, eval = T, echo = F, message = F, error = F, results = 'hide'}
@@ -145,7 +145,7 @@ Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_6to10yo =
 
 Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_11to40yo = pmin (distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo,distance_to_cut_15yo,distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo, distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
 
-Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_road = pmin (dist_crds_resource, dist_crds_paved,  dist_crds_petroleum))
+Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_road = pmin (dist_crds_resource))
 
 dist.cut.corr <- (Range_scale_data1 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
@@ -188,10 +188,13 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 
 ## Results
 ### DU6
-In DU6, the home ranges of individual animals were calculated from 160 animals from the Calendar, Chinchaga, Maxhamish, Parker and Prophet (now grouped together and known as Westside Fort Nelson), and Snake-Sahtaneh herds. Number of used and available sample points are presented in Table \@ref(tab:du6_sample_size)
+In DU6, the home ranges of individual animals were calculated from 160 animals from the Calendar, Chinchaga, Maxhamish, Parker and Prophet (now grouped together and known as Westside Fort Nelson), and Snake-Sahtaneh herds. Number of used and available sample points are presented in Table \@ref(tab:du6-sample-size)
 
-```{r du6_sample_size, eval = T, echo = F, message = F, eval = T}
+```{r du6-sample-size, eval = T, echo = F, message = F, eval = T}
+
 # number of animals, by herd
+du6<- Range_scale_data1 %>% filter(du=="du6")
+
 count.individual.home.range <- du6  %>%
   filter(pttype==1) %>%
   group_by(HERD_NAME,year) %>%
@@ -218,7 +221,7 @@ table <- full_join(count.individual.home.range, count.herd.range)
 
 
 kable (table,
-       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in DU6 (Boreal).<b>") %>%
+       caption = "<b>Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in DU6 (Boreal).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -228,9 +231,9 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-Overall there was a slight tendency for caribou in DU 6 to avoid roads but this relationship was not signficant (fig \@ref(fig:du6_road_effect_plot)). For example, caribou in the Chinchaga, Maxhamish, Parker and Prophet herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Calendar and Snake-Sahtaneh. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
+Overall there was a slight tendency for caribou in DU 6 to avoid roads but this relationship was not signficant (fig \@ref(fig:du6road-effect-plot)). For example, caribou in the Chinchaga, Maxhamish, Parker and Prophet herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Calendar and Snake-Sahtaneh. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
 
-```{r du6_road_effect_plot, fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6",echo = F, message = F, eval = T}
+```{r du6road-effect-plot, fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6", echo = F, message = F, eval = T}
 p=ggplot (du6, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -247,9 +250,9 @@ p + coord_cartesian(ylim = c(0,ylim1[2]+15))
 
 ```
 
-There was a non-significant tendency for caribou to avoid to 1 to 5 year old cutblocks in DU6 (Fig. \@ref(fig:du6_cutblock_1to5yo)). For example, caribou in all herds except Calendar tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Calendar herd showed no preference or avoidance of 1 to 5 year old cutblocks. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
+There was a non-significant tendency for caribou to avoid to 1 to 5 year old cutblocks in DU6 (Fig. \@ref(fig:du6-cutblock-1to5yo)). For example, caribou in all herds except Calendar tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Calendar herd showed no preference or avoidance of 1 to 5 year old cutblocks. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
 
-```{r du6_cutblock_1to5yo, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
+```{r du6-cutblock-1to5yo, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -259,9 +262,9 @@ ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
          plot.title = element_text (size = 12))
 ```
 
-There was variability in the response of caribou herds to 6 to 10 year old cutblocks in DU6 (Fig. \@ref(fig:du6_cutblock_6to10yo)). Caribou in the Chinchaga, Maxhamish, Parker, and Snake-Sahtaneh herds were further from 6 to 10 year old cutblocks than what was available on average in their home range. In contrast Calendar and Prophet were slightly closer to 5 to 10 year old cutblocks than what was available on average. A random effect for distance to 6 to 10 year old cutblocks was included in the GLMM to account for this variability.
+There was variability in the response of caribou herds to 6 to 10 year old cutblocks in DU6 (Fig. \@ref(fig:du6-cutblock-6to10yo)). Caribou in the Chinchaga, Maxhamish, Parker, and Snake-Sahtaneh herds were further from 6 to 10 year old cutblocks than what was available on average in their home range. In contrast Calendar and Prophet were slightly closer to 5 to 10 year old cutblocks than what was available on average. A random effect for distance to 6 to 10 year old cutblocks was included in the GLMM to account for this variability.
 
-```{r du6_cutblock_6to10yo,fig.cap="Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
+```{r du6-cutblock-6to10yo,fig.cap="Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -271,9 +274,9 @@ ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
          plot.title = element_text (size = 12))
 ```
 
-All Caribou herds were further from 11 to 40 years old cutblocks than what was available on average in DU6 (Fig. \@ref(fig:du6_cutblock_11to40yo)). Although the trends were similar across herds the degree of this difference varied thus a random effect for distance to 11 to 50 year old cutblocks was included in the GLMM.
+All Caribou herds were further from 11 to 40 years old cutblocks than what was available on average in DU6 (Fig. \@ref(fig:du6-cutblock-11to40yo)). Although the trends were similar across herds the degree of this difference varied thus a random effect for distance to 11 to 50 year old cutblocks was included in the GLMM.
 
-```{r du6_cutblock_11to40yo,fig.cap="Distance to 11 to 50 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
+```{r du6-cutblock-11to40yo,fig.cap="Distance to 11 to 50 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -283,11 +286,21 @@ ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
          plot.title = element_text (size = 12))
 ```
 
+#### Year-Level Effect of Forestry on Caribou Distribution
+
+ggplot (du6, aes (x = as.factor(pttype), y = distance_to_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Available (0) and used (1) locations",
+        y = "Distance to road (km)") +
+  facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
+
 
 #### Caribou-Forestry Disturbance Model
-There were statistically significant (P < 0.05) positive population-level effect of 1 to 5 and 6 to 10 year old cutblocks (figure \@ref(fig:random_fixed_effects_du6) ,Table \@ref(tab:du6_fix_eff_coef)). In contrast, there was a highly significant (P << 0.00001)  negative population-level effect of 11 to 40 year old cutblocks on caribou distribution (figure \@ref(fig:random_fixed_effects_du6) ,Table \@ref(tab:du6_fix_eff_coef)). There was a general trend for caribou to avoid roads (figure \@ref(fig:random_fixed_effects_du6)) but this relationship was not statistically significant (p=0.39, Table \@ref(tab:du6_fix_eff_coef))
+There were statistically significant (P < 0.05) positive population-level effect of 1 to 5 and 6 to 10 year old cutblocks (figure \@ref(fig:random-fixed-effects-du6) ,Table \@ref(tab:du6-fix-eff-coef)). In contrast, there was a highly significant (P << 0.00001)  negative population-level effect of 11 to 40 year old cutblocks on caribou distribution (figure \@ref(fig:random-fixed-effects-du6) ,Table \@ref(tab:du6-fix-eff-coef)). There was a general trend for caribou to avoid roads (figure \@ref(fig:random-fixed-effects-du6)) but this relationship was not statistically significant (p=0.39, Table \@ref(tab:du6-fix-eff-coef))
 
-```{r, du6 model, echo = T, message = F, eval = F}
+```{r du6 model, echo = T, message = F, eval = T, cache=TRUE}
 # model spec
 # varying intercept and slope for each factor. Essentially I am assuming that a increase in 1 of resource road is not the same in each herd (slopes are allowed to vary)
 
@@ -319,7 +332,7 @@ du6$fitted_val<-fitted(model.lme4.du6.cut.rd.yr)
 ```
 
 
-```{r du6_fix_eff_coef, echo = F, message = F, eval = T}
+```{r du6-fix-eff-coef, echo = F, message = F, eval = T}
 # summary table
 table.glm.summary.du6 <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.summary.du6) <- c ("Coefficient", "Coefficient.Estimate", "Std.Error","z.value", "p.values")
@@ -351,7 +364,7 @@ table.glm.summary.du6 [4, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|
 table.glm.summary.du6 [5, 5] <-coef(summary(model.lme4.du6.cut.rd.yr))[,"Pr(>|z|)"][5]
 
 kable (table.glm.summary.du6,
-       caption = "<b>Table 2. Fixed Effect Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
+       caption = "<b>Fixed Effect Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -361,9 +374,9 @@ kable (table.glm.summary.du6,
 
 ```
 
-Random effects in the DU6 model indicated that there was variability in the avoidance of caribou to roads across herds (Table \@ref(tab:du6_random_effects_coeffs), Fig. \@ref(fig:random_fixed_effects_du6)A). Similarly, there was variability in the response of caribou to 1 to 5 year old and 6 to 10 year old cutblocks across herds (Table \@ref(tab:du6_random_effects_coeffs), Fig. \@ref(fig:random_fixed_effects_du6) B, C). Finally, caribou consistently avoided 11 to 40 year old cutblocks (Table \@ref(tab:du6_random_effects_coeffs), Fig. \@ref(fig:random_fixed_effects_du6) D).
+Random effects in the DU6 model indicated that there was variability in the avoidance of caribou to roads across herds (Table \@ref(tab:du6-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du6)A). Similarly, there was variability in the response of caribou to 1 to 5 year old and 6 to 10 year old cutblocks across herds (Table \@ref(tab:du6-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du6) B, C). Finally, caribou consistently avoided 11 to 40 year old cutblocks (Table \@ref(tab:du6-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du6) D).
 
-```{r du6_random_effects_coeffs, echo = F, message = F, eval = T}
+```{r du6-random-effects-coeffs, echo = F, message = F, eval = T}
 table.glm.summary.raneff <- data.frame (matrix (ncol = 6, nrow = 0))
 colnames (table.glm.summary.raneff) <- c ("Herd", "Intercept", "Distance to road","Distance to cutblock 1 to 4 years old", "Distance to cutblock 5 to 10 years old", "Distance to cutblock 11 to 40 years old")
 tab<-as.data.frame(coef(model.lme4.du6.cut.rd.yr)$HERD_NAME)
@@ -408,7 +421,7 @@ table.glm.summary.raneff[6,6]<-(tab[,"distance_to_cut_11to40yo_s"][6])
 
 
 kable (table.glm.summary.raneff,
-       caption = "<b>Table 3. Random Effect Herd-Level Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
+       caption = "<b>Random Effect Herd-Level Coefficients of the DU6 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -418,9 +431,9 @@ kable (table.glm.summary.raneff,
 ```
 
 #### Caveats
-Note that the model fit is fairly bad, as Fig. \@ref(fig:du6_model_fitted_vs_residual) shows the relationship betwen the fitted and residual values is mostly well beyond the bounds of the binned confidence intervals suggesting that this model fits poorly.
+Note that the model fit is fairly bad, as Fig. \@ref(fig:du6-model-fitted-vs-residual) shows the relationship betwen the fitted and residual values is mostly well beyond the bounds of the binned confidence intervals suggesting that this model fits poorly.
 
-```{r du6_model_fitted_vs_residual, echo = F, message = F, eval = T}
+```{r du6-model-fitted-vs-residual, echo = F, message = F, eval = T}
 binnedplot (du6$fitted_val, 
             du6$residual_val, 
              nclass = NULL, 
@@ -433,7 +446,7 @@ binnedplot (du6$fitted_val,
 ```
 
 
-```{r random_fixed_effects_du6, fig.cap="Population and herd level effects of distance to (A)roads, (B) 1 to 5 year old cutblocks, (C) 6 to 10 year old cutblocks, and (D) 11 to 40 year old cutblocks. x-axis values were centered and scaled  to 1 standard deviation to assist model fitting",  echo = F, message = F, eval = T}
+```{r random-fixed-effects-du6, fig.cap="Population and herd level effects of distance to (A)roads, (B) 1 to 5 year old cutblocks, (C) 6 to 10 year old cutblocks, and (D) 11 to 40 year old cutblocks. x-axis values were centered and scaled  to 1 standard deviation to assist model fitting. The thick black line represents the fixed effect model output with 95% confidence intervals and coloured lines are the fits for each herd.",  echo = F, message = F, eval = T}
 
 re1<-ggpredict(model.lme4.du6.cut.rd.yr, terms = c("distance_to_cut_1to5yo_s", "HERD_NAME"), type = "re")
 fe1<-ggpredict(model.lme4.du6.cut.rd.yr, "distance_to_cut_1to5yo_s")
@@ -522,9 +535,9 @@ ggarrange(p4, p1, p2,p3, ncol=2, nrow=2,labels=c("A","B","C","D"), common.legend
 ```
 
 ### DU7
-In DU7, the home ranges of individual animals were calculated from 131 animals from the Charlotte Alplands, Chase, Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Pink Mountain, Rainbows, Spatsizi, Telkwa, Tsenaglode and Tweedsmuir herds. Sample sizes of used and available points are presented in table \@ref(tab:DU7_samp_size_table)
+In DU7, the home ranges of individual animals were calculated from 131 animals from the Charlotte Alplands, Chase, Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Pink Mountain, Rainbows, Spatsizi, Telkwa, Tsenaglode and Tweedsmuir herds. Sample sizes of used and available points are presented in table \@ref(tab:DU7-samp-size-table)
 
-```{r DU7_samp_size_table, echo = F, message = F, eval = T}
+```{r DU7-samp-size-table, echo = F, message = F, eval = T}
 # number of animals, by herd
 count.individual.home.range <- du7  %>%
   filter(pttype==1) %>%
@@ -561,9 +574,9 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-There was a mixed response of caribou to the presence of roads (Fig. \@ref(fig:du7_road_effect)). For example, caribou in the Chase, Frog, Graham, Itcha-Ilgachuz, Muskwa, Rainbows, Telkwa, Tsenaglode, and Tweedsmuir herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Charlotte Alplands, Finlay, and Spatsizi. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
+There was a mixed response of caribou to the presence of roads (Fig. \@ref(fig:du7-road-effect)). For example, caribou in the Chase, Frog, Graham, Itcha-Ilgachuz, Muskwa, Rainbows, Telkwa, Tsenaglode, and Tweedsmuir herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Charlotte Alplands, Finlay, and Spatsizi. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
 
-```{r du7_road_effect,fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in du7", echo = F, message = F, eval = T}
+```{r du7-road-effect,fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in du7", echo = F, message = F, eval = T}
 ggplot (du7, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -573,9 +586,9 @@ ggplot (du7, aes (x = as.factor(pttype), y = distance_to_road)) +
          plot.title = element_text (size = 12))
 
 ```
-Similar to road, caribou in du7 had a mixed response to 1 to 5 year old cutblocks (Fig. \@ref(fig:du7_cutblock_1to5yo)). For example, caribou in the Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Rainbows, Spatsizi, Telkwa, Tsenaglode, and Tweedsmuir herds tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Charlotte Alplands, Chase, and Pink Mountain herds utilized habitats closer to 1 to 5 year old cutblocks than what was available. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
+Similar to road, caribou in du7 had a mixed response to 1 to 5 year old cutblocks (Fig. \@ref(fig:du7-cutblock-1to5yo)). For example, caribou in the Finlay, Frog, Graham, Itcha-Ilgachuz, Muskwa, Rainbows, Spatsizi, Telkwa, Tsenaglode, and Tweedsmuir herds tended to utlize habitat slightly further from 1 to 5 year old cutblocks than what was available. In contrast the Charlotte Alplands, Chase, and Pink Mountain herds utilized habitats closer to 1 to 5 year old cutblocks than what was available. We included random effect for distance to 1 to 5 year old cutblocks in the GLMM to account for the variability in preference between herds.
 
-```{r du7_cutblock_1to5yo, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations \n by caribou herds in du7",echo = F, message = F, eval = T}
+```{r du7-cutblock-1to5yo, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations \n by caribou herds in du7",echo = F, message = F, eval = T}
 ggplot (du7, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -587,9 +600,9 @@ ggplot (du7, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
 
 Distance to 6 to 10 year old cutblocks and 11 to 40 year old cutblocks were highly correlated ($\rho$ = 0.89), therefore these two variables were combined into a single variable of distance to 6 to 40 year old cutblocks.
 
-There was variability in the response of caribou herds to 6 to 40 year old cutblocks in du7 (Fig. \@ref(fig:du7_cutblock_6to40yo)). Caribou in the Chase, Grahm, Itcha-Ilgachuz, Muskwa, Rainbows, Telkwa, Tsenaglode and Tweedsmuir herds were further from 6 to 40 year old cutblocks than what was available on average in their home range. In contrast Charlotte Alplands, Finlay, Frog and Spatsizi were closer to 6 to 40 year old cutblocks than what was available on average. A random effect for distance for 6 to 40 year old cutblocks was included in the GLMM to account for this variability.
+There was variability in the response of caribou herds to 6 to 40 year old cutblocks in du7 (Fig. \@ref(fig:du7-cutblock-6to40yo)). Caribou in the Chase, Grahm, Itcha-Ilgachuz, Muskwa, Rainbows, Telkwa, Tsenaglode and Tweedsmuir herds were further from 6 to 40 year old cutblocks than what was available on average in their home range. In contrast Charlotte Alplands, Finlay, Frog and Spatsizi were closer to 6 to 40 year old cutblocks than what was available on average. A random effect for distance for 6 to 40 year old cutblocks was included in the GLMM to account for this variability.
 
-```{r du7_cutblock_6to40yo, fig.cap="Distance to 6 to 40 year old cutblock at available (0) and used (1) locations by caribou herds in du7", echo = F, message = F, eval = T}
+```{r du7-cutblock-6to40yo, fig.cap="Distance to 6 to 40 year old cutblock at available (0) and used (1) locations by caribou herds in du7", echo = F, message = F, eval = T}
 du7 <- dplyr::mutate (du7, distance_to_cut_6to40yo = pmin (distance_to_cut_6to10yo, distance_to_cut_11to40yo))
 
 
@@ -604,9 +617,9 @@ ggplot (du7, aes (x = as.factor(pttype), y = distance_to_cut_6to40yo)) +
 
 
 #### Caribou-Forestry Disturbance Model
-There was no relationship between caribou use and distance to road (P=0.49). The model indicated a weakly significant (P=0.084) effect of 1 to 5 year old cutblocks on caribou distribution.  Thus, on average, across caribou individuals and herds, caribou used areas further from 1 to 5 year old cutblocks (note that a positive coefficient is a negative effect, because the covariate is a 'distance to' metric). Lastly, the model indicated a strongly significant (P<<0.0001) positive effect of 6 to 40 year old cutblocks on caribou, suggesting that caribou avoided 6 to 40 year old cutblocks.
+There was no relationship between caribou use and distance to road (P=0.49) (Table \@ref(tab:du7-fix-eff-coef), Fig. \@ref(fig:random-fixed-effects-du7)A). The model indicated a weakly significant (P=0.084) effect of 1 to 5 year old cutblocks on caribou distribution.  Thus, on average, across caribou individuals and herds, caribou used areas further from 1 to 5 year old cutblocks (note that a positive coefficient is a negative effect, because the covariate is a 'distance to' metric) (Table \@ref(tab:du7-fix-eff-coef), Fig. \@ref(fig:random-fixed-effects-du7)B). Lastly, the model indicated a strongly significant (P<<0.0001) positive effect of 6 to 40 year old cutblocks on caribou, suggesting that caribou avoided 6 to 40 year old cutblocks (Table \@ref(tab:du7-fix-eff-coef), Fig. \@ref(fig:random-fixed-effects-du7)C).
 
-```{r, du7 model, echo = T, message = F, eval = F}
+```{r du7-model, echo = T, message = F, eval = T, cache=TRUE}
 # model spec
 du7$distance_to_road_scale<-scale(du7$distance_to_road)
 du7$distance_to_cut_1to5yo_scale<-scale(du7$distance_to_cut_1to5yo)
@@ -628,7 +641,7 @@ Anova(model.lme4.du7.cut.rd.yr,type="III")
 
 ```
 
-```{r du7_fix_eff_coef, echo = F, message = F, eval = T}
+```{r du7-fix-eff-coef, echo = F, message = F, eval = T}
 # summary table
 table.glm.summary.du7 <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.summary.du7) <- c ("Coefficient", "Coefficient.Estimate", "Std.Error","z.value", "p.values")
@@ -655,7 +668,7 @@ table.glm.summary.du7 [3, 5] <-coef(summary(model.lme4.du7.cut.rd.yr))[,"Pr(>|z|
 table.glm.summary.du7 [4, 5] <-coef(summary(model.lme4.du7.cut.rd.yr))[,"Pr(>|z|)"][4]
 
 kable (table.glm.summary.du7,
-       caption = "<b>Table 2. Fixed Effect Coefficients of the du7 Caribou-Forestry Disturbance Model.<b>",
+       caption = "<b>Fixed Effect Coefficients of the du7 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -665,10 +678,10 @@ kable (table.glm.summary.du7,
 
 ```
 
-Random effects in the du7 model indicated that there was variability in the response of caribou to roads across herds (Table \@ref(tab:du7_random_effects_coeffs), Fig. \@ref(fig:random_fixed_effects_du7)A). Some herds such as Frog and Tsenaglode tended to avoid roads. While other herds, such as, Rainbow, Graham, and Tweedsmuir utlized areas closer to roads than what was generally available. On average, caribou herds avoided 1 to 5 year old cutblocks (Table \@ref(tab:du7_random_effects_coeffs), Fig. \@ref(fig:random_fixed_effects_du7) B), but again this response was variabliity between herds. For example, Pink Mountain and Tweedsmuir tended to use areas close to roads more frequently than what was available on average while the opposite was true for Itcha-Ilgachuz, Spatsizi, and Tsenglode. Lastly, most caribou herds avoid 6 to 40 year old cutblocks, with the exception of Finlay and Frog who showed a slight trend towards prefering 6 to 40 year old cutblock (Table \@ref(tab:du7_random_effects_coeffs), Fig. \@ref(fig:random_fixed_effects_du7) C).
+Random effects in the du7 model indicated that there was variability in the response of caribou to roads across herds (Table \@ref(tab:du7-random-effects-coeffs), Fig. \@ref(fig: random-fixed-effects-du7)A). Some herds such as Frog and Tsenaglode tended to avoid roads. While other herds, such as, Rainbow, Graham, and Tweedsmuir utlized areas closer to roads than what was generally available. On average, caribou herds avoided 1 to 5 year old cutblocks (Table \@ref(tab:du7-random-effects-coeffs), Fig. \@ref(fig: random-fixed-effects-du7) B), but again this response was variabliity between herds. For example, Pink Mountain and Tweedsmuir tended to use areas close to roads more frequently than what was available on average while the opposite was true for Itcha-Ilgachuz, Spatsizi, and Tsenglode. Lastly, most caribou herds avoid 6 to 40 year old cutblocks, with the exception of Finlay and Frog who showed a slight trend towards prefering 6 to 40 year old cutblock (Table \@ref(tab:du7-random-effects-coeffs), Fig. \@ref(fig: random-fixed-effects-du7) C).
 
 
-```{r du7_random_effects_coeffs, echo = F, message = F, eval = T}
+```{r du7-random-effects-coeffs, echo = F, message = F, eval = T}
 table.glm.summary.raneff <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.summary.raneff) <- c ("Herd", "Intercept", "Distance to road","Distance to cutblock 1 to 5 years old", "Distance to cutblock 6 to 40 years old")
 tab<-as.data.frame(coef(model.lme4.du7.cut.rd.yr)$HERD_NAME)
@@ -744,7 +757,7 @@ table.glm.summary.raneff[12,5]<-(tab[,"distance_to_cut_6to40yo_scale"][12])
 table.glm.summary.raneff[13,5]<-(tab[,"distance_to_cut_6to40yo_scale"][13])
 
 kable (table.glm.summary.raneff,
-       caption = "<b>Table 3. Random Effect Herd-Level Coefficients of the du7 Caribou-Forestry Disturbance Model.<b>",
+       caption = "<b>Random Effect Herd-Level Coefficients of the du7 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -754,9 +767,9 @@ kable (table.glm.summary.raneff,
 ```
 
 #### Caveats
-Note that the model fit is fairly bad, as Fig. \@ref(fig:du7_model_fitted_vs_residual) shows the relationship betwen the fitted and residual values is frequently beyond the bounds of the binned confidence intervals suggesting that this model fits poorly.
+Note that the model fit is fairly bad, as Fig. \@ref(fig:du7-model-fitted-vs-residual) shows the relationship betwen the fitted and residual values is frequently beyond the bounds of the binned confidence intervals suggesting that this model fits poorly.
 
-```{r du7_model_fitted_vs_residual,fig.cap="DU7 Model Binned Residual Plot", echo = F, message = F, eval = T}
+```{r du7-model-fitted-vs-residual,fig.cap="DU7 Model Binned Residual Plot", echo = F, message = F, eval = T}
 # check residuals
 binnedplot (fitted (model.lme4.du7.cut.rd.yr), 
              residuals(model.lme4.du7.cut.rd.yr, type = "response"), 
@@ -769,7 +782,7 @@ binnedplot (fitted (model.lme4.du7.cut.rd.yr),
 ```
 
 
-```{r random_fixed_effects_du7, fig.cap="Population and herd level effects of distance to (A)roads, (B) 1 to 5 year old cutblocks, and (C) 6 to 40 year old cutblocks. x-axis values were centered and scaled to 1 standard deviation to assist model fitting",  echo = F, message = F, eval = T}
+```{r random-fixed-effects-du7, fig.cap="Population and herd level effects of distance to (A) roads, (B) 1 to 5 year old cutblocks, and (C) 6 to 40 year old cutblocks. x-axis values were centered and scaled to 1 standard deviation to assist model fitting",  echo = F, message = F, eval = T}
 
 re1<-ggpredict(model.lme4.du7.cut.rd.yr, terms = c("distance_to_cut_1to5yo_scale", "HERD_NAME"), type = "re")
 fe1<-ggpredict(model.lme4.du7.cut.rd.yr, "distance_to_cut_1to5yo_scale")
@@ -841,10 +854,12 @@ ggarrange(p4, p1, p2, ncol=2, nrow=2,labels=c("A","B","C"), common.legend = TRUE
 ```
 
 ### DU8
-In DU8, caribou location data was collected from 152 animals from the Burnt Pine, Kennedy Siding, Moberly, Narraway, Quintette and Scott herds. The number of animals sampled per herd ranged from 8 to 57 and the number of telemetry locations per herd ranged from 5,414 to 65,431 per herd (Table \@ref(tab:DU8_sample_points)).
+In DU8, caribou location data was collected from 152 animals from the Burnt Pine, Kennedy Siding, Moberly, Narraway, Quintette and Scott herds. The number of animals sampled per herd ranged from 8 to 57 and the number of telemetry locations per herd ranged from 5,414 to 65,431 per herd (Table \@ref(tab:DU8-sample-points)).
 
-```{r DU8_sample_points, echo = F, message = F, eval = T}
+```{r DU8-sample-points, echo = F, message = F, eval = T}
 # number of animals, by herd
+du8<- Range_scale_data1 %>% filter(du=="du8")
+
 count.individual.home.range <- du8  %>%
   filter(pttype==1) %>%
   group_by(HERD_NAME,year) %>%
@@ -871,7 +886,7 @@ table <- full_join(count.individual.home.range, count.herd.range)
 
 
 kable (table,
-       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in DU8 (Northern).<b>") %>%
+       caption = "<b> Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in DU8 (Northern).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -881,9 +896,9 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-In general caribou herds avoided roads in DU8 (Fig. \@ref(fig:du8_Herd_road_effect)). For example, caribou in the Burnt Pine, Kennedy Siding, Moberly, Narraway and Scott herds tended to be further from roads, whereas caribou in the Narraway herd utlized habitat in the same proportion as what was available. A random effect for distance to road was included in the GLMM to account for this variability.
+In general caribou herds avoided roads in DU8 (Fig. \@ref(fig:du8-Herd-road-effect)). For example, caribou in the Burnt Pine, Kennedy Siding, Moberly, Quintette and Scott herds tended to be further from roads, whereas caribou in the Narraway herd utlized habitat in the same proportion as what was available. A random effect for distance to road was included in the GLMM to account for this variability.
 
-```{r du8_Herd_road_effect, fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU8", echo = F, message = F, eval = T}
+```{r du8-Herd-road-effect, fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU8", echo = F, message = F, eval = T}
 ggplot (du8, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -893,9 +908,9 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_road)) +
          plot.title = element_text (size = 12))
 ```
 
-Caribou tended to avoid cutblocks 1 to 5 years old across herds in DU8 (Fig. \@ref(fig:du8_Herd_cutblock_1_to_4)). For example, all herds except Narraway tended to use areas further from to 1 to 5 year old cutblocks than what was available. A random effect for distance to cutblock 1 to 4 years old was included in the GLMM to account for this variability.
+Caribou tended to avoid cutblocks 1 to 5 years old across herds in DU8 (Fig. \@ref(fig:du8-Herd-cutblock-1-to-5)). For example, all herds except Narraway tended to use areas further from to 1 to 5 year old cutblocks than what was available. A random effect for distance to cutblock 1 to 5 years old was included in the GLMM to account for this variability.
 
-```{r du8_Herd_cutblock_1_to_4,fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
+```{r du8-Herd-cutblock-1-to-5, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
 ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -905,9 +920,9 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
          plot.title = element_text (size = 12))
 ```
 
-Caribou tended to avoid cutblocks 6 to 10 years of age across herds in DU8 (Fig. \@ref(du8_Herd_cutblock_5_to_9)). For example, all herds except Narraway used areas further from to 6 to 10 year old cutblocks than what was available. A random effect for distance to cutblock 6 to 10 years old was included in the GLMM to account for this variability.
+Caribou tended to avoid cutblocks 6 to 10 years of age across herds in DU8 (Fig. \@ref(du8-Herd-cutblock-5-to-10)). For example, all herds except Narraway used areas further from to 6 to 10 year old cutblocks than what was available. A random effect for distance to cutblock 6 to 10 years old was included in the GLMM to account for this variability.
 
-```{r du8_Herd_cutblock_5_to_9,fig.cap="Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
+```{r du8-Herd-cutblock-5-to-10, fig.cap="Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
 ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -917,9 +932,9 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
          plot.title = element_text (size = 12))
 ```
 
-Caribou tended to avoid cutblocks 11 to 40 years of age across herds in DU8 (Fig. 17). For example, all herds except Narraway used areas further from to 11 to 40 year old cutblocks than what was available. A random effect for distance to cutblock 11 to 40 years old was included in the GLMM to account for this variability.
+Caribou tended to avoid cutblocks 11 to 40 years of age across herds in DU8 (Fig. \@ref(fig:du8-Herd-cutblock-11-to-40)). For example, all herds except Narraway used areas further from to 11 to 40 year old cutblocks than what was available. A random effect for distance to cutblock 11 to 40 years old was included in the GLMM to account for this variability.
 
-```{r du8_Herd_cutblock_5_to_40, fig.cap="Distance to 11 to 40 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
+```{r du8-Herd-cutblock-11-to-40, fig.cap="Distance to 11 to 40 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
 ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
@@ -931,43 +946,31 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
 
 
 #### Caribou-Forestry Disturbance Model
-There was a statistically significant (p-value < 0.05), negative fixed (population-level) effect of roads on caribou distribution (Table 8). There were generally positive fixed effects of cutblocks on caribou distribution. There was essentially no effect of 1 to 4 year old cutblocks on caribou distribution, a weak (p = 0.166) positive effect of 5 to 9 year old cutblocks, and a close to statistically significant (p-value = 0.07) positive effect of 10 to 40 year old cutblocks on caribou distribution. 
-```{r, du8 model, echo = T, message = F, eval = F}
+Caribou in DU8 avoided 1 to 5 year old cutblocks (P<<0.0001) and weakly avoided roads (P = 0.116) and 6 to 10 year old cutblocks (P = 0.125). However, there was essentially no effect of 11 to 40 year old cutblocks on caribou distribution (P = 0.58) (Table \@ref(tab:du8-fix-eff-coef), Figure \@ref(fig:random-fixed-effects-du8)).
+
+```{r, du8 model, echo = T, message = F, eval = T, cache=TRUE}
 # model spec
+
 du8$distance_to_road_scale<-scale(du8$distance_to_road)
 du8$distance_to_cut_1to5yo_scale<-scale(du8$distance_to_cut_1to5yo)
 du8$distance_to_cut_6to10yo_scale<-scale(du8$distance_to_cut_6to10yo)
-du8$distance_to_cut_11to50yo_scale<-scale(du8$distance_to_cut_11to50yo)
+du8$distance_to_cut_11to40yo_scale<-scale(du8$distance_to_cut_11to40yo)
 
 model.lme4.du8.cut.rd.yr2 <- glmer (pttype ~ distance_to_road_scale +
                                          distance_to_cut_1to5yo_scale +
                                          distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale +
+                                         distance_to_cut_11to40yo_scale +
                                         (distance_to_road_scale +
                                          distance_to_cut_1to5yo_scale +
                                          distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale||HERD_NAME) +
+                                         distance_to_cut_11to40yo_scale||HERD_NAME) +
                                         (1|year),
                                       data = du8, 
                                       family = binomial (link = "logit"),
                                       verbose = T)  
- 
-
-summary(model.lme4.du8.cut.rd.yr2)
-Anova(model.lme4.du8.cut.rd.yr2,type="III")
-# check residuals
-binnedplot (fitted (model.lme4.du8.cut.rd.yr2), 
-             residuals(model.lme4.du8.cut.rd.yr2, type = "response"), 
-             nclass = NULL, 
-             xlab = "Expected Values", 
-             ylab = "Average residual", 
-             main = "DU8 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
 ```
 
-```{r du6_fix_eff_coef, echo = F, message = F, eval = T}
+```{r du8-fix-eff-coef, echo = F, message = F, eval = T}
 # summary table
 table.glm.summary.du8 <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.summary.du8) <- c ("Coefficient", "Coefficient.Estimate", "Std.Error","z.value", "p.values")
@@ -999,7 +1002,7 @@ table.glm.summary.du8 [4, 5] <-coef(summary(model.lme4.du8.cut.rd.yr2))[,"Pr(>|z
 table.glm.summary.du8 [5, 5] <-coef(summary(model.lme4.du8.cut.rd.yr2))[,"Pr(>|z|)"][5]
 
 kable (table.glm.summary.du8,
-       caption = "<b>Table 2. Fixed Effect Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
+       caption = "<b> Fixed Effect Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -1009,9 +1012,10 @@ kable (table.glm.summary.du8,
 
 ```
 
-Random effects in the DU8 model indicated that caribou avoided roads consistently across herds, although there was variability in the strength of avoidance (Table 9, Fig. 20). Caribou in the Burnt Pine, Quintette and Scott avoided cutblocks 1 to 4 years old, whereas caribou in the Kennedy Siding, Moberly and Narraway used areas closer to cutblocks 1 to 4 years old (Fig. 21). Caribou in the Narraway and Quintette avoided cutblocks 5 to 9 years old, whereas caribou in the Burnt Pine, Kennedy Siding, Moberly and Scott used areas closer to cutblocks 5 to 9 years old (Fig. 22). All caribou herds selected cutblocks 10 to 40 years old (Fig. 23).
+Random effects in the DU8 model indicated that most caribou herds (Burnt Pine, Kennedy Sidin, Moberly, and Scott) avoided roads. However, caribou in the Moberly and Narraway herds had a slight tendency to utilize habitats closer to roads than what was generally available in the population home range (Table \@ref(tab:du8-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du8)A). All caribou herds, with the exception of Narraway avoided 1 to 5 year old cutblocks. The Narraway herd showed neither preference or avoidance of 1 to 5 year old cutblocks (Table \@ref(tab:du8-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du8)B). Similar but weaker trends of avoidance of 6 to 10 year old cutblocks were observed for most herds (Burnt Pine, Kennedy Sidin, Quintette, and Scott) . However, the Moberly and Narraway herds showed a weak trend of utilizing areas closer to 6 to 10 year cutblocks (Table \@ref(tab:du8-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du8)C). Lastly, the response to 11 to 40 year old cutblocks was mixed. The Burnt Pine, Moberly and Quintette herds avoided 11 to 40 year old cutblocks while Kennedy Sidin, Narraway, and Scott utilized areas closer to 11 to 40 year old cutblocks (Table \@ref(tab:du8-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du8)D).
 
-```{r du6_random_effects_coeffs, echo = F, message = F, eval = T}
+
+```{r du8-random-effects-coeffs, echo = F, message = F, eval = T}
 table.glm.summary.raneff8 <- data.frame (matrix (ncol = 6, nrow = 0))
 colnames (table.glm.summary.raneff8) <- c ("Herd", "Intercept", "Distance to road","Distance to cutblock 1 to 5 years old", "Distance to cutblock 6 to 10 years old", "Distance to cutblock 11 to 40 years old")
 tab<-as.data.frame(coef(model.lme4.du8.cut.rd.yr2)$HERD_NAME)
@@ -1056,7 +1060,7 @@ table.glm.summary.raneff8[6,6]<-(tab[,"distance_to_cut_11to40yo_scale"][6])
 
 
 kable (table.glm.summary.raneff8,
-       caption = "<b>Table 3. Random Effect Herd-Level Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
+       caption = "<b> Random Effect Herd-Level Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -1066,7 +1070,7 @@ kable (table.glm.summary.raneff8,
 ```
 
 
-```{r random_fixed_effects_du8, fig.cap="Population and herd level effects of distance to (A)roads, (B) 1 to 5 year old cutblocks, (C) 6 to 10 year old cutblocks, and (D) 11 to 40 year old cutblocks in DU8. x-axis values were centered and scaled  to 1 standard deviation to assist model fitting",  echo = F, message = F, eval = T}
+```{r random-fixed-effects-du8, fig.cap="Population and herd level effects of distance to (A) roads, (B) 1 to 5 year old cutblocks, (C) 6 to 10 year old cutblocks, and (D) 11 to 40 year old cutblocks in DU8. x-axis values were centered and scaled  to 1 standard deviation to assist model fitting. The black line represents the fixed effect model fits with 95% confidence intervals and the coloured lines are the fits per herd",  echo = F, message = F, eval = T}
 
 re1<-ggpredict(model.lme4.du8.cut.rd.yr2, terms = c("distance_to_cut_1to5yo_scale", "HERD_NAME"), type = "re")
 fe1<-ggpredict(model.lme4.du8.cut.rd.yr2, "distance_to_cut_1to5yo_scale")
@@ -1155,9 +1159,9 @@ ggarrange(p4, p1, p2,p3, ncol=2, nrow=2,labels=c("A","B","C","D"), common.legend
 
 
 ### DU9
-In DU9, caribou location data was collected from 25 animals from the Hart Ranges, Nakusp and South Selkirks herds (Table 10). The number of animals sampled per herd ranged from 6 to 11 and the number of telemetry locations per herd ranged from 1,821 to 4,917 per herd.
+In DU9, caribou home ranges were estimated from 25 animals from the Hart Ranges, Nakusp and South Selkirks herds. Within these home ranges points were sampled (Used locations in table \@ref(tab:du9-data-summary)).Points were also sampled from the larger population home range (Available locations in table \@ref(tab:du9-data-summary)).
 
-```{r, du9, data summary, echo = F, message = F, eval = T}
+```{r du9-data-summary, echo = F, message = F, eval = T}
 # number of animals, by herd
 count.individual.home.range <- du9  %>%
   filter(pttype==1) %>%
@@ -1185,7 +1189,7 @@ table <- full_join(count.individual.home.range, count.herd.range)
 
 
 kable (table,
-       caption = "<b>Table 1. Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in du9 (Northern).<b>") %>%
+       caption = "<b> Number of points sampled in individual caribou home ranges (Used - 1's) and across the herd ranges (Available - 0's) in du9 (Northern).<b>") %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
                  fixed_thead = T,
@@ -1194,26 +1198,24 @@ kable (table,
 ```
 
 #### Herd-Level Effect of Forestry on Caribou Distribution
-All herds in DU9 avoided roads, however, the degree to which they avoided roads varied between herds. Hart Ranges avoided roads most strongly while South Selkirks only showed minor avoidance. A random effect for distance to road was included in the GLMM to account for this variability. Distance to resource road has highly correlated with distance to 10 to 40 year old cutblock ($\rho$ = 0.84), amd thus was not included in this analysis.
+All herds in DU9 avoided roads however, the degree to which they avoided roads varied between herds. Hart Ranges avoided roads most strongly while South Selkirks only showed minor avoidance (Fig. \@ref(fig:du9-Herd-road-effect). A random effect for distance to road was included in the GLMM to account for this variability.
 
-```{r, du9 Herd road effect plot, echo = F, message = F, eval = T}
+```{r du9-Herd-road-effect, fig.cap="Distance to roads at Available (0) and Used (1) Locations by Caribou Herds in DU9", echo = F, message = F, eval = T}
 ggplot (du9, aes (x = as.factor(pttype), y = distance_to_road)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 24. Distance to Road at Available (0) and Used (1) Locations /n by Caribou Herd in DU9",
-        x = "Available (0) and Used (1) Locations",
-        y = "Distance to Resource Road") +
+  labs (x = "Available (0) and Used (1) Locations",
+        y = "Distance to Road (Km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 11))
 ```
 
-Caribou in avoided 1 to 5 year old cutblocks in du9. This was consistend across all herds. A random effect for distance to 1 to 4 year old cutblock was included in the GLMM to account for this variability.
+Caribou in DU9 avoided 1 to 5 year old cutblocks. This was consistend across all herds but the strength of this relationship varied between herds (Fig. \@ref(fig:du9-Herd-1-to-5-yo-cutblock). A random effect for distance to 1 to 5 year old cutblock was included in the GLMM to account for this variability.
 
-```{r, du9 Herd 1 to 4 yo cutblock effect plot, echo = F, message = F, eval = T}
+```{r du9-Herd-1-to-5-yo-cutblock, fig.cap="Distance to 1 to 5 year old cutblocks at Available (0) and Used (1) Locations by Caribou Herds in DU9", echo = F, message = F, eval = T}
 ggplot (du9, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 17. Distance to 1 to 5 year old cutblock at available (0) and used (1) locations \n by caribou herds in DU9",
-        x = "Available (0) and used (1) locations",
+  labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
@@ -1221,26 +1223,24 @@ ggplot (du9, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
 ```
 
 
-Caribou in avoided 6 to 10 year old cutblocks in du9. This was consistend across all herds. A random effect for distance to 6 to 10 year old cutblock was included in the GLMM to account for this variability.
+Caribou in DU9 avoided 6 to 10 year old cutblocks. This was consistend across all herds \@ref(fig:du9-Herd-6-to-10-yo-cutblock). A random effect for distance to 6 to 10 year old cutblock was included in the GLMM to account for this variability.
 
-```{r, du9 Herd 5 to 9 yo cutblock effect plot, echo = F, message = F, eval = T}
+```{r du9-Herd-6-to-10-yo-cutblock, fig.cap="Distance to 6 to 10 year old cutblocks at Available (0) and Used (1) Locations by Caribou Herds in DU9", echo = F, message = F, eval = T}
 ggplot (du9, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 17. Distance to 6 to 10 year old cutblock at available (0) and used (1) locations \n by caribou herds in DU9",
-        x = "Available (0) and used (1) locations",
+  labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 ```
 
-There was variability in the response of Caribou to 11 to 40 year old cutblocks in du9. Hart Ranges and Nakusp avoided 11 to 40 year old roads while South Selkirks appeared to utilize habitat closer to 11 to 40 year old cutblocks than what is available. A random effect for distance to 11 to 40 year old cutblock was included in the GLMM to account for this variability.
+There was variability in the response of Caribou to 11 to 40 year old cutblocks in du9. Hart Ranges and Nakusp avoided 11 to 40 year old cutblocks while South Selkirks appeared to utilize habitat closer to 11 to 40 year old cutblocks than what is available \@ref(fig:du9-Herd-11-to-40-yo-cutblock). A random effect for distance to 11 to 40 year old cutblock was included in the GLMM to account for this variability.
 
-```{r, du9 Herd 5 to 9 yo cutblock effect plot, echo = F, message = F, eval = T}
+```{r du9-Herd-11-to-40-yo-cutblock, fig.cap="Distance to 11 to 40 year old cutblocks at Available (0) and Used (1) Locations by Caribou Herds in DU9",echo = F, message = F, eval = T}
 ggplot (du9, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
   geom_boxplot (outlier.colour = "red") +
-  labs (title = "Figure 17. Distance to 11 to 40 year old cutblock at available (0) and used (1) locations \n by caribou herds in DU9",
-        x = "Available (0) and used (1) locations",
+  labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
@@ -1248,23 +1248,23 @@ ggplot (du9, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
 ```
 
 #### Caribou-Forestry Disturbance Model
-The model included a statistically significant (p < 0.05), negative population-level (fixed) effect of roads on caribou distribution (Table 11). The population-level effect of 1 to 4 year old cutblocks was also negative, but weak and not statistically significant (p = 0.95). However, the effect of 5 to 9 year old cutblocks was positive, but not statistically significant (p = 0.06).
+The model included a statistically significant (p < 0.05), negative population-level (fixed) effect of roads on caribou distribution (Table \@ref(tab:du9-fix-eff-coef)). The population-level effect of 1 to 5 year old cutblocks was also negative, but weak and not statistically significant (p = 0.95). However, the effect of 6 to 10 year old cutblocks was positive, but not statistically significant (p = 0.06).
 
-```{r, du9 model, echo = T, message = F, eval = F}
+```{r, du9 model, echo = T, message = F, eval = T, cache=TRUE}
 # model spec
-du9$distance_to_resource_road_scale<-scale(du9$distance_to_resource_road)
+du9$distance_to_resource_road_scale<-scale(du9$distance_to_road)
 du9$distance_to_cut_1to5yo_scale<-scale(du9$distance_to_cut_1to5yo)
 du9$distance_to_cut_6to10yo_scale<-scale(du9$distance_to_cut_6to10yo)
-du9$distance_to_cut_11to50yo_scale<-scale(du9$distance_to_cut_11to50yo)
+du9$distance_to_cut_11to40yo_scale<-scale(du9$distance_to_cut_11to40yo)
 
 model.lme4.du9.cut.rd <- glmer (pttype ~ distance_to_resource_road_scale +
                                          distance_to_cut_1to5yo_scale +
                                          distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale +
+                                         distance_to_cut_11to40yo_scale +
                                         (distance_to_resource_road_scale +
                                          distance_to_cut_1to5yo_scale +
                                          distance_to_cut_6to10yo_scale +
-                                         distance_to_cut_11to50yo_scale || HERD_NAME) +                                          (1|year),
+                                         distance_to_cut_11to40yo_scale || HERD_NAME) +                                                          (1|year),
                                       data = du9, 
                                       family = binomial (link = "logit"),
                                       verbose = T) 
@@ -1284,11 +1284,79 @@ binnedplot (fitted (model.lme4.du9.cut.rd),
              col.int = "red")
 ```
 
-```{r, du9 model fixed effects coeffs, echo = F, message = F, eval = T}
-# model.coeffs <- as.data.frame (coef (summary (model.lme4.du9.cut.rd.fxn)))
-du9.fe <- read.csv (here ("R/caribou_habitat/data", "table_du9_model_fixed_coeffs_v4.csv"))
-kable (du9.fe,
-       caption = "<b>Table 11. Fixed Effect Coefficients of the DU9 Caribou-Forestry Disturbance Model.<b>",
+```{r du9-fix-eff-coef, echo = F, message = F, eval = T}
+# summary table
+table.glm.summary.du9 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.summary.du9) <- c ("Coefficient", "Coefficient.Estimate", "Std.Error","z.value", "p.values")
+
+table.glm.summary.du9[1,1]<-"Intercept"
+table.glm.summary.du9[2,1]<-"Distance to Resource Road"
+table.glm.summary.du9[3,1]<-"Distance to Cutblock 1 to 5 years old"
+table.glm.summary.du9[4,1]<-"Distance to Cutblock 6 to 10 years old"
+table.glm.summary.du9[5,1]<-"Distance to Cutblock 11 to 40 years old"
+table.glm.summary.du9 [1, 2] <-fixef(model.lme4.du9.cut.rd)[1]
+table.glm.summary.du9 [2, 2] <-fixef(model.lme4.du9.cut.rd)[2]
+table.glm.summary.du9 [3, 2] <-fixef(model.lme4.du9.cut.rd)[3]
+table.glm.summary.du9 [4, 2] <-fixef(model.lme4.du9.cut.rd)[4]
+table.glm.summary.du9 [5, 2] <-fixef(model.lme4.du9.cut.rd)[5]
+table.glm.summary.du9 [1, 3] <-se.fixef(model.lme4.du9.cut.rd)[1]
+table.glm.summary.du9 [2, 3] <-se.fixef(model.lme4.du9.cut.rd)[2]
+table.glm.summary.du9 [3, 3] <-se.fixef(model.lme4.du9.cut.rd)[3]
+table.glm.summary.du9 [4, 3] <-se.fixef(model.lme4.du9.cut.rd)[4]
+table.glm.summary.du9 [5, 3] <-se.fixef(model.lme4.du9.cut.rd)[5]
+table.glm.summary.du9 [1, 4] <-coef(summary(model.lme4.du9.cut.rd))[,"z value"][1]
+table.glm.summary.du9 [2, 4] <-coef(summary(model.lme4.du9.cut.rd))[,"z value"][2]
+table.glm.summary.du9 [3, 4] <-coef(summary(model.lme4.du9.cut.rd))[,"z value"][3]
+table.glm.summary.du9 [4, 4] <-coef(summary(model.lme4.du9.cut.rd))[,"z value"][4]
+table.glm.summary.du9 [5, 4] <-coef(summary(model.lme4.du9.cut.rd))[,"z value"][5]
+table.glm.summary.du9 [1, 5] <-coef(summary(model.lme4.du9.cut.rd))[,"Pr(>|z|)"][1]
+table.glm.summary.du9 [2, 5] <-coef(summary(model.lme4.du9.cut.rd))[,"Pr(>|z|)"][2]
+table.glm.summary.du9 [3, 5] <-coef(summary(model.lme4.du9.cut.rd))[,"Pr(>|z|)"][3]
+table.glm.summary.du9 [4, 5] <-coef(summary(model.lme4.du9.cut.rd))[,"Pr(>|z|)"][4]
+table.glm.summary.du9 [5, 5] <-coef(summary(model.lme4.du9.cut.rd))[,"Pr(>|z|)"][5]
+
+kable (table.glm.summary.du9,
+       caption = "<b> Fixed Effect Coefficients of the DU8 Caribou-Forestry Disturbance Model.<b>",
+       digits = 3) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+```
+
+Random effects in the DU9 model indicated that the Hart Ranges herd of caribou avoided roads but that the Nakusp and South Selkirks used habitats closer to roads than what was available on average. (Table \@ref(tab:du9-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du9)A). There was variability in use of areas close to 1 to 5 year cutblocks across herds, where caribou in the South Selkirks and Nakusp herds avoided areas close to cutblocks and caribou in the Hart Ranges utilized areas closer to cutblocks (Table \@ref(tab:du9-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du9)B). Similarly, caribou in the Nakusp and South Selkirks avoided 6 to 10 year old cutblocks but caribou in the Hart Ranges showed no preference or avoidance of 6 to 10 year old cutblocks (Table \@ref(tab:du9-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du9)C). Lastly, caribou in the Hart Ranges and nakusp avoided 11 to 40 year old cutblocks while the South Selkirks herd showed a preference for 11 to 40 year old cutblocks (Table \@ref(tab:du9-random-effects-coeffs), Fig. \@ref(fig:random-fixed-effects-du9)D).
+
+```{r du9-random-effects-coeffs, echo = F, message = F, eval = T}
+table.glm.summary.raneff9 <- data.frame (matrix (ncol = 6, nrow = 0))
+colnames (table.glm.summary.raneff9) <- c ("Herd", "Intercept", "Distance to road","Distance to cutblock 1 to 5 years old", "Distance to cutblock 6 to 10 years old", "Distance to cutblock 11 to 40 years old")
+tab<-as.data.frame(coef(model.lme4.du9.cut.rd)$HERD_NAME)
+
+table.glm.summary.raneff9[1,1]<- "Hart Ranges"
+table.glm.summary.raneff9[2,1]<-"Nakusp"
+table.glm.summary.raneff9[3,1]<-"South Selkirks"
+table.glm.summary.raneff9[1,2]<-tab[,"(Intercept)"][1]
+table.glm.summary.raneff9[2,2]<-tab[,"(Intercept)"][2]
+table.glm.summary.raneff9[3,2]<-tab[,"(Intercept)"][3]
+table.glm.summary.raneff9[1,3]<-(tab[,"distance_to_resource_road_scale"][1])
+table.glm.summary.raneff9[2,3]<-(tab[,"distance_to_resource_road_scale"][2])
+table.glm.summary.raneff9[3,3]<-(tab[,"distance_to_resource_road_scale"][3])
+table.glm.summary.raneff9[1,4]<-(tab[,"distance_to_cut_1to5yo_scale"][1])
+table.glm.summary.raneff9[2,4]<-(tab[,"distance_to_cut_1to5yo_scale"][2])
+table.glm.summary.raneff9[3,4]<-(tab[,"distance_to_cut_1to5yo_scale"][3])
+table.glm.summary.raneff9[1,5]<-(tab[,"distance_to_cut_6to10yo_scale"][1])
+table.glm.summary.raneff9[2,5]<-(tab[,"distance_to_cut_6to10yo_scale"][2])
+table.glm.summary.raneff9[3,5]<-(tab[,"distance_to_cut_6to10yo_scale"][3])
+table.glm.summary.raneff9[1,6]<-(tab[,"distance_to_cut_11to40yo_scale"][1])
+table.glm.summary.raneff9[2,6]<-(tab[,"distance_to_cut_11to40yo_scale"][2])
+table.glm.summary.raneff9[3,6]<-(tab[,"distance_to_cut_11to40yo_scale"][3])
+
+
+
+
+kable (table.glm.summary.raneff9,
+       caption = "<b> Random Effect Herd-Level Coefficients of the DU9 Caribou-Forestry Disturbance Model.<b>",
        digits = 3) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -1297,100 +1365,101 @@ kable (du9.fe,
                  font_size = 11)
 ```
 
-Random effects in the DU9 model indicated that caribou avoided roads consistently across herds, although there was variability in the strength of avoidance (Table 12, Fig. 27). There was variability in use of areas close to 1 to 4 year cutblocks across herds, where caribou in the South Selkirks herd used areas closer to cutblocks and caribou in the Hart Ranges and Nakusp avoided cutblocks (Fig. 28). There was a consitent postivie response to cutblocks 5 to 9 years old across herds (Fig. 29).
+```{r random-fixed-effects-du9, fig.cap="Population and herd level effects of distance to (A) roads, (B) 1 to 5 year old cutblocks, (C) 6 to 10 year old cutblocks, and (D) 11 to 40 year old cutblocks in DU9. x-axis values were centered and scaled  to 1 standard deviation to assist model fitting",  echo = F, message = F, eval = T}
 
-```{r, du9 model random effects coeffs, echo = F, message = F, eval = T}
-du9.re <- read.csv (here ("R/caribou_habitat/data", "table_du9_model_herd_re_coeffs_v4.csv"))
-kable (du9.re,
-       caption = "<b>Table 12. Random Effect Herd-Level Coefficients of the DU9 Caribou-Forestry Disturbance Model.<b>",
-       digits = 3) %>%
-  kable_styling (position = "left",
-                 bootstrap_options = c("striped", "hover"),
-                 fixed_thead = T,
-                 full_width = F,
-                 font_size = 11)
-```
+re1_du9<-ggpredict(model.lme4.du9.cut.rd, terms = c("distance_to_cut_1to5yo_scale", "HERD_NAME"), type = "re")
+fe1_du9<-ggpredict(model.lme4.du9.cut.rd, "distance_to_cut_1to5yo_scale")
 
-```{r, du9 figure random and fixed effects roads,  echo = F, message = F, eval = T}
-data.pred.road <- read.csv (here ("R/caribou_habitat/data", "data_predict_road.csv"))
-data.plot.rd <- as.data.table (data.pred.road)
-data.plot.rd <- data.plot.rd [HERD_NAME == "Population" | HERD_NAME == "Nakusp" | 
-                              HERD_NAME == "Hart Ranges" | HERD_NAME == "South Selkirks"]
-ggplot (data = data.plot.rd,
-        aes (x = distance_to_resource_road, 
-             y = predict_du9)) +
-  geom_line (aes (color = HERD_NAME,
-                  linetype = HERD_NAME, 
-                  size = HERD_NAME))+
+p1<-ggplot(data=fe1_du9,aes(x=x,y=predicted)) +
+         geom_line(size=1.5) +
+         geom_ribbon(data=fe1_du9,aes(ymin=conf.low,ymax=conf.high),alpha=.1) +
+  geom_line(data=re1_du9, aes(x,predicted,colour=group,
+                  linetype = group, 
+                  size = group)) +
+  #ggtitle("Distance to 1 to 5 year old cutblocks") +
+  ylab("Probability") +
+  xlab("Distance to 1 to 5 year old cutblocks") +
   scale_linetype_manual (name = "Herd Name",
-                         values = c ("solid", "longdash", "solid", "longdash"))+
+                         values = c ("longdash",  "longdash", "longdash")) +
   scale_color_manual (name = "Herd Name",
-                      values = c ("red", "dodgerblue", "black", "darkviolet")) +
+                      values = c ("red", "darkviolet", "blue")) +
   scale_size_manual (name = "Herd Name",
-                     values = c (0.3, 0.3, 1.1, 0.3)) +
-  labs (title = "Figure 27. Population and herd level effects of roads on caribou 
-habitat use in DU9.",
-        x = "Distance to Road (km)",
-        y = "Caribou Use") +
+                     values = c (0.8, 0.8, 0.8)) +
   theme_bw ()
-```
+  
 
-```{r, du9 figure random and fixed effects cut 1 to 4,  echo = F, message = F, eval = T}
-data.pred.cut14 <- read.csv (here ("R/caribou_habitat/data", "data_predict_cut1to4.csv"))
-data.plot.c14 <- as.data.table (data.pred.cut14)
-data.plot.c14 <- data.plot.c14 [HERD_NAME == "Population" | HERD_NAME == "Nakusp" | 
-                                HERD_NAME == "Hart Ranges" | HERD_NAME == "South Selkirks"]
-ggplot (data = data.plot.c14,
-        aes (x = distance_to_cut_1to4, 
-             y = predict_du9)) +
-  geom_line (aes (color = HERD_NAME,
-                  linetype = HERD_NAME, 
-                  size = HERD_NAME))+
+
+re2_du9<-ggpredict(model.lme4.du9.cut.rd, terms = c("distance_to_cut_6to10yo_scale", "HERD_NAME"), type = "re")
+fe2_du9<-ggpredict(model.lme4.du9.cut.rd, "distance_to_cut_6to10yo_scale")
+
+p2<-ggplot(data=fe2_du9,aes(x=x,y=predicted)) +
+         geom_line(size=1.5) +
+         geom_ribbon(data=fe2_du9,aes(ymin=conf.low,ymax=conf.high),alpha=.1) +
+   geom_line(data=re2_du9, aes(x,predicted,colour=group,
+                  linetype = group, 
+                  size = group)) +
+  #ggtitle("Distance to 1 to 5 year old cutblocks") +
+  ylab("Probability") +
+  xlab("Distance to 6 to 10 year old cutblocks") +
   scale_linetype_manual (name = "Herd Name",
-                         values = c ("solid", "longdash", "solid", "longdash"))+
+                         values = c ("longdash",  "longdash", "longdash")) +
   scale_color_manual (name = "Herd Name",
-                      values = c ("red", "dodgerblue", "black", "darkviolet")) +
+                      values = c ("red", "darkviolet", "blue")) +
   scale_size_manual (name = "Herd Name",
-                     values = c (0.3, 0.3, 1.1, 0.3)) +
-  labs (title = "Figure 28. Population and herd level effects of 1 to 4 year old cutblocks on 
-caribou habitat use in DU9.",
-        x = "Distance to 1 to 4 Year Old Cutblock (km)",
-        y = "Caribou Use") +
+                     values = c (0.8, 0.8, 0.8)) +
   theme_bw ()
 
-```
+re3<-ggpredict(model.lme4.du9.cut.rd, terms = c("distance_to_cut_11to40yo_scale", "HERD_NAME"), type = "re")
+fe3<-ggpredict(model.lme4.du9.cut.rd, "distance_to_cut_11to40yo_scale")
 
-```{r, du9 figure random and fixed effects cut 5 to 9,  echo = F, message = F, eval = T}
-data.pred.cut59 <- read.csv (here ("R/caribou_habitat/data", "data_predict_cut5to9.csv"))
-data.plot.c59 <- as.data.table (data.pred.cut59)
-data.plot.c59 <- data.plot.c59 [HERD_NAME == "Population" | HERD_NAME == "Nakusp" | 
-                                HERD_NAME == "Hart Ranges" | HERD_NAME == "South Selkirks"]
-ggplot (data = data.plot.c59,
-        aes (x = distance_to_cut_5to9, 
-             y = predict_du9)) +
-  geom_line (aes (color = HERD_NAME,
-                  linetype = HERD_NAME, 
-                  size = HERD_NAME))+
+p3<-ggplot(data=fe3,aes(x=x,y=predicted)) +
+         geom_line(size=1.5) +
+         geom_ribbon(data=fe3,aes(ymin=conf.low,ymax=conf.high),alpha=.1) +
+   geom_line(data=re3, aes(x,predicted,colour=group,
+                  linetype = group, 
+                  size = group)) +
+  ylab("Probability") +
+  xlab("Distance to 11 to 40 year old cutblocks") +
   scale_linetype_manual (name = "Herd Name",
-                         values = c ("solid", "longdash", "solid", "longdash"))+
+                         values = c ("longdash",  "longdash", "longdash")) +
   scale_color_manual (name = "Herd Name",
-                      values = c ("red", "dodgerblue", "black", "darkviolet")) +
+                      values = c ("red", "darkviolet", "blue")) +
   scale_size_manual (name = "Herd Name",
-                     values = c (0.3, 0.3, 1.1, 0.3)) +
-  labs (title = "Figure 29. Population and herd level effects of 5 to 9 year old cutblocks on 
-caribou habitat use in DU9.",
-        x = "Distance to 5 to 9 Year Old Cutblock (km)",
-        y = "Caribou Use") +
+                     values = c (0.8, 0.8, 0.8)) +
   theme_bw ()
+
+re4<-ggpredict(model.lme4.du9.cut.rd, terms = c("distance_to_resource_road_scale", "HERD_NAME"), type = "re")
+fe4<-ggpredict(model.lme4.du9.cut.rd, "distance_to_resource_road_scale")
+
+p4<-ggplot(data=fe4,aes(x=x,y=predicted)) +
+         geom_line(size=1.5) +
+         geom_ribbon(data=fe4,aes(ymin=conf.low,ymax=conf.high),alpha=.1) +
+   geom_line(data=re4, aes(x,predicted,colour=group,
+                  linetype = group, 
+                  size = group)) +
+  #ggtitle("Distance to 1 to 5 year old cutblocks") +
+  ylab("Probability") +
+  xlab("Distance to roads") +
+  scale_linetype_manual (name = "Herd Name",
+                         values = c ("longdash",  "longdash", "longdash")) +
+  scale_color_manual (name = "Herd Name",
+                      values = c ("red", "darkviolet", "blue")) +
+  scale_size_manual (name = "Herd Name",
+                     values = c (0.8, 0.8, 0.8)) +
+  theme_bw ()
+
+ggarrange(p4, p1, p2,p3, ncol=2, nrow=2,labels=c("A","B","C","D"), common.legend = TRUE, legend="right")
+
 ```
 
 ## Conclusions
+
 Research has repeatedly shown that caribou are negatively influenced by forestry activity. This can include negative density effects, for example, on caribou survival ( [Wittmer et al. 2007](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2007.01220.x), [Johnson et al. 2015](https://www.sciencedirect.com/science/article/pii/S0006320715001160)), and behavioural effects, for example, on caribou distribution (e.g., [Courbin et al. 2009](https://link.springer.com/article/10.1007/s10980-009-9389-x), [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1), [Mumma et al. 2018](https://www.sciencedirect.com/science/article/pii/S0006320718307225)). Here we built on this evidence and developed a CFDM that empirically related forestry disturbance to caribou distribution. The model provides an indicator of forestry influences on caribou habitat, and thus can be linked to forestry simulator models, i.e., the caribou and land use simualtor (CLUS), to indicate spatial-temporal changes in caribou habitat quality from forestry. 
 
 Our CFDM showed a strong negative effect of resource roads on caribou distribution across DU's. Roads are likely representative of many ecological effects of resource development on caribou. Roads can act as semi-permeable barriers to caribou, resulting in loss of functional habitat due to caribou avoidance of areas near roads ( [Dyer et al. 2001](https://www.jstor.org/stable/3803106), [Dyer et al. 2002](https://www.nrcresearchpress.com/doi/abs/10.1139/z02-060#.XkXNFTFKikw), [Wilson et al. 2016](https://www.sciencedirect.com/science/article/pii/S0006320715302147)). Caribou may also avoid roads to minimize predation risk ( [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)), as predators such as wolves and bears may make use of these areas to hunt prey ( [Whittington et al. 2011](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2664.2011.02043.x), [Latham et al 2011](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-0666.1)). The CFDM does not attempt to  measure or disentangle the effects of these different ecological processes, but it is assumed that the negative relationship between caribou and roads is indicative of these processes.  
-                                                                                                                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                                                                                                                                                                        In general, the CFDM indicated that the effect of cutblocks on caribou distribution was highly variable and weaker than the effect of roads. For example, caribou in the boreal (DU6), consistently selected cutblcosk 1 to 9 years old, but avoided cutblocks 10 to 40 years old, whereas the effect of 1 to 40 year old cutblocks varied across northern mountain (DU7) herds. Cutblocks can have a negative effect on caribou, as they provide forage for ungulates such as moose, thus supporting higher densities of ungulates and their predators, such as wolves, that then predate on caribou ( [Seip 1992](https://www.nrcresearchpress.com/doi/abs/10.1139/z92-206#.XkXfPTFKikw), [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x), [Serrouya et al. 2017](https://peerj.com/articles/3736/?utm_source=TrendMD&utm_campaign=PeerJ_TrendMD_1&utm_medium=TrendMD)). However, there may be reasons why we detected a weak negative, or sometimes positive effect of cutblocks on caribou in some herds and DU's. First, caribou may use cutblocks periodically throughout the year to access forage. Caribou will select for deciduous shrub species during summer foraging ( [Denryter et al. 2017](https://www.nrcresearchpress.com/doi/full/10.1139/cjz-2016-0114#.XkbFSjFKikw)), and these species tend to increase in cutblocks ( [Strong and Gates 2006](https://www.sciencedirect.com/science/article/pii/S0378112705006456)). Indeed, research in Quebec has found that caribou selected younger cutblocks, presumably because of their forage benefit ( [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)). Second, the negative effect of cutblocks may occur at larger scales, outside of the home range. [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1) found that caribou avoided cutblocks at the range scale (i.e., caribou home ranges occurred in areas with fewer cutblocks), but not within their home ranges. This suggests the negative predation effect of cutblocks occurs at larger scales, that caribou are less likely to establish home ranges in areas with more cutblocks, perhaps because they are avoiding predation risk or they are unable to survive in those areas. Clearly, the effects of cutblocks on caribou distribution is more nuanced than roads, and the CFDM appears to represent these nuanced effects by representing a variable effect of cutblocks on caribou across herds and DUs.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            The CFDM provides a framework for testing the effects of simulated future forestry activities on caribou. It includes random effects to account for individual and herd-level variability in caribou responses to cutblocks and roads, which provides a great deal of flexibility in estimating the effects of proposed future forestry activities on caribou. This model has been incorporated into the rsfCLUS module of the CLUS model.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Future work will focus on developing a similar model that accounts for the effects of roads and cutblocks at a larger scale, i.e., on the establishment of home rages by cariobu. In addition, we are relating these models to caribou population measures (e.g., trend) at a herd scale to assess their utility as indicators of caribou population responses to forestry disturbance.  
+
+In general, the CFDM indicated that the effect of cutblocks on caribou distribution was highly variable and weaker than the effect of roads. For example, caribou in the boreal (DU6), consistently selected cutblcosk 1 to 9 years old, but avoided cutblocks 10 to 40 years old, whereas the effect of 1 to 40 year old cutblocks varied across northern mountain (DU7) herds. Cutblocks can have a negative effect on caribou, as they provide forage for ungulates such as moose, thus supporting higher densities of ungulates and their predators, such as wolves, that then predate on caribou ( [Seip 1992](https://www.nrcresearchpress.com/doi/abs/10.1139/z92-206#.XkXfPTFKikw), [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x), [Serrouya et al. 2017](https://peerj.com/articles/3736/?utm_source=TrendMD&utm_campaign=PeerJ_TrendMD_1&utm_medium=TrendMD)). However, there may be reasons why we detected a weak negative, or sometimes positive effect of cutblocks on caribou in some herds and DU's. First, caribou may use cutblocks periodically throughout the year to access forage. Caribou will select for deciduous shrub species during summer foraging ( [Denryter et al. 2017](https://www.nrcresearchpress.com/doi/full/10.1139/cjz-2016-0114#.XkbFSjFKikw)), and these species tend to increase in cutblocks ( [Strong and Gates 2006](https://www.sciencedirect.com/science/article/pii/S0378112705006456)). Indeed, research in Quebec has found that caribou selected younger cutblocks, presumably because of their forage benefit ( [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)). Second, the negative effect of cutblocks may occur at larger scales, outside of the home range. [DeCesare et al. 2012](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/11-1610.1) found that caribou avoided cutblocks at the range scale (i.e., caribou home ranges occurred in areas with fewer cutblocks), but not within their home ranges. This suggests the negative predation effect of cutblocks occurs at larger scales, that caribou are less likely to establish home ranges in areas with more cutblocks, perhaps because they are avoiding predation risk or they are unable to survive in those areas. Clearly, the effects of cutblocks on caribou distribution is more nuanced than roads, and the CFDM appears to represent these nuanced effects by representing a variable effect of cutblocks on caribou across herds and DUs.
+
+The CFDM provides a framework for testing the effects of simulated future forestry activities on caribou. It includes random effects to account for individual and herd-level variability in caribou responses to cutblocks and roads, which provides a great deal of flexibility in estimating the effects of proposed future forestry activities on caribou. This model has been incorporated into the rsfCLUS module of the CLUS model.
+
+Future work will focus on developing a similar model that accounts for the effects of roads and cutblocks at a larger scale, i.e., on the establishment of home rages by cariobu. In addition, we are relating these models to caribou population measures (e.g., trend) at a herd scale to assess their utility as indicators of caribou population responses to forestry disturbance.  
