@@ -1,8 +1,8 @@
 
 ui <- dashboardPage(skin = "black",
-  dashboardHeader(title = "CLUS: Explorer Tool"
-                 ),
-  dashboardSidebar(    
+  dashboardHeader(title = "CLUS: Explorer Tool"),
+  dashboardSidebar( 
+    #shinyjs::useShinyjs(),
     sidebarMenu(
       menuItem("Settings", tabName = "settings", icon = icon("gears")),
       menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"),
@@ -24,18 +24,74 @@ ui <- dashboardPage(skin = "black",
    #tags$style(type = "text/css", "a{color: #090909;}"),
     tabItems(
       tabItem(tabName = "settings",
-          fluidRow(
-            box(title = "Area of interest", background = "black", solidHeader = TRUE,
-                "select an area of interest",
-                selectInput(inputId = "schema", label = NULL,
-                            choices = availStudyAreas, 
-                            selected = character(0)))
-            ),
-          fluidRow(
-            box(title = "Scenarios", background = "black", solidHeader = TRUE,
-                "select the scenarios you wish to compare",
-                checkboxGroupInput(inputId ="scenario", label = NULL ),
-                tableOutput("scenarioDescription")
+          sidebarLayout(
+            sidebarPanel( width = 6,
+              fluidRow(
+                column(width =12,
+                  box(title = "Area of interest", width = 12, background = "black", solidHeader = TRUE,
+  
+                    selectInput(inputId = "schema", label = NULL,
+                            selected = "" ,
+                            choices = c("",availStudyAreas), selectize=FALSE
+                    ),
+                    bsTooltip("schema", "Select an area of interest",
+                            "right", options = list(container = "body")
+                    )
+                  )
+                )
+              ),
+              fluidRow(
+                column(width =12,
+                  box(title = "Scenarios", width = 12, background = "black", solidHeader = TRUE,
+                    checkboxGroupInput(inputId ="scenario", label = NULL, selected = NULL, choiceNames = NULL ),
+                    bsTooltip("scenario", "Select the scenarios you wish to compare. See Dashboard for indicators.",
+                            "right", options = list(container = "body"))
+                  #tableOutput("scenarioDescription")
+                  )
+                 # checkboxGroupTooltip(id = "scenario", placement = "right", trigger = "hover"),
+                )
+              )
+            )
+            ,
+            mainPanel( width = 6,
+              conditionalPanel(condition = "!input.schema == ''",
+                box(title = "Current State", width = 12, background = "black", solidHeader = FALSE,
+                  fluidRow(
+                    valueBoxOutput("statusGS"),
+                    valueBoxOutput("statusTHLB"),
+                    valueBoxOutput("statusRoad"),
+                    
+                    valueBoxOutput("statusCritHab"),
+                    valueBoxOutput("statusDist"),
+                    valueBoxOutput("statusDist500"),
+                    bsTooltip("statusGS", "Total merchtanable growingstock (m3)",
+                              "top", options = list(container = "body")),
+                    bsTooltip("statusTHLB", "Percentage of timber harvesting landbase",
+                              "top", options = list(container = "body")),
+                    bsTooltip("statusRoad", "Percentage of 100 m of a road",
+                              "top", options = list(container = "body")),
+                    bsTooltip("statusCritHab", "Percentage of critical caribou habitat",
+                              "top", options = list(container = "body")),
+                    bsTooltip("statusDist", "Percentage of caribou habitat disturbed",
+                              "top", options = list(container = "body")),
+                    bsTooltip("statusDist500", "Percentage of caribou habitat disturbed with 500 m buffer",
+                              "top", options = list(container = "body"))
+                  ),
+                  fluidRow(
+                    plotlyOutput(outputId = "statusPlot", height = "200px"),
+                    bsTooltip("statusPlot", "Proportion of seral as early (<40 yrs), mature (60 - 120 yrs) and old (> 120 yrs).",
+                              "top", options = list(container = "body"))
+                  ),
+                  fluidRow(
+                    column(12,
+                      selectInput("tsa_selected", choices = NULL, label = 'TSA:', width = '100%',
+                                multiple = T),
+                      bsTooltip("tsa_selected", "Select timber supply area(s).",
+                              "bottom", options = list(container = "body"))
+                    )
+                  )
+                )
+              )
             )
           )
       ),
@@ -80,8 +136,8 @@ ui <- dashboardPage(skin = "black",
               plotlyOutput(outputId = "propDisturbBuffPlot", height = "400px"))
         ),
         fluidRow(
-          box(title = "Proportion Less than 40 years Old", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "propAgePlot", height = "400px"))
+          box(title = "Proportion Early", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+              plotlyOutput(outputId = "propEarlyPlot", height = "400px"))
         ),
         fluidRow(
           box(title = "Proportion Mature", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
