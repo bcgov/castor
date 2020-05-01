@@ -290,38 +290,26 @@ observeEvent(input$getMapLayersButton, {
         xlab ("Future year") +
         ylab ("Change in Annual Adult Female Survival Rate)") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
-        #scale_alpha(range=c(0.4,0.8))+
-        #scale_color_grey(start=0.8, end=0.2) +
-        # scale_color_manual (name = "Scenario", #not working... tryign to get the legend names subsituted...
-        #                     labels = "Canada (Upper Ditchline)")+ # "Business as Usual (Lower Ditchline)", "Tyler"
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
-                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0)
-                #yaxis = list (title=paste0(c(rep("&nbsp;", 50),"RSF Value Percent Change", rep("&nbsp;", 2000), rep("\n&nbsp;", 13))
-                )# change seasonal values
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
     })
   }) 
   
   output$propDisturbPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      # data1$scenario <- reorder(data1$scenario, data1$dist_per, function(x) -min(x))
-      # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
       p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = scenario)) +
         facet_wrap(.~critical_hab, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
-        # scale_alpha_discrete(range=c(0.4,0.8))+
-        # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -342,7 +330,7 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -363,7 +351,7 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -384,7 +372,7 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -405,7 +393,7 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -424,11 +412,9 @@ observeEvent(input$getMapLayersButton, {
       xlab ("Future year") +
       ylab ("RSF Value Percent Change") +
       scale_x_continuous(limits = c(0, 55), breaks = seq(0, 50, by = 10))+
-      # scale_alpha_discrete(range=c(0.4,0.8))+
-      # scale_fill_grey(start=0.8, end=0.2)+
       theme_bw()+
       theme (legend.title = element_blank())
-    ggplotly(p)  %>% 
+    ggplotly(p, height = 900)  %>% 
       layout (legend = list (orientation = "h", y = -0.1),
               margin = list (l = 50, r = 40, b = 40, t = 10, pad = 0)
               #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))

@@ -129,31 +129,31 @@ ui <- dashboardPage(skin = "black",
       tabItem(tabName = "caribou",
         fluidRow(
                 box(title = "Proportion Disturbed", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-                    plotlyOutput(outputId = "propDisturbPlot", height = "400px"))
+                    plotlyOutput(outputId = "propDisturbPlot", height = "900px"))
         ),
         fluidRow(
           box(title = "Proportion Disturbed with 500m Buffer", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "propDisturbBuffPlot", height = "400px"))
+              plotlyOutput(outputId = "propDisturbBuffPlot", height = "900px"))
         ),
         fluidRow(
           box(title = "Proportion Early", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "propEarlyPlot", height = "400px"))
+              plotlyOutput(outputId = "propEarlyPlot", height = "900px"))
         ),
         fluidRow(
           box(title = "Proportion Mature", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "propMaturePlot", height = "400px"))
+              plotlyOutput(outputId = "propMaturePlot", height = "900px"))
         ),
         fluidRow(
           box(title = "Proportion Old", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "propOldPlot", height = "400px"))
+              plotlyOutput(outputId = "propOldPlot", height = "900px"))
         ),
         fluidRow(
           box(title = "Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-            plotlyOutput(outputId = "survivalPlot", height = "400px"))
+            plotlyOutput(outputId = "survivalPlot", height = "900px"))
           ),
         fluidRow(
           box(title = "Resource Selection", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
-              plotlyOutput(outputId = "rsfPlot", height = "500px"))
+              plotlyOutput(outputId = "rsfPlot", height = "900px"))
         )
       ),
       tabItem(tabName = "forestry",
