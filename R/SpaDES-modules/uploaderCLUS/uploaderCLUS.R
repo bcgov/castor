@@ -37,8 +37,10 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="foreststate", objectClass ="data.table", desc = 'The current state of the forest from dataLoaderCLUS', sourceURL = NA)
-  ),
+    expectsInput(objectName ="foreststate", objectClass ="data.table", desc = 'The current state of the forest from dataLoaderCLUS', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    
+    ),
   outputObjects = bind_rows(
     createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
@@ -177,7 +179,7 @@ save.rasters <-function (sim){
     ##roads
     if(!is.null(sim$roads)){
     message('....roads raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))

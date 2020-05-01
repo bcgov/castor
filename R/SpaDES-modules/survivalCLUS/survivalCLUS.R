@@ -34,7 +34,8 @@ defineModule (sim, list (
   ),
   inputObjects = bind_rows(
     expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the clusdb.', sourceURL = NA),
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     createsOutput (objectName = "tableSurvival", objectClass = "data.table", desc = "A data.table object. Consists of survival rate estimates for each herd in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
@@ -115,7 +116,7 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
     # Model was a logit function, so here I back-calculate to get survival rates exp(fxn)/(1+exp(fxn))
   sim$tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 
   sim$tableSurvival[!(prop_age < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  sim$tableSurvival[, c("timeperiod", "scenario", "compartment") := list(time(sim), sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
+  sim$tableSurvival[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
   
   #print(sim$tableSurvival)
   ### Future version could include a table parameter input with caribou number or density by herd 
@@ -131,7 +132,7 @@ predictSurvival <- function (sim) { # this function calculates survival rate at 
   new_tableSurvival <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
   new_tableSurvival[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
   new_tableSurvival[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  new_tableSurvival[, c("timeperiod", "scenario", "compartment") := list(time(sim), sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc
+  new_tableSurvival[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc
   
   
   sim$tableSurvival <- rbindlist (list(sim$tableSurvival, new_tableSurvival)) # bind the new survival rate table to the existing table
