@@ -44,7 +44,9 @@ defineModule(sim, list(
     expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
-    expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -64,13 +66,13 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
-      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 2)
+      sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCLUS", "schedule", 2)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 2)
+      sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 2)
     },
     save = {
       sim <- saveForestry(sim)
@@ -84,7 +86,6 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
-  sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
@@ -223,6 +224,7 @@ setConstraints<- function(sim) {
   
   if(!(P(sim, "forestryCLUS", "adjacencyConstraint") == 9999)){
     #Update pixels in clusdb for adjacency constraints
+    message("...Adjacency")
     query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
                                                             (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint") ,
                                                             " UNION 
@@ -275,7 +277,7 @@ getHarvestQueue<- function(sim) {
         
         #Adjust the harvestFlow based on the growing stock constraint
         if(!(P(sim, "forestryCLUS", "growingStockConstraint") == 9999)){
-          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim), m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
+          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim)*sim$updateInterval, m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
           print(paste0("Adjust harvest flow | gs constraint: ", harvestTarget))
         }
         
@@ -290,7 +292,7 @@ getHarvestQueue<- function(sim) {
       
 
         #Save the harvesting raster
-        sim$harvestBlocks[queue$pixelid]<-time(sim)
+        sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
         
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
         #land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
@@ -307,7 +309,7 @@ getHarvestQueue<- function(sim) {
     
 
         #Set the harvesting report
-        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim), compartment = compart, target = harvestTarget , area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)],  transition_volume  = queue[yieldid > 0, sum(vol_h)])
+        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$vol_h)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(vol_h)]/sim$updateInterval)
         temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition )))]
         sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
       
