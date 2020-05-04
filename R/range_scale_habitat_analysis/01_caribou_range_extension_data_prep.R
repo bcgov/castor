@@ -157,7 +157,9 @@ samp_locations_df<-mkFrameList(n) # total number of files is 146.
 
 
 #----------------------------------------
-# Sample points out of Tylers home ranges
+# For the used locations (1's in the analysis), I have two options: 1.) use Tylers available (0's) sample points, or 2.) sample my own points in the individual animals home ranges calculated by Tyler. I chose to do the latter (sample new points) because Tyler had more points than I thought I needed and this made my sample sizes in the glmer analyses enormous and the analysis very slow.
+
+#Sample points out of Tylers home ranges
 #----------------------------------------
 
 years<-c("2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018")
@@ -173,7 +175,7 @@ for (j in 1:length(herds)) {
     filter(HERD_NAME==herds[j])
   
   for (i in 1:length(years)) {
-    #Second clip out home ranges sampled for Tylers points
+    
     foo<-focal.herd.tyler %>%
       filter(year==years[i])
     
@@ -220,7 +222,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-st_write (obj = samp_locations_df, 
+st_write (obj = all.samp.points, 
           dsn = conn, 
           layer = c ("caribou", "bc_caribou_samp_pnts_herd_boundaries"),
           overwrite=TRUE)

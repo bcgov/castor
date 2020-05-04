@@ -177,24 +177,8 @@ dbDisconnect (conn)
 write.csv (rsf.large.scale.data, "C:\\Work\\caribou\\clus_data\\rsf_large_scale_data.csv")
 
 #===================================================
-# Cutblocks
+# Cutblocks per time since cut
 #===================================================
-
-rsf.large.scale.data_tyler<-rsf.large.scale.data
-
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-rsf.large.scale.data <- sf::st_read  (dsn = conn,
-                                      query = "SELECT * FROM caribou.dist_to_disturbance2")
-dbDisconnect (conn) # connKyle
-
-Used_available_points<-rbind(rsf.large.scale.data,rsf.large.scale.data_tyler)
-
-rsf.large.scale.data<-Used_available_points
 
 rsf.large.scale.data$distance_to_cut_1yo <- ifelse (rsf.large.scale.data$year == 2018, rsf.large.scale.data$dist_rast_cutblocks_2017, ifelse (rsf.large.scale.data$year == 2017, rsf.large.scale.data$dist_rast_cutblocks_2016, ifelse (rsf.large.scale.data$year == 2016, rsf.large.scale.data$dist_rast_cutblocks_2015, ifelse (rsf.large.scale.data$year == 2015, rsf.large.scale.data$dist_rast_cutblocks_2014, ifelse (rsf.large.scale.data$year == 2014, rsf.large.scale.data$dist_rast_cutblocks_2013, ifelse (rsf.large.scale.data$year == 2013, rsf.large.scale.data$dist_rast_cutblocks_2012, ifelse (rsf.large.scale.data$year == 2012, rsf.large.scale.data$dist_rast_cutblocks_2011, ifelse (rsf.large.scale.data$year == 2011, rsf.large.scale.data$dist_rast_cutblocks_2010, ifelse (rsf.large.scale.data$year == 2010, rsf.large.scale.data$dist_rast_cutblocks_2009, ifelse (rsf.large.scale.data$year == 2009, rsf.large.scale.data$dist_rast_cutblocks_2008, rsf.large.scale.data$dist_rast_cutblocks_2007))))))))))
 
