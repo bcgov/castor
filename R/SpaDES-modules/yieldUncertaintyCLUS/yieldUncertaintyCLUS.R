@@ -40,8 +40,9 @@ defineModule(sim, list(
     expectsInput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA, sourceURL = NA),
     #expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
     expectsInput(objectName = "yieldUncertaintyCovar", objectClass = "character", desc = "String of the yield uncertainty covariates", sourceURL = NA),
-    expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
-  
+    expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     createsOutput(objectName = "yielduncertain", objectClass = "data.table", desc = NA)
@@ -97,7 +98,7 @@ Init <- function(sim) {
 calculateYieldUncertainty <-function(sim) {
   sim$yielduncertain <- rbindlist(list(sim$yielduncertain,
   #lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$calb_ymodel, sim$scenario$name, time(sim)))))
-                rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$scenario$name, time(sim))
+                rbindlist(lapply(split(sim$harvestBlockList, by ="compartid"), simYieldUncertainty, sim$scenario$name, time(sim)*sim$updateInterval)
                           )))
   
   if(nrow(sim$yielduncertain) == 0){

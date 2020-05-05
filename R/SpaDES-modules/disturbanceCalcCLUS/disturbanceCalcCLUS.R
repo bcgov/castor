@@ -29,6 +29,7 @@ defineModule(sim, list(
     defineParameter("criticalHabRaster", "character", '99999', NA, NA, "Raster that describes the boundaries of the critical habitat"),
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter("permDisturbanceRaster", "character", '99999', NA, NA, "Raster of permanent disturbances"),
+    defineParameter("recovery", "numeric", 40, NA, NA, "The age of recovery for disturbances"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -41,7 +42,8 @@ defineModule(sim, list(
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-  ),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput("disturbance", "data.table", "Disturbance table for every pixel"),
@@ -54,7 +56,7 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init (sim) # this function inits 
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 9)
+      sim <- scheduleEvent(sim, time(sim) , "disturbanceCalcCLUS", "analysis", 9)
     },
     analysis = {
       sim <- distAnalysis(sim)
@@ -69,7 +71,7 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   sim$disturbanceReport<-data.table(scenario = character(), compartment = character(), timeperiod= integer(),
-                                    critical_hab = character(), dist500 = numeric(), dist500_per = numeric())
+                                    critical_hab = character(), dist500 = numeric(), dist500_per = numeric(), dist = numeric(), dist_per = numeric())
   sim$disturbance<-sim$pts
   
   #Get the critical habitat
@@ -103,6 +105,7 @@ Init <- function(sim) {
   if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='perm_dist';")$exists_check == 0){
     # add in the column
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
+    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN dist numeric DEFAULT 0")
     # add in the raster
     if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
       message("Need to supply a permanent disturbance raster parameter as permDisturbanceRaster = ")
@@ -134,7 +137,7 @@ Init <- function(sim) {
 }
 
 distAnalysis <- function(sim) {
-  dt_select<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear > 0 or (blockid > 0 and age BETWEEN 0 AND 40)")) # 
+  dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or (roadyear >= ", max(0,as.integer(time(sim) - P(sim, "disturbanceCalcCLUS", "recovery"))),")  or (blockid > 0 and age BETWEEN 0 AND ",P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
   if(nrow(dt_select) > 0){
     dt_select[, field := 0]
     outPts<-merge(sim$disturbance, dt_select, by = 'pixelid', all.x =TRUE) 
@@ -146,6 +149,13 @@ distAnalysis <- function(sim) {
     outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
   
     sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
+    
+    #update the pixels table
+    dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET dist = :dist WHERE pixelid = :pixelid;", outPts[,c("pixelid","dist")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+  
   }else{
     sim$disturbance$dist<-501
   }
@@ -156,8 +166,9 @@ distAnalysis <- function(sim) {
   
   #Sum the area up > 500 m
   tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])
-  tempDisturbanceReport[, c("scenario", "compartment", "timeperiod", "dist500_per", "dist500") := list(scenario$name,sim$boundaryInfo[[3]],time(sim),((total - hab500)/total)*100,total - hab500)]
-  tempDisturbanceReport[, c("total","hab500") := list(NULL, NULL)]
+  tempDisturbanceReport<-merge(tempDisturbanceReport, sim$disturbance[dist > 0, .(hab = uniqueN(.I)), by = "critical_hab"] )
+  tempDisturbanceReport[, c("scenario", "compartment", "timeperiod", "dist500_per", "dist500", "dist_per", "dist") := list(scenario$name,sim$boundaryInfo[[3]],time(sim)*sim$updateInterval,((total - hab500)/total)*100,total - hab500,((total - hab)/total)*100, total - hab)]
+  tempDisturbanceReport[, c("total","hab500","hab") := list(NULL, NULL,NULL)]
 
   sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE )
   sim$disturbance[, dist:=NULL]

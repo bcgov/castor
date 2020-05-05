@@ -52,6 +52,7 @@ defineModule(sim, list(
     expectsInput(objectName = "patchSizeDist", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA)
     ),
   outputObjects = bind_rows(
+    createsOutput(objectName = "existBlockId", objectClass = "integer", desc = NA),
     createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA),
     createsOutput(objectName = "edgesAdj", objectClass = "data.table", desc = "Table of adjacent edges between pixels")
   )
@@ -73,6 +74,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   sim <- preBlock(sim) #preforms the pre-blocking algorthium in Java
                   sim <- setAdjTable(sim)
                   sim <- setBlocksTable(sim) #inserts values into the blocks table
+                  sim <- setHistoricalLandings(sim) #inserts values into the blocks table
                   sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
                }
                
@@ -98,7 +100,6 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <-UpdateBlocks2(sim)
 >>>>>>> 7739609d1934e691e896ca0644e14c9a70f0281f
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
-      
     },
     writeBlocks = {
       writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
@@ -145,6 +146,8 @@ getExistingCutblocks<-function(sim){
       dbClearResult(rs)
       dbCommit(sim$clusdb)
       
+      sim$existBlockId<-dbGetQuery(sim$clusdb, "Select max(blockid) from pixels")
+      
       rm(ras.blk,exist_cutblocks)
       gc()
     }else{
@@ -156,12 +159,22 @@ return(invisible(sim))
 
 setBlocksTable <- function(sim) {
   message("set the blocks table")
+  #TODO: Use the RANN package to find the smallest distance to a road in a block as the landing
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing) 
-                    SELECT blockid, round(AVG(age),0) as age, round(AVG(height),0) as height, min(pixelid) as landing
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, min(pixelid) as landing
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
   
 return(invisible(sim))
+}
+
+setHistoricalLandings <- function(sim) {
+  land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid < ", sim$existBlockId)))
+  
+  land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
+  setnames(land_coord,c("x", "y"), c("X", "Y"))
+  sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  return(invisible(sim))
 }
 
 setSpreadProb<- function(sim) {
@@ -395,11 +408,11 @@ UpdateBlocks2<-function(sim){
   #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
-  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age 
+  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age WHERE blockid = :blockid", new_blocks)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   

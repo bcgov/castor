@@ -53,8 +53,10 @@ defineModule(sim, list(
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "rasVelo", objectClass = "VeloxRaster", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "roadSourceID", objectClass = "integer", desc = "The source used in Dijkstra's pre-solving approach", sourceURL = NA)
-  ),
+    expectsInput(objectName = "roadSourceID", objectClass = "integer", desc = "The source used in Dijkstra's pre-solving approach", sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    
+     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = "roads", objectClass = "RasterLayer", desc = "A raster of the roads"),
@@ -168,7 +170,7 @@ plotRoads<-function(sim){
 }
 
 saveRoads<-function(sim){
-  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_",P(sim)$roadMethod,"_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
+  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_",P(sim)$roadMethod,"_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -264,7 +266,7 @@ buildSnapRoads <- function(sim){
     if(length(sf::st_is_empty(mt)) > 0){
       mt2<- sf::as_Spatial(mt$geometry) #needed to run velox -- doesn't have sf compatability
       sim$paths.v<-unlist(sim$rasVelo$extract(mt2), use.names = FALSE)
-      sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)
+      sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
     }
     
     rm(rdptsXY, landings, mt, coodMatrix)
@@ -279,7 +281,7 @@ updateRoadsTable <- function(sim){
   
   if(nrow(roadUpdate) > 0){
     setnames(roadUpdate, "pixelid")
-    roadUpdate[,roadyear := time(sim)+1]
+    roadUpdate[,roadyear := time(sim)*sim$updateInterval]
  
     dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadyear = :roadyear WHERE pixelid = :pixelid', roadUpdate )
@@ -526,7 +528,7 @@ getRoadSegment<-function(sim){
   sim$paths.v<-roadSegs[!(roadSegs[] %in% alreadyRoaded$pixelid)]
   
   #update the raster
-  sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)
+  sim$roads[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
   return(invisible(sim)) 
 }
 

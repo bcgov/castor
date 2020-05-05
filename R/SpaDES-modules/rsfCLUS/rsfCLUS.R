@@ -44,7 +44,8 @@ defineModule(sim, list(
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "landings", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
     ),
   outputObjects = bind_rows(
@@ -455,7 +456,7 @@ predictRSF <- function(sim){
     setnames(pred_rsf, c(paste0(rsfPops[[2]][[i]]) , paste0(rsfPops[[1]][[i]]))) # name each rsf prediction appropriately
     rsfdt<-data.table( pred_rsf[!is.na(eval(expr)), sum(eval(expr)), by = eval(expr2)])
    
-    rsfdt[, timeperiod:=time(sim)]
+    rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
     rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
     setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "timeperiod", "rsf_model"))
     rsfdt[, scenario:=scenario$name]
@@ -465,7 +466,7 @@ predictRSF <- function(sim){
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras
       out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
-      writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim), ".tif"), overwrite = TRUE)
+      writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
       rm(out.ras)
     }#----------------------------------------------
     
