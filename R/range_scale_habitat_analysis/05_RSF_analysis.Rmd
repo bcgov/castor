@@ -136,6 +136,8 @@ Range_scale_data1$dist_crds_unknown<-Range_scale_data1$dist_crds_unknown/1000
 
 Range_scale_data1$cnt<-1
 
+write.csv(Range_scale_data1, file="C:\\Work\\caribou\\clus\\R\\range_scale_habitat_analysis\\data\\Range_scale_data.csv")
+
 #Range_scale_data1$distance_to_resource_road<-Range_scale_data1$dist_crds_resource
 #Range_scale_data1$distance_to_resource_road_log<-log(Range_scale_data1$distance_to_resource_road+0.00001)
 
