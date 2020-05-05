@@ -36,12 +36,12 @@ The module sets and updates the blocks table within `clusdb`. It requires - data
 ```{r module_usage}
 library(SpaDES.core)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source(here::here("R/functions/R_Postgres.R"))
 
-moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
-inputDir <- file.path("C:/Users/KLOCHHEA/clus/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path("C:/Users/KLOCHHEA/clus/R")
-cacheDir <- file.path("C:/Users/KLOCHHEA/clus/R")
+moduleDir <- here::here("/R/SpaDES-modules")
+inputDir <- here::here("/R") %>% reproducible::checkPath(create = TRUE)
+outputDir <- here::here("/R")
+cacheDir <- here::here("/R")
 times <- list(start = 0, end = 0)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
