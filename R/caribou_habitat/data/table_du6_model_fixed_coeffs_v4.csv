@@ -1,6 +1,0 @@
-Coefficient,Coefficient Estimate,Std. Error,z-value,p-value
-Intercept,-1.640936895,0.153387279,-10.69799859,1.04E-26
-Distance to Resource Road,0.17574769,0.036651967,4.795041119,1.63E-06
-Distance to Cutblock 1 to 4 years old,-0.00454382,0.002253781,-2.016087402,0.043790837
-Distance to Cutblock 5 to 9 years old,-0.004614462,0.003066076,-1.50500582,0.132322581
-Distance to Cutblock 10 to 40 years old,0.020364422,0.01065093,1.911985404,0.055878066

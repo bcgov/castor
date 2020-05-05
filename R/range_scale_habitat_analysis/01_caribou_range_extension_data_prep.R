@@ -24,6 +24,7 @@ require(sp)
 require (kableExtra)
 require(snow)
 require(tmap)
+require(maptools)
 
 
 rsf_locations_caribou_bc<-st_read(dsn="C:\\Work\\caribou\\clus_data\\rsf_locations_caribou_bc.shp", stringsAsFactors = T)
@@ -90,12 +91,11 @@ caribou.range.buff.25km.sf.bc<-sf::st_intersection(caribou.range.buff.25km.sf,st
 # For each year and herd clip out herd locations (Tylers sample areas) from the buffer
 
 years<-c("2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018")
-herds<-c("Snake-Sahtaneh", "Calendar", "Maxhamish","Parker", " Chinchaga","Prophet", "Tweedsmuir","Itcha-Ilgachuz","Charlotte Alplands","Pink Mountain", "Muskwa","Frog","Chase","Spatsizi", "Finlay", "Graham", "Tsenaglode", "Telkwa", "Rainbows", "Kennedy Siding", "Narraway", "Quintette", "Moberly", "Scott", "Burnt Pine", "Hart Ranges", "Nakusp", "South Selkirks")
+herds<-c("Snake-Sahtaneh", "Calendar", "Maxhamish","Parker","Chinchaga","Prophet", "Tweedsmuir","Itcha-Ilgachuz","Charlotte Alplands","Pink Mountain", "Muskwa","Frog","Chase","Spatsizi", "Finlay", "Graham", "Tsenaglode", "Telkwa", "Rainbows", "Kennedy Siding", "Narraway", "Quintette", "Moberly", "Scott", "Burnt Pine", "Hart Ranges", "Nakusp", "South Selkirks")
 
-herds_new_name<-c("Snake_Sahtaneh", "Calendar", "Maxhamish","Parker", " Chinchaga","Prophet", "Tweedsmuir","Itcha_Ilgachuz","Charlotte_Alplands","Pink_Mountain", "Muskwa","Frog","Chase","Spatsizi", "Finlay", "Graham", "Tsenaglode", "Telkwa", "Rainbows", "Kennedy_Siding", "Narraway", "Quintette", "Moberly", "Scott", "Burnt_Pine", "Hart_Ranges", "Nakusp", "South_Selkirks") # make herd names simpler as R does not seem to like the "-"
+herds_new_name<-c("Snake_Sahtaneh", "Calendar", "Maxhamish","Parker","Chinchaga","Prophet", "Tweedsmuir","Itcha_Ilgachuz","Charlotte_Alplands","Pink_Mountain", "Muskwa","Frog","Chase","Spatsizi", "Finlay", "Graham", "Tsenaglode", "Telkwa", "Rainbows", "Kennedy_Siding", "Narraway", "Quintette", "Moberly", "Scott", "Burnt_Pine", "Hart_Ranges", "Nakusp", "South_Selkirks") # make herd names simpler as R does not seem to like the "-"
 
 filenames<-list()
-
 
 for (j in 1:length(herds)) {
   
@@ -109,20 +109,20 @@ for (j in 1:length(herds)) {
   clipped<-sf::st_difference(focal.herd,st_buffer(foobar2,0))
   
   for (i in 1:length(years)) {
-     #Second clip out home ranges sampled for Tylers points
+    #Second clip out home ranges sampled for Tylers points
     foo<-homerange.all2 %>%
       filter(year==years[i] & HERD_NAME==herds[j])
     
     if(dim(foo)[1]>0) {
-            
+      
       foo2<-sf::st_as_sf(foo) %>% st_combine() %>% st_sf() #flatten layer
       foo3<-sf::st_difference(clipped,st_buffer(foo2,0))
-    
-    #Third sample points in each year for each herd
+      
+      #Third sample points in each year for each herd
       # change sf feature to a SpatialPolygonDataFrame
       foo3_sp<-as(foo3, "Spatial")
       class(foo3_sp)
-      samp_points <- spsample (foo3_sp, cellsize = c (1000, 1000), type = "regular")
+      samp_points <- spsample (foo3_sp, cellsize = c (750, 750), type = "regular")
       samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("sample.point", "avail.ecotype","year","HERD_NAME","du")
       samp_points_new$sample.point <- 1
@@ -134,27 +134,15 @@ for (j in 1:length(herds)) {
       sampled_points <- SpatialPointsDataFrame (samp_points, data = samp_points_new)
       sampled_points_sf<-st_as_sf(sampled_points)
       
-    #assign file names to the work
-    nam1<-paste("sampled.points",years[i],herds_new_name[j],sep=".") #defining the name
-    nam2<-paste("homerange.all.clipped",years[i],herds_new_name[j],"sf",sep=".")
-    assign(nam1,sampled_points_sf)
-    assign(nam2,foo3)
-    filenames<-append(filenames,nam1)
+      #assign file names to the work
+      nam1<-paste("sampled.points",years[i],herds_new_name[j],sep=".") #defining the name
+      nam2<-paste("homerange.all.clipped",years[i],herds_new_name[j],"sf",sep=".")
+      assign(nam1,sampled_points_sf)
+      assign(nam2,foo3)
+      filenames<-append(filenames,nam1)
     }
   }
 }
-
-# join all sampled points together into one data frame and save to file
-# this loop is not ideal (SLOW)! Rather use the function below
-# 
-# samp_locations_df<-eval(parse(text=filenames[1]))
-# 
-# for (i in 2:length(filenames)){
-#   samp_locations_df<-rbind(samp_locations_df,eval(parse(text=filenames[i])))
-# print(i)
-# }
-# ###
-
 
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
@@ -165,7 +153,67 @@ mkFrameList <- function(nfiles) {
 
 
 n<-length(filenames)
-samp_locations_df<-mkFrameList(n) # total number of files is 141.
+samp_locations_df<-mkFrameList(n) # total number of files is 146.
+
+
+#----------------------------------------
+# For the used locations (1's in the analysis), I have two options: 1.) use Tylers available (0's) sample points, or 2.) sample my own points in the individual animals home ranges calculated by Tyler. I chose to do the latter (sample new points) because Tyler had more points than I thought I needed and this made my sample sizes in the glmer analyses enormous and the analysis very slow.
+
+#Sample points out of Tylers home ranges
+#----------------------------------------
+
+years<-c("2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018")
+herds<-c("Snake-Sahtaneh", "Calendar", "Maxhamish","Parker","Chinchaga","Prophet", "Tweedsmuir","Itcha-Ilgachuz","Charlotte Alplands","Pink Mountain", "Muskwa","Frog","Chase","Spatsizi", "Finlay", "Graham", "Tsenaglode", "Telkwa", "Rainbows", "Kennedy Siding", "Narraway", "Quintette", "Moberly", "Scott", "Burnt Pine", "Hart Ranges", "Nakusp", "South Selkirks")
+
+herds_new_name<-c("Snake_Sahtaneh", "Calendar", "Maxhamish","Parker","Chinchaga","Prophet", "Tweedsmuir","Itcha_Ilgachuz","Charlotte_Alplands","Pink_Mountain", "Muskwa","Frog","Chase","Spatsizi", "Finlay", "Graham", "Tsenaglode", "Telkwa", "Rainbows", "Kennedy_Siding", "Narraway", "Quintette", "Moberly", "Scott", "Burnt_Pine", "Hart_Ranges", "Nakusp", "South_Selkirks") # make herd names simpler as R does not seem to like the "-"
+
+filenames<-list()
+
+for (j in 1:length(herds)) {
+  
+  focal.herd.tyler<-homerange.all2 %>%
+    filter(HERD_NAME==herds[j])
+  
+  for (i in 1:length(years)) {
+    
+    foo<-focal.herd.tyler %>%
+      filter(year==years[i])
+    
+    if(dim(foo)[1]>0) {
+      
+      foo_sp<-as(foo,"Spatial")
+      foo_sp_f<-gUnionCascaded(foo_sp)
+
+      samp_points <- spsample (foo_sp_f, cellsize = c (300, 300), type = "regular")
+      samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
+      colnames (samp_points_new) <- c ("sample.point", "avail.ecotype","year","HERD_NAME","du")
+      samp_points_new$sample.point <- 1
+    #samp_points_new$ptID <- 1:dim(samp_points@coords)[1]
+      samp_points_new$avail.ecotype <- foo_sp$ECOTYPE[1]
+      samp_points_new$year<-years[i]
+      samp_points_new$HERD_NAME<-herds[j]
+      samp_points_new$du<-foo_sp$du[1]
+      sampled_points <- SpatialPointsDataFrame (samp_points, data = samp_points_new)
+      sampled_points_sf<-st_as_sf(sampled_points)
+
+#assign file names to the work
+      nam1<-paste("tyler.sampled.points",years[i],herds_new_name[j],sep=".") #defining the name
+      assign(nam1,sampled_points_sf)
+      filenames<-append(filenames,nam1)
+    }
+  }
+}
+
+n<-length(filenames)
+samp_locations_Tyler_points_df<-mkFrameList(n) # total number of files is 146.
+
+# Join my sample points to those sampled from Tylers homeranges
+samp_locations_df$pttype<-0
+samp_locations_Tyler_points_df$pttype<-1
+
+all.samp.points<-rbind(samp_locations_df,samp_locations_Tyler_points_df)
+
+
 
 # save data 
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
@@ -174,7 +222,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-st_write (obj = samp_locations_df, 
+st_write (obj = all.samp.points, 
           dsn = conn, 
           layer = c ("caribou", "bc_caribou_samp_pnts_herd_boundaries"),
           overwrite=TRUE)
@@ -182,7 +230,6 @@ dbDisconnect (conn)
 
 # or save it as a shape file
 st_write(samp_locations_df, dsn = "bc_caribou_samp_pnts_herd_boundaries2.shp", layer = "samp_locations_df.shp", driver = "ESRI Shapefile")
-
 
 
 
