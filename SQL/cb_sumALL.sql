@@ -1,4 +1,4 @@
-﻿Create TAble cb_sum As
+Create TAble cb_sum As
 SELECT SUM(t.areaha) AS sumarea, t.herd_name ,t.harvestyr
     FROM (
       SELECT b.areaha, b.harvestyr, y.herd_name
@@ -14,3 +14,12 @@ SELECT SUM(ST_Area(ST_Intersection(y.geom, b.wkb_geometry ))) AS sumarea, herd_n
       GROUP BY fire_year, herd_name
       ORDER BY  herd_name, fire_year;
 
+
+update public.bc_caribou_core_matrix_habitat_v20190904_1 set wkb_geometry = st_makeValid(wkb_geometry);
+
+Create TAble fire_sum_crithab As
+SELECT SUM(ST_Area(ST_Intersection(y.wkb_geometry, b.wkb_geometry ))) AS sumarea, herd_name ,bchab_code,fire_year
+      FROM public.h_fire_ply_polygon b, public.bc_caribou_core_matrix_habitat_v20190904_1 y
+      WHERE ST_INTERSECTS(b.wkb_geometry, y.wkb_geometry) 
+      GROUP BY fire_year, herd_name, bchab_code
+      ORDER BY  fire_year, herd_name, bchab_code;
