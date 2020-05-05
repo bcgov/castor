@@ -1,0 +1,38 @@
+scenario,description
+itchas_bau_a3_rNA,business as usual - projecting current trends. Adjacency constraint > 3 m.
+itchas_bau_a1p5_rNA,business as usual - projecting current trends. Adjacency constraint > 1.5 m.
+itchas_bau_aNa_rNA,business as usual - projecting current trends. No adjacency constraint
+itchas_eccc_a3_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas. Adjacency constraint > 3 m. Recovery > 40 years"
+itchas_bc_herd_plan_a3_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas. Adjacency constraint > 3 m. Recovery > 40 years."
+itchas_eccc_a3_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas. Adjacency constraint > 3 m. Recovery > 30 years"
+itchas_bc_herd_plan_a3_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas. Adjacency constraint > 3 m. Recovery > 30 years."
+itchas_eccc_a1p5_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas. Adjacency constraint > 1 m. Recovery > 40 years"
+itchas_eccc_a1p5_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas. Adjacency constraint > 1.5 m. Recovery > 30 years"
+itchas_bc_herd_plan_a1p5_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas. Adjacency constraint > 1.5 m. Recovery > 30 years."
+itchas_bc_herd_plan_a1p5_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas. Adjacency constraint > 1.5 m. Recovery > 40 years."
+itchas_nh_crit_aNA_rNA,No harvest in critical habitat for itcha_ilgachuz
+wells_gray_north_nh_crit_aNA_rNA,No harvest in critical habitat for wells gray north
+barkerville_nh_crit_aNA_rNA,No harvest in critical habitat for barkerville
+nh_crit_aNA_rNA,"No harvest in critical habitat for itchas, barkerville, wells gray north"
+barkerville_eccc_a3_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for barkerville. Adjacency constraint > 3 m. Recovery > 40 years"
+barkerville_bc_herd_plan_a3_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for barkerville. Adjacency constraint > 3 m. Recovery > 40 years."
+barkerville_eccc_a3_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for barkerville. Adjacency constraint > 3 m. Recovery > 30 years"
+barkerville_bc_herd_plan_a3_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for barkerville. Adjacency constraint > 3 m. Recovery > 30 years."
+barkerville_eccc_a1p5_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for barkerville. Adjacency constraint > 1 m. Recovery > 40 years"
+barkerville_bc_herd_plan_a1p5_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for barkerville. Adjacency constraint > 1.5 m. Recovery > 40 years."
+barkerville_eccc_a1p5_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for barkerville. Adjacency constraint > 1.5 m. Recovery > 30 years"
+barkerville_bc_herd_plan_a1p5_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for barkerville. Adjacency constraint > 1.5 m. Recovery > 30 years."
+wgn_eccc_a3_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for wells gray north. Adjacency constraint > 3 m. Recovery > 40 years"
+wgn_bc_herd_plan_a3_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for wells gray north. Adjacency constraint > 3 m. Recovery > 40 years."
+wgn_eccc_a3_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for wells gray north. Adjacency constraint > 3 m. Recovery > 30 years"
+wgn_bc_herd_plan_a3_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for wells gray north. Adjacency constraint > 3 m. Recovery > 30 years."
+wgn_eccc_a1p5_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for wells gray north. Adjacency constraint > 1.5 m. Recovery > 30 years"
+wgn_bc_herd_plan_a1p5_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for wells gray north. Adjacency constraint > 1.5 m. Recovery > 30 years."
+wgn_eccc_a1p5_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for wells gray north. Adjacency constraint > 1.5 m. Recovery > 40 years"
+bc_herd_plan_a3_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas, barkerville and wells gray north. Adjacency constraint > 3 m. Recovery > 40 years."
+eccc_a3_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas, barkerville and wells gray north. Adjacency constraint > 3 m. Recovery > 40 years."
+eccc_aNA_r40,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas, barkerville and wells gray north. Adjacency constraint > 3 m. Recovery > 40 years."
+bc_herd_plan_aNA_r40,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas, barkerville and wells gray north. Recovery > 40 years."
+bc_herd_plan_aNA_r30,"BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas, barkerville and wells gray north. Recovery > 30 years."
+eccc_aNA_r30,"ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas, barkerville and wells gray north. Recovery > 30 years."
+bau_aNa_rNA,business as usual - projecting current trends. No adjacency constraint
