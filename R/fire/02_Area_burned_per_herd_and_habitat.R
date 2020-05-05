@@ -13,7 +13,7 @@
 #=================================
 #  Script Name: 02_Area_burned_per_herd_and_habitat.R
 #  Script Version: 1.0
-#  Script Purpose: Script estimates the area burned both as total area and an proportion of total area per herd home range and habitat type
+#  Script Purpose: Script estimates the area burned both as total area and a proportion of total area per herd home range and habitat type
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and 
 #                 Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #   
@@ -57,6 +57,9 @@ fire.bound$count<-1
 fire.bound$area_m2<-as.numeric(fire.bound$area_m2)
 filenames<-list()
 
+Fire_area_new_tab <- data.frame (matrix (ncol = 6, nrow = 0))
+colnames (Fire_area_new_tab) <- c ("area_m2", "HERD_NAME", "habitat","year", "count", "Cum_area")
+
 
 for (i in 1:length(Herd_name)){
   
@@ -82,6 +85,9 @@ for (i in 1:length(Herd_name)){
   for(j in 1:length(habitat_types)) {
     tab<-as.data.frame(burn_per_area %>% filter(habitat==habitat_types[j]))
     
+   Fire_area_new<- Fire_area %>% filter(habitat == habitat_types[j]) %>%
+      mutate(Cum_area=cumsum(area_m2))
+    
     if (dim(tab)[1]>0) {
       
     tab2 <- as.data.frame(tab %>% 
@@ -95,6 +101,8 @@ for (i in 1:length(Herd_name)){
   nam<-paste(Herd_name[i],habitat_types[j],sep="_")
   assign(nam,tab2)
   filenames<-append(filenames,nam)
+  
+  Fire_area_new_tab<-rbind(Fire_area_new_tab,Fire_area_new)
   
   
   
