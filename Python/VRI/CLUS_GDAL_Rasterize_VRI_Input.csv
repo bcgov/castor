@@ -1,5 +1,0 @@
-OUTNAME,FLD,SQL,PROCESS
-clus_ras_test_tsa,tsa_number_int,"SELECT tsa_number_int, wkb_geometry FROM public.clus_tsa",N
-clus_ras_test_vri_projage1,proj_age_1,"SELECT B.PROJ_AGE_1, A.GEOM FROM public.vri_tsa a left join vri_tsa_att b on a.feature_id_with_tfl = b.feature_id_with_tfl",N
-clus_ras_test_vri_projage1_tsa01,proj_age_1,"SELECT B.PROJ_AGE_1, A.GEOM FROM public.vri_tsa a left join vri_tsa_att b on a.feature_id_with_tfl = b.feature_id_with_tfl WHERE A.TSA_NUMBER = '01'",Y
-clus_herd_poly,gid,"SELECT gid, geom FROM public.gcbp_carib_polygon",Y

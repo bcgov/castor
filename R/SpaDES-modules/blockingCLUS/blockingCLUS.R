@@ -94,6 +94,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
     },
     UpdateBlocks = {
+
       sim <- updateBlocks(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
     },
@@ -395,6 +396,7 @@ spreadBlock<- function(sim) {
   }
   return(invisible(sim))
 }
+
 
 
 updateBlocks<-function(sim){
