@@ -365,13 +365,18 @@ Retain all forest in 5-118. In caribou modified harvest zone (table 1) - Age >80
 ```{r, w5086}
 #5-118 is a no harvest zone 0 already assigned.
 #5-086 Age >80 for 45%. Age > 100 for 37%. Age 120 for 30%. Age 140 for 25%. 
-wha_tags<-c('5-086','5-087') #25% is left unlogged with an age > 100 years. See Table 1
+wha_tags<-c('5-087') #25% is left unlogged with an age > 100 years. See Table 1
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid","wha_tag")]
 zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =45, ndt =0, label = ogc_fids_rm$wha_tag))
 zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_wha', percentage =37, ndt =0, label = ogc_fids_rm$wha_tag))
 zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 120, reference_zone='rast.zone_wha', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
 zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 140, reference_zone='rast.zone_wha', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+
+wha_tags<-c('5-086') #40% > 70 and 20% > 80
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid","wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 70, reference_zone='rast.zone_wha', percentage =40, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =20, ndt =0, label = ogc_fids_rm$wha_tag))
 
 wha_tags<-c('5-872','5-873') #25% is left unlogged with an age > 100 years
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
