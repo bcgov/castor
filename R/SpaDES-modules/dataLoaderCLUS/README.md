@@ -1,5 +1,9 @@
 ## dataloaderCLUS 
 
+### Required package versions of SpaDES to run these modules
+
+
+
 ### What it does
 
 Downloads, retrieves and manipulates data and information about the current state of the forest. The inputs require a connection to a PostgreSQL database that stores provincial scale information. The resulting outputs are formally entered into a SQLite database, named clusdb. This database is used by other modules as inputs to update and store states and other information through the duration of the simulation. This module has two functions: 1) build and save a clusdb or 2) connect to pre-existing clusdb. 
