@@ -17,7 +17,7 @@ times <- list(start = 0, end = 10)
 parameters <- list(
 )
 
-modules <- list("yieldUncertaintyCLUS")
+modules <- list("dataLoaderCLUS", "yieldUncertaintyCLUS")
 objects <- list()
 inputs <- list()
 outputs <- list()
