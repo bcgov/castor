@@ -91,7 +91,7 @@ observeEvent(input$getMapLayersButton, {
     mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
     mapLayersStack[mapLayersStack[] == 0] <- NA
   })
-  cb<-colorBin("Spectral", domain = 1:100,  na.color = "#00000000")
+  cb<-colorBin("Spectral", domain = 1:200,  na.color = "#00000000")
   leafletProxy("resultSetRaster", session) %>% 
     clearTiles() %>%
     clearImages() %>%
@@ -101,7 +101,7 @@ observeEvent(input$getMapLayersButton, {
     addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
     addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
     addRasterImage(mapLayersStack,  colors = cb, opacity = 0.8, project= TRUE, group="Selected") %>% 
-    addLegend(pal = cb, values = 1:100) %>%
+    addLegend(pal = cb, values = 1:200) %>%
     addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),overlayGroups ="Selected") %>%
     addScaleBar(position = "bottomleft") 
 })
@@ -151,32 +151,27 @@ observeEvent(input$getMapLayersButton, {
                                    measure.vars = c("early", "mature", "old")))
    data<-data[, sum(value), by = list(variable)]
    plot_ly(data=data, labels = ~variable, values = ~V1,
-           marker = list(colors = colors, line = list(color = "black", width =1))) %>% add_pie(hole = 0.6)%>%
-     layout(plot_bgcolor='#00000000') %>% 
-     layout(paper_bgcolor='#00000000') %>%
-     layout(title = "Seral Stage", font = list(color = 'White'))
+           marker = list(line = list(color = "black", width =1))) %>% add_pie(hole = 0.6)%>%
+     layout(plot_bgcolor='#00000000',legend = list(orientation = 'v'),paper_bgcolor='#00000000',title = "Seral Stage", font = list(color = 'White'))
  })
- output$statusGS<-renderValueBox({
-   data<-statusData()[compartment %in% input$tsa_selected,]
-   valueBox(
-     "GS",
-     round(sum(data$gs),0),
-     icon = icon("tree"), color = "green"
+ output$statusTHLB<-renderInfoBox({
+    data<-statusData()[compartment %in% input$tsa_selected,]
+    infoBox(title = NULL, subtitle = "THLB", 
+            value = tags$p(paste0(round((sum(data$thlb)/sum(data$total))*100,0), '%'), style = "font-size: 160%;"),
+      icon = icon("images"), color = "green"
    )
  })
-  output$statusTHLB<-renderValueBox({
+ output$statusAvgVol<-renderInfoBox({
+   data<-statusData()[compartment %in% input$tsa_selected,]
+   infoBox(title = NULL,subtitle = "m3/ha", 
+           value = tags$p(paste0(round((sum(data$gs)/sum(data$thlb)),0)), style = "font-size: 160%;"),
+           icon = icon("seedling"), color = "green"
+   )
+ })
+  output$statusRoad<-renderInfoBox({
     data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      "THLB",
-      round((sum(data$thlb)/sum(data$total))*100,0),
-      icon = icon("tree"), color = "green"
-    )
-   })
-  output$statusRoad<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      "Road",
-      round((sum(data$road)/sum(data$total))*100,0),
+    infoBox(title = NULL,subtitle = "Road", 
+      value = tags$p(paste0(round((sum(data$road)/sum(data$total))*100,0), '%'),  style = "font-size: 160%;"),
       icon = icon("road"), color = "green"
     )
   })
@@ -184,8 +179,8 @@ observeEvent(input$getMapLayersButton, {
   output$statusDist<-renderValueBox({
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
-      "Disturbed",
-      round((sum(data$dist)/sum(data$tarea))*100, 0),
+      subtitle = "Disturbed",
+      tags$p(paste0(round((sum(data$dist)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("paw"), color = "purple"
     )
   })
@@ -193,17 +188,17 @@ observeEvent(input$getMapLayersButton, {
   output$statusCritHab<-renderValueBox({
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
-      "Habitat",
-      round((sum(data$tarea)/sum(data$total))*100, 0),
-      icon = icon("paw"), color = "purple"
+      subtitle = "Critical habitat",
+      tags$p(paste0(round((sum(data$tarea)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
+      icon = icon("exclamation-triangle"), color = "purple"
     )
   })
   
   output$statusDist500<-renderValueBox({
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
-      "500m",
-      round((sum(data$dist500)/sum(data$tarea))*100, 0),
+      subtitle = "Disturbed 500m",
+      tags$p(paste0(round((sum(data$dist500)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("paw"), color = "purple"
     )
   })
@@ -241,7 +236,26 @@ observeEvent(input$getMapLayersButton, {
         geom_area(position = "identity", aes(alpha = scenario)) +
         xlab ("Future year") +
         ylab ("Area Harvested (ha)") +
-        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+        scale_alpha_discrete(range=c(0.4,0.8))+
+        scale_fill_grey(start=0.8, end=0.2) +
+        theme_bw()
+      ggplotly(p)
+    })
+  }) 
+  
+  output$harvestAgePlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$harvest
+      data<-data[, lapply(.SD, FUN=weighted.mean, x=volume), by=c("timeperiod", "scenario"), .SDcols='age']
+      print(data)
+      #data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+      data[,timeperiod:= as.integer(timeperiod)]
+      p<-ggplot (data, aes (x=timeperiod, y=age, fill = scenario)) +  
+        geom_area(position = "identity", aes(alpha = scenario)) +
+        xlab ("Future year") +
+        ylab ("Average Harvest Age (yrs)") +
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
         scale_alpha_discrete(range=c(0.4,0.8))+
         scale_fill_grey(start=0.8, end=0.2) +
         theme_bw()
@@ -257,11 +271,56 @@ observeEvent(input$getMapLayersButton, {
         geom_area(position = "identity", aes(alpha = scenario)) +
         xlab ("Future year") +
         ylab ("Volume Harvested (m3)") +
-        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
         scale_alpha_discrete(range=c(0.4,0.8))+
         scale_fill_grey(start=0.8, end=0.2) +
         theme_bw()
       ggplotly(p)
+  })
+  
+  output$managedAreaPlot <- renderPlotly ({
+    data<-reportList()$harvest[,sum(transition_area), by=c("scenario", "timeperiod")]
+    data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+    data[,timeperiod:= as.integer(timeperiod)]
+    p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Managed Area Harvested (ha)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
+  }) 
+  
+  output$managedVolumePlot <- renderPlotly ({
+    data<-reportList()$harvest[,sum(transition_volume), by=c("scenario", "timeperiod")]
+    data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+    data[,timeperiod:= as.integer(timeperiod)]
+    p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Managed Volume Harvested (m3)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
+  }) 
+  
+  output$availableTHLBPlot <- renderPlotly ({
+    data<-reportList()$harvest[,sum(avail_thlb), by=c("scenario", "timeperiod")]
+    data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+    data[,timeperiod:= as.integer(timeperiod)]
+    p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Available THLB (ha)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
   })
   
   output$growingStockPlot <- renderPlotly ({
@@ -271,7 +330,7 @@ observeEvent(input$getMapLayersButton, {
       geom_area(position = "identity", aes(alpha = scenario)) +
       xlab ("Future year") +
       ylab ("Growing Stock (m3)") +
-      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
       scale_alpha_discrete(range=c(0.4,0.8))+
       scale_fill_grey(start=0.8, end=0.2) +
       theme_bw()

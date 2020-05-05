@@ -21,7 +21,7 @@ ui <- dashboardPage(skin = "black",
     )
   ),
   dashboardBody(
-   #tags$style(type = "text/css", "a{color: #090909;}"),
+    tags$head(tags$style(HTML('.info-box {min-height: 75px;} .info-box-icon {height: 75px; line-height: 75px;} .info-box-content {padding-top: 0px; padding-bottom: 0px; font-size: 110%;}'))),
     tabItems(
       tabItem(tabName = "settings",
           sidebarLayout(
@@ -57,30 +57,40 @@ ui <- dashboardPage(skin = "black",
               conditionalPanel(condition = "!input.schema == ''",
                 box(title = "Current State", width = 12, background = "black", solidHeader = FALSE,
                   fluidRow(
-                    valueBoxOutput("statusGS"),
-                    valueBoxOutput("statusTHLB"),
-                    valueBoxOutput("statusRoad"),
-                    
-                    valueBoxOutput("statusCritHab"),
-                    valueBoxOutput("statusDist"),
-                    valueBoxOutput("statusDist500"),
-                    bsTooltip("statusGS", "Total merchtanable growingstock (m3)",
+                    box(title = "Landbase", solidHeader = TRUE,background = "green", width =12,
+                      fluidRow(width = 12,
+                        column(width = 4,
+                              fluidRow(width = 12,infoBoxOutput("statusTHLB")),
+                              fluidRow(width = 12,infoBoxOutput("statusRoad")),
+                              fluidRow(width = 12,infoBoxOutput("statusAvgVol")),
+                          bsTooltip("statusAvgVol", "Average volume (m3) per ha in THLB ",
                               "top", options = list(container = "body")),
-                    bsTooltip("statusTHLB", "Percentage of timber harvesting landbase",
+                          bsTooltip("statusTHLB", "Percentage of timber harvesting landbase in the area of interest",
                               "top", options = list(container = "body")),
-                    bsTooltip("statusRoad", "Percentage of 100 m of a road",
-                              "top", options = list(container = "body")),
-                    bsTooltip("statusCritHab", "Percentage of critical caribou habitat",
-                              "top", options = list(container = "body")),
-                    bsTooltip("statusDist", "Percentage of caribou habitat disturbed",
-                              "top", options = list(container = "body")),
-                    bsTooltip("statusDist500", "Percentage of caribou habitat disturbed with 500 m buffer",
+                          bsTooltip("statusRoad", "Percentage of the area of interest within 100m of a road ",
                               "top", options = list(container = "body"))
+                        ),
+                        column(width = 8,
+                          plotlyOutput(outputId = "statusPlot", height = "250px"),
+                          bsTooltip("statusPlot", "Proportion of seral as early (<40 yrs), mature (60 - 120 yrs) and old (> 120 yrs).",
+                              "top", options = list(container = "body"))
+                        )
+                        )
+                      )
                   ),
                   fluidRow(
-                    plotlyOutput(outputId = "statusPlot", height = "200px"),
-                    bsTooltip("statusPlot", "Proportion of seral as early (<40 yrs), mature (60 - 120 yrs) and old (> 120 yrs).",
+                    box(title = "Caribou Habitat", solidHeader = TRUE, background = "purple", width =12,
+                      valueBoxOutput("statusCritHab"),
+                      valueBoxOutput("statusDist"),
+                      valueBoxOutput("statusDist500"),
+
+                      bsTooltip("statusCritHab", "Percentage of the area of interest in critical caribou habitat",
+                              "top", options = list(container = "body")),
+                      bsTooltip("statusDist", "Percentage of critical caribou habitat disturbed",
+                              "top", options = list(container = "body")),
+                      bsTooltip("statusDist500", "Percentage of critical caribou habitat disturbed with 500 m buffer",
                               "top", options = list(container = "body"))
+                    )
                   ),
                   fluidRow(
                     column(12,
@@ -90,7 +100,7 @@ ui <- dashboardPage(skin = "black",
                               "bottom", options = list(container = "body"))
                     )
                   )
-                )
+                )#end of current state box
               )
             )
           )
@@ -161,6 +171,22 @@ ui <- dashboardPage(skin = "black",
           box(title = "Harvest Flow", collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "green", width =12,
             plotlyOutput(outputId = "harvestAreaPlot", height = "400px"),
             plotlyOutput(outputId = "harvestVolumePlot", height = "400px")
+          )
+        ),
+        fluidRow(
+          box(title = "Transition Harvest", collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "green", width =12,
+              plotlyOutput(outputId = "managedAreaPlot", height = "400px"),
+              plotlyOutput(outputId = "managedVolumePlot", height = "400px")
+          )
+        ),
+        fluidRow(
+          box(title = "Harvest Age", collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "green", width =12,
+              plotlyOutput(outputId = "harvestAgePlot", height = "400px")
+          )
+        ),
+        fluidRow(
+          box(title = "Available THLB", collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "green", width =12,
+              plotlyOutput(outputId = "availableTHLBPlot", height = "400px")
           )
         ),
         fluidRow(
