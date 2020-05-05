@@ -79,7 +79,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                }
                
                #Schedule the Update 
-               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 10)
+                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 10)
                },
              
              dynamic ={
@@ -396,7 +396,9 @@ spreadBlock<- function(sim) {
   return(invisible(sim))
 }
 
+
 updateBlocks<-function(sim){
+
   #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
