@@ -92,20 +92,12 @@ The ECCC and BC scenarios both use the spatial caribou critical habitat data dev
 knitr::include_graphics( here ("reports/scenarios/images", "eccc_lambda_disturb_fig.jpg"))
 ```
 
-The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some southern mountain caribou critical habitat types (Table 1). While this model is useful because it establishes a linkage between habitat and caribou populations, there are important things to consider when using it as a threshold for managing forestry activity. First, managing disturbance as a strategy to manage forestry activity in caribou habitat is a 'blunt instrument'. It limits our ability to model more direct and specific forest management actions that may benefit caribou, including, for example, different silvicultural practices that may limit shrub production in cutblocks. Second, because it lumps all disturbance types (e.g., cutblocks, roads, fire) together, it limits our ability to account for these indpendently in the model. This is important, because cutblocks and roads influence mountain caribou differently (e.g., [DeCesare et al. 2010](https://scholarworks.umt.edu/cgi/viewcontent.cgi?article=1016&context=wildbio_pubs)). Third, the model was developed for boreal caribou, which live in very different habitat and have very different behaviours than mountain caribou. The model has not been tested to determine whether it is applicable to southern mountain caribou populations.  
+The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some southern mountain caribou critical habitat types, and these were used as constraints in our scenarios (Table 1). However, there were challenges with implementing this constraint directly in our model, and therefore we developed a modified approach to using it in CLUS. Specifically, we found that disturbance levels in Itcha-Ilgachuz critical habitat were generally greater than 35%, and much of this disturbance (e.g., roads, mines, agriculture) was not recovered in the model. In particular, roads were a key contributor to much of the disturbance. We were unable to recover these existing roads, because the roads data does not indicate road age and status. Without a detailed road recovery plan it is difficult to develop assumptions on road recovery in the model. As a consequence, constraining on 35% disturbance makes it a no harvest scenario, and thus that scenario can be used to evaluate the effects of implementing a 35% disturbance constraint on forestry activity.     
 
-NEED TO EXPLAIN THIS MORE; HOW WE DEALT WITH DISTURBANCE (18% early seral) is nto teh 35% way; in that case use no harvest
+As an alternative to constraining on disturbance, we developed an approach that constrained forestry activity to a level that would contribute 35% disturbance to critical habitat. We used a previously developed model ( [Muhly 2016](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/road_cutblock_model_20161102.pdf)) that found that an approximately 18% area of less than 40 year cutblocks in a landscape unit was equivalent to a 35% disturbance level. Thus, in our scenarios that required a 35% disturbance threshold in critical habitat areas, we allowed for  forestry to occur in areas with less than 18% of less than 40 year cutblocks. 
 
-NO HARVEST
-
-
-
-#### Prioritization
-- distance to disturbance 
-- age 
-- volume
-
-
+#### Prioritization of Forest Stands for Harvest
+Similar to other TSR models, the CLUS model harvests forest stands by establishing a priority harvesting queue based on stand characteristics. These characteristics include: distance to existing disturbed area (i.e., road or cutblock), stand age and stand volume. Thus, the models establishes which stands it will harvest at each time step by first selecting those stands closest to disturbed areas, than older stands, and then high volume stands. This order is important, and is different than TSR models, which do not consider distance to disturbance when establishing a harvest priority queue.  By prioritizing harvest to areas adjacent to existing disturbance we help limit the total amount of disturabcne from forest harvest, which follows the intent of disturbance constraints, and is a caribou focussed approach to forest management. 
 
 #### Road and Cutblock Disturbance and Recovery
 The CLUS model simulated forestry cutblocks and roads, both of which are considered 'disturbances'. Other disturbance features (e.g., highways, mines, agriculture) were not simulated and thus held constant in the model (e.g., no new mines were built and no mines were recovered in the model). In the modelled scenarios we considered two definitions of cutblock and road recovery, based on age of these disturbances, to assess the influence of their recovery time on timber harvest. In some scenarios we considered less than 40 year old cutblocks and roads as 'disturbed', and anything older as 'undisturbed' (i.e., recovered caribou habitat). In other scenarios we considered less than 30 year old cutblocks and roads as disturbed.
@@ -115,12 +107,6 @@ Cutblocks were considered undisturbed at 30 or 40 years old because these thresh
 In these scenarios, the CLUS model did not recover existing roads, rather, existing roads were treated as permanent disturbances. We were unable to recover existing roads because there are no provincial-scale data on roads that includes their age or status. However, because we could track the age of newly built roads in CLUS, we were able to recover those features. We applied the same recovery parameters to roads simulated in CLUS as we did to cutblocks. While there is research indicating that roads are poor habitat for caribou (e.g., [Dyer et al. 2002](https://www.nrcresearchpress.com/doi/abs/10.1139/z02-060#.XnuL1ohKiUk); [Whittington et al. 2011](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2664.2011.02043.x); [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)), there appears to be limited research on how road recovery might influence caribou. Much of the research on linear feature recovery has focussed on seismic lines in the boreal forest (e.g., [Dickie et al. 2016](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2664.12732); [Finnegan et al. 2018](https://www.sciencedirect.com/science/article/pii/S0378112717318078); [Tattersall et al. 2019](https://www.sciencedirect.com/science/article/pii/S0006320719307013)). 
 
 We tested the effect of varying the recovery age of cutblocks and roads from 30 to 40 years on model outputs. This parameter requires careful consideration based on knowledge of caribou ecology, forest stand characteristics and road reocvery as they relate to moose forage and wolf movement in the area being modelled. For example, it is important to consider the relationship between forest age and shrub cover across a diversity of forest stand types in the area of interest. Some stands will mature faster or slower than 30 or 40 years, depending on vegetation communities and site productivity. 
-
-
-
-18% rule of harvest in scenarios
-
-
 
 #### Cutblock Adjacency
 Foresty was simulated with adjacency constraints, i.e., a forest stand could only be cut adjacent to a forest stand that had acheieved a specific height. We simulated each scenario with a 3m, 1.5m and 0m adjacency contraint. This adjacency constraint can be decreased or increased to allow more flexibility in where the model can harvest. 
@@ -134,27 +120,19 @@ The BAU scenario had the highest annual timber harvest, but lowest indicators of
 ### Modeled Annual Harvested Volume
 The ECCC scenarios had the largest impact on timber harvest, reagrdless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^) to 12% (approximately 400,000m^3^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^) to 5% (approximately 160,000m^3^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habtiat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^) improvement in timber supply across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual timber harvest decreased by 2% (approximately 60,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC sceanrios, the annual timber harvest decreased by 3% (approximately 100,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint
 
-
-
-ADD NO HARVEST
-
-
-
 ```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
-
 # data.harvest <- read.csv (here ("reports/scenarios/data", "harvest.csv"))
 # data.summ <- data.harvest %>% # get summary data
-#               filter (scenario == "itchas_eccc_a3_r30") %>%
+#               filter (scenario == "itchas_nh_crit_aNA_rNA") %>%
 #                   summarise (sum (volume)/40)
-
 table.volume = data.table (
   scenario = c ("BAU", "BAU", "BC Herd Plan", "ECCC Recovery Strategy", "BC Herd Plan", "ECCC Recovery Strategy", "BAU",
-                "BC Herd Plan", "ECCC Recovery Strategy", "BC Herd Plan", "ECCC Recovery Strategy"),
-  adjacency = c (0, 1.5, 1.5, 1.5, 1.5, 1.5, 3, 3, 3, 3, 3),
-  recovery = c (0, 0, 40, 40, 30, 30, 0, 40, 40, 30, 30),
-  annual_volume = c (3460143, 3460473, 3295942, 3035029, 3325450, 3061603, 3519953, 3394338, 3138134, 3425914, 3163968),
-  diff_annual_volume = c (0, 0, 164531, 425444, 135023, 398870, 0, 125615, 381819, 94039, 355985),
-  perc_diff_tot_volume = c ("0", "0", "-5%", "-12%", "-4%", "-12%", "0", "-4%", "-11%", "-3%", "-10%")
+                "BC Herd Plan", "ECCC Recovery Strategy", "BC Herd Plan", "ECCC Recovery Strategy", "No Harvest"),
+  adjacency = c (0, 1.5, 1.5, 1.5, 1.5, 1.5, 3, 3, 3, 3, 3, 0),
+  recovery = c (0, 0, 40, 40, 30, 30, 0, 40, 40, 30, 30, 0),
+  annual_volume = c (3460143, 3460473, 3295942, 3035029, 3325450, 3061603, 3519953, 3394338, 3138134, 3425914, 3163968, 2959133),
+  diff_annual_volume = c (0, 0, 164531, 425444, 135023, 398870, 0, 125615, 381819, 94039, 355985, 501010),
+  perc_diff_tot_volume = c ("0", "0", "-5%", "-12%", "-4%", "-12%", "0", "-4%", "-11%", "-3%", "-10%", "-14%")
 )
 kable (table.volume,
        caption = "<b>Table 2. Annual Harvested Volume Over a 200 Year Period in the Quesnel and Williams Lake Timber Supply Areas Under Different Itcha-Ilgachuz Caribou Recovery Scenarios.<b>",
@@ -482,7 +460,7 @@ why more harvest with higehr adjaceny? harvestign higher volume stands beucase m
 
 
 
-displacement effect
+displacement effect  need to priortize prior to planning; efefcts fof addign additonal protections not addtivie, but multiplicative, non-linear
 
 
 
