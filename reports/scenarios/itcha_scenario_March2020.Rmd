@@ -193,7 +193,7 @@ data.dist.ques <- data.dist %>%
 ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 3. Proportion of Area Disturbed, by Critical Habitat Type 
+  labs (title = "Figure 3. Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat 
 in the Quesnel TSA Under the Different Scenarios with a 3m Adjacency and 
 40 Year Recovery Age.", 
         x = "Future Year", 
@@ -228,7 +228,7 @@ data.dist.wl <- data.dist %>%
 ggplot (data.dist.wl, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 4. Proportion of Area Disturbed, by Critical Habitat Type 
+  labs (title = "Figure 4. Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat 
 in the Williams Lake TSA Under the Different Scenarios with a 3m Adjacency and 
 40 Year Recovery Age.", 
         x = "Future Year", 
@@ -248,10 +248,9 @@ BC = British Columbia") +
 ```
 
 #### Disturbance in Barkerville Critical Habitat in the Quesnel TSA
+Putting disturbance constraints on Itcha-Ilgachuz critical habitat resulted in displacement of forest disturbance to other caribou herds' critical habitat without those constraints. For example, in the Quesnel TSA, disturbance increased in the Barkerville matrix and Wells Gray North HEWSR and matrix habitat in the Itcha-Ilgachuz habitat recovery scenarios (Fig. 5). Specifically, disturbance increased to 100% in matrix habitat within the next 100 years, and up to 50% in Wells Gray North HEWSR habitat within 50 years under all scenarios. In addition, these increases happened sooner under the Itcha-Ilgachuz critical habitat scenarios compared to the BAU scenario. 
 
-
-
-```{r, FIG 5, Quesnel disturbance other herds echo = F, error = F, eval = T, include = T, message = F, warning = F}
+```{r, FIG 5, Quesnel disturbance other herds, echo = F, error = F, eval = T, include = T, message = F, warning = F}
 data.dist <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
 data.dist <- data.dist %>%
               filter (scenario == "itchas_bau_a3_rNA" | scenario == "itchas_bc_herd_plan_a3_r40" | 
@@ -264,8 +263,9 @@ data.dist.ques <- data.dist %>%
 ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 3. Proportion of Area Disturbed, by Critical Habitat Type 
-in the Quesnel TSA Under the Different Scenarios with a 3m Adjacency and 
+  labs (title = "Figure 5. Proportion of Area Disturbed in Barkerville and 
+Wells Gray North Critical Habitat in the Quesnel TSA Under the 
+Different Itcha-Ilgachuz Scenarios with a 3m Adjacency and 
 40 Year Recovery Age.", 
         x = "Future Year", 
         y = "Percent Disturbed",
@@ -278,24 +278,19 @@ BC = British Columbia") +
   scale_linetype_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
                                                       "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
                                                       "ECCC, 3m, 40 years", "No Harvest")) +
-  theme (legend.position = c (0.15, 0.75),
+  theme (legend.position = c (0.87, 0.25),
          legend.title = element_text(size = 10),
          legend.text = element_text( size = 8))
 ```
 
-
-
-
-
 ### Early Seral Forest Indicator
-
-
-
-
 #### BAU and BC Herd Plan Scenario Comparisons
+
+
+
 When comparing adjacency and recovery constraints across scenarios in the Quesnel TSA, we found that the BAU with 3m adjacency and 40 year recovery time resulted in the highest proprotion of early seral forest in LESR and LEWR over the longest period of time (Fig. 8). However, this scenario resulted in an intermediate amount of early seral forest in Matrix habitat. Not surprisingly, the BC herd plan scenario with a 3 m adjacency and 40 year recovery period resulted in the greatest reddcution of early seral forest in LESR, LEWR and Matrix critical habitat types. Interestingly, the BC herd plan and BAU scenarios converged when the adjaceny constraint was set to 1.5 m and the recovery period was set to 30 years. Also interesting was that each combination of adjacency and recovery time had a unique effect on where forest harvest occurred. The most 'constrained' scenario (BC Herd Plan, 3m, 40 years) reduced the amount of early seral forest in all critical habitat types.  However, the BAU scenario with restrictive adjacency (3 m) and conservative habitat recovery (40 years) resulted in the greatest amount of early seral forest in LESR and LEWR habitat for the longest period of time. The sceanrios with less restrictive adjacency (1.5 m) and faster habitat recovery (30 years) maintainted a relatively low amount of early seral forest in LESR habitat for the majority of the simulation period, and an intermediate amount of early seral forest in LEWR habitat. These scenarios allowed for the highest amount of early seral forest in matrix habitat, but the trend was declining throughout the simulation period. 
 
-```{r, FIG 8, Area LT40 Quesnel scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+```{r, FIG 6, Area LT40 Quesnel scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
 data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
 data.surv <- data.surv %>%
               filter (scenario == "bau_3m_40y" | scenario == "bc_herd_plan_3m_40y" | scenario == "bau" | scenario ==  "itchas_bc_herd_plan_30") %>%
@@ -306,7 +301,7 @@ data.surv.ques <- data.surv %>%
 ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 8. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
+  labs (title = "Figure 6. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
 Habitat Type in the Quesnel TSA Under Different Adjacency and Recovery 
 Age Scenarios.", 
         x = "Future Year", 
