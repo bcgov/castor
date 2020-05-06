@@ -118,7 +118,7 @@ The CLUS model did not simulate fire. Thus, we estimated potential fire disturba
 The BAU scenario had the highest annual timber harvest, but lowest indicators of caribou habitat and survival. The ECCC recovery strategy and BC herd plan scenarios both reduced timber harvest and positively influenced caribou indicators. These two scenarios generally had similar results relative to the BAU. There were differences between the BAU scenarios with different ajacency requirements. Detailed results on each indicator for each scenario are provided below.
 
 ### Modeled Annual Harvested Volume
-The ECCC scenarios had the largest impact on timber harvest, reagrdless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^) to 12% (approximately 400,000m^3^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^) to 5% (approximately 160,000m^3^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habtiat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^) improvement in timber supply across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual timber harvest decreased by 2% (approximately 60,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC sceanrios, the annual timber harvest decreased by 3% (approximately 100,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint
+A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^) impact on timber harvest (Table 2). Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^) to 12% (approximately 400,000m^3^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^) to 5% (approximately 160,000m^3^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^) improvement in timber supply across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual timber harvest decreased by 2% (approximately 60,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC sceanrios, the annual timber harvest decreased by 3% (approximately 100,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint
 
 ```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
 # data.harvest <- read.csv (here ("reports/scenarios/data", "harvest.csv"))
@@ -177,24 +177,20 @@ Williams Lake TSA's",
 ```
 
 ### Disturbance Indicator
-The BC herd plan and ECCC scenarios reduced the amount of disturbance in caribou critical habitat comarped to the BAU scenarios. 
+#### Disturbance in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA
+The no harvest, BC herd plan and ECCC scenarios all reduced the amount of disturbance in caribou critical habitat compared to the BAU scenarios in the Quesnel TSA (Fig. 3). The no harvest scenario resulted in the lowest levels of disturbance over the simulation period, remaining steady in all high and low elevation critical habitat types over the first 150 years of the simualtion, and then declining slightly thereafter. In addition, in the no harvest scenario the amount of disturbance in matrix critical habitat decreased steadily over the first 25 years of the simulation, stabilized, and then declined sharply at year 150. Thus, the no harvest scenario was succesfull at reducing disturbance in caribou critical habitat. However, notably in matrix habitat a disturbance threshold less than 50% was never achieved over a 200 year period. All scenarios, including BAU were succesfull at maintaining stable disturbance levels in HEWSR, and only the BAU scenario resulted in increasing levels of disturbance in LESR. The BC herd plan scenarios allowed for an increase in disturbance in LEWR, although less than the BAU, and the ECCC scenarios resulted in a stable level of disturbance in LEWR. Decreasing the habitat recovery period from 30 years to 40 years decreased disturbance in BC and ECCC scenarios by approximately 1% to 5%. 
 
-
-
-
-
-
-```{r, FIG 3, disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+```{r, FIG 3, Quesnel disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
 data.dist <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
 data.dist <- data.dist %>%
               filter (scenario == "itchas_bau_a3_rNA" | scenario == "itchas_bc_herd_plan_a3_r40" | 
                       scenario == "itchas_eccc_a3_r40" | scenario == "itchas_bc_herd_plan_a3_r30" |
-                      scenario == "itchas_eccc_a3_r30") %>%
+                      scenario == "itchas_eccc_a3_r30" | scenario == "itchas_nh_crit_aNA_rNA") %>%
               filter (critical_hab == "Itcha-Ilgachuz HEWSR" | critical_hab == "Itcha-Ilgachuz LESR" |
                       critical_hab == "Itcha-Ilgachuz LEWR" | critical_hab == "Itcha-Ilgachuz Matrix")
 data.dist.ques <- data.dist %>%
                     filter (compartment == "Quesnel_TSA")
-ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario)) +
+ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
   labs (title = "Figure 3. Proportion of Area Disturbed, by Critical Habitat Type 
@@ -205,12 +201,87 @@ in the Quesnel TSA Under the Different Scenarios with a 3m Adjacency and
         caption = "BAU = business-as-usual scenario; 
 ECCC = Environment and Climate Change Canada; 
 BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 40 years",  "ECCC, 3m, 40 years",
-                                                      "BC Herd Plan, 3m, 30 years",  "ECCC, 3m, 30 years")) +
-  theme (legend.position = c (0.17, 0.7))
-
+  scale_color_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
 ```
 
+#### Disturbance in Itcha-Ilgachuz Critical Habitat in the Williams Lake TSA
+The no harvest, BC herd plan and ECCC scenarios all reduced the amount of disturbance in caribou critical habitat compared to the BAU scenarios in the Williams Lake TSA (Fig. 4). In addition, all management scenarios reduced disturbance levels in HEWSR and LESR to at or below 35%, and they reduced disturbance in LEWR. Notably, none of the scenarios reduced disturance in LEWR or matrix habitat to less than 35%. 
+
+```{r, FIG 4, Williams Lake disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
+data.dist <- data.dist %>%
+              filter (scenario == "itchas_bau_a3_rNA" | scenario == "itchas_bc_herd_plan_a3_r40" | 
+                      scenario == "itchas_eccc_a3_r40" | scenario == "itchas_bc_herd_plan_a3_r30" |
+                      scenario == "itchas_eccc_a3_r30" | scenario == "itchas_nh_crit_aNA_rNA") %>%
+              filter (critical_hab == "Itcha-Ilgachuz HEWSR" | critical_hab == "Itcha-Ilgachuz LESR" |
+                      critical_hab == "Itcha-Ilgachuz LEWR" | critical_hab == "Itcha-Ilgachuz Matrix")
+data.dist.wl <- data.dist %>%
+                    filter (compartment == "Williams_Lake_TSA")
+ggplot (data.dist.wl, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 4. Proportion of Area Disturbed, by Critical Habitat Type 
+in the Williams Lake TSA Under the Different Scenarios with a 3m Adjacency and 
+40 Year Recovery Age.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  theme (legend.position = c (0.87, 0.25),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+
+#### Disturbance in Barkerville Critical Habitat in the Quesnel TSA
+
+
+
+```{r, FIG 5, Quesnel disturbance other herds echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance.csv"))
+data.dist <- data.dist %>%
+              filter (scenario == "itchas_bau_a3_rNA" | scenario == "itchas_bc_herd_plan_a3_r40" | 
+                      scenario == "itchas_eccc_a3_r40" | scenario == "itchas_bc_herd_plan_a3_r30" |
+                      scenario == "itchas_eccc_a3_r30" | scenario == "itchas_nh_crit_aNA_rNA") %>%
+              filter (critical_hab == "Barkerville HEWSR " | critical_hab == "Barkerville Matrix" |
+                      critical_hab == "Wells Gray North HEWSR" | critical_hab == "Wells Gray North Matrix")
+data.dist.ques <- data.dist %>%
+                    filter (compartment == "Quesnel_TSA")
+ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 3. Proportion of Area Disturbed, by Critical Habitat Type 
+in the Quesnel TSA Under the Different Scenarios with a 3m Adjacency and 
+40 Year Recovery Age.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
 
 
 
@@ -461,6 +532,10 @@ why more harvest with higehr adjaceny? harvestign higher volume stands beucase m
 
 
 displacement effect  need to priortize prior to planning; efefcts fof addign additonal protections not addtivie, but multiplicative, non-linear
+
+
+matrix habtait is where ditsurbanc managment is goign to be the challenge
+
 
 
 
