@@ -17,17 +17,21 @@ require (knitr)
 ```
 
 ## Executive Summary
-Here we report on the results of simulations of caribou critical habitat management scenarios developed for the Itcha-Ilgachuz caribou herd recovery plan. We took habitat management scenarios developed by Environment and Climate Change Canada (ECCC) and British Columbia (BC) and compared them to a 'business-as-usual' (BAU) scenario in a caribou and land use simulator (CLUS). Scenarios were implemented in the CLUS as additional constraints on forestry developement within caribou critical habitat areas.
+Here we report on the results of simulations of caribou critical habitat management scenarios developed for the Itcha-Ilgachuz caribou herd recovery plan. We took habitat management scenarios developed by Environment and Climate Change Canada (ECCC) and British Columbia (BC) and compared them to 'business-as-usual' (BAU) scenarios in a caribou and land use simulator (CLUS). Scenarios were implemented in the CLUS as constraints on forestry developement within caribou critical habitat areas.
 
-We used the CLUS model to simulate forest harvest and stand regeneration on a landscape 100 years into the future. From the model, we estimated future timber harvest, i.e., annual cut, and caribou habitat quality indicators related to forest stand age. We simulated forestry in the Quesnel and Williams Lake TSA's because they overlapped with the majority of the Itcha-Ilgachuz caribou herd. 
+We used the CLUS model to simulate forest harvest and stand regeneration on a landscape 200 years into the future. From the model, we estimated future timber harvest, i.e., annual cut, and caribou habitat quality indicators related to forest stand age and disturbance. We simulated forestry in the Quesnel and Williams Lake TSA's because they overlapped with the majority of the Itcha-Ilgachuz caribou herd. 
 
 The ECCC and BC scenarios both used the spatial caribou critical habitat data developed by the BC government to apply new constraints in each scenario. Critical habitat was divided into several types, including high elevation winter and summer range, low elevation winter range, low elevation summer range and Matrix. Each scenario had specific limits on 'disturbance' (in this case, cutblocks and roads) applied to each habitat type.
 
-In the modelled scenarios we considered two definitions of habitat recovery (i.e. no longer disturbed), based on age of the habitat disturbance. We considered either >40 or >30 year old cutblocks and roads as 'undisturbed' (i.e., recovered caribou habitat). In all scenarios, the CLUS model did not recover existing roads, but recovered roads simulated by CLUS. Foresty was simulated with different adjacency constraints, i.e., a forest stand could only be cut adjacent to a forest stand that had acheieved a specific height. We simulated scenarios with 3 m and a 1.5 m adjacency contraints.
+In the modelled scenarios we considered two definitions of habitat recovery (i.e. no longer disturbed), based on age of the habitat disturbance. We considered either greater than 40 or greater than 30 year old cutblocks and roads as 'undisturbed' (i.e., recovered caribou habitat). In all scenarios, the CLUS model did not recover existing roads, but recovered roads simulated by CLUS. Foresty was simulated with different adjacency constraints, i.e., a forest stand could only be cut adjacent to a forest stand that had acheieved a specific height. We simulated scenarios with 3m and a 1.5m adjacency contraints.
 
-The BAU scenario had the highest annual timber harvest, but lowest indicators of caribou habitat and survival. The ECCC recovery strategy and BC herd plan scenarios both reduced timber harvest and positively influenced caribou indicators. These two scenarios had similar results and resulted in an ~350,000m^3^ (15%) redcution in average annual harvested volume when the adjacency constraint was 3 m and disturbance recovery period was 40 years. However, adjacency had the largest impact on the CLUS models ability to achieve the live volume legal AAC of 2,750,000m^3^. The impact of the BC and ECCC scenarios diverged when the adjacency constraint was relaxed to 1.5 m, i.e., the BC herd plan reduced the annual harvest by 79,482^3^ (3%) and the ECCC recovery strategy reduced the annual harvest by 158,739m^3^ (6%). When adjacency was relaxed and recovery time was shortened to 30 years, the difference between the BC and ECCC scenarios was null, and the impact on annual harvest was relatively small, i.e., 39,730m^3^ (1%). However, as adjacency was relaxed, the model allowed for more early seral forest in caribou critical habitat.  
+The BAU scenario had the highest annual timber harvest, but lowest indicators of caribou habitat and survival. A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^) impact on timber harvest. Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time. The ECCC scenarios resulted in a 10% (approximately 350,000m^3^) to 12% (approximately 400,000m^3^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^) to 5% (approximately 160,000m^3^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^) improvement in timber supply across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual timber harvest decreased by 2% (approximately 60,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC sceanrios, the annual timber harvest decreased by 3% (approximately 100,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint.
 
-The effects of the model scenarios, on timber harvest in TSAs, and early seral forest in caribou critical habtiat types, varied substantially depending on the adjacency constraint and habitat recovery time period implemented in the model. Thus, our results suggest that the specifics of how we manage forest harvest within and outside of caribou critical habitat (i.e., beyond matrix habitat), such as adjacency requirements, can have significant implications for timber harvest and caribou habitat. They also show that there is value in investing in rapid, large-scale habitat recovery. Using the CLUS tool to support a caribou habitat recovery plan is recommended. 
+The no harvest, BC herd plan and ECCC scenarios all had teh desired efefct of reducing the amount of disturbance adn early forest in cariobu critical habitat. AS expected, the BC herd plan scenarios allowed for some disturabnce and early seral forest in LEWR critcal habtiat, but less than in the BAU scenario, adn the ECCC scenarios resulted in a decrease in disturabnce and early seral forest in Matrix habitat compared to the BC herd plan scenarios.
+
+The scenarios provide a basis for evaluating the trade-off between forest harvest and caribou habitat recovery and conservation. They need to be evaluated within the context of model parameters, such as habitat recovery rates and forest harvest priority. Our results also show the significant effect of caribou habitat recovery on forest harvest rates. We show that reducing the time period of habtiat recovery from 40 years to 30 years can reduce the impact to forest harvest. However, more improtantly, while critical habitat disturbance thresholds may be a useful heuristic for conserving caribou, applying these constraints in the Itcha-Ilgachuz herd would result in no harvest there, unless active habitat recovery were to occur. In the absence of disturbance recovery, we show that forest harvest can occur if disturbances are recovered. Our results show that a more detailed discussion on the teh efefcts of roads adn early seral forest on cariobu popaultions, adn the definition of recovered caribou habitat is needed to create more realistic and optimistic CLUS model scenarios and caribou recovery plans.
+
+Our results also emphasize the importance of managing caribou critical habitat at large scales. We found that applying critical habitat constraints exclusively to the Itcha-Ilgachuz herd displaced disturbance to the critical habitat of other caribou herds in a TSA (e.g., Barkerville). Thus, even herds that are not adjacent or ecologically connected are not necessarily independent in terms of forest management. The efefcts of constainign forestry in cariobu herds is unlikely to be additive, but non-linear and compounded as more habitat is protected. Ultimately, forest harvest in caribou critical habitat should be managed across multiple herds in the same TSA. Our resutls emphasize the need to priortize which herds will be recovered prior to enagign in herd plannning, and in conducting plannign for groups of cariobu herds that are adjacent oto each other.  
 
 ## Introduction
 Here we report on the results of simulations of caribou critical habitat management scenarios developed for the Itcha-Ilgachuz caribou herd recovery plan. We took habitat management scenarios developed by Environment and Climate Change Canada (ECCC) and British Columbia (BC) and compared them to a 'business-as-usual' (BAU) scenario in a caribou and land use simulator (CLUS). Scenarios were implemented in the CLUS as additional constraints on forestry developement within caribou critical habitat areas. Below, we decribe the general methods and key parameters implemented in the CLUS model, results of model outputs and conclusions on the implications of model outputs. 
@@ -118,7 +122,7 @@ The CLUS model did not simulate fire. Thus, we estimated potential fire disturba
 The BAU scenario had the highest annual timber harvest, but lowest indicators of caribou habitat and survival. The ECCC recovery strategy and BC herd plan scenarios both reduced timber harvest and positively influenced caribou indicators. These two scenarios generally had similar results relative to the BAU. There were differences between the BAU scenarios with different ajacency requirements. Detailed results on each indicator for each scenario are provided below.
 
 ### Modeled Annual Harvested Volume
-A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^) impact on timber harvest (Table 2). Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^) to 12% (approximately 400,000m^3^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^) to 5% (approximately 160,000m^3^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^) improvement in timber supply across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual timber harvest decreased by 2% (approximately 60,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC sceanrios, the annual timber harvest decreased by 3% (approximately 100,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint
+A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^) impact on timber harvest (Table 2). Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^) to 12% (approximately 400,000m^3^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^) to 5% (approximately 160,000m^3^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^) improvement in timber supply across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual timber harvest decreased by 2% (approximately 60,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC sceanrios, the annual timber harvest decreased by 3% (approximately 100,000m^3^) with the 3m adjacency constraint compared to a 1.5 m constraint.
 
 ```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
 # data.harvest <- read.csv (here ("reports/scenarios/data", "harvest.csv"))
@@ -177,6 +181,8 @@ Williams Lake TSA's",
 ```
 
 ### Disturbance Indicator
+Below we summarize the disturbance indicator outputs from the CLUS model under the alternative habitat management scenarios. These indicate the area of critical habitat in each TSA that is 500m from roads and cutblocks. Note that here we summarize the outputs from the model scenarios with a 3m adjacency constraint, as the results are essentially the same for scenarios with 1.5m adjacency. 
+
 #### Disturbance in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA
 The no harvest, BC herd plan and ECCC scenarios all reduced the amount of disturbance in caribou critical habitat compared to the BAU scenarios in the Quesnel TSA (Fig. 3). The no harvest scenario resulted in the lowest levels of disturbance over the simulation period, remaining steady in all high and low elevation critical habitat types over the first 150 years of the simualtion, and then declining slightly thereafter. In addition, in the no harvest scenario the amount of disturbance in matrix critical habitat decreased steadily over the first 25 years of the simulation, stabilized, and then declined sharply at year 150. Thus, the no harvest scenario was succesfull at reducing disturbance in caribou critical habitat. However, notably in matrix habitat a disturbance threshold less than 50% was never achieved over a 200 year period. All scenarios, including BAU were succesfull at maintaining stable disturbance levels in HEWSR, and only the BAU scenario resulted in increasing levels of disturbance in LESR. The BC herd plan scenarios allowed for an increase in disturbance in LEWR, although less than the BAU, and the ECCC scenarios resulted in a stable level of disturbance in LEWR. Decreasing the habitat recovery period from 30 years to 40 years decreased disturbance in BC and ECCC scenarios by approximately 1% to 5%. 
 
@@ -194,8 +200,7 @@ ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario, 
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
   labs (title = "Figure 3. Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat 
-in the Quesnel TSA Under the Different Scenarios with a 3m Adjacency and 
-40 Year Recovery Age.", 
+in the Quesnel TSA Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
         caption = "BAU = business-as-usual scenario; 
@@ -229,8 +234,7 @@ ggplot (data.dist.wl, aes (x = timeperiod, y = dist500_per, color = scenario, li
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
   labs (title = "Figure 4. Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat 
-in the Williams Lake TSA Under the Different Scenarios with a 3m Adjacency and 
-40 Year Recovery Age.", 
+in the Williams Lake TSA Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
         caption = "BAU = business-as-usual scenario; 
@@ -265,8 +269,7 @@ ggplot (data.dist.ques, aes (x = timeperiod, y = dist500_per, color = scenario, 
   facet_grid (. ~critical_hab) +
   labs (title = "Figure 5. Proportion of Area Disturbed in Barkerville and 
 Wells Gray North Critical Habitat in the Quesnel TSA Under the 
-Different Itcha-Ilgachuz Scenarios with a 3m Adjacency and 
-40 Year Recovery Age.", 
+Different Itcha-Ilgachuz Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
         caption = "BAU = business-as-usual scenario; 
@@ -284,201 +287,75 @@ BC = British Columbia") +
 ```
 
 ### Early Seral Forest Indicator
-#### BAU and BC Herd Plan Scenario Comparisons
+Below we summarize the early seral (i.e., less than 40 year old forest stand) indicator outputs from the CLUS model under the alternative habitat management scenarios. These indicate the area of critical habitat in each TSA that is less than 40 yearr old forest. Note that here we summarize the outputs from the model scenarios with a 3m adjacency constraint, as the results are essentially the same for scenarios with 1.5m adjacency. 
 
-
-
-When comparing adjacency and recovery constraints across scenarios in the Quesnel TSA, we found that the BAU with 3m adjacency and 40 year recovery time resulted in the highest proprotion of early seral forest in LESR and LEWR over the longest period of time (Fig. 8). However, this scenario resulted in an intermediate amount of early seral forest in Matrix habitat. Not surprisingly, the BC herd plan scenario with a 3 m adjacency and 40 year recovery period resulted in the greatest reddcution of early seral forest in LESR, LEWR and Matrix critical habitat types. Interestingly, the BC herd plan and BAU scenarios converged when the adjaceny constraint was set to 1.5 m and the recovery period was set to 30 years. Also interesting was that each combination of adjacency and recovery time had a unique effect on where forest harvest occurred. The most 'constrained' scenario (BC Herd Plan, 3m, 40 years) reduced the amount of early seral forest in all critical habitat types.  However, the BAU scenario with restrictive adjacency (3 m) and conservative habitat recovery (40 years) resulted in the greatest amount of early seral forest in LESR and LEWR habitat for the longest period of time. The sceanrios with less restrictive adjacency (1.5 m) and faster habitat recovery (30 years) maintainted a relatively low amount of early seral forest in LESR habitat for the majority of the simulation period, and an intermediate amount of early seral forest in LEWR habitat. These scenarios allowed for the highest amount of early seral forest in matrix habitat, but the trend was declining throughout the simulation period. 
+#### Early Seral Forest in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA
+In the Quesnel TSA, the BAU scenario resulted in increased proportions of early seral forest habitat in LESR and LEWR critical habitat, but not HEWSR or Matrix habitat (Fig. 6). All caribou critical habitat management scenarios reduced or maintained very low proportions of early seral forest in HEWSR, LESR, LEWR and matrix critical habitat. The BC herd plan scenarios allowed for some disturabnce in LEWR critcal habtiat, but approximately 5% to 15% less than in the BAU scenario. The ECCC scenarios resulted in an approximately 10% to 15% decrease in early seral forest in Matrix habitat compared to the BC herd plan scenarios.
 
 ```{r, FIG 6, Area LT40 Quesnel scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
-data.surv <- data.surv %>%
-              filter (scenario == "bau_3m_40y" | scenario == "bc_herd_plan_3m_40y" | scenario == "bau" | scenario ==  "itchas_bc_herd_plan_30") %>%
-              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
-                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
-data.surv.ques <- data.surv %>%
-                    filter (compartment == "Quesnel_TSA")
-ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
-  geom_line (position = position_dodge (width = 1)) + 
-  facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 6. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Quesnel TSA Under Different Adjacency and Recovery 
-Age Scenarios.", 
-        x = "Future Year", 
-        y = "Proportion Less Than 40 Year Old Forest",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU, 1.5m, 30 years", "BAU, 3m, 40 years", "BC Herd Plan, 3m, 40 years",  "BC Herd Plan, 1.5m, 30 years")) +
-  theme (legend.position = c (0.17, 0.7))
-
-```
-
-
-
-
-
-
-
-
-
-#### Adjacency = 3 m and Recovery = 40 Years
-In the scenarios with a 3 m adjacency constraint and 40 year recovery period, the amount of early seral forest (i.e., forest stands less than 40 years old) did not change in the HEWSR in the Quesnel TSA  (Fig. 3). However, under the BAU scenario, the amount of early seral forest increased up to approximately 10% of area in the LESR and up to 25% of area in the LEWR at approximately 40 years into the future. In all scenarios, the proportion of early seral forest decreased in Matrix habitat, however, it declined to less than 5% in approximately 35 years in the BC and ECCC scenarios, and declined to approximately 15% in the BAU scenario.
-
-```{r, FIG 3, Area LT40 Quesnel a3y40, echo = F, error = F, eval = T, include = T, message = F}
 data.surv <- read.csv (here ("reports/scenarios/data", "survival.csv"))
-
-
-
-
 data.surv <- data.surv %>%
-              filter (scenario == "bau_3m_40y" | scenario == "bc_herd_plan_3m_40y" | scenario == "eccc_3m_40y") %>%
+              filter (scenario == "itchas_bau_a3_rNA" | scenario == "itchas_bc_herd_plan_a3_r40" | 
+                      scenario == "itchas_eccc_a3_r40" | scenario == "itchas_bc_herd_plan_a3_r30" |
+                      scenario == "itchas_eccc_a3_r30" | scenario == "itchas_nh_crit_aNA_rNA") %>%
               filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
                       herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
 data.surv.ques <- data.surv %>%
                     filter (compartment == "Quesnel_TSA")
 ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
-  geom_line () + 
-  facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 3. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Quesnel TSA (3m adjacency, 40 year recovery).", 
-        x = "Future Year", 
-        y = "Proportion Less Than 40 Year Old Forest",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC")) +
-  theme (legend.position = c (0.12, 0.7))  
-
-```
-
-In the Williams Lake TSA, the amount of early seral forest decreased to 0 in the HEWSR at 25 years into the future under all scenarios, but in the BAU scenario the amount increased to 12% at year 80 (Fig. 4). In the BC and ECCC scenarios, the amount of early seral forest in LESR, LEWR and Matrix decreased to 0. However, in the BAU scenario the amount of early seral forest decreased in the first 30 years, but then increased again over time in the LESR, LEWR and Matrix habitat types.
-
-```{r, FIG 4, Area LT40 Williams Lake a3y40, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
-data.surv <- data.surv %>%
-              filter (scenario == "bau_3m_40y" | scenario == "bc_herd_plan_3m_40y" | scenario == "eccc_3m_40y") %>%
-              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
-                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
-
-data.surv.wl <- data.surv %>%
-                    filter (compartment == "Williams_Lake_TSA")
-ggplot (data.surv.wl, aes (x = timeperiod, y = prop_age, color = scenario)) +
-  geom_line () + 
-  facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 4. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Williams Lake TSA (3m adjacency, 40 year recovery).", 
-        x = "Future Year", 
-        y = "Proportion Less Than 40 Year Old Forest",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC")) 
-```
-
-Under the ECCC and BC scenarios we saw that forestry activity was displaced to other caribou herds' critical habitat where no constraints were applied. For example, we saw that in the Quesnel TSA that the proportion of early seral forest increased in Barkerville HEWSR 5 years earlier in ECCC and BC scenarios compared to the BAU scenario (Fig. 5). The proportion of early seral forest in Barkerville matrix habitat increased 5 years earlier and increased 5% higher in the ECCC and BC scenarios compared to the BAU scenario.  
-
-```{r, FIG 5, Area LT40 Barkerville Williams Lake a3y40, echo = F, error = F, eval = T, include = F, message = F, warning = F}
-data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
-data.surv <- data.surv %>%
-              filter (scenario == "bau_3m_40y" | scenario == "bc_herd_plan_3m_40y" | scenario == "eccc_3m_40y") %>%
-              filter (herd_bounds == "Barkerville HEWSR" | herd_bounds == "Barkerville LESR" |
-                      herd_bounds == "Barkerville LEWR" | herd_bounds == "Barkerville Matrix")
-data.surv.ques <- data.surv %>%
-                    filter (compartment == "Quesnel_TSA")
-ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
-  geom_line () + 
-  facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 5. Proportion of Area  Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Portion of the Barkerville Caribou Herd in the Quesnel 
-TSA (3m adjacency, 40 year recovery).", 
-        x = "Future Year", 
-        y = "Proportion Less Than 40 Year Old Forest",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  +
-  theme (legend.position = c (0.10, 0.8))
-```
-
-#### Adjacency = 1.5 m and Recovery = 30 Years
-In the scenarios with a 1.5 m adjacency constraint and 30 year recovery period, the amount of early seral forest was similar in all scenarios and critical habtiat types in the Quesnel TSA  (Fig. 6). All scenarios saw an increase in early seral forest in LESR and LEWR habtiat at approximately 85 years into the future. There was also an increase in early seral forest in LEWR habitat early in the scenario. In all scenarios there was now change in HEWSR habitat, and a steady decrease in early seral forest in matrix habitat.
-
-```{r, FIG 6, Area LT40 Quesnel a15y30, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
-data.surv <- data.surv %>%
-              filter (scenario == "bau" | scenario == "itchas_bc_herd_plan_30" | scenario == "itchas_eccc_30") %>%
-              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
-                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
-data.surv.ques <- data.surv %>%
-                    filter (compartment == "Quesnel_TSA")
-ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
-  geom_line (position = position_dodge (width = 2)) + 
-  facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 6. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Quesnel TSA (1.5m adjacency, 30 year recovery).", 
-        x = "Future Year", 
-        y = "Proportion Less Than 40 Year Old Forest",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
-
-```
-
-Similarly, in the Williams Lake TSA, he amount of early seral forest was similar in all scenarios (Fig. 7). The general pattern was a decrease in early seral forest in HEWSR and Matrix critical habitat, and a highly cyclical, although overall decreasing trend in  early seral forest in LESR and LEWR habitat.
-
-```{r, FIG 7, Area LT40 Williams Lake a15y30, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
-data.surv <- data.surv %>%
-              filter (scenario == "bau" | scenario == "itchas_bc_herd_plan_30" | scenario == "itchas_eccc_30") %>%
-              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
-                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
-data.surv.ques <- data.surv %>%
-                    filter (compartment == "Williams_Lake_TSA")
-ggplot (data.surv.ques, aes (x = timeperiod, y = prop_age, color = scenario)) +
-  geom_line (position = position_dodge (width = 2)) + 
-  facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 7. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Williams Lake TSA (1.5m adjacency, 30 year recovery).", 
-        x = "Future Year", 
-        y = "Proportion Less Than 40 Year Old Forest",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "BC Herd Plan", "ECCC"))  
-
-```
-
-
-
-In the Williams Lake TSA, all scenarios followed a similar declining trajectory in the amount of early seral forest in all critical habitat types for the first 25 years of the simulation (Fig. 9). The most restrictive scenario (BAU, 3m adjacency, 40 year recovery) maintained a very low level of early seral forest in critical habitat thoruoguth the simualtion. In the BAU scenario with restrictive adjacency and conservative habitat recovery, the amount of early seral forest increased the most in HEWSR and LESR habitat, especially later in the simulation. The BC herd plan and BAU scenarios with a 1.5 m adjacency and 30 year habitat recovery allowed for an intermediate amount of early seral forest in HESR and LESR habtiat types, and slightly more in the LEWR and Matrix habtait types compared to other scenarios.  
-
-```{r, FIG 9, Area LT40 Williams scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.surv <- read.csv (here ("reports/scenarios/data", "survival_itcha_scenario_March2020.csv"))
-data.surv <- data.surv %>%
-              filter (scenario == "bau_3m_40y" | scenario == "bc_herd_plan_3m_40y" | scenario == "bau" | scenario ==  "itchas_bc_herd_plan_30") %>%
-              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
-                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
-data.surv.wl <- data.surv %>%
-                    filter (compartment == "Williams_Lake_TSA")
-ggplot (data.surv.wl, aes (x = timeperiod, y = prop_age, color = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~herd_bounds) +
-  labs (title = "Figure 9. Proportion of Area of Less Than 40 Year Old Forest Stands by Critical 
-Habitat Type in the Williams Lake TSA Under Different Adjacency and Recovery 
-Age Scenarios.", 
+  labs (title = "Figure 6. Proportion of Area of Less Than 40 Year Old Forest Stands in Itcha-Ilgachuz Critical Habitat 
+in the Quesnel TSA Under Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Proportion Less Than 40 Year Old Forest",
         caption = "BAU = business-as-usual scenario; 
 ECCC = Environment and Climate Change Canada; 
 BC = British Columbia") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU, 1.5m, 30 years", "BAU, 3m, 40 years", "BC Herd Plan, 3m, 40 years",  "BC Herd Plan, 1.5m, 30 years")) +
-  theme (legend.position = "bottom",
-         legend.text = element_text (size = 8)) +
-  guides (colour = guide_legend (nrow = 2))
+  scale_color_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest"))  +
+  theme (legend.position = c (0.12, 0.67),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
 
+#### Early Seral Forest in Itcha-Ilgachuz Critical Habitat in the Williams Lake TSA
+In the Williams Lake TSA, the BAU scenario resulted in increased proportions of early seral forest habitat in HEWSR and LESR critical habitat (Fig. 7). The ECCC scenarios resulted in less than 5% early seral forest in matrix habitat. The BC herd plan sceanrios resulted in less than 5% early seral forest in LEWR habitat and less than 15% early seral forest in Matrix habitat. The amoutn of early seral forest in each critical habitat type in this TSA was highly cyclical. 
 
+```{r, FIG 7, Area LT40 Williams Lake  scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.surv <- read.csv (here ("reports/scenarios/data", "survival.csv"))
+data.surv <- data.surv %>%
+              filter (scenario == "itchas_bau_a3_rNA" | scenario == "itchas_bc_herd_plan_a3_r40" | 
+                      scenario == "itchas_eccc_a3_r40" | scenario == "itchas_bc_herd_plan_a3_r30" |
+                      scenario == "itchas_eccc_a3_r30" | scenario == "itchas_nh_crit_aNA_rNA") %>%
+              filter (herd_bounds == "Itcha-Ilgachuz HEWSR" | herd_bounds == "Itcha-Ilgachuz LESR" |
+                      herd_bounds == "Itcha-Ilgachuz LEWR" | herd_bounds == "Itcha-Ilgachuz Matrix")
+data.surv.wl <- data.surv %>%
+                    filter (compartment == "Williams_Lake_TSA")
+ggplot (data.surv.wl, aes (x = timeperiod, y = prop_age, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~herd_bounds) +
+  labs (title = "Figure 7. Proportion of Area of Less Than 40 Year Old Forest Stands in 
+Itcha-Ilgachuz Critical Habitat in the Williams Lake TSA Under Different Habitat 
+Management Scenarios.", 
+        x = "Future Year", 
+        y = "Proportion Less Than 40 Year Old Forest",
+        caption = "BAU = business-as-usual scenario; 
+ECCC = Environment and Climate Change Canada; 
+BC = British Columbia") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU, 3m, 40 years", "BC Herd Plan, 3m, 30 years", 
+                                                      "BC Herd Plan, 3m, 40 years", "ECCC, 3m, 30 years",
+                                                      "ECCC, 3m, 40 years", "No Harvest"))  +
+  theme ( #legend.position = c (0.12, 0.67),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
 ```
 
 ### Fire
@@ -518,24 +395,8 @@ kable (table.fire,
 Our approach to estimating fire disturbance was simplistic but informative. Fire histories across caribou herds and critical habitat types indicated that fire was highly cyclical. In general, there was a period of relatively regular and large fires in the early 1900's, until the 1960's or 1970's, at which point the frequency and size of fires decreased, perhaps as fire suppresion became more effective. Thus, the area of less than 40 year old burns was declining over recent decades. However, more recently, in some caribou ranges, including the Itcha-Ilgachuz, there were large fires, suddenly increasing the amount of disturbance in caribou critical habitat types. Two important considerations with our approach are that we estimated the area of fire disturbance using burn perimeters, which likely included unburned areas, and we did not calculate fire disturbance exclusive of other overlapping disturbance types (e.g., cublocks). Thus, we likely overestimated the area burned in each critical habitat type. Future work on CLUS will improve how fire is accounted for and simulated. 
 
 ## Conclusions
+We found that compared to a BAU scenario, the BC herd plan and ECCC recovery strategy scenarios reduced annual harvest in the CLUS model by up to approximately 425,000m^3^, or 10% to 15% of the sustained yield of the TSAs. However, as expected, the BC herd plan scenarios had a significantly smaller impact (approximately 150,000m^3^) than the ECCC scenarios (approximately 400,000m^3^).  These scenarios also had the desired effect of reducing the amount of disturbance and early seral forest in the Itcha-Ilgachuz critical habitat types, and as expected the ECCC scenarios resulted in less disturabnce and early seral forest in critical habitat. As expected we also show that how we managment Matrix habtait managment is goign to be the greatest challenge to forestry. These scenarios provide a basis for evaluating the trade-off between forest harvest and caribou habitat recovery and conservation. They need to be evaluated within the context of model parameters, such as habitat recovery rates and forest harvest priority.    
 
+Our results also show the significant effect of caribou habitat recovery on forest harvest rates. We show that reducing the time period of habtiat recovery from 40 years to 30 years can reduce the impact to forest harvest. However, more improtantly, while critical habitat disturbance thresholds may be a useful heuristic for conserving caribou, applying these constraints in the Itcha-Ilgachuz herd would result in no harvest there, unless active habitat recovery were to occur. Established disturbances, particularly the exsiting road network, need to be recovered in many low elevation and matrix critical habtiat areas to achieve 35% disturbance, regardless of future forestry activity. In the absence of disturbance recovery, we show that forest harvest can occur if these disturbances are recovered. With regards to forestry, it is likely more useful to constrain the amount of early seral forest in caribou habitat when evaluating teh efefcts of cariobu habitat managment on forestry.  The disturabnce metric does not distinguish between the effects of roads or cutblocks on caribou, or different forest stand recovery trajectories on moose forage. Our results show that a more detailed discussion on the teh efefcts of roads adn early seral forest on cariobu popaultions, adn the definition of recovered caribou habitat is needed to create more realistic and optimistic CLUS model scenarios and caribou recovery plans.
 
-ECCC most contrainint, quite a bit more than BC
-recovery time improves a bit; likely more improvements with active road recvoery or focus on eraly seral forest
-why more harvest with higehr adjaceny? harvestign higher volume stands beucase model needs to wait unti later?
-
-
-
-displacement effect  need to priortize prior to planning; efefcts fof addign additonal protections not addtivie, but multiplicative, non-linear
-
-
-matrix habtait is where ditsurbanc managment is goign to be the challenge
-
-
-
-
-We found that compared to a BAU scenario, the BC herd plan and ECCC recovery strategy scenarios reduced annual harvest in the CLUS model by up to approximately 350,000m^3^, or 15%. These scenarios also had the desired effect of reducing the amount of early seral forest in the Itcha-Ilgachuz critical habitat types. However, the effects of these sceanrios, on timber harvest in TSAs, and early seral forest in caribou critical habtiat types, varied substantially depending on the adjacency constraint and habitat recovery time period implemented in the model. Thus, our results suggest that how we manage forest harvest within and outside of caribou critical habitat (i.e., beyond matrix habitat), such as adjacency requirements, has significant implications for timber harvest and caribou habitat. They also show that there is value in investing in rapid, large-scale habitat recovery. Using the CLUS tool to facilitate a detailed discussion on caribou habitat recovery with local foresters and wildlife biologists, and forestry companies operating in the region is recommended. 
-
-Our modelling approach emphasizes the importance of considering factors beyond a 'disturbance' management threshold in caribou habitat recovery. The disturbance threshold  does not capture the complexities of caribou habitat recovery. For example, the indicator does not distinguish between the effects of roads or cutblocks on caribou, or different forest stand recovery trajectories on moose forage. The lack of recovery of historic roads in our model scenarios make it nearly impossible for disturbance to recover in the future in many caribou critical habitat types. Using a single age threshold to manage and model cariobu habitat is limiting. Our results show that a more detailed discussion on the definition of recovered caribou habitat is needed to create more realistic and optimistic CLUS model scenarios and caribou recovery plans. 
-   
-Our results also emphasize the importance of managing caribou critical habitat at large scales. We found that applying critical habitat constraints exclusively to the Itcha-Ilgachuz herd displaced disturbance to the critical habitat of other caribou herds in a TSA (e.g., Barkerville). Thus, even herds that are not adjacent or ecologically connected are not necessarily independent in terms of forest management. Ultimately, forest harvest in caribou critical habitat should be managed across multiple herds in the same TSA. 
+Our results also emphasize the importance of managing caribou critical habitat at large scales. We found that applying critical habitat constraints exclusively to the Itcha-Ilgachuz herd displaced disturbance to the critical habitat of other caribou herds in a TSA (e.g., Barkerville). Thus, even herds that are not adjacent or ecologically connected are not necessarily independent in terms of forest management. The efefcts of constainign forestry in cariobu herds is unlikely to be additive, but non-linear and compounded as more habitat is protected. Ultimately, forest harvest in caribou critical habitat should be managed across multiple herds in the same TSA. Our resutls emphasize the need to priortize which herds will be recovered prior to enagign in herd plannning, and in conducting plannign for groups of cariobu herds that are adjacent oto each other.  
