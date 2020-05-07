@@ -33,7 +33,7 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("adjacencyConstraint", "logical", FALSE, NA, NA, "Include Adjacency Constraint?"),
+    defineParameter("adjacencyConstraint", "numeric", 9999, NA, NA, "Include Adjacency Constraint at the user specified height in metres"),
     defineParameter("growingStockConstraint", "numeric", 9999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
     defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending")
     
@@ -44,7 +44,9 @@ defineModule(sim, list(
     expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
-    expectsInput(objectName =" scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -64,13 +66,13 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
-      sim <- scheduleEvent(sim, time(sim)+ sim$harvestPeriod, "forestryCLUS", "schedule", 2)
+      sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCLUS", "schedule", 2)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      sim <- scheduleEvent(sim, time(sim) + sim$harvestPeriod, "forestryCLUS", "schedule", 2)
+      sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 2)
     },
     save = {
       sim <- saveForestry(sim)
@@ -84,7 +86,6 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
-  sim$harvestPeriod <- 1 #This will be able to change in the future to 5 year or decadal
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
   #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
@@ -145,28 +146,43 @@ setConstraints<- function(sim) {
        switch(
           as.character(query_parms[1, "type"]),
             ge = {
-              sql<-paste0("UPDATE pixels 
-                      SET zone_const = 1
-                      WHERE pixelid IN ( 
-                      SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
-                      " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
-                      LIMIT :limits);")
-              
+              if(as.character(query_parms[1, "variable"]) == 'dist' ){
+                #num500<- dbGetQuery(sim$clusdb, paste0("select count(*) as count from pixels where dist > 500 and ", as.character(query_parms[1, "zone_column"]), " = ", query_parms[1, "zoneid"]))$count
+               #print(num500)
+               #print(query_parms$limits )
+                 #if(num500 < query_parms$limits ){
+                  #message(paste0(query_parms[1, "zoneid"]," in ",query_parms[1, "zone_column"], " surpassed disturbance threshold - shutting off harvesting"))
+                  #query_parms[1, limits:= t_area] 
+                #}
+                sql<-paste0("UPDATE pixels SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
+                        LIMIT :limits);")
+              }else{
+                sql<-paste0("UPDATE pixels 
+                        SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                            " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
+                        LIMIT :limits);")
+              }
               #Update pixels in clusdb for zonal constraints
               dbBegin(sim$clusdb)
               rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
               dbClearResult(rs)
               dbCommit(sim$clusdb)
-          
             },
             le = {
               if(as.character(query_parms[1, "variable"]) == 'eca' ){
+                
                 #get the correct limits -- currently assuming the entire area is at the threshold
                 eca_current<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT ",as.character(query_parms[1, "zone_column"]),", sum(eca*thlb) as eca FROM pixels WHERE ",
                                                          as.character(query_parms[1, "zone_column"]), " IN (",
                                                          paste(query_parms$zoneid, collapse=", "),") GROUP BY ",as.character(query_parms[1, "zone_column"]), 
                                                          " ORDER BY ",as.character(query_parms[1, "zone_column"])) ))
-      
+                
+                
                 query_parms<-merge(query_parms, eca_current, by.x ="zoneid", by.y =as.character(query_parms[1, "zone_column"]) , all.x =TRUE )
                 query_parms[,limits:=as.integer((1-(threshold/100 - eca/t_area))*t_area)]
 
@@ -206,13 +222,14 @@ setConstraints<- function(sim) {
     }
   }
   
-  if(P(sim, "forestryCLUS", "adjacencyConstraint")){
+  if(!(P(sim, "forestryCLUS", "adjacencyConstraint") == 9999)){
     #Update pixels in clusdb for adjacency constraints
+    message("...Adjacency")
     query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3 
-                                                            UNION 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint") ,
+                                                            " UNION 
                                                             SELECT b.adjblockid FROM 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= 3) a 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint"),") a 
                                                             LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ); ")))
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
@@ -244,7 +261,7 @@ getHarvestQueue<- function(sim) {
       harvestPriority<-sim$harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height,", sim$yieldUncertaintyCovar," (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
+      sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND blockid > 0 AND ", partition, "
                   ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") AND thlb > 0 AND zone_const = 0 AND ", partition, 
@@ -254,12 +271,13 @@ getHarvestQueue<- function(sim) {
       
       if(nrow(queue) == 0) {
         message("No stands to harvest")
+        land_coord <- NULL
           next #no cutblocks in the queue go to the next compartment
       }else{
         
         #Adjust the harvestFlow based on the growing stock constraint
         if(!(P(sim, "forestryCLUS", "growingStockConstraint") == 9999)){
-          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim), m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
+          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim)*sim$updateInterval, m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
           print(paste0("Adjust harvest flow | gs constraint: ", harvestTarget))
         }
         
@@ -274,21 +292,24 @@ getHarvestQueue<- function(sim) {
       
 
         #Save the harvesting raster
-        sim$harvestBlocks[queue$pixelid]<-time(sim)
+        sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
         
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
-        land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        land_coord<-sim$pts[pixelid %in% land_pixels, ]
+        #land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
+        land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
+                                paste(unique(queue$blockid), collapse = ", "), ");")))
+        
+        land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
         setnames(land_coord,c("x", "y"), c("X", "Y"))
         
         #Create proj_vol for uncertainty in yields
         temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
         setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
-        #temp.harvestBlockList<-cbind(temp.harvestBlockList, land_coord)
         sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
+    
 
         #Set the harvesting report
-        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim), compartment = compart, target = harvestTarget , area= sum(queue$thlb) , volume = sum(queue$vol_h), age = sum(queue$age_h), hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)],  transition_volume  = queue[yieldid > 0, sum(vol_h)])
+        temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$vol_h)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(vol_h)]/sim$updateInterval)
         temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition )))]
         sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
       
@@ -302,9 +323,10 @@ getHarvestQueue<- function(sim) {
   }
   
   #convert to class SpatialPoints needed for roadsCLUS
-  if(nrow(land_coord) > 0 ){
+  if(!is.null(land_coord)){
     sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
   }else{
+    message("no landings")
     sim$landings <- NULL
   }
   

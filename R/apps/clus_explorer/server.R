@@ -19,6 +19,7 @@ server <- function(input, output, session) {
 # }
 # climateMap <- buildClimateMap()
 
+  
 #---Reactive 
 queryColumnNames <- reactive({
     data.table(getTableQuery(paste0("SELECT column_name FROM information_schema.columns
@@ -37,6 +38,20 @@ availableMapLayers <- reactive({
 scenariosList<-reactive({
   req(input$schema)
   data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".scenarios")))
+  })
+
+statusData<-reactive({
+  req(input$schema)
+  data.table(getTableQuery(paste0(
+    "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, dist500, dist, tarea from (SELECT compartment, max(m_gs) as gs 
+    FROM ",input$schema,".growingstock 
+where timeperiod = 0 group by compartment) a
+Left join (Select * from ",input$schema,".state ) b
+ON b.compartment = a.compartment
+left join (select sum(dist500) as dist500, sum(dist) as dist, sum(dist500/(dist500_per/100)) as tarea, compartment 
+		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from itcha_ilgachuz_plan.disturbance limit 1) group by compartment )c
+ON c.compartment = a.compartment;")))
+  
 })
 
 reportList<-reactive({
@@ -45,11 +60,16 @@ reportList<-reactive({
   data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
   data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
   
-  list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
+  data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
+    sum(dist500) as dist500, sum(dist) as dist, sum(dist/(dist_per/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+  
+  data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
+
+list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
        survival = data.survival,
-       disturbance = data.table (getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, compartment, critical_hab, timeperiod;"))))
+       disturbance = data.disturbance)
 })
 
 radarList<-reactive({
@@ -71,7 +91,7 @@ observeEvent(input$getMapLayersButton, {
     mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
     mapLayersStack[mapLayersStack[] == 0] <- NA
   })
-  cb<-colorBin("Spectral", domain = 1:100,  na.color = "#00000000")
+  cb<-colorBin("Spectral", domain = 1:200,  na.color = "#00000000")
   leafletProxy("resultSetRaster", session) %>% 
     clearTiles() %>%
     clearImages() %>%
@@ -81,20 +101,27 @@ observeEvent(input$getMapLayersButton, {
     addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
     addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
     addRasterImage(mapLayersStack,  colors = cb, opacity = 0.8, project= TRUE, group="Selected") %>% 
-    addLegend(pal = cb, values = 1:100) %>%
+    addLegend(pal = cb, values = 1:200) %>%
     addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"),overlayGroups ="Selected") %>%
     addScaleBar(position = "bottomleft") 
 })
 
 #---Observe
+  observe({
+    updateSelectInput(session, "tsa_selected",
+                    choices = statusData()$compartment,
+                    selected = statusData()$compartment)
+  })
+
   observe({ #Scenarios based on the area of interest selected
     updateCheckboxGroupInput(session, "scenario",
-                       label = scenariosList()$description,
+                       #label = scenariosList()$description,
                        choices = scenariosList()$scenario,
                        selected = character(0)
     )
   })
   
+
   observe({
     updateSelectInput(session, "queryColumns",
                              choices = queryColumnNames()$column_name,
@@ -113,10 +140,68 @@ observeEvent(input$getMapLayersButton, {
 
   
 #---Outputs
+  
  output$scenarioDescription<-renderTable({
-   req(input$scenario)
    as.data.frame(scenariosList())
  })
+ 
+ output$statusPlot<-renderPlotly({
+   data<-statusData()[compartment %in% input$tsa_selected,]
+   data<-data.table(reshape2::melt(data[,c("compartment", "early", "mature", "old")], id.vars = "compartment",
+                                   measure.vars = c("early", "mature", "old")))
+   data<-data[, sum(value), by = list(variable)]
+   plot_ly(data=data, labels = ~variable, values = ~V1,
+           marker = list(line = list(color = "black", width =1))) %>% add_pie(hole = 0.6)%>%
+     layout(plot_bgcolor='#00000000',legend = list(orientation = 'v'),paper_bgcolor='#00000000',title = "Seral Stage", font = list(color = 'White'))
+ })
+ output$statusTHLB<-renderInfoBox({
+    data<-statusData()[compartment %in% input$tsa_selected,]
+    infoBox(title = NULL, subtitle = "THLB", 
+            value = tags$p(paste0(round((sum(data$thlb)/sum(data$total))*100,0), '%'), style = "font-size: 160%;"),
+      icon = icon("images"), color = "green"
+   )
+ })
+ output$statusAvgVol<-renderInfoBox({
+   data<-statusData()[compartment %in% input$tsa_selected,]
+   infoBox(title = NULL,subtitle = "m3/ha", 
+           value = tags$p(paste0(round((sum(data$gs)/sum(data$thlb)),0)), style = "font-size: 160%;"),
+           icon = icon("seedling"), color = "green"
+   )
+ })
+  output$statusRoad<-renderInfoBox({
+    data<-statusData()[compartment %in% input$tsa_selected,]
+    infoBox(title = NULL,subtitle = "Road", 
+      value = tags$p(paste0(round((sum(data$road)/sum(data$total))*100,0), '%'),  style = "font-size: 160%;"),
+      icon = icon("road"), color = "green"
+    )
+  })
+  
+  output$statusDist<-renderValueBox({
+    data<-statusData()[compartment %in% input$tsa_selected,]
+    valueBox(
+      subtitle = "Disturbed",
+      tags$p(paste0(round((sum(data$dist)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
+      icon = icon("paw"), color = "purple"
+    )
+  })
+  
+  output$statusCritHab<-renderValueBox({
+    data<-statusData()[compartment %in% input$tsa_selected,]
+    valueBox(
+      subtitle = "Critical habitat",
+      tags$p(paste0(round((sum(data$tarea)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
+      icon = icon("exclamation-triangle"), color = "purple"
+    )
+  })
+  
+  output$statusDist500<-renderValueBox({
+    data<-statusData()[compartment %in% input$tsa_selected,]
+    valueBox(
+      subtitle = "Disturbed 500m",
+      tags$p(paste0(round((sum(data$dist500)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
+      icon = icon("paw"), color = "purple"
+    )
+  })
   
   output$resultSetTable<-renderDataTable({
     #print(paste0("SELECT ", paste(c(input$queryRows,input$queryColumns), sep="' '", collapse=", "), " FROM ", input$schema, ".", input$queryTable, " WHERE scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY ", input$queryColumns))
@@ -151,7 +236,26 @@ observeEvent(input$getMapLayersButton, {
         geom_area(position = "identity", aes(alpha = scenario)) +
         xlab ("Future year") +
         ylab ("Area Harvested (ha)") +
-        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+        scale_alpha_discrete(range=c(0.4,0.8))+
+        scale_fill_grey(start=0.8, end=0.2) +
+        theme_bw()
+      ggplotly(p)
+    })
+  }) 
+  
+  output$harvestAgePlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$harvest
+      data<-data[, lapply(.SD, FUN=weighted.mean, x=volume), by=c("timeperiod", "scenario"), .SDcols='age']
+      print(data)
+      #data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+      data[,timeperiod:= as.integer(timeperiod)]
+      p<-ggplot (data, aes (x=timeperiod, y=age, fill = scenario)) +  
+        geom_area(position = "identity", aes(alpha = scenario)) +
+        xlab ("Future year") +
+        ylab ("Average Harvest Age (yrs)") +
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
         scale_alpha_discrete(range=c(0.4,0.8))+
         scale_fill_grey(start=0.8, end=0.2) +
         theme_bw()
@@ -167,11 +271,56 @@ observeEvent(input$getMapLayersButton, {
         geom_area(position = "identity", aes(alpha = scenario)) +
         xlab ("Future year") +
         ylab ("Volume Harvested (m3)") +
-        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+        scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
         scale_alpha_discrete(range=c(0.4,0.8))+
         scale_fill_grey(start=0.8, end=0.2) +
         theme_bw()
       ggplotly(p)
+  })
+  
+  output$managedAreaPlot <- renderPlotly ({
+    data<-reportList()$harvest[,sum(transition_area), by=c("scenario", "timeperiod")]
+    data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+    data[,timeperiod:= as.integer(timeperiod)]
+    p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Managed Area Harvested (ha)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
+  }) 
+  
+  output$managedVolumePlot <- renderPlotly ({
+    data<-reportList()$harvest[,sum(transition_volume), by=c("scenario", "timeperiod")]
+    data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+    data[,timeperiod:= as.integer(timeperiod)]
+    p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Managed Volume Harvested (m3)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
+  }) 
+  
+  output$availableTHLBPlot <- renderPlotly ({
+    data<-reportList()$harvest[,sum(avail_thlb), by=c("scenario", "timeperiod")]
+    data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
+    data[,timeperiod:= as.integer(timeperiod)]
+    p<-ggplot (data, aes (x=timeperiod, y=V1, fill = scenario)) +  
+      geom_area(position = "identity", aes(alpha = scenario)) +
+      xlab ("Future year") +
+      ylab ("Available THLB (ha)") +
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
+      scale_alpha_discrete(range=c(0.4,0.8))+
+      scale_fill_grey(start=0.8, end=0.2) +
+      theme_bw()
+    ggplotly(p)
   })
   
   output$growingStockPlot <- renderPlotly ({
@@ -181,7 +330,7 @@ observeEvent(input$getMapLayersButton, {
       geom_area(position = "identity", aes(alpha = scenario)) +
       xlab ("Future year") +
       ylab ("Growing Stock (m3)") +
-      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 2))+
+      scale_x_continuous(breaks = seq(0, max(data$timeperiod), by = 10))+
       scale_alpha_discrete(range=c(0.4,0.8))+
       scale_fill_grey(start=0.8, end=0.2) +
       theme_bw()
@@ -191,54 +340,35 @@ observeEvent(input$getMapLayersButton, {
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
-      # data [order(data$scenario,  data$herd_bounds, data$timeperiod)]
-      # data.year0 <- data[data$timeperiod == 0, c ("scenario", "herd_bounds", "survival_rate")]
-      # setnames(data.year0, old = "survival_rate", new = "survival_rate_0")
-      # data <- merge (data, data.year0, by = c("scenario", "herd_bounds"))
       data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, herd_bounds)]  # replace first() with shift() to get difference with previous year value instead of first year value
-      data [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      data [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      data [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      #data$scenario <- reorder(data$scenario, data$survival_rate, function(x) -max(x) )
-      p<-ggplot(data, aes (x=timeperiod, y=survival_rate_change, color = scenario)) +
-        facet_grid(.~herd_bounds)+
+      
+     p<-ggplot(data, aes (x=timeperiod, y=survival_rate_change, color = scenario)) +
+        facet_wrap(.~herd_bounds, ncol = 4)+
         geom_line() +
         geom_hline(yintercept=0, linetype="dashed", color = "black")+
         xlab ("Future year") +
         ylab ("Change in Annual Adult Female Survival Rate)") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
-        #scale_alpha(range=c(0.4,0.8))+
-        #scale_color_grey(start=0.8, end=0.2) +
-        # scale_color_manual (name = "Scenario", #not working... tryign to get the legend names subsituted...
-        #                     labels = "Canada (Upper Ditchline)")+ # "Business as Usual (Lower Ditchline)", "Tyler"
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
-                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0)
-                #yaxis = list (title=paste0(c(rep("&nbsp;", 50),"RSF Value Percent Change", rep("&nbsp;", 2000), rep("\n&nbsp;", 13))
-                )# change seasonal values
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
     })
   }) 
   
   output$propDisturbPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      # data1$scenario <- reorder(data1$scenario, data1$dist_per, function(x) -min(x))
-      # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = compartment)) +
-        facet_grid(.~critical_hab)+
+      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = scenario)) +
+        facet_wrap(.~critical_hab, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
-        # scale_alpha_discrete(range=c(0.4,0.8))+
-        # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -249,12 +379,8 @@ observeEvent(input$getMapLayersButton, {
   output$propDisturbBuffPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      # data1$scenario <- reorder(data1$scenario, data1$dist500_per, function(x) -min(x))
-      # data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      # data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      # data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = compartment)) +
-        facet_grid(.~critical_hab)+
+      p<-ggplot(data1, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+        facet_wrap(.~critical_hab, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
@@ -263,47 +389,40 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
         )# change seasonal values
     })
   }) 
-  output$propAgePlot <- renderPlotly ({
+  
+  output$propEarlyPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
-      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
-      data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = compartment)) +
-        facet_grid(.~critical_hab)+
+      p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
+        facet_wrap(.~herd_bounds, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
-        ylab ("Proportion Age < 40 years") +
+        ylab ("Proportion Age 0 to 40 years") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
         # scale_alpha_discrete(range=c(0.4,0.8))+
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
-                )# change seasonal values
+        )# change seasonal values
     })
   }) 
   
   output$propMaturePlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
-      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
-      data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
       p<-ggplot(data1, aes (x=timeperiod, y=prop_mature, color = scenario, type = scenario)) +
-        facet_grid(.~herd_bounds)+
+        facet_wrap(.~herd_bounds, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age 80 to 120 years") +
@@ -312,7 +431,7 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -323,12 +442,8 @@ observeEvent(input$getMapLayersButton, {
   output$propOldPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
-      # data1$scenario <- reorder(data1$scenario, data1$prop_age, function(x) -min(x))
-      data1 [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-      data1 [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-      data1 [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-      p<-ggplot(data1, aes (x=timeperiod, y=prop_old, color = scenario, type = scenario)) +
-        facet_grid(.~herd_bounds)+
+       p<-ggplot(data1, aes (x=timeperiod, y=prop_old, color = scenario, type = scenario)) +
+        facet_wrap(.~herd_bounds, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion > 120 years") +
@@ -337,7 +452,7 @@ observeEvent(input$getMapLayersButton, {
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p) %>% 
+      ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 40, t = 40, pad = 0)
                 #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
@@ -348,29 +463,17 @@ observeEvent(input$getMapLayersButton, {
   output$rsfPlot <- renderPlotly ({
     data<-reportList()$rsf
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-    data [scenario %in% c ('bau', 'basu'), scenario := 'Business as Usual']
-    data [scenario %in% c ('UpprBound_ditchlines'), scenario := 'Canada Recovery Plan (Upper Ditch Line)']
-    data [scenario %in% c ('proposed_uwr'), scenario := 'Tyler Scenario']
-    data [rsf_model %in% c ('caribou_DU7_EW'), rsf_model := 'Early Winter (DU7)']
-    data [rsf_model %in% c ('caribou_DU7_LW'), rsf_model := 'Late Winter (DU7)']
-    data [rsf_model %in% c ('caribou_DU7_S'), rsf_model := 'Summer (DU7)']
-    # data [order(data$scenario, data$rsf_model, data$timeperiod)]
-    # data.year0 <- data[data$timeperiod == 0, c ("scenario", "sum_rsf_hat")]
-    # setnames(data.year0, old = "sum_rsf_hat", new = "sum_rsf_hate_0")
-    # data <- merge (data, data.year0, by = "scenario")
     data[ , rsf_perc_change := ((first(sum_rsf_hat) - sum_rsf_hat)/first(sum_rsf_hat) * 100), by = .(scenario, rsf_model)]  # replace first() with shift() to get difference with previous year value instead of first year value
     p<-ggplot(data, aes (x=timeperiod, y=rsf_perc_change, fill = scenario)) +
-      facet_grid(rsf_model~.)+
+      facet_wrap(rsf_model~., ncol = 4)+
       geom_bar(stat="identity",position = "dodge") +
       geom_hline(yintercept=0, linetype="dashed", color = "black")+
       xlab ("Future year") +
       ylab ("RSF Value Percent Change") +
       scale_x_continuous(limits = c(0, 55), breaks = seq(0, 50, by = 10))+
-      # scale_alpha_discrete(range=c(0.4,0.8))+
-      # scale_fill_grey(start=0.8, end=0.2)+
       theme_bw()+
       theme (legend.title = element_blank())
-    ggplotly(p)  %>% 
+    ggplotly(p, height = 900)  %>% 
       layout (legend = list (orientation = "h", y = -0.1),
               margin = list (l = 50, r = 40, b = 40, t = 10, pad = 0)
               #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))

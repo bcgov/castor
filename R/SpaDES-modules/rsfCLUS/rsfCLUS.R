@@ -44,7 +44,8 @@ defineModule(sim, list(
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "landings", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = 'The name of the scenario and its description', sourceURL = NA)
+    expectsInput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
     ),
   outputObjects = bind_rows(
@@ -111,7 +112,8 @@ Init <- function(sim) {
         }
         setorder(bounds, pixelid) #sort the bounds so that it will match the order of rsfcovar
         sim$rsfcovar[, (rsf_list[k]$population):= bounds$crithab] # take the clipped, transposed, raster of each clipped RSF area (default name defined as 'v1'), and create new column(s) in the rsfcovar table that indicates to which pixel each RSF applies (value = 1), or not (value = 0, NA)
-      }
+      
+        }
       
       #STATIC BUT NON RECLASS
       # set the 'static' Covariates to the rsfcovar table that are Not Reclass types
@@ -240,7 +242,6 @@ Init <- function(sim) {
   })
   
   sim$rsfGLM<-lapply(rsf_list, getglmobj)#init the glm objects for each of the rsf population and season
-  
   return(invisible(sim))
 }
 
@@ -387,8 +388,6 @@ storeRSFCovar <- function(sim){
   ##Create the table in clusdb
   dbExecute(sim$clusdb, paste0("CREATE TABLE IF NOT EXISTS rsfcovar (",
                               paste(colnames(sim$rsfcovar), sep = "' '", collapse = ' numeric, '), " numeric)"))
-  
-  
   #Insert the values
   dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO rsfcovar (",
@@ -396,8 +395,8 @@ storeRSFCovar <- function(sim){
                         values (:", paste(colnames(sim$rsfcovar), sep = "' '", collapse = ',:'), ")"), sim$rsfcovar)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
-  print("done store")
   #print(dbGetQuery(sim$clusdb, "SELECT * from rsfcovar LIMIT 7"))
+  
   return(invisible(sim))
 }
 
@@ -448,14 +447,17 @@ predictRSF <- function(sim){
   message("predicting RSF")
   rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
  
+  test3<<-sim$rsfcovar
   for(i in 1:nrow(rsfPops)){ # for each unique RSF
-    pred_rsf<-cbind(sim$rsfcovar[, paste0(rsfPops[[2]][[i]])], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
-    setnames(pred_rsf, c(paste0(rsfPops[[2]][[i]]) , paste0(rsfPops[[1]][[i]]))) # name each rsf prediction appropriately
-
     expr <- parse(text = paste0(rsfPops[[1]][[i]]))
-    rsfdt<-data.table( pred_rsf[!is.na(eval(expr)),sum(eval(expr)), by = c(paste0(rsfPops[[2]][[i]]))])
-    rsfdt[, timeperiod:=time(sim)]
-    rsfdt[, rsf:=paste0(rsfPops[[1]][[i]])]
+    expr2 <- parse(text = paste0(rsfPops[[2]][[i]]))
+    
+    pred_rsf<-cbind(sim$rsfcovar[, eval(expr2)], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+    setnames(pred_rsf, c(paste0(rsfPops[[2]][[i]]) , paste0(rsfPops[[1]][[i]]))) # name each rsf prediction appropriately
+    rsfdt<-data.table( pred_rsf[!is.na(eval(expr)), sum(eval(expr)), by = eval(expr2)])
+   
+    rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
+    rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
     setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "timeperiod", "rsf_model"))
     rsfdt[, scenario:=scenario$name]
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
@@ -464,7 +466,7 @@ predictRSF <- function(sim){
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras
       out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
-      writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim), ".tif"), overwrite = TRUE)
+      writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
       rm(out.ras)
     }#----------------------------------------------
     

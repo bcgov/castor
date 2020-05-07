@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataLoaderCLUS.Rmd"),
-  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table"),
+  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "velox"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -99,7 +99,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         #populate clusdb tables
         sim <- setTablesCLUSdb(sim)
         sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
-        sim <- scheduleEvent(sim, eventTime = time(sim),  "dataLoaderCLUS", "calcCurrentState", eventPriority=98) # runs after the inits are done
+        sim <- calcForestState(sim)
        }else{
          #copy existing clusdb
         sim$foreststate<-NULL
@@ -138,9 +138,6 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     removeDbCLUS={
       sim<- disconnectDbCLUS(sim)
       
-    },
-    calcCurrentState={
-      sim<-calcForestState(sim) # summarizes the forest into seral class, area roaded and thlb, Needs more here.
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))

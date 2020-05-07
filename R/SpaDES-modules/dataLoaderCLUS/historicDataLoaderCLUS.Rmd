@@ -27,47 +27,25 @@ The dataloaderCLUS preps the database connectivitiy and other objects required t
 
 ```{r module_usage}
 library(SpaDES)
+library(velox)
 library(SpaDES.core)
 library(data.table)
 source(paste0(here::here(), "/R/functions/R_Postgres.R"))
-
 setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
+setPaths(outputPath  = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/outputs"))
 
-times <- list(start = 0, end = 2)
+
+times <- list(start = 0, end = 43)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
-                         #nameBoundaryFile="bc_carib_poly_20090904",
-                         #nameBoundaryColumn="herd_name",
-                         #nameBoundary = "Telkwa",
-                         nameBoundaryFile="tsa_aac_bounds",
-                         nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Revelstoke_TSA",
+                         nameBoundaryFile="bc_caribou_core_matrix_habitat_v20190904_1",
+                         nameBoundaryColumn="herd_name",
+                         nameBoundary = "Central_Rockies",
                          nameBoundaryGeom='wkb_geometry'
-                         #nameCompartmentRaster = "rast.tsa_aac_boundary",
-                         #nameCompartmentTable = "tsa_aac_bounds_vat",
-                         #nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         #nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
-                         #nameZoneTable="zone_constraints",
-                         #nameAgeRaster= "rast.vri2017_projage1",
-                         #nameHeightRaster= "rast.vri2017_projheight1",
-                         #nameCrownClosureRaster = "rast.vri2017_crownclosure",
-                         #nameSiteIndexRaster = "rast.vri2017_siteindex",
-                         #nameYieldsRaster = "rast.ycid_vdyp",
-                         #nameYieldTable ="yc_vdyp",
-                         #nameYieldsTransitionRaster = "rast.tipsy2018_id",
-                         #nameYieldTransitionTable ="yc_tipsy",
-                        
-                         #nameForestInventoryRaster ="rast.veg_comp2003_id",
-                         #nameForestInventoryKey = "feature_id",
-                         #nameForestInventoryTable = "public.veg_comp_lyr_r1_poly_final_spatialv2_2003",
-                         #nameForestInventoryAge = "proj_age_1",
-                         #nameForestInventoryHeight = "proj_height_1",
-                         #nameForestInventoryCrownClosure = "crown_closure",
-                         #nameForestInventorySiteIndex = "site_index"
                     ),
     roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -77,21 +55,31 @@ parameters <-  list(
       startHarvestYear = 1975,
       nameCutblockRaster= 'rast.cns_cut_bl',
       nameCutblockTable= 'cns_cut_bl_polygon',
-      queryCutblocks = 'cutseq'
+      queryCutblocks = 'cutseq_centroid'
     ),
-    rsfCLUS = list(calculateInterval = 5, 
-                   criticalHabitatTable = "public.criticalhabitat",
-                   writeRSFRasters = TRUE),
+    rsfCLUS = list(calculateInterval = 1, 
+                   criticalHabitatTable = "public.criticalhabitat_bc_vat",
+                   randomEffectsTable = "public.rsf_re_coeff",
+                   writeRSFRasters = TRUE,
+                   checkRasters= FALSE),
+    disturbanceCalcCLUS = list(calculateInterval = 1, 
+                   criticalHabitatTable = "public.criticalhabitat_bc_vat",
+                   criticalHabRaster = "rast.bc_crithab"),
     survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
-                       nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
-                       tableCaribouHerd = "public.caribou_herd")
+                       nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
+                       tableCaribouHerd = "public.criticalhabitat_bc_vat"),
+    uploaderCLUS = list(aoiName = 'disturbance_indicators',
+                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
+                    )
   )
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM caribou_avoid_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')"))
+rsf_model_coeff[, population:= 'Central_Rockies']
+rsf_model_coeff[, bounds:= 'rast.bc_crithab']
 
-scenario = data.table(name="testing", description = "historical disturbances")
-modules <- list("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS", "survivalCLUS", "rsfCLUS")
+ scenario = data.table(name="Central_Rockies", description = "historical disturbances")
+modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS", "survivalCLUS", "rsfCLUS", "disturbanceCalcCLUS", "uploaderCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(scenario = scenario, rsf_model_coeff=rsf_model_coeff)
@@ -101,7 +89,7 @@ outputs <- list()
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
-
+#outputs(mySim) <- data.frame(objectName = c("rsf", "disturbanceReport", "tableSurvival"))
 system.time({
 mysimout<-spades(mySim)
 })

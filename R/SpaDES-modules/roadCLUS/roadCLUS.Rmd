@@ -32,9 +32,9 @@ For a comparison on these approaches go [here](https://github.com/bcgov/clus/blo
 
 ```{r module_usage}
 library(SpaDES.core)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source(here::here("/R/functions/R_Postgres.R"))
 
-moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+moduleDir <- here::here("/R/SpaDES-modules")
 inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
@@ -45,16 +45,16 @@ parameters <- list(.progress = list(type = NA, interval = NA),
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.pre_roads'),
   dataLoaderCLUS = list(dbName='clus',
-                         nameBoundaryFile="study_area_compart",
+                         nameBoundaryFile="tsa_aac_bounds",
                          #nameBoundaryFile="gcbp_carib_polygon",
                          nameBoundaryColumn="tsa_name",
                          #nameBoundaryColumn="herd_name",
-                         nameBoundary=c('Morice TSA','Bulkley TSA'), 
+                         nameBoundary=c('Revelstoke_TSA'), 
                          #nameBoundary='Telkwa',
                          nameBoundaryGeom='wkb_geometry',
                          #nameBoundaryGeom='geom',
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.zone_beo","rast.zone_beo")),
+                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab")),
   cutblockSeqPrepCLUS = list(queryCutblocks ='cutseq_centroid',
                              startHarvestYear = 1994, 
                              getArea =TRUE)

@@ -61,7 +61,7 @@ rsfCLUS = list(calculateInterval = 2,
 modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
 
 scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU7' and season IN ('S', 'EW', 'LW')"))
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM caribou_avoid_coeff WHERE species = 'caribou' AND population = 'DU7' and season IN ('A')"))
 rsf_model_coeff[, bounds := 'rast.crithabitat']
 #rsf_model_coeff[, static := 'Y']
 #rsf_model_coeff[sql == 'blockid > 0 AND age BETWEEN 0 AND 4', sql := 'rast.dt_cutblock_1_4']
@@ -120,6 +120,12 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
     + DT = 'Distance To', meaning the model recalculates a DT variable (e.g., distance to cutblock or             road) based on an updated variable  
 
     + RC = 'Reclass' meaning the model recalculates coefficient values as classes of the covariate
+    
+    + RE = 'Random effect' meaning the conditional model is predicted
+    
+    + I = 'Interaction' meaning the interaction between two covariates previously computed
+    
+    + RS = 'Re-sample' meaning a spatial scale effect where the data needs to be smoothed accoording to the spatial scale
 
 * sql := the `WHERE` clause of a sql statement describing the RSQLite `clusdb` variables used in the dynamic layer, or used to call the 'static' variable from the postgres clusdb 
 

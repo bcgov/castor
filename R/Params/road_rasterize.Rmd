@@ -33,17 +33,23 @@ library(raster)
 source(paste0(here::here(),"/R/functions/R_Postgres.R"))
 
 #Roads layers to make
-#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'paved' and (road_class <> 'water' or road_class <> 'pedestrian');")
+#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads;")
+
 #roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'loose' and (road_class <> 'proposed');")
 #roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'rough' or road_surface = 'seasonal') and (road_class <> 'proposed');")
 #roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'unknown') and (road_class <> 'proposed');")
-#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_BASEMAPPING.TRIM_TRANSPORTATION_LINES'")
-roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface <> 'paved') and (road_class <> 'proposed');")
 
-#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_RDS_PRE06_PUB_SP' or
-#bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_ACCESS_ROADS_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_ROADS_PUB_SP'")
+#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_BASEMAPPING.TRIM_TRANSPORTATION_LINES'")
+
+#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface <> 'paved') and (road_class <> 'proposed');")
+
+#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_RDS_PRE06_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_ACCESS_ROADS_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_ROADS_PUB_SP'")
 
 #roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_FOREST_VEGETATION.RSLT_FOREST_COVER_INV_SVW' or bcgw_source = 'WHSE_FOREST_TENURE.FTEN_ROAD_SECTION_LINES_SVW' or bcgw_source = 'WHSE_FOREST_TENURE.ABR_ROAD_SECTION_LINE'")
+
+#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.ften_rs_ln_line")
+
+roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'paved') and (road_class <> 'proposed');")
 
 # Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
 prov.rast <- raster(
@@ -52,15 +58,15 @@ prov.rast <- raster(
 )
 
 #Buffer the MULTILINESTRINGS
-roads_sf<-roads_sf %>% st_buffer(dist = 50)
+roads_sf<-roads_sf %>% st_buffer(dist = 51)
 roads_sf$road<-1
 
 #RAsterize
 road<-fasterize::fasterize(st_cast(roads_sf, "MULTIPOLYGON"), prov.rast, field = "road")
-writeRaster(road, "road.tif", overwrite = TRUE)
+writeRaster(road, "paved_road.tif", overwrite = TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/road.tif -t 100x100 rast.crds_resource | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+#system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ften_road.tif -t 100x100 rast.rds_ften | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
 

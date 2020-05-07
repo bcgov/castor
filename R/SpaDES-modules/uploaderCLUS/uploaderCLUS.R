@@ -37,8 +37,10 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="foreststate", objectClass ="data.table", desc = 'The current state of the forest from dataLoaderCLUS', sourceURL = NA)
-  ),
+    expectsInput(objectName ="foreststate", objectClass ="data.table", desc = 'The current state of the forest from dataLoaderCLUS', sourceURL = NA),
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    
+    ),
   outputObjects = bind_rows(
     createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
@@ -86,6 +88,7 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')"))
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')"))
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".disturbance where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
@@ -98,9 +101,10 @@ Init <- function(sim) {
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
                     rsf = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric(), rsf_model= character()), 
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
+                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric(), dist= numeric(), dist_per = numeric()),
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
     )
-    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "yielduncertainty")
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
@@ -147,7 +151,10 @@ save.reports <-function (sim){
   if(!is.null(sim$tableSurvival)){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), sim$tableSurvival, append = T,row.names = FALSE)
   }
-  
+  #disturbance
+  if(!is.null(sim$disturbanceReport)){
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'disturbance'), sim$disturbanceReport, append = T,row.names = FALSE)
+  }
   #yielduncertainty
   if(!is.null(sim$yielduncertain)){
     DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), sim$yielduncertain, append = T,row.names = FALSE)
@@ -172,7 +179,7 @@ save.rasters <-function (sim){
     ##roads
     if(!is.null(sim$roads)){
     message('....roads raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim), ".tif"), 
+    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))

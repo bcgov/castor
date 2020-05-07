@@ -33,8 +33,8 @@ defineModule(sim, list(
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
     defineParameter(".saveInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between save events"),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
-    defineParameter("updateInterval", "numeric", 1, NA, NA, "The interval when the growinstock should be updated"),
-    defineParameter("vacuumInterval", "numeric", 5, NA, NA, "The interval when the database should be vacuumed"),
+    defineParameter("periodLength", "integer", 1, NA, NA, "The length of the time period. Ex, 1 year, 5 year"),
+    defineParameter("vacuumInterval", "integer", 5, NA, NA, "The interval when the database should be vacuumed"),
     defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock")
   ),
   inputObjects = bind_rows(
@@ -43,7 +43,8 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     createsOutput(objectName = "growingStockReport", objectClass = "data.table", desc = NA),
-    createsOutput(objectName = "growingStockLevel", objectClass = "numeric", desc = NA)
+    createsOutput(objectName = "growingStockLevel", objectClass = "numeric", desc = NA),
+    createsOutput(objectName = "updateInterval", objectClass = "numeric", desc = NA)
   )
 ))
 
@@ -51,14 +52,16 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
+      sim$updateInterval<-max(1, round(P(sim, "growingStockCLUS", "periodLength")/2, 0)) #take the mid point -- less biased
       sim <- Init(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
+      sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCLUS", "updateGrowingStock", 1)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
     },
     updateGrowingStock= {
       sim <- updateGS(sim)
+      sim$updateInterval<-P(sim, "growingStockCLUS", "periodLength")
       sim <- recordGS(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "updateInterval"), "growingStockCLUS", "updateGrowingStock", 1)
+      sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCLUS", "updateGrowingStock", 1)
     },
     vacuumDB ={
       sim <- vacuumDB(sim)
@@ -71,13 +74,11 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  #To do a linear interpolation between yields in SQLite
+  #Linear interpolation between yields in SQLite. Note with any linear interpolation there is a bias for higher yields at younger ages (before cMAI) and lower yields at older ages (past cMAI)
   #Rise vs run to calc the slope of the secant line between the rounded floor and ceiling values for age and yield i.e., (y1-y2)/(x1-x2)
   #Then multiply by the x value ie., slope*(age - floor.age) + floor.yield
+  
   #This might be more efficient with a large number of yields to interpolate - its slighly slower 1 second -- more efficient with larger data
-  
-  #Note with any linear interpolation there is a bias for higher yields at younger ages (before cMAI) and lower yields at older ages (past cMAI)
-  
   #dat<-data.table(dbGetQuery(sim$clusdb, "SELECT yieldid, age, tvol, height, eca FROM yields where tvol is not null"))
   #tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT pixelid, yieldid, age FROM pixels WHERE age >= 0 and yieldid is not null"))
   #tab1[, vol:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$tvol,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
@@ -85,11 +86,10 @@ Init <- function(sim) {
 
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as eca
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -117,7 +117,7 @@ Init <- function(sim) {
     dbCommit(sim$clusdb)  
     }
   
-  sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
+  sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim)*P(sim, "growingStockCLUS", "periodLength"),  
                                      dbGetQuery(sim$clusdb, 
                                      paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
@@ -136,21 +136,20 @@ updateGS<- function(sim) {
   dbExecute(sim$clusdb, "DROP INDEX index_age")
   dbExecute(sim$clusdb, "DROP INDEX index_height")
   
-  message("...increment age")
+  message("...increment age by:",sim$updateInterval)
   #Update the pixels table
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = age + 1 WHERE age >= 0")
+    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET age = age + ", sim$updateInterval," WHERE age >= 0"))
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   message("...update yields")
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as eca
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -161,6 +160,7 @@ updateGS<- function(sim) {
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)
+    
   }else{
     
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
@@ -196,7 +196,7 @@ vacuumDB<- function(sim){
 
 recordGS<- function(sim) {
   message("...recording")
-  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim),  
+  sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim)*sim$updateInterval,  
               dbGetQuery(sim$clusdb, paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
                          group by compartid;")))), use.names = TRUE)

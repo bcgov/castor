@@ -135,5 +135,46 @@ update rsf_re_coeff set re_dt_cut_1_4 = re_dt_cut_1_4 - 0.001644972 where herd_n
 update rsf_re_coeff set re_dt_cut_5_9 = re_dt_cut_5_9 + 0.025707916 where herd_no in(21,7,44);
 
 
+update rsf_model_coeff set sql = 'roadyear >= 0' where sql = 'roadyear > 0';
 
+
+--DU 6
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 'int', 'Y', -1.640936895, NULL, 'rast.du6_bounds', NULL, NULL, NULL);
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 'dt_rd', 'N', 0.17574769
+	 , 'DT', 'rast.du6_bounds', NULL, 'roadyear > 0', NULL);
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 'dt_cut_1_4', 'N', -0.00454382 , 'DT', 'rast.du6_bounds', NULL, 'blockid > 0 and age BETWEEN 0 and 4', NULL);
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 'dt_cut_5_9', 'N', -0.004614462, 'DT', 'rast.du6_bounds', NULL, 'blockid > 0 and age BETWEEN 5 and 9', NULL);
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 'dt_cut_10_40', 'N', 0.020364422, 'DT', 'rast.du6_bounds', NULL, 'blockid > 0 and age BETWEEN 10 and 40', NULL);
+--re
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 're_int', 'Y', 1, 'RE', 'rast.du6_bounds', NULL, 'rast.caribou_herd', NULL);
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 're_dt_rd', 'N', 1, 'RE', 'rast.du6_bounds', NULL, 'rast.caribou_herd', 'dt_rd');
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 're_dt_cut_1_4', 'N', 1, 'RE', 'rast.du6_bounds', NULL, 'rast.caribou_herd', 'dt_cut_1_4');
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 're_dt_cut_5_9', 'N', 1, 'RE', 'rast.du6_bounds', NULL, 'rast.caribou_herd', 'dt_cut_5_9');
+INSERT INTO rsf_model_coeff VALUES
+    ('caribou', 'DU6', 'A', 're_dt_cut_10_40', 'N', 1, 'RE', 'rast.du6_bounds', NULL, 'rast.caribou_herd', 'dt_cut_10_40');
+
+INSERT INTO rsf_re_coeff VALUES
+    ('Calendar',4,-1.446691,-0.004269603,NULL,0.208784578,-0.004645743,0.001976018);
+INSERT INTO rsf_re_coeff VALUES
+    ('Chinchaga',10,-1.636838207,-0.005156273,NULL,0.217557272,-0.004502387,0.004232561);	
+INSERT INTO rsf_re_coeff VALUES
+    ('Maxhamish',28,-1.748309693,-0.002887802,NULL,0.15339408,-0.004735502,0.026304784);	
+INSERT INTO rsf_re_coeff VALUES
+    ('Snake_Sahtaneh',43,-1.791719473,-0.005595178,NULL,0.146330565,-0.004525308,0.020489906);	
+
+update rsf_re_coeff set re_int = re_int + 1.640936895 where herd_no in(4,10,28,43);
+update rsf_re_coeff set re_dt_rd = re_dt_rd - 0.17574769 where herd_no in(4,10,28,43);
+update rsf_re_coeff set re_dt_cut_1_4 = re_dt_cut_1_4 + 0.00454382 where herd_no in(4,10,28,43);
+update rsf_re_coeff set re_dt_cut_5_9 = re_dt_cut_5_9 + 0.004614462 where herd_no in(4,10,28,43);
+update rsf_re_coeff set re_dt_cut_10_40 = re_dt_cut_10_40 - 0.020364422 where herd_no in(4,10,28,43);
+			
 select * from rsf_re_coeff;
