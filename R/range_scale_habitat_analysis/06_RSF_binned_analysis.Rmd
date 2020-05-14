@@ -60,8 +60,6 @@ I fitted GLMMs with distance to cutblock and distance to road covariates as fixe
 ```{r, Load data, eval = T, echo = F, message = F, error = F, results = 'hide'}
 # load data
 
-
-
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
                    user = "postgres",
@@ -142,7 +140,7 @@ Range_scale_data1$cnt<-1
 #Range_scale_data1$distance_to_resource_road_log<-log(Range_scale_data1$distance_to_resource_road+0.00001)
 
 
-# Binning the data into groups that are less correlated
+# Binning the data into cutblock age categories and binned distance to the disturbance
 Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_1to5yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo))
 
 Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_6to10yo = pmin (distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo))
@@ -151,11 +149,49 @@ Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_11to40yo 
 
 Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_road = pmin (dist_crds_resource))
 
-dist.cut.corr <- (Range_scale_data1 [c (65:68)])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "All Data Distance to Cutblock Correlation")
+Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_road = 
+                if_else(distance_to_road <= 0.25,"<0.25km",
+                if_else(distance_to_road > 0.25 & distance_to_road <=0.5, "0.25-0.5km",
+                if_else(distance_to_road > 0.5 & distance_to_road <= 1, "0.5-1km",
+                if_else(distance_to_road >1 & distance_to_road<=3, "1-3km",
+                if_else(distance_to_road >3 & distance_to_road <= 6, "3-6km",">6km"))))))
+
+Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_1to5_cut = 
+                if_else(distance_to_cut_1to5yo <= 0.25,"<0.25km",
+                if_else(distance_to_cut_1to5yo > 0.25 & distance_to_cut_1to5yo <=0.5, "0.25-0.5km",
+                if_else(distance_to_cut_1to5yo > 0.5 & distance_to_cut_1to5yo <= 1, "0.5-1km",
+                if_else(distance_to_cut_1to5yo >1 & distance_to_cut_1to5yo<=3, "1-3km",
+                if_else(distance_to_cut_1to5yo >3 & distance_to_cut_1to5yo <= 6, "3-6km",">6km"))))))
+
+Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_6to10_cut = 
+                if_else(distance_to_cut_6to10yo <= 0.25,"<0.25km",
+                if_else(distance_to_cut_6to10yo > 0.25 & distance_to_cut_6to10yo <=0.5, "0.25-0.5km",
+                if_else(distance_to_cut_6to10yo > 0.5 & distance_to_cut_6to10yo <= 1, "0.5-1km",
+                if_else(distance_to_cut_6to10yo >1 & distance_to_cut_6to10yo<=3, "1-3km",
+                if_else(distance_to_cut_6to10yo >3 & distance_to_cut_6to10yo <= 6, "3-6km",">6km"))))))
+
+Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_11to40_cut = 
+                if_else(distance_to_cut_11to40yo <= 0.25,"<0.25km",
+                if_else(distance_to_cut_11to40yo > 0.25 & distance_to_cut_11to40yo <=0.5, "0.25-0.5km",
+                if_else(distance_to_cut_11to40yo > 0.5 & distance_to_cut_11to40yo <= 1, "0.5-1km",
+                if_else(distance_to_cut_11to40yo >1 & distance_to_cut_11to40yo<=3, "1-3km",
+                if_else(distance_to_cut_11to40yo >3 & distance_to_cut_11to40yo <= 6, "3-6km",">6km"))))))
+
+Range_scale_data1$distance_category_road<-factor(Range_scale_data1$distance_category_road, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
+Range_scale_data1$distance_category_1to5_cut<-factor(Range_scale_data1$distance_category_1to5_cut, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
+Range_scale_data1$distance_category_6to10_cut<-factor(Range_scale_data1$distance_category_6to10_cut, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
+Range_scale_data1$distance_category_11to40_cut<-factor(Range_scale_data1$distance_category_11to40_cut, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
+
+#Checking correlation by du but this does not seem to work since everything is signficanct
+du6<- Range_scale_data1 %>% filter(du=="du6")
+table(du6$distance_category_road, du6$distance_category_1to5_cut)
+chisq.test(du6$distance_category_road, du6$distance_category_1to5_cut, correct=FALSE)
+
+table(du6$distance_category_road, du6$distance_category_6to10_cut)
+chisq.test(du6$distance_category_road, du6$distance_category_6to10_cut, correct=FALSE)
+
+table(du6$distance_category_road, du6$distance_category_11to40_cut)
+chisq.test(du6$distance_category_road, du6$distance_category_1to5_cut, correct=FALSE)
 
 du6<- Range_scale_data1 %>% filter(du=="du6")
 dist.cut.corr <- (du6 [c (65:68)])
@@ -267,10 +303,11 @@ kable (table,
 #### Herd-Level Effect of Forestry on Caribou Distribution
 Overall there was a slight tendency for caribou in DU 6 to avoid roads but this relationship was not signficant (fig \@ref(fig:du6road-effect-plot)). For example, caribou in the Chinchaga, Maxhamish, Parker and Prophet herds were further from roads than what was available on average in their home range but the opposite pattern was observed in Calendar and Snake-Sahtaneh. Due to these differences in relationships a random effect for distance to road was included in the GLMM. 
 
+
 ```{r du6road-effect-plot, fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6", echo = F, message = F, eval = T}
 
-ggplot (du6, aes (x = as.factor(pttype), y = distance_to_road)) +
-  geom_boxplot (outlier.colour = "red") +
+ggplot (du6) +
+  geom_col ( aes (x = as.factor(pttype), fill= distance_category_road)) +
   labs (x = "Available (0) and used (1) locations",
         y = "Distance to road (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
@@ -282,6 +319,7 @@ There was a non-significant tendency for caribou to avoid to 1 to 5 year old cut
 
 ```{r du6-cutblock-1to5yo, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
+  geom_violin() +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
@@ -306,7 +344,8 @@ All Caribou herds were further from 11 to 40 years old cutblocks than what was a
 
 ```{r du6-cutblock-11to40yo,fig.cap="Distance to 11 to 50 year old cutblock at available (0) and used (1) locations by caribou herds in DU6", echo = F, message = F, eval = T}
 ggplot (du6, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
-  geom_boxplot (outlier.colour = "red") +
+  geom_violin() +
+  geom_boxplot (width=0.1, outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
@@ -400,46 +439,50 @@ ggarrange(p1, p2,p3,p4, ncol=2, nrow=2,labels=c("A","B","C","D"))
 
 
 ```{r}
-binnedplot (du6$distance_to_road,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to road", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
-binnedplot (du6$distance_to_cut_1to5yo,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to cutblock", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (du6$distance_to_cut_6to10yo,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to cutblock", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (du6$distance_to_cut_11to40yo,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to cutblock", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
+ggplot(du6, aes(x = distance_to_cut_1to5yo,fill=as.factor(pttype))) +
+    theme_bw() +
+    geom_density(position="identity",alpha=0.6) +
+    facet_grid(HERD_NAME~.) +
+    scale_fill_brewer(palette="Accent")+
+    scale_x_continuous(name="Distance to cutblocks (km)") +
+    scale_y_continuous(name = "Density") + 
+    ggtitle("Distance to 1 to 5 year old cutblocks")
+   # geom_vline(xintercept=cutblock_mean$median_dist, size=1,colour="black",linetype="dashed")
+```
+```{r}
+ggplot(du6, aes(x = distance_to_cut_6to10yo,fill=as.factor(pttype))) +
+    theme_bw() +
+    geom_density(position="identity",alpha=0.6) +
+    facet_grid(HERD_NAME~.) +
+    scale_fill_brewer(palette="Accent")+
+    scale_x_continuous(name="Distance to cutblocks (km)") +
+    scale_y_continuous(name = "Density") + 
+    ggtitle("Distance to 6 to 10 year old cutblocks")
+   # geom_vline(xintercept=cutblock_mean$median_dist, size=1,colour="black",linetype="dashed")
 ```
 
+```{r}
+ggplot(du6, aes(x = distance_to_cut_11to40yo,fill=as.factor(pttype))) +
+    theme_bw() +
+    geom_density(position="identity",alpha=0.6) +
+    facet_grid(HERD_NAME~.) +
+    scale_fill_brewer(palette="Accent")+
+    scale_x_continuous(name="Distance to cutblocks (km)") +
+    scale_y_continuous(name = "Density") + 
+    ggtitle("Distance to 11 to 40 year old cutblocks")
+   # geom_vline(xintercept=cutblock_mean$median_dist, size=1,colour="black",linetype="dashed")
+```
+```{r}
+ggplot(du6, aes(x = distance_to_road,fill=as.factor(pttype))) +
+    theme_bw() +
+    geom_density(position="identity",alpha=0.6) +
+    facet_grid(HERD_NAME~.) +
+    scale_fill_brewer(palette="Accent")+
+    scale_x_continuous(name="Distance to road (km)") +
+    scale_y_continuous(name = "Density") + 
+    ggtitle("Distance to resource roads")
+   # geom_vline(xintercept=cutblock_mean$median_dist, size=1,colour="black",linetype="dashed")
+```
 
 
 #### Caribou-Forestry Disturbance Model
@@ -451,15 +494,15 @@ There were statistically significant (P < 0.05) positive population-level effect
 
 # determined specification of model using Harrison et al.2018 (https://peerj.com/articles/4794/)
 
-model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road +
-                                         distance_to_cut_1to5yo +
-                                         distance_to_cut_6to10yo +
-                                         distance_to_cut_11to40yo +
-                                        distance_to_cut_11to40yo^2 +
-                                        (distance_to_road +
-                                         distance_to_cut_1to5yo +
-                                         distance_to_cut_6to10yo +
-                                         distance_to_cut_11to40yo || HERD_NAME) +
+
+model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_category_road +
+                                         distance_category_1to5_cut +
+                                         distance_category_6to10_cut +
+                                         distance_category_11to40_cut +
+                                        (distance_category_road +
+                                         distance_category_1to5_cut +
+                                         distance_category_6to10_cut +
+                                         distance_category_11to40_cut || HERD_NAME) +
                                         (1|year),
                                         nAGQ = 0,
                                       data = du6, 
@@ -468,6 +511,105 @@ model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road +
 VarCorr(model.lme4.du6.cut.rd.yr)
 du6$residual_val<-residuals(model.lme4.du6.cut.rd.yr, type = "response")
 du6$fitted_val<-fitted(model.lme4.du6.cut.rd.yr)
+
+```
+
+```{r du6 model, echo = T, message = F, eval = T, cache=TRUE}
+# model spec
+# varying intercept and slope for each factor. Essentially I am assuming that a increase in 1 of resource road is not the same in each herd (slopes are allowed to vary)
+
+# determined specification of model using Harrison et al.2018 (https://peerj.com/articles/4794/)
+
+model.rd <- glmer (pttype ~ distance_to_road +
+                                     (distance_to_road || HERD_NAME) +
+                                        (1|year),
+                                        nAGQ = 0,
+                                      data = du6, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+VarCorr(model.rd)
+binnedplot (fitted(model.rd), 
+            residuals(model.rd, type = "pearson"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot(du6$distance_to_road, residuals(model.rd),
+           xlab = "Distance to road", 
+             ylab ="Residual Values" , 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+
+model.1to5cut <- glmer (pttype ~ distance_to_cut_1to5yo +
+                                     (distance_to_cut_1to5yo || HERD_NAME) +
+                                        (1|year),
+                                        nAGQ = 0,
+                                      data = du6, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+VarCorr(model.1to5cut)
+binnedplot (fitted(model.1to5cut), 
+            residuals(model.1to5cut, type = "response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_cut_1to5yo, 
+            residuals(model.1to5cut, type = "response"), 
+             nclass = NULL, 
+             xlab = "distance_to_cut_1to5yo", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+model.6to10cut <- glmer (pttype ~ distance_to_cut_6to10yo +
+                                     (distance_to_cut_6to10yo || HERD_NAME) +
+                                        (1|year),
+                                        nAGQ = 0,
+                                      data = du6, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+VarCorr(model.6to10cut)
+binnedplot (fitted(model.6to10cut), 
+            residuals(model.6to10cut, type = "response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+model.11to40cut <- glmer (pttype ~ distance_to_cut_11to40yo +
+                                     (distance_to_cut_11to40yo || HERD_NAME) +
+                                        (1|year),
+                                        nAGQ = 0,
+                                      data = du6, 
+                                      family = binomial (link = "logit"),
+                                      verbose = T) 
+VarCorr(model.11to40cut)
+binnedplot (fitted(model.11to40cut), 
+            residuals(model.11to40cut, type = "response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
 
 ```
 
@@ -490,7 +632,12 @@ binnedplot (du6$fitted_val,
 First Ill try to check whether the trends are consistent whether I subsample the data or not. Assuming they are consistent Ill bin my distance to variables into close, medium and far. This will remove the trends.
 
 ```{r}
-perc_25_du6<-sample_frac(du6, 0.25)
+du6_0_25perc<-du6 %>% filter(pttype==0) %>% sample_frac(0.25)
+du6_1_25perc<-du6 %>% filter(pttype==1) %>% sample_frac(0.25)
+du6_perc25<-rbind(du6_0_25perc,du6_1_25perc)
+
+perc_25_du6_0<-sample_frac(du6_0, 0.25)
+
 
 model.lme4.du6.25perc <- glmer (pttype ~ distance_to_road +
                                          distance_to_cut_1to5yo +

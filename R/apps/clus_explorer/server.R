@@ -64,12 +64,19 @@ reportList<-reactive({
     sum(dist500) as dist500, sum(dist) as dist, sum(dist/(dist_per/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
   
   data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
+  
+  data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+  data.fire2<- getTableQuery(paste0("SELECT * FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+  
+  
 
 list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
        survival = data.survival,
-       disturbance = data.disturbance)
+       disturbance = data.disturbance,
+       fire = data.fire,
+       fire2=data.fire2)
 })
 
 radarList<-reactive({
@@ -479,6 +486,54 @@ observeEvent(input$getMapLayersButton, {
               #yaxis = list (title=paste0(c(rep("&nbsp;", 10),"RSF Value Percent Change", rep("&nbsp;", 200), rep("&nbsp;", 3))
               )# change seasonal values
   })
+  
+  output$fireByYearPlot <- renderPlotly ({
+    withProgress(message = 'Making Table', value = 0.1,{
+    data<-reportList()$fire
+    # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
+    #print(data)
+    
+    p<-ggplot(data, aes (x=year, y=area_m2/10000)) +
+      facet_wrap(.~herd_bounds, ncol = 4)+
+      geom_point() +
+      geom_line(alpha=0.2,size=0.5)+
+      xlab ("Year") +
+      ylab ("Area burned (ha2)") +
+      scale_x_continuous(limits = c(1925, 2025), breaks = seq(1925, 2025, by = 50))+
+      scale_y_continuous(limits = c(0, 12500), breaks = seq(0, 12500, by = 5000))+
+      theme_bw()+
+      theme (legend.title = element_blank())
+    ggplotly(p, height = 900) %>% 
+      layout (legend = list (orientation = "h", y = -0.1),
+              margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  })
+ 
+  output$fireTable <- function() {
+      data<-reportList()$fire2
+      # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
+      #print(data)
+      
+      data %>% 
+        select(herd_name,
+               habitat, 
+               mean_ha2, 
+               mean_area_percent, 
+               max_ha2, 
+               max_area_percent, 
+               min_ha2, 
+               min_area_percent, 
+               cummulative_area_ha2,
+               cummulative_area_percent) %>%
+        knitr::kable ("html",
+                      caption = "<b>Area burned during a single fire event over a 40 year period (1978 -  2018) within caribou herd ranges and critical habitat types<b>",
+                      digits=2,
+                      col.names=c(" ", " ", "ha2","%", "ha2","%", "ha2","%", "ha2","%"),
+                      align=c("l","c","c","c","c","c","c","c","c","c")) %>%
+        add_header_above(c("Herd name", "Habitat", "Average area"=2,"Maximum area"=2, "Minimum area"=2, "Cummulative area*"=2)) %>%
+        add_footnote("Cummulative area = total area burned across the 40 year period", notation = "symbol")
+    
+    }
   
   
   output$radar<- renderPlotly ({
