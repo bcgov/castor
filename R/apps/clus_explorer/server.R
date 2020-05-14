@@ -491,7 +491,7 @@ observeEvent(input$getMapLayersButton, {
     withProgress(message = 'Making Table', value = 0.1,{
     data<-reportList()$fire
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-    print(data)
+    #print(data)
     
     p<-ggplot(data, aes (x=year, y=area_m2/10000)) +
       facet_wrap(.~herd_bounds, ncol = 4)+
@@ -512,7 +512,7 @@ observeEvent(input$getMapLayersButton, {
   output$fireTable <- function() {
       data<-reportList()$fire2
       # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-      print(data)
+      #print(data)
       
       data %>% 
         select(herd_name,
