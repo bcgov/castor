@@ -553,7 +553,9 @@ addInitialRoadsTable<- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
     sim$boundaryInfo<-list("public.gcbp_carib_polygon","herd_name","Telkwa","geom")
   }
-
+  if(!suppliedElsewhere("updateInterval", sim)){
+    sim$updateInterval<-5
+  }
   return(invisible(sim))
 }
 
