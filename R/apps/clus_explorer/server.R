@@ -66,7 +66,9 @@ reportList<-reactive({
   data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
   
   data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
-  data.fire2<- getTableQuery(paste0("SELECT * FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+  data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
+ round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cumul_percent 
+                                    FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
   
   
 
@@ -509,31 +511,33 @@ observeEvent(input$getMapLayersButton, {
     })
   })
  
-  output$fireTable <- function() {
-      data<-reportList()$fire2
+  output$fireTable <-renderDataTable(
+      reportList()$fire2, extensions = 'Buttons', 
+      options = list(dom = 'Bfrtip',
+                     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')))
       # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-      #print(data)
+
       
-      data %>% 
-        select(herd_name,
-               habitat, 
-               mean_ha2, 
-               mean_area_percent, 
-               max_ha2, 
-               max_area_percent, 
-               min_ha2, 
-               min_area_percent, 
-               cummulative_area_ha2,
-               cummulative_area_percent) %>%
-        knitr::kable ("html",
-                      caption = "<b>Area burned during a single fire event over a 40 year period (1978 -  2018) within caribou herd ranges and critical habitat types<b>",
-                      digits=2,
-                      col.names=c(" ", " ", "ha2","%", "ha2","%", "ha2","%", "ha2","%"),
-                      align=c("l","c","c","c","c","c","c","c","c","c")) %>%
-        add_header_above(c("Herd name", "Habitat", "Average area"=2,"Maximum area"=2, "Minimum area"=2, "Cummulative area*"=2)) %>%
-        add_footnote("Cummulative area = total area burned across the 40 year period", notation = "symbol")
+      #data %>% 
+        # select(herd_name,
+        #        habitat, 
+        #        mean_ha2, 
+        #        mean_area_percent, 
+        #        max_ha2, 
+        #        max_area_percent, 
+        #        min_ha2, 
+        #        min_area_percent, 
+        #        cummulative_area_ha2,
+        #        cummulative_area_percent) %>%
+        # knitr::kable ("html",
+        #               caption = "<b>Area burned during a single fire event over a 40 year period (1978 -  2018) within caribou herd ranges and critical habitat types<b>",
+        #               digits=2,
+        #               col.names=c(" ", " ", "ha2","%", "ha2","%", "ha2","%", "ha2","%"),
+        #               align=c("l","c","c","c","c","c","c","c","c","c")) %>%
+        # add_header_above(c("Herd name", "Habitat", "Average area"=2,"Maximum area"=2, "Minimum area"=2, "Cummulative area*"=2)) %>%
+        # add_footnote("Cummulative area = total area burned across the 40 year period", notation = "symbol")
+        # 
     
-    }
   
   
   output$radar<- renderPlotly ({
