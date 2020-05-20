@@ -107,7 +107,11 @@ Fire_results_tab[, herd_bounds:= paste(herd_name, habitat, sep=" ")]
 # write data to the virtual machine
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
 
+<<<<<<< HEAD
 dbWriteTable(conn,c("public","firesummary"),Fire_results_tab, overwrite=T,row.names = FALSE)
+=======
+dbWriteTable(conn,c("public","firesummary"),Fire_results_tab, overwrite=T)
+>>>>>>> master
 
 dbDisconnect(conn)
 

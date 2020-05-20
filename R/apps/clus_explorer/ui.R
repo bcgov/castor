@@ -197,11 +197,20 @@ ui <- dashboardPage(skin = "black",
       ),
       tabItem(tabName = "fire",
         fluidRow(
+<<<<<<< HEAD
           box(title="Summary of area burned",collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "orange", width =12   ,tableOutput("fireTable")
           )
         ),
        fluidRow(
          box(title="Fire history 1919 - 2018",collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "orange", width =12,
+=======
+          box(title="Summary of area burned",collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "red", width =12   ,
+              dataTableOutput("fireTable")
+          )
+        ),
+       fluidRow(
+         box(title="Fire history 1919 - 2018",collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "red", width =12,
+>>>>>>> master
              plotlyOutput(outputId = "fireByYearPlot", height = "400px")
           )
         )
