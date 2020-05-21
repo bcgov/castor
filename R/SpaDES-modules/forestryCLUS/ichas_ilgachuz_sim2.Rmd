@@ -50,7 +50,7 @@ parameters <- list(
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                           nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_fsw"),
+                           nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_fsw", "rast.zone_cond_nh_crit_barkerville_crithab","rast.zone_cond_nh_crit_itcha_ilgachuz_crithab","rast.zone_cond_nh_crit_wells_gray_north_crithab", "rast.zone_cond_nh_crit_charlotte_alplands_crithab", "rast.zone_cond_nh_crit_rainbows_crithab"),
                            nameZoneTable="zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
@@ -69,7 +69,8 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea=FALSE, 
                       useSpreadProbRas=FALSE),
-  forestryCLUS = list( harvestPriority = " age DESC, vol DESC "),
+  forestryCLUS = list( harvestPriority = " dist, age DESC, vol DESC ",
+                       adjacencyConstraint = 3),
   growingStockCLUS = list(periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -95,7 +96,7 @@ modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryC
 
 #scenario = data.table(name="itchas_bau_a3_rNA", description = "business as usual - projecting current trends. Adjacency constraint > 3 m.")
 #scenario = data.table(name="itchas_bau_a1p5_rNA", description = "business as usual - projecting current trends. Adjacency constraint > 1.5 m.")
-scenario = data.table(name="bau_aNa_rNA", description = "business as usual - projecting current trends. No adjacency constraint")
+#scenario = data.table(name="bau_aNa_rNA", description = "business as usual - projecting current trends. No adjacency constraint")
 #scenario = data.table(name="itchas_eccc_a3_r40", description = "ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas. Adjacency constraint > 3 m. Recovery > 40 years")
 #scenario = data.table(name="itchas_bc_herd_plan_a3_r40", description = "BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas. Adjacency constraint > 3 m. Recovery > 40 years.")
 #scenario = data.table(name="itchas_eccc_a3_r30", description = "ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas. Adjacency constraint > 3 m. Recovery > 30 years")
@@ -133,8 +134,12 @@ scenario = data.table(name="bau_aNa_rNA", description = "business as usual - pro
 #scenario = data.table(name="bc_herd_plan_aNA_r40", description = "BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas, barkerville and wells gray north. Recovery > 40 years.")
 
 #scenario = data.table(name="bc_herd_plan_aNA_r30", description = "BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas, barkerville and wells gray north. Recovery > 30 years.")
-scenario = data.table(name="eccc_aNA_r30", description = "ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas, barkerville and wells gray north. Recovery > 30 years.")
+#scenario = data.table(name="eccc_aNA_r30", description = "ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas, barkerville and wells gray north. Recovery > 30 years.")
 
+#scenario = data.table(name="bc_herd_plan_a3_r40", description = "BC herd plan- No harvest in high elevation range, less than 35% disturbance in low elevation (buffered) and matrix (not buffered) for itchas, barkerville and wells gray north. Adjacency constraint > 3 m. Recovery > 40 years.")
+#scenario = data.table(name="eccc_a3_r40", description = "ECCC- No harvest in high elevation range or low elevation summer range, 35% disturbance in matrix for itchas, barkerville and wells gray north. Adjacency constraint > 3 m. Recovery > 40 years.")
+
+scenario = data.table(name="nh_all_crit", description = "No harvest in any of the critical habitat types")
 #harvestFlow<- rbindlist(list(data.table(compartment ="Quesnel_TSA",partition = ' vol > 110 ', year = rep(seq(from = 2018, to=2027, by = 1),1), flow = 1250000), data.table(compartment ="Quesnel_TSA", partition = ' vol > 110 ',year = rep(seq(from = 2028, to=2219, by = 1),1), flow = 1250000)))
 
 harvestFlow<- data.table(compartment ="Williams_Lake_TSA",
