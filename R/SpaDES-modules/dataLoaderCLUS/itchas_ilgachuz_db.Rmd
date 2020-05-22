@@ -26,8 +26,8 @@ Here, I set the parameters and information needed to run the itchas-ilgachuzs sc
 
 ```{r module_usage}
 
-aois_tsa<-c("Quesnel_TSA")
-
+#aois_tsa<-c("Quesnel_TSA")
+aois_tsa<-c("Williams_Lake_TSA")
 #library(snow)
 #library(parallel)
 #library(doParallel)

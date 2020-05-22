@@ -49,7 +49,7 @@ parameters <-  list(
                     ),
     roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_resource'
+                  nameRoads =  'rast.crds_all'
                   ),
     cutblockSeqPrepCLUS = list(
       startHarvestYear = 1975,
@@ -64,11 +64,12 @@ parameters <-  list(
                    checkRasters= FALSE),
     disturbanceCalcCLUS = list(calculateInterval = 1, 
                    criticalHabitatTable = "public.criticalhabitat_bc_vat",
-                   criticalHabRaster = "rast.bc_crithab"),
+                   criticalHabRaster = "rast.bc_crithab",
+                   recovery = 90),
     survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-    uploaderCLUS = list(aoiName = 'disturbance_indicators',
+    uploaderCLUS = list(aoiName = 'disturbance_measures',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                     )
   )
@@ -78,7 +79,7 @@ rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE
 rsf_model_coeff[, population:= 'Central_Rockies']
 rsf_model_coeff[, bounds:= 'rast.bc_crithab']
 
- scenario = data.table(name="Central_Rockies", description = "historical disturbances")
+scenario = data.table(name="Central_Rockies", description = "historical disturbances")
 modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS", "survivalCLUS", "rsfCLUS", "disturbanceCalcCLUS", "uploaderCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
