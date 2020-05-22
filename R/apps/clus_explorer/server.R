@@ -552,13 +552,6 @@ observeEvent(input$getMapLayersButton, {
     })
   })
  
- # output$fireTable <-renderDataTable(
- #   reportList()$fire2, extensions = 'Buttons', 
- #   options = list(dom = 'Bfrtip',
- #                 buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))
- # )
-  
-  
   output$fireTable <-DT::renderDataTable({
     dat<-reportList()$fire2 
     names_col<-names(dat)
