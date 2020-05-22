@@ -540,7 +540,7 @@ observeEvent(input$getMapLayersButton, {
         #geom_point()+
         geom_bar(stat="identity", width=1) +
         xlab ("Year") +
-        ylab ("Cummulative proportion of area burned over 40 years") +
+        ylab ("Cummulative proportion of area burned < 40 years") +
         scale_x_continuous(limits = c(1960, 2020), breaks = seq(1960, 2020, by = 30)) +
         scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
         theme_bw()+
@@ -555,33 +555,9 @@ observeEvent(input$getMapLayersButton, {
   output$fireTable <-renderDataTable(
       reportList()$fire2, extensions = 'Buttons', 
       options = list(dom = 'Bfrtip',
-                     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')))
-      #formatStyle(table=fire2, columns="herd_name",color="black"))
-      # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-
+                     buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))
+      )
       
-      #data %>% 
-        # select(herd_name,
-        #        habitat, 
-        #        mean_ha2, 
-        #        mean_area_percent, 
-        #        max_ha2, 
-        #        max_area_percent, 
-        #        min_ha2, 
-        #        min_area_percent, 
-        #        cummulative_area_ha2,
-        #        cummulative_area_percent) %>%
-        # knitr::kable ("html",
-        #               caption = "<b>Area burned during a single fire event over a 40 year period (1978 -  2018) within caribou herd ranges and critical habitat types<b>",
-        #               digits=2,
-        #               col.names=c(" ", " ", "ha2","%", "ha2","%", "ha2","%", "ha2","%"),
-        #               align=c("l","c","c","c","c","c","c","c","c","c")) %>%
-        # add_header_above(c("Herd name", "Habitat", "Average area"=2,"Maximum area"=2, "Minimum area"=2, "Cummulative area*"=2)) %>%
-        # add_footnote("Cummulative area = total area burned across the 40 year period", notation = "symbol")
-        # 
-    
-  
-  
   output$radar<- renderPlotly ({
     
   radarLength<<-1:nrow(radarList()) 
