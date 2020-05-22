@@ -108,7 +108,8 @@ Init <- function(sim) {
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN dist numeric DEFAULT 0")
     # add in the raster
     if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
-      message("Need to supply a permanent disturbance raster parameter as permDisturbanceRaster = ")
+      message("Need to supply a permanent disturbance raster parameter as permDisturbanceRaster = ... defaulting to no permanent disturbances")
+      dbExecute(sim$clusdb, "Update pixels set perm_dist = 0;")
     }else{
     perm_dist <- data.table (c(t(raster::as.matrix( 
         RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
