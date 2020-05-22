@@ -490,7 +490,7 @@ observeEvent(input$getMapLayersButton, {
   })
   
   output$fireByYearPlot <- renderPlotly ({
-    withProgress(message = 'Making Table', value = 0.1,{
+    withProgress(message = 'Making Plot', value = 0.1,{
     data<-reportList()$fire
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
     #print(data)
@@ -513,7 +513,7 @@ observeEvent(input$getMapLayersButton, {
   })
   
   output$firecummulativePlot <- renderPlotly ({
-    withProgress(message = 'Making Table', value = 0.1,{
+    withProgress(message = 'Making Plot', value = 0.1,{
       data<-reportList()$fire
       
       
