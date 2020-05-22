@@ -68,11 +68,11 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-Range_scale_data <- sf::st_read  (dsn = conn, # connKyle
+rsf.large.scale.data.age <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM caribou.dist_to_disturbance_summary")
 dbDisconnect (conn) # connKyle
 
-Range_scale_data1<-st_set_geometry(Range_scale_data,NULL)
+Range_scale_data1<-st_set_geometry(rsf.large.scale.data.age,NULL)
 
 #convert distances to km. I created distance rasters in QGIS in pixel (ha) scale so here I convert the number of pixels i.e. ha between points to km
 
@@ -174,6 +174,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU7 Distance to Cutblock Correlation")
 
 # Distance to cutblock variables are highly correlated no matter how I chop it up e.g. 1-5 nd 6-40 OR 1-5 and 6-40 OR 1-10 and 11-40 OR 1-14 and 15-40 or 1-15 and 16-40. None of these options help. So Ill lump all cutblock data and have 1-40 for du7
+
 du7 <- dplyr::mutate (du7, distance_to_cut_1to40yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo,distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
 
 dist.cut.corr <- (du7 [c ("distance_to_road", "distance_to_cut_1to40yo")])
@@ -183,20 +184,9 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU7 Distance to Cutblock Correlation")
 
 
-# du8
+# du8 nothing is too correlated
 du8<- Range_scale_data1 %>% filter(du=="du8")
 dist.cut.corr <- (du8 [c (65:68)])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
-
-# the above is too correlated so Ill do this below
-du8 <- dplyr::mutate (du8, distance_to_cut_1to4yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo))
-                                                            
-du8 <- dplyr::mutate (du8, distance_to_cut_5to40yo = pmin (distance_to_cut_5yo,distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
-
-dist.cut.corr <- (du8 [c ("distance_to_road", "distance_to_cut_1to4yo","distance_to_cut_5to40yo")])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
@@ -1093,8 +1083,8 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_road)) +
 
 Caribou tended to avoid cutblocks 1 to 4 years old across herds in DU8 (Fig. \@ref(fig:du8-Herd-cutblock-1-to-4)). For example, all herds except Narraway tended to use areas further from to 1 to 4 year old cutblocks than what was available. A random effect for distance to cutblock 1 to 4 years old was included in the GLMM to account for this variability.
 
-```{r du8-Herd-cutblock-1-to-4, fig.cap="Distance to 1 to 4 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
-ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_1to4yo)) +
+```{r du8-Herd-cutblock-1-to-5, fig.cap="Distance to 1 to 5 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
@@ -1105,8 +1095,8 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_1to4yo)) +
 
 Caribou tended to avoid cutblocks 6 to 40 years of age across herds in DU8 (Fig. \@ref(du8-Herd-cutblock-6-to-40)). For example, all herds except Narraway used areas further from to 6 to 40 year old cutblocks than what was available. A random effect for distance to cutblock 6 to 10 years old was included in the GLMM to account for this variability.
 
-```{r du8-Herd-cutblock-5-to-10, fig.cap="Distance to 5 to 40 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
-ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_5to40yo)) +
+```{r du8-Herd-cutblock-6-to-10, fig.cap="Distance to 6 to 10 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
         y = "Distance to cutblock (km)") +
@@ -1115,7 +1105,15 @@ ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_5to40yo)) +
          plot.title = element_text (size = 12))
 ```
 
-
+```{r du8-Herd-cutblock-11-to-40, fig.cap="Distance to 11 to 40 year old cutblock at available (0) and used (1) locations by caribou herds in DU8", echo = F, message = F, eval = T}
+ggplot (du8, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Available (0) and used (1) locations",
+        y = "Distance to cutblock (km)") +
+  facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
+```
 
 #### Caribou-Forestry Disturbance Model
 Caribou in DU8 avoided 1 to 4 year old cutblocks (P<<0.0001) and weakly avoided roads (P = 0.116) and 5 to 40 year old cutblocks (P = 0.125) (Table \@ref(tab:du8-fix-eff-coef), Figure \@ref(fig:random-fixed-effects-du8)).
@@ -1123,11 +1121,25 @@ Caribou in DU8 avoided 1 to 4 year old cutblocks (P<<0.0001) and weakly avoided 
 ```{r, du8 model, echo = T, message = F, eval = T, cache=TRUE}
 # model spec
 
-model.lme4.du8.cut.rd.yr2 <- glmer (pttype ~ distance_to_road +
-                                         distance_to_cut_1to4yo +
-                                         distance_to_cut_5to40yo +
-                                          distance_to_cut_1to4yo^2 +
-                                        distance_to_cut_5to40yo^2 +
+
+glm.du8 <- glm (pttype ~ distance_to_road,
+                  data = du8, family = binomial (link = "logit"))  
+summary(glm.du8)
+
+binnedplot (predict (glm.du8), 
+             resid(glm.du8),nclass=1000)
+
+binnedplot (du8$distance_to_road, 
+             resid(glm.du8),nclass=1000)
+```
+
+```{r, du8 model, echo = T, message = F, eval = T, cache=TRUE}
+# model spec
+
+model.lme4.du8.cut.rd.yr2 <- glmer (factor(pttype) ~ distance_to_road +
+                                         distance_to_cut_1to5yo +
+                                         distance_to_cut_6to10yo +
+                                         distance_to_cut_11to40yo 
                                         (distance_to_road +
                                          distance_to_cut_1to4yo +
                                          distance_to_cut_5to40yo||HERD_NAME) +

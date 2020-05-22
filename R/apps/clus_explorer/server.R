@@ -67,7 +67,7 @@ reportList<-reactive({
   
   data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
   data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
- round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cumul_percent 
+ round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent 
                                     FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
   
   
@@ -495,14 +495,15 @@ observeEvent(input$getMapLayersButton, {
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
     #print(data)
     
-    p<-ggplot(data, aes (x=year, y=area_m2/10000)) +
+    p<-ggplot(data, aes (x=year, y=proportion.burn)) +
       facet_wrap(.~herd_bounds, ncol = 4)+
-      geom_point() +
-      geom_line(alpha=0.2,size=0.5)+
+      geom_bar(stat="identity",width=1) +
+      #geom_line(col="grey")+
+      #geom_bar(stat="identity", width=0.7) +
       xlab ("Year") +
-      ylab ("Area burned (ha2)") +
-      scale_x_continuous(limits = c(1925, 2025), breaks = seq(1925, 2025, by = 50))+
-      scale_y_continuous(limits = c(0, 12500), breaks = seq(0, 12500, by = 5000))+
+      ylab ("Proportion of area burned") +
+      scale_x_continuous(limits = c(1925, 2025), breaks = seq(1925, 2025, by = 75))+
+      scale_y_continuous(limits = c(0, 45), breaks = seq(0, 45, by = 20))+
       theme_bw()+
       theme (legend.title = element_blank())
     ggplotly(p, height = 900) %>% 
@@ -510,11 +511,52 @@ observeEvent(input$getMapLayersButton, {
               margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
     })
   })
+  
+  output$firecummulativePlot <- renderPlotly ({
+    withProgress(message = 'Making Table', value = 0.1,{
+      data<-reportList()$fire
+      
+      
+      ##Calculating cummulative area burned over a 40 year moving window for each herd across each habitat type 
+      Years<-1919:2018
+      window_size<-40
+      
+      Fire_cummulative <- data.frame (matrix (ncol = 3, nrow = 0))
+      colnames (Fire_cummulative) <- c ("herd_bounds","cummulative.area.burned","year")
+      
+      for (i in 1:(length(Years)-window_size)) {
+        fire.summary<-data %>% filter(year<=(Years[i]+window_size)) %>% 
+          group_by (herd_bounds) %>% 
+          summarize(cummulative.area.burned=sum(proportion.burn))
+        fire.summary$year<-Years[i]+window_size
+        
+        Fire_cummulative<-rbind(Fire_cummulative,as.data.frame(fire.summary))
+      }
+      #print(Fire_cummulative)
+      
+      p<-ggplot(Fire_cummulative, aes (x=year, y=cummulative.area.burned)) +
+        facet_wrap(.~herd_bounds, ncol = 4)+
+        #geom_line (col="grey") +
+        #geom_point()+
+        geom_bar(stat="identity", width=1) +
+        xlab ("Year") +
+        ylab ("Cummulative proportion of area burned over 40 years") +
+        scale_x_continuous(limits = c(1960, 2020), breaks = seq(1960, 2020, by = 30)) +
+        scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  })
  
   output$fireTable <-renderDataTable(
       reportList()$fire2, extensions = 'Buttons', 
       options = list(dom = 'Bfrtip',
                      buttons = c('copy', 'csv', 'excel', 'pdf', 'print')))
+      #formatStyle(table=fire2, columns="herd_name",color="black"))
       # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
 
       
