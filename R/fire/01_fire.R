@@ -60,7 +60,7 @@ habitat_types<-c("HEWSR","Matrix","LEWR","LESR","HESR")
 ##--------------------------------------
 ##Creating loop to calculate the area burned over a 40 year moving window for each herd across each habitat type 
 ##--------------------------------------
-window_size<-30
+window_size<-40
 
 Herd_names<-list()
 Year_start<-list()
@@ -69,6 +69,8 @@ habitat<-list()
 cummulative_area_m2<-list()
 mean_area_m2<-list()
 
+Fire_results_cummulative <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (Fire_results_cummulative) <- c ("herd_name","habitat","year", "cummulative_area","cummulative_area_proportion" )
 
 for (i in 1:length(Herd_name)){
   
