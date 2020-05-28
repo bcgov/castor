@@ -227,6 +227,7 @@ in TFL 48 Under the Different Habitat Management Scenarios.",
 
 
 
+<<<<<<< HEAD
 #### Disturbance in Kennedy Siding Critical Habitat Within TFL48
 
 
@@ -291,10 +292,17 @@ in TFL 48 Under the Different Habitat Management Scenarios.",
 
 
 ```{r, FIG 6, TFL48 Quintette disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+=======
+
+
+
+```{r, FIG 3, TFL48 Burtn PIne disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+>>>>>>> 4c8e90adfe288741dd8cd5369abeba620fa7a053
 data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
 # # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
 # # compartments: TFL48, Dawson_Creek_TSA
 
+<<<<<<< HEAD
 data.dist.q <- data.dist %>%
                   filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
                     filter (critical_hab == "Quintette HESR" | critical_hab == "Quintette HEWR" |
@@ -305,6 +313,18 @@ ggplot (data.dist.tfl48.q, aes (x = timeperiod, y = dist500_per, color = scenari
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
   labs (title = "Figure 6. Proportion of Area Disturbed in Quintette Critical Habitat 
+=======
+data.dist.bp <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Kennedy_Siding HESR" | critical_hab == "Kennedy_Siding HEWR " |
+                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding Matrix")
+data.dist.tfl48.bp <- data.dist.bp %>%
+                        filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.bp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 3. Proportion of Area Disturbed in Burnt Pine Critical Habitat 
+>>>>>>> 4c8e90adfe288741dd8cd5369abeba620fa7a053
 in TFL 48 Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
@@ -319,6 +339,7 @@ in TFL 48 Under the Different Habitat Management Scenarios.",
 
 
 
+<<<<<<< HEAD
                          
 
 #### Displacement of Disturbance to Graham and Hart Ranges Critical Habitat in TFL 48
@@ -357,6 +378,19 @@ in TFL 48 Under the Different Habitat Management Scenarios.",
 
 
 
+=======
+[11]    Moberly HESR          Moberly HEWR          Moberly HEWSR        
+[16] Moberly Matrix        Quintette HESR        Quintette HEWR        Quintette HEWSR       Quintette Matrix 
+
+
+
+
+
+
+   Graham HESR          
+ [6] Graham HEWSR          Graham Matrix         Hart_Ranges HEWSR    
+ 
+>>>>>>> 4c8e90adfe288741dd8cd5369abeba620fa7a053
  
      
 
