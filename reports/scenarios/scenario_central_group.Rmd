@@ -1,0 +1,363 @@
+---
+title: "Central Group Scenarios"
+author: "Kyle Lochhead, Elizabeth Kleynhans and Tyler Muhly"
+date: "28/05/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require ("here")
+require ("dplyr")
+require ("data.table")
+require ("kableExtra")
+require ("ggplot2")
+```
+
+## Introduction
+Here we report on the results of simulations of potential forest harvest under temporary protection of caribou habitat, as defined under the [draft Partnership Agreement](https://engage.gov.bc.ca/caribou/section11agreement/) between British Columbia, Canada, West Moberly and Saulteau First Nations. The temporary protections applied to the central group of caribou, which included the Klinse-Za (formerly Scott and Moberly), Burnt Pine, Kennedy Siding, Quintette and Narraway [caribou herds](https://engage.gov.bc.ca/app/uploads/sites/373/2019/06/Map_1_Caribou_Interim_Moratorium.pdf). The central group herds overlapped the Dawson Creek, MacKenzie, Prince George timber supply areas (TSAs) and tree farm license (TFL) 48. 
+We applied forest harvest constraints to the spatial 'zones' defined in the partnership agreement, and compared them to a 'business-as-usual' (BAU) scenario in a caribou and land use simulator (CLUS). Below, we decribe the general methods and key parameters implemented in the CLUS model, results of model outputs and conclusions on the potential implications of the proposed scenarios to forest harvest and caribou habitat based on interpretation of those outputs. 
+## Methods
+We used the [CLUS model](https://github.com/bcgov/clus) to simulate forest harvest and regeneration on a landscape 200 years into the future. From the model, we estimated future potential timber harvest, i.e., annual cut, and caribou habitat quality indicators. The CLUS model mirrors models developed for timber supply reviews (TSRs), but integrates them with caribou habitat models and indicators. It uses the [provincial forest inventory](https://catalogue.data.gov.bc.ca/dataset/vri-2019-forest-vegetation-composite-layer-1-l1-) and road data developed for the provincial cumulative effects program combined with [forest tenure roads](https://catalogue.data.gov.bc.ca/dataset/forest-tenure-road-segment-lines) as key inputs on the current state of the landscape. In addition, it implements existing spatial and legal constraints on forest harvest, i.e., the timber harvest land base (THLB), [government actions regulation (GAR) orders](https://www2.gov.bc.ca/gov/content/environment/natural-resource-stewardship/laws-policies-standards-guidance/legislation-regulation/forest-range-practices-act/government-actions-regulation), [visual quality objectives (VQOs)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/visual-resource-management), [old growth management areas (OGMAs)](https://catalogue.data.gov.bc.ca/dataset/old-growth-management-areas-legal-current) and [biodiversity emphasis options (BEOs)](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-all).  
+
+CLUS is flexible in its scale. At a minimum it simulates forestry within a single timber supply area (TSA) or supply block within a TSA (i.e., where AAC partitions are spatially allocated). However, it can simulate all TSAs that overlap a caribou herd, because it applies common data and assumptions across TSAs. It is important to note that the CLUS model is not a copy of TSR models used to establish allowable annual cut (AAC). TSR models were designed to be specific for a particular AAC determination, whereas CLUS was designed to be general and flexible across TSAs. Although, these models all apply similar data, logic and assumptions, the CLUS model may differ from TSR models in some cases. Thus, CLUS model scenario outputs need to be assessed in the context of outputs from a CLUS BAU scenario, and not against a legislated AAC or other modelled timber supply scenarios (which may be constructed with a different vintage of information).
+
+The CLUS model simulated the harvest of live trees only, and thus it may underestimate the impact of forestry on caribou where there is significant harvest of dead volume, as was the case with the mountain pine beetle uplift policies. However, the AAC uplift to harvest dead mountain pine beetle stands is reaching an end (e.g., see the current [Quesnel TSA 2017 rationale](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/quesnel_newsrelease_122-001246.pdf)), and thus the potential underestimate of future salvage harvest was expected to be minimal.
+
+The CLUS model was implemented using the [R programming language](https://www.R-project.org/) and the [SpaDES](https://spades.predictiveecology.org/) R package. All code to run the model was posted to the BC government [GitHub repository](https://github.com/bcgov/clus), following all requirements and guidelines establshed by the BC government. 
+
+## Determining the Allowable Annual Cut Target
+For each TSA that overlapped the central group caribou herd's critical habitat, we used the CLUS model to identify an annual sustained yield (SY) of live timber volume in the unit under BAU. The SY was determined by simulating varying annual live volume harvest targets over a 200 year period and identifying the minimum target that was achievable annually over the period. This may be different then the current [legislated AAC](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut) of live volume of timber, which is determined based on multiple and often complex factors, and implemented for an approximately 10 year period. Thus, the 10 year AAC may be greater or less than what is potentially achievable over a 200 year period (i.e., given that landscapes change through time), and may not be suitable for assessing the long-term impacts of a novel forest harvest constraint on AAC. Rather, we mimic a TSR process which compares a number of scenarios to determine the potential harvest level using the most current landscape information.
+
+Here we simulated forestry in the  TSA's nd TFL48 because they overlapped with the majority of the central group herds. In 2020, the AAC of [TFL48 was 871,000 m^3^](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/48tf15ra.pdf), 
+
+
+The live volume SY for these units was determined to be 329,968 m^3^ yr^-1^ in TFL48 and . 
+
+These annual targets were implemented in all scenarios, and caribou recovery scenarios were evaluated against the BAU scenario with these targets. 
+
+
+### Scenarios
+We implemented three scenarios in CLUS:
+
+1. Business as Usual (BAU scenario)
+
+2. No Harvest in all Zones (No harvest scenario)
+
+3. No Harvest in Zones A2, B2 and B3 and Harvest Constraints in Zones A1, B1, B4 and B5 (35% threshold scenario)
+
+The BAU scenario implemented the CLUS model with current, existing legal constraints (see above), and served as a benchmark to evaluate potential harvest impacts of proposed alternative managament scenarios. The second ('no harvest') scenario implemented no harvest in any zones, and served as an alternative benchmark to assess a potential maximum  impact of proposed protections on forest harvest. The third (35% threshold) scenario applied no harvest in Zones A2, B2 and B3 and a 35% disturbance threshold in Zones A1, B1, B4 and B5 (Table 1). Details on these constraints are described in the *Key Model Parameters*, below. 
+
+```{r, table 1, scenarios, echo = F, error = F, eval = T, include = T, message = F}
+
+table.scenarios = data.table(
+  constraint = c ("A1", "A2", "B1", "B2", "B3", "B4", "B5"),
+  bau = c ("No New Constraint","No New Constraint", "No New Constraint", "No New Constraint", "No New Constraint", "No New Constraint", "No New Constraint"),
+  noharvest = c ("No Harvest", "No Harvest", "No Harvest", "No Harvest", "No Harvest", "No Harvest", "No Harvest"),
+  dist35 = c ("Maximum 35% Disturbance", "No Harvest", "Maximum 35% Disturbance", "No Harvest", "No Harvest", "Maximum 35% Disturbance", "Maximum 35% Disturbance")
+)
+
+kable (table.scenarios,
+       caption = "<b>Table 1. Potential Central Group Habitat Management Scenarios. <b>",
+       col.names = c("Management Zone",
+                     "BAU",
+                     "No Harvest",
+                     "35% Disturbance")) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual scenario",
+            fixed_small_size = T)
+
+```
+
+### Key Model Parameters
+Below we highlight some of the key parameters used in the CLUS model, as they have important implications for CLUS model outputs. Model results must be interpreted within the context of these parameters. 
+
+#### Partnership Agreement Caribou Management Zones
+The no harvest and 35% threshold scenarios apply forest harvest contraints to management zones that were spatially defined as part of the [draft Partnership Agreement](https://engage.gov.bc.ca/caribou/section11agreement/) between British Columbia, Canada, West Moberly and Saulteau First Nations. Zones A1 and B1 were proposed as sustainable resource activity areas, Zone A2 was proposed as an area with an interim moratorium on developement while a long-term plan was developed, Zone B2 was an existing proposed protected area expansion, Zone B3 was proposed as an additonal protected area expansion, Zone B4 was proposed as a habitat restoration area and Zone B5 was proposed as a First Nations woodlands license area.     
+
+In the scenarios we applied two types of constraints on forestry: 'no disturbance' and '35% disturbance'. No disturbance does not allow for forestry activity. The 35% disturbance threshold restricts development to 35% of the area of the critical habitat type. This threshold was selected based on a model developed by [ECCC for boreal caribou](https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html). The model related disturbance, estimated as the area of non-overlapping fire and anthropogenic disturbance (e.g., cutblocks, roads, seismic lines, etc., mapped using sateliite imagery) buffered by 500m, to boreal caribou calf recruitment rate, and then this model was used to estimate the probability that a boreal caribou population trend (\( \lambda \)) is greater or equal to one as the area of disturbance changes (Fig. 1).
+
+```{r FIG 1 lambda - disturb, echo = F, message = F, eval = T, fig.cap = "Figure 1. Modelled relationship between boreal caribou population trend and habitat disturbance. Source: https://www.canada.ca/en/environment-climate-change/services/species-risk-public-registry/related-information/boreal-caribou-science-summary.html", fig.width = 1, fig.height = 3}
+knitr::include_graphics( here ("reports/scenarios/images", "eccc_lambda_disturb_fig.jpg"))
+```
+
+The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some southern mountain caribou critical habitat types, and these were used as constraints in our scenarios (Table 1). However, there were challenges with implementing this constraint directly in our model, and therefore we developed a modified approach to using it in CLUS. Specifically, we found that disturbance levels in some zones were greater than 35%, and much of this disturbance (e.g., roads, mines, agriculture) was not recovered in the model. In particular, roads were a key contributor to much of the disturbance. We were unable to recover these existing roads, because the roads data does not indicate road age and status. Without a detailed road recovery plan it is difficult to develop assumptions on road recovery in the model. As a consequence, constraining on 35% disturbance essentially makes it very similar to a no harvest scenario, and thus that scenario can be used to evaluate the effects of implementing a 35% disturbance constraint on forestry activity without recovery of other existing disturbance features.     
+
+As an alternative to constraining on disturbance, we developed an approach that constrained forestry activity in such a way as to allow up to 35% disturbance from forestry in critical habitat. We used a previously developed model ( [Muhly 2016](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/road_cutblock_model_20161102.pdf)) that found that an approximately 18% area of less than 40 year cutblocks in a landscape unit was equivalent to a 35% disturbance level. Thus, in scenarios that required a 35% disturbance threshold in critical habitat areas, we allowed for some forestry to occur by limiting the amount of cutblocks less than 40 years old to 18% of those areas. Further, forest harvest was prioritized to areas that were the closest to existing disturbances, thus aggregating future forest activities to areas that were already disturbed (see below).
+
+#### Prioritization of Forest Stands for Harvest
+Similar to other TSR models, the CLUS model harvested forest stands by establishing a priority harvesting queue based on stand characteristics. These characteristics included: distance to existing disturbed area (i.e., road or cutblock), stand age and stand volume. The model established which stands to harvest at each time step by first selecting those stands closest to disturbed areas, then older stands, and then high volume stands. This order is important, and is different than TSR models, which do not consider distance to disturbance when establishing a harvest priority queue. By prioritizing harvest to areas adjacent to existing disturbances, we limited the total amount of disturbance from forest harvest, which follows the intent of the disturbance constraints, and is a caribou focused approach to forest management. 
+
+#### Road and Cutblock Disturbance and Recovery
+The CLUS model simulated forestry cutblocks and roads, both of which are considered 'disturbances'. Other disturbance features (e.g., highways, mines, agriculture) were not simulated, but held constant in the model (e.g., no new mines were built and no mines were recovered in the model). In the modelled scenarios we considered two definitions of cutblock and road recovery, based on age of these disturbances, to assess the influence of their recovery time on forest harvest. In some scenarios we considered less than 40 year old cutblocks and roads as 'disturbed', and anything older as 'undisturbed' (i.e., recovered caribou habitat). In other scenarios we considered less than 30 year old cutblocks and roads as disturbed.
+
+Cutblocks were considered undisturbed at 30 or 40 years old because these thresholds are often used as a general 'rule-of-thumb' to define a change from early to mid seral forest and lower to higher quality caribou habitat. Early seral forest stands are considered poor quality caribou habitat because they provide more forage for moose (i.e., shrubs), which can potentially increase moose and wolf density in caribou ranges, and ultimately predation on caribou (e.g., [DeCesare et al. 2010](https://zslpublications.onlinelibrary.wiley.com/doi/full/10.1111/j.1469-1795.2009.00328.x); [McLellan et al. 2010](https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/09-0286.1)). There is some evidence that moose prefer 10 to 30 year old stands in some parts of BC ( [Poole and Stuart-Smith 2004](https://www.researchgate.net/profile/Kim_Poole/publication/228974009_Winter_habitat_selection_by_moose_in_the_East_Kootenay_British_Columbia_final_report/links/55bbdc0708ae092e9660b312.pdf), [Schneideman 2018](http://web.unbc.ca/~michael/Pubs/Matt%20Scheideman%20Thesis%20Final%20for%20distribution.pdf)). In addition, a landscape model of the relationship between boreal caribou \( \lambda \) and disturbance developed in Alberta used a 30 year cutblock and fire age as a threshold to define poor caribou habtiat (see Appendix 2 of [Athabasca Landscape Team 2009](http://www.albertacariboucommittee.ca/PDF/Athabasca-Caribou.pdf)). However, the ECCC disturbance model did not assess forest stand age and caribou habitat recovery. Instead, disturbances were defined based on visual interpretation of satellite imagery. Thus, it is unknown whether a 30 or 40 year forest age threshold is appropriate for defining distturbed caribou habitat. 
+
+In these scenarios, the CLUS model did not recover existing roads. However, because we could track the age of newly built roads in CLUS, we were able to recover those features. We applied the same recovery parameters to roads simulated in CLUS as we did to cutblocks. While there is research indicating that roads are poor habitat for caribou (e.g., [Dyer et al. 2002](https://www.nrcresearchpress.com/doi/abs/10.1139/z02-060#.XnuL1ohKiUk); [Whittington et al. 2011](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2664.2011.02043.x); [Dussault et al. 2012](https://royalsocietypublishing.org/doi/pdf/10.1098/rspb.2012.1700)), there appears to be limited research on how road recovery might influence caribou. Much of the research on linear feature recovery has focussed on seismic lines in the boreal forest (e.g., [Dickie et al. 2016](https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2664.12732); [Finnegan et al. 2018](https://www.sciencedirect.com/science/article/pii/S0378112717318078); [Tattersall et al. 2019](https://www.sciencedirect.com/science/article/pii/S0006320719307013)). 
+
+We tested the effect of varying the recovery age of cutblocks and roads from 30 to 40 years on model outputs. This parameter requires careful consideration based on knowledge of caribou ecology, forest stand characteristics and road reocvery as they relate to moose forage and wolf movement in the area being modelled. For example, it is important to consider the relationship between forest age and shrub cover across a diversity of forest stand types in the area of interest, as some stands will mature faster or slower than 30 or 40 years, depending on vegetation communities and site characteristics. 
+
+#### Critical Habitat for Caribou
+Spatial caribou critical habitat data was developed by the BC government, and we summarized some of the model outputs by critical habitat type. Critical habitat types included: high elevation winter range (HEWR), high elevation summer range (HESR), low elevation winter range (LEWR), low elevation summer range (LESR) and matrix. 
+
+#### Cutblock Adjacency
+Foresty was simulated with adjacency constraints, i.e., a forest stand could only be cut adjacent to a forest stand that had acheieved a specific height. We simulated each scenario with a 3m adjacency constraint. This adjacency constraint can be decreased or increased to allow more or less flexibility in where the model can harvest. 
+
+#### Fire
+The CLUS model did not simulate fire. Thus, potential fire disturbance will need to be assessed with a *post-hoc* analysis, by calculating the amount of area of less than 40 year old burns in each Zone over the last 40 years. 
+
+## Results
+### Modeled Annual Harvested Volume
+
+
+
+
+
+A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^ yr^-1^) impact on forest harvest (Table 2). Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^ yr^-1^) to 12% (approximately 400,000m^3^ yr^-1^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^ yr^-1^) to 5% (approximately 160,000m^3^ yr^-1^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^ yr^-1^) improvement in annual harvested volume across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual forest harvest decreased by 2% (approximately 60,000m^3^ yr^-1^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC scenarios, the annual timber harvest decreased by 3% (approximately 100,000m^3^ yr^-1^) with the 3m adjacency constraint compared to a 1.5m constraint.
+
+```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
+# data.harvest <- read.csv (here ("reports/scenarios/data", "harvest_central_group_20200528.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+# data.summ <- data.harvest %>% # get summary data
+#               filter (scenario == "cg_partner_agreement_a3_r40") %>%
+#                 filter (compartment == "Dawson_Creek_TSA") %>%
+#                   summarise (sum (volume)/40)
+
+table.volume = data.table (
+  scenario = c ("BAU", "PA"),
+  compartment = c ("TFL48", "TFL48"),
+  recovery = c (0, 40),
+  annual_volume = c (329968, 	293307),
+  diff_annual_volume = c (0, 36661),
+  perc_diff_tot_volume = c ("0", "-11%")
+)
+kable (table.volume,
+       caption = "<b>Table 2. Annual Harvested Volume Over a 200 Year Period in the Tree Farm Licenses and Timber Supply Areas Under Partnership Agreement Scenarios.<b>",
+       col.names = c("Scenario",
+                     "Compartment",
+                     "Habitat Recovery Time (Years)",
+                     "Average Annual Volume (m3)",
+                     "Difference in Annual Volume (m3)",
+                     "Percent Difference in Annual Volume"),
+       format.args = list (big.mark = ","),
+       align = rep( c('l', 'c', 'c', 'c', 'c', 'c'))) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual scenario; PA = Partnership Agreement",
+            fixed_small_size = T)
+```
+
+### Actual Annual Harvested Volume
+Recent billed harvest in 
+
+no records for TFLs....
+
+
+
+
+he Quesnel and Williams Lake TSA's has been below the current live and dead stand AAC in those units (Fig. 2). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the Williams Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as the majority of mountain pine beetle killed stands may have already been harvested. However, it is worth noting that recently the AAC was not being achieved in these TSAs.  
+
+
+
+
+```{r, FIG 2, harvest actual, echo = F, error = F, eval = T, include = T, message = F}
+data.harvest <- read.csv (here ("reports/scenarios/data", "volume_actual_itcha_scenario_March2020.csv"))
+data.harvest <- data.harvest %>%
+                  filter (SCALE_YEAR > 2016)
+ggplot (data.harvest, aes (x = SCALE_YEAR, y = volume_m3)) +
+  geom_point () + 
+  geom_line () +  
+  # geom_smooth () + 
+  facet_grid (. ~TFL_TSA_NAME) +
+  labs (title = "Figure 2. Actual Volume of Timber Harvest Billed in the Quesnel and 
+Williams Lake TSA's", 
+        x = "Year", 
+        y = "Billed Volume (m3)",
+        caption = "Quesnel AAC = 2,607,000m3                                         Williams Lake AAC = 3,000,000") +
+  scale_y_continuous (labels = comma,
+                      breaks = seq (1500000, 2500000, by = 500000)) +
+  scale_x_continuous (breaks = seq (2017, 2019, by = 1))
+
+```
+
+
+### Disturbance Indicator
+Below we summarize the disturbance indicator outputs from the CLUS model under the alternative scenarios. These indicate the area of critical habitat in each TSA that is 500m from roads and cutblocks. 
+
+#### Disturbance in Burnt Pine Critical Habitat Within TFL48
+
+
+
+
+```{r, FIG 3, TFL48 Burtn PIne disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+
+data.dist.bp <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Burnt_Pine HESR" | critical_hab == "Burnt_Pine HEWR" |
+                            critical_hab == "Burnt_Pine HEWSR" | critical_hab == "Burnt_Pine Matrix")
+data.dist.tfl48.bp <- data.dist.bp %>%
+                        filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.bp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 3. Proportion of Area Disturbed in Burnt Pine Critical Habitat 
+in TFL 48 Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+  
+
+
+
+
+#### Disturbance in Kennedy Siding Critical Habitat Within TFL48
+
+
+```{r, FIG 4, TFL48 Kennedy Siding disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+
+data.dist.ks <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Kennedy_Siding HESR" | critical_hab == "Kennedy_Siding HEWR" |
+                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding Matrix")
+data.dist.tfl48.ks <- data.dist.ks %>%
+                        filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.ks, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 4. Proportion of Area Disturbed in Kennedy Siding Critical Habitat 
+in TFL 48 Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+
+
+#### Disturbance in Klinse-Za Critical Habitat Within TFL48
+
+
+```{r, FIG 5, TFL48 Klinse-Za disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+
+data.dist.kz <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Moberly HESR" | critical_hab == "Moberly HEWR" |
+                            critical_hab == "Moberly HEWSR" | critical_hab == "Moberly Matrix")
+data.dist.tfl48.kz <- data.dist.kz %>%
+                        filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.kz, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 5. Proportion of Area Disturbed in Kline-Za Critical Habitat 
+in TFL 48 Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+
+
+#### Disturbance in Qunitette Critical Habitat Within TFL48
+
+
+```{r, FIG 6, TFL48 Quintette disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+
+data.dist.q <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Quintette HESR" | critical_hab == "Quintette HEWR" |
+                            critical_hab == "Quintette HEWSR" | critical_hab == "Quintette Matrix")
+data.dist.tfl48.q <- data.dist.q %>%
+                        filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.q, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 6. Proportion of Area Disturbed in Quintette Critical Habitat 
+in TFL 48 Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+
+
+
+
+                         
+
+#### Displacement of Disturbance to Graham and Hart Ranges Critical Habitat in TFL 48
+Putting disturbance constraints on the management zones could displace forestry activity and thus disturbance to other caribou herds' critical habitat without those constraints.
+
+
+r
+
+
+
+```{r, FIG 7, TFL48 displaced disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+
+data.dist.disp <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Graham HESR" | critical_hab == "Graham HEWSR" |
+                            critical_hab == "Graham Matrix" | critical_hab == "Hart_Ranges HEWSR")
+data.dist.tfl48.disp <- data.dist.disp %>%
+                          filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.disp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 7. Proportion of Area Disturbed in Graham and Hart Ranges Critical Habitat 
+in TFL 48 Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
+  theme (legend.position = c (0.15, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+
+
+
+ 
+     
+
+
