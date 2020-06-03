@@ -120,21 +120,21 @@ The CLUS model did not simulate fire. Thus, potential fire disturbance will need
 A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^ yr^-1^) impact on forest harvest (Table 2). Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^ yr^-1^) to 12% (approximately 400,000m^3^ yr^-1^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^ yr^-1^) to 5% (approximately 160,000m^3^ yr^-1^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^ yr^-1^) improvement in annual harvested volume across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual forest harvest decreased by 2% (approximately 60,000m^3^ yr^-1^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC scenarios, the annual timber harvest decreased by 3% (approximately 100,000m^3^ yr^-1^) with the 3m adjacency constraint compared to a 1.5m constraint.
 
 ```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
-# data.harvest <- read.csv (here ("reports/scenarios/data", "harvest_central_group_20200528.csv"))
-# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
-# # compartments: TFL48, Dawson_Creek_TSA
-# data.summ <- data.harvest %>% # get summary data
-#               filter (scenario == "cg_partner_agreement_a3_r40") %>%
-#                 filter (compartment == "Dawson_Creek_TSA") %>%
-#                   summarise (sum (volume)/40)
+data.harvest <- read.csv (here ("reports/scenarios/data", "harvest_central_group_20200601.csv"))
+# scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# compartments: TFL48, Dawson_Creek_TSA, MacKenzie_TSA
+data.summ <- data.harvest %>% # get summary data
+              filter (scenario == "cg_partner_agreement_a3_r40") %>%
+                filter (compartment == "MacKenzie_TSA") %>%
+                  summarise (sum (volume)/40)
 
 table.volume = data.table (
-  scenario = c ("BAU", "PA"),
-  compartment = c ("TFL48", "TFL48"),
-  recovery = c (0, 40),
-  annual_volume = c (329968, 	293307),
-  diff_annual_volume = c (0, 36661),
-  perc_diff_tot_volume = c ("0", "-11%")
+  scenario = c ("BAU", "PA", "BAU", "PA", "BAU", "PA"),
+  compartment = c ("TFL48", "TFL48", "Dawson Creek TSA", "Dawson Creek TSA", "MacKenzie TSA", "MacKenzie TSA"),
+  recovery = c (0, 40, 0, 40, 0),
+  annual_volume = c (329968, 293307, 1369976, 1299991, 1673978, 1659266),
+  diff_annual_volume = c (0, 36661, 0, 69985, 0, 14712),
+  perc_diff_tot_volume = c ("0%", "-11%", "0%", "-5%", "0%", "-1%")
 )
 kable (table.volume,
        caption = "<b>Table 2. Annual Harvested Volume Over a 200 Year Period in the Tree Farm Licenses and Timber Supply Areas Under Partnership Agreement Scenarios.<b>",
@@ -155,53 +155,19 @@ kable (table.volume,
             fixed_small_size = T)
 ```
 
-### Actual Annual Harvested Volume
-Recent billed harvest in 
-
-no records for TFLs....
-
-
-
-
-he Quesnel and Williams Lake TSA's has been below the current live and dead stand AAC in those units (Fig. 2). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the Williams Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as the majority of mountain pine beetle killed stands may have already been harvested. However, it is worth noting that recently the AAC was not being achieved in these TSAs.  
-
-
-
-
-```{r, FIG 2, harvest actual, echo = F, error = F, eval = T, include = T, message = F}
-data.harvest <- read.csv (here ("reports/scenarios/data", "volume_actual_itcha_scenario_March2020.csv"))
-data.harvest <- data.harvest %>%
-                  filter (SCALE_YEAR > 2016)
-ggplot (data.harvest, aes (x = SCALE_YEAR, y = volume_m3)) +
-  geom_point () + 
-  geom_line () +  
-  # geom_smooth () + 
-  facet_grid (. ~TFL_TSA_NAME) +
-  labs (title = "Figure 2. Actual Volume of Timber Harvest Billed in the Quesnel and 
-Williams Lake TSA's", 
-        x = "Year", 
-        y = "Billed Volume (m3)",
-        caption = "Quesnel AAC = 2,607,000m3                                         Williams Lake AAC = 3,000,000") +
-  scale_y_continuous (labels = comma,
-                      breaks = seq (1500000, 2500000, by = 500000)) +
-  scale_x_continuous (breaks = seq (2017, 2019, by = 1))
-
-```
 
 
 ### Disturbance Indicator
 Below we summarize the disturbance indicator outputs from the CLUS model under the alternative scenarios. These indicate the area of critical habitat in each TSA that is 500m from roads and cutblocks. 
 
-#### Disturbance in Burnt Pine Critical Habitat Within TFL48
+#### TFL 48
+##### Burnt Pine
 
 
-
-
-```{r, FIG 3, TFL48 Burtn PIne disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+```{r, FIG 3, TFL48 Burnt Pine disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
 # # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
 # # compartments: TFL48, Dawson_Creek_TSA
-
 data.dist.bp <- data.dist %>%
                   filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
                     filter (critical_hab == "Burnt_Pine HESR" | critical_hab == "Burnt_Pine HEWR" |
@@ -215,31 +181,28 @@ ggplot (data.dist.tfl48.bp, aes (x = timeperiod, y = dist500_per, color = scenar
 in TFL 48 Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
-        caption = "BAU = business-as-usual scenario") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  theme (legend.position = c (0.15, 0.75),
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.07, 0.80),
          legend.title = element_text(size = 10),
-         legend.text = element_text( size = 8))
+         legend.text = element_text( size = 8)) 
 ```
   
 
 
-
-
-<<<<<<< HEAD
-#### Disturbance in Kennedy Siding Critical Habitat Within TFL48
+##### Kennedy Siding
 
 
 ```{r, FIG 4, TFL48 Kennedy Siding disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
 # # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
 # # compartments: TFL48, Dawson_Creek_TSA
-
 data.dist.ks <- data.dist %>%
                   filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
                     filter (critical_hab == "Kennedy_Siding HESR" | critical_hab == "Kennedy_Siding HEWR" |
-                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding Matrix")
+                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding LEWR" |
+                            critical_hab == "Kennedy_Siding Matrix")
 data.dist.tfl48.ks <- data.dist.ks %>%
                         filter (compartment == "TFL48")
 ggplot (data.dist.tfl48.ks, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
@@ -249,23 +212,23 @@ ggplot (data.dist.tfl48.ks, aes (x = timeperiod, y = dist500_per, color = scenar
 in TFL 48 Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
-        caption = "BAU = business-as-usual scenario") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  theme (legend.position = c (0.15, 0.75),
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
          legend.title = element_text(size = 10),
          legend.text = element_text( size = 8))
 ```
 
 
-#### Disturbance in Klinse-Za Critical Habitat Within TFL48
+
+##### Klinse-Za
 
 
 ```{r, FIG 5, TFL48 Klinse-Za disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
 # # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
 # # compartments: TFL48, Dawson_Creek_TSA
-
 data.dist.kz <- data.dist %>%
                   filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
                     filter (critical_hab == "Moberly HESR" | critical_hab == "Moberly HEWR" |
@@ -279,82 +242,299 @@ ggplot (data.dist.tfl48.kz, aes (x = timeperiod, y = dist500_per, color = scenar
 in TFL 48 Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
-        caption = "BAU = business-as-usual scenario") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  theme (legend.position = c (0.15, 0.75),
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
          legend.title = element_text(size = 10),
          legend.text = element_text( size = 8))
 ```
 
 
-#### Disturbance in Qunitette Critical Habitat Within TFL48
 
+##### Quintette
 
 ```{r, FIG 6, TFL48 Quintette disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-=======
-
-
-
-```{r, FIG 3, TFL48 Burtn PIne disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
->>>>>>> 4c8e90adfe288741dd8cd5369abeba620fa7a053
-data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
 # # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
 # # compartments: TFL48, Dawson_Creek_TSA
-
-<<<<<<< HEAD
 data.dist.q <- data.dist %>%
                   filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
                     filter (critical_hab == "Quintette HESR" | critical_hab == "Quintette HEWR" |
-                            critical_hab == "Quintette HEWSR" | critical_hab == "Quintette Matrix")
+                            critical_hab == "Quintette HEWSR" | critical_hab == "Quintette LEWR" | 
+                            critical_hab == "Quintette Matrix")
 data.dist.tfl48.q <- data.dist.q %>%
                         filter (compartment == "TFL48")
 ggplot (data.dist.tfl48.q, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
   labs (title = "Figure 6. Proportion of Area Disturbed in Quintette Critical Habitat 
-=======
-data.dist.bp <- data.dist %>%
-                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
-                    filter (critical_hab == "Kennedy_Siding HESR" | critical_hab == "Kennedy_Siding HEWR " |
-                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding Matrix")
-data.dist.tfl48.bp <- data.dist.bp %>%
-                        filter (compartment == "TFL48")
-ggplot (data.dist.tfl48.bp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
-  geom_line (position = position_dodge (width = 1)) + 
-  facet_grid (. ~critical_hab) +
-  labs (title = "Figure 3. Proportion of Area Disturbed in Burnt Pine Critical Habitat 
->>>>>>> 4c8e90adfe288741dd8cd5369abeba620fa7a053
 in TFL 48 Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
-        caption = "BAU = business-as-usual scenario") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  theme (legend.position = c (0.15, 0.75),
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
          legend.title = element_text(size = 10),
          legend.text = element_text( size = 8))
 ```
 
 
+##### Narraway
+
+```{r, FIG 7, TFL48 Narraway disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.n <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Narraway HESR" | critical_hab == "Narraway HEWR" |
+                            critical_hab == "Narraway HEWSR" | critical_hab == "Narraway LEWR" | 
+                              critical_hab == "Narraway Matrix")
+data.dist.tfl48.n <- data.dist.q %>%
+                        filter (compartment == "TFL48")
+ggplot (data.dist.tfl48.n, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 7. Proportion of Area Disturbed in Narraway Critical Habitat 
+in TFL 48 Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
 
 
-<<<<<<< HEAD
-                         
+#### Dawson Creek TSA
+##### Burnt Pine
+
+```{r, FIG 8, Dawson Creek TSA Burnt Pine disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+data.dist.bp <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Burnt_Pine HESR" | critical_hab == "Burnt_Pine HEWR" |
+                            critical_hab == "Burnt_Pine HEWSR" | critical_hab == "Burnt_Pine Matrix")
+data.dist.dc.bp <- data.dist.bp %>%
+                        filter (compartment == "Dawson_Creek_TSA")
+ggplot (data.dist.dc.bp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 8. Proportion of Area Disturbed in Burnt Pine Critical Habitat 
+in Dawson Creek TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+ 
+        
+##### Kennedy Siding
+
+```{r, FIG 9, Dawson Creek TSA Kennedy Siding disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.ks <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Kennedy_Siding HESR" | critical_hab == "Kennedy_Siding HEWR" |
+                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding LEWR" |
+                            critical_hab == "Kennedy_Siding Matrix")
+data.dist.dc.ks <- data.dist.ks %>%
+                        filter (compartment == "Dawson_Creek_TSA")
+ggplot (data.dist.dc.ks, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 9. Proportion of Area Disturbed in Kennedy Siding Critical Habitat 
+in Dawson Creek TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+        
+
+##### Klinse-Za
+
+```{r, FIG 10, Dawson Creek TSA Klinse-Za disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.kz <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Moberly HESR" | critical_hab == "Moberly HEWR" |
+                            critical_hab == "Moberly HEWSR" | critical_hab == "Moberly Matrix")
+data.dist.dc.kz <- data.dist.kz %>%
+                        filter (compartment == "Dawson_Creek_TSA")
+ggplot (data.dist.dc.kz, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 10. Proportion of Area Disturbed in Kline-Za Critical Habitat 
+in Dawson Creek TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.06, 0.85),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+        
+        
+##### Quintette
+
+```{r, FIG 11, Dawson Creek TSA Quintette disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.q <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Quintette HESR" | critical_hab == "Quintette HEWR" |
+                            critical_hab == "Quintette HEWSR" | critical_hab == "Quintette LEWR" | 
+                            critical_hab == "Quintette Matrix")
+data.dist.dc.q <- data.dist.q %>%
+                        filter (compartment == "Dawson_Creek_TSA")
+ggplot (data.dist.dc.q, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 11. Proportion of Area Disturbed in Quintette Critical Habitat 
+in Dawson Creek TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+        
+        
+##### Narraway
+
+```{r, FIG 12, Dawson Creek Narraway disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.n <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Narraway HESR" | critical_hab == "Narraway HEWR" |
+                            critical_hab == "Narraway HEWSR" | critical_hab == "Narraway LEWR" | 
+                            critical_hab == "Narraway Matrix")
+data.dist.dc.n <- data.dist.n %>%
+                        filter (compartment == "Dawson_Creek_TSA")
+ggplot (data.dist.dc.n, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 12. Proportion of Area Disturbed in Narraway Critical Habitat 
+in Dawson Creek TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+
+        
+#### MacKenzie TSA
+##### Kennedy Siding
+
+```{r, FIG 13, MacKenzie TSA Kennedy Siding disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+data.dist.ks <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Kennedy_Siding HESR" | critical_hab == "Kennedy_Siding HEWR" |
+                            critical_hab == "Kennedy_Siding HEWSR" | critical_hab == "Kennedy_Siding LEWR" |
+                            critical_hab == "Kennedy_Siding Matrix")
+data.dist.mac.ks <- data.dist.ks %>%
+                        filter (compartment == "MacKenzie_TSA")
+ggplot (data.dist.mac.ks, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 13. Proportion of Area Disturbed in Kennedy Siding Critical Habitat 
+in MacKenzie TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+         
+  
+##### Klinse-Za
+
+```{r, FIG 14, MacKenzie TSA Klinse-Za disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.kz <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Moberly HESR" | critical_hab == "Moberly HEWR" |
+                            critical_hab == "Moberly HEWSR" | critical_hab == "Moberly Matrix")
+data.dist.mac.kz <- data.dist.kz %>%
+                        filter (compartment == "MacKenzie_TSA")
+ggplot (data.dist.mac.kz, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 14. Proportion of Area Disturbed in Kline-Za Critical Habitat 
+in MacKenzie TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.06, 0.85),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
+        
+
+    
+
+  
+        
+
+
+
+
+
+
+
+
+
+
 
 #### Displacement of Disturbance to Graham and Hart Ranges Critical Habitat in TFL 48
 Putting disturbance constraints on the management zones could displace forestry activity and thus disturbance to other caribou herds' critical habitat without those constraints.
 
 
-r
 
 
 
-```{r, FIG 7, TFL48 displaced disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
-data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200528.csv"))
+
+```{r, FIG 15, TFL48 displaced disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
 # # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
 # # compartments: TFL48, Dawson_Creek_TSA
-
 data.dist.disp <- data.dist %>%
                   filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
                     filter (critical_hab == "Graham HESR" | critical_hab == "Graham HEWSR" |
@@ -364,34 +544,66 @@ data.dist.tfl48.disp <- data.dist.disp %>%
 ggplot (data.dist.tfl48.disp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 7. Proportion of Area Disturbed in Graham and Hart Ranges Critical Habitat 
+  labs (title = "Figure 15. Proportion of Area Disturbed in Graham and Hart Ranges Critical Habitat 
 in TFL 48 Under the Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
-        caption = "BAU = business-as-usual scenario") + 
-  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Harvest")) +
-  theme (legend.position = c (0.15, 0.75),
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.15, 0.15),
          legend.title = element_text(size = 10),
          legend.text = element_text( size = 8))
 ```
 
 
+```{r, FIG 16, Dawson Creek displaced disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.disp <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Graham HESR" | critical_hab == "Graham HEWSR" |
+                            critical_hab == "Graham Matrix" | critical_hab == "Hart_Ranges HEWSR")
+data.dist.dc.disp <- data.dist.disp %>%
+                          filter (compartment == "Dawson_Creek_TSA")
+ggplot (data.dist.dc.disp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 16. Proportion of Area Disturbed in Graham and Hart Ranges Critical Habitat 
+in Dawson Creek TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
 
-=======
-[11]    Moberly HESR          Moberly HEWR          Moberly HEWSR        
-[16] Moberly Matrix        Quintette HESR        Quintette HEWR        Quintette HEWSR       Quintette Matrix 
 
-
-
-
-
-
-   Graham HESR          
- [6] Graham HEWSR          Graham Matrix         Hart_Ranges HEWSR    
- 
->>>>>>> 4c8e90adfe288741dd8cd5369abeba620fa7a053
- 
-     
-
-
+```{r, FIG 17, MacKenzie displaced disturbance scenario compare, echo = F, error = F, eval = T, include = T, message = F, warning = F}
+data.dist <- read.csv (here ("reports/scenarios/data", "disturbance_central_group_20200601.csv"))
+# # scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# # compartments: TFL48, Dawson_Creek_TSA
+data.dist.disp <- data.dist %>%
+                  filter (scenario == "cg_bau_a3_rNA" | scenario == "cg_partner_agreement_a3_r40") %>%
+                    filter (critical_hab == "Graham HESR" | critical_hab == "Graham HEWSR" |
+                            critical_hab == "Graham Matrix" | critical_hab == "Hart_Ranges HEWSR")
+data.dist.mac.disp <- data.dist.disp %>%
+                          filter (compartment == "MacKenzie_TSA")
+ggplot (data.dist.mac.disp, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Figure 17. Proportion of Area Disturbed in Graham and Hart Ranges Critical Habitat 
+in MacKenzie TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario; PA = Partnership Agreement") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "PA")) +
+  theme (legend.position = c (0.08, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```
