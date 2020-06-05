@@ -49,7 +49,8 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     createsOutput("landings", "SpatialPoints", "This describes a series of point locations representing the cutblocks or their landings", ...),
-    createsOutput("landingsArea", "numeric", "This creates a vector of area in ha for each landing", ...)
+    createsOutput("landingsArea", "numeric", "This creates a vector of area in ha for each landing", ...),
+    createsOutput(objectName = "updateInterval", objectClass = "numeric", desc = NA)
     #createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
 ))
@@ -87,6 +88,7 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
 Init <- function(sim) {
   sim$landings <- NULL
   sim$landingsArea <- NULL
+  sim$updateInterval<- 1 #this object is defined in growingStockCLUS
   return(invisible(sim))
 }
 

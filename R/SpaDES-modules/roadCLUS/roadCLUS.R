@@ -218,12 +218,11 @@ getCostSurface<- function(sim){
   conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
   costSurf<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
-  
-  sim$costSurface[sim$costSurface[] == 0]<-0.00000000001 #giving some weight to roaded areas
+  sim$costSurface[sim$costSurface[] == 0]<- 0.00000000001 #giving some weight to roaded areas
   
   #Add in the age
   age<-sim$ras
-  age[]<-dbGetQuery(sim$clusdb, "SELECT age from pixels order by pixelid;")$age
+  age[]<-abs(dbGetQuery(sim$clusdb, "SELECT age from pixels order by pixelid;")$age)
   age[]<-(1/(age[] + 1))*800
   
   sim$costSurface <- sim$costSurface + age
@@ -553,7 +552,9 @@ addInitialRoadsTable<- function(sim) {
   if(!suppliedElsewhere("boundaryInfo", sim)){
     sim$boundaryInfo<-list("public.gcbp_carib_polygon","herd_name","Telkwa","geom")
   }
-
+  if(!suppliedElsewhere("updateInterval", sim)){
+    sim$updateInterval<-5
+  }
   return(invisible(sim))
 }
 

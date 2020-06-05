@@ -61,15 +61,24 @@ reportList<-reactive({
   data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
   
   data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
-    sum(dist500) as dist500, sum(dist) as dist, sum(dist/(dist_per/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+    sum(dist500) as dist500, sum(dist) as dist, sum(dist/((dist_per+0.000001)/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
   
   data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
+  
+  data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+  data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
+ round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent 
+                                    FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+  
+  
 
 list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
        growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
        rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
        survival = data.survival,
-       disturbance = data.disturbance)
+       disturbance = data.disturbance,
+       fire = data.fire,
+       fire2=data.fire2)
 })
 
 radarList<-reactive({
@@ -480,7 +489,80 @@ observeEvent(input$getMapLayersButton, {
               )# change seasonal values
   })
   
+  output$fireByYearPlot <- renderPlotly ({
+    withProgress(message = 'Making Plot', value = 0.1,{
+    data<-reportList()$fire
+    # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
+    #print(data)
+    
+    p<-ggplot(data, aes (x=year, y=proportion.burn)) +
+      facet_wrap(.~herd_bounds, ncol = 4)+
+      geom_bar(stat="identity",width=1) +
+      #geom_line(col="grey")+
+      #geom_bar(stat="identity", width=0.7) +
+      xlab ("Year") +
+      ylab ("Proportion of area burned") +
+      scale_x_continuous(limits = c(1925, 2025), breaks = seq(1925, 2025, by = 75))+
+      scale_y_continuous(limits = c(0, 45), breaks = seq(0, 45, by = 20))+
+      theme_bw()+
+      theme (legend.title = element_blank())
+    ggplotly(p, height = 900) %>% 
+      layout (legend = list (orientation = "h", y = -0.1),
+              margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  })
   
+  output$firecummulativePlot <- renderPlotly ({
+    withProgress(message = 'Making Plot', value = 0.1,{
+      data<-reportList()$fire
+      
+      
+      ##Calculating cummulative area burned over a 40 year moving window for each herd across each habitat type 
+      Years<-1919:2018
+      window_size<-40
+      
+      Fire_cummulative <- data.frame (matrix (ncol = 3, nrow = 0))
+      colnames (Fire_cummulative) <- c ("herd_bounds","cummulative.area.burned","year")
+      
+      for (i in 1:(length(Years)-window_size)) {
+        fire.summary<-data %>% filter(year<=(Years[i]+window_size)) %>% 
+          group_by (herd_bounds) %>% 
+          summarize(cummulative.area.burned=sum(proportion.burn))
+        fire.summary$year<-Years[i]+window_size
+        
+        Fire_cummulative<-rbind(Fire_cummulative,as.data.frame(fire.summary))
+      }
+      #print(Fire_cummulative)
+      
+      p<-ggplot(Fire_cummulative, aes (x=year, y=cummulative.area.burned)) +
+        facet_wrap(.~herd_bounds, ncol = 4)+
+        #geom_line (col="grey") +
+        #geom_point()+
+        geom_bar(stat="identity", width=1) +
+        xlab ("Year") +
+        ylab ("Cummulative proportion of area burned < 40 years") +
+        scale_x_continuous(limits = c(1960, 2020), breaks = seq(1960, 2020, by = 30)) +
+        scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  })
+ 
+  output$fireTable <-DT::renderDataTable({
+    dat<-reportList()$fire2 
+    names_col<-names(dat)
+    dat<-dat %>%
+      datatable( extensions = 'Buttons', 
+    options = list(dom = 'Bfrtip',
+                   buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))) %>%
+     formatStyle(names_col,  color = 'black', fontWeight = 'bold')
+    return(dat)
+  })
+      
   output$radar<- renderPlotly ({
     
   radarLength<<-1:nrow(radarList()) 

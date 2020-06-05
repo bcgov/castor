@@ -33,6 +33,25 @@ options(scipen=999)
 # read in fire data
 fire.bound<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\fire_sum_crithab.csv",header=FALSE,col.names=c("area_m2","HERD_NAME","habitat","year"))
 head(fire.bound)
+fire.bound$Herd_name<-fire.bound$HERD_NAME
+
+fire.bound$Herd_name<-sub("_", " ", fire.bound$Herd_name) # this replaces the first instance of "_" it finds with " "
+fire.bound$Herd_name<-sub("_", " ", fire.bound$Herd_name) # this replaces the 2nd instance
+
+fire.bound<- fire.bound %>% mutate(Herd_name1 = if_else(Herd_name == "Itcha Ilgachuz","Itcha-Ilgachuz", Herd_name))
+
+fire.bound<- data.table(fire.bound)
+fire.bound[, herd_bounds:= paste(Herd_name1, habitat, sep=" ")]
+
+
+fire.bound.dt<-fire.bound %>% select(c("herd_bounds","year","area_m2"))
+
+# write data to the virtual machine
+#conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
+
+#dbWriteTable(conn,c("public","fire"),fire.bound, overwrite=T,row.names = FALSE)
+
+#dbDisconnect(conn)
 
 Herd_name<-c("Central_Selkirks","Columbia_North","Groundhog", "Monashee", "Purcell_Central", "Purcell_South","South_Selkirks","Wells_Gray_South","Columbia_South","Hart_Ranges","North_Cariboo","Telkwa","Wells_Gray_North","Central_Rockies","Charlotte_Alplands","Itcha_Ilgachuz","Rainbows","Barkerville","Narrow_Lake","Frisby_Boulder","Redrock_Prairie_Creek")
 Years<-1919:2018
@@ -47,8 +66,11 @@ Herd_names<-list()
 Year_start<-list()
 Year_end<-list()
 habitat<-list()
+cummulative_area_m2<-list()
 mean_area_m2<-list()
 
+Fire_results_cummulative <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (Fire_results_cummulative) <- c ("herd_name","habitat","year", "cummulative_area","cummulative_area_proportion" )
 
 for (i in 1:length(Herd_name)){
   
@@ -56,21 +78,29 @@ for (i in 1:length(Herd_name)){
     
     for (k in 1:(length(Years)-window_size)){
       
-     ave_area<-fire.bound %>%
-     filter(year<=(Years[k]+window_size), HERD_NAME==Herd_name[i],habitat==habitat_types[j]) %>%
-     summarise(mean(area_m2))
+     ave_area1<-fire.bound %>%
+     filter(year<=(Years[k]+window_size), HERD_NAME==Herd_name[i],habitat==habitat_types[j])
+     ave_area<-mean(ave_area1$area_m2)
+     
+     cummulative_area<-fire.bound %>%
+       filter(year<=(Years[k]+window_size), HERD_NAME==Herd_name[i],habitat==habitat_types[j]) 
+     cummulative_area_summed<-sum(cummulative_area$area_m2)
+     
+     
+     
     # 40 yr movingwindow dataset
      Herd_names<-append(Herd_names,Herd_name[i])
      Year_start<-append(Year_start,Years[k])
      Year_end<-append(Year_end,Years[k]+window_size)
      habitat<-append(habitat,habitat_types[j])
      mean_area_m2<-append(mean_area_m2,ave_area)
+     cummulative_area_m2<-append(cummulative_area_m2,cummulative_area_summed)
   
     }
   }
 }
 
-df<-cbind(Herd_names,Year_start,Year_end,habitat,mean_area_m2)
+df<-cbind(Herd_names,Year_start,Year_end,habitat,mean_area_m2,cummulative_area_m2)
 df2<-as.data.frame(df)
 df3<-df2 %>% filter(mean_area_m2!="NaN")
 
@@ -79,6 +109,7 @@ df3$Year_start<-as.numeric(df3$Year_start)
 df3$Year_end<-as.numeric(df3$Year_end)
 df3$habitat<-as.character(df3$habitat)
 df3$mean_area_m2<-as.numeric(df3$mean_area_m2)
+df3$cummulative_area_m2<-as.numeric(df3$cummulative_area_m2)
 str(df3)
 
 ##------------------------------------------
@@ -96,7 +127,7 @@ for(i in 1:length(Herd_name)){
   x<-df3 %>% filter(Herd_names==Herd_name[i],habitat==habitat_types[j])
   if(dim(x)[1]>0) {
 
-  m <- lm(mean_area_m2 ~ Year_end, x);
+  m <- lm(cummulative_area_m2 ~ Year_end, x);
   intercept_val = format(unname(coef(m)[1]), digits = 2)
   slope_val = format(unname(coef(m)[2]), digits = 2)
   r2_val = format(summary(m)$r.squared, digits = 3)
@@ -132,7 +163,7 @@ foo<-df3 %>% filter(Herd_names==Herd_name[i])
 foo_line<-lm_table %>% filter(Herd_name_tab==Herd_name[i],habitat_tab=="Matrix")
 foo_line2<-lm_table %>% filter(Herd_name_tab==Herd_name[i],habitat_tab=="HEWSR")
 
-plot<-ggplot(foo, aes(x=Year_end, y=mean_area_m2,colour=habitat)) +
+plot<-ggplot(foo, aes(x=Year_end, y=cummulative_area_m2,colour=habitat)) +
   geom_point(size=3,alpha=0.5) +
   geom_line(alpha=0.2,size=1) +
   geom_abline(data=foo_line,aes(slope=slope,intercept=intercept,colour="Matrix"))+
