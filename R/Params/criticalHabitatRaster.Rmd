@@ -18,9 +18,29 @@ prov.rast <- raster::raster(
 
 ## Purpose
 
-The critical habitat raster specifies the spatial zones used to summarize rsfCLUS outputs. In the case of caribou the critical habitats refer to core low elevation winter, core low elevation summer, core high elevation winter/summer, matrix etc.
+Here we develop rasters that specify the location of caribou herds and critical habitat types across British Columbia. When running the dataLoaderCLUS module, the herd and critical habitat areas that overlap the timber supply unit of interest get imported into the SQLite database as 'zones' in the 'pixels' table of the database (see [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)). These data provide spatial areas to summarize information and apply constraints related to caribou, for example, habitat disturbance indicators.   
 
-## BC line work
+Caribou herd boundaries are essentially the outer spatial boundaries of habitat used by the same group or 'sub-population' of caribou, and they are typically surveyed together to estimate population numbers.    
+
+Caribou critical habitat has not been defined for all cariobu herds in BC, but where it has been delineated, it typically occurs within herd boundaries, is divided into various types, including:
+- high elevation winter and summer range (HEWSR)
+- high elevation winter range (HEWR)
+- high elevation summer range (HESR)
+- low elevation winter range (LEWR)
+- low elevation summer range (LESR)
+- matrix
+
+Caribou critical habitat boudnaries have been defined independently by the government of Canada and more recently, by the government of British Columbia. Both types are create below.
+
+## Caribou critical habitat
+### British Columbia
+- this data is currently (as of June 2020) 'draft' and not for distribution
+
+
+
+
+
+
 
 ```{r, sm.cg}
 #Canadian (Federal) contraints
@@ -339,3 +359,8 @@ dbDisconnect(conn)
 #upload to db
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/test.tif -t 100x100 rast.zone_cond_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```
+
+
+
+- need anotehr column in one of the tables 
+
