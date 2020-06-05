@@ -97,6 +97,8 @@ herds_new_name<-c("Snake_Sahtaneh", "Calendar", "Maxhamish","Parker","Chinchaga"
 
 filenames<-list()
 
+# 15 May 2020 Previously I tried sampling points every 750m but my glmer's had really crazy structure and it seems like the structure is coming from something related to the landscape so I decided to test this by sampling points at a different scale. Here I chose to try sampling points every 500m. Fingers crossed this helps.
+
 for (j in 1:length(herds)) {
   
   focal.herd<-caribou.range.buff.25km.sf.bc %>%
@@ -122,7 +124,7 @@ for (j in 1:length(herds)) {
       # change sf feature to a SpatialPolygonDataFrame
       foo3_sp<-as(foo3, "Spatial")
       class(foo3_sp)
-      samp_points <- spsample (foo3_sp, cellsize = c (750, 750), type = "regular")
+      samp_points <- spsample (foo3_sp, cellsize = c (500, 500), type = "regular")
       samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("sample.point", "avail.ecotype","year","HERD_NAME","du")
       samp_points_new$sample.point <- 1
@@ -184,7 +186,7 @@ for (j in 1:length(herds)) {
       foo_sp<-as(foo,"Spatial")
       foo_sp_f<-gUnionCascaded(foo_sp)
 
-      samp_points <- spsample (foo_sp_f, cellsize = c (300, 300), type = "regular")
+      samp_points <- spsample (foo_sp_f, cellsize = c (200, 200), type = "regular")
       samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("sample.point", "avail.ecotype","year","HERD_NAME","du")
       samp_points_new$sample.point <- 1
@@ -212,6 +214,8 @@ samp_locations_df$pttype<-0
 samp_locations_Tyler_points_df$pttype<-1
 
 all.samp.points<-rbind(samp_locations_df,samp_locations_Tyler_points_df)
+all.samp.points$ptID<-1:(length(all.samp.points$year))
+all.samp.points2<-all.samp.points[,c(6,8,2:5)]
 
 
 
@@ -222,7 +226,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-st_write (obj = all.samp.points, 
+st_write (obj = all.samp.points2, 
           dsn = conn, 
           layer = c ("caribou", "bc_caribou_samp_pnts_herd_boundaries"),
           overwrite=TRUE)
