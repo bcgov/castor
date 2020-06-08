@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+library (here)
+source (here ("R/functions/R_Postgres.R"))
 library(tidyverse)
 prov.rast <- raster::raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
@@ -17,10 +18,9 @@ prov.rast <- raster::raster(
 ```
 
 ## Purpose
+Here we develop rasters that specify the location of caribou herds and critical habitat types across British Columbia. When running the dataLoaderCLUS module, the herd and critical habitat areas that overlap the timber supply unit of interest get imported into the output SQLite database as 'zones' columns in the 'pixels' table of the database (see [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)). These data provide spatial areas to summarize information and apply constraints related to caribou, for example, habitat disturbance indicators.   
 
-Here we develop rasters that specify the location of caribou herds and critical habitat types across British Columbia. When running the dataLoaderCLUS module, the herd and critical habitat areas that overlap the timber supply unit of interest get imported into the SQLite database as 'zones' in the 'pixels' table of the database (see [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)). These data provide spatial areas to summarize information and apply constraints related to caribou, for example, habitat disturbance indicators.   
-
-Caribou herd boundaries are essentially the outer spatial boundaries of habitat used by the same group or 'sub-population' of caribou, and they are typically surveyed together to estimate population numbers.    
+Caribou herd boundaries are essentially the outer spatial boundaries of habitat used by an ecologically similar group or 'sub-population' of caribou, and they are typically surveyed together to estimate population numbers.    
 
 Caribou critical habitat has not been defined for all cariobu herds in BC, but where it has been delineated, it typically occurs within herd boundaries, is divided into various types, including:
 - high elevation winter and summer range (HEWSR)
@@ -30,26 +30,24 @@ Caribou critical habitat has not been defined for all cariobu herds in BC, but w
 - low elevation summer range (LESR)
 - matrix
 
-Caribou critical habitat boudnaries have been defined independently by the government of Canada and more recently, by the government of British Columbia. Both types are create below.
+Caribou critical habitat boudnaries have been defined independently by the government of Canada and more recently, by the government of British Columbia. Both types are created below.
 
 ## Caribou critical habitat
 ### British Columbia
+- delineated by provincial cariou biologists 
 - this data is currently (as of June 2020) 'draft' and not for distribution
 
+#### Scenario 1
+- below is for a scenario where  no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix in BC critical habitat
 
+```{r, scenario: bc critical habitat, no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix}
+# BC critical habitat 
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;") # old version
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # spatial critical habitat polygon data
 
-
-
-
-
-```{r, sm.cg}
-#Canadian (Federal) contraints
-#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
-
-#all
+#all - create the raster for each herd and critical habitat type
 all.bc<-bc.crit
-all.bc$crithab<-paste(all.bc$herd_name, all.bc$bchab_code)
+all.bc$crithab<-paste(all.bc$herd_name, all.bc$bchab_code) # create unique id ("value") for each unique herd name and habitat type
 all.vat<-data.table(unique(all.bc$crithab))
 setnames(all.vat, "V1", "crithab")
 all.vat[, value:= seq_len(.N)]
@@ -57,22 +55,20 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 DBI::dbWriteTable(conn, c("public", "criticalhabitat_bc_vat"), value= all.vat, row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
-all.bc2<-merge(all.bc, all.vat, by.x = "crithab",by.y = "crithab")
+all.bc2<-merge(all.bc, all.vat, by.x = "crithab",by.y = "crithab") # merge id with the polygon data
 
-ras.all.bc <-fasterize::fasterize(all.bc2, prov.rast, field = "value") #this is a
+ras.all.bc <-fasterize::fasterize(all.bc2, prov.rast, field = "value") # rasterzie the polygon data to the provicnal raster
 writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
-
-
 #c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
-herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek")
+herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek") # list of herd names in the polygon data; can customize the list to add/remove
 
 #herds<-c("Narrow_Lake","North_Cariboo")
-for(herd in herds){
+for(herd in herds){ # create a table of the constraints for each herd; shoudl this be for (i in herds)? not sure where herd comes from
   bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
                                              herd,"',]")))
-  vat<-data.table(unique(bc.crit.selected$bchab_code))
+  vat<-data.table(unique(bc.crit.selected$bchab_code)) # create value table for each unique herd name and habitat type  
   setnames(vat, "V1", "crithab")
   vat[, zoneid:= seq_len(.N)]
   
@@ -80,17 +76,17 @@ for(herd in herds){
   DBI::dbWriteTable(conn, c("public", paste0("criticalhabitat_",tolower(herd),"_vat")), value= vat, row.names = FALSE, overwrite = TRUE)
   dbDisconnect(conn)
   
-  bc.crit.selected2 <-merge(bc.crit.selected, vat, by.x = "bchab_code",by.y = "crithab")
-  ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected2, prov.rast, field = "zoneid")
+  bc.crit.selected2 <-merge(bc.crit.selected, vat, by.x = "bchab_code",by.y = "crithab") # merge id with the polygon data
+  ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected2, prov.rast, field = "zoneid") #
 
-  eccc.vat<-vat
-  eccc.vat[, reference_zone:= paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab')]
-  eccc.vat[, variable:= 'dist']
-  eccc.vat[, type:= 'ge']
+  eccc.vat<-vat # create a constraint for a specific scenario; here the scenario is "ECCC" for the federal recovery plan 
+  eccc.vat[, reference_zone:= paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab')] # zone name field
+  eccc.vat[, variable:= 'dist'] # 'dist' is the distance to constraint type
+  eccc.vat[, type:= 'ge'] # greater than or equal to (ge), less than or equal to (le)
   eccc.vat[, ndt:= 0]
-  eccc.vat[, threshold:= 500]
-  eccc.vat[ crithab %in% c('Matrix'), percentage:= 85]
-  eccc.nh.zones<-eccc.vat[is.na(percentage), zoneid]
+  eccc.vat[, threshold:= 500] # threshold from disturbance (500 m)
+  eccc.vat[ crithab %in% c('Matrix'), percentage:= 85] # percentage of area where constraint applies, e.g., in this case, 85% ge 500m
+  eccc.nh.zones<-eccc.vat[is.na(percentage), zoneid] # where there is no constaint, make it a 'no harvest' zone
   
   ras.eccc<-ras.bc.crit.selected
   ras.eccc[ras.eccc[] %in% eccc.nh.zones]<-0
@@ -154,9 +150,10 @@ for(herd in herds){
 ```
 
 
+#### Scenario 2
+- below is for a scenario where there is no harvest in any BC critical habitat
 
-### No harvest in any critical habitat 
-```{r, noharvet}
+```{r, scenario: bc critical habitat, no harvest}
 #Canadian (Federal) contraints
 #bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
 bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
@@ -172,7 +169,7 @@ bc.crit.selected$zoneid<-0
 ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected, prov.rast, field = "zoneid")
 writeRaster(ras.bc.crit.selected , "rasnhcrit.tif", overwrite = TRUE)
 
-zone.eccc.crithab<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_nh_crit_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+zone.eccc.crithab<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_nh_crit_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0) # makes each zone no harvest
 zone.eccc.crithab<-zone.eccc.crithab[,zoneid:=as.integer(zoneid)]
 zone.eccc.crithab<-zone.eccc.crithab[,ndt:=as.integer(ndt)]
 zone.eccc.crithab<-zone.eccc.crithab[,threshold:=as.numeric(threshold)]
@@ -188,6 +185,60 @@ DBI::dbWriteTable(conn, c("public", paste0("zone_nh_crit_",tolower(herd),"_crith
 
 }
 ```
+
+#### Scenario 3
+- below is for a scenario where there is no harvest BC herd boundaries
+
+```{r, scenario: bc herd boundaries, no harvest}
+
+#----- code chunk below to get herd boundary data into postgres from a gdb
+# herd.bounds <- sf::st_read(dsn = "//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/bc_critical_habitat/BC_Caribou_Linework_v20200507.gdb",
+# layer = "BC_caribou_herd_boundary_v20200507")                           
+# conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# DBI::dbWriteTable(conn, c("public", "BC_caribou_herd_boundary_v20200507"), value= herd.bounds, row.names = FALSE, overwrite = TRUE)
+# dbDisconnect(conn)
+#-----
+
+bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
+herds<-c(unique (bc.bounds$herd_name))
+
+for (herd in herds){
+bc.bounds.selected <- eval (parse (text = paste0("bc.bounds[bc.bounds$herd_name == '", 
+                                          herd,"',]")))
+bc.bounds.selected$zoneid <- 0
+  
+ras.bc.bounds.selected <-fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
+writeRaster (ras.bc.bounds.selected , "ras_herd_bounds.tif", overwrite = TRUE)
+
+zone.bc.bounds.nh <- data.table (zoneid = 0, # makes each zone no harvest
+                                 reference_zone = paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'), 
+                                 ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0) 
+zone.bc.bounds.nh <- zone.bc.bounds.nh [, zoneid := as.integer (zoneid)]
+zone.bc.bounds.nh <- zone.bc.bounds.nh [, ndt := as.integer (ndt)]
+zone.bc.bounds.nh <- zone.bc.bounds.nh [, threshold := as.numeric (threshold)]
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get ('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable (conn, c("public", paste0("zone_bc_bounds_",tolower(herd),"_nh")), 
+                   value = zone.bc.bounds.nh, row.names = FALSE, overwrite = TRUE)
+dbExecute (conn, paste0 ("ALTER TABLE zone_bc_bounds_", tolower (herd),"_nh INHERIT zone_constraints"))
+dbDisconnect (conn)
+
+#upload to db
+system ("cmd.exe", 
+        input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                       here::here(), '/R/params/ras_herd_bounds.tif -t 100x100', 
+                       paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+}
+```
+
+
 
 ---
 
@@ -366,5 +417,5 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 
 
 
-- need anotehr column in one of the tables 
+☻
 
