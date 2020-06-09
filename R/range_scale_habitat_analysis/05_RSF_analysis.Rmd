@@ -184,13 +184,25 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU7 Distance to Cutblock Correlation")
 
 
-# du8 nothing is too correlated
+# du8 correlated so reduced distance to cut to 1 to 40 yo cut
+
+du8 <- dplyr::mutate (du8, distance_to_cut_6to40yo = pmin (distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
+
 du8<- Range_scale_data1 %>% filter(du=="du8")
 dist.cut.corr <- (du8 [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU8 Distance to Cutblock Correlation")
+
+du8 <- dplyr::mutate (du8, distance_to_cut_1to40yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo,distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
+
+dist.cut.corr <- (du8 [c (68,70)])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "DU8 Distance to Cutblock Correlation")
+
 
 
 # in du9 roads and old cutblocks are correlated so Ill remove roads
@@ -201,12 +213,29 @@ p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU9 Distance to Cutblock Correlation")
 
-dist.cut.corr <- (du9 [c (65:67)])
+du9 <- dplyr::mutate (du9, distance_to_cut_6to40yo = pmin (distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
+
+dist.cut.corr <- (du9 [c (65,67:69)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU9 Distance to Cutblock Correlation")
 
+du9 <- dplyr::mutate (du9, distance_to_cut_1to40yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo,distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
+
+dist.cut.corr <- (du9 [c (68,70)])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "DU9 Distance to Cutblock Correlation")
+
+# distance to cut is correlated with distance to road no matter how I split up distance to cut so Ill remove distance to road now
+
+dist.cut.corr <- (du9 [c (65:67)])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "DU9 Distance to Cutblock Correlation")
 
 ```
 
@@ -234,7 +263,7 @@ count.herd.range <- du6  %>%
 
 summary_du6 <- du6 %>% 
   group_by(HERD_NAME, pttype) %>% 
-  summarise(mean=mean(distance_to_road),
+  summarise(mean_dist_to_road=mean(distance_to_road),
             sd = sd(distance_to_road),
             count = sum(cnt),
             se= sd(distance_to_road)/(sqrt(sum(cnt))))
@@ -389,47 +418,6 @@ ggarrange(p1, p2,p3,p4, ncol=2, nrow=2,labels=c("A","B","C","D"))
 ```
 
 
-```{r}
-binnedplot (du6$distance_to_road,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to road", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
-binnedplot (du6$distance_to_cut_1to5yo,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to cutblock", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (du6$distance_to_cut_6to10yo,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to cutblock", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-binnedplot (du6$distance_to_cut_11to40yo,
-            du6$pttype,
-             nclass = NULL, 
-             xlab = "Distance to cutblock", 
-             ylab = "point type", 
-             main = "DU6 Model Binned Residual Plot", 
-             cex.pts = 0.4, 
-             col.pts = 1, 
-             col.int = "red")
-
-```
-
 
 
 #### Caribou-Forestry Disturbance Model
@@ -441,6 +429,72 @@ There were statistically significant (P < 0.05) positive population-level effect
 
 # determined specification of model using Harrison et al.2018 (https://peerj.com/articles/4794/)
 
+model.glm.du6 <- glm (pttype ~ log(distance_to_road+0.001) +
+                                         log(distance_to_cut_1to5yo+0.001) +
+                                         log(distance_to_cut_6to10yo+0.001) +
+                                         log(distance_to_cut_11to40yo+0.001) + 
+                        HERD_NAME + year,
+                                      data = du6, 
+                                      family = binomial (link = "logit"))
+
+binnedplot (fitted(model.glm.du6), 
+            residuals(model.glm.du6, type="response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_road, 
+            residuals(model.glm.du6, type="response"), 
+             nclass = NULL, 
+             xlab = "Distance to roads (km)", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_cut_1to5yo, 
+            residuals(model.glm.du6, type="response"), 
+             nclass = NULL, 
+             xlab = "Distance to cut 1-5yo (km)", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+
+binnedplot (du6$distance_to_cut_6to10yo, 
+            residuals(model.glm.du6, type="response"), 
+             nclass = NULL, 
+             xlab = "Distance to cut 6-10yo (km)", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot (du6$distance_to_cut_11to40yo, 
+            residuals(model.glm.du6, type="response"), 
+             nclass = NULL, 
+             xlab = "Distance to cut 6-10yo (km)", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+
+```
+
+#### Caveats
+Note that the model fit is fairly bad, as Fig. \@ref(fig:du6-model-fitted-vs-residual) shows the relationship betwen the fitted and residual values is mostly well beyond the bounds of the binned confidence intervals suggesting that this model fits poorly.
+
+```{r du6-model-fitted-vs-residual, echo = F, message = F, eval = T}
 model.lme4.du6.cut.rd.yr <- glmer (pttype ~ distance_to_road +
                                          distance_to_cut_1to5yo +
                                          distance_to_cut_6to10yo +
@@ -459,12 +513,7 @@ VarCorr(model.lme4.du6.cut.rd.yr)
 du6$residual_val<-residuals(model.lme4.du6.cut.rd.yr, type = "response")
 du6$fitted_val<-fitted(model.lme4.du6.cut.rd.yr)
 
-```
 
-#### Caveats
-Note that the model fit is fairly bad, as Fig. \@ref(fig:du6-model-fitted-vs-residual) shows the relationship betwen the fitted and residual values is mostly well beyond the bounds of the binned confidence intervals suggesting that this model fits poorly.
-
-```{r du6-model-fitted-vs-residual, echo = F, message = F, eval = T}
 binnedplot (du6$fitted_val, 
             du6$residual_val, 
              nclass = NULL, 
@@ -797,6 +846,51 @@ ggplot (du7, aes (x = as.factor(pttype), y = distance_to_cut_1to40yo)) +
 
 #### Caribou-Forestry Disturbance Model
 There was no relationship between caribou use and distance to road (P=0.49) (Table \@ref(tab:du7-fix-eff-coef), Fig. \@ref(fig:random-fixed-effects-du7)A). The model indicated a weakly significant (P=0.084) effect of 1 to 5 year old cutblocks on caribou distribution.  Thus, on average, across caribou individuals and herds, caribou used areas further from 1 to 5 year old cutblocks (note that a positive coefficient is a negative effect, because the covariate is a 'distance to' metric) (Table \@ref(tab:du7-fix-eff-coef), Fig. \@ref(fig:random-fixed-effects-du7)B). Lastly, the model indicated a strongly significant (P<<0.0001) positive effect of 6 to 40 year old cutblocks on caribou, suggesting that caribou avoided 6 to 40 year old cutblocks (Table \@ref(tab:du7-fix-eff-coef), Fig. \@ref(fig:random-fixed-effects-du7)C).
+
+```{r du7 glm model, echo = T, message = F, eval = T, cache=TRUE}
+# model spec
+# varying intercept and slope for each factor. Essentially I am assuming that a increase in 1 of resource road is not the same in each herd (slopes are allowed to vary)
+
+# determined specification of model using Harrison et al.2018 (https://peerj.com/articles/4794/)
+
+model.glm.du7 <- glm (pttype ~ (distance_to_road) +
+                        (distance_to_cut_1to40yo) + 
+                        HERD_NAME + 
+                        year,
+                      data = du7, 
+                      family = binomial (link = "logit"))
+
+binnedplot (fitted(model.glm.du7), 
+            residuals(model.glm.du7, type="response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot ((du7$distance_to_road), 
+            residuals(model.glm.du7, type="response"), 
+             nclass = NULL, 
+             xlab = "Distance to roads (km)", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+binnedplot ((du7$distance_to_cut_1to40yo), 
+            residuals(model.glm.du7, type="response"), 
+             nclass = NULL, 
+             xlab = "Distance to cut 1-40yo (km)", 
+             ylab = "Average residual", 
+             main = "DU6 Model Binned Residual Plot", 
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
+
+```
 
 ```{r du7-model, echo = T, message = F, eval = T, cache=TRUE}
 # model spec
