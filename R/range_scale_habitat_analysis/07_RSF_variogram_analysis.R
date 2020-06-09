@@ -1,3 +1,16 @@
+# 9 June 2020 This is a description of what I have tried. The code below is rather all over the place. 
+
+# First I tried plotting semivariograms for several herds. The first thing I discovered is that to remove spatial autocorrelation I will need to sample at unreasonably large scales e.g. at around 80km. This suggested to me that the spatial autocorrelation is comming from the y side of my equation i.e. the used and unused points are clustered in space. You can see this clearly if you create bubble plots of the residuals with negative and positive residuals having different colors. 
+
+# after I realized that the autocorrelation is comiing from the y i decided to look at what my alternative options are to fix this. I came across three good papers 
+#1.) Dormann et al. Methods to account for spatial autocorrelation in the analysis of species distributional data: a review. Ecography 2007.
+#2.) Beale et al. Regression analysis of spatial data. Ecology Letters 2010
+#3.) Hawkins Eight (and a half) deadly sins of spatial analysis. J. Biogeogr 2012
+
+# after reading these (especially the top two) I decided to try to
+
+
+
 library (dplyr)
 library (ggplot2)
 library (lme4)
