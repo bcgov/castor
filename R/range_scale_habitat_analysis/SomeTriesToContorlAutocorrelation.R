@@ -190,3 +190,129 @@ binnedplot (Narraway$distance_to_cut_6to40yo,
             cex.pts = 0.4, 
             col.pts = 1, 
             col.int = "red")
+
+# I also plotted semivariograms
+coordinates(Narraway_new)=~lat+lon
+v1<-variogram(resid1~lat+lon, Narraway_new,alpha=c(0,45,90,135))
+plot(v1, main="X-Y smoothing term")
+
+
+# I tried running a gam with a smoothing term with latitude and longitude to accound to spatial patterns
+# e.g. below
+# this helped quite a bit but did not remove the spatial autocorrelation entirely.
+
+gam1<-gam(pttype~distance_to_road + 
+            distance_to_cut_1to5yo +
+            distance_to_cut_6to10yo +
+            distance_to_cut_11to40yo + 
+            s(individual, bs="re") +
+            #s(year, bs="re") +
+            s(lat,lon) ,
+          family = binomial(link="logit"),
+          data = Narraway 
+)
+
+# lastly I tried including a glmmpql with a correlation term to account for cells that are closer together being more similar than cells futher away. There are various correlation structures that can be specified e.g. linear, exponential, gaussian, spherical, and ratio. I tried them all.
+
+# construct models with correlation structure
+
+library(MASS)
+library(nlme)
+
+modelbase<-glmmPQL(pttype ~ distance_to_road + 
+                     distance_to_cut_1to5yo +
+                     distance_to_cut_6to10yo +
+                     distance_to_cut_11to40yo, 
+                   random=~1|individual,
+                   data = Narraway8, 
+                   family = binomial (link = "logit"))
+summary(modelbase)
+plot(Variogram(modelbase), main="uncorrelated")
+Narraway8$resid<-residuals(modelbase, type="normalized")
+
+
+model1<-glmmPQL(pttype ~ distance_to_road + 
+                  distance_to_cut_1to5yo +
+                  distance_to_cut_6to10yo +
+                  distance_to_cut_11to40yo, 
+                random=~1|individual,
+                correlation=corAR1(),
+                data = Narraway, 
+                family = binomial (link = "logit"))
+summary(model1)
+plot(Variogram(model1), main="corAR1")
+
+
+model2<-glmmPQL(pttype ~ distance_to_road + 
+                  distance_to_cut_1to5yo +
+                  distance_to_cut_6to10yo +
+                  distance_to_cut_11to40yo, 
+                random=~1|individual,
+                correlation=corExp(),
+                data = Narraway, 
+                family = binomial (link = "logit"))
+summary(model2)
+plot(Variogram(model2), main="Exponential")
+
+binnedplot(Narraway$distance_to_road,resid(model2))
+binnedplot(Narraway$distance_to_cut_1to5yo,resid(model2))
+binnedplot(Narraway$distance_to_cut_6to10yo,resid(model2))
+plot(Narraway$distance_to_cut_11to40yo,resid(model2))
+
+
+
+
+Narraway16$resid1<-residuals(model1, type="normalized")
+coordinates(Narraway16)=~lat+lon
+v1<-variogram(resid1~lat+lon, Narraway16,alpha=c(0,45,90,135))
+plot(v1, main="Exponential correlation")
+
+model2<-glmmPQL(pttype ~ distance_to_road + 
+                  distance_to_cut_1to5yo +
+                  distance_to_cut_6to10yo +
+                  distance_to_cut_11to40yo, 
+                random=~1|year,
+                correlation=corGaus(form=~lat+lon, nugget=T),
+                data = Narraway, 
+                family = binomial (link = "probit"))
+summary(model2)
+Narraway$resid2<-residuals(model2, type="normalized")
+v2<-variogram(resid2~lat+lon, Narraway)
+plot(v2, main="Gaussian correlation")
+
+model3<-glmmPQL(pttype ~ distance_to_road + 
+                  distance_to_cut_1to5yo +
+                  distance_to_cut_6to10yo +
+                  distance_to_cut_11to40yo, 
+                random=~1|year,
+                correlation=corSpher(form=~x+y, nugget=T),
+                data = Narraway16, 
+                family = binomial (link = "probit"))
+summary(model3)
+Narraway16$resid<-residuals(model3, type="normalized")
+coordinates(Narraway16)=~lat+lon
+v3<-variogram(resid~lat+lon, Narraway16)
+plot(v3, main="Spherical correlation")
+
+
+model4<-glmmPQL(pttype ~ distance_to_road + 
+                  distance_to_cut_1to5yo +
+                  distance_to_cut_6to10yo +
+                  distance_to_cut_11to40yo, 
+                random=~1|year,
+                correlation=corRatio(form=~x+y, nugget=T),
+                data = Narraway16, 
+                family = binomial (link = "probit"))
+summary(model4)
+Narraway16$resid<-residuals(model4, type="normalized")
+coordinates(Narraway16)=~lat+lon
+v4<-variogram(resid~lat+lon, Narraway16)
+plot(v4, main="Rational Quadratic correlation")
+
+vroad<-variogram(distance_to~lat+lon, Narraway16)
+
+
+
+
+summary(gam1)
+
