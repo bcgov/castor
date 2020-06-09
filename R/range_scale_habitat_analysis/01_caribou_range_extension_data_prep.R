@@ -124,7 +124,7 @@ for (j in 1:length(herds)) {
       # change sf feature to a SpatialPolygonDataFrame
       foo3_sp<-as(foo3, "Spatial")
       class(foo3_sp)
-      samp_points <- spsample (foo3_sp, cellsize = c (500, 500), type = "regular")
+      samp_points <- spsample (foo3_sp, cellsize = c (2000, 2000), type = "regular")
       samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("sample.point", "avail.ecotype","year","HERD_NAME","du")
       samp_points_new$sample.point <- 1
@@ -186,7 +186,7 @@ for (j in 1:length(herds)) {
       foo_sp<-as(foo,"Spatial")
       foo_sp_f<-gUnionCascaded(foo_sp)
 
-      samp_points <- spsample (foo_sp_f, cellsize = c (200, 200), type = "regular")
+      samp_points <- spsample (foo_sp_f, cellsize = c (2000, 2000), type = "regular")
       samp_points_new <- data.frame (matrix (ncol = 5, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("sample.point", "avail.ecotype","year","HERD_NAME","du")
       samp_points_new$sample.point <- 1
