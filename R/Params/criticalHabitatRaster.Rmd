@@ -24,11 +24,12 @@ The critical habitat raster specifies the spatial zones used to summarize rsfCLU
 
 ```{r, sm.cg}
 #Canadian (Federal) contraints
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
 
 #all
 all.bc<-bc.crit
-all.bc$crithab<-paste(all.bc$Herd_Name, all.bc$BCHab_code)
+all.bc$crithab<-paste(all.bc$herd_name, all.bc$bchab_code)
 all.vat<-data.table(unique(all.bc$crithab))
 setnames(all.vat, "V1", "crithab")
 all.vat[, value:= seq_len(.N)]
@@ -44,9 +45,10 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 
 
 
-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
+#c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
+herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek")
 
-herds<-c("Narrow_Lake","North_Cariboo")
+#herds<-c("Narrow_Lake","North_Cariboo")
 for(herd in herds){
   bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
                                              herd,"',]")))
@@ -136,9 +138,11 @@ for(herd in herds){
 ### No harvest in any critical habitat 
 ```{r, noharvet}
 #Canadian (Federal) contraints
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
 
-herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
+#herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
+herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek")
 
 for(herd in herds){
 bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 

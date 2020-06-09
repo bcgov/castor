@@ -60,7 +60,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there a
     eventType,
     init = {
       sim <- Init (sim) # this function inits two new data.tables in the RSQLite db: rsfCovar and rsf; clips the RSF boundary by the analysis area boundary (e.g., TSA); then clips each RSF area to the area of analysis (e.g., TSA)
-      sim <- predictRSF (sim) # this function predicts each unique RSF 
+      sim <- predictInitRSF (sim) # this function predicts each unique RSF 
       sim <- scheduleEvent (sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     calculateRSF = {
@@ -442,30 +442,90 @@ checkRasters <- function(sim) {
   return(invisible(sim))
 }
 
+predictInitRSF <- function(sim){
+  #Loop through each population and season to predict its resource selection probability at each applicable pixel
+  message("predicting RSF")
+  rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
+  for(i in 1:nrow(rsfPops)){ # for each unique RSF
+    expr2 <- parse(text = paste0(rsfPops[[2]][[i]])) # get the critical habitat object
+    
+    #predict the rsf using the glm object and rsfcovar
+    pred_rsf<-cbind(sim$rsfcovar[, eval(expr2)], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+    setnames(pred_rsf, c("crit_hab" , "rsf_hat")) # name each rsf prediction appropriately
+
+    #store the min and max values of the raster
+    rsf_model_coeff[rsf == rsfPops[[1]][[i]], minv:= min(pred_rsf[,2], na.rm = TRUE) ] 
+    rsf_model_coeff[rsf == rsfPops[[1]][[i]], maxv:= max(pred_rsf[,2], na.rm = TRUE) ] 
+ 
+    #scale the rsf predictions between 0 and 1
+    minv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "minv"][1])
+    maxv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "maxv"][1])
+    pred_rsf<-pred_rsf[!is.na(rsf_hat),rsf_hat:=(rsf_hat-minv)/(maxv-minv)]
+
+    #sum the rsf with and without a threshold of 0.75
+    rsfdt.all<- pred_rsf[!is.na(rsf_hat), sum(rsf_hat), by = crit_hab]
+    setnames(rsfdt.all, c("critical_hab", "sum_rsf_hat"))
+    rsfdt.75<-pred_rsf[rsf_hat > 0.75, sum(rsf_hat), by = crit_hab]
+    setnames(rsfdt.75, c("critical_hab", "sum_rsf_hat_75"))
+    
+    #format the report
+    rsfdt<-merge(rsfdt.all,rsfdt.75, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
+    rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
+    rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
+    rsfdt[, scenario:=scenario$name]
+    rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
+    sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
+    
+    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
+      out.ras<-sim$ras
+      out.ras[]<-pred_rsf$rsf_hat
+      writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
+      rm(out.ras)
+    }#----------------------------------------------
+    
+    #Remove the prediction
+    rm(pred_rsf,rsfdt.all,rsfdt.75,rsfdt)
+  }
+  return(invisible(sim))
+}
+
 predictRSF <- function(sim){
   #Loop through each population and season to predict its resource selection probability at each applicable pixel
   message("predicting RSF")
   rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
- 
-  test3<<-sim$rsfcovar
+  
   for(i in 1:nrow(rsfPops)){ # for each unique RSF
-    expr <- parse(text = paste0(rsfPops[[1]][[i]]))
-    expr2 <- parse(text = paste0(rsfPops[[2]][[i]]))
+    expr2 <- parse(text = paste0(rsfPops[[2]][[i]])) # get the critical habitat object
     
+    #predict the rsf using the glm object and rsfcovar
     pred_rsf<-cbind(sim$rsfcovar[, eval(expr2)], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
-    setnames(pred_rsf, c(paste0(rsfPops[[2]][[i]]) , paste0(rsfPops[[1]][[i]]))) # name each rsf prediction appropriately
-    rsfdt<-data.table( pred_rsf[!is.na(eval(expr)), sum(eval(expr)), by = eval(expr2)])
-   
+    setnames(pred_rsf, c("crit_hab" , "rsf_hat")) # name each rsf prediction appropriately
+    
+    #scale the rsf predictions between 0 and 1
+    minv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "minv"][1])
+    maxv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "maxv"][1])
+    pred_rsf<-pred_rsf[!is.na(rsf_hat),rsf_hat:=(rsf_hat-minv)/(maxv-minv)]
+    pred_rsf<-pred_rsf[rsf_hat<0,rsf_hat:=0]
+    pred_rsf<-pred_rsf[rsf_hat>1,rsf_hat:=1]
+    
+    #sum the rsf with and without a threshold of 0.75
+    rsfdt.all<- pred_rsf[!is.na(rsf_hat), sum(rsf_hat), by = crit_hab]
+    setnames(rsfdt.all, c("critical_hab", "sum_rsf_hat"))
+    rsfdt.75<-pred_rsf[rsf_hat > 0.75, sum(rsf_hat), by = crit_hab]
+    setnames(rsfdt.75, c("critical_hab", "sum_rsf_hat_75"))
+    
+    #format the report
+    rsfdt<-merge(rsfdt.all,rsfdt.75, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
     rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
     rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
-    setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "timeperiod", "rsf_model"))
     rsfdt[, scenario:=scenario$name]
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
-
+    rsf<<-sim$rsf
+    
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras
-      out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
+      out.ras[]<-pred_rsf$rsf_hat 
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
       rm(out.ras)
     }#----------------------------------------------
