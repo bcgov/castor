@@ -31,23 +31,20 @@ library(velox)
 library(SpaDES.core)
 library(data.table)
 source(paste0(here::here(), "/R/functions/R_Postgres.R"))
-#aoi_herds<-c("Barkerville", "Central_Selkirks", "Central_Rockies", "Columbia_North", "Columbia_South", "Frisby_Boulder", "Groundhog", "Hart_Ranges", "Narrow_Lake", "North_Cariboo", "Purcells_South", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
-#aoi_herds<-c("Kennedy_Siding", "Moberly", "Narraway") #DU8
-aoi_herds<-c("Graham", "Rainbows") #DU7
-
-for(herd in aoi_herds){
 setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
-setPaths(outputPath  = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/outputs"))  
+setPaths(outputPath  = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/outputs"))
+
+
 times <- list(start = 0, end = 43)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
-                         nameBoundaryFile="bc_caribou_linework_v20200507_shp_core_matrix",
+                         nameBoundaryFile="bc_caribou_core_matrix_habitat_v20190904_1",
                          nameBoundaryColumn="herd_name",
-                         nameBoundary = herd,
+                         nameBoundary = "Central_Rockies",
                          nameBoundaryGeom='wkb_geometry'
                     ),
     roadCLUS = list(roadMethod = 'pre', 
@@ -78,11 +75,11 @@ parameters <-  list(
   )
 
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
-rsf_model_coeff[, population:= herd]
+rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')"))
+rsf_model_coeff[, population:= 'Central_Rockies']
 rsf_model_coeff[, bounds:= 'rast.bc_crithab']
 
-scenario = data.table(name=herd, description = "historical disturbances")
+scenario = data.table(name="Central_Rockies", description = "historical disturbances")
 modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS", "survivalCLUS", "rsfCLUS", "disturbanceCalcCLUS", "uploaderCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
@@ -94,9 +91,9 @@ outputs <- list()
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
 #outputs(mySim) <- data.frame(objectName = c("rsf", "disturbanceReport", "tableSurvival"))
-
+system.time({
 mysimout<-spades(mySim)
-}
+})
 ```
 
 # Dependendices
