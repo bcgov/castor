@@ -205,12 +205,7 @@ ui <- dashboardPage(skin = "black",
          box(title="Fire history 1919 - 2018",collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "red", width =12,
              plotlyOutput(outputId = "fireByYearPlot", height = "400px")
           )
-        ),
-       fluidRow(
-         box(title="40 year cummulative area burned",collapsible = TRUE,  collapsed = TRUE, solidHeader = TRUE,background = "red", width =12,
-             plotlyOutput(outputId = "firecummulativePlot", height = "400px")
-         )
-       )
+        )
       ),
       tabItem(tabName = "insects",
         fluidRow(
