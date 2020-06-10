@@ -191,16 +191,8 @@ DBI::dbWriteTable(conn, c("public", paste0("zone_nh_crit_",tolower(herd),"_crith
 
 ```{r, scenario: bc herd boundaries, no harvest}
 
-#----- code chunk below to get herd boundary data into postgres from a gdb
-# herd.bounds <- sf::st_read(dsn = "//spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/bc_critical_habitat/BC_Caribou_Linework_v20200507.gdb",
-# layer = "BC_caribou_herd_boundary_v20200507")                           
-# conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-# DBI::dbWriteTable(conn, c("public", "BC_caribou_herd_boundary_v20200507"), value= herd.bounds, row.names = FALSE, overwrite = TRUE)
-# dbDisconnect(conn)
-#-----
-
-bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
-herds<-c(unique (bc.bounds$herd_name))
+bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_herd_boundary_v20200507;") # data from cariobu prorgam; uploaded into postgres via ogr2ogr
+herds <- c(unique (bc.bounds$herd_name))
 
 for (herd in herds){
 bc.bounds.selected <- eval (parse (text = paste0("bc.bounds[bc.bounds$herd_name == '", 
@@ -210,9 +202,10 @@ bc.bounds.selected$zoneid <- 0
 ras.bc.bounds.selected <-fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
 writeRaster (ras.bc.bounds.selected , "ras_herd_bounds.tif", overwrite = TRUE)
 
-zone.bc.bounds.nh <- data.table (zoneid = 0, # makes each zone no harvest
+zone.bc.bounds.nh <- data.table (zoneid = 0, # zoneid of 0 makes each zone no harvest
                                  reference_zone = paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'), 
-                                 ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0) 
+                                 ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0, 
+                                 multi_condition = '') 
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, zoneid := as.integer (zoneid)]
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, ndt := as.integer (ndt)]
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, threshold := as.numeric (threshold)]
@@ -232,8 +225,12 @@ dbDisconnect (conn)
 #upload to db
 system ("cmd.exe", 
         input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
-                       here::here(), '/R/params/ras_herd_bounds.tif -t 100x100', 
-                       paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+                       here::here(), '/R/Params/ras_herd_bounds.tif -t 100x100 ', 
+                       paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'),' | psql postgres://', 
+                       keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', 
+                       keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', 
+                       keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), 
+        show.output.on.console = FALSE, invisible = TRUE)
 
 }
 ```
