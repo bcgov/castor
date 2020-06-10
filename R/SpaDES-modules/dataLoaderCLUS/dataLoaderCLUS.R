@@ -492,6 +492,10 @@ setTablesCLUSdb <- function(sim) {
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
+      }else{
+        multiVars<-''
+        multiVars2<-''
+        multiVars1<-NULL
       }
       if(length(forest_attributes_clusdb) > 0){
         print(paste0("getting inventory attributes: ", paste(forest_attributes_clusdb, collapse = ",")))
@@ -506,15 +510,16 @@ setTablesCLUSdb <- function(sim) {
         #Merge to pixels using the pixelid
         pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
         pixels<-pixels[, fid:=NULL]#remove the fid key
-  
-        for(var in multiVars1){
-          if(is.character(pixels[, eval(parse(text =var))])){
-            dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " text;"))
-          }else{
-            dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " numeric;"))
+        
+        if(!is.null(multiVars1)){
+          for(var in multiVars1){
+            if(is.character(pixels[, eval(parse(text =var))])){
+              dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " text;"))
+            }else{
+              dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " numeric;"))
+            }
           }
         }
-        
         rm(inv, attrib_inv,inv_id, fids)
       }else{
         stop("No forest attributes from the inventory specified")
