@@ -15,9 +15,7 @@ prov.rast <- raster::raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(layeraoi)$proj4string, resolution = c(100, 100), vals = 0)
 
-```
-# get data
-```{r, data4}
+
 forest.tenure<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Lakes TSA', 'Morice TSA', 'Bulkley TSA', 'Williams Lake TSA', 'Kamloops TSA', '100 Mile House TSA', 'Golden TSA', 'Revelstoke TSA', 'Okanagan TSA', 'Kootenay Lake TSA', 'Invermere TSA', 'Cranbrook TSA', 'Arrow TSA', 'Dawson Creek TSA', 'Robson Valley TSA') or tsb_number in ('24C', '24D','24E','24F','24G','24H','24I', '16A', '16B', '16C', '16D', '16E', '16F', '16G', '16H', '16I', '16J', '16K', '16P')")
 
 forest.tenure2<-forest.tenure %>% group_by ( tsa_name) %>% summarise()
@@ -63,16 +61,7 @@ mackenzie_sw$tsa_name<-'MacKenzie SW TSA'
 mackenzie_sw <-mackenzie_sw %>% group_by (tsa_name) %>% summarise()
 st_crs(mackenzie_sw)
 
-###TFLs
-tfl <-getSpatialQuery("SELECT for_fl_id as tsa_name, wkb_geometry FROM tfl_all_polygon")
-tfl<-tfl%>% group_by (tsa_name) %>% summarise()
-plot(tfl["tsa_name"]) 
-```
-
-#Combine them into one dataset
-```{r, mergethem}
-
-forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko, tfl) 
+forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko) 
 
 forest.tenure.vat<-unique(forest.tenure3$tsa_name)
 forest.tenure.vat2<-unlist(lapply(forest.tenure.vat, function(x){
@@ -90,8 +79,8 @@ setnames(forest.tenure4, c("tsa_name2"), c("tsa_name"))
 #Call value tsa_number
 forest.tenure5<-forest.tenure4
 setnames(forest.tenure5, c("value"), c("tsa_number"))
-st_write(forest.tenure5, "forest_tenures.shp", delete_layer=TRUE)
-#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres password=postgres" C:\Users\klochhea\clus\R\Params\forest_tenures.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+st_write(forest.tenure5, "forest_ten.shp", delete_layer=TRUE)
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=klochhea" C:\Users\klochhea\clus\R\Params\forest_ten.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 #Alter table forest_ten rename to tsa_aac_bounds;
 #GRANT ALL ON TABLE public.tsa_aac_bounds TO postgres;
 #GRANT ALL ON TABLE public.tsa_aac_bounds TO clus_project;
