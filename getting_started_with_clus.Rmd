@@ -83,6 +83,12 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
 #### Caribou Habitat Model
 - if going to use the cariobu habtait model (resource selection function (RSF)), then need to define which [designatble unit the caribou herds are a part of](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.2323))
 
+
+### Modules
+- in dataLoaderCLUS rmd, need to specify the modules you want to be able to run from the database
+  - also need to set the parameters of these modules
+  - blockingCLUS set to blockMethod = 'pre' to use the pre-blocking algorithm.....
+  - roadCLUS, set roadMethod to 'pre' to create the road netowrk based on landings to the blocks; need to defien a costs surface raster for creatign roads,a dn teh name of the  raster of teh exsitign roads (rast.crds_all)
     
     
 

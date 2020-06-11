@@ -81,7 +81,7 @@ parameters <-  list(
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'pre', 
+  roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network usign a a minimum spanning tree to all potential 'ladndings (created in blockingCLUS)
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'
                   ),
