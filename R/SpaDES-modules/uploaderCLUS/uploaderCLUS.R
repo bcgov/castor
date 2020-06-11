@@ -94,6 +94,7 @@ Init <- function(sim) {
     #Create the schema and all the tables
     dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "uploaderCLUS", "aoiName"),";"))
     dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO clus_project;"))
     #Create the tables
     tableList = list(state = data.table(aoi=character(), compartment=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
                     scenarios = data.table(scenario =character(), description= character()), 
@@ -108,6 +109,7 @@ Init <- function(sim) {
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
+      dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to clus_project;"))
     }
     
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
@@ -175,6 +177,7 @@ save.rasters <-function (sim){
     commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), schema = P(sim, "uploaderCLUS", "aoiName"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to clus_project;"))
     
     ##roads
     if(!is.null(sim$roads)){
@@ -183,6 +186,7 @@ save.rasters <-function (sim){
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to clus_project;"))
     
     }
     ##zoneConstraint
@@ -191,6 +195,8 @@ save.rasters <-function (sim){
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
                  P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to clus_project;"))
+    
     ##rsfEND
   }
   return(invisible(sim)) 
