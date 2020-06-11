@@ -205,7 +205,7 @@ writeRaster (ras.bc.bounds.selected , "ras_herd_bounds.tif", overwrite = TRUE)
 zone.bc.bounds.nh <- data.table (zoneid = 0, # zoneid of 0 makes each zone no harvest
                                  reference_zone = paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'), 
                                  ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0, 
-                                 multi_condition = '') 
+                                 multi_condition = NA) 
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, zoneid := as.integer (zoneid)]
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, ndt := as.integer (ndt)]
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, threshold := as.numeric (threshold)]
@@ -217,7 +217,7 @@ conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
                         user = keyring::key_get ('dbuser', keyring = 'postgreSQL'),
                         password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
 
-DBI::dbWriteTable (conn, c("public", paste0("zone_bc_bounds_",tolower(herd),"_nh")), 
+DBI::dbWriteTable (conn, c("public", paste0("zone_bc_bounds_",tolower(herd),"_nh")), # 
                    value = zone.bc.bounds.nh, row.names = FALSE, overwrite = TRUE)
 dbExecute (conn, paste0 ("ALTER TABLE zone_bc_bounds_", tolower (herd),"_nh INHERIT zone_constraints"))
 dbDisconnect (conn)

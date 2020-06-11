@@ -34,7 +34,7 @@ library (keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_241')
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 #Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
 
 setPaths(modulePath = here::here("R/SpaDES-modules"))
@@ -60,6 +60,7 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv",
+                                             # "rast.zone_cond_cw",
                                              "rast.zone_bc_bounds_takla_noharvest",
                                              "rast.zone_bc_bounds_tweedsmuir_noharvest"), # includes parks and no harvest OGMAs
                          nameZoneTable = "zone_constraints", # table that defines teh constraints in the rasters
@@ -80,9 +81,9 @@ parameters <-  list(
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'snap', 
+  roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_resource'
+                  nameRoads =  'rast.crds_all'
                   ),
   rsfCLUS = list (calculateInterval = 1, 
                   criticalHabitatTable = "public.criticalhabitat",
@@ -97,7 +98,12 @@ parameters <-  list(
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
                                      keyring::key_get("vmdbname", keyring="postgreSQL"))),
-  yieldUncertaintyCLUS = list (elevationRaster = 'rast.dem')
+  yieldUncertaintyCLUS = list (elevationRaster = 'rast.dem'),
+  disturbanceCalcCLUS = list(calculateInterval = 1, 
+                             criticalHabitatTable = "public.criticalhabitat_bc_vat",
+                             criticalHabRaster = "rast.bc_crithab",
+                             permDisturbanceRaster = "rast.perm_dist_rds",
+                             recovery = 40)
   )
 
 rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
@@ -116,8 +122,8 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
-#modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "rsfCLUS", "survivalCLUS", "uploaderCLUS")
-modules <- list("dataLoaderCLUS", "roadCLUS")
+modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "rsfCLUS", "survivalCLUS", "uploaderCLUS", "disturbanceCalcCLUS")
+#modules <- list("dataLoaderCLUS", "roadCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, scenario = scenario)
