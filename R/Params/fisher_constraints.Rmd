@@ -1,0 +1,229 @@
+---
+title: "fisher_constraints"
+author: "Kyle"
+date: "01/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+source(paste0(here::here(), "/R/functions/R_Postgres.R"))
+#Get a provincial raster that follows the extent standard
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(getSpatialQuery("Select * from bc_carib_poly_20090904 limit 1"))$proj4string, resolution = c(100, 100), vals = 0)
+```
+
+## Purpose
+
+This work documents the intital version of the constraint set needed to strategize fisher habitat requirements. The following describes the range, habitat zone, territories and critical habitat used to characterize these requirements.
+
+**Range** includes the natural resource districts:
+
+*	Coast: Sea to Sky, Sunshine Coast, Campbell River, North Island – Central Coast
+
+*	North: Mackenzie, Stuart Nechako, Prince George, Coast Mountains, Nadina
+
+* South: 100 Mile House, Cariboo – Chilcotin, Quesnel, Rocky Mountain, Selkirk, Cascades, Okanagan Shuswap, Thompson Rivers
+
+**Habitat zone** the area that is within the range of fishers and is located in a biogeoclimatic zones or subzone. **Territory** means the area providing a female fisher with all her habitat requirements. Size requirements vary by fisher habitat zone
+```{r, constraints}
+knitr::kable(rbindlist(list(data.table(habitat_zone=c('sub-boreal Habitat Zone: Moist or wet'),bec_zone=c('SBS','SBS','SBS','SBS'), subzone=c('wk','mk','mm','mw'), territory_size=50), data.table(habitat_zone=c('Sub-boreal Habitat Zone: Dry'),bec_zone=c('SBS','SBS','SBS'), subzone=c('dw','dh','dk'), territory_size=25),data.table(habitat_zone=c('Dry Forest Habitat Zone'),bec_zone=c('SBPS','SBPS','SBPS','SBPS', 'IDF', 'IDF', 'IDF','IDF','IDF', 'MS','MS','MS','MS','MS','MS'), subzone=c('xc','mc','dc','mk','dk','dc','mw','dw','ww','xc','xk','dv','dm','dk','dc'), territory_size=30))))
+```
+
+
+**Critical habitat** includes the following categories:
+```{r, categories}
+knitr::kable(data.table(critical_habitat = c('Reproductive Denning Habitat', 'Resting Habitat: Rust broom sites', 'Resting Habitat: Cavity sites', 'Resting Habitat: Coarse woody habitat','Movement Habitat'),description = c('Cavities required to successfully give birth and rear young', 'Secure locations required during daily activity bouts', 'Secure locations required during daily activity bouts','Secure locations required during daily activity bouts','Required to safely travel between important habitats within and between territories')) )
+```
+
+Fisher habitat requirements must meet the following constraints:
+
+* Within a 12-year period the net area of harvesting within a fisher territory can not exceed 10%. **This will be modelled in CLUS as per each fisher territory the age <= 12 years must be less than equal to 10%** 
+
+* The total area each habitat category affected by the cutblocks does not fall below that values described below within the area related to the cutblocks.**This will be modelled in CLUS as per each fisher territory as area not eligible for harvesting in a given time period that meets these conditions**
+
+```{r, cutblock_area}
+knitr::kable(data.table(habitat_zone=c('sub-boreal Habitat Zone: Moist or wet'),critical_habitat=c('Reproductive Denning Habitat', 'Resting Habitat: Rust broom sites', 'Resting Habitat: Cavity sites', 'Resting Habitat: Coarse woody habitat','Movement Habitat'),attribute=c('age','age','height', 'age'), type=c('ge'), threshold=c(125,135,35,135), percentage =c(4.9, 21.9, 0.2, 28.2, 61.2)))
+```
+
+* Meet the minimum reserve tree requirements in fisher habitat zones are as follows (Insert Table here). If minimum reserve tree requirements cannot be met within the stand the deficiencies will be made up by the next largest available tree to provide for recruitment.
+
+
+## Spatial Data
+
+The spatial layer that outlines the fisher territories was provided by Rich Weir.`ogr2ogr -f PostgreSQL PG:"dbname=xxxxxx port = xxxx user=xxxxxx password=xxxxxx" D:\Data\Fisher\xxxxx.shp -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco precision=NO`. Steps to create the spatial input into forestryCLUS.
+
+* Create a territory raster for each of the fisher ranges.
+
+### SB-wet/moist
+
+```{r, sb_wet}
+poly.sb.wet.territory<-getSpatialQuery("SELECT * from fisher_sbs_wet_moist_hex_200603;") #1941 polygons
+ras.sb.wet.territory <-fasterize::fasterize(poly.sb.wet.territory, prov.rast, field = "ogc_fid") 
+writeRaster(ras.sb.wet.territory, "fisher_sb_wet.tif", overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_sb_wet.tif -t 100x100 rast.zone_cond_fisher_sb_wet | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+sb.wet.vat<-data.table(zoneid = 1:1941, reference_zone= 'rast.zone_cond_fisher_sb_wet',
+variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = 'NA')
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_fisher_sb_wet"), value= sb.wet.vat, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_fisher_sb_wet INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
+### SB-dry
+```{r, sb_dry}
+poly.sb.dry.territory<-getSpatialQuery("SELECT * from fisher_sbs_dry_hex_200603") #1313 polygons
+ras.sb.dry.territory <-fasterize::fasterize(poly.sb.dry.territory, prov.rast, field = "ogc_fid") 
+writeRaster(ras.sb.dry.territory, "fisher_sb_dry.tif", overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_sb_dry.tif -t 100x100 rast.zone_cond_fisher_sb_dry | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+sb.dry.vat<-data.table(zoneid = 1:1313, reference_zone= 'rast.zone_cond_fisher_sb_dry',
+variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = 'NA')
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_fisher_sb_dry"), value= sb.dry.vat, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_fisher_sb_dry INHERIT zone_constraints"))
+dbDisconnect(conn)
+```
+
+### Dry Forest
+```{r, dry_forest}
+poly.dry.territory<-getSpatialQuery("SELECT * from fisher_dry_forest_hex_200603") #1769 polygons
+max(poly.dry.territory$ogc_fid)
+ras.dry.territory <-fasterize::fasterize(poly.dry.territory, prov.rast, field = "ogc_fid") 
+writeRaster(ras.dry.territory, "fisher_dry.tif", overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_dry.tif -t 100x100 rast.zone_cond_fisher_dry | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dry.vat<-data.table(zoneid = 1:1769, reference_zone= 'rast.zone_cond_fisher_dry',
+variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = 'NA')
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_fisher_dry"), value= dry.vat, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_fisher_dry INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
+
+### Forest attributes from VRI
+
+The forest attributes required from the VRI include: age, height, basal area, quadratic mean diameter, crown closure, shrub cover, species and percentages - up to 3.
+
+#### Fisher forest attributes
+This id links to polygon level attribution. 
+```{r, fsher_veg_comp2019, echo = FALSE}
+#Harvest locations year
+layer<-getSpatialQuery("SELECT feature_id, quad_diam_125, proj_age_1, proj_height_1, bec_zone_code, bec_subzone, crown_closure, basal_area, species_cd_1, species_cd_2, species_cd_3,  species_cd_4, species_pct_1, species_pct_2, species_pct_3, species_pct_4, shrub_crown_closure, shape FROM public.veg_comp_lyr_r1_poly2019 where bec_zone_code in ('SBS', 'IDF', 'MS', 'SBPS') and proj_age_1 > 10")
+layer2<-layer
+layer2$shape<-NULL #get rid of geometry
+habitat<-data.table(layer2)
+```
+
+##### Denning
+```{r, denning}
+#SBS: WET
+denning.sbs.wet<- habitat[(species_cd_1 %in% c( 'ACT') | species_cd_2 %in% c( 'ACT') | (species_cd_1 %in% c('SX') & species_pct_1 == 100)) & crown_closure >= 30 & quad_diam_125 >= 28.5 & basal_area >= 29.7 & proj_age_1 >= 125 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
+
+#SBS DRY: Act leading, secondary, or tertiary species (or hybrid spruce (Sx) as only species) Crown closure ≥20% QMD_125 ≥28 cm Basal area ≥28 m²/ha Stand age ≥125 years 
+denning.sbs.dry<- habitat[(species_cd_1 %in% c( 'ACT') | species_cd_2 %in% c( 'ACT') | (species_cd_1 %in% c('SX') & species_pct_1 == 100)) & crown_closure >= 20 & quad_diam_125 >= 28 & basal_area >= 28 & proj_age_1 >= 125 & bec_zone_code == 'SBS' & bec_subzone %in% c('dw','dh','dk'), "feature_id"]
+
+#DRY FOREST: cottonwood (Act) denning stands:Act leading or secondary species.Stand age ≥135 years 
+#Trembling aspen (At) denning stands:At leading or secondary species Stand age ≥135 years
+#Douglas-fir (Fd) denning stands:Fd as only species, Crown closure ≥20% QMD_125 ≥34.3 cm, Stand age ≥207 years
+denning.dry.for<- habitat[(species_cd_1 %in% c( 'ACT') | species_cd_2 %in% c( 'ACT') & proj_age_1 >= 135) | ((species_cd_1 %in% c('FDI', 'FD') & species_pct_1 == 100) & proj_age_1 >= 207 & crown_closure >= 20 & quad_diam_125 >= 34.3) & bec_zone_code %in% c('SBPS', 'IDF','MS') & bec_subzone %in% c('mc','mk','dk','dc','mw','dw','ww','xc','xk','dv','dm'), "feature_id"]
+
+denning<-rbindlist(list(denning.dry.for,denning.sbs.dry, denning.sbs.wet))
+denning<-unique(denning$feature_id)
+denning.poly<-layer[layer$feature_id %in% denning,]
+denning.poly$denning<-1
+denning.ras <-fasterize::fasterize(denning.poly, prov.rast, field = "denning") 
+writeRaster(denning.ras, file="denning.tif", format="GTiff", overwrite=TRUE)
+```
+
+##### Resting: Rust Brooms
+```{r, rust_brooms}
+#SBS: WET. Hybrid spruce (Sx) leading, secondary, or tertiary species. Crown closure ≥30% QMD_125 ≥22.7 cm Basal area ≥35 m²/ha Stand age ≥135 years Stand height ≥23.7 m
+rest.rust.sbs.wet<- habitat[(species_cd_1 %in% c('SX') | species_cd_2 %in% c('SX') | species_cd_3 %in% c('SX') ) & crown_closure >= 30 & quad_diam_125 >= 22.7 & basal_area >= 35 & proj_age_1 >= 135 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
+
+#SBS DRY: Sx leading, secondary, or tertiary species Crown closure ≥25% QMD_125 ≥19.6 cm Basal area ≥32 m²/ha Stand age ≥72 years
+rest.rust.sbs.dry<- habitat[(species_cd_1 %in% c('SX') | species_cd_2 %in% c('SX') | species_cd_3 %in% c('SX') ) & crown_closure >= 25 & quad_diam_125 >= 19.6 & basal_area >= 32 & proj_age_1 >= 72 & bec_zone_code == 'SBS' & bec_subzone %in% c('dw','dh','dk'), "feature_id"]
+
+#DRY FOREST:Sx leading, secondary, or tertiary species Crown closure ≥40% QMD_125 ≥20.1 cm Stand age ≥83 years
+rest.rust.dry.for<- habitat[(species_cd_1 %in% c('SX') | species_cd_2 %in% c('SX') | species_cd_3 %in% c('SX') ) & proj_age_1 >= 83 & crown_closure >= 40 & quad_diam_125 >= 20.1 & bec_zone_code %in% c('SBPS', 'IDF','MS') & bec_subzone %in% c('mc','mk','dk','dc','mw','dw','ww','xc','xk','dv','dm'), "feature_id"]
+
+rest.rust<-rbindlist(list(rest.rust.dry.for,rest.rust.sbs.dry, rest.rust.sbs.wet))
+rest.rust<-unique(rest.rust$feature_id)
+rest.rust.poly<-layer[layer$feature_id %in% rest.rust,]
+rest.rust.poly$rust<-1
+rest.rust.ras <-fasterize::fasterize(rest.rust.poly, prov.rast, field = "rust") 
+writeRaster(rest.rust.ras, file="rest_rust.tif", format="GTiff", overwrite=TRUE)
+```
+
+##### Resting habitat: cavity
+```{r, rest_cavity}
+#SBS-WET Act or At leading, secondary, or tertiary species  Crown closure ≥25% QMD_125 ≥30 cm Basal area ≥32 m²/ha Stand height ≥35 m 7
+rest.cavity.sbs.wet<- habitat[(species_cd_1 %in% c('ACT', 'AT') | species_cd_2 %in% c('ACT', 'AT') | species_cd_3 %in% c('ACT', 'AT') ) & crown_closure >= 25 & quad_diam_125 >= 30 & basal_area >= 32 & proj_height_1 >= 35 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
+
+#SBS-DRY Act or At leading, secondary, or tertiary species  Crown closure ≥25% QMD_125 ≥30 cm Basal area ≥32 m²/ha Stand height ≥35 m 
+rest.cavity.sbs.dry<- habitat[(species_cd_1 %in% c('ACT', 'AT') | species_cd_2 %in% c('ACT', 'AT') | species_cd_3 %in% c('ACT', 'AT') ) & crown_closure >= 25 & quad_diam_125 >= 30 & basal_area >= 32 & proj_height_1 >= 35 & bec_zone_code == 'SBS' & bec_subzone %in% c('dw','dh','dk'), "feature_id"]
+
+rest.cavity<-rbindlist(list(rest.cavity.sbs.wet,rest.cavity.sbs.dry))
+rest.cavity<-unique(rest.cavity$feature_id)
+rest.cavity.poly<-layer[layer$feature_id %in% rest.cavity,]
+rest.cavity.poly$cavity<-1
+rest.cavity.ras <-fasterize::fasterize(rest.cavity.poly, prov.rast, field = "cavity") 
+writeRaster(rest.cavity.ras, file="rest_cavity.tif", format="GTiff", overwrite=TRUE)
+```
+
+##### Resting: coarse woody
+```{r, rest_cwd}
+#SBS_WET. QMD_125 ≥22.7 cm Stand age ≥135 years  Stand height ≥23.7 m 
+rest.cwd.sbs.wet<- habitat[ quad_diam_125 >= 22.7 & proj_age_1 >= 135 & proj_height_1 >= 23.7 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
+
+#SBS-DRY. QMD_125 ≥22.7 cm Stand age ≥135 years Stand height ≥23.7 m 
+rest.cwd.sbs.dry<- habitat[ quad_diam_125 >= 22.7 & proj_age_1 >= 135 & proj_height_1 >= 23.7 & bec_zone_code == 'SBS' & bec_subzone %in% c('dw','dh','dk'), "feature_id"]
+
+#DRY_FOR.	Hybrid spruce (Sx) or Trembling aspen (At) >25% of stand (SPECIES_PCT) Stand age ≥100 years 
+rest.cwd.dry.for<- habitat[((species_cd_1 %in% c('SX', 'SE', 'SXW', 'AT') & species_pct_1 >= 25)| (species_cd_2 %in% c('SX', 'SE', 'SXW', 'AT') & species_pct_2 >= 25) | (species_cd_3 %in% c('SX', 'SE', 'SXW', 'AT') & species_pct_3 >= 25) ) & proj_age_1 >= 100 & bec_zone_code %in% c('SBPS', 'IDF','MS') & bec_subzone %in% c('mc','mk','dk','dc','mw','dw','ww','xc','xk','dv','dm'), "feature_id"]
+
+rest.cwd<-rbindlist(list(rest.cwd.sbs.wet,rest.cwd.sbs.dry,rest.cwd.dry.for))
+rest.cwd<-unique(rest.cwd$feature_id)
+rest.cwd.poly<-layer[layer$feature_id %in% rest.cwd,]
+rest.cwd.poly$cwd<-1
+rest.cwd.ras <-fasterize::fasterize(rest.cwd.poly, prov.rast, field = "cwd") 
+writeRaster(rest.cwd.ras, file="rest_cwd.tif", format="GTiff", overwrite=TRUE)
+```
+
+##### Movement habitat
+```{r, movement}
+#SBS_WET. Total cover ≥50% (≥30% shrub and ≥20% tree cover)
+#shrub cover max 30%
+movement.sbs.wet<- habitat[ (crown_closure + shrub_crown_closure >=50 & crown_closure > 30) & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
+
+#SBS-DRY. Total cover ≥50% (≥30% shrub and ≥20% tree cover)
+movement.sbs.dry<- habitat[ (crown_closure + shrub_crown_closure >=50 & crown_closure > 30) & bec_zone_code == 'SBS' & bec_subzone %in% c('dw','dh','dk'), "feature_id"]
+
+#DRY_FOR.	Total cover ≥50% (≥30% shrub and ≥20% tree cover) 
+movement.dry.for<- habitat[(crown_closure + shrub_crown_closure >=50 & crown_closure > 30) & bec_zone_code %in% c('SBPS', 'IDF','MS') & bec_subzone %in% c('mc','mk','dk','dc','mw','dw','ww','xc','xk','dv','dm'), "feature_id"]
+
+movement<-rbindlist(list(movement.sbs.wet,movement.sbs.dry,movement.dry.for))
+movement<-unique(movement$feature_id)
+movement.poly<-layer[layer$feature_id %in% movement,]
+movement.poly$movement<-1
+movement.ras <-fasterize::fasterize(movement.poly, prov.rast, field = "movement") 
+writeRaster(movement.ras, file="movement.tif", format="GTiff", overwrite=TRUE)
+```
+
+#### Commit to postgres
+```{r, commit_postgresql}
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here(), '/R/Params/denning.tif -t 100x100 rast.fisher_hc_denning |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
