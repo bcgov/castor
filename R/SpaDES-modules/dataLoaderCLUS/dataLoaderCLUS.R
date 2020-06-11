@@ -167,7 +167,7 @@ createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, t_area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
@@ -309,10 +309,12 @@ setTablesCLUSdb <- function(sim) {
       zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
       
       dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, t_area ) 
-                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :t_area)", zones)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area ) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
+    }else{
+      stop(paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied"))
     }
   } else{
     message('.....zone ids: default 1')
@@ -463,13 +465,38 @@ setTablesCLUSdb <- function(sim) {
     }
     
     if(!P(sim,"dataLoaderCLUS", "nameForestInventoryTable") == '99999'){
-      
-      forest_attributes_clusdb<-sapply(c("Age","Height", "CrownClosure", "SiteIndex"), function(x){
+      #Get the forest inventory variables and re assign there names to be more generic than VEGCOMP
+      forest_attributes_clusdb<<-sapply(c("Age","Height", "CrownClosure", "SiteIndex"), function(x){
         if(!(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)) == '99999')){
           return(paste0(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)), " as ", tolower(x)))
         }
       })
-      
+      #If there is a multi variable condition add them to the query
+      queryMulti<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints where multi_condition is not null")
+      if(nrow(queryMulti) > 0){
+        multiVars<-unlist(strsplit(paste(queryMulti$multi_condition, collapse = ', ', sep = ','), ",| > | < | = | <= | >= | and | AND | or | OR | in | IN | + "))
+        multiVars<-unique(gsub("[[:space:]]", "", multiVars[c(TRUE, FALSE)]))
+        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index')]
+        
+        multiVars1<-multiVars #used for altering pixels table in clusdb
+        #Add the multivars to the pixels data table
+        forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars)
+        
+        #format for pixels upload
+        multiVars2<-multiVars
+        multiVars2[1]<-paste0(', :',multiVars2[1])
+        multiVars[1]<-paste0(', ',multiVars[1])
+        
+        #Update the multi conditional constraints so the names match the dynamic variables
+        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_age_1', 'age') where multi_condition is not null;")
+        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
+        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
+        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
+      }else{
+        multiVars<-''
+        multiVars2<-''
+        multiVars1<-NULL
+      }
       if(length(forest_attributes_clusdb) > 0){
         print(paste0("getting inventory attributes: ", paste(forest_attributes_clusdb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
@@ -483,8 +510,16 @@ setTablesCLUSdb <- function(sim) {
         #Merge to pixels using the pixelid
         pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
         pixels<-pixels[, fid:=NULL]#remove the fid key
-        #TODO: Test this change of names?
-        #setnames(pixels, c(P(sim, "dataLoaderCLUS","nameForestInventoryAge"),P(sim, "dataLoaderCLUS","nameForestInventoryHeight"),P(sim, "dataLoaderCLUS","nameForestInventoryCrownClosure"),P(sim, "dataLoaderCLUS","nameForestInventorySiteIndex")), c("age", "height", "crownclosure", "siteindex"))
+        
+        if(!is.null(multiVars1)){
+          for(var in multiVars1){
+            if(is.character(pixels[, eval(parse(text =var))])){
+              dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " text;"))
+            }else{
+              dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " numeric;"))
+            }
+          }
+        }
         rm(inv, attrib_inv,inv_id, fids)
       }else{
         stop("No forest attributes from the inventory specified")
@@ -600,10 +635,12 @@ setTablesCLUSdb <- function(sim) {
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<- paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
-               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),' ) 
+  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
+              paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),
+              paste(multiVars, sep="' '", collapse=", "),' ) 
                values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, 0, :zone', 
-               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),')')
+              paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),
+              paste(multiVars2, sep="' '", collapse=", :"),')')
   
 
   #pixels table
@@ -655,7 +692,7 @@ sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
            sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
            sum(case when age >= 140 then 1 else 0 end) as old,
-           sum(case when roadyear >= 0  then 1 else 0 end) as road
+           sum(case when roadyear >= -1  then 1 else 0 end) as road
            FROM pixels  where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
                          group by compartid;"))

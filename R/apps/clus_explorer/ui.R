@@ -10,9 +10,10 @@ ui <- dashboardPage(skin = "black",
         menuSubItem("Caribou", tabName = "caribou", icon = icon("paw")),
         menuSubItem("Climate", tabName = "climate", icon = icon("thermometer-half")),
         menuSubItem("Fire", tabName = "fire", icon = icon("fire")),
+        menuSubItem("Fisher", tabName = "fisher", icon = icon("leaf")),
         menuSubItem("Forestry", tabName = "forestry", icon = icon("tree")),
         menuSubItem("Insects (planned)", tabName = "insects", icon = icon("bug")),
-        menuSubItem("Mining (planned)", tabName = "mining", icon = icon("industry")),
+        menuSubItem("Mining (planned)", tabName = "mining", icon = icon("gem")),
         menuSubItem("Oil and Gas (planned)", tabName = "oilandgas", icon = icon("bolt")),
         menuSubItem("Recreation (planned)", tabName = "recreation", icon = icon("shoe-prints"))
         ), 
@@ -206,6 +207,10 @@ ui <- dashboardPage(skin = "black",
              plotlyOutput(outputId = "fireByYearPlot", height = "400px")
           )
         )
+      ),
+      tabItem(tabName = "fisher",
+              fluidRow(
+              )
       ),
       tabItem(tabName = "insects",
         fluidRow(
