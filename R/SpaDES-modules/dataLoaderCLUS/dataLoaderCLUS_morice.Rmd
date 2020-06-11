@@ -54,7 +54,7 @@ parameters <-  list(
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
                          nameCompartmentTable = "tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv","rast.zone_cond_fsw", "rast.zone_cond_cw", "rast.zone_cond_"),# add all zone rasters I need but first 7 always stay
+                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv","rast.zone_cond_fsw", "rast.zone_cond_cw", "rast.zone_cond_bc_telkwa_crithab", "rast.zone_cond_eccc_telkwa_crithab", "rast.zone_cond_nh_crit_telkwa_crithab", "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_itcha_ilgachuz_crithab", "rast.zone_cond_bc_rainbows_crithab", "rast.zone_cond_eccc_charlotte_alplands_crithab", "rast.zone_cond_eccc_itcha_ilgachuz_crithab", "rast.zone_cond_eccc_rainbows_crithab", "rast.zone_cond_nh_crit_charlotte_alplands_crithab", "rast.zone_cond_nh_crit_itcha_ilgachuz_crithab", "rast.zone_cond_nh_crit_rainbows_crithab"),# add all zone rasters I need but first 7 always stay
                          nameZoneTable="zone_constraints", # this is a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp",
                          nameYieldTable ="yc_vdyp",
@@ -98,7 +98,7 @@ parameters <-  list(
 rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')") )
 rsf_model_coeff[, population:= 'Telkwa']
 
-scenario = data.table(name="morice_bau", description = "Simple flow")
+scenario = data.table(name="morice_all_data", description = "Populated database with relevant data to run scenarios")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
