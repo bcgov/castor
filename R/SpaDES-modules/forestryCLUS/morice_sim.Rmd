@@ -41,16 +41,34 @@ parameters <- list(
   dataLoaderCLUS = list( 
                          dbName='clus',
                            #save_clusdb = TRUE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL48_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Morice_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile="tsa_aac_bounds",
                            nameBoundaryColumn="tsa_name",
-                           nameBoundary = "TFL48",
+                           nameBoundary = "Morice_TSA", # This name must match that in dataLoaderCLUS
                            nameBoundaryGeom='wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                           nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr","rast.zone_cond_fsw","rast.zone_cond_nharv"),
+                           nameZoneRasters=c("rast.zone_cond_beo", # rasters of the zone constraints 
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_cond_wha", 
+                                           "rast.zone_cond_uwr", 
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw", 
+                                           "rast.zone_cond_bc_telkwa_crithab",
+                                           "rast.zone_cond_eccc_telkwa_crithab",
+                                           "rast.zone_cond_nh_crit_telkwa_crithab",
+                                           "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                           "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_bc_rainbows_crithab",
+                                           "rast.zone_cond_eccc_charlotte_alplands_crithab",
+                                           "rast.zone_cond_eccc_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_eccc_rainbows_crithab",
+                                           "rast.zone_cond_nh_crit_charlotte_alplands_crithab",
+                                           "rast.zone_cond_nh_crit_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_nh_crit_rainbows_crithab"),
                            nameZoneTable="zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
@@ -91,13 +109,12 @@ parameters <- list(
                     )
 )
 
-modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "survivalCLUS", "disturbanceCalcCLUS")
-#,"uploaderCLUS")
+modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "survivalCLUS", "disturbanceCalcCLUS","uploaderCLUS")
 
 scenario = data.table(name="cg_bau_test", description = "business as usual - projecting current trends")
 #scenario = data.table(name="cg_partner_agreement_a3_r40", description = "Partnership Agreement - projecting constraints on management zones outlined in partnership agreement. Adjacency constraint > 3 m.")
 
-harvestFlow<- data.table(compartment ="TFL48",
+harvestFlow<- data.table(compartment ="Morice",
                                      partition = ' vol > 110 ',
                                      year = rep(seq(from = 2018, to=2218, by = 5),1),  flow = 3700000)
 
