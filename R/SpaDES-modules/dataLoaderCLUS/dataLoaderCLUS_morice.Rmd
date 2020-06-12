@@ -12,29 +12,34 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "dataLoaderCLUS"
-author: ""
-date: "04 September 2018"
+title: "Database creation for Morice TSA Analyses Version 1.0"
+author: "Elizabeth Kleynhans"
+date: "10 June 2020"
 output: pdf_document
 ---
 
 # Overview
 
-The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`
+The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
+
+Here I set the parameters to create a database for the [Morice timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/morice-tsa). The TSA is located in northern-central British Columbia and is on the western edge of BC's central interior plateau. The Morice TSA encompasses approximately 1.5 million hectares of land. In March 16, 2015 the allowable annual cut was set at 1.9 million cubic metres, partitioned between 1.6 million cubic metres of live tree volume and  300 000 cubic metres of dead volume. On March 16, 2020 the AAC was kept at 2015 values until a new AAC is determined. 
+
+How was this determined?
+(A minimum harvest volume criterion of 140 cubic metres per hectare was applied in the base case.)
 
 
 # Usage
+Set parameters for creating the database in the code chunk below.
 
 ```{r module_usage}
 library(SpaDES)
 library(SpaDES.core)
 library(data.table)
+library (keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1')
-#Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_241') # this is what Kyle had before
-#Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
 
 setPaths(modulePath = here::here("R/SpaDES-modules"))
 
@@ -54,19 +59,37 @@ parameters <-  list(
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
                          nameCompartmentTable = "tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv","rast.zone_cond_fsw", "rast.zone_cond_cw", "rast.zone_cond_bc_telkwa_crithab", "rast.zone_cond_eccc_telkwa_crithab", "rast.zone_cond_nh_crit_telkwa_crithab", "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_itcha_ilgachuz_crithab", "rast.zone_cond_bc_rainbows_crithab", "rast.zone_cond_eccc_charlotte_alplands_crithab", "rast.zone_cond_eccc_itcha_ilgachuz_crithab", "rast.zone_cond_eccc_rainbows_crithab", "rast.zone_cond_nh_crit_charlotte_alplands_crithab", "rast.zone_cond_nh_crit_itcha_ilgachuz_crithab", "rast.zone_cond_nh_crit_rainbows_crithab"),# add all zone rasters I need but first 7 always stay
-                         nameZoneTable="zone_constraints", # this is a parent table so other tables inherit it
-                         nameYieldsRaster = "rast.ycid_vdyp",
-                         nameYieldTable ="yc_vdyp",
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id",
-                         nameYieldTransitionTable ="yc_tipsy",
-                         nameForestInventoryRaster ="rast.vri2018_id",
-                         nameForestInventoryKey = "feature_id",
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
-                         nameForestInventoryAge = "proj_age_1",
+                         nameZoneRasters=c("rast.zone_cond_beo", # rasters of the zone constraints to include. Add all zone rasters that might be needed here. First 7 always stay.
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_cond_wha", 
+                                           "rast.zone_cond_uwr", 
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw", 
+                                           "rast.zone_cond_bc_telkwa_crithab",
+                                           "rast.zone_cond_eccc_telkwa_crithab",
+                                           "rast.zone_cond_nh_crit_telkwa_crithab",
+                                           "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                           "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_bc_rainbows_crithab",
+                                           "rast.zone_cond_eccc_charlotte_alplands_crithab",
+                                           "rast.zone_cond_eccc_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_eccc_rainbows_crithab",
+                                           "rast.zone_cond_nh_crit_charlotte_alplands_crithab",
+                                           "rast.zone_cond_nh_crit_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_nh_crit_rainbows_crithab"),
+                         nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
+                         nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
+                         nameYieldTable ="yc_vdyp", # VDYP yield  table
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yields
+                         nameYieldTransitionTable ="yc_tipsy", # table that transitions stands onto TIPSY yield curve once they are cut
+                         nameForestInventoryRaster ="rast.vri2018_id", # raster of the forest inventory 
+                         nameForestInventoryKey = "feature_id", # unique id of each polygon 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",# the invenotry data
+                         nameForestInventoryAge = "proj_age_1",  # name of the age column in the inventory data - provides stand attributes
                          nameForestInventoryHeight = "proj_height_1",
                          nameForestInventoryCrownClosure = "crown_closure",
-                         nameForestInventorySiteIndex = "site_index"
+                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
                     ),
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_cond_beo',
@@ -82,15 +105,15 @@ parameters <-  list(
                    randomEffectsTable = "public.rsf_re_coeff",
                    writeRSFRasters = TRUE,
                    checkRasters= FALSE),
-    disturbanceCalcCLUS = list(calculateInterval = 1, 
+  disturbanceCalcCLUS = list(calculateInterval = 1, 
                    criticalHabitatTable = "public.criticalhabitat_bc_vat",
                    criticalHabRaster = "rast.bc_crithab",
                    permDisturbanceRaster = "rast.perm_dist_rds",
                    recovery = 40), # might be 30 or 40 years
-    survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-    uploaderCLUS = list(aoiName = 'central_group',
+  uploaderCLUS = list(aoiName = 'central_group',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
