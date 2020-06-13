@@ -56,8 +56,8 @@ parameters <- list(
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw", 
-                                           "rast.zone_cond_bc_telkwa_crithab"),
+                                           "rast.zone_cond_cw"), 
+                                           #"rast.zone_cond_bc_telkwa_crithab"),
                                          #  "rast.zone_cond_eccc_telkwa_crithab",
                                          #  "rast.zone_cond_nh_crit_telkwa_crithab",
                                          #  "rast.zone_cond_bc_charlotte_alplands_crithab",
@@ -111,7 +111,7 @@ parameters <- list(
 
 modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "roadCLUS", "survivalCLUS", "disturbanceCalcCLUS","uploaderCLUS")
 
-scenario = data.table(name="cg_bau_test", description = "business as usual - projecting current trends")
+scenario = data.table(name="morice_bau_test", description = "business as usual - projecting current trends")
 #scenario = data.table(name="cg_partner_agreement_a3_r40", description = "Partnership Agreement - projecting constraints on management zones outlined in partnership agreement. Adjacency constraint > 3 m.")
 
 harvestFlow<- data.table(compartment ="Morice",
