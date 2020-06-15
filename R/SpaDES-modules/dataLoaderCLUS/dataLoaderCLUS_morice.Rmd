@@ -44,7 +44,7 @@ Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error i
 setPaths(modulePath = here::here("R/SpaDES-modules"))
 
 getPaths() # shows where the 4 relevant paths are 
-# its weird though because my inputPath and OutputPath are something like: "D:\\temp\\Rtmpglw3bx/SpaDES/outputs"
+
 
 times <- list(start = 0, end = 0)
 parameters <-  list(
@@ -86,7 +86,7 @@ parameters <-  list(
                          nameForestInventoryRaster ="rast.vri2018_id", # raster of the forest inventory 
                          nameForestInventoryKey = "feature_id", # unique id of each polygon 
                          nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",# the invenotry data
-                         nameForestInventoryAge = "proj_age_1",  # name of the age column in the inventory data - provides stand attributes
+                         nameForestInventoryAge = "proj_age_1",  # name of the age column in the inventory data - provides stand attributes added nameZoneRasts for diff herds and scenarios
                          nameForestInventoryHeight = "proj_height_1",
                          nameForestInventoryCrownClosure = "crown_closure",
                          nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
