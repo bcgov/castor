@@ -85,9 +85,36 @@ In the scenarios we applied two types of constraints on forestry: 'no disturbanc
 knitr::include_graphics( here ("reports/scenarios/images", "eccc_lambda_disturb_fig.jpg"))
 ```
 
-The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some southern mountain caribou critical habitat types, and these were used as constraints in our scenarios (Table 1). However, there were challenges with implementing this constraint directly in our model, and therefore we developed a modified approach to using it in CLUS. Specifically, we found that disturbance levels in some zones were greater than 35%, and much of this disturbance (e.g., roads, mines, agriculture) was not recovered in the model. In particular, roads were a key contributor to much of the disturbance. We were unable to recover these existing roads, because the roads data does not indicate road age and status. Without a detailed road recovery plan it is difficult to develop assumptions on road recovery in the model. As a consequence, constraining on 35% disturbance essentially makes it very similar to a no harvest scenario, and thus that scenario can be used to evaluate the effects of implementing a 35% disturbance constraint on forestry activity without recovery of other existing disturbance features.     
+The [ECCC recovery strategy for southern mountain caribou](https://www.registrelep-sararegistry.gc.ca/virtual_sara/files/plans/rs_woodland_caribou_bois_s_mtn_pop_0114_e.pdf) adopted the boreal disturbance model for establishing limits to disturbance in some parnertship argeement areas, and these were used as constraints in our scenarios (Table 1). However, there were challenges with implementing this constraint directly in our model, and therefore we developed a modified approach to using it in CLUS. Specifically, we found that disturbance levels in some zones were greater than 35%, and much of this disturbance (e.g., roads, mines, agriculture) was not recovered in the model. In particular, roads were a key contributor to much of the disturbance. We were unable to recover these existing roads, because the roads data does not indicate road age and status. Without a detailed road recovery plan it is difficult to develop assumptions on road recovery in the model. As a consequence, constraining on 35% disturbance essentially makes it very similar to a no harvest scenario, and thus that scenario can be used to evaluate the effects of implementing a 35% disturbance constraint on forestry activity without recovery of other existing disturbance features.     
 
-As an alternative to constraining on disturbance, we developed an approach that constrained forestry activity in such a way as to allow up to 35% disturbance from forestry in critical habitat. We used a previously developed model ( [Muhly 2016](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/road_cutblock_model_20161102.pdf)) that found that an approximately 18% area of less than 40 year cutblocks in a landscape unit was equivalent to a 35% disturbance level. Thus, in scenarios that required a 35% disturbance threshold in critical habitat areas, we allowed for some forestry to occur by limiting the amount of cutblocks less than 40 years old to 18% of those areas. Further, forest harvest was prioritized to areas that were the closest to existing disturbances, thus aggregating future forest activities to areas that were already disturbed (see below).
+
+```{r, table 1, scenarios, echo = F, error = F, eval = T, include = T, message = F}
+
+table.scenarios = data.table(
+  constraint = c ("A1", "A2", "B1", "B2", "B3", "B4", "B5"),
+  bau = c ("No constraint", "No constraint", "No constraint", "No constraint", "No constraint", "No constraint", 
+           "No constraint"),
+  pa = c ("35%", "No harvest", "35%", "No harvest", "No harvest", "35%", "35%"),
+  nh = c ("No harvest", "No harvest", "No harvest", "No harvest", "No harvest", "No harvest", "No harvest")
+)
+
+kable (table.scenarios,
+       caption = "<b>Table 1. Central Group Partnership Agreement Habitat Management Scenario Parameters.<b>",
+       col.names = c("Zone",
+                     "BAU",
+                     "Partnership Agreement",
+                     "No Harvest")) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual scenario",
+            fixed_small_size = T)
+
+```
+
+As an alternative to constraining on disturbance, we developed an approach that constrained forestry activity in such a way as to allow up to 35% disturbance from forestry in critical habitat. We used a previously developed model ( [Muhly 2016](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/road_cutblock_model_20161102.pdf)) that found that an approximately 18% area of less than 40 year cutblocks in a landscape unit was equivalent to a 35% disturbance level. Thus, in scenarios that required a 35% disturbance threshold in critical habitat areas, we allowed for some forestry to occur in up to 15% of those areas. Further, forest harvest was prioritized to areas that were the closest to existing disturbances, thus aggregating future forest activities to areas that were already disturbed (see below).
 
 #### Prioritization of Forest Stands for Harvest
 Similar to other TSR models, the CLUS model harvested forest stands by establishing a priority harvesting queue based on stand characteristics. These characteristics included: distance to existing disturbed area (i.e., road or cutblock), stand age and stand volume. The model established which stands to harvest at each time step by first selecting those stands closest to disturbed areas, then older stands, and then high volume stands. This order is important, and is different than TSR models, which do not consider distance to disturbance when establishing a harvest priority queue. By prioritizing harvest to areas adjacent to existing disturbances, we limited the total amount of disturbance from forest harvest, which follows the intent of the disturbance constraints, and is a caribou focused approach to forest management. 
@@ -117,24 +144,37 @@ The CLUS model did not simulate fire. Thus, potential fire disturbance will need
 
 
 
-A no harvest scenario in all critical caribou habitat had a 14% (approximately 500,000m^3^ yr^-1^) impact on forest harvest (Table 2). Otherwise, the ECCC scenarios had the largest impact on timber harvest, regardless of adjacency height and habitat recovery time (Table 2). The ECCC scenarios resulted in a 10% (approximately 350,000m^3^ yr^-1^) to 12% (approximately 400,000m^3^ yr^-1^) reduction in annual harvested volume compared to BAU scenarios. The BC herd plan scenarios resulted in a 3% (approximately 100,000m^3^ yr^-1^) to 5% (approximately 160,000m^3^ yr^-1^) reduction in annual harvested volume compared to BAU scenarios. Decreasing habitat recovery time from 40 years to 30 years resulted in a 1% (approximately 30,000m^3^ yr^-1^) improvement in annual harvested volume across scenarios. A 3m adjacency constraint increased the annual amount of volume harvest in the scenarios compared to a 1.5m adjacency constraint. In the BAU scenarios, the annual forest harvest decreased by 2% (approximately 60,000m^3^ yr^-1^) with the 3m adjacency constraint compared to a 1.5 m constraint. In the ECCC and BC scenarios, the annual timber harvest decreased by 3% (approximately 100,000m^3^ yr^-1^) with the 3m adjacency constraint compared to a 1.5m constraint.
+A no harvest scenario in all critical caribou habitat had a xx% (approximately xxm^3^ yr^-1^) impact on forest harvest (Table 2). 
+
 
 ```{r, table 2, results, echo = F, error = F, eval = T, include = T, message = F}
 data.harvest <- read.csv (here ("reports/scenarios/data", "harvest_central_group_20200601.csv"))
-# scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40
+# scenarios: cg_bau_a3_rNA, cg_partner_agreement_a3_r40, cg_partner_agreement_nh
 # compartments: TFL48, Dawson_Creek_TSA, MacKenzie_TSA
 data.summ <- data.harvest %>% # get summary data
-              filter (scenario == "cg_partner_agreement_a3_r40") %>%
+              filter (scenario == "cg_partner_agreement_nh") %>%
                 filter (compartment == "MacKenzie_TSA") %>%
                   summarise (sum (volume)/40)
 
-table.volume = data.table (
-  scenario = c ("BAU", "PA", "BAU", "PA", "BAU", "PA"),
-  compartment = c ("TFL48", "TFL48", "Dawson Creek TSA", "Dawson Creek TSA", "MacKenzie TSA", "MacKenzie TSA"),
-  recovery = c (0, 40, 0, 40, 0),
-  annual_volume = c (329968, 293307, 1369976, 1299991, 1673978, 1659266),
-  diff_annual_volume = c (0, 36661, 0, 69985, 0, 14712),
-  perc_diff_tot_volume = c ("0%", "-11%", "0%", "-5%", "0%", "-1%")
+table.volume = data.table ( # without TFL 48 for now
+  scenario = c (# "BAU", "PA", 
+                "BAU", "PA", "NH", 
+                "BAU", "PA", "NH"),
+  compartment = c (#"TFL48", "TFL48", 
+                   "Dawson Creek TSA", "Dawson Creek TSA", "Dawson Creek TSA",
+                   "MacKenzie TSA", "MacKenzie TSA", "MacKenzie TSA"),
+  recovery = c (# 0, 40, 
+                0, 40, 40,
+                0, 40, 40),
+  annual_volume = c (#329968, 293307, 
+                     1369976, 1299991, 1260732,
+                     1673978, 1659266, 1648637),
+  diff_annual_volume = c (# 0, 36661, 
+                          0, 69985, 109244,
+                          0, 14712, 25341),
+  perc_diff_tot_volume = c (# "0%", "-11%", 
+                            "0%", "-5%", "-8%",
+                            "0%", "-1%", "-2%")
 )
 kable (table.volume,
        caption = "<b>Table 2. Annual Harvested Volume Over a 200 Year Period in the Tree Farm Licenses and Timber Supply Areas Under Partnership Agreement Scenarios.<b>",
@@ -151,7 +191,7 @@ kable (table.volume,
                  fixed_thead = T,
                  full_width = F,
                  font_size = 11) %>%
-  footnote (general = "BAU = business-as-usual scenario; PA = Partnership Agreement",
+  footnote (general = "BAU = business-as-usual scenario; PA = Partnership Agreement; NH = No Harvest",
             fixed_small_size = T)
 ```
 
