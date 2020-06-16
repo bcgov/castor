@@ -495,14 +495,14 @@ observeEvent(input$getMapLayersButton, {
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
     #print(data)
     
-    p<-ggplot(data, aes (x=year, y=area_m2/10000)) +
+    p<-ggplot(data, aes (x=year, y= proportion.burn)) + #area_m2/10000)) +
       facet_wrap(.~herd_bounds, ncol = 4)+
       geom_point() +
       geom_line(alpha=0.2,size=0.5)+
       xlab ("Year") +
-      ylab ("Area burned (ha2)") +
-      scale_x_continuous(limits = c(1925, 2025), breaks = seq(1925, 2025, by = 50))+
-      scale_y_continuous(limits = c(0, 12500), breaks = seq(0, 12500, by = 5000))+
+      ylab ("Proportion of area burned") +
+      scale_x_continuous(limits = c(1919, 2025), breaks = seq(1925, 2025, by = 75))+
+      scale_y_continuous(limits = c(0, 45), breaks = seq(0, 45, by = 20))+
       theme_bw()+
       theme (legend.title = element_blank())
     ggplotly(p, height = 900) %>% 
@@ -510,34 +510,57 @@ observeEvent(input$getMapLayersButton, {
               margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
     })
   })
- 
-  output$fireTable <-renderDataTable(
-      reportList()$fire2, extensions = 'Buttons', 
-      options = list(dom = 'Bfrtip',
-                     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')))
-      # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
-
+  
+  output$firecummulativePlot <- renderPlotly ({
+    withProgress(message = 'Making Plot', value = 0.1,{
+      data<-reportList()$fire
       
-      #data %>% 
-        # select(herd_name,
-        #        habitat, 
-        #        mean_ha2, 
-        #        mean_area_percent, 
-        #        max_ha2, 
-        #        max_area_percent, 
-        #        min_ha2, 
-        #        min_area_percent, 
-        #        cummulative_area_ha2,
-        #        cummulative_area_percent) %>%
-        # knitr::kable ("html",
-        #               caption = "<b>Area burned during a single fire event over a 40 year period (1978 -  2018) within caribou herd ranges and critical habitat types<b>",
-        #               digits=2,
-        #               col.names=c(" ", " ", "ha2","%", "ha2","%", "ha2","%", "ha2","%"),
-        #               align=c("l","c","c","c","c","c","c","c","c","c")) %>%
-        # add_header_above(c("Herd name", "Habitat", "Average area"=2,"Maximum area"=2, "Minimum area"=2, "Cummulative area*"=2)) %>%
-        # add_footnote("Cummulative area = total area burned across the 40 year period", notation = "symbol")
-        # 
-    
+      
+      ##Calculating cummulative area burned over a 40 year moving window for each herd across each habitat type 
+      Years<-1919:2018
+      window_size<-40
+      
+      Fire_cummulative <- data.frame (matrix (ncol = 3, nrow = 0))
+      colnames (Fire_cummulative) <- c ("herd_bounds","cummulative.area.burned","year")
+      
+      for (i in 1:(length(Years)-window_size)) {
+        fire.summary<-data %>% filter(year>=Years[i] & year<=(Years[i]+window_size)) %>% 
+          group_by (herd_bounds) %>% 
+          summarize(cummulative.area.burned=sum(proportion.burn))
+        fire.summary$year<-Years[i]+window_size
+        
+        Fire_cummulative<-rbind(Fire_cummulative,as.data.frame(fire.summary))
+      }
+      #print(Fire_cummulative)
+      
+      p<-ggplot(Fire_cummulative, aes (x=year, y=cummulative.area.burned)) +
+        facet_wrap(.~herd_bounds, ncol = 4)+
+        #geom_line (col="grey") +
+        #geom_point()+
+        geom_bar(stat="identity", width=1) +
+        xlab ("Year") +
+        ylab ("Cummulative proportion of area burned < 40 years") +
+        scale_x_continuous(limits = c(1959, 2020), breaks = seq(1960, 2020, by = 30)) +
+        scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
+        theme_bw()+
+        theme (legend.title = element_blank())
+
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  })
+
+  output$fireTable <-DT::renderDataTable({
+    dat<-reportList()$fire2
+    names_col<-names(dat)
+    dat<-dat %>%
+      datatable(extensions = 'Buttons', 
+      options = list(dom = 'Bfrtip',
+                     buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))) %>%
+      formatStyle(names_col, color='black',fontWeight='bold')
+    return(dat)
+  })
   
   
   output$radar<- renderPlotly ({

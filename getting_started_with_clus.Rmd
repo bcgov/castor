@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-Here we document how to get started using CLUS
+Here we document how to get started usign CLUS
 
 ## Data Inputs (dataLoaderCLUS)
 much data needs to be pre-processed and put into a postgres database that the dataloaderCLUS will read; this includes:
