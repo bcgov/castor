@@ -1,0 +1,99 @@
+---
+title: "Getting Started with CLUS"
+author: "Tyler Muhly"
+date: "03/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction
+
+Here we document how to get started using CLUS
+
+## Data Inputs (dataLoaderCLUS)
+much data needs to be pre-processed and put into a postgres database that the dataloaderCLUS will read; this includes:
+- TSA boundaries (or whaterver boudanries you want to create a harvest flow within)
+- timber harvest land base (THLB); sets the area that is harvestable by the model; comes form FAIB's provncial THLB dataset
+
+need to create a raster of each of these that corrresponds to the standard provincial 1 ha raster, and a corresponding value attrtibute table (vat) that links to the raster via a unique integer id
+
+
+### Params
+
+Params folder in teh github (clus/R/Params) is where we create data in postgres that will be used by dataloaderLCUS and other CLUS modules
+- criticalHabitatRaster: where set critical habitat and herd boudanries for cariobu and set constraints for those areas
+
+
+#### Zone constraints
+- zone contraints are specific parameters that relate spatial areas ('zones') to a specific constraint on forestry (or in the future, any land use activity)
+- 'standard' appraoch is to at a minimum include zone constraints simialr to what is include in timebr suppyl review models, including:
+  - ungulate winter ranges (UWRs)
+    - uwr_cond_harvest, rast.zone_cond_uwr
+  - wildlife habtiat areas (WHAs)
+    - wha_cond_harvest, rast.zone_cond_wha
+  - biodiversity emphasis options (BEOs)
+    - prov_managae_objs, rast.zone_cond_beo
+  - Fisheries Sensitive watersheds (FSWs)
+    - prov_managae_objs, rast.zone_cond_fsw
+  - Equivalent Clearcut Areas (ECAs)
+    - prov_managae_objs, rast.zone_cond_fsw
+  - visual quality objectives (VQOs)
+    - prov_managae_objs, rast.zone_cond_vqo"
+  - old growth management areas (OGMAs) - legal - no harvesting
+    - prov_managae_objs, rast.zone_nharv
+  - Parks and Protected Areas (parks)
+    - prov_managae_objs, rast.zone_nharv
+    
+- additonal zone cotnraints for a particualr sceanrio can be added here, for example, for cariobu:
+  - contraints on criticla habtiat 
+    - criticalHabitatRaster
+  - constaints within herd boudanries 
+    - criticalHabtiatRaster
+  - Section 11 Partnership Agreement areas
+    - partnershipAgreementRaster
+    
+- the .rmd creates a raster, but also a table that correpsonds to teh raster id
+- a table gest created for each zoen copnstaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
+
+
+#### Growth and Yeild Models
+- data from TIPSY and VDYP growth adn yeild models gets brought into the model to estimate future paramters of 'managed' and 'natural origin' stands, respecitvely
+- volume and height data from TIPSY  data is created via the tipsy_curves.rmd
+  - creates a raster of teh inventory stands ids that correpsond to teh tipsy curves
+  - volume (tipsy_prov) and height (tipsy_ht_prov) tables created in postgres
+- these data come from provincial estimates created by Dave Waddell from FAIB
+
+- data from VDYP comes from provincial estimates created by Wenli Xu from FAIB
+  - height, basal area and volume output table is created (vdyp_output)
+  - creates a raster to link to appropriate stands in teh forest inventory
+  
+- linkage between VDYP and TIPSY is made where????
+
+
+#### Forest Inventory
+  - uses [VRI](https://catalogue.data.gov.bc.ca/dataset/vri-2019-forest-vegetation-composite-rank-1-layer-r1-) 
+  - input is the spatial invenotry polygon data
+    - need to also know the name of the projected age, projected height, site index and crown closure columns for instantiating the inventory and setting constraints 
+  - raster of stand id's (rast.vri2018_id) where is this raster created????
+  
+#### Caribou Habitat Model
+- if going to use the cariobu habtait model (resource selection function (RSF)), then need to define which [designatble unit the caribou herds are a part of](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.2323))
+
+
+### Modules
+- in dataLoaderCLUS rmd, need to specify the modules you want to be able to run from the database
+  - also need to set the parameters of these modules
+  - blockingCLUS set to blockMethod = 'pre' to use the pre-blocking algorithm.....
+  - roadCLUS, set roadMethod to 'pre' to create the road netowrk based on landings to the blocks; need to defien a costs surface raster for creatign roads,a dn teh name of the  raster of teh exsitign roads (rast.crds_all)
+    
+    
+
+    
+    
+    
+    
+    
