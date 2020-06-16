@@ -36,6 +36,7 @@ Caribou critical habitat boudnaries have been defined independently by the gover
 ### British Columbia
 - delineated by provincial cariou biologists 
 - this data is currently (as of June 2020) 'draft' and not for distribution
+- data was obtained from Nicola Dodd, Knowledge Management Branch, MoE; they are the data custodians  
 
 #### Scenario 1
 - below is for a scenario where  no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix in BC critical habitat
@@ -65,7 +66,7 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek") # list of herd names in the polygon data; can customize the list to add/remove
 
 #herds<-c("Narrow_Lake","North_Cariboo")
-for(herd in herds){ # create a table of the constraints for each herd; shoudl this be for (i in herds)? not sure where herd comes from
+for(herd in herds){ # create a table of the constraints for each herd
   bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
                                              herd,"',]")))
   vat<-data.table(unique(bc.crit.selected$bchab_code)) # create value table for each unique herd name and habitat type  
@@ -191,7 +192,7 @@ DBI::dbWriteTable(conn, c("public", paste0("zone_nh_crit_",tolower(herd),"_crith
 
 ```{r, scenario: bc herd boundaries, no harvest}
 
-bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_herd_boundary_v20200507;") # data from cariobu prorgam; uploaded into postgres via ogr2ogr
+bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_herd_boundary_v20200507;") # data from caribou prorgam; uploaded into postgres via ogr2ogr
 herds <- c(unique (bc.bounds$herd_name))
 
 for (herd in herds){
@@ -199,7 +200,7 @@ bc.bounds.selected <- eval (parse (text = paste0("bc.bounds[bc.bounds$herd_name 
                                           herd,"',]")))
 bc.bounds.selected$zoneid <- 0
   
-ras.bc.bounds.selected <-fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
+ras.bc.bounds.selected <- fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
 writeRaster (ras.bc.bounds.selected , "ras_herd_bounds.tif", overwrite = TRUE)
 
 zone.bc.bounds.nh <- data.table (zoneid = 0, # zoneid of 0 makes each zone no harvest
@@ -234,6 +235,155 @@ system ("cmd.exe",
 
 }
 ```
+
+#### Scenario 4
+- below is for a scenario that combines herds with and without critical habitat data
+- first I combined recent critical habitat and herd data together in ArcGIS, using "Merge" 
+- I created "BCHab_code" and "BC_Habitat_Type" fields in the herd boundary data, consistent with the critical habitat data, and  defined them as "No critical habitat" and "None"
+- thus we have critical habitat defined for each herd in a single shapefile
+- located [here](\\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\bc_critical_habitat\bc_crit_habitat_and_herds_v20200615.gdb), as 'bc_critical_habitat_all_herds_20200615'
+- also loaded into postgres using ogr2ogr
+
+
+```{r, scenario: bc critical habitat and herd boundaries,  no harvest in high and low elevation, 35% max disturbance in matrix}
+
+bc.habitat <- getSpatialQuery("SELECT * from bc_critical_habitat_all_herds_20200615;") # data from caribou prorgam; uploaded into postgres via ogr2ogr
+herds <- c(unique (bc.habitat$herd_name))
+
+#all - create the raster for each herd and critical habitat type
+all.bc <- bc.habitat
+all.bc$crithab <- paste(all.bc$herd_name, all.bc$bchab_code) # create unique id ("value") for each unique herd name and habitat type
+
+all.vat <- data.table (unique (all.bc$crithab))
+setnames (all.vat, "V1", "crithab")
+all.vat [, value := seq_len (.N)] # assign number to each unique herd-habitat comibnation
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "vat_bc_crithab_and_herd"), value= all.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+all.bc2 <- merge (all.bc, all.vat, by.x = "crithab", by.y = "crithab") # merge number id with the polygon data
+ras.all.bc <- fasterize::fasterize (all.bc2, prov.rast, field = "value") # rasterize the polygon data to the provincial raster
+writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab_and_herd | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+herds <- c (unique (bc.habitat$herd_name))
+
+for (herd in herds) { # create a table of the constraints for each herd; here we are applying 35% disturbance to Matrix, and 0% disturbance everywhere else; these can be updated later
+  bc.selected <- eval (parse (text = paste0("bc.habitat [bc.habitat$herd_name == '", 
+                                            herd,"',]")))
+  vat <- data.table (unique (bc.selected$bchab_code)) # create value table for each unique herd name and habitat type  
+  setnames (vat, "V1", "crithab")
+  vat [, zoneid:= seq_len(.N)]
+  
+  conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                         host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                         port = '5432',
+                         user=keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                         password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  DBI::dbWriteTable (conn, c("public", paste0 ("vat_criticalhabitat_", tolower(herd))), 
+                     value = vat, row.names = FALSE, overwrite = TRUE)
+  dbDisconnect (conn)
+  
+  bc.selected2 <- merge (bc.selected, vat, by.x = "bchab_code", by.y = "crithab") # merge id with the polygon data
+  
+  ras.bc.selected <- fasterize::fasterize (bc.selected2, prov.rast, field = "zoneid") #
+
+  eccc.vat <- vat # create a constraint for a specific scenario; here the scenario is "ECCC" for the federal recovery plan 
+  eccc.vat [, reference_zone := paste0 ('rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd')] # zone name field
+  eccc.vat [, variable := 'dist'] # 'dist' is the distance to constraint type
+  eccc.vat [, type := 'ge'] # greater than or equal to (ge), less than or equal to (le)
+  eccc.vat [, ndt := 0]
+  eccc.vat [, threshold := 500] # threshold from disturbance (500 m)
+  eccc.vat [, multi_condition := NA]
+  eccc.vat [ crithab %in% c('Matrix'), percentage := 85] # percentage of area where constraint applies, e.g., in this case, 85% ge 500m
+  eccc.nh.zones <- eccc.vat [is.na (percentage), zoneid] # where there is no constraint, make it a 'no harvest' zone
+  
+  ras.eccc <- ras.bc.selected
+  ras.eccc [ras.eccc[] %in% eccc.nh.zones] <- 0
+  
+  zone.eccc.crithab <- eccc.vat[!(zoneid %in% eccc.nh.zones),]
+  zone.eccc.crithab <- zone.eccc.crithab [, c('zoneid', 'reference_zone', 'ndt', 'variable',
+                                              'threshold', 'type', 'percentage', 'multi_condition')]
+  zone.eccc.crithab.nh <- data.table (zoneid = 0, 
+                                      reference_zone = paste0 ('rast.zone_cond_eccc_', 
+                                                               tolower(herd),'_crithab_or_herd'), 
+                                      ndt = 0, variable = '', threshold = 0, type = 'nh', 
+                                      percentage = 0,
+                                      multi_condition = NA)
+
+  zone.eccc.crithab <- rbindlist (list (zone.eccc.crithab, zone.eccc.crithab.nh))
+  writeRaster (ras.eccc, "ras_eccc_crit_or_herd.tif", overwrite = TRUE)
+
+  zone.eccc.crithab <- zone.eccc.crithab [, zoneid := as.integer (zoneid)]
+  zone.eccc.crithab <- zone.eccc.crithab [, ndt := as.integer (ndt)]
+  zone.eccc.crithab <- zone.eccc.crithab [, threshold := as.numeric (threshold)]
+  zone.eccc.crithab <- zone.eccc.crithab [, multi_condition := as.character (multi_condition)]
+
+  conn<-DBI::dbConnect (dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port = '5432' ,
+                       user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("public", 
+                            paste0("zone_eccc_",tolower(herd),"_crithab_or_herd")), 
+                    value = zone.eccc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute (conn, paste0("ALTER TABLE zone_eccc_",tolower(herd),"_crithab_or_herd INHERIT zone_constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", 
+         input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                        here::here(), '/R/params/ras_eccc_crit_or_herd.tif -t 100x100', 
+                        paste0(' rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+  vat.noharvest <- vat
+  vat.noharvest[, percentage := 0]
+  vat.noharvest[, type := 'nh']
+  vat.noharvest[, reference_zone := paste0('rast.zone_cond_noharvest_', tolower(herd),'_crithab_or_herd')]
+
+  ras.bc <- ras.bc.selected
+  ras.bc [ras.bc [] %in% vat.noharvest] <- 0
+  writeRaster (ras.bc, "rasbccrit.tif", overwrite = TRUE)
+  
+  zone.nh.crithab.herd <- data.table(zoneid = 0, # zone id = 0 makes it no harvest
+                                   reference_zone = paste0('rast.zone_cond_noharvest_',
+                                                           tolower(herd),'_crithab_or_herd'),
+                                   ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0,
+                                   multi_condition = NA)
+  zone.nh.crithab.herd <- zone.nh.crithab.herd[, zoneid := as.integer(zoneid)]
+  zone.nh.crithab.herd <- zone.nh.crithab.herd[, ndt := as.integer (ndt)]
+  zone.nh.crithab.herd <- zone.nh.crithab.herd[, threshold := as.numeric (threshold)]
+  zone.nh.crithab.herd <- zone.nh.crithab.herd[, multi_condition := as.character (multi_condition)]
+
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port ='5432' ,
+                       user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("public", paste0 ("zone_noharvest_",tolower(herd),"_crithab_or_herd")), 
+                    value = zone.nh.crithab.herd, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone_noharvest_",tolower(herd),"_crithab_or_herd INHERIT zone_constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                   here::here(), '/R/params/rasbccrit.tif -t 100x100', 
+                                   paste0(' rast.zone_cond_noharvest_', tolower(herd),'_crithab_or_herd'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+}
+
+
+```
+
+
+
 
 
 
@@ -414,5 +564,5 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 
 
 
-☻
+
 
