@@ -65,16 +65,24 @@ parameters <-  list(
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw", 
+                                           "rast.zone_cond_cw",
+                                           "rast.zone_bc_bounds_chase_noharvest",
+                                           "rast.zone_bc_bounds_takla_noharvest",
+                                           "rast.zone_bc_bounds_wolverine_noharvest",
+                                           "rast.zone_bc_bounds_tweedsmuir_noharvest",
+                                           "rast.zone_bc_bounds_rainbows_noharvest",
+                                           "rast.zone_bc_bounds_itcha_ilgachuz_noharvest",
+                                           "rast.zone_bc_bounds_charlotte_alplands_noharvest",
+                                        
                                            "rast.zone_cond_bc_telkwa_crithab",
-                                           "rast.zone_cond_eccc_telkwa_crithab",
-                                           "rast.zone_cond_nh_crit_telkwa_crithab",
                                            "rast.zone_cond_bc_charlotte_alplands_crithab",
                                            "rast.zone_cond_bc_itcha_ilgachuz_crithab",
                                            "rast.zone_cond_bc_rainbows_crithab",
+                                           "rast.zone_cond_eccc_telkwa_crithab",
                                            "rast.zone_cond_eccc_charlotte_alplands_crithab",
                                            "rast.zone_cond_eccc_itcha_ilgachuz_crithab",
                                            "rast.zone_cond_eccc_rainbows_crithab",
+                                           "rast.zone_cond_nh_crit_telkwa_crithab",
                                            "rast.zone_cond_nh_crit_charlotte_alplands_crithab",
                                            "rast.zone_cond_nh_crit_itcha_ilgachuz_crithab",
                                            "rast.zone_cond_nh_crit_rainbows_crithab"),
@@ -147,7 +155,9 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
 
 
+system.time({
 mysimout<-spades(mySim)
+})
 
 ```
 
