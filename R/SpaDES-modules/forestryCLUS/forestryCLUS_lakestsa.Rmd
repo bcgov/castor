@@ -73,25 +73,25 @@ from Lakes 2019 dtermination: "The live volume harvest level of 400 000 cubic me
 - average of this is 96m3/ha, so i used 100m3/ha as my min harvest volume
 
 from Lakes 2019 dtermination: "In the base case, an initial harvest level of 400 000 cubic metres of live volume was possible for the first 60 years." and "The managed stands are projected to provide almost the entire harvest after 60 years from now and are able to support a stable long-term harvest level of 900 000 cubic metres per year. "
-- i tested a harvest flow of 750,000m^3^/year (3,750,000m^3^/5-year) initially 
+- i tested a harvest flow of 750,000m^3^/year (3,750,000m^3^/5-year) initially, foudn it was sustainbale, then worked my way back from 1,000,000m^3^/year down to  760,000m^3^/year (765,000m^3^/year was not sustainable); this seems consistent with 2019 TSR model, as if you weight the average of the base case it = 750,000m3/yr
 
 
 ```{r module_usage}
-library(SpaDES.core)
-library(data.table)
-source(paste0(here::here(), "/R/functions/R_Postgres.R"))
+library (SpaDES.core)
+library (data.table)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 200)
+times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list( 
-                         dbName='clus',
-                           #save_clusdb = TRUE,
+                           dbName='clus',
+                           save_clusdb = TRUE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Lakes_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -106,10 +106,10 @@ parameters <- list(
                                                "rast.zone_cond_wha", 
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
-                                               "rast.zone_cond_nharv"
-                                               #"rast.zone_cond_noharvest_takla_crithab_or_herd",
-                                               #"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
-                                               #"rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"
+                                               "rast.zone_cond_nharv",
+                                               #"rast.zone_cond_noharvest_takla_crithab_or_herd" # no harvest scenario
+                                               #"rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"  # no harvest scenario
+                                               "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"  # eccc harvest scenario
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -135,11 +135,11 @@ parameters <- list(
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'),
-  rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
-                  criticalHabitatTable = "public.vat_bc_crithab_and_herd",
-                  randomEffectsTable = "public.rsf_re_coeff",
-                  writeRSFRasters = TRUE,
-                  checkRasters = FALSE),
+  # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
+  #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
+  #                 randomEffectsTable = "public.rsf_re_coeff",
+  #                 writeRSFRasters = TRUE,
+  #                 checkRasters = FALSE),
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
@@ -148,7 +148,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'lakes_tsa_bau',
+  uploaderCLUS = list(aoiName = 'lakes_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -165,26 +165,27 @@ modules <- list("dataLoaderCLUS",
                 #"yieldUncertaintyCLUS", 
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
-                "uploaderCLUS",
-                "rsfCLUS"
+                # "rsfCLUS", # error line 453 - need to debug
+                "uploaderCLUS"
                 )
 
-rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
-rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
-
-scenario = data.table (name = "test", 
-                       description = "testing harvest flow")
+# rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
+# rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
 # scenario = data.table (name = "lakes_bau", 
-#                        description = "Lakes TSA business-as-usual scenario. Adjacency was set to 3m.")
+#                        description = "Business-as-usual case; sustainable flow = 760,000m3/yr.Adjacency was set to 3m. ")
+# scenario = data.table (name = "lakes_all_herdbounds_nh",
+#                        description = "No harvest in all caribou ciritical habitat (Tweesmuir) or herd boundaries (Takla). Adjacency was set to 3m. ")
+scenario = data.table (name = "lakes_chil_hele0d_m15d",
+                       description = "No harvest in TWeedsmuir high adn low elevation, and 35% disturbance in matrix critical habitat boundaries. Adjacency was set to 3m.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Lakes_TSA",
-                                     partition = ' vol > 100 ', # from Lakes 2019 dtermination
+                                     partition = ' vol > 100 ', # from Lakes 2019 determination
                                      year = rep( seq (from = 2018, # run the 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 3750000)
+                                     flow = 3800000) #760,000m3/yr
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
@@ -208,20 +209,22 @@ objects <- list(harvestFlow = harvestFlow,
                 patchSizeDist = patchSizeDist, 
                 scenario = scenario)
 
-paths <- list(
-              cachePath = cacheDir,
+paths <- list(cachePath = cacheDir,
               modulePath = moduleDir,
               inputPath = inputDir,
               outputPath = outputDir)
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects, paths = paths)
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects, 
+                 paths = paths)
 
-# outputs to keep; these are tables that get used in the uploader; comment out when running 'tests'
-# outputs(mySim) <- data.frame (objectName = c("harvestReport", 
-#                                              "growingStockReport", 
-#                                              "tableSurvival", 
-#                                              "disturbanceReport"))
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport",
+                                             "tableSurvival",
+                                             "disturbanceReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

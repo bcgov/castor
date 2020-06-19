@@ -94,6 +94,12 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
 - to run sceanrios, satrt with teh forestryCLUS module
   - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
   is simulated
+
+#### Time Intervals
+- specify in times 
+  - start = 0
+  - end = number of intervals, e.g., if using a 5 year interval and want to sim over a 200 year period, end = 40
+
   
 #### harvestPriority
 - The harvest queue is established using the 'harvestPriority' parameter
@@ -128,7 +134,16 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
 #### patchSizeDist
   - establsihes the size of cutblocks to be harvested adn the frequency to haveset them by natural disturabcen type (ndt), as defined in the Forest Practices Code [Biodiversity Guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf); NDT's are associated with biogeolcimatic units
   
-    
+#### Outputs
+- define where table ouputs get uploaded (via 'uploaderCLUS')
+- currently we upload to a postgres on a VM server; 
+  -  define the area of interest name that (aoiName); this sets the name of the schema wehre tables get uploaded to postgres
+
+- decalre in outputs(mySim) which 'reports', i.e., tables to save and uplaod to the vritual machine
+  - "harvestReport" = reports inforamtion on harvest volume and area harvested, age of harvested stand, by time interval and comaprtment
+  - "growingStockReport" = reports on growing stock (forest stand ????) by time interval adn compartment
+  - "tableSurvival" = 
+  - "disturbanceReport"
     
     
     

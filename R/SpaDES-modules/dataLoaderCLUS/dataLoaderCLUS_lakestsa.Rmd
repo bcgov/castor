@@ -111,7 +111,8 @@ parameters <-  list(
 rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 rsf_model_coeff[, population := 'Tweedsmuir'] 
 
-scenario = data.table(name="testing_yield_uncertainty", description = "Simple flow")
+scenario = data.table(name="load_data", 
+                      description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
@@ -133,7 +134,9 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCalcCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
-objects <- list(patchSizeDist = patchSizeDist, scenario = scenario, rsf_model_coeff=rsf_model_coeff)
+objects <- list(patchSizeDist = patchSizeDist, 
+                scenario = scenario, 
+                rsf_model_coeff = rsf_model_coeff)
 
 inputs <- list()
 outputs <- list()
