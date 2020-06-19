@@ -1,0 +1,66 @@
+---
+title: "Priority Cariobu Herd Forestry Impact Summary"
+author: "Tyler Muhly"
+date: "19/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (kableExtra)
+```
+
+## Introduction
+
+Here is a summary of initial results of potential simaulted imapcts to forest harvest to support provincial carriobu herd planning priorities for 2020/21. 
+
+Sceanrios are:
+- Business-as-usal (BAU)
+
+```{r, table 1, results, echo = F, error = F, eval = T, include = T, message = F}
+# data.harvest <- read.csv (here ("reports/scenarios/data", "harvest.csv"))
+
+con <- dbConnect ("PostgreSQL",
+				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                  user = keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                  password = keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                  dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
+				          port = "5432")
+data.harvest <- dbGetQuery (con, "SELECT * FROM lakes_tsa.harvest")
+dbDisconnect (con)
+data.summ <- data.harvest %>% # get summary data
+              filter (scenario == "lakes_chil_hele0d_m15d") %>% # lakes_bau, lakes_wct_nh, lakes_chil_nh, lakes_chil_hele0d_m15d, lakes_all_herdbounds_nh
+
+                  summarise (sum (volume)/40)
+
+
+table.volume = data.table (
+  harvest_unit = c ("Lakes TSA", "Lakes TSA", "Lakes TSA", "Lakes TSA", "Lakes TSA"),
+  scenario = c ("BAU", "No harvest in Takla herd", "No harvest in Tweedsmuir critical habitat", "35% disturbance in Tweedsmuir matrix critical habitat", "No harvest in Takla herd and Tweedsmuir critical habitat"),
+  adjacency = c (3, 3, 3, 3, 3),
+  recovery = c (0, 40, 40, 40, 40),
+  annual_volume = c (759935, 754456, 526749, 564774, 512700),
+  diff_annual_volume = c (0, 5479, 233186, 195161, 247235),
+  perc_diff_tot_volume = c ("0", "1%", "31%", "26%", "33%")
+)
+kable (table.volume,
+       caption = "<b>Table 1. Annual Harvested Volume Over a 200 Year Period in Timber Harvest Units Under Different  Caribou Recovery Scenarios.<b>",
+       col.names = c("Harvest Unit",
+                     "Scenario",
+                     "Adjacency Height Requirement (m)",
+                     "Habitat Recovery Time (Years)",
+                     "Average Annual Volume (m3)",
+                     "Difference in Annual Volume (m3)",
+                     "Percent Difference in Annual Volume"),
+       format.args = list (big.mark = ","),
+       align = rep( c('l', 'c', 'c', 'c', 'c', 'c'))) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual scenario",
+            fixed_small_size = T)
+```
+
+
