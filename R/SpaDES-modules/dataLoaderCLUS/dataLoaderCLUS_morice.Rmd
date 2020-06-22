@@ -67,13 +67,13 @@ parameters <-  list(
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"),
-                                           # "rast.zone_cond_noharvest_takla_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_telkwa_crithab_or_herd"),
-                                           # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-                                           # "rast.zone_cond_eccc_takla_crithab_or_herd",
-                                           # "rast.zone_cond_eccc_telkwa_crithab_or_herd",
-                                           # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
+                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_noharvest_takla_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_telkwa_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                           "rast.zone_cond_eccc_takla_crithab_or_herd",
+                                           "rast.zone_cond_eccc_telkwa_crithab_or_herd",
+                                           "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
                         
                          nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
