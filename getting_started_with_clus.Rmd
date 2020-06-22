@@ -40,7 +40,7 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
   - Fisheries Sensitive watersheds (FSWs)
     - prov_managae_objs, rast.zone_cond_fsw
   - Equivalent Clearcut Areas (ECAs)
-    - prov_managae_objs, rast.zone_cond_fsw
+    - prov_managae_objs, rast.zone_cond_cw
   - visual quality objectives (VQOs)
     - prov_managae_objs, rast.zone_cond_vqo"
   - old growth management areas (OGMAs) - legal - no harvesting
@@ -57,7 +57,7 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
     - partnershipAgreementRaster
     
 - the .rmd creates a raster, but also a table that correpsonds to teh raster id
-- a table gest created for each zoen copnstaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
+- a table gest created for each zone constaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
 
 
 #### Growth and Yeild Models
