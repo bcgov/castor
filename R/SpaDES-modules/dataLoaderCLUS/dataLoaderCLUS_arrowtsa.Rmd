@@ -22,7 +22,7 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Lakes timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/lakes-tsa). The TSA is located in north-central British Columbia, encompasses approximately 1.5 million hectares of land. It overlaps with the Takla herd and Tweesdmuir caribou herds (both in DU7). On November 21, 2019, the allowable annual cut was set at 970,000 cubic metres, partitioned to 400 000 cubic metres of live coniferous volume, 20 000 cubic metres of live deciduous volume and 550 000 cubic metres of dead volume. A minimum harvest volume criterion of 140 cubic metres per hectare was applied in the base case.
+Here I set the parameters to create a database for the [Arrow timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/arrow-tsa). The TSA is located in south-eastern British Columbia, encompasses approximately 1.3 million hectares of land. It overlaps with the Central Selkirks, Columbia South, Monashee and South Selkirks caribou herds (all in DU9). On November 16, 2017, the allowable annual cut was set at 500,000 cubic metres,
 
 # Usage
 Set parameters for creating the database in the code chunk below. 
@@ -49,7 +49,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
-                         nameBoundary = "Lakes_TSA", # the boudnary (TSA) name
+                         nameBoundary = "Arrow_TSA", # the boudnary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -60,12 +60,16 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
-                                             # "rast.zone_cond_cw",
-                                             "rast.zone_cond_noharvest_takla_crithab_or_herd", # takle as no harvest zone; no critical habitat
-                                             "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd", # TWeedsmuir ECCC scenario raster
-                                             "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd" # TWeedsmuir no harvets raster
-                                             ), 
-                         nameZoneTable = "zone_constraints", # table that defines teh constraints in the rasters
+                                             "rast.zone_cond_cw", 
+                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                           "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_monashee_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd",
+                                          "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
+                                          "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
+                                          "rast.zone_cond_eccc_monashee_crithab_or_herd",
+                                          "rast.zone_cond_eccc_south_selkirks_crithab_or_herd"
+                                          ), 
+                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds
@@ -108,8 +112,8 @@ parameters <-  list(
                              recovery = 40) # time for roads adn cutblocks to 'recover' from disturbance
   )
 
-rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
-rsf_model_coeff[, population := 'Tweedsmuir'] 
+rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
+#rsf_model_coeff[, population := 'Tweedsmuir'] 
 
 scenario = data.table(name="load_data", 
                       description = "dataloader")

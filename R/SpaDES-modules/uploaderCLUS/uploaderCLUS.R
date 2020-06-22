@@ -67,9 +67,12 @@ doEvent.uploaderCLUS = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   #check to see if a scenario table exists. If it does -- delete from the table where scenario is equal to the scenario
-  connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
-                       user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
-                       password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+  connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                        host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
+                        dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
+                        port='5432', 
+                        user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
+                        password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
 
   #Does the schema exist?
   if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
@@ -120,12 +123,18 @@ Init <- function(sim) {
 
 save.currentState<- function(sim){
   if(length(sim$foreststate)>0){
-    connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
-                        user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
-                        password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+    connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                          host=P(sim, "uploaderCLUS", 
+                                 "dbInfo")[[1]], 
+                          dbname = P(sim, "uploaderCLUS", 
+                                     "dbInfo")[[4]], 
+                          port='5432', 
+                          user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
+                          password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
   
     sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), sim$foreststate, append = T,row.names = FALSE)
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), 
+                 sim$foreststate, append = T, row.names = FALSE)
   
     dbDisconnect(connx)
   }
@@ -134,32 +143,43 @@ save.currentState<- function(sim){
 
 save.reports <-function (sim){
  
-  connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
+  connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                        host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
+                        dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
+                        port='5432', 
                         user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
                         password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
   #harvestingReport
   if(!is.null(sim$harvestReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'harvest'), sim$harvestReport, append = T,row.names = FALSE)
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'harvest'),
+                 sim$harvestReport, append = T,
+                 row.names = FALSE)
   }
   #GrowingStockReport
   if(!is.null(sim$growingStockReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'growingstock'), sim$growingStockReport, append = T,row.names = FALSE)
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'growingstock'), 
+                 sim$growingStockReport, append = T,
+                 row.names = FALSE)
   }
   #rsf
   if(!is.null(sim$rsf)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'rsf'), sim$rsf, append = T,row.names = FALSE)
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'rsf'), 
+                 sim$rsf, append = T,row.names = FALSE)
   }
   #survival
   if(!is.null(sim$tableSurvival)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), sim$tableSurvival, append = T,row.names = FALSE)
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), 
+                 sim$tableSurvival, append = T,row.names = FALSE)
   }
   #disturbance
   if(!is.null(sim$disturbanceReport)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'disturbance'), sim$disturbanceReport, append = T,row.names = FALSE)
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'disturbance'), 
+                      sim$disturbanceReport, append = T,row.names = FALSE)
   }
   #yielduncertainty
   if(!is.null(sim$yielduncertain)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), sim$yielduncertain, append = T,row.names = FALSE)
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), 
+                      sim$yielduncertain, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 
@@ -169,31 +189,37 @@ save.rasters <-function (sim){
   #rasters
   
   if(is.null(sim$foreststate)){
-    connx<-DBI::dbConnect(dbDriver("PostgreSQL"), host=P(sim, "uploaderCLUS", "dbInfo")[[1]], dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], port='5432', 
+    connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                          host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
+                          dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
+                          port='5432', 
                           user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
                           password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
     ##blocks
     message('....cutblock raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), schema = P(sim, "uploaderCLUS", "aoiName"), 
-                 name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), P(sim, "uploaderCLUS", "dbInfo") )
+    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") ,paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), 
+                 schema = P(sim, "uploaderCLUS", "aoiName"), 
+                 name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), 
+                 dbInfo = P(sim, "uploaderCLUS", "dbInfo") )
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
     dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to clus_project;"))
     
     ##roads
     if(!is.null(sim$roads)){
     message('....roads raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/" ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
+    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
-                 P(sim, "uploaderCLUS", "dbInfo"))
+                 dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
     dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to clus_project;"))
     
     }
     ##zoneConstraint
     message('....constraint raster')
-    commitRaster(layer = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/forestryCLUS/", paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif")), 
-                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
-                 P(sim, "uploaderCLUS", "dbInfo"))
+    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") , paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif")), 
+                 schema = P(sim, "uploaderCLUS", "aoiName"), 
+                 name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
+                 dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
     dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to clus_project;"))
     
@@ -205,5 +231,8 @@ save.rasters <-function (sim){
 #---Other functions
 commitRaster<-function(layer, schema, name, dbInfo){
   #print(paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', layer, ' -t 100x100 ', schema, '.', name, ' |  psql postgres://', dbInfo[[2]], ':', dbInfo[[3]], '@', dbInfo[[1]], ':5432/',dbname = dbInfo[[4]]))
-  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', layer, ' -t 100x100 ', schema, '.', name, ' |  psql postgres://', dbInfo[[2]], ':', dbInfo[[3]], '@', dbInfo[[1]], ':5432/',dbname = dbInfo[[4]]), show.output.on.console = FALSE, invisible = TRUE)
+  system("cmd.exe", 
+         input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', layer, ' -t 100x100 ', schema, '.', name, ' |  psql postgres://', dbInfo[[2]], ':', dbInfo[[3]], '@', dbInfo[[1]], ':5432/',dbname = dbInfo[[4]]), 
+         show.output.on.console = FALSE, 
+         invisible = TRUE)
 }
