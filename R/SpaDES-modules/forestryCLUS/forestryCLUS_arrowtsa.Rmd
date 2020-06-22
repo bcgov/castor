@@ -38,27 +38,36 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# Lakes TSA Scenarios
+# Arrow TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in caribou herd or critical habtait areas; where there is cirtical habtait, no harvest in any types (includign matrix), and where therre is no critical habtiat, no harvest anywhere in the herd boudanries (assumes all critical hbaitat); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in Lakes we have Takla herd boundaries, Tweedsmuir HEWSR, Tweedsmuir LESR, Tweedsmuir LEWR, and Tweedsmuir Matrix  
+no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (includign matrix); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in Arrow these include Central Selkirks HEWSR, Central Selkirks Matrix, Columbia South Matrix, Monashee Matrix, Monashee HEWSR, South Selkirks Matrix, South Selkirks HEWSR
 
-no harvest in Chilcotin caribou critical habtiat; to support Chilcotin herd planning, we run a sceanrio with no harvest in the  Tweedsmuir HEWSR, Tweedsmuir LESR, Tweedsmuir LEWR, and Tweedsmuir Matrix; harvest is BAU in Takla; asses teh potential maximum impact of protecting Chilcotin only, assumign Takla unprotected
+'ECCC' in caribou critical habtait areas; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high adn low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
 
-ECCC in Chilcotin caribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the feederal recovery strategy that stipulates no harvest in high adn low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes Takla unprotected
+no harvest in Central Selkirks caribou critical habtiat; to support Central Selkirks herd planning, we run a sceanrio with no harvest in the  Central Selkirks HEWSR and Matrix; harvest is BAU in other herds; assesses teh potential maximum impact of protecting Central Selkirks  only, assuming other herds unprotected
+
+ECCC in Central Selkirks caribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central Selkirks only
 
 
-# Lakes TSA Parameters 
+# Arrow TSA Parameters 
 
 ## New Caribou Constraints
-BAU = beo, vqo, wha, uwr, fsw,parks and protected areas 
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest anywhere = zone_cond_noharvest_takla_crithab_or_herd, zone_cond_noharvest_tweedsmuir_crithab_or_herd
+No harvest in all herds = rast.zone_cond_noharvest_central_selkirks_crithab_or_herd,
+                          rast.zone_cond_noharvest_columbia_south_crithab_or_herd,
+                          rast.zone_cond_noharvest_monashee_crithab_or_herd,
+                          rast.zone_cond_noharvest_south_selkirks_crithab_or_herd
 
-No harvest TWeedsmuir = zone_cond_noharvest_tweedsmuir_crithab_or_herd
+ECCC in all herds = rast.zone_cond_eccc_central_selkirks_crithab_or_herd,
+                    rast.zone_cond_eccc_columbia_south_crithab_or_herd,
+                    rast.zone_cond_eccc_monashee_crithab_or_herd,
+                    rast.zone_cond_eccc_south_selkirks_crithab_or_herd
 
-ECCC TWeedsmuir = zone_cond_eccc_tweedsmuir_crithab_or_herd
+No harvest in Central Selkirks = rast.zone_cond_noharvest_central_selkirks_crithab_or_herd
 
+ECCC Central Selkirks = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -67,22 +76,16 @@ ECCC TWeedsmuir = zone_cond_eccc_tweedsmuir_crithab_or_herd
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
 
-
 ## 'harvestFlow'
-from 2017 determination: base case set harvest at 506,000m^3^/year for 60 years, and then increases to 680,000m^3^/year for the next 40 years; averages to 576,000m^3^/yea
-
-- I tested a harvest flow of 576,000m^3^/year (2,880,000m^3^/5-year) initially, foudn it was sustainbale, then worked my way back from 1,000,000m^3^/year down to  760,000m^3^/year (765,000m^3^/year was not sustainable); this seems consistent with 2019 TSR model, as if you weight the average of the base case it = 750,000m3/yr
-
+from 2017 determination: maximum even flow harvest was 540,000m^3^/year 
+- First, I tested a harvest flow of 540,000m^3^/year (2,780,000m^3^/5-year); was nto able to achieve this after 50 years, so dropped to 450,000, then 400,000, 350,000, 325,000, 335,000, 340,000, and 345,000; the latetr provided max. even flow
 
 
+From 2016 data package, "In natural stands a minimum volume of 150 cubic metres per hectare will be used as a surrogate for minimum age in the model. In managed stands the age at which the stands reaches 95% culmination of mean annual increment will be used as minimum harvestable age." "With genetic gain and new PEM/SIBEC site indices, using only a volume of 150 m3 is unrealistic as some of the higher SI sites could achieve this in as little as 40 years."
 
+- I used 150 m3/ha as minimum harvest volume, thus may be a bit low
 
-
-"The live volume harvest level of 400 000 cubic metres per year indicated in the base case can only be realized if licensees immediately focus their performance in low live volume stands.  Specifically: stands with less than 170 cubic metres per hectare; and, beetle-affected tands where the minimum live volume is 125 cubic metres per hectare for balsam-leading stands, 80 cubic metres per hectare for pine-leading stands, and 82 cubic metres per hectare for spruce-leading stands
-- average of this is 96m3/ha, so i used 100m3/ha as my min harvest volume
-
-from Lakes 2019 dtermination: "In the base case, an initial harvest level of 400 000 cubic metres of live volume was possible for the first 60 years." and "The managed stands are projected to provide almost the entire harvest after 60 years from now and are able to support a stable long-term harvest level of 900 000 cubic metres per year. "
-
+For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; thus is a bit conservative
 
 
 ```{r module_usage}
@@ -98,14 +101,13 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list( 
-                           dbName='clus',
+  dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Lakes_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Arrow_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Lakes_TSA",
+                           nameBoundary = "Arrow_TSA",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -116,9 +118,14 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               #"rast.zone_cond_noharvest_takla_crithab_or_herd" # no harvest scenario
-                                               #"rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"  # no harvest scenario
-                                               "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"  # eccc harvest scenario
+                                               "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
+                                               # "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
+                                               # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
+                                               # "rast.zone_cond_noharvest_monashee_crithab_or_herd",
+                                               # "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd"
+                                               "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
+                                               "rast.zone_cond_eccc_monashee_crithab_or_herd",
+                                               "rast.zone_cond_eccc_south_selkirks_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -157,7 +164,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'lakes_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'arrow_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -181,23 +188,27 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "lakes_bau", 
-#                        description = "Business-as-usual case; sustainable flow = 760,000m3/yr.Adjacency was set to 3m. ")
-# scenario = data.table (name = "lakes_all_herdbounds_nh",
-#                        description = "No harvest in all caribou ciritical habitat (Tweesmuir) or herd boundaries (Takla). Adjacency was set to 3m. ")
-scenario = data.table (name = "lakes_chil_hele0d_m15d",
-                       description = "No harvest in TWeedsmuir high adn low elevation, and 35% disturbance in matrix critical habitat boundaries. Adjacency was set to 3m.")
+# scenario = data.table (name = "arrow_bau",
+#                        description = "Business-as-usual case; sustainable flow = 345,000m3/yr.Adjacency was set to 3m.")
+# scenario = data.table (name = "arrow_centselk_nh",
+#                        description = "No harvest in Central Selkirks critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "arrow_centselk_ch_he0d_m15d",
+#                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "arrow_all_nh",
+#                        description = "No harvest in all critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m.")
+scenario = data.table (name = "arrow_all_ch_he0d_m15d",
+                       description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m.")
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Lakes_TSA",
-                                     partition = ' vol > 100 ', # from Lakes 2019 determination
-                                     year = rep( seq (from = 2018, # run the 
+harvestFlow <- rbindlist(list(data.table(compartment ="Arrow_TSA",
+                                     partition = ' vol > 150 ', 
+                                     year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 3800000) #760,000m3/yr
+                                     flow = 1725000) #345,000m3/yr 
 ))
 
-#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
+#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
