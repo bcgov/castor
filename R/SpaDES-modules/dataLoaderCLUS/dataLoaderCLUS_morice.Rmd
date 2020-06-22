@@ -24,6 +24,8 @@ The dataloaderCLUS preps the database and other objects required to run CLUS. A 
 
 Here I set the parameters to create a database for the [Morice timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/morice-tsa). The TSA is located in northern-central British Columbia and is on the western edge of BC's central interior plateau. The Morice TSA encompasses approximately 1.5 million hectares of land. In March 16, 2015 the allowable annual cut was set at 1.9 million cubic metres, partitioned between 1.6 million cubic metres of live tree volume and  300 000 cubic metres of dead volume. On March 16, 2020 the AAC was kept at 2015 values until a new AAC is determined. 
 
+Three herds overlap with the Morice TSA - Takla, Telkwa, and Tweedsmuir.Thus for building the database only information on these three herds is needed.
+
 How was this determined?
 (A minimum harvest volume criterion of 140 cubic metres per hectare was applied in the base case.)
 
