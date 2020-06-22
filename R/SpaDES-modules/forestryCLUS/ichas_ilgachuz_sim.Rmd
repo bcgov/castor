@@ -150,10 +150,13 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
+
 #calb_ymodel<-readRDS(paste0(here::here(), "/R/Params/calb_ymodel.rds")) #See linkHBS_VRI_Calibration.Rmd
 #calb_data4<-readRDS(paste0(here::here(), "/R/Params/calb_data.rds")) #See linkHBS_VRI_Calibration.Rmd
 
-objects <- list(harvestFlow = harvestFlow, patchSizeDist=patchSizeDist, scenario = scenario)
+objects <- list (harvestFlow = harvestFlow, 
+                 patchSizeDist = patchSizeDist, 
+                 scenario = scenario)
 
 paths <- list(
   cachePath = cacheDir,
@@ -165,7 +168,10 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
 
 
-outputs(mySim) <- data.frame(objectName = c("harvestReport", "growingStockReport", "tableSurvival", "disturbanceReport"))
+outputs(mySim) <- data.frame (objectName = c("harvestReport", # outputs to keep; these are tables that get used int eh uploader
+                                             "growingStockReport",
+                                             "tableSurvival",
+                                             "disturbanceReport"))
 
 #Run the model 1 time
 mysimout<-spades(mySim)

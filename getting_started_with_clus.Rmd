@@ -1,0 +1,150 @@
+---
+title: "Getting Started with CLUS"
+author: "Tyler Muhly"
+date: "03/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction
+
+Here we document how to get started usign CLUS
+
+## Data Inputs (dataLoaderCLUS)
+much data needs to be pre-processed and put into a postgres database that the dataloaderCLUS will read; this includes:
+- TSA boundaries (or whaterver boudanries you want to create a harvest flow within)
+- timber harvest land base (THLB); sets the area that is harvestable by the model; comes form FAIB's provncial THLB dataset
+
+need to create a raster of each of these that corrresponds to the standard provincial 1 ha raster, and a corresponding value attrtibute table (vat) that links to the raster via a unique integer id
+
+
+### Params
+
+Params folder in teh github (clus/R/Params) is where we create data in postgres that will be used by dataloaderLCUS and other CLUS modules
+- criticalHabitatRaster: where set critical habitat and herd boudanries for cariobu and set constraints for those areas
+
+
+#### Zone constraints
+- zone contraints are specific parameters that relate spatial areas ('zones') to a specific constraint on forestry (or in the future, any land use activity)
+- 'standard' appraoch is to at a minimum include zone constraints simialr to what is include in timebr suppyl review models, including:
+  - ungulate winter ranges (UWRs)
+    - uwr_cond_harvest, rast.zone_cond_uwr
+  - wildlife habtiat areas (WHAs)
+    - wha_cond_harvest, rast.zone_cond_wha
+  - biodiversity emphasis options (BEOs)
+    - prov_managae_objs, rast.zone_cond_beo
+  - Fisheries Sensitive watersheds (FSWs)
+    - prov_managae_objs, rast.zone_cond_fsw
+  - Equivalent Clearcut Areas (ECAs)
+    - prov_managae_objs, rast.zone_cond_fsw
+  - visual quality objectives (VQOs)
+    - prov_managae_objs, rast.zone_cond_vqo"
+  - old growth management areas (OGMAs) - legal - no harvesting
+    - prov_managae_objs, rast.zone_nharv
+  - Parks and Protected Areas (parks)
+    - prov_managae_objs, rast.zone_nharv
+    
+- additonal zone cotnraints for a particualr sceanrio can be added here, for example, for cariobu:
+  - contraints on criticla habtiat 
+    - criticalHabitatRaster
+  - constaints within herd boudanries 
+    - criticalHabtiatRaster
+  - Section 11 Partnership Agreement areas
+    - partnershipAgreementRaster
+    
+- the .rmd creates a raster, but also a table that correpsonds to teh raster id
+- a table gest created for each zoen copnstaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
+
+
+#### Growth and Yeild Models
+- data from TIPSY and VDYP growth adn yeild models gets brought into the model to estimate future paramters of 'managed' and 'natural origin' stands, respecitvely
+- volume and height data from TIPSY  data is created via the tipsy_curves.rmd
+  - creates a raster of teh inventory stands ids that correpsond to teh tipsy curves
+  - volume (tipsy_prov) and height (tipsy_ht_prov) tables created in postgres
+- these data come from provincial estimates created by Dave Waddell from FAIB
+
+- data from VDYP comes from provincial estimates created by Wenli Xu from FAIB
+  - height, basal area and volume output table is created (vdyp_output)
+  - creates a raster to link to appropriate stands in teh forest inventory
+  
+- linkage between VDYP and TIPSY is made where????
+
+
+#### Forest Inventory
+  - uses [VRI](https://catalogue.data.gov.bc.ca/dataset/vri-2019-forest-vegetation-composite-rank-1-layer-r1-) 
+  - input is the spatial invenotry polygon data
+    - need to also know the name of the projected age, projected height, site index and crown closure columns for instantiating the inventory and setting constraints 
+  - raster of stand id's (rast.vri2018_id) where is this raster created????
+  
+#### Caribou Habitat Model
+- if going to use the cariobu habtait model (resource selection function (RSF)), then need to define which [designatble unit the caribou herds are a part of](https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecs2.2323))
+
+
+### Modules
+- in dataLoaderCLUS rmd, need to specify the modules you want to be able to run from the database
+  - also need to set the parameters of these modules
+  - blockingCLUS set to blockMethod = 'pre' to use the pre-blocking algorithm.....
+  - roadCLUS, set roadMethod to 'pre' to create the road netowrk based on landings to the blocks; need to defien a costs surface raster for creatign roads, and teh name of the  raster of teh exsitign roads (rast.crds_all)
+
+### Running Scenarios (forestryCLUS)
+- to run sceanrios, satrt with teh forestryCLUS module
+  - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
+  is simulated
+
+#### Time Intervals
+- specify in times 
+  - start = 0
+  - end = number of intervals, e.g., if using a 5 year interval and want to sim over a 200 year period, end = 40
+
+  
+#### harvestPriority
+- The harvest queue is established using the 'harvestPriority' parameter
+  - the paramter is an SQL query for how to prioritize stand characteristics 
+  - it queires the pixels table (i.e., you can prirotize based on any values in teh pixels table)
+  - for example 'dist, age DESC, vol DESC' says to priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+- also need to set the adjacency height constraint (adjacencyConstraint)
+
+#### growingStockCLUS
+- you  set the time interval between simulating forest stand characteristics within the growingStockCLUS parameters 
+  - growingStockCLUS = list (periodLength = 5); here we simulate teh parameters every 5 years   
+
+#### scenario 
+- there is a parameter ('scenario') to name the scenario and provide a brief description of it
+  - this can be used to track scenarios and will be uploaded to the server with the app for interfacing with results  
+  - for BAU scenario, may need to do several 'test' runs to identify the appropriate harvest flow
+  - keep all scenarios and variations in aprametrs as you run them (comment them out) so there is a record
+
+#### harvestFlow
+- harvestFlow parameter is where the annual cut level is set
+  - will likely need to do multiple test runs to identify an appropriate BAU sceanrio
+  - can use AAC dtermination or base-case models form last TSR for analysis unti workign in, but as our model may output differ then these, will likely nee dto test and adjust different leveles.
+  - goal for BAU is to get a susitaned flow over 200 year period 
+  - creates a list of data.tables where you can set the harvest level by TSA or TFL and for specific time periods 
+  - can also set a 'partition' to identify other criteria for allocatign harvest
+    - for example, a minimum volume havest criteria of 110m^3^/ha (' vol > 110 ')
+  - remeber that if simualting with time intervals >1 year to multiply annual harvest flwo target by the interval
+
+#### patchSizeDist
+  - establsihes the size of cutblocks to be harvested adn the frequency to haveset them by natural disturabcen type (ndt), as defined in the Forest Practices Code [Biodiversity Guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf); NDT's are associated with biogeolcimatic units
+  
+#### Outputs
+- define where table ouputs get uploaded (via 'uploaderCLUS')
+- currently we upload to a postgres on a VM server; 
+  -  define the area of interest name that (aoiName); this sets the name of the schema wehre tables get uploaded to postgres
+
+- decalre in outputs(mySim) which 'reports', i.e., tables to save and uplaod to the vritual machine
+  - "harvestReport" = reports inforamtion on harvest volume and area harvested, age of harvested stand, by time interval and comaprtment
+  - "growingStockReport" = reports on growing stock (forest stand ????) by time interval adn compartment
+  - "tableSurvival" = 
+  - "disturbanceReport"
+    
+    
+    
+    
