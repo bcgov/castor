@@ -28,12 +28,12 @@ The cutblockSeqPrep uses a defined area to grab the spatial locations of cutbloc
 library(igraph)
 library(SpaDES.core)
 
-source(here::here("R/functions/R_Postgres.R"))
+source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
 
-moduleDir <- here::here("/R/SpaDES-modules")
-inputDir <- here::here("/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- here::here("/R")
-cacheDir <- here::here("/R")
+moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
+inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(moduleDir, "outputs")
+cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
 parameters <- list(
   #.progress = list(type = "text", interval = 1), # for a progress bar
