@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Golden TSA Analyses Version 1.0"
+title: "Database creation for Kootenay Lake TSA Analyses Version 1.0"
 author: "Tyler Muhly"
-date: "8 June 2020"
+date: "23 June 2020"
 output: pdf_document
 ---
 
@@ -22,9 +22,9 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Golden timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/golden-tsa). The TSA is located in south-eastern British Columbia, encompasses approximately 1.3 million hectares of land. It overlaps with the Central Selkirks, Columbia South, Columbia North and Central Rockies caribou herds (all in DU9). 
+Here I set the parameters to create a database for the [Kootenay Lake timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/kootenay-lake-tsa). The TSA is located in south-eastern British Columbia, encompasses approximately 1.2 million hectares of land. It overlaps with the Central Selkirks, Purcell Central, Purcells South, and South Selkirks s caribou herds (all in DU9). 
 
-On June 3, 2010, the allowable annual cut was set at 485,000 cubic metres.
+On August 12, 2010, the allowable annual cut was set at 640,000 cubic metres.
 
 # Usage
 Set parameters for creating the database in the code chunk below. 
@@ -51,7 +51,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
-                         nameBoundary = "Golden_TSA", # the boudnary (TSA) name
+                         nameBoundary = "Kootenay_Lake_TSA", # the boudnary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -63,15 +63,15 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                             "rast.zone_cond_eccc_central_rockies_crithab_or_herd",
-                                             "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                             "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_purcell_central_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_purcells_south_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd",
                                              "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd" 
-                                             ), 
+                                             "rast.zone_cond_eccc_purcell_central_crithab_or_herd",
+                                             "rast.zone_cond_eccc_purcells_south_crithab_or_herd",
+                                             "rast.zone_cond_eccc_south_selkirks_crithab_or_herd"
+                                              ), 
                          nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
@@ -102,7 +102,7 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
-  uploaderCLUS = list(aoiName = 'golden_tsa',
+  uploaderCLUS = list(aoiName = 'kootenaylake_tsa',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
