@@ -53,13 +53,13 @@ parameters <- list(
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
-                                           #"rast.zone_cond_noharvest_takla_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_telkwa_crithab_or_herd",
-                                            "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"),
+                                           "rast.zone_cond_noharvest_takla_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_telkwa_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"),
                                            # "rast.zone_cond_eccc_takla_crithab_or_herd",
                                            # "rast.zone_cond_eccc_telkwa_crithab_or_herd",
                                            # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"
-                                           #),
+                                           
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -125,8 +125,13 @@ modules <- list("dataLoaderCLUS",
                        #description = "Business as usual. Adjacency was set to 3m.")
 #scenario = data.table (name = "morice_wct_nh",
                        #description = "No harvest in Wolverine, Chase and Takla herds that overlap with the harvest unit. Adjacency was set to 3m.")
-scenario = data.table (name = "morice_chil_nh",
-                       description = "No harvest in Chilcotin herds and habitat that overlap with the harvest unit. Adjacency was set to 3m.")
+#scenario = data.table (name = "morice_chil_nh",
+#                       description = "No harvest in Chilcotin herds and habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+#scenario = data.table (name = "morice_chil_ch_hele0d_m15d",
+#                       description = "No harvest in Chilcotin high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
+
+scenario = data.table (name = "morice_all_herdbounds_nh",
+                       description = "No harvest in all herds that overlap with the harvest uni. Adjacency was set to 3m.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Morice_TSA",
