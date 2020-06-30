@@ -26,9 +26,6 @@ Here I set the parameters to create a database for the [Quesnel timber supply ar
 
 Several herds overlap with the Quesnel TSA - Barkerville, Itcha_Ilgachuz, Narrow Lake, North Cariboo, Tweedsmuir, and Wells Gray North. 
 
-How was this determined?
-(A minimum harvest volume criterion of 140 cubic metres per hectare was applied in the base case.)
-
 
 # Usage
 Set parameters for creating the database in the code chunk below.
