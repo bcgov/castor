@@ -22,9 +22,9 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Okanagan timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/okanagan-tsa). The TSA stretches from the Canada-United States border in the south to the Seymour River and Shuswap Lake in the north, and from the Monashee Mountains in the east to the Okanagan Mountains in the west. The Okanagan TSA encompasses approximately 2.25 million hectares of land. On January 1, 2013 the allowable annual cut was set at 3,078,405 cubic metres. Since 1980 to present the AAC has varied quite a bit, with the lowest level set from 1980 to 1986 with an AAC of 2 700 000 cubic meters, and the highest level set at 3 375 000 cubic meters between 2006 and 2013 to facilitate the harvest of timber affected by mountain pine beetle.
+Here I set the parameters to create a database for the [Tree Farm Licence 14 (TFL14)](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/14tfra_2019.pdf). TFL14 covers a total area of 152 000 hectares and is situated between the Purcell Mountains to the west and the Columbia River valley to the east. Several TSA's boarder with it including the Invermere TSA to the south and east, the Golden TSA to the north, and the Kootenay Lake TSA to the west. On April 18, 2019 the allowable annual cut was set at 180 000 cubic metres. 
 
-Several caribou herds overlap with the Okanagan TSA - Columbia North, Frisbee-Boulder and Monashee. 
+One caribou herd overlap with TFL14 - Central Selkirks. 
 
 
 # Usage
@@ -53,7 +53,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile="tsa_aac_bounds",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Okanagan_TSA", # change this name
+                         nameBoundary = "TFL14", # change this name
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
                          nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -65,12 +65,8 @@ parameters <-  list(
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
-                                           "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_monashee_crithab_or_herd",
-                                           "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                           "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd",
-                                           "rast.zone_cond_eccc_monashee_crithab_or_herd"),
+                                           "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
+                                           "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"),
                         
                          nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
@@ -107,7 +103,7 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-  uploaderCLUS = list(aoiName = 'okanagan_tsa',
+  uploaderCLUS = list(aoiName = 'tfl14',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
@@ -115,7 +111,7 @@ parameters <-  list(
 rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')") )
 #rsf_model_coeff[, population:= 'Telkwa']
 
-scenario = data.table(name="okanagan_dataloader", 
+scenario = data.table(name="load_data", 
                       description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
