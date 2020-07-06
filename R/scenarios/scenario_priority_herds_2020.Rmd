@@ -26,10 +26,10 @@ con <- dbConnect ("PostgreSQL",
                   password = keyring::key_get("vmdbpass", keyring="postgreSQL"),  
                   dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
 				          port = "5432")
-data.harvest <- dbGetQuery (con, "SELECT * FROM revelstoke_tsa.harvest")
+data.harvest <- dbGetQuery (con, "SELECT * FROM kamloops_tsa.harvest")
 dbDisconnect (con)
 data.summ <- data.harvest %>% # get summary data
-              filter (scenario == "revelstoke_all_ch_he0d_m15d") %>% # lakes_bau, lakes_wct_nh, lakes_chil_nh, lakes_chil_hele0d_m15d, lakes_all_herdbounds_nh, arrow_bau, arrow_centselk_nh, arrow_centselk_ch_he0d_m15d, arrow_all_ch_he0d_m15d, cascadiakb_bau, cascadiakb_centselk_nh, cascadiakb_centselk_ch_he0d_m15d, golden_bau, golden_centselk_nh, golden_centselk_ch_he0d_m15d, golden_colnsfb_nh, golden_colnsfb_ch_he0d_m15d, golden_all_nh, golden_all_ch_he0d_m15d, kootenaylake_bau, kootenaylake_centselk_nh, kootenaylake_centselk_ch_he0d_m15d, kootenaylake_all_nh, revelstoke_bau, revelstoke_colnsfb_nh, revelstoke_colnsfb_ch_he0d_m15d, revelstoke_all_nh, revelstoke_all_ch_he0d_m15d
+              filter (scenario == "kamloops_wgsgr_ch_he0d_m15d") %>% # lakes_bau, lakes_wct_nh, lakes_chil_nh, lakes_chil_hele0d_m15d, lakes_all_herdbounds_nh, arrow_bau, arrow_centselk_nh, arrow_centselk_ch_he0d_m15d, arrow_all_ch_he0d_m15d, cascadiakb_bau, cascadiakb_centselk_nh, cascadiakb_centselk_ch_he0d_m15d, golden_bau, golden_centselk_nh, golden_centselk_ch_he0d_m15d, golden_colnsfb_nh, golden_colnsfb_ch_he0d_m15d, golden_all_nh, golden_all_ch_he0d_m15d, kootenaylake_bau, kootenaylake_centselk_nh, kootenaylake_centselk_ch_he0d_m15d, kootenaylake_all_nh, revelstoke_bau, revelstoke_colnsfb_nh, revelstoke_colnsfb_ch_he0d_m15d, revelstoke_all_nh, revelstoke_all_ch_he0d_m15d, dawson_creek_bau, robson_bau, robson_colnsfb_nh, robson_colnsfb_ch_he0d_m15d, robson_all_nh, robson_all_ch_he0d_m15d, robson_hart_nh, robson_hart_ch_he0d_m15d, robson_wgsgr_nh, robson_wgsgr_ch_he0d_m15d, kamloops_bau, kamloops_colnsfb_nh, kamloops_colnsfb_ch_he0d_m15d, kamloops_all_nh, kamloops_all_ch_he0d_m15d, kamloops_wgsgr_nh, kamloops_wgsgr_ch_he0d_m15d
 
                   summarise (sum (volume)/40)
 
@@ -39,54 +39,81 @@ table.volume = data.table (
                     
                     "Cascadia TSA - Kootenay Block", "Cascadia TSA - Kootenay Block", "Cascadia TSA - Kootenay Block",
                     
+                    "Dawson Creek TSA",
+                    
                     "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA",
+                    
+                    "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA",
                     
                     "Kootenay Lake TSA", "Kootenay Lake TSA", "Kootenay Lake TSA", "Kootenay Lake TSA", "Kootenay Lake TSA",
                     
                     "Lakes TSA", "Lakes TSA", "Lakes TSA", "Lakes TSA", "Lakes TSA",
                     
-                    "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA"),
-  scenario = c ("BAU", "No harvest in Central Selkirks", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                    "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA",
+                    
+                    "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA"),
+  scenario = c ("BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
                 
-                "BAU", "No harvest in Central Selkirks", "35% disturbance in Central Selkirks matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat",
                 
-                "BAU", "No harvest in Central Selkirks", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in Columbia North and South", "35% disturbance in Columbia North and South matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", 
                 
-                "BAU", "No harvest in Central Selkirks", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in Columbia North and South", "35% disturbance in Columbia North and South matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat",
+                
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
                 
                 "BAU", "No harvest in Takla herd", "No harvest in Tweedsmuir critical habitat", "35% disturbance in Tweedsmuir matrix critical habitat", "No harvest in Takla herd and Tweedsmuir critical habitat",
                 
-                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",),
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Hart Ranges critical habitat",  "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat"),
   adjacency = c (3, 3, 3, 3, 3,
                  3, 3, 3,
+                 3, 
+                 3, 3, 3, 3, 3, 3, 3,
                  3, 3, 3, 3, 3, 3, 3,
                  3, 3, 3, 3, 3,
                  3, 3, 3, 3, 3,
-                 3, 3, 3, 3, 3),
+                 3, 3, 3, 3, 3,
+                 3, 3, 3, 3, 3, 3, 3, 3, 3),
   recovery = c (0, 40, 40, 40, 40,
                 0, 40, 40, 
+                0, 
+                0, 40, 40, 40, 40, 40, 40,
                 0, 40, 40, 40, 40, 40, 40,
                 0, 40, 40, 40, 40,
                 0, 40, 40, 40, 40,
-                0, 40, 40, 40, 40),
+                0, 40, 40, 40, 40,
+                0, 40, 40, 40, 40, 40, 40, 40, 40),
   annual_volume = c (344356, 329267, 331990, 296705, 306363,
                      82463, 75452, 75451,
+                     1409979, 
                      382453, 362213, 368439, 344500, 357945, 251325, 308320,
+                     1149967, 1122900, 1127105, 708923, 793637, 808049, 870651,
                      444956, 409556, 431200, 216099, 274717,
                      759935, 754456, 526749, 564774, 512700,
-                     154964, 7664, 61869, 18, 55324),
+                     154964, 7664, 61869, 18, 55324,
+                     194332, 193752, 193595, 108805, 155120, 189363, 190153, 185967, 191554),
   diff_annual_volume = c (0, -15089, -12366, -47651, -37993,
                           0, -7011, -7012,
+                          0, 
                           0, -20240, -14014, -37953, -24508, -131128, -74133,
+                          0, -27067, -22862, -441044, -356330, -341918, -279316,
                           0, -35400, -13756, -228857, -170239,
                           0, -5479, -233186, -195161, -247235,
-                          0, -147300, -93095, -154946, -99640),
+                          0, -147300, -93095, -154946, -99640,
+                          0, -580, -737, -85527, -39212, -4969, -4179, -8365, -2778),
   perc_diff_tot_volume = c ("0", "-4%", "-4%", "-14%", "-11%",
                             "0", "-9%", "-9%",
+                            "0", 
                             "0", "-5%", "-4%", "-10%", "-6%", "-34%", "-19%",
+                            "0", "-2%", "-2%", "-38%", "-31%", "-30%", "-24%",
                             "0", "-8%", "-3%", "-51%", "-38%",
                             "0", "-1%", "-31%", "-26%", "-33%",
-                            "0", "-95%", "-60%", "-99%", "-65%"
+                            "0", "-95%", "-60%", "-99%", "-65%",
+                            "0", "<-1%", "<-1%", "-44%", "-20%", "-3%", "-2%", "-4%", "-1%"
                             )
 )
 kable (table.volume,
