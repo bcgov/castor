@@ -30,13 +30,7 @@ Caribou critical habitat has not been defined for all cariobu herds in BC, but w
 - low elevation summer range (LESR)
 - matrix
 
-
-```{r, sm.cg}
-#Canadian (Federal) contraints
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
-```
 Caribou critical habitat boudnaries have been defined independently by the government of Canada and more recently, by the government of British Columbia. Both types are created below.
-
 
 ## Caribou critical habitat
 ### British Columbia
@@ -162,9 +156,11 @@ for(herd in herds){ # create a table of the constraints for each herd
 
 ```{r, scenario: bc critical habitat, no harvest}
 #Canadian (Federal) contraints
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
 
-herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
+#herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
+herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek")
 
 for(herd in herds){
 bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
@@ -294,6 +290,7 @@ for (herd in herds) { # create a table of the constraints for each herd; here we
   
   ras.bc.selected <- fasterize::fasterize (bc.selected2, prov.rast, field = "zoneid") #
 
+#### ECCCC ####
   eccc.vat <- vat # create a constraint for a specific scenario; here the scenario is "ECCC" for the federal recovery plan 
   eccc.vat [, reference_zone := paste0 ('rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd')] # zone name field
   eccc.vat [, variable := 'dist'] # 'dist' is the distance to constraint type
@@ -344,41 +341,41 @@ for (herd in herds) { # create a table of the constraints for each herd; here we
                         here::here(), '/R/params/ras_eccc_crit_or_herd.tif -t 100x100', 
                         paste0(' rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
-
-  vat.noharvest <- vat
-  vat.noharvest[, percentage := 0]
-  vat.noharvest[, type := 'nh']
-  vat.noharvest[, reference_zone := paste0('rast.zone_cond_noharvest_', tolower(herd),'_crithab_or_herd')]
-
-  ras.bc <- ras.bc.selected
-  ras.bc [ras.bc [] %in% vat.noharvest] <- 0
-  writeRaster (ras.bc, "rasbccrit.tif", overwrite = TRUE)
   
-  zone.nh.crithab.herd <- data.table(zoneid = 0, # zone id = 0 makes it no harvest
+  
+#### no harvest ####
+bc.bounds.selected <- bc.selected
+bc.bounds.selected$zoneid <- 0 # zoneid = 0 sets zone as no harvest
+  
+ras.bc.bounds.selected <- fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
+writeRaster (ras.bc.bounds.selected , "ras_herd_bounds_nh.tif", overwrite = TRUE)
+
+zone.nh.crithab.herd <- data.table(zoneid = 0, # zone id = 0 makes it no harvest
                                    reference_zone = paste0('rast.zone_cond_noharvest_',
                                                            tolower(herd),'_crithab_or_herd'),
                                    ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0,
                                    multi_condition = NA)
-  zone.nh.crithab.herd <- zone.nh.crithab.herd[, zoneid := as.integer(zoneid)]
-  zone.nh.crithab.herd <- zone.nh.crithab.herd[, ndt := as.integer (ndt)]
-  zone.nh.crithab.herd <- zone.nh.crithab.herd[, threshold := as.numeric (threshold)]
-  zone.nh.crithab.herd <- zone.nh.crithab.herd[, multi_condition := as.character (multi_condition)]
+  
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, zoneid := as.integer(zoneid)]
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, ndt := as.integer (ndt)]
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, threshold := as.numeric (threshold)]
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, multi_condition := as.character (multi_condition)]
 
-  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
                        port ='5432' ,
                        user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-
-  DBI::dbWriteTable(conn, c("public", paste0 ("zone_noharvest_",tolower(herd),"_crithab_or_herd")), 
+DBI::dbWriteTable(conn, c("public", paste0 ("zone_noharvest_",tolower(herd),"_crithab_or_herd")), 
                     value = zone.nh.crithab.herd, row.names = FALSE, overwrite = TRUE)
- dbExecute(conn, paste0("ALTER TABLE zone_noharvest_",tolower(herd),"_crithab_or_herd INHERIT zone_constraints"))
- dbDisconnect(conn)
-
+dbExecute(conn, 
+          paste0("ALTER TABLE zone_noharvest_",tolower(herd),"_crithab_or_herd INHERIT zone_constraints"))
+dbDisconnect(conn)  
+ 
 #upload to db
   system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
-                                   here::here(), '/R/params/rasbccrit.tif -t 100x100', 
+                                   here::here(), '/R/params/ras_herd_bounds_nh.tif -t 100x100', 
                                    paste0(' rast.zone_cond_noharvest_', tolower(herd),'_crithab_or_herd'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 }
