@@ -152,7 +152,7 @@ mysimout<-spades(mySim)
 })
 ```
 
-# Remainder of Mackenzie
+# Other portion of Mackenzie
 Set parameters for creating the database in the code chunk below. 
 ```{r module_usage}
 library(SpaDES)
@@ -188,7 +188,9 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
-                                             "rast.zone_cond_cw",                 "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                                             "rast.zone_cond_cw",
+                                             'rast.zone_cond_partnership_agreement',
+                                             "rast.zone_cond_noharvest_moberly_crithab_or_herd",
 "rast.zone_cond_noharvest_gataga_crithab_or_herd",
 "rast.zone_cond_noharvest_wolverine_crithab_or_herd",                             "rast.zone_cond_noharvest_chase_crithab_or_herd",                                "rast.zone_cond_noharvest_finlay_crithab_or_herd",
 "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",                        "rast.zone_cond_noharvest_graham_crithab_or_herd",           "rast.zone_cond_noharvest_rabbit_crithab_or_herd",
@@ -262,7 +264,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
 modules <- list("dataLoaderCLUS", 
                 "blockingCLUS",
                 "roadCLUS",
-                "rsfCLUS",
+                #"rsfCLUS",
                 "survivalCLUS", 
                 "uploaderCLUS", 
                 "disturbanceCalcCLUS")

@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Dawson Creek TSA Analyses Version 1.0"
+title: "Database creation for Williams Lake TSA Analyses Version 1.0"
 author: "Kyle Lochhead"
-date: "22 June 2020"
+date: "23 June 2020"
 output: pdf_document
 ---
 
@@ -22,11 +22,10 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Mackenzie timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/mackenzie-tsa). The TSA is British Columbia’s fourth largest, covering 6.41 million hectares in B.C.’s northeast. The Mackenzie TSA’s allowable annual cut (AAC) is 4.5 million cubic metres as of November 14, 2014. A maximum of 2 M m3 is attributable to live uninfested timber and of this 500 000 can be taken from the south west portion of the TSA. 
+Here I set the parameters to create a database for the [Williams Lake timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/williams-lake-tsa) which lies in the central Cariboo Region, straddling the Fraser Basin and the Interior Plateau between the Coast Mountains on the west and the Cariboo Mountains on the east. It is bounded by the Quesnel TSA to the north and 100 Mile House and Lillooet TSAs to the south. The allowable annual cut (AAC) for the Williams Lake TSA is 3 million cubic metres as of February 25, 2015. This includes a partition of a maximum of 1 500 000 cubic metres per year for live
+volume which means the remainder of the AAC is for salvaging dead trees.This TSA overlaps with the Itcha-Ilgachuz, Charlotte Alplands, Rainbows, Wells gray North, and Barkerville, caribou herds. 
 
-The Sw portion overlaps with Moberly, Scott, and Wolverine, caribou herds. While the remainder of the TSA overlaps with the Gataga, Rabbit, Frog, Quintette, Chase, Wolverine, Finlay, Graham, Moberly, Kennedy Siding, caribou herds. 
-
-# SW portion of Mackenzie
+# Usage
 Set parameters for creating the database in the code chunk below. 
 ```{r module_usage}
 library(SpaDES)
@@ -51,7 +50,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
-                         nameBoundary = "Mackenzie_SW_TSA", # the boudnary (TSA) name
+                         nameBoundary = "Williams_Lake_TSA", # the boudnary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -62,12 +61,14 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
-                                             "rast.zone_cond_cw",                                           "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-"rast.zone_cond_noharvest_scott_crithab_or_herd",
-"rast.zone_cond_noharvest_wolverine_crithab_or_herd",                              "rast.zone_cond_eccc_moberly_crithab_or_herd",
-"rast.zone_cond_eccc_scott_crithab_or_herd",
-"rast.zone_cond_eccc_wolverine_crithab_or_herd",              
-                                          ), 
+                                             "rast.zone_cond_cw", 
+ "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",                                           "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
+"rast.zone_cond_noharvest_barkerville_crithab_or_herd",
+"rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",                                "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",                              "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+"rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
+"rast.zone_cond_eccc_barkerville_crithab_or_herd"), 
                          nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
@@ -98,7 +99,7 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
-  uploaderCLUS = list(aoiName = 'dawson_creek_tsa',
+  uploaderCLUS = list(aoiName = 'williams_lake_tsa',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  

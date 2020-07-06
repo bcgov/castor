@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Dawson Creek TSA Analyses Version 1.0"
+title: "Database creation for Williams Lake TSA Analyses Version 1.0"
 author: "Kyle Lochhead"
-date: "22 June 2020"
+date: "23 June 2020"
 output: pdf_document
 ---
 
@@ -61,6 +61,7 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
+                                             'rast.zone_cond_partnership_agreement',
 
  "rast.zone_cond_noharvest_graham_crithab_or_herd",                                           "rast.zone_cond_noharvest_moberly_crithab_or_herd",
                                           "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
@@ -138,7 +139,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
 modules <- list("dataLoaderCLUS", 
                 "blockingCLUS",
                 "roadCLUS",
-                "rsfCLUS",
+                #"rsfCLUS",
                 "survivalCLUS", 
                 "uploaderCLUS", 
                 "disturbanceCalcCLUS")
