@@ -148,8 +148,8 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 8500000) # 1 800 000 m3/yr #8500000
-))
+                                     flow = 8500000) # 1,700,000 m3/yr 
+))# interestingly the predicted sustainable harvest flow in Quesnel was betweeen 1,617,000 and 2,139,000 (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/quesnel_tsa_discussion_paper.pdf) pg 12
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 
