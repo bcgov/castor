@@ -92,7 +92,7 @@ Fire_cummulative <- data.frame (matrix (ncol = 3, nrow = 0))
 colnames (Fire_cummulative) <- c ("herd_bounds","cummulative.area.burned","year")
 
 for (i in 1:(length(Years)-window_size)) {
-fire.summary<-fire %>% filter(year<=(Years[i]+window_size)) %>% 
+fire.summary<-fire %>% filter(year >= Years[i] & year<=(Years[i]+window_size)) %>% 
            group_by (herd_bounds) %>% 
              summarize(cummulative.area.burned=sum(proportion.burn))
 fire.summary$year<-Years[i]+window_size
@@ -110,7 +110,7 @@ ggplot(Itcha, aes (x=year, y=cummulative.area.burned)) +
   #geom_point()+
   geom_bar(stat="identity", width=1) +
   xlab ("Year") +
-  ylab ("Proportion of area burned") +
+  ylab ("Cummulative proportion of area burned over 40 yrs") +
   scale_x_continuous(limits = c(1960, 2020), breaks = seq(1960, 2020, by = 30)) +
   scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
   theme_bw()+

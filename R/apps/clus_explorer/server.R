@@ -502,7 +502,7 @@ observeEvent(input$getMapLayersButton, {
       #geom_bar(stat="identity", width=0.7) +
       xlab ("Year") +
       ylab ("Proportion of area burned") +
-      scale_x_continuous(limits = c(1925, 2025), breaks = seq(1925, 2025, by = 75))+
+      scale_x_continuous(limits = c(1919, 2025), breaks = seq(1925, 2025, by = 75))+
       scale_y_continuous(limits = c(0, 45), breaks = seq(0, 45, by = 20))+
       theme_bw()+
       theme (legend.title = element_blank())
@@ -525,7 +525,7 @@ observeEvent(input$getMapLayersButton, {
       colnames (Fire_cummulative) <- c ("herd_bounds","cummulative.area.burned","year")
       
       for (i in 1:(length(Years)-window_size)) {
-        fire.summary<-data %>% filter(year<=(Years[i]+window_size)) %>% 
+        fire.summary<-data %>% filter(year>=Years[i] & year<=(Years[i]+window_size)) %>% 
           group_by (herd_bounds) %>% 
           summarize(cummulative.area.burned=sum(proportion.burn))
         fire.summary$year<-Years[i]+window_size
@@ -541,7 +541,7 @@ observeEvent(input$getMapLayersButton, {
         geom_bar(stat="identity", width=1) +
         xlab ("Year") +
         ylab ("Cummulative proportion of area burned < 40 years") +
-        scale_x_continuous(limits = c(1960, 2020), breaks = seq(1960, 2020, by = 30)) +
+        scale_x_continuous(limits = c(1959, 2020), breaks = seq(1960, 2020, by = 30)) +
         scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
         theme_bw()+
         theme (legend.title = element_blank())
