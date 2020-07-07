@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Williams Lake TSA Analyses Version 1.0"
+title: "Database creation for Dawson Creek TSA Analyses Version 1.0"
 author: "Kyle Lochhead"
 date: "23 June 2020"
 output: pdf_document
