@@ -22,9 +22,9 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Tree Farm Licence 14 (TFL14)](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/14tfra_2019.pdf). TFL14 covers a total area of 152 000 hectares and is situated between the Purcell Mountains to the west and the Columbia River valley to the east. Several TSA's boarder with it including the Invermere TSA to the south and east, the Golden TSA to the north, and the Kootenay Lake TSA to the west. On April 18, 2019 the allowable annual cut was set at 180 000 cubic metres. 
+Here I set the parameters to create a database for the [Tree Farm Licence 23 (TFL23)](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-tenures/tree-farm-licence/management-plans/tfl-23-08-mngment-plan-10-appendix-8-timber-supply-analysis.pdf). TFL23 covers approximately 551,471 hectares of land of which 144,623 is classed as the timber harvest landbase. TFL 23 is situated in the Kootenay Region of BC and along both sides of Arrow lakes in a north-south direction. At the northern extent of the TFL are Glacier National Park and Revelstoke and at the southern extent are Valhalla National Park and TFL4. TFL23 is surrounded by the Arrow Boundary tiber supply area. The AAC was set to 680 000 m3/yr. 
 
-One caribou herd overlap with TFL14 - Central Selkirks. 
+Several caribou herds overlap with TFL23 - Central Selkirks, Columbia South and Monashee. 
 
 
 # Usage
