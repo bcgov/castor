@@ -444,7 +444,7 @@ colnames(df) <- c("zoneid", "type", "variable", "threshold", "reference_zone", "
 df$zoneid<-as.integer(df$zoneid)#assign integer
 df$label<-'cw'
 
-#upload the constraint table for FSW to the db
+#upload the constraint table for CW to the db
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
  

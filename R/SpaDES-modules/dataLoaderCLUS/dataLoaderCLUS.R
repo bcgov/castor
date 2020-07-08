@@ -466,7 +466,7 @@ setTablesCLUSdb <- function(sim) {
     
     if(!P(sim,"dataLoaderCLUS", "nameForestInventoryTable") == '99999'){
       #Get the forest inventory variables and re assign there names to be more generic than VEGCOMP
-      forest_attributes_clusdb<<-sapply(c("Age","Height", "CrownClosure", "SiteIndex"), function(x){
+      forest_attributes_clusdb<-sapply(c("Age","Height", "CrownClosure", "SiteIndex"), function(x){
         if(!(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)) == '99999')){
           return(paste0(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)), " as ", tolower(x)))
         }
@@ -497,6 +497,7 @@ setTablesCLUSdb <- function(sim) {
         multiVars2<-''
         multiVars1<-NULL
       }
+      #print(forest_attributes_clusdb )
       if(length(forest_attributes_clusdb) > 0){
         print(paste0("getting inventory attributes: ", paste(forest_attributes_clusdb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])

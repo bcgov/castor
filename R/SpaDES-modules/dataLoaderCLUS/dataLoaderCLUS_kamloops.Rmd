@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Morice TSA Analyses Version 1.0"
+title: "Database creation for Kamloops TSA Analyses Version 1.0"
 author: "Elizabeth Kleynhans"
-date: "10 June 2020"
+date: "29 June 2020"
 output: pdf_document
 ---
 
@@ -22,13 +22,9 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Morice timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/morice-tsa). The TSA is located in northern-central British Columbia and is on the western edge of BC's central interior plateau. The Morice TSA encompasses approximately 1.5 million hectares of land. In March 16, 2015 the allowable annual cut was set at 1.9 million cubic metres, partitioned between 1.6 million cubic metres of live tree volume and  300 000 cubic metres of dead volume. On March 16, 2020 the AAC was kept at 2015 values until a new AAC is determined. 
+Here I set the parameters to create a database for the [Kamloops timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/kamloops-tsa). The Kamloops TSA is located in south central British Columbia and ranges between Logan Lake in the south and Wells Gray Provincial Park in the north-west. In the east it is bounded by the Columbia Mountains and the Cariboo Regional District to the west. Overall the TSA covers approximately 2.77 million hectares of land. From May 5, 2016 to May 4, 2021 the allowable annual cut is set at 2.3 million cubic metres after which it reduces to 2.1 million cubic meters. 
 
-Three herds overlap with the Morice TSA - Takla, Telkwa, and Tweedsmuir.Thus for building the database only information on these three herds is needed.
-
-How was this determined?
-(A minimum harvest volume criterion of 140 cubic metres per hectare was applied in the base case.)
-
+Four herds overlap with the Kamloops TSA - Columbia North, Groundhog, Wells Gray North and Wells Gray South. Thus for building the database only information on these herds were included
 
 # Usage
 Set parameters for creating the database in the code chunk below.
@@ -56,7 +52,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile="tsa_aac_bounds",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Morice_TSA", # change this name
+                         nameBoundary = "Kamloops_TSA", # change this name
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
                          nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -68,12 +64,14 @@ parameters <-  list(
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
-                                           "rast.zone_cond_noharvest_takla_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_telkwa_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-                                           "rast.zone_cond_eccc_takla_crithab_or_herd",
-                                           "rast.zone_cond_eccc_telkwa_crithab_or_herd",
-                                           "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
+                                           "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_groundhog_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
+                                           "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
+                                           "rast.zone_cond_eccc_groundhog_crithab_or_herd",
+                                           "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd",
+                                           "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"),
                         
                          nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
@@ -110,15 +108,16 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-  uploaderCLUS = list(aoiName = 'central_group',
+  uploaderCLUS = list(aoiName = 'kamloops_tsa',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')") )
-rsf_model_coeff[, population:= 'Telkwa']
+rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
+#rsf_model_coeff[, population := 'Tweedsmuir'] 
 
-scenario = data.table(name="morice_all_data", description = "Populated database with relevant data to run scenarios")
+scenario = data.table(name="load_data", 
+                      description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
