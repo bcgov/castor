@@ -138,4 +138,11 @@ kable (table.volume,
 ```
 
 
+## Summarize AAC impacts by Herd plannign area
+
+### PArtnership agreement summayr
+  - need osmehtign here about how much is harvested form PA areas under base case sceanrios
+  
+### Cariobu indicator sumamries???
+
 
