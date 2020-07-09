@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Lakes TSA Analyses Version 1.0"
+title: "Database creation for Arrow TSA Analyses Version 1.0"
 author: "Tyler Muhly"
 date: "8 June 2020"
 output: pdf_document
@@ -61,7 +61,7 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                           "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                                           "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
                                           "rast.zone_cond_noharvest_monashee_crithab_or_herd",
                                           "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd",
                                           "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
@@ -99,7 +99,7 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
-  uploaderCLUS = list(aoiName = 'test',
+  uploaderCLUS = list(aoiName = 'arrow_tsa',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
