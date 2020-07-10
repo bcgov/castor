@@ -50,11 +50,18 @@ No harvest in all herds that overlap with the harvest unit (e.g., TSA or TFL)
 No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit
 
 
-# Lakes TSA Parameters 
+# Williams Lake TSA Parameters 
 
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
 
+willake_chil_nh = BAU + no harvest in Chilcotin critical habitat that overlap with the harvest unit (e.g., TSA or TFL)
+
+willake_chil_ch_hle0d_m15d = BAU + no harvest in Chilcotin high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat
+
+willake_all_nh = BAU + No harvest in all herds that overlap with the harvest unit (e.g., TSA or TFL). All (Charlotte Alplands HEWSR, Charlotte Alplands LEWR, Charlotte Alplands Matrix, Itcha-Ilgachuz HEWSR, Itcha-Ilgachuz LESR, Itcha-Ilgachuz LEWR, Itcha-Ilgachuz Matrix, Rainbows HEWSR, Rainbows LESR, Rainbows LEWR, Rainbows Matrix, Barkerville HEWSR, Barkerville Matrix, Wells Gray North HEWSR, Wells Gray North Matrix).
+
+willake_all_ch_hele0d_m15d = BAU + No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit (e.g., TSA or TFL)
 
 
 ## 'harvestPriority' parameter 
@@ -107,9 +114,11 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw"
-                                               #"rast.zone_cond_noharvest_takla_crithab_or_herd" # no harvest scenario
-                                               #"rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"  # no harvest scenario
+                                               "rast.zone_cond_cw",
+ "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",                                      "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
+                                          "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+                                          "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
+"rast.zone_cond_eccc_barkerville_crithab_or_herd"
                                                #"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"  # eccc harvest scenario
                                                ),
                            nameZoneTable = "zone_constraints",
@@ -170,8 +179,8 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS"
                 )
 
-scenario = data.table (name = "williams_lake_bau",
-                       description = "Business-as-usual case; sustainable flow = 1,500,000m3/yr.Adjacency was set to 3m.")
+scenario = data.table (name = "willake_all_ch_hele0d_m15d",
+                       description = "No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit (e.g., TSA or TFL)")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Williams_Lake_TSA",
                                      partition = ' vol > 110 ', 

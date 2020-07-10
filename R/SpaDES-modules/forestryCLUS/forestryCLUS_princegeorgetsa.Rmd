@@ -41,14 +41,10 @@ This module could be a parent module?? It relies on:
 # Prince George TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-
-
 # Prince George TSA Parameters 
 
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
-
-
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -161,15 +157,22 @@ modules <- list("dataLoaderCLUS",
                 )
 
 scenario = data.table (name = "prince_george_bau",
-                       description = "Business-as-usual case; sustainable flow = m3/yr .Adjacency was set to 3m.")
+                       description = "Business-as-usual case; sustainable flow = 4.8 Mm3/yr .Adjacency was set to 3m.")
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 ', 
+harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA",
+                                     partition = ' vol > 180 and age >= 75  ', 
                                      year = rep( seq (from = 2018, # run the 
+                                                      to = 2022, 
+                                                      by = 5),
+                                                1), 
+                                     flow = 30500000),
+                              data.table(compartment ="Prince_George_TSA",
+                                     partition = ' vol > 180 and age >= 75  ', 
+                                     year = rep( seq (from = 2022, # run the 
                                                       to = 2222, 
                                                       by = 5),
                                                 1), 
-                                     flow = 6850000)
+                                     flow = 25500000)
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
