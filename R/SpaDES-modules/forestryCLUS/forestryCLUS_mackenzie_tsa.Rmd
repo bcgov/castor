@@ -109,6 +109,24 @@ No harvest in southern mountain herds =  "rast.zone_cond_noharvest_wolverine_cri
                                           "rast.zone_cond_noharvest_scott_crithab_or_herd"
 
 
+```{r, zone_update}
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Mackenzie_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_partnership_agreement'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+#STEP 3: Update the constraints available to a zone as specified in the scenario
+dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
+#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
+
+dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #This example will set all the zones in the partnership agreement to no harvest
+
+
+#STEP 4: Remove the connection to the database
+dbDisconnect(clusdb)
+```
+
 ## 'harvestPriority' parameter 
 - focus on minimizing 'disturabnce; for cariobu, then older, higher vlomue stands
   - 'dist, age DESC, vol DESC' priortize based on:
@@ -121,12 +139,12 @@ No harvest in southern mountain herds =  "rast.zone_cond_noharvest_wolverine_cri
 ## 'harvestFlow'
 The Mackenzie TSA’s allowable annual cut (AAC) was set at 4.5 million cubic metres as of November 14, 2014. A maximum of 2 M m3 is attributable to live uninfested timber and of this 500 000 m3 can be taken from the south west portion of the TSA (see [Rationale for Allowable Annual Cut (AAC) Partition Amendment](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/16tsra_2019_partition_amendment.pdf)). 
 
-- In the main portion of the TSA, first, I tested a harvest flow of 1,500,000m^3^/year (7,500,000m^3^/5-year); was acheivle, so tried 1.75 M m3, 1.65 M, 1.70 M n3
+- In the main portion of the TSA, first, I tested a harvest flow of 1,500,000m^3^/year (7,500,000m^3^/5-year); was acheivle, so tried 1.75 M m3, 1.65 M, 1.70 M m3; slight fall down in last 10 years at 1.7, but kept at this number
 
 
 From 2014 determination: "...current policy already allows stands with less than 150 cubic metres per hectare to be harvested at the licensees’ discretion.  Given the results of the sensitivity analysis in which a decrease in the minimum average volume limit eliminates the projected decline in the base case mid-term timber supply, I strongly encourage Mackenzie Fibre to work with licensees to explore opportunities to harvest lower volume stands in the Mackenzie TSA. With regard to Canfor’s ’ recommendation that an average stand volume limit of 200 cubic metres not be applied in the base case, I note that removal of this limit in a sensitivity analysis resulted in a much higher contribution of low-volume stands than is currently supported by demonstrated harvest performance in the Mackenzie TSA. After careful consideration of all the information available to me, I conclude that the minimum harvest criteria used in the base case reasonably reflect demonstrated harvest performance in the Mackenzie TSA and I will make no adjustments to the base case on this account."
 
-- in TSR, the annual average was 200, allowign for <200, but I used 150 m3/ha as minimum harvest volume, and assesed what the average was *a priori* to make sure I was at ~200; foudn that with a 1.5 Mm3 flow, for 21 of 200 years average <200 and 16 of 200 years average less than 195, and 4 of 200 years less than 185; so I am overesriamtign use of low voluem stands 8-10% of the time, but on average typiecally not mode than by 15m3/ha; lowest average was 180 m3; so I kept as is (any) major concerns with this?)
+- in TSR, the annual average was 200, allowign for <200, but I used 150 m3/ha as minimum harvest volume, and assesed what the average was *a priori* to make sure I was at ~200; foudn that with a 1.7 Mm3 flow, for 23 of 40 intervals average <200, 17 of 40 years average less than 195, 13 of 40 years less than 190, and 7 of 40 less than 185; so I am overesriamtign use of low voluem stands much of the time, but on average typiecally not more than by 15m3/ha; lowest average was 180 m3; so I kept as is (any major concerns with this?)
 
 For cutblock adjacency, I used 3 m adjacncey; no real mention fo this in report
 
@@ -162,32 +180,20 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw"
+                                               "rast.zone_cond_cw",
                                                
-                                              #  "rast.zone_cond_partnership_agreement",
-                                              # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_gataga_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_wolverine_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_chase_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_finlay_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_graham_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_rabbit_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_frog_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_thutade_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_gataga_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_wolverine_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_chase_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_finlay_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_graham_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_rabbit_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_frog_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_thutade_crithab_or_herd"
-                                               
-                                               
-                                               ),
+                                           # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_graham_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_wolverine_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_chase_crithab_or_herd"
+                                          
+                                           # "rast.zone_cond_eccc_moberly_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_gataga_crithab_or_herd"
+                                          
+                                           #  "rast.zone_cond_partnership_agreement"
+                                             ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -249,8 +255,24 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-scenario = data.table (name = "mackenzie_bau",
-                       description = "Business-as-usual case; sustainable flow = 1.7 M m3/yr .Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_bau",
+#                        description = "Business-as-usual case; sustainable flow = 1.7 M m3/yr .Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_centgrp_nh",
+#                        description = "No harvest in all central group critical habitat (Moberly and Kennedy Siding). Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_centgrp_ch_hele0d_m15d",
+#                        description = "No harvest in Central group high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central group matrix critical habitat (Moberly and Kennedy Siding). Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d",
+#                        description = "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance (15% harvest) in  Central group partnership agreement areas A1, B1, B4 and B5. Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_centgrp_pa_nh",
+#                        description = "No harvest in all central group partnership agreement areas. Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_all_nh",
+#                        description = "No harvest in all critical habitat of all herds that overlap with the unit. Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_all_ch_hele0d_m15d",
+#                        description = "No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit. Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_all_sm_herdbounds_nh",
+#                        description = "No harvest in all southern mountain herds that overlap with the harvest unit. Adjacency was set to 3m.")
+scenario = data.table (name = "mackenzie_wct_nh",
+                       description = "No harvest in Wolverine, Chase and Takla herds that overlap with the harvest unit. Adjacency was set to 3m.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="MacKenzie_TSA",
                                      partition = ' vol > 150 ', # from 2014 determination
