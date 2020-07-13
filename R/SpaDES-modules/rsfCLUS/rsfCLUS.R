@@ -453,23 +453,34 @@ predictInitRSF <- function(sim){
     pred_rsf<-cbind(sim$rsfcovar[, eval(expr2)], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
     setnames(pred_rsf, c("crit_hab" , "rsf_hat")) # name each rsf prediction appropriately
 
-    #store the min and max values of the raster
-    rsf_model_coeff[rsf == rsfPops[[1]][[i]], minv:= min(pred_rsf[,2], na.rm = TRUE) ] 
-    rsf_model_coeff[rsf == rsfPops[[1]][[i]], maxv:= max(pred_rsf[,2], na.rm = TRUE) ] 
- 
+    #store the min and max values of the raster if not supplied
+    if(is.null(rsf_model_coeff$minv)){
+     rsf_model_coeff[rsf == rsfPops[[1]][[i]], minv:= min(pred_rsf[,2], na.rm = TRUE) ] 
+     rsf_model_coeff[rsf == rsfPops[[1]][[i]], maxv:= max(pred_rsf[,2], na.rm = TRUE) ] 
+    }
+    
     #scale the rsf predictions between 0 and 1
     minv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "minv"][1])
     maxv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "maxv"][1])
+    print(minv)
+    print(maxv)
+    
     pred_rsf<-pred_rsf[!is.na(rsf_hat),rsf_hat:=(rsf_hat-minv)/(maxv-minv)]
-
+    pred_rsf[rsf_hat > 1,rsf_hat:=1]
+    pred_rsf[rsf_hat < 0,rsf_hat:=0]
+    
     #sum the rsf with and without a threshold of 0.75
-    rsfdt.all<- pred_rsf[!is.na(rsf_hat), sum(rsf_hat), by = crit_hab]
+    rsfdt.all<- pred_rsf[!is.na(rsf_hat) & !is.na(crit_hab), sum(rsf_hat), by = crit_hab]
     setnames(rsfdt.all, c("critical_hab", "sum_rsf_hat"))
     rsfdt.75<-pred_rsf[rsf_hat > 0.75, sum(rsf_hat), by = crit_hab]
     setnames(rsfdt.75, c("critical_hab", "sum_rsf_hat_75"))
+    rsfdt.75<-rsfdt.75[!is.na(critical_hab),]
+    rsfdt.dist<-pred_rsf[!is.na(crit_hab), quantile(rsf_hat, 0.75, na.rm = TRUE), by = crit_hab]
+    setnames(rsfdt.dist, c("critical_hab", "per_rsf_hat_75"))
+    rsfdt.new<-merge(rsfdt.dist,rsfdt.75, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE )
     
     #format the report
-    rsfdt<-merge(rsfdt.all,rsfdt.75, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
+    rsfdt<-merge(rsfdt.all,rsfdt.new, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
     rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
     rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
     rsfdt[, scenario:=scenario$name]
@@ -484,7 +495,7 @@ predictInitRSF <- function(sim){
     }#----------------------------------------------
     
     #Remove the prediction
-    rm(pred_rsf,rsfdt.all,rsfdt.75,rsfdt)
+    rm(pred_rsf,rsfdt.all,rsfdt.75,rsfdt,rsfdt.dist)
   }
   return(invisible(sim))
 }
@@ -504,25 +515,29 @@ predictRSF <- function(sim){
     #scale the rsf predictions between 0 and 1
     minv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "minv"][1])
     maxv<-as.numeric(rsf_model_coeff[rsf == rsfPops[[1]][[i]], "maxv"][1])
+
     pred_rsf<-pred_rsf[!is.na(rsf_hat),rsf_hat:=(rsf_hat-minv)/(maxv-minv)]
     pred_rsf<-pred_rsf[rsf_hat<0,rsf_hat:=0]
     pred_rsf<-pred_rsf[rsf_hat>1,rsf_hat:=1]
     
     #sum the rsf with and without a threshold of 0.75
-    rsfdt.all<- pred_rsf[!is.na(rsf_hat), sum(rsf_hat), by = crit_hab]
+    rsfdt.all<- pred_rsf[!is.na(rsf_hat) & !is.na(crit_hab), sum(rsf_hat), by = crit_hab]
     setnames(rsfdt.all, c("critical_hab", "sum_rsf_hat"))
     rsfdt.75<-pred_rsf[rsf_hat > 0.75, sum(rsf_hat), by = crit_hab]
     setnames(rsfdt.75, c("critical_hab", "sum_rsf_hat_75"))
+    rsfdt.75<-rsfdt.75[!is.na(critical_hab),]
+    rsfdt.dist<-pred_rsf[!is.na(crit_hab), quantile(rsf_hat, 0.75, na.rm = TRUE), by = crit_hab]
+    setnames(rsfdt.dist, c("critical_hab", "per_rsf_hat_75"))
+    rsfdt.new<-merge(rsfdt.dist,rsfdt.75, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE )
     
     #format the report
-    rsfdt<-merge(rsfdt.all,rsfdt.75, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
+    rsfdt<-merge(rsfdt.all,rsfdt.new, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
     rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
     rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
     rsfdt[, scenario:=scenario$name]
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
-    rsf<<-sim$rsf
-    
+
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras
       out.ras[]<-pred_rsf$rsf_hat 
