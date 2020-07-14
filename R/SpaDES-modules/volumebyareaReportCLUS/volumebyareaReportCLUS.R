@@ -128,7 +128,7 @@ volAnalysis <- function(sim) {
 
   sim$volReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names=TRUE )
 
-    return(invisible(sim))
+  return(invisible(sim))
 }
 
 .inputObjects <- function(sim) {
