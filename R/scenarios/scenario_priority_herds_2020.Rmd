@@ -27,10 +27,10 @@ con <- dbConnect ("PostgreSQL",
                   password = keyring::key_get("vmdbpass", keyring="postgreSQL"),  
                   dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
 				          port = "5432")
-data.harvest <- dbGetQuery (con, "SELECT * FROM tfl56.harvest")
+data.harvest <- dbGetQuery (con, "SELECT * FROM tfl55.harvest")
 dbDisconnect (con)
 data.summ <- data.harvest %>% # get summary data
-              filter (scenario == "tfl56_colnsfb_ch_he0d_m15d") %>% # lakes_bau, lakes_wct_nh, lakes_chil_nh, lakes_chil_hele0d_m15d, lakes_all_herdbounds_nh, arrow_bau, arrow_centselk_nh, arrow_centselk_ch_he0d_m15d, arrow_all_ch_he0d_m15d, cascadiakb_bau, cascadiakb_centselk_nh, cascadiakb_centselk_ch_he0d_m15d, golden_bau, golden_centselk_nh, golden_centselk_ch_he0d_m15d, golden_colnsfb_nh, golden_colnsfb_ch_he0d_m15d, golden_all_nh, golden_all_ch_he0d_m15d, kootenaylake_bau, kootenaylake_centselk_nh, kootenaylake_centselk_ch_he0d_m15d, kootenaylake_all_nh, revelstoke_bau, revelstoke_colnsfb_nh, revelstoke_colnsfb_ch_he0d_m15d, revelstoke_all_nh, revelstoke_all_ch_he0d_m15d, dawson_creek_bau, robson_bau, robson_colnsfb_nh, robson_colnsfb_ch_he0d_m15d, robson_all_nh, robson_all_ch_he0d_m15d, robson_hart_nh, robson_hart_ch_he0d_m15d, robson_wgsgr_nh, robson_wgsgr_ch_he0d_m15d, kamloops_bau, kamloops_colnsfb_nh, kamloops_colnsfb_ch_he0d_m15d, kamloops_all_nh, kamloops_all_ch_he0d_m15d, kamloops_wgsgr_nh, kamloops_wgsgr_ch_he0d_m15d, dawson_creek_bau, dawson_centgrp_ch_hele0d_m15d, dawson_centgrp_ch_hele0d_m15d, dawson_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d, dawson_centgrp_pa_nh, dawson_all_nh, mackenzie_bau, mackenzie_centgrp_nh, mackenzie_centgrp_ch_hele0d_m15d, mackenzie_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d, mackenzie_centgrp_pa_nh, mackenzie_all_nh, mackenzie_all_ch_hele0d_m15d, tfl56_bau, tfl56_colnsfb_nh, tfl56_colnsfb_ch_he0d_m15d
+              filter (scenario == "tfl55_all_ch_he0d_m15d") %>% # lakes_bau, lakes_wct_nh, lakes_chil_nh, lakes_chil_hele0d_m15d, lakes_all_herdbounds_nh, arrow_bau, arrow_centselk_nh, arrow_centselk_ch_he0d_m15d, arrow_all_ch_he0d_m15d, cascadiakb_bau, cascadiakb_centselk_nh, cascadiakb_centselk_ch_he0d_m15d, golden_bau, golden_centselk_nh, golden_centselk_ch_he0d_m15d, golden_colnsfb_nh, golden_colnsfb_ch_he0d_m15d, golden_all_nh, golden_all_ch_he0d_m15d, kootenaylake_bau, kootenaylake_centselk_nh, kootenaylake_centselk_ch_he0d_m15d, kootenaylake_all_nh, revelstoke_bau, revelstoke_colnsfb_nh, revelstoke_colnsfb_ch_he0d_m15d, revelstoke_all_nh, revelstoke_all_ch_he0d_m15d, dawson_creek_bau, robson_bau, robson_colnsfb_nh, robson_colnsfb_ch_he0d_m15d, robson_all_nh, robson_all_ch_he0d_m15d, robson_hart_nh, robson_hart_ch_he0d_m15d, robson_wgsgr_nh, robson_wgsgr_ch_he0d_m15d, kamloops_bau, kamloops_colnsfb_nh, kamloops_colnsfb_ch_he0d_m15d, kamloops_all_nh, kamloops_all_ch_he0d_m15d, kamloops_wgsgr_nh, kamloops_wgsgr_ch_he0d_m15d, dawson_creek_bau, dawson_centgrp_ch_hele0d_m15d, dawson_centgrp_ch_hele0d_m15d, dawson_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d, dawson_centgrp_pa_nh, dawson_all_nh, mackenzie_bau, mackenzie_centgrp_nh, mackenzie_centgrp_ch_hele0d_m15d, mackenzie_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d, mackenzie_centgrp_pa_nh, mackenzie_all_nh, mackenzie_all_ch_hele0d_m15d, tfl56_bau, tfl56_colnsfb_nh, tfl56_colnsfb_ch_he0d_m15d, tfl55_bau, tfl55_colnsfb_nh, tfl55_colnsfb_ch_he0d_m15d, tfl55_all_nh, tfl55_all_ch_he0d_m15d
 
                   summarise (sum (volume)/40)
 
@@ -56,6 +56,8 @@ table.volume = data.table (
                     
                     "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA",
                     
+                    "TFL 55", "TFL 55", "TFL 55", "TFL 55", "TFL 55",
+                    
                     "TFL 56", "TFL 56", "TFL 56"),
   scenario = c ("BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
                 
@@ -77,6 +79,8 @@ table.volume = data.table (
                 
                 "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Hart Ranges critical habitat",  "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat",
                 
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", 
+                
                 "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat"),
   adjacency = c (3, 3, 3, 3, 3,
                  3, 3, 3,
@@ -88,6 +92,7 @@ table.volume = data.table (
                  3, 3, 3, 3, 3, 3, 3, 3, 3,
                  3, 3, 3, 3, 3,
                  3, 3, 3, 3, 3, 3, 3, 3, 3,
+                 3, 3, 3, 3, 3,
                  3, 3, 3),
   recovery = c (0, 40, 40, 40, 40,
                 0, 40, 40, 
@@ -99,6 +104,7 @@ table.volume = data.table (
                 0, 40, 40, 40, 40, 40, 40, 40, 40,
                 0, 40, 40, 40, 40,
                 0, 40, 40, 40, 40, 40, 40, 40, 40,
+                0, 40, 40, 40, 40,
                 0, 40, 40),
   annual_volume = c (344356, 329267, 331990, 296705, 306363,
                      82463, 75452, 75451,
@@ -110,6 +116,7 @@ table.volume = data.table (
                      1691349, 1507184, 1563543, 1662831, 1657260, 1275005, 1563543, 680701, 1241252,
                      154964, 7664, 61869, 18, 55324,
                      194332, 193752, 193595, 108805, 155120, 189363, 190153, 185967, 191554,
+                     39562, 4779, 11011, 0, 10384,
                      30990, 2093, 7226),
   diff_annual_volume = c (0, -15089, -12366, -47651, -37993,
                           0, -7011, -7012,
@@ -121,6 +128,7 @@ table.volume = data.table (
                           0, -184165, -127806, -28518, -34089, -416344, -127806, -1010648, -450097,
                           0, -147300, -93095, -154946, -99640,
                           0, -580, -737, -85527, -39212, -4969, -4179, -8365, -2778,
+                          0, -34783, -28551, -39562, -29178,
                           0, -28897, -23764),
   perc_diff_tot_volume = c ("0", "-4%", "-4%", "-14%", "-11%",
                             "0", "-9%", "-9%",
@@ -132,6 +140,7 @@ table.volume = data.table (
                             "0", "-11%", "-8%", "-2%", "-2%", "-25%", "-8%", "-60%", "-27%",
                             "0", "-95%", "-60%", "-99%", "-65%",
                             "0", "<-1%", "<-1%", "-44%", "-20%", "-3%", "-2%", "-4%", "-1%",
+                            "0", "-88%", "-72%", "-100%", "-74%",
                             "0", "-93%", "-77%"
                             )
 )
