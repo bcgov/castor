@@ -42,7 +42,6 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
   - Fisheries Sensitive watersheds (FSWs)
     - prov_managae_objs, rast.zone_cond_fsw
   - Equivalent Clearcut Areas (ECAs)
-    - prov_managae_objs, rast.zone_cond_fsw
     - prov_managae_objs, rast.zone_cond_cw
   - visual quality objectives (VQOs)
     - prov_managae_objs, rast.zone_cond_vqo"
@@ -60,7 +59,6 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
     - partnershipAgreementRaster
     
 - the .rmd creates a raster, but also a table that correpsonds to teh raster id
-- a table gest created for each zoen copnstaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
 - a table gest created for each zone constaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
 
 
@@ -92,12 +90,8 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
 - in dataLoaderCLUS rmd, need to specify the modules you want to be able to run from the database
   - also need to set the parameters of these modules
   - blockingCLUS set to blockMethod = 'pre' to use the pre-blocking algorithm.....
-  - roadCLUS, set roadMethod to 'pre' to create the road netowrk based on landings to the blocks; need to defien a costs surface raster for creatign roads,a dn teh name of the  raster of teh exsitign roads (rast.crds_all)
-    
-    
   - roadCLUS, set roadMethod to 'pre' to create the road netowrk based on landings to the blocks; need to defien a costs surface raster for creatign roads, and teh name of the  raster of teh exsitign roads (rast.crds_all)
 
-    
 ### Running Scenarios (forestryCLUS)
 - to run sceanrios, satrt with teh forestryCLUS module
   - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
