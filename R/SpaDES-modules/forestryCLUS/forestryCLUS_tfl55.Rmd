@@ -38,7 +38,7 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# Cascadia TSA Kootenay Block Scenarios
+# TFL 55 Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
 no harvest in Columbia North and South caribou critical habtiat; to support Columbia North and South herd planning, we run a sceanrio with no harvest in the Columbia North and South HEWSR and Matrix; assesses teh potential maximum impact of protecting Columbia North and South only, assuming other herds unprotected
@@ -49,7 +49,7 @@ No harvest in all caribou herd areas (Columbia North and Central Rockies)
 
 ECCC in Columbia North and Central Rockies; no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat;
 
-# TFL55 Parameters 
+# TFL 55 Parameters 
 
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 

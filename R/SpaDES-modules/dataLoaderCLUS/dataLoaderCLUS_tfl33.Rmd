@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for TFL 55 Analyses Version 1.0"
+title: "Database creation for TFL 33 Analyses Version 1.0"
 author: "Tyler Muhly"
 date: "10 July 2020"
 output: pdf_document
@@ -22,9 +22,11 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for [Tree Farm Licence (TFL) 55](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/55tfra_2017.pdf). TFL 55 is located in the Selkirk Mountains, north of Revelstoke. The TFL occupies a total area of 92,700 hectares. 
+Here I set the parameters to create a database for [Tree Farm Licence (TFL) 30](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/33tfra11.pdf). 
 
-On March 24, 2017, the  AAC for TFL 55 was set at 83,000 cubic metres.
+TFL 33 is 8,366 hectares in size, and is located north of Sicamous along the eastern shore of Shuswap Lake.
+
+On March 31, 2011 the  AAC for TFL 33 was set at 21,000 cubic metres.
 
 # Usage
 Set parameters for creating the database in the code chunk below. 
@@ -51,7 +53,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = "TFL55",
+                         nameBoundary = "TFL33",
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -60,12 +62,12 @@ parameters <-  list(
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
                                              "rast.zone_cond_uwr",
-                                             "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
+                                             "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                             "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                             "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",                                                             "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
-                                          ), 
+                                             "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
+                                             "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
+                                             ), 
                          nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
@@ -96,7 +98,7 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
-  uploaderCLUS = list(aoiName = 'tfl55',
+  uploaderCLUS = list(aoiName = 'tfl33',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -106,7 +108,7 @@ parameters <-  list(
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_rds", # permanently disturbed features (never recover)
-                             recovery = 40) # time for roads adn cutblocks to 'recover' from disturbance
+                             recovery = 40) # time for roads and cutblocks to 'recover' from disturbance
   )
 
 rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
