@@ -31,14 +31,7 @@ library(velox)
 library(SpaDES.core)
 library(data.table)
 source(paste0(here::here(), "/R/functions/R_Postgres.R"))
-<<<<<<< HEAD
-setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
-getPaths() # shows where the 4 relevant paths are
-setPaths(outputPath  = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/outputs"))
 
-
-times <- list(start = 0, end = 43)
-=======
 #aoi_herds<-c("Barkerville", "Central_Selkirks", "Central_Rockies", "Columbia_North", "Columbia_South", "Frisby_Boulder", "Groundhog", "Hart_Ranges", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcells_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
 #aoi_herds<-c("Kennedy_Siding", "Moberly", "Narraway") #DU8
 #aoi_herds<-c("Graham") #DU7
@@ -55,7 +48,7 @@ setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
 setPaths(outputPath  = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/outputs"))  
 times <- list(start = 0, end = 38)
->>>>>>> master
+
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -95,15 +88,12 @@ parameters <-  list(
 
 
 rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')"))
-<<<<<<< HEAD
-rsf_model_coeff[, population:= 'Central_Rockies']
-rsf_model_coeff[, bounds:= 'rast.bc_crithab']
-=======
+
 rsf_model_coeff[, population:= herd]
 rsf_model_coeff[, bounds:= 'rast.bc_gen_crithab']
 rsf_model_coeff[, minv:= scale_rsf[herd_name == herd, "minv"]]
 rsf_model_coeff[, maxv:=scale_rsf[herd_name == herd, "maxv"]]
->>>>>>> master
+
 
 scenario = data.table(name="Central_Rockies", description = "historical disturbances")
 modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS", "survivalCLUS", "rsfCLUS", "disturbanceCalcCLUS", "uploaderCLUS")
@@ -116,13 +106,9 @@ outputs <- list()
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
-<<<<<<< HEAD
-#outputs(mySim) <- data.frame(objectName = c("rsf", "disturbanceReport", "tableSurvival"))
-system.time({
-=======
->>>>>>> master
+
 mysimout<-spades(mySim)
-})
+}
 ```
 
 # Dependendices
