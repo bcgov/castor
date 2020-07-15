@@ -52,14 +52,14 @@ parameters <- list(
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_cw"),
                                            # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
                                             # "rast.zone_cond_noharvest_groundhog_crithab_or_herd",
                                             # "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
                                             #"rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                            "rast.zone_cond_eccc_groundhog_crithab_or_herd",
-                                            "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"),
+                                            #"rast.zone_cond_eccc_groundhog_crithab_or_herd",
+                                            #"rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"),
                                             #"rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"),
                                            
                            nameZoneTable = "zone_constraints",
@@ -135,17 +135,19 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit. Adjacency was set to 3m.")
 # scenario = data.table (name = "kamloops_wgsgr_nh",
 #                        description = "No harvest in Wells Gray S/Groundhog critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
- scenario = data.table (name = "kamloops_wgsgr_ch_he0d_m15d",
-                        description = "No harvest in Wells Gray S/Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
+ # scenario = data.table (name = "kamloops_wgsgr_ch_he0d_m15d",
+ #                        description = "No harvest in Wells Gray S/Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
+ scenario = data.table (name = "kamloops_bau_try",
+                        description = "Testing whether changing vol >90 and age>=60 alters the flow.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Kamloops_TSA",
-                                     partition = ' vol > 150 ', 
+                                     partition = ' vol > 90 and age >= 60 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 5750000))) # 1,150,000m3/yr Note in the TSA Discussion Paper (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/kamloops_tsa_discussion_paper.pdf) it looks like a sustainable flow is around 2 000 000 m3/yr. 
+                                     flow = 7000000))) # flow=5750000 worked for adding in the age >=60 # Note in the TSA Discussion Paper (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/kamloops_tsa_discussion_paper.pdf) it looks like a sustainable flow is around 2 000 000 m3/yr. 
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

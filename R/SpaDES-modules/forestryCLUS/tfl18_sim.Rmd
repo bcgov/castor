@@ -133,7 +133,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="TFL18",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 575000) 
+                                     flow = 575000) #115 000 m3/yr
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
