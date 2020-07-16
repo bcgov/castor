@@ -23,15 +23,16 @@ times <- list(start = 0, end = 15)
 parameters <- list(
                   .progress = list(type = NA, interval = NA),
                   .globals = list(),
-                  dataLoaderCLUS = list(dbName='clus',
-                                        nameBoundaryFile = "tsa_aac_bounds",
-                                        nameBoundaryColumn = "tsa_name",
-                                        nameBoundary = "Revelstoke_TSA",
-                                        nameBoundaryGeom ='wkb_geometry',
-                                        nameCompartmentRaster = "rast.tsa_aac_boundary",
-                                        nameCompartmentTable = "tsa_aac_bounds_vat"),
-                  volumebyareaReportCLUS = list (AreaofInterestRaster = "rast.zone_cond_partnership_agreement",
-                                                 AreaofInterestTable = "zone_partnership_agreement")
+       dataLoaderCLUS = list(dbName='clus',
+                             nameBoundaryFile = "tsa_aac_bounds",
+                             nameBoundaryColumn = "tsa_name",
+                             nameBoundary = "Revelstoke_TSA",
+                             nameBoundaryGeom ='wkb_geometry',
+                             nameCompartmentRaster = "rast.tsa_aac_boundary",
+                             nameCompartmentTable = "tsa_aac_bounds_vat"),
+      volumebyareaReportCLUS = list (calculateInterval = 1,
+                                     AreaofInterestRaster = "rast.aoi_partnership_agree",
+                                     AreaofInterestTable = "partnership_agreement_vat")
                   )
 modules <- list("dataLoaderCLUS",
                 "volumebyareaReportCLUS", 
@@ -49,6 +50,10 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 
 
 mysimout<-spades(mySim,debug=TRUE) 
+
+
+
+
 ```
 
 

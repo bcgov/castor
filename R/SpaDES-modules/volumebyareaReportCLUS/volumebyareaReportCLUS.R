@@ -12,7 +12,7 @@
 
 defineModule(sim, list(
   name = "volumebyareaReportCLUS",
-  description = "This module reports otu volume havrested by time tep within an area of itnerest", #"insert module description here",
+  description = "This module reports out volume havrested by time step within an area of interest",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
@@ -23,17 +23,11 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "volumebyareaReportCLUS.Rmd"),
-  reqdPkgs = list("raster"),
+  reqdPkgs = list("raster", "data.table"),
   parameters = rbind(
-    defineParameter("harvestPixelList", "character", '99999', NA, NA, "Table of blocks harvested "),
-    defineParameter("AreaofInterestTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the boundaries of the critical habitat"),
-    defineParameter("AreaofInterestRaster", "character", '99999', NA, NA, "Raster that describes the boundaries of the critical habitat"),
-    
-    
-    
-    
-    
-    defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
+    defineParameter("AreaofInterestTable", "character", '99999', NA, NA, "Value attribute table that links to the raster integer and describes each area of interest."),
+    defineParameter("AreaofInterestRaster", "character", '99999', NA, NA, "Raster that describes the boundaries of each area of interest."),
+    defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which volumes are calculated"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -47,13 +41,13 @@ defineModule(sim, list(
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
-    expectsInput(objectName = "harvestPixelList", objectClass ="data.table", desc = 'Table of harvest queue cut at each time interval.', sourceURL = NA)
+    expectsInput(objectName = "harvestPixelList", objectClass ="data.table", desc = 'The list of pixels being harvesting in a time period.', sourceURL = NA)
     
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput("vol", "data.table", "Volume table for every pixel in the area of interest"),
-    createsOutput("volumebyareaReport", "data.table", "Summary per simulation time step of the volume and area harvested inare of interest.")
+    createsOutput("vol", "data.table", "Table of every pixel in the area of interest; gets joined to the harvestpixelList to create the volume report."),
+    createsOutput("volumebyareaReport", "data.table", "Summary per simulation time step of the volume and area harvested in each area of interest.")
   )
 ))
 
@@ -65,7 +59,7 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim) , "volumebyareaReportCLUS", "analysis", 9)
     },
     analysis = {
-      sim <- volAnalysis(sim)
+      sim <- volAnalysis (sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 9)
     },
     
@@ -86,25 +80,25 @@ Init <- function(sim) {
   
   #Get the area of interest
   if(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster") == '99999') {
-    sim$vol[, area_of_interest := 1]
+    sim$vol[, aoi := 1]
     } else {
-    bounds <- data.table (c (t (raster::as.matrix( 
+    aoi_bounds <- data.table (c (t (raster::as.matrix( 
     RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
                  srcRaster = P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster"), 
-                 clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                 clipper = sim$boundaryInfo[[1]],  
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)))))
-    bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
-    if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
+    aoi_bounds [, pixelid := seq_len (.N)]
+    if(nrow(aoi_bounds[!is.na(V1),]) > 0){
       if(!(P(sim, "volumebyareaReportCLUS", "AreaofInterestTable") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , aoi FROM ",P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
-        bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
+        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) , zone FROM ",P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
+        aoi_bounds <- merge(aoi_bounds, aoi_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       } else {
       stop(paste0(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster"), "- does not overlap with harvest unit"))
       }
-    setorder(bounds, pixelid) #sort the bounds
-    sim$vol[, area_of_interest:= bounds$aoi]
+    setorder(aoi_bounds, pixelid) #sort the bounds
+    sim$vol [, aoi := aoi_bounds$zone]
     }
   }
 }
@@ -112,21 +106,17 @@ Init <- function(sim) {
 
 # assign volume to area of interest
 volAnalysis <- function(sim) {
-  dt_select<-data.table(dbGetQuery(sim$clusdb, 
-                                   paste0("SELECT pixelid and volume FROM harvestPixelList"))) # 
-  if(nrow(dt_select) > 0){
-    dt_select[, field := 0]
-    outPts<-merge(sim$vol, dt_select, by = 'pixelid', all.x =TRUE) 
-    sim$vol<-merge(sim$vol, outPts[,c("pixelid","volume")], by = 'pixelid', all.x =TRUE)
-    
-  }
-
-  # Sum the volume 
-  tempVolumeReport <- merge(tempVolumeReport, sim$vol[, .(tot_volume = sum (volume)), by = "area_of_interest"])
-  tempVolumeReport[, .(tot_area := uniqueN(.I)), by = "area_of_interest"]
-  tempVolumeReport[, c("scenario", "compartment", "timeperiod", "area_of_interest", "volume_harvest", "area_harvest") := list(scenario$name, sim$boundaryInfo[[3]],time(sim)*sim$updateInterval, area_of_interest, tot_volume, tot_area)]
-
-  sim$volReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names=TRUE )
+ 
+  tempVolumeReport <- merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE) 
+  tempVolumeReport [, .(tot_volume := sum (vol_h)), by = "aoi"]
+  tempVolumeReport [, .(tot_area := uniqueN(.I)), by = "aoi"]
+  tempVolumeReport [, c("scenario", "compartment", "timeperiod", "area_of_interest", "volume_harvest", "area_harvest") := list(scenario$name, 
+                                                                                                                              sim$boundaryInfo[[3]],
+                                                                                                                              time(sim)*sim$updateInterval, 
+                                                                                                                              aoi, 
+                                                                                                                              tot_volume, 
+                                                                                                                              tot_area)]
+  sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names = TRUE )
 
   return(invisible(sim))
 }

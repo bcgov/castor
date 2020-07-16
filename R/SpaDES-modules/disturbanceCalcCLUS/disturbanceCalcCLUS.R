@@ -42,8 +42,8 @@ defineModule(sim, list(
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
-    expectsInput(objectName ="harvestPixelList", objectClass ="data.table", desc = 'The list of pixels being harvesting in a time period', sourceURL = NA)
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    #expectsInput(objectName ="harvestPixelList", objectClass ="data.table", desc = 'The list of pixels being harvesting in a time period', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -73,7 +73,7 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   sim$disturbanceReport<-data.table(scenario = character(), compartment = character(), timeperiod= integer(),
                                     critical_hab = character(), dist500 = numeric(), dist500_per = numeric(), dist = numeric(), dist_per = numeric())
-  sim$disturbance<-sim$pts
+  sim$disturbance <- sim$pts
   
   #Get the critical habitat
   if(P(sim, "disturbanceCalcCLUS", "criticalHabRaster") == '99999'){
@@ -166,7 +166,7 @@ distAnalysis <- function(sim) {
   #out.ras[]<-sim$disturbance$dist
   #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
-  #TODO:Add the volume from harvestPixelList
+  #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
   
   #Sum the area up > 500 m
   tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])
