@@ -38,54 +38,24 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# Dawson Creek TSA Scenarios
+# TFL 56 Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Central Group caribou critical habtiat; to support Central groups  planning, we run a sceanrio with no harvest in the  Central Group HEWSR, LEWSR and Matrix; harvest is BAU in other herds; assesses the potential maximum impact of protecting Central groups only, assuming other herds unprotected
+no harvest in Columbia North and South caribou critical habtiat; to support Columbia North and South herd planning, we run a sceanrio with no harvest in the  Columbia North and South HEWSR and Matrix; assesses teh potential maximum impact of protecting Columbia North and South only, assuming other herds unprotected
 
-"ECCC" in Central groups caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central group only
+ECCC in Columbia North and Southcaribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia North and South only
 
-Partnership Agreement Scenario; BC, West Moberly First Nation, Saulteau First Nation and Canada have an agreement to protect certain areas in the central group; No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35%  disturbance (15%) harvest in  Central group partnership agreement areas A1, B1, B4 and B5.
-
-No harvest in all Partnership Agreement areas; this scenario assesses the potential maximum impact of protecting all the partnership agreement areas, assuming other herds unprotected
-
-no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (including matrix); establishes the 'maximum impact' that protection of caribou habitat might potentially have on forest harvest; in Dawson Creek TSA these include: Narraway HEWSR, Narraway HESR, Narraway HEWR, Narraway LEWR, Narraway Matrix, Quintettes HESR, Quintette HEWR, Quintette HEWSR, Quintette LEWR, Quintette Matrix, Burnt Pine HESR, Burnt Pine HEWR, Burnt Pine HEWSR, Burnt Pine Matrix, Kennedy Siding HEWSR, Kennedy Siding HESR, Kennedy Siding HEWR, Kennedy Siding Matrix, Moberly HESR, Moberly HEWSR, Moberly Matrix, Graham HEWSR, Graham HESR, Graham Matrix
-
-'ECCC' in caribou critical habtait areas; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low eleavtion cirtcial habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
-
-# Dawson Creek  TSA Parameters 
+# TFL 56 Parameters 
 
 ## New Caribou Constraints
-BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest in Central Group = "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                              "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-                               "rast.zone_cond_noharvest_narraway_crithab_or_herd",
-                               "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
-                               "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+No harvest in Columbia North and Columbia South = rast.zone_cond_noharvest_columbia_north_crithab_or_herd,
+                                                 rast.zone_cond_noharvest_columbia_south_crithab_or_herd
+  
+No harvest in Columbia North and Columbia South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_columbia_north_crithab_or_herd,
+                                   rast.zone_cond_eccc_columbia_south_crithab_or_herd
 
-ECCC Central Group = "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
-                      "rast.zone_cond_eccc_quintette_crithab_or_herd",
-                      "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
-                      "rast.zone_cond_eccc_narraway_crithab_or_herd",
-                      "rast.zone_cond_eccc_moberly_crithab_or_herd",
-
-Parntership Agreement = rast.zone_cond_partnership_agreement
-
-Parntership Agreement - ho harvest = rast.zone_cond_partnership_agreement (but change constraint to no harvest 'nh')
-
-No harvest in all herds = "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                              "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-                               "rast.zone_cond_noharvest_narraway_crithab_or_herd",
-                               "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
-                               "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                            rast.zone_cond_noharvest_graham_crithab_or_herd
-
-ECCC in all herds = rast.zone_cond_eccc_central_rockies_crithab_or_herd,
-                    rast.zone_cond_eccc_columbia_north_crithab_or_herd,
-                    rast.zone_cond_eccc_columbia_south_crithab_or_herd,
-                    rast.zone_cond_eccc_central_selkirks_crithab_or_herd
-                    "rast.zone_cond_eccc_graham_crithab_or_herd"
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -93,39 +63,16 @@ ECCC in all herds = rast.zone_cond_eccc_central_rockies_crithab_or_herd,
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
--Minimum harvest criteria: 120 m3/ ha 
-"For the base case minimum harvestable ages were defined using height, diameter and volume
-criteria. While the height and diameter minima varied according to stand quality and species, all
-stands, including small pine stands (see “small pine stands” above) had to exceed a minimum
-stand volume of 120 cubic metres per hectare in order to be eligible for harvest."
-
+      
 ## 'harvestFlow'
+from 2010 determination: the base case projected a stable harvest level of 88 000 cubic metres per year, which could be maintained for 100 years after which it increased to the long-term harvest level of 101 000 cubic metres per year
+- First, I tested a harvest flow of 90,000m^3^/year (450,000m^3^/5-year); was much too high, so dropped to 45,000m^3^/year, 35,000, 30,000, 32,500, 31,000
 
-The AAC for the Dawson Creek TSA was initially set at
-1 250 000 cubic metres, of which 570 00 cubic metres and 680 000 cubic metres were for
-deciduous stands and coniferous stands, respectively. Dawson Creek TSA’s allowable annual cut (AAC) is 1,860,000 cubic metres, as of October 30, 2014. 978 000 cubic metres attributable to coniferous-leading stands of which at least 100 000 cubic
-metres annually must be taken from stands classified as small pine; and 882 000 cubic metres
-attributable to deciduous-leading stands.
+- the lower AAC in oru mode comarped to detemrination model may be ude to lower THLB in our model; not sure why the discrepency
 
-## Partnership agreement
-There is a Partnership Agreement for these caribou herds that has designated zones and constraints for those zones. These can be modified using the code below.
+- I used 150 m3/ha as minimum harvest volume; nothing in determination on this
 
-```{r, zone_update}
-#STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
-
-#STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_partnership_agreement'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-
-#STEP 3: Update the constraints available to a zone as specified in the scenario
-dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #This example will set all the zones in the partnership agreement to no harvest
-
-dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
-#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
-
-#STEP 4: Remove the connection to the database
-dbDisconnect(clusdb)
-```
+- I used 3 m adjacency; nothing in determination on this
 
 
 ```{r module_usage}
@@ -141,14 +88,13 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list( 
-                           dbName='clus',
+  dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL56_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Dawson_Creek_TSA",
+                           nameBoundary = "TFL56",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -159,23 +105,11 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw",
+                                               "rast.zone_cond_cw", 
                                                
-                                               # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_narraway_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_graham_crithab_or_herd"
-
-                                               "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
-                                               "rast.zone_cond_eccc_quintette_crithab_or_herd",
-                                               "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
-                                               "rast.zone_cond_eccc_narraway_crithab_or_herd",
-                                               "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                               "rast.zone_cond_eccc_graham_crithab_or_herd"
-                                               
-                                               # 'rast.zone_cond_partnership_agreement'
+                                               # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                             "rast.zone_cond_noharvest_columbia_south_crithab_or_herd" 
+                                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
+                                               "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -214,7 +148,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'dawson_creek_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'tfl56', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -235,31 +169,31 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS"
                 )
 
-# scenario = data.table (name = "dawson_creek_bau",
-#                        description = "Business-as-usual case; sustainable flow = m3/yr .Adjacency was set to 3m.")
-# scenario = data.table (name = "dawson_centgrp_nh",
-#                        description = "No harvest in all central group critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "dawson_centgrp_ch_hele0d_m15d",
-#                        description = "No harvest in Central group high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central group matrix critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "dawson_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d",
-#                        description = "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance (15% havrest) in  Central group partnership agreement areas A1, B1, B4 and B5. Adjacency was set to 3m.")
-# scenario = data.table (name = "dawson_centgrp_pa_nh",
-#                        description = "No harvest in all Central group partnership agreement areas. Adjacency was set to 3m.")
-# scenario = data.table (name = "dawson_all_nh",
-#                        description = "No harvest in all critical habitat of all herds that overlap with the harvest unit. Adjacency was set to 3m.")
-scenario = data.table (name = "dawson_all_ch_hele0d_m15d",
-                       description = "No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit↨. Adjacency was set to 3m.")
+# rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
+# rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 ', 
-                                     year = rep( seq (from = 2018, # run the 
-                                                      to = 2222, 
+# scenario = data.table (name = "tfl56_bau",
+#                        description = "Business-as-usual (BAU); harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl56_colnsfb_nh",
+#                        description = "No harvest in Columbia North and Columbia South critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+scenario = data.table (name = "tfl56_colnsfb_ch_he0d_m15d",
+                       description = "No harvest in Columbia North and Columbia South HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+
+
+# No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat	
+
+
+
+harvestFlow <- rbindlist(list(data.table(compartment ="TFL56",
+                                     partition = ' vol > 150 ', 
+                                     year = rep( seq (from = 2018, 
+                                                      to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 7050000)
+                                     flow = 155000) #31,000m3/yr 
 ))
 
-#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
+#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,

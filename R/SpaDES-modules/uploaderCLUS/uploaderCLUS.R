@@ -181,6 +181,11 @@ save.reports <-function (sim){
     DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), 
                       sim$yielduncertain, append = T,row.names = FALSE)
   }
+  #volumebyarea
+  if(!is.null(sim$volReport)){
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'volumebyarea'), 
+                      sim$volReport, append = T, row.names = FALSE)
+  }
   dbDisconnect(connx)
   return(invisible(sim)) 
 }

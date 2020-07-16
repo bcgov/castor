@@ -1,0 +1,58 @@
+---
+title: "volumebyareaReportCLUS"
+author: ""
+date: "10 July 2020"
+output: pdf_document
+---
+
+# Overview
+
+This module crates a report of amount of timber volume harvested by area. It takes the harvest queue at each time step (harvestPixelList), and cauclated how much volume was harvested in each area of interest.
+
+# Usage
+
+```{r module_usage}
+library(SpaDES.core)
+source(here::here("R/functions/R_Postgres.R"))
+
+moduleDir <- here::here("/R/SpaDES-modules")
+inputDir <- here::here("/R") %>% reproducible::checkPath(create = TRUE)
+outputDir <- here::here("/R")
+cacheDir <- here::here("/R")
+times <- list(start = 0, end = 15)
+parameters <- list(
+                  .progress = list(type = NA, interval = NA),
+                  .globals = list(),
+                  dataLoaderCLUS = list(dbName='clus',
+                                        nameBoundaryFile = "tsa_aac_bounds",
+                                        nameBoundaryColumn = "tsa_name",
+                                        nameBoundary = "Revelstoke_TSA",
+                                        nameBoundaryGeom ='wkb_geometry',
+                                        nameCompartmentRaster = "rast.tsa_aac_boundary",
+                                        nameCompartmentTable = "tsa_aac_bounds_vat"),
+                  volumebyareaReportCLUS = list (AreaofInterestRaster = "rast.zone_cond_partnership_agreement",
+                                                 AreaofInterestTable = "zone_partnership_agreement")
+                  )
+modules <- list("dataLoaderCLUS",
+                "volumebyareaReportCLUS", 
+                "uploaderCLUS")
+objects <- list()
+paths <- list(
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects, paths = paths)
+
+
+mysimout<-spades(mySim,debug=TRUE) 
+```
+
+
+# Links to other modules
+
+The module requires dataLoaderCLUS, roadsCLUS, blockingCLUS to work.
+
