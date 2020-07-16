@@ -104,7 +104,7 @@ writeRaster(ras.dry.territory, "fisher_dry.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_dry.tif -t 100x100 rast.zone_cond_fisher_dry | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 dry.vat<-data.table(zoneid = 1:1769, reference_zone= 'rast.zone_cond_fisher_dry',
-variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = 'NA')
+variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = NULL)
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 

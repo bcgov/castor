@@ -472,7 +472,7 @@ setTablesCLUSdb <- function(sim) {
         }
       })
       #If there is a multi variable condition add them to the query
-      queryMulti<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints where multi_condition is not null")
+      queryMulti<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
       if(nrow(queryMulti) > 0){
         multiVars<-unlist(strsplit(paste(queryMulti$multi_condition, collapse = ', ', sep = ','), ",| > | < | = | <= | >= | and | AND | or | OR | in | IN | + "))
         multiVars<-unique(gsub("[[:space:]]", "", multiVars[c(TRUE, FALSE)]))
@@ -528,7 +528,11 @@ setTablesCLUSdb <- function(sim) {
     } else { 
       stop(paste0('nameForestInventoryTable = ', P(sim,"dataLoaderCLUS", "nameForestInventoryTable")))
     }  
-  } 
+  } else{
+    multiVars<-''
+    multiVars2<-''
+    multiVars1<-NULL
+  }
   
   #-----------
   #Set the Age 

@@ -12,8 +12,9 @@ library(data.table)
 library(ggplot2)
 library(plotly)
 library(nlme)
-library(gamlss)
+library(ggspatial)
 library(tidyr)
+source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 ```
 
 # Background
@@ -48,7 +49,7 @@ dbDisconnect(conn)
 
 ### Merge wolf and pop data
 
-```{r, final}
+```{r, final, echo=FALSE}
 data_new<-data.table(merge(caribou_pop, wolf_actions, by.x = c("herd_name", "year"), by.y =c("herd_name", "year"), all.x = TRUE))
 #Remove minimum counts and exper opinion estimates
 data_new<-data_new[!(estimate_type %in% c("Expert Opinion", "Survey Observation","Minimum count", "Minimum Count", "Unknown"))]
@@ -114,6 +115,40 @@ dbDisconnect(conn)
 
 ```
 
+#### Map of herds
+```{r, graph_pop}
+herd.spat<-getSpatialQuery( "Select * from public.bc_caribou_linework_v20200507_shp_core_matrix")
+
+#Make a grouping variable
+herd.spat$herd_hab<-herd.spat$herd_name
+non.herds<-unique(data_new$herd_name)
+herd.spat[herd.spat$herd_name %in% non.herds,]$herd_hab<-paste(herd.spat[herd.spat$herd_name %in% non.herds,]$herd_name,herd.spat[herd.spat$herd_name %in% non.herds,]$bc_habitat)
+
+#Dissolve
+herd.spat1<-herd.spat %>%
+   group_by(herd_hab) %>%
+   summarise()
+
+#Add matrix/core and herd_name columns
+herd.spat1$crit <- 0
+herd.spat1[herd.spat1$herd_hab %like% "Matrix", ]$crit <- 1
+herd.spat1[herd.spat1$herd_hab %like% "Core", ]$crit <- 2
+string.list<-unlist(strsplit(herd.spat1$herd_hab, ' '))
+herd.spat1$herd_name<-string.list[!string.list %in% c('Matrix' , 'Core')]
+
+inset<- bc <- plot(bcmaps::bc_bound())
+map<-ggplot(data = herd.spat1, aes(fill = crit )) +
+    geom_sf(show.legend=FALSE )+
+    geom_sf_text(aes(label = herd_name), check_overlap = TRUE, inherit.aes = TRUE)+
+    theme_bw()+
+    xlab("Longitude") + ylab("Latitude") +
+    annotation_scale(location = "bl", width_hint = 0.3) +
+    annotation_north_arrow(location = "bl", which_north = "true", height = unit(.5, "in"), width = unit(.5, "in") , 
+        pad_x = unit(0.3, "in"), pad_y = unit(0.3, "in"))
+
+map
+
+```
 #### Graph of population data
 ```{r, graph_pop}
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -297,7 +332,7 @@ anova(m0.b, m0.c) # model.c is better than model.b LRT: p<0.001
 
 acf(residuals(m0.c,type="pearson"))# Note: |r| ~ 0.2 -- issues with autocorrelation...but lags hard to fit with the limited data.
 #TRY a AR1 correlation structure? Doesn't fit well --have to change residuals to normalized!!!! Too many parameters to fit....
-m0.d <- lme(lambda.dif ~ 1 , random=~ 1|herd_name, correlation = corAR1(value = 0.8, form = ∼1|herd_name), data = model.data, method = 'ML', control = con1)
+m0.d <- lme(lambda.dif ~ 1 , random=~ 1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = con1)
 #anova(m0.c, m0.d) # model m0.d is better LRT: p<0.001
 acf(residuals(m0.d,type="normalized")) # phi = 0.9. No significant lags
 plot( fitted(m0.d, level =1),residuals(m0.d, type="normalized"))# variances are homogenous
@@ -322,7 +357,7 @@ Not significantly impating the pop change after accounting for herd level impact
 #burn40 -- includes only fires, no human disturbances (cutblocks)
 #Use ML estimation since fixed effects will change amoung models
 #---PERCENTAGE---
-burn.per <- lme(lambda.dif ~ 1 + core.burn40.per*matrix.burn40.per, random=~ 1|herd_name, correlation = corAR1(0.8, form = ~1|herd_name), data = model.data, method = 'ML', control = con1)
+burn.per <- lme(lambda.dif ~ 1 + core.burn40.per*matrix.burn40.per, random=~ 1|herd_name, correlation = corAR1(0.8, form = ~time|herd_name), data = model.data, method = 'ML', control = con1)
 ##Diagnostics
 acf(residuals(burn.per, type = 'normalized'),lag.max =10) # No problem with AC
 plot( fitted(burn.per),residuals(burn.per, type="normalized"))# variances are homogenous
@@ -334,7 +369,7 @@ abline(0,0, col = "yellow")
 summary(burn.per)
 
 #---RATE----
-burn.rate <- lme(lambda.dif ~ 1 + core.burn40.rate*matrix.burn40.rate, random=~ 1|herd_name,  correlation = corAR1(0.8, form = ~1|herd_name), data = model.data, method = 'ML', control = con1)
+burn.rate <- lme(lambda.dif ~ 1 + core.burn40.rate*matrix.burn40.rate, random=~ 1|herd_name,  correlation = corAR1(0.8, form = ~time|herd_name), data = model.data, method = 'ML', control = con1)
 ##Diagnostics
 acf(residuals(burn.rate, type = 'normalized'),lag.max =10) # No problem with AC
 plot( fitted(burn.rate),residuals(burn.rate, type="normalized"))# variances are homogenous
@@ -352,7 +387,7 @@ anova(burn.per,burn.rate)
 #Early Seral Stage which is just clear cuts -- doesn't include burns
 ```{r, eary_seral}
 #---Percentage---
-early.seral.per<- lme(lambda.dif ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~1|herd_name), data = model.data, control = con1)
+early.seral.per<- lme(lambda.dif ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~time|herd_name), data = model.data, control = con1)
 ##Diagnostics
 acf(residuals(early.seral.per , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(early.seral.per),residuals(early.seral.per, type="normalized"))# variances are homogenous
@@ -365,7 +400,7 @@ summary(early.seral.per)
 
 
 #---Rate---
-early.seral.rate<- lme(lambda.dif ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~1|herd_name), data = model.data, control = con1)
+early.seral.rate<- lme(lambda.dif ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~time|herd_name), data = model.data, control = con1)
 ##Diagnostics
 acf(residuals(early.seral.rate , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(early.seral.rate),residuals(early.seral.rate, type="normalized"))# variances are homogenous
@@ -383,23 +418,23 @@ anova(early.seral.per, early.seral.rate)
 #Percentage disturbed - includes only cutblocks and roads buffered by 50m
 ```{r, dist}
 #---Percentage---
-dist.per<- lme(lambda.dif ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~1|herd_name), data = model.data, control = con1)
+dist.per<- lme(lambda.dif ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.5, form =~time|herd_name), data = model.data, control = con1)
 acf(residuals(dist.per , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(dist.per),residuals(dist.per, type="normalized"))# variances are homogenous
 abline(0,0, col = 'red')
-cor(fitted(dist.per, level =1),model.data$lambda.dif) #0.809
-plot(model.data$lambda.dif~fitted(dist.per))
+cor(fitted(dist.per, level =0),model.data$lambda.dif) #0.809
+plot(model.data$lambda.dif~fitted(dist.per, level =0))
 abline(0,1, col = "red")
 abline(0,0, col = "yellow")
 summary(dist.per)
 
 #---Rate---
-dist.rate<- lme(lambda.dif ~ core.dist.rate*matrix.dist.rate, random=~ 1|herd_name,method = 'ML', correlation = corAR1(0.3, form =~1|herd_name), data = model.data, control = con1)
+dist.rate<- lme(lambda.dif ~ core.dist.rate*matrix.dist.rate, random=~ 1|herd_name,method = 'ML', correlation = corAR1(0.5, form =~time|herd_name), data = model.data, control = con1)
 acf(residuals(dist.rate , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(dist.rate),residuals(dist.rate, type="normalized"))# variances are homogenous
 abline(0,0, col = 'red')
-cor(fitted(dist.rate, level =1),model.data$lambda.dif) #0.876
-plot(model.data$lambda.dif~fitted(dist.rate))
+cor(fitted(dist.rate, level =0),model.data$lambda.dif) #0.876
+plot(model.data$lambda.dif~fitted(dist.rate, level =0))
 abline(0,1, col = "red")
 abline(0,0, col = "yellow")
 summary(dist.rate)
@@ -410,7 +445,7 @@ anova(dist.per, dist.rate)
 #Disturbance including cutblocks and roads with buffering each by 500m
 ```{r, dist500}
 #---Percentage---
-dist500.per<- lme(lambda.dif ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~1|herd_name),data = model.data, control = con1)
+dist500.per<- lme(lambda.dif ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.5, form =~time|herd_name),data = model.data, control = con1)
 acf(residuals(dist500.per, type = 'normalized'),lag.max =10)#No issues
 plot( fitted(dist500.per),residuals(dist500.per, type="normalized"))# variances are homogenous
 abline(0,0, col = 'red')
@@ -421,7 +456,7 @@ abline(0,0, col = "yellow")
 summary(dist500.per)
 
 #---Rate---
-dist500.rate<- lme(lambda.dif ~ core.dist500.rate*matrix.dist500.rate,random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~1|herd_name), data = model.data, control = con1)
+dist500.rate<- lme(lambda.dif ~ core.dist500.rate*matrix.dist500.rate,random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.5, form =~time|herd_name), data = model.data, control = con1)
 acf(residuals(dist500.rate , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(dist500.rate),residuals(dist500.rate, type="normalized"))# variances are homogenous
 abline(0,0, col = 'red')
@@ -437,7 +472,7 @@ anova(dist500.per, dist500.rate)
 #Resource Selection Function (TBD)
 To be determined later
 ```{r, rsf, echo=FALSE, eval=FALE}
-rsf.rate<- lme(lambda.dif~ core.rsf.rate*matrix.rsf.rate,random=~ 1|herd_name, 
+rsf.rate<- lme(lambda.dif~ core.rsf.rate*matrix.rsf.rate,random=~ 1|herd_name, correlation = corAR1(form=~time|herd_name) ,
                   data = model.data, method = 'REML', control = con1)
 summary(rsf.rate)
 ```

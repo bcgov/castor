@@ -42,7 +42,8 @@ defineModule(sim, list(
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
+    expectsInput(objectName ="harvestPixelList", objectClass ="data.table", desc = 'The list of pixels being harvesting in a time period', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -165,11 +166,13 @@ distAnalysis <- function(sim) {
   #out.ras[]<-sim$disturbance$dist
   #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
+  #TODO:Add the volume from harvestPixelList
+  
   #Sum the area up > 500 m
   tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])
   tempDisturbanceReport<-merge(tempDisturbanceReport, sim$disturbance[dist > 0, .(hab = uniqueN(.I)), by = "critical_hab"] )
   tempDisturbanceReport[, c("scenario", "compartment", "timeperiod", "dist500_per", "dist500", "dist_per", "dist") := list(scenario$name,sim$boundaryInfo[[3]],time(sim)*sim$updateInterval,((total - hab500)/total)*100,total - hab500,((total - hab)/total)*100, total - hab)]
-  tempDisturbanceReport[, c("total","hab500","hab") := list(NULL, NULL,NULL)]
+  tempDisturbanceReport[, c("total","hab500","hab") := list(NULL, NULL,NULL)]#remove cols
 
   sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE )
   sim$disturbance[, dist:=NULL]
