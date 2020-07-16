@@ -182,9 +182,9 @@ save.reports <-function (sim){
                       sim$yielduncertain, append = T,row.names = FALSE)
   }
   #volumebyarea
-  if(!is.null(sim$volReport)){
+  if(!is.null(sim$volumebyareaReport)){
     DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'volumebyarea'), 
-                      sim$volReport, append = T, row.names = FALSE)
+                      sim$volumebyareaReport, append = T, row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 
