@@ -56,11 +56,11 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init (sim) # this function inits 
-      sim <- scheduleEvent(sim, time(sim) , "volumebyareaReportCLUS", "analysis", 9)
+      sim <- scheduleEvent (sim, time(sim), "volumebyareaReportCLUS", "analysis", 10)
     },
     analysis = {
       sim <- volAnalysis (sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 9)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 10)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
