@@ -37,7 +37,7 @@ parameters <- list(
 modules <- list("dataLoaderCLUS",
                 "volumebyareaReportCLUS", 
                 "uploaderCLUS")
-objects <- list()
+objects <- list(scenario = scenario)
 paths <- list(
   cachePath = cacheDir,
   modulePath = moduleDir,
