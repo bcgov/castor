@@ -107,7 +107,7 @@ Init <- function(sim) {
 # assign volume to area of interest
 volAnalysis <- function(sim) {
  
-  tempVolumeReport <- merge (sim$vol, sim$harvestPixelList, by = 'pixelid', all.x = TRUE) 
+  tempVolumeReport <- merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE) #simpler than having the entire list of pixels
   tempVolumeReport [, .(tot_volume := sum (vol_h)), by = "aoi"]
   tempVolumeReport [, .(tot_area := uniqueN(.I)), by = "aoi"]
   tempVolumeReport [, c("scenario", "compartment", "timeperiod", "area_of_interest", "volume_harvest", "area_harvest") := list(scenario$name, 
