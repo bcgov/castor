@@ -55,12 +55,12 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim <- Init (sim) # this function inits 
-      sim <- scheduleEvent (sim, time(sim), "volumebyareaReportCLUS", "analysis", 10)
+      sim <- Init(sim) 
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 10)
     },
     analysis = {
-      sim <- volAnalysis (sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 10)
+      sim <- volAnalysis(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 10)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -101,21 +101,26 @@ Init <- function(sim) {
     sim$vol [, aoi := aoi_bounds$zone]
     }
   }
+  return(invisible(sim))
 }
 
 
 # assign volume to area of interest
 volAnalysis <- function(sim) {
  
-  tempVolumeReport <- merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE) 
-  tempVolumeReport [, .(tot_volume := sum (vol_h)), by = "aoi"]
-  tempVolumeReport [, .(tot_area := uniqueN(.I)), by = "aoi"]
-  tempVolumeReport [, c("scenario", "compartment", "timeperiod", "area_of_interest", "volume_harvest", "area_harvest") := list(scenario$name, 
-                                                                                                                              sim$boundaryInfo[[3]],
-                                                                                                                              time(sim)*sim$updateInterval, 
-                                                                                                                              aoi, 
-                                                                                                                              tot_volume, 
-                                                                                                                              tot_area)]
+  tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = FALSE))
+  tempVolumeReport [, tot_volume := sum (vol_h), by = "aoi"]
+  tempVolumeReport [, tot_area := .N, by = "aoi"]
+  tempVolumeReport <- tempVolumeReport [, .(aoi, tot_volume, tot_area)]
+  tempVolumeReport <- unique (tempVolumeReport, by = "aoi")
+  #tempVolumeReport [, scenario := scenario$name]
+  tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
+  tempVolumeReport [, timeperiod := time(sim)*sim$updateInterval]
+  tempVolumeReport [, area_of_interest := aoi]
+  tempVolumeReport[, aoi := NULL]
+
+  print (tempVolumeReport)
+                                                                                                                              
   sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names = TRUE )
 
   return(invisible(sim))
