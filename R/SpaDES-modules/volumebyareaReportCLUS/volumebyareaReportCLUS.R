@@ -107,22 +107,15 @@ Init <- function(sim) {
 
 # assign volume to area of interest
 volAnalysis <- function(sim) {
- 
   tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = FALSE))
-  tempVolumeReport [, tot_volume := sum (vol_h), by = "aoi"]
-  tempVolumeReport [, tot_area := .N, by = "aoi"]
-  tempVolumeReport <- tempVolumeReport [, .(aoi, tot_volume, tot_area)]
-  tempVolumeReport <- unique (tempVolumeReport, by = "aoi")
-  #tempVolumeReport [, scenario := scenario$name]
+  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h),area_harvest = .N), by = "aoi"]
+  
+  tempVolumeReport [, scenario := scenario$name]
   tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
-  tempVolumeReport [, timeperiod := time(sim)*sim$updateInterval]
-  tempVolumeReport [, area_of_interest := aoi]
-  tempVolumeReport[, aoi := NULL]
-
-  print (tempVolumeReport)
-                                                                                                                              
-  sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names = TRUE )
-
+  tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+  setnames(tempVolumeReport, "aoi", ("area_of_interest"))
+  
+  sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names = TRUE ) 
   return(invisible(sim))
 }
 
