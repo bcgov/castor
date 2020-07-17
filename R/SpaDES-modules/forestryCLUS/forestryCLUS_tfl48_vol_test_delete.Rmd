@@ -155,7 +155,7 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
+                                               "rast.zone_cond_cw" 
                                                
                                                # 'rast.zone_cond_partnership_agreement'
                                                
@@ -165,11 +165,11 @@ parameters <- list(
                                                # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_graham_crithab_or_herd"
                                                 
-                                               "rast.zone_cond_eccc_quintette_crithab_or_herd",
-                                               "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
-                                               "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                               "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
-                                               "rast.zone_cond_eccc_graham_crithab_or_herd"
+                                               # "rast.zone_cond_eccc_quintette_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_moberly_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_graham_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -252,8 +252,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
 
 
-scenario = data.table (name = "volume_test",
-                       description = "Tesign the volume-by-area report.")
+scenario = data.table (name = "volume_report_test",
+                       description = "Testing the volume-by-area report.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL48",
                                          partition = ' vol > 150 ', 
