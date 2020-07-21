@@ -107,8 +107,8 @@ Init <- function(sim) {
 
 # assign volume to area of interest
 volAnalysis <- function(sim) {
-  tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = FALSE))
-  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h),area_harvest = .N), by = "aoi"]
+  tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE))
+  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = "aoi"]
   
   tempVolumeReport [, scenario := scenario$name]
   tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
