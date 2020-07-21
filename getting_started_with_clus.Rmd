@@ -9,9 +9,58 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction
-Here we document how to get started using the caribou and land use simulator (CLUS) model. This provides the basic instructions for implementing and running a scenario on CLUS. The CLUS model is implemented using the [SpaDES package](https://spades.predictiveecology.org/) in program R. It consists of 'modules' that represent independent processes within the model that are scheduled and then actioned. Detailed information on the modules are provided in .rmd files within each module folder.  
+Here we document how to get started using the caribou and land use simulator (CLUS) model. This provides the basic instructions for implementing and running a scenario on CLUS.
 
-Fundamentally, the CLUS model is a forest harvest simulator with the ability to flexibly "constrain" areas of the landscape to simulate alternative forest management regimes. These alternative regimes constitute specified areas ('zones') with defined forest targets (e.g., percentage area of a certain forest age). Thus, it can be used to test how alternative forest management zones influence the spatial distribution and rate (i.e., annual volume cut) of forest harvest. However, CLUS also includes various modules that provide caribou-specific indicators. Thus, the CLUS model can also be used to estimate the influence of alternative forest management regimes on caribou. Below we provide instructions for implementing a forest harvest scenario in CLUS. We provide the basic structure of the model, including data and parameter inputs needed to run the model.       
+Fundamentally, the CLUS model is a forest harvest simulator with the ability to flexibly "constrain" areas of the landscape to simulate alternative forest management regimes. These alternative regimes constitute specified areas ('zones') with defined forest targets (e.g., percentage area of a certain forest age). Thus, it can be used to test how alternative forest management zones influence the spatial distribution and rate (i.e., annual volume cut) of forest harvest. However, CLUS also includes various modules that provide caribou-specific indicators. Thus, the CLUS model can also be used to estimate the influence of alternative forest management regimes on caribou. Below we provide instructions for implementing a forest harvest scenario in CLUS. We provide the basic structure of the model, including data and parameter inputs needed to run the model.
+
+## Model "Software" and Framework
+CLUS is primarily built using [R programming language](https://www.r-project.org/), with a dash of JAVA in the module to create harvest blocks. An advantage of using R is that it is supported by many users that are actively creating 'packages' to do various analytical functions. There is a strong library of statistical packages, but also a diversity of data management and visualization packages. Working in R therefore provides a lot of flexibility. R packages are also typically well documented, so it is usually straighforward to learn how to use and apply the functions in a given package. 
+
+The CLUS model proper is implemented using the [SpaDES package](https://spades.predictiveecology.org/). SpaDES provides a structure for implementing discrete-event, spatial simulation models, not unlike what a SELES model does. Importantly, SpaDES provides functions to manage 'events' in a model. Events are scheduled within 'modules' that represent independent processes within a model. Modules, and events within them, are scheduled and then actioned using SpaDES functions. 
+
+All the programming code needed to run CLUS is available on [GitHub](https://github.com/bcgov/clus), an internet repository for developing software code. It is provided under the [Apache 2.0 software license](https://github.com/bcgov/clus/blob/master/LICENSE). To run the software on a local computer, you will need to [clone the repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) code to that computer. We assume that you have an understanding of how to use program R, and R interfaces like [RStudio](https://rstudio.com/), and thus we do not go into detail on those here. 
+
+You also need to develop and understand the data structures used to run CLUS. CLUS is programmed to connect to a [PostgreSQL database](https://www.postgresql.org/). We use PostgreSQL because it is a open source relational database with high performance capabilities (e.g., store and query large datasets efficiently and quickly), and it is widely used in the Forest Analysis and Inventory Branch (FAIB). We do not go into detail on how to use PostgreSQL here, but some knowledge of the database will faciliate your abiltiy to use CLUS (although, we note that you could program the interface between R and any preferred database). CLUS connects to a PostgreSQL database using the ["DBI" package](https://cran.r-project.org/web/packages/DBI/index.html). We have it configured to run on a PostgreSQL dfintion 
+
+
+
+tjhese configuraation will need to be modified t o alocal machine or permission to use our db
+
+
+
+
+using the 
+
+
+configured to a FAIB comptuer
+
+
+keyring
+
+
+
+
+
+
+
+
+
+postgres
+
+DBI::dbConnect
+
+
+
+database structure
+
+
+
+
+
+
+
+Detailed information on the modules are provided in .rmd files within each module folder.  
+
 
 ## Data and Parameter Inputs (dataLoaderCLUS)
 Prior to running a model scenario, an SQL Lite database must be created that contains the data needed to run the model. The database is created by running the "dataLoaderCLUS" module. The "dataLoaderCLUS" module compiles data from forest inventory and stand yields, the timber harvest land base, identifies harvest blocks and builds roads to those blocks, and defines management zones for the area of interest. The area of interest could be any portion of British Columbia, but is typically a forest management unit, like a timber supply area or tree farm licence area. In short, the dataLoaderCLUS module takes data from a Postgres database and compiles it into a SQL Lite database for the area of interest.
@@ -45,14 +94,11 @@ The SQLite database includes four tables, called "pixels", "yields", "zone" and 
 ### Params
 Much of the data required by the dataLoaderCLUS can be created and populated into a Postgres database using .Rmd files in the "Params" folder of CLUS (clus/R/Params).
 
-The "criticalHabitatRaster.Rmd" creates rasters of critical habitat areas for caribou, and allows you to define 'constraints' to apply to those areas. It takes polygonal critical habitat data, assigns an integer to each unique herd and type of critical habitat and creates a raster for each unique type. It also allows you to create a 'constraint' table that allows you to identify a forest harvest constaint to each unique raster zonis. The table includes the zone ID integer, the name of the zone, the "variable" to be constrained (i.e., age, height, crown closure, or whatever data is in, or can be created from the 'pixels' table in the SQLite database), the type of constraint (i.e., 'nh' = no harvest, 'ge' = greater than or equal to, or 'le' = less than or equal to), the threshold of the constraint (i.e., the value at which the variable will be constrained), and the "percentage" of the zone that must meet the constraint threshold. For example, if you want to apply a minimum 40% of an zone to be age 40 or more, then for that zone, variable = 'age', type = 'ge' and percentage = '40'.  
+The "criticalHabitatRaster.Rmd" creates rasters of critical habitat areas for caribou, and to define 'constraints' to apply to those areas. It takes polygonal critical habitat data, assigns an integer to each unique herd and type of critical habitat and creates a raster for each unique type. It also allows you to create a 'constraint' table that allows you to identify a forest harvest constaint to each unique raster zonis. The table includes the zone ID integer, the name of the zone, the "variable" to be constrained (i.e., age, height, crown closure, or whatever data is in, or can be created from the 'pixels' table in the SQLite database), the type of constraint (i.e., 'nh' = no harvest, 'ge' = greater than or equal to, or 'le' = less than or equal to), the threshold of the constraint (i.e., the value at which the variable will be constrained), and the "percentage" of the zone that must meet the constraint threshold. For example, if you want to apply a minimum 40% of an zone to be age 40 or more, then for that zone, variable = 'age', type = 'ge' and percentage = '40'.  
+
+Similarly, the "parntershipAgreementRaster.Rmd" 
 
 
-
-
-
-
-likYSM_TIPSY)Calibration.Rmd
 
 
 
