@@ -124,7 +124,7 @@ aoi_uwr<-data.table(uwr_tag = c('u-3-003', 'u-3-004', 'u-3-006', 'u-4-001', 'u-4
  )
 
 #Create empty zone constraint table
-zone_uwr<-data.table(zoneid=0, type='nh', variable='', threshold=0, reference_zone='rast.zone_uwr', percentage=0, ndt=0, label = 'uwr no harvest')
+zone_uwr<-data.table(zoneid=0, type='nh', variable='', threshold=0, reference_zone='rast.zone_uwr', percentage=0, ndt=0, label = 'uwr no harvest',)
 
 library(sf)
 source(here::here("R/functions/R_Postgres.R"))
