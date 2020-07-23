@@ -20,54 +20,28 @@ The CLUS model proper is implemented using the [SpaDES package](https://spades.p
 
 All the programming code needed to run CLUS is available on [GitHub](https://github.com/bcgov/clus), an internet repository for developing software code. It is provided under the [Apache 2.0 software license](https://github.com/bcgov/clus/blob/master/LICENSE). To run the software on a local computer, you will need to [clone the repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) code to that computer. We assume that you have an understanding of how to use program R, and R interfaces like [RStudio](https://rstudio.com/), and thus we do not go into detail on those here. 
 
-You also need to develop and understand the data structures used to run CLUS. CLUS is programmed to connect to a [PostgreSQL database](https://www.postgresql.org/). We use PostgreSQL because it is a open source relational database with high performance capabilities (e.g., store and query large datasets efficiently and quickly), and it is widely used in the Forest Analysis and Inventory Branch (FAIB). We do not go into detail on how to use PostgreSQL here, but some knowledge of the database will faciliate your abiltiy to use CLUS (although, we note that you could program the interface between R and any preferred database). CLUS connects to a PostgreSQL database using the ["DBI" package](https://cran.r-project.org/web/packages/DBI/index.html). We have it configured to run on a PostgreSQL dfintion 
+The CLUS GitHub folder structure is complex, as it contains a lot of analysis code that are peripheral to running the CLUS model. However, much of this code can be ignored, unless you are interested in understading some of the more detailed analyses completed to parameterize the CLUS model. The key code for running the CLUS model is located in the R->SpaDES-modules, R->Params and R->functions folders.
 
+The R->functions folder contains a script and instructions for setting up password protection with the keyring function ("keyring_init.Rmd"). It also contains a script called "R_Postgres.R" with custom R functions for querying and manipulating data in the PostgreSQL database. These functions refer to some additonal custom SQL functions created within the PostgreSQL database (these must be loaded into whichever PostgreSQL database you are using). For example, there are functions for clipping raster data to a polygon. These functions are referred to within the CLUS modules, and therefore it is important to preserve and maintain these functions within the folder structure.  
 
+The R->Params folder contains various .Rmd scripts for creating data and parameters needed to run the CLUS model. Many of these were used to create forest harvest constraints across the province. The "proposed_uwr_init.Rmd", "prov_manage_objs.Rmd", "uwr_cond_harvest.Rmd" and "wha_cond_harvest.Rmd" are scripts used to identify the location (rasters) and type of forest harvest constraints (table) to apply to those locations for each specified management area. These include 'typical' constraints used in timber supply models to support timber supply reviews. The "prov_manage_objs.Rmd" develops constraints related to biodiversity emphasis options (BEO), fisheries sensitive watershed areas (FWs), visual quality objectives (VQOs), old growth management areas (OGMAs), parks and protected areas and community watersheds across British Columbia. The "uwr_cond_harvest.Rmd" and "wha_cond_harvest.Rmd" files develop constraints around government action regulation (GAR) orders, including unglate winter ranges (UWRs) and wildlife habitat areas (WHAs), respectively. Forest harvest constraints in some of these GAR order area are complex, and are subject to interpretation (see [UWR](http://www.env.gov.bc.ca/wld/frpa/uwr/approved_uwr.html) and [WHA](http://www.env.gov.bc.ca/cgi-bin/apps/faw/wharesult.cgi?search=show_approved) orders), but these can be reviewed  and modified as requried using the script. There are also scripts for defining proposed areas and forestryconstraints, for example, within caribou herd ranges ("caribou_herd_raster.Rmd") and critical habitat areas ("criticalHabitatRaster.Rmd"). Other scripts can be used to identify areas of interest ("areaofinterestRaster.Rmd") for summarizing volume and area of forest harvested, and forest harvest unit areas ("study_area_boundaries.Rmd"), e.g., timber supply areas.
 
-tjhese configuraation will need to be modified t o alocal machine or permission to use our db
+The R->SpaDES-modules folder contains the bulk of the scripts that run the model functions. Each folder within the directory contains a "module" of the model. Detailed information on the modules are provided in .rmd files within each module folder, and these modules will be desribed in more detail below.
 
+## Data Framework
+At a minimum, CLUS needs an SQLite database to function. This databases houses the data needed to run the forestry modules (e.g. forest inventory characteristics, yield curves and zone constaints). This database is created by running the "dataLoaderCLUS" module, hwoever, previously created databases can be used to run scenarios, i.e., it's not necessary to run the "dataLoaderCLUS" module each time you want to run a scenario or set of scenarios. 
 
+If you do not have an SQLite database then you will need to run the "dataLoaderCLUS" module (needs to be run to create described in more detail below). This module requires connecting to a a [PostgreSQL database](https://www.postgresql.org/). We use PostgreSQL because it is an open source (i.e., free), relational database with high performance capabilities (e.g., it can be used to store and query large datasets efficiently and quickly), and it is widely used in the Forest Analysis and Inventory Branch (FAIB). Here we do not go into detail on how to use PostgreSQL, but working knowledge of the database will faciliate your abiltiy to use CLUS (although, we note that you could program an interface that connects the model to any preferred database). 
 
+The "dataLoaderCLUS" module connects to a PostgreSQL database using the ["DBI" package](https://cran.r-project.org/web/packages/DBI/index.html). We have the model configured to connect to a PostgreSQL database on a network computer, with passwords protected using the ["keyring" package](https://cran.r-project.org/web/packages/keyring/index.html). These configurations can be modified to connect the CLUS model to any local or network PostgreSQL database, or you can request permission to use our database. Either way, the PostgreSQL houses the 'core' data needed to run the CLUS model, i.e., source datasets for the model, which typically cover the extent of British Columbia, and are updated relatively infrequently (annually or less). 
 
-using the 
+## SpaDES Modules
+### dataLoaderCLUS
+The "dataLoaderCLUS" module compiles data on forest inventory and stand yields, the timber harvest land base, identifies harvest blocks and builds roads to those blocks, and defines management zones and their contraints for the area of interest (i.e., the landscape where you want to simulate forestry activity and caribou indicators). The area of interest could be any portion of British Columbia, but is typically a forest management unit, like a timber supply area or tree farm licence area. The dataLoaderCLUS module takes these data from a PostgreSQL database and compiles it into a SQL Lite database for the area of interest.
 
-
-configured to a FAIB comptuer
-
-
-keyring
-
-
-
-
-
-
-
-
-
-postgres
-
-DBI::dbConnect
-
-
-
-database structure
-
-
-
-
-
-
-
-Detailed information on the modules are provided in .rmd files within each module folder.  
-
-
-## Data and Parameter Inputs (dataLoaderCLUS)
-Prior to running a model scenario, an SQL Lite database must be created that contains the data needed to run the model. The database is created by running the "dataLoaderCLUS" module. The "dataLoaderCLUS" module compiles data from forest inventory and stand yields, the timber harvest land base, identifies harvest blocks and builds roads to those blocks, and defines management zones for the area of interest. The area of interest could be any portion of British Columbia, but is typically a forest management unit, like a timber supply area or tree farm licence area. In short, the dataLoaderCLUS module takes data from a Postgres database and compiles it into a SQL Lite database for the area of interest.
-
-Many of the data in the Postgres database are defined as "parameters" (see "Params" folder, described in more detail below). To run the dataLoaderCLUS, you need to have created the following spatial files within the Postgres database (parameter names in the dataLoaderCLUS module are indicated in parentheses):
+Many of the data in the PostgreSQL database are defined as "parameters", within the R->Params folder. To run the "dataLoaderCLUS", you need to have created the following spatial files within the PostgreSQL database that yuo will be connecting to (parameter names as they are named in the "dataLoaderCLUS" module are indicated in parentheses):
 - the analysis unit boundaries file, e.g., timber supply areas (nameBoundaryFile) 
-- the column/field in the analysis unit boundary file that contains each area of interest name (nameBoundaryColumn)
+- the column/field in the analysis unit boundary file that contains the names of each unique area of interest  (nameBoundaryColumn)
 - the name of the area of interest, as defined in the column (nameBoundary)
 - the geometry type in the analysis unit boundary file (nameBoundaryGeom)
 - the rasterized version of the analysis unit boundaries (nameCompartmentRaster)
@@ -124,6 +98,16 @@ The "areaofinterstRaster.Rmd" can be used to create rasters and associated VAT's
 
 
 - criticalHabitatRaster: where set critical habitat and herd boudanries for cariobu and set constraints for those areas
+
+
+
+
+
+discuss how can use CLUS scneario tool to create a zone cosnraitn area, and process to get that into SQLite dbase
+
+
+
+
 
 
 #### Zone constraints
