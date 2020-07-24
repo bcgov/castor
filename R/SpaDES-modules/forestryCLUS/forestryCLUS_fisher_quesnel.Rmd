@@ -70,7 +70,11 @@ parameters <- list(
                                                "rast.zone_cond_wha", 
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
-                                               "rast.zone_cond_nharv"    
+                                               "rast.zone_cond_nharv",
+                                               "rast.zone_cond_cw", 
+                                             "rast.zone_cond_fisher_sb_wet",
+                                             "rast.zone_cond_fisher_sb_dry",
+                                             "rast.zone_cond_fisher_dry"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -122,8 +126,8 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCalcCLUS",
                 "uploaderCLUS"
                 )
-scenario = data.table (name = "bau",
-                       description = "Projecting current trends. Adjacency was set to 3m.")
+scenario = data.table (name = "all_terr_10per_max12yrs",
+                       description = "All fisher territories (sb-dry,sb-wet,dry) having max 10% with age less than 12 years ")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 100 and age > 60 ', 
@@ -131,7 +135,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 7700000) 
+                                     flow = 9590000) 
 ))
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
