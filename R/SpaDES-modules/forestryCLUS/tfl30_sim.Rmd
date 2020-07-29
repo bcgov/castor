@@ -52,9 +52,9 @@ parameters <- list(
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"),
-                                           #"rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
-                                           #"rast.zone_cond_eccc_hart_ranges_crithab_or_herd"),
+                                           "rast.zone_cond_cw",
+                                           #"rast.zone_cond_noharvest_hart_ranges_crithab_or_herd"),
+                                           "rast.zone_cond_eccc_hart_ranges_crithab_or_herd"),
                            
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -117,16 +117,13 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
- scenario = data.table (name = "tfl30_bau",
-                        description = "Business as usual (BAU). Adjacency was set to 3m.")
- # scenario = data.table (name = "tfl23_centselk_nh",
- #                        description = "No harvest in all Central Selkirks critical habitat. Adjacency was set to 3m.")
- # scenario = data.table (name = "tfl23_centselk_ch_he0d_m15d",
- #                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
- # scenario = data.table (name = "tfl23_colnsfb_nh",
- #                        description = "No harvest in all CN, CS and FB critical habitat. Adjacency was set to 3m.")
-  # scenario = data.table (name = "tfl23_colnsfb_ch_he0d_m15d",
-  #                       description = "No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat. Adjacency was set to 3m.")
+ # scenario = data.table (name = "tfl30_bau",
+ #                        description = "Business as usual (BAU). Adjacency was set to 3m.")
+ # scenario = data.table (name = "tfl30_hart_nh",
+ #                        description = "No harvest in all Hart Ranges critical habitat. Adjacency was set to 3m.")
+ scenario = data.table (name = "tfl30_hart_ch_he0d_m15d",
+                        description = "No harvest in Hart Ranges high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Hart Ranges matrix critical habitat. Adjacency was set to 3m.")
+ 
 
 
 
@@ -136,7 +133,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="TFL30",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 675000) # 1 200 000m3/yr 
+                                     flow = 680000) #675000 worked
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
