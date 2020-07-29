@@ -421,7 +421,7 @@ zone_uwr[label == 'u-5-001:3',]
 
 ### u-5-004 Mountain Goat
 ```{r, u504}
-# This UWR is no harvest so I'll set as no harvest
+# This UWR is no harvest. But the data package for the Mid Coast TSA said that the GAR order prevents harvest from occurin in 90% of the habitat area in each landscape unit and that they modeled it by ensuring that 90% of the habitat in each LU was reserved from harvest. (See: Section 3.3.9 of Mid Coast Timber Supply Area, Timber Supply Review #3, Analysis Assumptions Document (Data Pacakge), Version 2.3 G:\!Publish\TSR Documentation\TSA\Mid_Coast_19\TSR_2011\Timber_Supply_Analysis_Report\Revised_May_2010)
 
 uwr_cond_harvest<-uwr_cond_harvest[uwr_cond_harvest$uwr_tag != 'u-5-004',]
 
