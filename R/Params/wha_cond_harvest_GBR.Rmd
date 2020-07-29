@@ -16,6 +16,51 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Conditional harvesting means that there is some level of retention required during harvest operations. In terms of landcover constraints - this may require a percentage of the management unit being retained according to a descriptive class - this can be age, crown closure, height and even species specific. The table below provides a list of Wildlife habitat Area conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints at a landscape unit scale - not a cutblock level - that would impact caribou.
 
+###Grizzly Bear Habitat in GBR North and South
+See legal direction and orders (Schedule D). In GBR, 100% of class 1 grizzly bear habitat and 50% of class 2 habitat needs to be protected but these class 1 and class 2 habitats are contained in the WHA's. So Im adding it in manually. This is where I found the information about these habitat types and spatial layers. See: https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf
+
+```{r}
+gbr_bear<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchD_GB_20151105.shp")
+gbr_bear_1 <- gbr_bear %>% filter(GB_CLASS==1)
+gbr_bear_1$feat_notes<-"Class 1 grizzly bear habitat"
+gbr_bear_1$ogc_fid<-max(wha_poly$ogc_fid)+1
+gbr_bear_1$wha_tag<-"5-800"
+gbr_bear_1$aprv_date<-"20160101"
+gbr_bear_2 <- gbr_bear %>% filter(GB_CLASS==2)
+gbr_bear_2$feat_notes<-"Class 2 grizzly bear habitat"
+gbr_bear_2$ogc_fid<-max(wha_poly$ogc_fid)+2
+gbr_bear_2$wha_tag<-"5-801"
+gbr_bear_2$aprv_date<-"20160101"
+gbr_bear_12<- rbind(gbr_bear_1, gbr_bear_2)
+names(gbr_bear_12)
+gbr_bear_all<- gbr_bear_12 %>% 
+  dplyr::select(feat_notes, ogc_fid, wha_tag, aprv_date) %>% 
+  group_by (feat_notes, ogc_fid, wha_tag, aprv_date) %>% summarise()
+
+st_crs(gbr_bear_all)<-st_crs(lu)
+setnames(gbr_bear_all, c("geometry"), c("wkb_geometry"))
+st_geometry(gbr_bear_all) <- "wkb_geometry"
+
+table.glm.summary <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.summary) <- c ("Years_Old", "Coefficient", "AIC", "p-values")
+wha_cond_gbr<-data.table(ogc_fid=character(), harvest=character(), wha_tag=character(), feat_notes=character(), aprv_date=integer())
+
+wha_cond_gbr <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (wha_cond_gbr) <- c ("ogc_fid", "harvest", "wha_tag", "feat_notes", "aprv_date")
+wha_cond_gbr[1,1]<-gbr_bear_1$ogc_fid[1]
+wha_cond_gbr[2,1]<-gbr_bear_2$ogc_fid[1]
+wha_cond_gbr[1,2]<-"NO HARVEST ZONE"
+wha_cond_gbr[2,2]<-"CONDITIONAL HARVEST ZONE"
+wha_cond_gbr[1,3]<-"5-800"
+wha_cond_gbr[2,3]<-"5-801"
+wha_cond_gbr[1,4]<-"Class 1 grizzly bear habitat"
+wha_cond_gbr[2,4]<-"Class 2 grizzly bear habitat"
+wha_cond_gbr[1,5]<-"20160101"
+wha_cond_gbr[2,5]<-"20160101"
+```
+
 ## WHA
 
 ```{r, WHA_cond_harv}
@@ -25,7 +70,7 @@ library(here)
 source (paste0(here(),"/R/functions/R_Postgres.R"))
 
 wha_poly<-getSpatialQuery("SELECT ogc_fid, wha_tag, feat_notes, aprv_date, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN 
-(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.study_area_tsa b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
+(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.tsa_aac_bounds_gbr b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
 
 lu<-getSpatialQuery("SELECT *
 FROM public.rmp_lu_sp_polygon LIMIT 1") #just a dummy query to get the projection
@@ -36,17 +81,24 @@ ProvRast <- raster(
   crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
 )
 
+plot(wha_poly)
+wha_poly_new<-rbind(wha_poly, gbr_bear_all)
+plot(wha_poly_new)
+
 #fasterize 
-wha.ras<-fasterize::fasterize(sf= wha_poly, raster = ProvRast , field = "ogc_fid")
+wha.ras.gbr<-fasterize::fasterize(sf= wha_poly_new, raster = ProvRast , field = "ogc_fid")
 
 #Create empty zone constraint table
 zone_wha<-data.table(zoneid=integer(), type=character(), variable=character(), threshold=numeric(), reference_zone=character(), percentage=numeric(), ndt=integer(),
                      label = character(), multi_condition=character())
 
 #get the ogc_fid from raster
-ogc_fids<-data.table(unique(c(t(raster::as.matrix(wha.ras)))))
+ogc_fids<-data.table(unique(c(t(raster::as.matrix(wha.ras.gbr)))))
 ogc_fids<-ogc_fids[!(is.na(V1)),]
 wha_cond<-getTableQuery(paste0("SELECT ogc_fid, harvest,wha_tag, feat_notes, aprv_date FROM public.wcp_whaply_polygon WHERE ogc_fid IN(",paste(ogc_fids$V1, collapse = ","), ") ORDER BY wha_tag"))
+
+wha_cond<-rbind(wha_cond, wha_cond_gbr)
+
 
 #assign all no harvest as 0 -- pertains to 3-030 -- this can be any number that has no harvest
 ogc_fids_noharv<-wha_cond[wha_cond$harvest == 'NO HARVEST ZONE', "ogc_fid"]
@@ -847,6 +899,19 @@ No Harvest. No roads. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-035_
 wha_tags<-c('9-035',	'9-036',	'9-037',	'9-038',	'9-039', '9-040',	'9-102',	'9-103')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
 wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### GBR Grizzly Bear class 2 habitat
+From the legal direction and orders (Schedule D) for GBR it says that 50% of class 2 grizzly bear habitat needs to be protected.  See: https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf
+
+```{r, w5800}
+wha_tags<-c('5-801')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 50, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 

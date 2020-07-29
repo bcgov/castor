@@ -81,7 +81,7 @@ st_crs(gbr_north)<-st_crs(pg_north)
 names(gbr_north)<-c("tsa_name", "wkb_geometry")
 st_geometry(gbr_north) <- "wkb_geometry"
 
-# Now removing the tfl's out of GBR
+# Now removing the tfl's out of GBR North
 tfl_union<-st_union(tfl)
 tfl2<-st_intersection(tfl_union, gbr_north)
 gbr_north2<-st_difference(gbr_north,tfl2)
@@ -95,10 +95,12 @@ st_crs(gbr_south)<-st_crs(pg_north)
 names(gbr_south)<-c("tsa_name", "wkb_geometry")
 st_geometry(gbr_south) <- "wkb_geometry"
 
-# Now removing the tfl's out of GBR
+# Now removing the tfl's out of GBR South
 tfl3<-st_intersection(tfl_union, gbr_south)
 gbr_south2<-st_difference(gbr_south,tfl3)
 plot(gbr_south2)
+
+# looks mostly good when checked against https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-tenures/tfl_tsa_district_map.pdf
 
 
 ```
@@ -106,7 +108,7 @@ plot(gbr_south2)
 #Combine them into one dataset
 ```{r, mergethem}
 
-forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko, tfl) 
+forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko, gbr_north2, gbr_south2, tfl) 
 
 forest.tenure.vat<-unique(forest.tenure3$tsa_name)
 forest.tenure.vat2<-unlist(lapply(forest.tenure.vat, function(x){
@@ -119,7 +121,9 @@ forest.tenure4<-merge(forest.tenure3,forest.tenure.vat3)
 
 #get ride of the tsa_name -- its sperated by spaces
 forest.tenure4$tsa_name<-NULL
-setnames(forest.tenure4, c("tsa_name2"), c("tsa_name"))
+setnames(forest.tenure4, c("tsa_name2", "geometry"), c("tsa_name", "wkb_geometry"))
+st_geometry(forest.tenure4) <- "wkb_geometry"
+
 
 #Call value tsa_number
 forest.tenure5<-forest.tenure4
@@ -134,7 +138,7 @@ st_write(forest.tenure5, "forest_tenures_GBR.shp", delete_layer=TRUE)
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-DBI::dbWriteTable(conn, c("public", "tsa_aac_bounds_GBR"), value= forest.tenure5, row.names = FALSE, overwrite = TRUE) 
+DBI::dbWriteTable(conn, c('public', 'tsa_aac_bounds_gbr'), value= forest.tenure5, row.names = FALSE, overwrite = TRUE) 
 
 dbDisconnect(conn)
 
@@ -142,7 +146,7 @@ dbDisconnect(conn)
 #RAsterize 
 ras.forest.tenure <-fasterize::fasterize(st_cast(forest.tenure4, "MULTIPOLYGON"), prov.rast, field = "tsa_number") 
 raster::plot(ras.forest.tenure)
-writeRaster(ras.forest.tenure, "forest_ten_GBR.tif")
+writeRaster(ras.forest.tenure, "forest_ten_GBR.tif", overwrite=TRUE)
 
 ```
 
@@ -153,7 +157,7 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 forest.tenure.vat3$tsa_name<-NULL
 setnames(forest.tenure.vat3, c("tsa_name2"), c("tsa_name"))
-DBI::dbWriteTable(conn, c("public", "tsa_aac_bounds_vat_GBR"), value= forest.tenure.vat3, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "tsa_aac_bounds_vat_gbr"), value= forest.tenure.vat3, row.names = FALSE, overwrite = TRUE)
 
 #dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints")
 dbDisconnect(conn)

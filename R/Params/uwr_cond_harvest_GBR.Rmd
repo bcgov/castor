@@ -124,7 +124,7 @@ aoi_uwr<-data.table(uwr_tag = c('u-3-003', 'u-3-004', 'u-3-006', 'u-4-001', 'u-4
  )
 
 #Create empty zone constraint table
-zone_uwr<-data.table(zoneid=0, type='nh', variable='', threshold=0, reference_zone='rast.zone_uwr', percentage=0, ndt=0, label = 'uwr no harvest',)
+zone_uwr<-data.table(zoneid=0, type='nh', variable='', threshold=0, reference_zone='rast.zone_uwr', percentage=0, ndt=0, label = 'uwr no harvest')
 
 library(sf)
 source(here::here("R/functions/R_Postgres.R"))
@@ -1075,7 +1075,7 @@ uwr.ras[uwr_nh.ras[]> 0 ]<-0
 writeRaster(uwr.ras, file="uwr_gbr.tif", format="GTiff", overwrite=TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/uwr_grb.tif -t 100x100 rast.zone_cond_uwr_gbr | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/uwr_gbr.tif -t 100x100 rast.zone_cond_uwr_gbr | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
 
