@@ -73,11 +73,7 @@ Init <- function(sim) {
                         port='5432', 
                         user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
                         password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
-<<<<<<< HEAD
-  
-=======
 
->>>>>>> master
   #Does the schema exist?
   if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
     message("...remove old information")
@@ -104,15 +100,7 @@ Init <- function(sim) {
     dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO clus_project;"))
     #Create the tables
     tableList = list(state = data.table(aoi=character(), compartment=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
-<<<<<<< HEAD
-                     scenarios = data.table(scenario =character(), description= character()), 
-                     harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), target= numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()), 
-                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
-                     rsf = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric() , sum_rsf_hat_75 = numeric(), rsf_model= character()), 
-                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
-                     disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric(), dist= numeric(), dist_per = numeric()),
-                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
-=======
+
                     scenarios = data.table(scenario =character(), description= character()), 
                     harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), target= numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()), 
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
@@ -120,7 +108,6 @@ Init <- function(sim) {
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
                     disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric(), dist= numeric(), dist_per = numeric()),
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
->>>>>>> master
     )
     tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty")
     for(i in 1:length(tablesUpload)){
@@ -145,30 +132,20 @@ save.currentState<- function(sim){
                           port='5432', 
                           user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
                           password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
-<<<<<<< HEAD
-    
-    sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), 
-                 sim$foreststate, append = T, row.names = FALSE)
-    
-=======
+
   
     sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), 
                  sim$foreststate, append = T, row.names = FALSE)
   
->>>>>>> master
+
     dbDisconnect(connx)
   }
   return(invisible(sim))
 }
 
 save.reports <-function (sim){
-<<<<<<< HEAD
-  
-=======
- 
->>>>>>> master
+
   connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
                         host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
                         dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
@@ -232,15 +209,7 @@ save.rasters <-function (sim){
     
     ##roads
     if(!is.null(sim$roads)){
-<<<<<<< HEAD
-      message('....roads raster')
-      commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
-                   schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
-                   dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
-      dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
-      dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to clus_project;"))
-      
-=======
+
     message('....roads raster')
     commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
@@ -248,7 +217,6 @@ save.rasters <-function (sim){
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
     dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to clus_project;"))
     
->>>>>>> master
     }
     ##zoneConstraint
     message('....constraint raster')
