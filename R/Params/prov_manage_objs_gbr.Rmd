@@ -27,6 +27,7 @@ Create a provincial scale forest management objective raster(s) based on two cat
 
 ```{r table_objs, echo=FALSE}
 library(data.table)
+library(here)
 knitr::kable(data.table(objective = c(
                         "Aspatial Old Growth Retention",
                         "Fisheries Sensitive Watersheds",
@@ -269,6 +270,8 @@ gc()
 # Fisheries Sensitive Areas and Equivalent Clearcut Area
 ```{r, fsw}
 #Fisheries Sensitive Areas
+#source (paste0(here(),"/R/functions/R_Postgres.R"))
+
 fsw<-getSpatialQuery("SELECT fsw_id, wkb_geometry FROM public.wcp_f_s_ws_polygon")
 
 # in GBR there are important fisheries areas where maintenance of an equivalent clearcut area of less than 20% is allowed. See Part 3 of (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/northislandcentralcoast-lu/coast_lud_centralandnorth_luor_13jun2013consolidated.pdf)
@@ -295,34 +298,74 @@ gbr_hvfh <- gbr_hvfh[,!(names(gbr_hvfh) %in% "Obj11_Exce")]
 
 gbr_fsw<-rbind(gbr_ifa,gbr_hvfh)
 plot(gbr_fsw)
+gbr_fsw$fsw_id<-gbr_fsw$WS_NUM
 
+name<-c("WSNAME", "WS_NUM", "Shape_Leng", "Shape_Area")
+gbr_fsw1 <- gbr_fsw[,!(names(gbr_fsw) %in% name)]
+
+names(gbr_fsw1)<-c("wkb_geometry", "fsw_id")
+st_geometry(gbr_fsw1) <- "wkb_geometry"
+st_geometry(fsw) <- "wkb_geometry"
+gbr_fsw2<-st_cast(gbr_fsw1, "MULTIPOLYGON")
+
+fsw.all<-rbind(fsw, gbr_fsw2)
+
+# need to link gbr_fsw to kyles file and create vat table everything 
 
 #Rasterize the fisher sensitive areas
-fsw.ras<-fasterize::fasterize(sf= fsw, raster = ProvRast , field = "fsw_id")
-writeRaster(fsw.ras, file=paste0(here(),"/zone_fsw.tif"), format="GTiff", overwrite=TRUE)
+fsw.ras<-fasterize::fasterize(sf= fsw.all, raster = ProvRast , field = "fsw_id")
+writeRaster(fsw.ras, file=paste0(here(),"/zone_fsw_gbr.tif"), format="GTiff", overwrite=TRUE)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_fsw.tif -t 100x100 rast.zone_cond_fsw |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_fsw_gbr.tif -t 100x100 rast.zone_cond_fsw_gbr |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 rm(fsw.ras)
 gc()
-df<-as.data.frame(fsw)
-df$type<-'le'
-df$variable<-'eca'
-df$threshold<-25
-df$reference_zone<-'rast.zone_cond_fsw'
-df$percentage<-100
-df$ndt<-as.integer(0)
-df<-df[,c(1,3:8)]
-colnames(df) <- c("zoneid", "type", "variable", "threshold", "reference_zone", "percentage", "ndt")
-df$zoneid<-as.integer(df$zoneid)#assign integer
-df$label<-'fsw'
+library(dplyr)
+
+df<-as.data.frame(fsw.all)
+
+df_gbr1<- df %>% filter(fsw_id<=max(gbr_ifa$WS_NUM))
+df_gbr1$type<-'le' # less than (le), greater than (ge)
+df_gbr1$variable<-'eca' # equivalent clear cut area (eca)
+df_gbr1$threshold<-20
+df_gbr1$reference_zone<-'rast.zone_cond_fsw'
+df_gbr1$percentage<-100
+df_gbr1$ndt<-as.integer(0)
+df_gbr1<-df_gbr1[,c(1,3:8)]
+
+
+df_gbr2<- df %>% filter(fsw_id==max(gbr_ifa$WS_NUM)+1 | fsw_id==max(gbr_ifa$WS_NUM)+2 |fsw_id==max(gbr_ifa$WS_NUM)+3)
+df_gbr2$type<-'le' # less than (le), greater than (ge)
+df_gbr2$variable<-'eca' # equivalent clear cut area (eca)
+df_gbr2$threshold<-0
+df_gbr2$reference_zone<-'rast.zone_cond_fsw'
+df_gbr2$percentage<-100
+df_gbr2$ndt<-as.integer(0)
+df_gbr2<-df_gbr2[,c(1,3:8)]
+
+
+df_other<- df %>% filter(fsw_id>max(gbr_ifa$WS_NUM)+3)
+df_other$type<-'le' # less than (le), greater than (ge)
+df_other$variable<-'eca' # equivalent clear cut area (eca)
+df_other$threshold<-25
+df_other$reference_zone<-'rast.zone_cond_fsw'
+df_other$percentage<-100
+df_other$ndt<-as.integer(0)
+df_other<-df_other[,c(1,3:8)]
+
+
+df_final<-rbind(rbind(df_gbr1, df_gbr2), df_other)
+
+colnames(df_final) <- c("zoneid", "type", "variable", "threshold", "reference_zone", "percentage", "ndt")
+df_final$zoneid<-as.integer(df_final$zoneid)#assign integer
+df_final$label<-'fsw'
 
 #upload the constraint table for FSW to the db
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
  
-DBI::dbWriteTable(conn, c("public", "zone_fsw"), value= df, row.names = FALSE, overwrite = TRUE) 
+DBI::dbWriteTable(conn, c("public", "zone_fsw_gbr"), value= df_final, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 ```
 
