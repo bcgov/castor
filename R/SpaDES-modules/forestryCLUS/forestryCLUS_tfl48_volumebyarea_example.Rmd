@@ -139,7 +139,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = TRUE,
+                           save_clusdb = FALSE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL48_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -155,9 +155,9 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw" 
+                                               "rast.zone_cond_cw", 
                                                
-                                               # 'rast.zone_cond_partnership_agreement'
+                                                'rast.zone_cond_partnership_agreement'
                                                
                                                # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
@@ -252,8 +252,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
 
 
-scenario = data.table (name = "volume_report_test",
-                       description = "Testing the volume-by-area report.")
+scenario = data.table (name = "volume_report_pa_no_harvest_test",
+                       description = "Testing the volume-by-area report; no harvest in PA area.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL48",
                                          partition = ' vol > 150 ', 
