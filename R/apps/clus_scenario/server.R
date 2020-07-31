@@ -217,7 +217,7 @@ shinyServer(function(input, output, session) {
           file.rename(shpdf$datapath[i], paste0(tempdirname, "/", shpdf$name[i]))
         }
         tryCatch({
-          outShp <- st_transform(st_read(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326"))},
+          outShp <- st_transform(st_read(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), crs = "+init=epsg:4326")}, # CRS("+init=epsg:4326"))
           error=function(cond) {
             shpValid <- FALSE
             showModal(warningModal)
@@ -661,7 +661,7 @@ shinyServer(function(input, output, session) {
   observe({
     if(!is.null(uploadPolys())){ # drawnPolys
 
-     bb <- bbox (sf::as_Spatial (uploadPolys())) # drawnPolys
+     bb <- st_bbox (sf::as_Spatial (uploadPolys())) # drawnPolys
 
      leafletProxy("map") %>%
         addPolygons (data = uploadPolys(), # drawnPolys
