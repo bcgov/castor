@@ -129,18 +129,27 @@ st_geometry(forest.tenure4) <- "wkb_geometry"
 forest.tenure5<-forest.tenure4
 setnames(forest.tenure5, c("value"), c("tsa_number"))
 st_write(forest.tenure5, "forest_tenures_GBR.shp", delete_layer=TRUE)
-#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres password=postgres" C:\Users\klochhea\clus\R\Params\forest_tenures.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-#Alter table forest_ten rename to tsa_aac_bounds;
-#GRANT ALL ON TABLE public.tsa_aac_bounds TO postgres;
-#GRANT ALL ON TABLE public.tsa_aac_bounds TO clus_project;
-#GRANT ALL ON TABLE public.tsa_aac_bounds TO tmuhly;
+
+# commit the shape file to postgres
+# this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
+
+host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-DBI::dbWriteTable(conn, c('public', 'tsa_aac_bounds_gbr'), value= forest.tenure5, row.names = FALSE, overwrite = TRUE) 
+ogr2ogr -f "PostgreSQL" PG:"host= user= dbname= password= port=5432" C:\Work\caribou\clus\R\Params\forest_tenures_GBR.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-dbDisconnect(conn)
+# In PGAdmin run these lines of code to alter the table i.e. change its name and grant permissions
+# Alter table forest_ten rename to tsa_aac_bounds_gbr;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO postgres;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO clus_project;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO tmuhly;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO ekleynha;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO klochhea;
+
 
 
 #RAsterize 
@@ -163,6 +172,6 @@ DBI::dbWriteTable(conn, c("public", "tsa_aac_bounds_vat_gbr"), value= forest.ten
 dbDisconnect(conn)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_ten_GBR.tif -t 100x100 rast.tsa_aac_boundary_GBR | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_ten_GBR.tif -t 100x100 rast.tsa_aac_boundary_GBR | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```
 

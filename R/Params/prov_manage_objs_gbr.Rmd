@@ -310,8 +310,6 @@ gbr_fsw2<-st_cast(gbr_fsw1, "MULTIPOLYGON")
 
 fsw.all<-rbind(fsw, gbr_fsw2)
 
-# need to link gbr_fsw to kyles file and create vat table everything 
-
 #Rasterize the fisher sensitive areas
 fsw.ras<-fasterize::fasterize(sf= fsw.all, raster = ProvRast , field = "fsw_id")
 writeRaster(fsw.ras, file=paste0(here(),"/zone_fsw_gbr.tif"), format="GTiff", overwrite=TRUE)
@@ -530,14 +528,14 @@ PostgreSQL implements table inheritance. See [here]("https://www.postgresql.org/
 #----------------------------
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
+dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints_gbr (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
 
-dbExecute(conn, "ALTER TABLE zone_nharv INHERIT zone_constraints")
-dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints")
-dbExecute(conn, "ALTER TABLE zone_wha INHERIT zone_constraints")
-dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints")
-dbExecute(conn, "ALTER TABLE zone_fsw INHERIT zone_constraints")
-dbExecute(conn, "ALTER TABLE zone_uwr INHERIT zone_constraints")
-dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints")#Note from uwr_cond_harvest.rmd
+dbExecute(conn, "ALTER TABLE zone_nharv INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_fsw_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
 dbDisconnect(conn)
 ```
