@@ -110,15 +110,15 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-  uploaderCLUS = list(aoiName = 'central_group',
+  uploaderCLUS = list(aoiName = 'morice_tsa',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
 
 rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')") )
-rsf_model_coeff[, population:= 'Telkwa']
+#rsf_model_coeff[, population:= 'Telkwa']
 
-scenario = data.table(name="morice_all_data", description = "Populated database with relevant data to run scenarios")
+scenario = data.table(name="load_data", description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
