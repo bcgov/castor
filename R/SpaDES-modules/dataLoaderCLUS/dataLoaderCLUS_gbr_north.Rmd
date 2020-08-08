@@ -50,30 +50,28 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
-                         nameBoundaryFile="tsa_aac_bounds",
+                         nameBoundaryFile="tsa_aac_bounds_gbr",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Kamloops_TSA", # change this name
+                         nameBoundary = "Great_Bear_Rainforest_North_TSA", # change this name
                          nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "rast.tsa_aac_boundary",
-                         nameCompartmentTable = "tsa_aac_bounds_vat",
+                         nameCompartmentRaster = "rast.tsa_aac_boundary_gbr",
+                         nameCompartmentTable = "tsa_aac_bounds_vat_gbr",
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                          nameZoneRasters=c("rast.zone_cond_beo", # rasters of the zone constraints to include. Add all zone rasters that might be needed here. First 7 always stay.
                                            "rast.zone_cond_vqo", 
-                                           "rast.zone_cond_wha", 
-                                           "rast.zone_cond_uwr", 
+                                           "rast.zone_cond_wha_gbr", 
+                                           "rast.zone_cond_uwr_gbr", 
                                            "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_fsw_gbr", 
                                            "rast.zone_cond_cw",
-                                           "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_groundhog_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
-                                           "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                           "rast.zone_cond_eccc_groundhog_crithab_or_herd",
-                                           "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd",
-                                           "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"),
+                                           "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
+                                           "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                           "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
+                                           "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+                                           "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
                         
-                         nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
+                         nameZoneTable="zone_constraints_gbr", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable ="yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yields
@@ -108,12 +106,12 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-  uploaderCLUS = list(aoiName = 'kamloops_tsa',
+  uploaderCLUS = list(aoiName = 'great_bear_rainforest_north_tsa',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
 
-rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
+rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 #rsf_model_coeff[, population := 'Tweedsmuir'] 
 
 scenario = data.table(name="load_data", 
