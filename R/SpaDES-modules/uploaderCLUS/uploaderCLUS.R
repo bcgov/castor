@@ -40,7 +40,7 @@ defineModule(sim, list(
     expectsInput(objectName ="foreststate", objectClass ="data.table", desc = 'The current state of the forest from dataLoaderCLUS', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
-    ),
+  ),
   outputObjects = bind_rows(
     createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
@@ -58,7 +58,7 @@ doEvent.uploaderCLUS = function(sim, eventTime, eventType) {
       sim <- save.reports(sim)
       sim <- save.rasters(sim) 
     },
-
+    
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -100,6 +100,7 @@ Init <- function(sim) {
     dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO clus_project;"))
     #Create the tables
     tableList = list(state = data.table(aoi=character(), compartment=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
+
                     scenarios = data.table(scenario =character(), description= character()), 
                     harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), target= numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()), 
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
@@ -131,18 +132,20 @@ save.currentState<- function(sim){
                           port='5432', 
                           user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
                           password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+
   
     sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), 
                  sim$foreststate, append = T, row.names = FALSE)
   
+
     dbDisconnect(connx)
   }
   return(invisible(sim))
 }
 
 save.reports <-function (sim){
- 
+
   connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
                         host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
                         dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
@@ -211,6 +214,7 @@ save.rasters <-function (sim){
     
     ##roads
     if(!is.null(sim$roads)){
+
     message('....roads raster')
     commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),

@@ -1,0 +1,932 @@
+---
+title: "WHA_Conditional_Harvest"
+author: "Kyle Lochhead"
+date: "June 24, 2019"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Wildlife Habitat Area - conditional harvesting: Land cover Constraints
+
+Conditional harvesting means that there is some level of retention required during harvest operations. In terms of landcover constraints - this may require a percentage of the management unit being retained according to a descriptive class - this can be age, crown closure, height and even species specific. The table below provides a list of Wildlife habitat Area conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints at a landscape unit scale - not a cutblock level - that would impact caribou.
+
+###Grizzly Bear Habitat in GBR North and South
+See legal direction and orders (Schedule D). In GBR, 100% of class 1 grizzly bear habitat and 50% of class 2 habitat needs to be protected but these class 1 and class 2 habitats are contained in the WHA's. So Im adding it in manually. This is where I found the information about these habitat types and spatial layers. See: https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf
+
+```{r}
+gbr_bear<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchD_GB_20151105.shp")
+gbr_bear_1 <- gbr_bear %>% filter(GB_CLASS==1)
+gbr_bear_1$feat_notes<-"Class 1 grizzly bear habitat"
+gbr_bear_1$ogc_fid<-max(wha_poly$ogc_fid)+1
+gbr_bear_1$wha_tag<-"5-800"
+gbr_bear_1$aprv_date<-"20160101"
+gbr_bear_2 <- gbr_bear %>% filter(GB_CLASS==2)
+gbr_bear_2$feat_notes<-"Class 2 grizzly bear habitat"
+gbr_bear_2$ogc_fid<-max(wha_poly$ogc_fid)+2
+gbr_bear_2$wha_tag<-"5-801"
+gbr_bear_2$aprv_date<-"20160101"
+gbr_bear_12<- rbind(gbr_bear_1, gbr_bear_2)
+names(gbr_bear_12)
+gbr_bear_all<- gbr_bear_12 %>% 
+  dplyr::select(feat_notes, ogc_fid, wha_tag, aprv_date) %>% 
+  group_by (feat_notes, ogc_fid, wha_tag, aprv_date) %>% summarise()
+
+st_crs(gbr_bear_all)<-st_crs(lu)
+setnames(gbr_bear_all, c("geometry"), c("wkb_geometry"))
+st_geometry(gbr_bear_all) <- "wkb_geometry"
+
+table.glm.summary <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.summary) <- c ("Years_Old", "Coefficient", "AIC", "p-values")
+wha_cond_gbr<-data.table(ogc_fid=character(), harvest=character(), wha_tag=character(), feat_notes=character(), aprv_date=integer())
+
+wha_cond_gbr <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (wha_cond_gbr) <- c ("ogc_fid", "harvest", "wha_tag", "feat_notes", "aprv_date")
+wha_cond_gbr[1,1]<-gbr_bear_1$ogc_fid[1]
+wha_cond_gbr[2,1]<-gbr_bear_2$ogc_fid[1]
+wha_cond_gbr[1,2]<-"NO HARVEST ZONE"
+wha_cond_gbr[2,2]<-"CONDITIONAL HARVEST ZONE"
+wha_cond_gbr[1,3]<-"5-800"
+wha_cond_gbr[2,3]<-"5-801"
+wha_cond_gbr[1,4]<-"Class 1 grizzly bear habitat"
+wha_cond_gbr[2,4]<-"Class 2 grizzly bear habitat"
+wha_cond_gbr[1,5]<-"20160101"
+wha_cond_gbr[2,5]<-"20160101"
+```
+
+## WHA
+
+```{r, WHA_cond_harv}
+library(data.table)
+library(sf)
+library(here)
+source (paste0(here(),"/R/functions/R_Postgres.R"))
+
+wha_poly<-getSpatialQuery("SELECT ogc_fid, wha_tag, feat_notes, aprv_date, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN 
+(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.tsa_aac_bounds_gbr b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
+
+lu<-getSpatialQuery("SELECT *
+FROM public.rmp_lu_sp_polygon LIMIT 1") #just a dummy query to get the projection
+
+#Get the raster and projection
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+plot(wha_poly)
+wha_poly_new<-rbind(wha_poly, gbr_bear_all)
+plot(wha_poly_new)
+
+#fasterize 
+wha.ras.gbr<-fasterize::fasterize(sf= wha_poly_new, raster = ProvRast , field = "ogc_fid")
+
+#Create empty zone constraint table
+zone_wha<-data.table(zoneid=integer(), type=character(), variable=character(), threshold=numeric(), reference_zone=character(), percentage=numeric(), ndt=integer(),
+                     label = character(), multi_condition=character())
+
+#get the ogc_fid from raster
+ogc_fids<-data.table(unique(c(t(raster::as.matrix(wha.ras.gbr)))))
+ogc_fids<-ogc_fids[!(is.na(V1)),]
+wha_cond<-getTableQuery(paste0("SELECT ogc_fid, harvest,wha_tag, feat_notes, aprv_date FROM public.wcp_whaply_polygon WHERE ogc_fid IN(",paste(ogc_fids$V1, collapse = ","), ") ORDER BY wha_tag"))
+
+wha_cond<-rbind(wha_cond, wha_cond_gbr)
+
+
+#assign all no harvest as 0 -- pertains to 3-030 -- this can be any number that has no harvest
+ogc_fids_noharv<-wha_cond[wha_cond$harvest == 'NO HARVEST ZONE', "ogc_fid"]
+zone_wha<-data.table(zoneid = 0, type = 'nh', variable = '', threshold = 0, reference_zone='rast.zone_wha', percentage =0, ndt =0, label = 'wha_no_harv')
+#set all to 0 in the raster as no harvest
+wha.ras[wha.ras[] %in% ogc_fids_noharv] <- 0
+
+wha_cond<-wha_cond[!(wha_cond$harvest == 'NO HARVEST ZONE'), ] #get only the conditional harvesting ones now.
+
+```
+
+### 3-071 to 3-088 Lewis Woodpecker, Kamloops
+Do not harvest or salvage mature timber. When harvest is approved: Protect or retain all ponderosa pine and block cottonwood live or dead > 30 cm dbh. Use partial cutting silvicutural systems to maintain widely spaced <25% later seral ponderosa pine and Douglas fir. Do not use pesticides. Do not construct roads unless there is no other practicable option. see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_3-071to088_ord.pdf
+```{r, w3071}
+#No harvesting in these areas
+#get the ogc_fids that belong to these.
+wha_tags<-c('3-071', '3-072', '3-073', '3-074', '3-075', '3-076','3-077','3-078','3-079','3-080','3-081', '3-082', '3-083', '3-084', '3-085', '3-086', '3-087','3-088')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 3-117 to 3-120 and 3-122 Badger, Kamloops
+Do not construct roads. Do not use pesticides. Do not conduct timber harvesting, except when harvesting is required to support ecological restoration where stocking <75 tph
+see http://www.env.gov.bc.ca/wld/documents/wha/TATA_3_117to120_122_ord.pdf
+```{r, w3117}
+#No harvesting in these areas
+#get the ogc_fids that belong to these.
+wha_tags<-c('3-117', '3-118', '3-119', '3-120', '3-122')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 3-147 American Badger
+Do not construct roads. Do not use pesticides. Do not conduct timber harvesting, except when harvesting is required to support ecological restoration where stocking <75 tph. see http://www.env.gov.bc.ca/wld/documents/wha/TATA_3-147_Order.pdf
+```{r, w3147}
+#No harvesting in these areas
+#get the ogc_fids that belong to these.
+wha_tags<-c('3-147')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 3-171 to 3-181
+Data sensitive? Thompson Rivers
+```{r, w3171}
+# no contraints defined; may be a nest or den site that requries protection?
+# remove from analysis as no constraint or location defined
+#get the ogc_fids that belong to these.
+wha_tags<-c('3-171', '3-172', '3-173', '3-174', '3-175', '3-176','3-177','3-178','3-179','3-180','3-181')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-011 to 4-045
+Data sensitive? Kootenay Lake
+```{r, w4011}
+# no contraints defined; may be a nest or den site that requries protection?
+# remove from analysis as no constraint or location defined
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-011','4-012','4-013','4-014','4-015','4-016','4-017','4-018','4-019','4-020','4-021','4-022','4-023','4-024','4-025','4-026','4-027','4-028','4-029','4-030','4-031','4-032','4-033','4-034','4-035','4-036','4-037','4-038','4-039','4-040','4-041','4-042','4-043','4-044','4-045')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-046 to 4-055 Rocky mountain tailed frog
+Do not harvest in the core area (these are defined as 'no harvest' in the data, so dealt with above). In the 'management zone', maintain atleast 70% basal area with the approprate structure. Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/ASMO-4-046-055.pdf
+```{r, w4046}
+#Maintain basal area of ? for 70% of the unit -- means very light touch
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-046','4-047','4-048','4-049','4-050','4-051','4-052','4-053','4-054','4-055')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-056 to 4-064 Rocky mountain tailed frog
+Do not harvest in the core area (these are defined as 'no harvest' in the data, so dealt with above). In the 'management zone', maintain at least 70% basal area with the approprate structure. Do not use pesticides.see http://www.env.gov.bc.ca/wld/documents/wha/ASMO-4-056-064.pdf
+```{r, w4056}
+wha_tags<-c('4-056','4-057','4-058','4-059','4-060','4-061','4-062','4-063','4-064')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-077 to 4-085 Flammulated owl
+Do not salvage or harvest in the core area except partial harvesting systems. Do not harvest on xeric sites. In mesic or subhydric sites use selective harvesting systems that retain 50% of the co-dominant trees.see http://www.env.gov.bc.ca/wld/documents/wha/FLOW-4-077-85.pdf
+```{r, w4077}
+#Assumed while harvesting? or mainain crownclosure > 50% for 50% of the area?
+
+# could use height threshold as above (or age) instead?; basically whatever limits to 50% of area harvested I think is what they are after; although no harvest in xeric suggests it should be higher, depending what proportion of the area is xeric; thus, this threshold is 'lenient' on forestry and could be bumped up if someone wants to, or they know the propotion of xeric
+
+wha_tags<-c('4-077','4-078','4-079','4-080','4-081','4-082','4-083','4-084','4-085')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-088 to 4-092, 4-102, 4-103 American Badger 
+Do not use pesticide. Harvest as required to support ecological restoration. Reduce stocking densities < 75 stems. No new road access development.
+see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-088-092,102,103_ord.pdf
+```{r, w4088}
+#No harvesting in these areas
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-088', '4-089', '4-090', '4-091', '4-092','4-092','4-102', '4-103')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-098 Western screech Owl 
+Do not harvest or salvage in the core area. In the mangament zone, use selection harvest < 20% basal area for PP, IDF and ICH zone. Retain deciduous trees. Retain > 60% of tree in riparian zones. DO not construct roads in core areas. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-098_ord.pdf
+```{r, w4098}
+#crownclosure > 60% in riparian. crown closure > 20 for other area 
+wha_tags<-c('4-098')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# could use age thrshold again here?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-099 to 4-101 Flammulated owl 
+Do not salvage or harvest in the core area. Do not harvest on xeric sites. In mesic or subhydric sires use selective harvesting systems that retain 50% of the co-dominant trees.see http://www.env.gov.bc.ca/wld/documents/wha/FLOW_4-099to101_ord.pdf
+```{r, w4099}
+#Assumed while harvesting? or maintain crownclosure > 50% for 50% of the area?
+wha_tags<-c('4-099','4-100','4-101')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# could use height threshold as above (or age) instead?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-105  
+Data sensitive Kootenay Lake
+```{r, w4105}
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-105')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-107  American Badger
+Do not use pesticide. Do nto constrruct roads. Do not harvest except as required to support ecological restoration. Reduce stocking densities < 75 stems. see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-107_ord.pdf
+```{r, w4107}
+# set as no harvest
+wha_tags<-c('4-107')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-109  American Badger
+Data sensitive Rocky Mountain
+```{r, w4109}
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-109')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-112  American Badger
+Data sensitive Rocky Mountain
+```{r, w4112}
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-112')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-113 to 4-115  Western Screech Owl
+Do not cross streams or construct roads. Do not conduct timber harvesting or salvage within the core area. Within the management zone use selective harvest of < 20% basal area. Retain deciduous trees and retain > 60% of trees within riparian management zones. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-113to115_Order.pdf
+```{r, w4113}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
+wha_tags<-c('4-113', '4-114', '4-115')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# age threshold?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-121 to 4-126, 4-130 to 4-132, 4-134 to 4-135 Lewis Woodpecker
+Do not construct roads. Do not use pesticides. Do not harvest unless to address ecosystem restoration. Ponderosa pine and dead trees > 30 cm dbh are maintained. Treatments are managed to promote shrub structure for berry and nut production. see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_4-121_135_ord.pdf
+```{r, w4121}
+#No harvest in these areas
+wha_tags<-c('4-121', '4-122', '4-123', '4-124', '4-125', '4-126','4-130','4-131','4-132','4-134','4-135')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #remove from the raster
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-151 to 4-170, 4-177 Gillettes Checkerspot
+Do not construct roads except in 4-160, 4-162, 4-166 and 4-169. Do not use pesticides/herbicides. Avoid silviculture that would result in closed canopies. see http://www.env.gov.bc.ca/wld/documents/wha/EUPGIL_4-151to170_177_ord.pdf
+```{r, w4151}
+#Prefer open canopies
+wha_tags<-c('4-151',	'4-152',	'4-153',	'4-154',	'4-155',	'4-156',	'4-157',	'4-158',	'4-159',	'4-160',	'4-161',	'4-162',	'4-163',	'4-164',	'4-165',	'4-166',	'4-167',	'4-168',	'4-169',	'4-170', '4-177')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-178 to 4-179 Western Screech Owl
+In the core area do not construct roads or stream crossings. Do not conduct harvesting or salvage within the core area. When conducting harvesting in the management zone use selective harvesting <= 20% basal area removal. Do not remove deciduous. In riparian areas retain > 60% of trees. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-178_to_4-179_Order.pdf
+```{r, w4178}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
+wha_tags<-c('4-178', '4-179')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# age threshold?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-180 Grizzly Bear
+Enhance Vaccinium spp which include ICDdw1, ICHdm, ESSFdm (table 2). Ratain large CWD (> 30 cm dbh). Do not use pesticides, see http://www.env.gov.bc.ca/wld/documents/wha/URAR_4-180_SA_Order.pdf
+S--Assume the model does this at an operational scale.
+```{r, w4180}
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-180')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-209 Interior Western Screech Owl–
+Do not construct roads or crossings in the core area. Do not timber harvest or salvage in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WESO_4-205_4-209_Order.pdf
+```{r, w4209}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
+wha_tags<-c('4-209')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# age threshold?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 4-217 to 4-232, 4-234 to 4-242 Gillettes Checkerspot
+Do not construct roads. Avoid closed canopies. see http://www.env.gov.bc.ca/wld/documents/wha/EUGI_4-217_to_232_234_to242_GAR_Order.pdf
+```{r, w4217}
+#get the ogc_fids that belong to these.
+wha_tags<-c('4-217',	'4-218',	'4-219',	'4-220',	'4-221',	'4-222',	'4-223',	'4-224',	'4-225',	'4-226',	'4-227',	'4-228',	'4-229',	'4-230',	'4-231',	'4-232','4-234',	'4-235',	'4-236',	'4-237',	'4-238',	'4-239',	'4-240',	'4-241',	'4-242')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+ 
+### 4-243 to 4-276 Western Screech Owl
+Do not construct roads or crossings in the core area. Do not timber harvest or salvage in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_4-243_to_276_GAR_Order.pdf
+```{r, w4243}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
+wha_tags<-c('4-243',	'4-244',	'4-245',	'4-246',	'4-247',	'4-248',	'4-249',	'4-250',	'4-251',	'4-252',	'4-253',	'4-254',	'4-255',	'4-256',	'4-257',	'4-258',	'4-259',	'4-260',	'4-261',	'4-262',	'4-263',	'4-264',	'4-265',	'4-266',	'4-267',	'4-268',	'4-269',	'4-270',	'4-271',	'4-272',	'4-273',	'4-274',	'4-275',	'4-276')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# age threshold?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-003 to 5-006
+Data Sensitive? Chilcotin
+```{r, w5003}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-003','5-004','5-005','5-006')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-007 - 5-035 American White Pelican
+Do Not harvest from April 1 to August 31 -- model harvests at annual scale, thus timing windows not a concern. see http://www.env.gov.bc.ca/wld/documents/wha/AWPE-5-007_ord.pdf
+```{r, w5007}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-007','5-008','5-009','5-010','5-011','5-012','5-013','5-014','5-015','5-016','5-017','5-018','5-019','5-020','5-021','5-022','5-023','5-024','5-025','5-026','5-027','5-028','5-029','5-030','5-031','5-032','5-033','5-034','5-035')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-037 to 5-043 Grizzly Bear
+Do not use pesticides. Protect forest cover and plant communities. No road, trail or landing construction. see http://www.env.gov.bc.ca/wld/documents/wha/URAR_5-037to043_CentalCariboo.pdf
+```{r, w5037}
+#No Harvest
+wha_tags<-c('5-037','5-038','5-039','5-040','5-041','5-042','5-043')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-062, 5-072, 5-073 
+Data Sensitve Central Cariboo
+```{r, w5072}
+# note Kyle only had 5-072 here. I added the other two
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-062', '5-072', '5-073')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-074 to 5-082, 5-084, 5-085 American Badger
+Do not construct new roads. Forestry must result in ecological restoration with stocking densities of <75 stems/ha. Do not use pesticides. See http://www.env.gov.bc.ca/wld/documents/wha/TATA_5-074to5-082,5-084,5-085_ord.pdf
+```{r, w5074}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-074', '5-075', '5-076', '5-077', '5-078', '5-079', '5-080', '5-081', '5-082', '5-084', '5-085')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+
+### 5-086 to 5-087, 5-118, 5-872 and 5-873 Caribou Northern
+Retain all forest in 5-118. In caribou modified harvest zone (table 1) - Age >80 for 45%. Age > 100 for 37%. Age 120 for 30%. Age 140 for 25%. In caribou modified harvest for wha 5-086 retain lichen sites where 33% of the area on arboreal sites is on an 80 year cutting cycle. In caribou modified harvest for wha 5-086 retain lichen sites where 50% of the area on terrestrial lichen sites is on an 70 year cutting cycle. Caribou enhanced conventional harvest - in wha 5-872 and 5-873, 25% is left unlogged with an age > 100 years. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-086-873_ord.pdf
+```{r, w5086}
+#5-118 is a no harvest zone 0 already assigned.
+#5-086 Age >80 for 45%. Age > 100 for 37%. Age 120 for 30%. Age 140 for 25%. 
+wha_tags<-c('5-087') #25% is left unlogged with an age > 100 years. See Table 1
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid","wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =45, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_wha', percentage =37, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 120, reference_zone='rast.zone_wha', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 140, reference_zone='rast.zone_wha', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+
+wha_tags<-c('5-086') #40% > 70 and 20% > 80
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid","wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 70, reference_zone='rast.zone_wha', percentage =40, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =20, ndt =0, label = ogc_fids_rm$wha_tag))
+
+wha_tags<-c('5-872','5-873') #25% is left unlogged with an age > 100 years
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_wha', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-088 to 5-117 Mountain Caribou 
+Do not harvest in the caribou No-harvest. Caribou modified harvest in wha 5-088, 5-091, 5-093, 5-111 and 5-116 use group selection harvesting up to 33% of each stand area on a 80 year cutting cycle.  see http://www.env.gov.bc.ca/wld/documents/wha/RATA_5-088_%205-117_ord_09Dec09.pdf
+```{r, w5088}
+#For the wha's that have modfied harvesting --consider 66% of the area > 80 years
+wha_tags<-c('5-088',	'5-089',	'5-090',	'5-091',	'5-092',	'5-093',	'5-094',	'5-095',	'5-096',	'5-097',	'5-098',	'5-099',	'5-100',	'5-101',	'5-102',	'5-103',	'5-104',	'5-105',	'5-106',	'5-107',	'5-108',	'5-109',	'5-110',	'5-111',	'5-112',	'5-113',	'5-114',	'5-115',	'5-116',	'5-117') #25% is left unlogged with an age > 100 years
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =66, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-120 to 5-123, 5-126 to 5-128, 5-131, 5-133 , 5-136 to 5-150, 5-168 to 5-171 + many more  Grizzly Bear
+Primary forestry activites will result in protections of the forest cover and plant communities within the boundaries of the wha. Pesticides shall not be used. Salvage harvesting shall not be used. see http://www.env.gov.bc.ca/wld/documents/wha/URAR-5-121to541_MidCoastTSA.pdf
+```{r, w5120}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-120','5-121','5-122','5-123','5-126','5-127','5-128','5-131','5-133','5-136','5-137','5-138','5-139','5-140','5-141','5-142','5-143','5-144','5-145','5-146','5-147','5-148','5-149','5-150','5-168','5-169','5-170','5-171','5-172','5-173','5-174','5-175','5-176','5-177','5-178','5-179','5-180','5-181','5-182','5-183','5-184','5-185','5-186','5-187','5-188','5-190',	'5-191',	'5-192',	'5-193',	'5-194',	'5-195',	'5-196',	'5-197',	'5-198',	'5-199',	'5-200',	'5-201',	'5-202',	'5-203',	'5-204',	'5-205',	'5-206',	'5-207',	'5-208',	'5-209',	'5-210',	'5-211',	'5-212',	'5-213',	'5-214',	'5-215',	'5-216',	'5-217',	'5-218',  '5-224',	'5-225',	'5-226',	'5-227',	'5-228',	'5-229',	'5-230',	'5-231',	'5-232',	'5-233',	'5-234',	'5-235',	'5-236',	'5-237',	'5-238',	'5-239',	'5-240',	'5-241',	'5-242',	'5-243',	'5-244',	'5-245',	'5-246',	'5-247',	'5-248',	'5-249',	'5-250',	'5-251',	'5-252',	'5-253',	'5-254',	'5-255',	'5-256',	'5-257',	'5-258',	'5-259',	'5-260',	'5-261',	'5-262',	'5-263',	'5-264',	'5-265',	'5-266',	'5-267',	'5-268',	'5-269',	'5-270',	'5-271',	'5-272',	'5-273',	'5-274',	'5-275',	'5-276',	'5-277','5-279', '5-280', '5-281', '5-282', '5-283', '5-285',	'5-286',	'5-287',	'5-288',	'5-289',	'5-290',	'5-291',	'5-292',	'5-293',	'5-294',	'5-295',	'5-296',	'5-297',	'5-298',	'5-299',	'5-300',	'5-301',	'5-302',	'5-303',	'5-304',	'5-305', '5-307',	'5-308',	'5-309',	'5-310',	'5-311',	'5-312',	'5-313',	'5-314',	'5-315',	'5-316',	'5-317',	'5-318',	'5-319',	'5-320',	'5-321',	'5-322',	'5-323',	'5-324',	'5-325',	'5-326',	'5-327',	'5-328',	'5-329','5-331',	'5-332',	'5-333',	'5-334',	'5-335',	'5-336',	'5-337',	'5-338',	'5-339',	'5-340',	'5-341',	'5-342',	'5-343',	'5-344',	'5-345',	'5-346',	'5-347',	'5-348',	'5-349',	'5-350',	'5-351','5-354',	'5-355',	'5-356',	'5-357',	'5-358','5-361',	'5-362',	'5-363',	'5-364',	'5-365',	'5-366',	'5-367',	'5-368',	'5-369',	'5-370',	'5-371',	'5-372',	'5-373',	'5-374',	'5-375',	'5-376',	'5-377',	'5-378',	'5-379',	'5-380',	'5-381',	'5-382',	'5-383',	'5-384',	'5-385',	'5-386',	'5-387',	'5-388',	'5-389',	'5-390',	'5-391',	'5-392',	'5-393',	'5-394',	'5-395',	'5-396',	'5-397',	'5-398',	'5-399',	'5-400',	'5-401',	'5-402',	'5-403',	'5-404',	'5-405',	'5-406',	'5-407',	'5-408',	'5-409',	'5-410',	'5-411',	'5-412',	'5-413',	'5-414',	'5-415',	'5-416',	'5-417',	'5-418',	'5-419',	'5-420',	'5-421',	'5-422',	'5-423',	'5-424',	'5-425',	'5-426',	'5-427',	'5-428',	'5-429',	'5-430',	'5-431',	'5-432',	'5-433',	'5-434',	'5-435',	'5-436',	'5-437',	'5-438',	'5-439',	'5-440',	'5-441',	'5-442', '5-456','5-457','5-458','5-459','5-499',	'5-500',	'5-501',	'5-502',	'5-503',	'5-504',	'5-505',	'5-506',	'5-507',	'5-508',	'5-509',	'5-510',	'5-511',	'5-512',	'5-513','5-515',	'5-516',	'5-517',	'5-518',	'5-519',	'5-520',	'5-521',	'5-522',	'5-523',	'5-524',	'5-525', '5-527',	'5-528',	'5-529',	'5-530',	'5-531',	'5-532',	'5-533',	'5-534',	'5-535',	'5-536',	'5-537',	'5-538',	'5-539',	'5-540',	'5-541')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-730
+Data Sensitive Quesnel
+```{r, w5730}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-730')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-752
+Data Sensitive Central Cariboo
+```{r, w5752}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-752')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-753 to 5-758, and 5-760 to 5-764 Sandhill Crane
+Do not construct roads. Do not harvest timber. Do not use pesticides. See http://www.env.gov.bc.ca/wld/documents/wha/SACR_Order5-753to758_760to764.pdf
+```{r, w5753}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-753', '5-754', '5-755', '5-756', '5-757', '5-758', '5-760', '5-761', '5-762', '5-763', '5-764')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-753 to 5-758, and 5-760 to 5-764 Sandhill Crane
+Do not construct roads. Do not harvest timber. Do not use pesticides. See http://www.env.gov.bc.ca/wld/documents/wha/SACR_Order5-753to758_760to764.pdf
+```{r, w5753}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-753', '5-754', '5-755', '5-756', '5-757', '5-758', '5-760', '5-761', '5-762', '5-763', '5-764')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-874 to 5-876 to 5-883 American Badger
+Do not construct roads or landings. Harvest must result in stocking densities of <75 stems/ha and a target of 20 stem/ha at free-to-grow. Do not use pesticides. Do not construct range developments. See http://www.env.gov.bc.ca/wld/documents/wha/TATA_5-874_876-883_Order.pdf
+```{r, w5874}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-874', '5-876', '5-877', '5-878', '5-879', '5-880', '5-881', '5-882', '5-883')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-875  American Badger
+No primary forest activities allowed. Do not use pesticides. Do not construct range developments. See http://www.env.gov.bc.ca/wld/documents/wha/TATA_5-875_Order.pdf
+```{r, w5875}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-875')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-884 to 5-894, 5-896, 5-897  Great Basin Spadefoot
+No roads of landings. Stocking densities of <75 stems/ha and a target of 20 stems/ha at free-to-grow. No pesticides. No range developments. No recreation sites, trails, facilities, or structures. Specifically for 5-895 no primary forest activities may occur.
+```{r, w5875}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-884', '5-885', '5-886', '5-887', '5-888', '5-889', '5-890', '5-891', '5-892', '5-893', '5-894', '5-895', '5-896', '5-897')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 5-904, 5-905, 5-911 to 5-916  Data sensitive
+Data sensitive
+```{r, w5875}
+#get the ogc_fids that belong to these.
+wha_tags<-c('5-905', '5-905', '5-911', '5-912', '5-913', '5-914', '5-915', '5-916')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+
+### 6-055 Grizzly Bear
+http://www.env.gov.bc.ca/wld/documents/wha/URAR_6-055_ord.pdf
+No timber harvest or forest health sanitation allowed to occur. 
+```{r, 6-055}
+#get the ogc_fids that belong to these.
+wha_tags<-'6-055'
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+
+### 6-056 to 6-057 Coastal Tailed Frog
+For wha 6-056: do not harvest within the core area of special management zone.For what 6-057: Use partial harvesting system that maintain 70% basal area with the apropriate structure. No salavage should be carried out. see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-056-57_ord.pdf
+```{r, w6056}
+wha_tags<-c('6-056') # I broke these two out
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+#for 6-057 maintain 70% 
+wha_tags<-c('6-057')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-058 and 6-059 Coastal Tailed Frog
+No harvest within the core area of special management zone also no road construction or stream crossings. see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-058-059_ord.pdf
+```{r, w6058}
+wha_tags<-c('6-058', '6-059') # I broke these two out
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-060 to 6-067 Coastal Tailed Frog
+No roads or harvest in core area. In management zone, use a silvicutlural system that maintains 70% residual stand volume and attributes of the natural stand structure profile. see http://www.env.gov.bc.ca/wld/documents/wha/ASTR_6-060-067_ord.pdf
+```{r, w6060}
+#maintain 70% 
+wha_tags<-c('6-060','6-061','6-062','6-063','6-064','6-065','6-066','6-067')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-153 to 6-156, 6-158, 6-160, 6-161, 6-164, 6-166, 6-170, 6-171, 6-174, 6-177, 6-179 to 6-188, 6-280, 6-281 Marbled Murrelet - North Coast Forest District
+see http://www.env.gov.bc.ca/wld/documents/wha/MAMU-6-153var6-281_Order.pdf
+Do not construct  or widen roads. Do not harvest timber. Do not use pesticides. Do not establish recreation sites or trails
+```{r, w8003}
+#get the ogc_fids that belong to these.
+wha_tags<-c('6-153','6-154', '6-155', '6-156', '6-158', '6-160', '6-161', '6-164', '6-166', '6-170', '6-171', '6-174', '6-177', '6-179', '6-180', '6-181', '6-182', '6-183', '6-184', '6-185', '6-186', '6-187', '6-188', '6-280', '6-281')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-283 to 6-286
+Data Sensitive
+```{r, w6283}
+#get the ogc_fids that belong to these.
+wha_tags<-c('6-283','6-284','6-285','6-286')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-287 Grizzly bear
+To provide functional thermal or security cover to grizzly bears 100% of the forested area of each WHA must be retained in mature and old-growth condition. An allowance of 90% maintained in mature and old-growth may be made to facilitate access, operational saftey, and/or to minimize impacts on adjacent environmental values. See http://www.env.gov.bc.ca/wld/documents/wha/URAR_6-287_ord.pdf
+```{r, w6287}
+#get the ogc_fids that belong to these.
+wha_tags<-c('6-287')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-288 Grizzly bear
+To provide functional thermal or security cover to grizzly bears 100% of the forested area of each WHA must be retained in mature and old-growth condition. An allowance of 90% maintained in mature and old-growth may be made to facilitate access, operational saftey, and/or to minimize impacts on adjacent environmental values.  No pesticides may be used. Where ever practicable, 150 m is the min distance between permanent roads and the WHA. See http://www.env.gov.bc.ca/wld/documents/wha/URAR_6-288_ord.pdf
+```{r, w6288}
+#get the ogc_fids that belong to these.
+wha_tags<-c('6-288')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 6-333 Caribou
+Primary forestry activties will focus in-block retention to include key caribou features and provide sufficient forest retention to provide visual screening. Within the Bulkley TSA: >60% of the SBSmc > 80 years,  < 28% of SBSmc < 40 year, > 45 % of SBSdk > 80 years, < 39% of SBSdk < 40 years. Within the Morice TSA: > 17% of SBSmc > 140 years, < 48 SBSmc < 40 years, > 8 % of SBSdk > 140 years, < 64% of SBSdk < 40 years  see http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_ord_replaced_2018.pdf and http://www.env.gov.bc.ca/wld/documents/wha/RATA_6-333_amend_2018.pdf
+```{r, w6333}
+wha_tags<-c('6-333')
+#Bulkley TSA: >60% of the SBSmc > 80 years,  < 28% of SBSmc < 40 year, > 45 % of SBSdk > 80 years, < 39% of SBSdk < 40 years. 
+#Morice TSA: > 17% of SBSmc > 140 years, < 48 SBSmc < 40 years, > 8 % of SBSdk > 140 years, < 64% of SBSdk < 40 years
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =66, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-003 to 8-004 Grasshopper Sparrow
+see http://www.env.gov.bc.ca/wld/documents/wha/GRSP_%208-003_8-004_ord.pdf
+Do not construct roads. Do not use pesticides.
+```{r, w8003}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-003','8-004')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-006 to 8-010 Bighorn Sheep
+Follow a guide : https://www.for.gov.bc.ca/tasb/legsregs/fpc/fpcguide/other/wild/part2-21.htm#P1655_118642. For bighorn sheep there are no forestry constraints. see http://www.env.gov.bc.ca/wld/documents/wha/OVCC-8-006_ord.pdf
+```{r, w8006}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-006','8-007','8-008','8-009','8-010')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-014 to 8-017 White-headed Woodpecker
+Do not construct roads. Do not salvage timber. Protect and retain all ponderosa pine and douglas-fir >60cm. Use a partial cutting silvicultural system to maintain widely spaced late seral ponderosa pine and douglas fir. Group, single tree are recommended
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-014_ord.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-015_ord.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-016_ord.pdf
+see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-017_ord.pdf
+```{r, w8014}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-014','8-015','8-016','8-017','8-020','8-022')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+
+### 8-047, 8-051, 8-319 to 8-324 Brewer's Sparrow
+Do not use pesticide - not currently a consideration in the model
+see http://www.env.gov.bc.ca/wld/documents/wha/BRSP_8-051_8-319_to_8-324_ord.pdf
+```{r, w8047}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-047','8-051','8-319','8-320','8-321','8-322','8-323','8-324')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-053 to 8-064
+Data Sensitive
+```{r, w8053}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-053',	'8-054',	'8-055',	'8-056',	'8-057',	'8-058',	'8-059',	'8-060',	'8-061',	'8-062',	'8-063',	'8-064')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-090 to 8-094 Blotched Tiger Salamander
+Do not construct roads. Do not scarify harvested areas, do not place landings within management zone. Do not use pesticides
+see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_8-090_to_8-094_ord.pdf.
+```{r, w8090}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-090',	'8-091',	'8-092',	'8-093',	'8-094')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-124 to 8-126 Western Screech Owl
+Do not use pesticides. Do not salvage or harvest in core area. Do not construct roads or crossings in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-124_ord.pdf
+```{r, w8124}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
+wha_tags<-c('8-124',	'8-125',	'8-126')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# Use age threshold?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-232 Grizzly Bear
+Forest practices will result in at least 10% of each management unit containing forest stands that exhibit a height of at least 19.5 m in patches that are at least 5 ha in size. Management units are defined as the area of each BEC subzone within each landscape unit. see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-232_ord.pdf
+```{r, w8232}
+#10% of the area > 19.5 m height. 
+wha_tags<-c('8-232')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 19.5, reference_zone='rast.zone_wha', percentage =10, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-233 Caribou 
+GWM 1: Forest practises will result in a minimum of 30% of the timber exhibiting heights of at least 14 m, or have undergone self-pruning of the lower branches to allow for suitable security and movement between winter ranges. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_8-233_ord.pdf
+```{r, w8233}
+# > 30 % having height > 14 m
+wha_tags<-c('8-233')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 14, reference_zone='rast.zone_wha', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-261 to 8-262 Western Screech Owl
+Do not use pesticides. Do not salvage or harvest in core area. Do not construct roads or crossings in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas.see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-261,8-262_ord.pdf
+```{r, w8261}
+#crownclosure > 60% in riparian. crown closure > 20 for other area
+wha_tags<-c('8-261',	'8-262')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+# use age?
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-325 Grasshopper Sparrow
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/GRSP_8-325_ord.pdf
+```{r, w8325}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-325')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-328 and 8-331 American badger
+Do not construct roads, Do not harvest unless required to support ecological restoration. Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/TATA_8_328and331_ord.pdf
+```{r, w8328}
+# do not harvest
+wha_tags<-c('8-328','8-329','8-330','8-331')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-332, 8-333, 8-357 to 8-361 Half-moon Hairstreak
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SATSEM_%208-332_8-333_8-357_to_8-361_ord.pdf
+```{r, w8332}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-332',	'8-333',	'8-357',	'8-358',	'8-359',	'8-360',	'8-361')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-335, 8-336 Great Basin Spadefoot
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SPIN_8-335_8-336_ord.pdf
+```{r, w8335}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-335',	'8-336')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-368 to 8-372
+Data Sensitive
+```{r, w8368}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-368',	'8-369',	'8-370',	'8-371',	'8-372')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-373 Grizzly Bear
+Do not conduct primary forest activities between May 1 and June 20th. Do not plant trees within a 500 m specified area of polygons. Do not construct roads within 50 m of habitat features. Primary forest activities adjacent to avalanche tracks must retain forest cover that is at least 15 meters in height for a width of 100 meters. Do not use herbicide. see http://www.env.gov.bc.ca/wld/documents/wha/URAR_8-373_Ord.pdf
+S-- Assuming these are operational ground rules. 
+```{r, w8373}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-373')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-416 to 8-420 Great Basin Spadefoot
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_SPIN_8-416_ord.pdf
+```{r, w8416}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-416',	'8-417',	'8-418',	'8-419',	'8-420')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-424 Lewis' Woodpecker
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/LEWO_8-424_ord.pdf
+```{r, w8424}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-424')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 8-426 to 8-433 Half-moon Hairstreak
+Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.bc.ca/wld/documents/wha/SATSEM_%208-426_to_8-433_ord.pdf
+```{r, w8426}
+#get the ogc_fids that belong to these.
+wha_tags<-c('8-426',	'8-427',	'8-428',	'8-429',	'8-430',	'8-431',	'8-432', '8-433')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 9-003 to 9-017 Mountain Goat
+Refer to a guidebook: https://www.for.gov.bc.ca/tasb/legsregs/fpc/fpcguide/other/wild/index.htm. For Mountain goat: Do not construct roads. http://www.env.gov.bc.ca/wld/documents/wha/ORAM-9-003_ord.pdf
+```{r, w9003}
+#get the ogc_fids that belong to these.
+wha_tags<-c('9-003',	'9-004',	'9-005',	'9-006',	'9-007',	'9-008',	'9-009', '9-010', '9-011', '9-012', '9-013', '9-014', '9-015', '9-016', '9-017')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 9-025 to 9-031
+Data Sensitive 
+```{r, w9025}
+#get the ogc_fids that belong to these.
+wha_tags<-c('9-025',	'9-026',	'9-027',	'9-028',	'9-029',	'9-030',	'9-031')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 9-032 to 9-034, 9-041 to 9-073, 9-104 to 9-106, 9-144 to 9-145 Caribou
+Majority of these are No-Harvest. For 9-032 to 9-034, 9-041 to 9-048, 9-050 to 9-072 and 9-106 No Harvest, no roads no pesticides. For remaining whas: Will no adversely effect lichen productivity, result in a network of conencted forest cover, result in pre-harvest pine leading stands to be established as pine leading stands. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-032_034_041_073,104_106,144,145_ord.pdf
+```{r, w9032}
+#No Harvesting: 9-032 to 9-034, 9-041 to 9-048, 9-050 to 9-072 and 9-106
+wha_tags<-c('9-032',	'9-033',	'9-034',	'9-041',	'9-042',	'9-043',	'9-044',	'9-045',	'9-046',	'9-047',	'9-048', '9-050',	'9-051',	'9-052',	'9-053',	'9-054',	'9-055',	'9-056',	'9-057',	'9-058',	'9-059',	'9-060',	'9-061',	'9-062',	'9-063',	'9-064',	'9-065',	'9-066',	'9-067',	'9-068',	'9-069',	'9-070',	'9-071',	'9-072', '9-106' )
+#all removed via harvest == 'NO HARVEST ZONE'
+#9-049, 9-104 to 9-105 Reduce early seral foreage. >40 years for 50% of the area
+wha_tags<-c('9-049',	'9-104',	'9-105')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 40, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+
+# I would keep these two as the same for now; both require connected forest cover adn lichen
+#TYLER: I think we could change caribou 9-073, 9-144 and 9-145  to the early seral constrain as well to keep connected forest
+#9-073, 9-144 and 9-145; Reduce early seral foreage. >40 years for 50% of the area
+wha_tags<-c('9-073',	'9-144',	'9-145')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 40, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### 9-035 to 9-040, 9-102, 9-103 Caribou
+No Harvest. No roads. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-035_040,102,103_ord.pdf
+```{r, w9035}
+# no harvest
+wha_tags<-c('9-035',	'9-036',	'9-037',	'9-038',	'9-039', '9-040',	'9-102',	'9-103')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
+wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### GBR Grizzly Bear class 2 habitat
+From the legal direction and orders (Schedule D) for GBR it says that 50% of class 2 grizzly bear habitat needs to be protected.  See: https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf
+
+```{r, w5800}
+wha_tags<-c('5-801')
+ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
+
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 50, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
+```
+
+### Clean up and Commit data
+```{r, clean_commit}
+writeRaster(wha.ras, file=paste0(here(), "/wha_gbr.tif"), format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha_gbr.tif -t 100x100 rast.zone_cond_wha_gbr |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+df<-as.data.frame(zone_wha)
+df$ndt<-as.integer(0)
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$percentage<-as.numeric(df$percentage)#assign integer
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_wha_gbr"), value= df, row.names = FALSE, overwrite = TRUE) 
+```
