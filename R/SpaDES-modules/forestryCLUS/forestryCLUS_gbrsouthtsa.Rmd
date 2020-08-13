@@ -121,12 +121,12 @@ modules <- list("dataLoaderCLUS",
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_South_TSA",
-                                     partition = ' vol > 90 ', 
+                                     partition = ' vol > 90 and age >= 60 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 3000000))) # flow=5750000 worked for adding in the age >=60 # Note in the TSA Discussion Paper (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/kamloops_tsa_discussion_paper.pdf) it looks like a sustainable flow is around 2 000 000 m3/yr. 
+                                     flow = 3200000))) # flow=5750000 worked for adding in the age >=60 # Note in the TSA Discussion Paper (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/kamloops_tsa_discussion_paper.pdf) it looks like a sustainable flow is around 2 000 000 m3/yr. 
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
