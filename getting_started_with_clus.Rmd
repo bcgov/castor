@@ -136,16 +136,6 @@ Each raster in the PostgreSQL database conforms to the provincial standard 1 ha 
 
 
 
-<<<<<<< HEAD
-## Data Inputs (dataLoaderCLUS)
-much data needs to be pre-processed and put into a postgres database that the dataloaderCLUS will read; this includes:
-
-- TSA boundaries (or whaterver boudanries you want to create a harvest flow within). This can be done by updating the file in the Params folder called study_area_boundaries.Rmd ??
-
-- timber harvest land base (THLB); sets the area that is harvestable by the model; comes form FAIB's provncial THLB dataset
-=======
->>>>>>> master
-
 
 
 ### Params
