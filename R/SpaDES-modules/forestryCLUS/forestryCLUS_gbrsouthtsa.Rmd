@@ -1,10 +1,10 @@
 ---
 title: "forestryCLUS"
 author: "Elizabeth Kleynhans"
-date: "10 August 2020"
+date: "10 Aug 2020"
 output:
-html_document: 
-keep_md: yes
+  html_document: 
+    keep_md: yes
 ---
 
 <!--
@@ -21,6 +21,54 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 # Overview
+
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# Great Bear Rainforest South TSA Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in caribou critical habtait areas; where there is critical habitat, no harvest in any types (includign matrix); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in GRB South this includes Charlotte Alplands
+
+'ECCC' in caribou critical habtait areas; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
+
+
+# GBR South TSA Parameters 
+
+## New Caribou Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds.
+Note: for GBR I created new spatial layers for wha, uwr, fsw, and parks and protecte areas. This is because the original layers were missing some details relevant for GBR.
+
+No harvest in all herds = rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd
+
+ECCC in all herds = rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher volume stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+
+## 'harvestFlow'
+No information on the even flow harvest could be found for GBR south, except in the data packages for Kingcome and Strathcona TSA's. However, since GBR south is only a portion of these old TSA's it difficult to work out how to add the harvest flows and soI started with the value for the ACC as the even flow value i.e. 830,500 m^3/year. This value was too high so I dropped it to 700,000m^3/yr but this too was still to high. I then tried 600,000. 
+
+Interestingly, I found by adjusting the volume to 90 cubic meteres per hectare and stand age to 60 I could incease the harvest flow from 600,000m^3/year to 620,000m^3/year. but for the final run and scenarios I decided to use150 m3/ha as minimum harvest volume as this is what was done in most of the other TSA's.
+
+For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; thus is a bit conservative
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -121,12 +169,12 @@ modules <- list("dataLoaderCLUS",
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_South_TSA",
-                                     partition = ' vol > 90 and age >= 60 ', 
+                                     partition = ' vol > 150', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 3200000))) # flow=5750000 worked for adding in the age >=60 # Note in the TSA Discussion Paper (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/kamloops_tsa_discussion_paper.pdf) it looks like a sustainable flow is around 2 000 000 m3/yr. 
+                                     flow = 3300000)))
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
