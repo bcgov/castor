@@ -22,9 +22,9 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for the [Kamloops timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/kamloops-tsa). The Kamloops TSA is located in south central British Columbia and ranges between Logan Lake in the south and Wells Gray Provincial Park in the north-west. In the east it is bounded by the Columbia Mountains and the Cariboo Regional District to the west. Overall the TSA covers approximately 2.77 million hectares of land. From May 5, 2016 to May 4, 2021 the allowable annual cut is set at 2.3 million cubic metres after which it reduces to 2.1 million cubic meters. 
+Here I set the parameters to create a database for the [Great Bear Rainforest (GBR) South timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/great-bear-rainforest-south), (https://www.bclaws.ca/civix/document/id/complete/statreg/327_2016#section2), (https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements). In 2016 GBR South TSA replaced the mainland parts of Kingcome TSA and Strathcona TSA. As of 1 January 2017 the allowable annual cut is set at 830,500 cubic metres per year. 
 
-Four herds overlap with the Kamloops TSA - Columbia North, Groundhog, Wells Gray North and Wells Gray South. Thus for building the database only information on these herds were included
+Only one caribou herds overlaps with the GBR south TSA - Charlotte Alplands
 
 # Usage
 Set parameters for creating the database in the code chunk below.
