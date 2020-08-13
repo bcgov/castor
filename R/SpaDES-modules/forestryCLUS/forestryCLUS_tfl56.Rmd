@@ -38,6 +38,41 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
+# TFL 56 Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in Columbia North and South caribou critical habtiat; to support Columbia North and South herd planning, we run a sceanrio with no harvest in the  Columbia North and South HEWSR and Matrix; assesses teh potential maximum impact of protecting Columbia North and South only, assuming other herds unprotected
+
+ECCC in Columbia North and Southcaribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia North and South only
+
+# TFL 56 Parameters 
+
+## New Caribou Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
+
+No harvest in Columbia North and Columbia South = rast.zone_cond_noharvest_columbia_north_crithab_or_herd,
+                                                 rast.zone_cond_noharvest_columbia_south_crithab_or_herd
+  
+No harvest in Columbia North and Columbia South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_columbia_north_crithab_or_herd,
+                                   rast.zone_cond_eccc_columbia_south_crithab_or_herd
+
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+      
+## 'harvestFlow'
+from 2010 determination: the base case projected a stable harvest level of 88 000 cubic metres per year, which could be maintained for 100 years after which it increased to the long-term harvest level of 101 000 cubic metres per year
+- First, I tested a harvest flow of 90,000m^3^/year (450,000m^3^/5-year); was much too high, so dropped to 45,000m^3^/year, 35,000, 30,000, 32,500, 31,000
+
+- the lower AAC in oru mode comarped to detemrination model may be ude to lower THLB in our model; not sure why the discrepency
+
+- I used 150 m3/ha as minimum harvest volume; nothing in determination on this
+
+- I used 3 m adjacency; nothing in determination on this
 
 
 ```{r module_usage}
@@ -53,14 +88,13 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list( 
-                           dbName='clus',
-                           save_clusdb = TRUE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
+  dataLoaderCLUS = list(   dbName='clus',
+                           save_clusdb = FALSE,
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL56_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Quesnel_TSA",
+                           nameBoundary = "TFL56",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -72,9 +106,10 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
-                                             "rast.zone_cond_fisher_sb_wet",
-                                             "rast.zone_cond_fisher_sb_dry",
-                                             "rast.zone_cond_fisher_dry"
+                                               
+                                               # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                             "rast.zone_cond_noharvest_columbia_south_crithab_or_herd" 
+                                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
+                                               "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -94,20 +129,26 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestPriority = "age DESC, vol DESC",
+  forestryCLUS = list(harvestPriority = "dist, age DESC, vol DESC",
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'),
-  survivalCLUS = list (caribou_herd_density = 0.05, 
-                       nameRasCaribouHerd = "rast.caribou_herd", 
-                       tableCaribouHerd = "public.caribou_herd_vat"), 
+  # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
+  #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
+  #                 randomEffectsTable = "public.rsf_re_coeff",
+  #                 writeRSFRasters = TRUE,
+  #                 checkRasters = FALSE),
+  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+                       nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
+                       tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
   disturbanceCalcCLUS = list(calculateInterval = 5, 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
+                             permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'fisher_quesnel_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'tfl56', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -121,22 +162,39 @@ modules <- list("dataLoaderCLUS",
                 "blockingCLUS", 
                 "forestryCLUS", 
                 "roadCLUS",  
-                #"yieldUncertaintyCLUS",
-                "survivalCLUS",
-                "disturbanceCalcCLUS",
+                #"yieldUncertaintyCLUS", 
+                "survivalCLUS", 
+                "disturbanceCalcCLUS", 
+                # "rsfCLUS", # error line 453 - need to debug
                 "uploaderCLUS"
                 )
-scenario = data.table (name = "all_terr_10per_max12yrs",
-                       description = "All fisher territories (sb-dry,sb-wet,dry) having max 10% with age less than 12 years ")
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
-                                     partition = ' vol > 100 and age > 60 ', 
-                                     year = rep( seq (from = 2018, # run the 
+# rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
+# rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
+
+# scenario = data.table (name = "tfl56_bau",
+#                        description = "Business-as-usual (BAU); harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl56_colnsfb_nh",
+#                        description = "No harvest in Columbia North and Columbia South critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+scenario = data.table (name = "tfl56_colnsfb_ch_he0d_m15d",
+                       description = "No harvest in Columbia North and Columbia South HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+
+
+# No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat	
+
+
+
+harvestFlow <- rbindlist(list(data.table(compartment ="TFL56",
+                                     partition = ' vol > 150 ', 
+                                     year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 9590000) 
+                                     flow = 155000) #31,000m3/yr 
 ))
+
+#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
+
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
                                   3,3,3,3,3,3,
@@ -168,8 +226,13 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 # outputs to keep; these are tables that get used in the uploader
-#outputs(mySim) <- data.frame (objectName = c("harvestReport","growingStockReport"))
-mysimout<-spades(mySim)
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport",
+                                             "tableSurvival",
+                                             "disturbanceReport"))
+
+#Run the model 1 time
+system.time({mysimout<-spades(mySim)})
 
 #Run the model with experiment
 #sims3 <- experiment(mySim, replicates = 2)

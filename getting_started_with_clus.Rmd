@@ -8,26 +8,189 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-
 ## Introduction
+Here we document how to get started using the caribou and land use simulator (CLUS) model. This provides the basic instructions for implementing and running a scenario on CLUS.
 
-Here we document how to get started usign CLUS
+Fundamentally, the CLUS model is a forest harvest simulator with the ability to flexibly "constrain" areas of the landscape to simulate alternative forest management regimes. These alternative regimes constitute specified areas ('zones') with defined forest targets (e.g., percentage area of a certain forest age). Thus, it can be used to test how alternative forest management zones influence the spatial distribution and rate (i.e., annual volume cut) of forest harvest. However, CLUS also includes various modules that provide caribou-specific indicators. Thus, the CLUS model can also be used to estimate the influence of alternative forest management regimes on caribou. Below we provide instructions for implementing a forest harvest scenario in CLUS. We provide the basic structure of the model, including data and parameter inputs needed to run the model.
 
+## Model "Software" and Framework
+CLUS is primarily built using [R programming language](https://www.r-project.org/), with a dash of JAVA in the module to create harvest blocks. An advantage of using R is that it is supported by many users that are actively creating 'packages' to do various analytical functions. There is a strong library of statistical packages, but also a diversity of data management and visualization packages. Working in R therefore provides a lot of flexibility. R packages are also typically well documented, so it is usually straighforward to learn how to use and apply the functions in a given package. 
+
+The CLUS model proper is implemented using the [SpaDES package](https://spades.predictiveecology.org/). SpaDES provides a structure for implementing discrete-event, spatial simulation models, not unlike what a SELES model does. Importantly, SpaDES provides functions to manage 'events' in a model. Events are scheduled within 'modules' that represent independent processes within a model. Modules, and events within them, are scheduled and then actioned using SpaDES functions. 
+
+All the programming code needed to run CLUS is available on [GitHub](https://github.com/bcgov/clus), an internet repository for developing software code. It is provided under the [Apache 2.0 software license](https://github.com/bcgov/clus/blob/master/LICENSE). To run the software on a local computer, you will need to [clone the repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) code to that computer. We assume that you have an understanding of how to use program R, and R interfaces like [RStudio](https://rstudio.com/), and thus we do not go into detail on those here. 
+
+The CLUS GitHub folder structure is complex, as it contains a lot of analysis code that are peripheral to running the CLUS model. However, much of this code can be ignored, unless you are interested in understading some of the more detailed analyses completed to parameterize the CLUS model. The key code for running the CLUS model is located in the R->SpaDES-modules, R->Params and R->functions folders.
+
+The R->functions folder contains a script and instructions for setting up password protection with the keyring function ("keyring_init.Rmd"). It also contains a script called "R_Postgres.R" with custom R functions for querying and manipulating data in the PostgreSQL database. These functions refer to some additonal custom SQL functions created within the PostgreSQL database (these must be loaded into whichever PostgreSQL database you are using). For example, there are functions for clipping raster data to a polygon. These functions are referred to within the CLUS modules, and therefore it is important to preserve and maintain these functions within the folder structure.  
+
+The R->Params folder contains various .Rmd scripts for creating data and parameters needed to run the CLUS model. Many of these were used to create forest harvest constraints across the province. The "proposed_uwr_init.Rmd", "prov_manage_objs.Rmd", "uwr_cond_harvest.Rmd" and "wha_cond_harvest.Rmd" are scripts used to identify the location (rasters) and type of forest harvest constraints (table) to apply to those locations for each specified management area. These include 'typical' constraints used in timber supply models to support timber supply reviews. The "prov_manage_objs.Rmd" develops constraints related to biodiversity emphasis options (BEO), fisheries sensitive watershed areas (FWs), visual quality objectives (VQOs), old growth management areas (OGMAs), parks and protected areas and community watersheds across British Columbia. The "uwr_cond_harvest.Rmd" and "wha_cond_harvest.Rmd" files develop constraints around government action regulation (GAR) orders, including unglate winter ranges (UWRs) and wildlife habitat areas (WHAs), respectively. Forest harvest constraints in some of these GAR order area are complex, and are subject to interpretation (see [UWR](http://www.env.gov.bc.ca/wld/frpa/uwr/approved_uwr.html) and [WHA](http://www.env.gov.bc.ca/cgi-bin/apps/faw/wharesult.cgi?search=show_approved) orders), but these can be reviewed  and modified as requried using the script. There are also scripts for defining proposed areas and forestryconstraints, for example, within caribou herd ranges ("caribou_herd_raster.Rmd") and critical habitat areas ("criticalHabitatRaster.Rmd"). Other scripts can be used to identify areas of interest ("areaofinterestRaster.Rmd") for summarizing volume and area of forest harvested, and forest harvest unit areas ("study_area_boundaries.Rmd"), e.g., timber supply areas.
+
+The R->SpaDES-modules folder contains the bulk of the scripts that run the model functions. Each folder within the directory contains a "module" of the model. Within each folder module, there is a .R and .Rmd file. The .R file contains the functions that process, analyze and summarize the data, whereas the .Rmd file is where you set the model parameters. By running the code chunk in the .Rmd file, you run the program functions in the .R file. Detailed information on the modules are provided in .Rmd files within each module folder, and these modules will be desribed in more detail below.
+
+## Data Framework
+At a minimum, CLUS needs an SQLite database to function. This databases houses the data needed to run the forestry modules (e.g. forest inventory characteristics, yield curves and zone constaints). This database is created by running the "dataLoaderCLUS" module, hwoever, previously created databases can be used to run scenarios, i.e., it's not necessary to run the "dataLoaderCLUS" module each time you want to run a scenario or set of scenarios. 
+
+If you do not have an SQLite database then you will need to run the "dataLoaderCLUS" module (needs to be run to create described in more detail below). This module requires connecting to a a [PostgreSQL database](https://www.postgresql.org/). We use PostgreSQL because it is an open source (i.e., free), relational database with high performance capabilities (e.g., it can be used to store and query large datasets efficiently and quickly), and it is widely used in the Forest Analysis and Inventory Branch (FAIB). Here we do not go into detail on how to use PostgreSQL, but working knowledge of the database will faciliate your abiltiy to use CLUS (although, we note that you could program an interface that connects the model to any preferred database). 
+
+The "dataLoaderCLUS" module connects to a PostgreSQL database using the ["DBI" package](https://cran.r-project.org/web/packages/DBI/index.html). We have the model configured to connect to a PostgreSQL database on a network computer, with passwords protected using the ["keyring" package](https://cran.r-project.org/web/packages/keyring/index.html). These configurations can be modified to connect the CLUS model to any local or network PostgreSQL database, or you can request permission to use our database. Either way, the PostgreSQL houses the 'core' data needed to run the CLUS model, i.e., source datasets for the model, which typically cover the extent of British Columbia, and are updated relatively infrequently (annually or less). 
+
+## SpaDES Modules
+### dataLoaderCLUS
+The "dataLoaderCLUS" module compiles data on forest inventory and stand yields, the timber harvest land base, identifies harvest blocks and builds roads to those blocks, and defines management zones and their contraints for the area of interest (i.e., the landscape where you want to simulate forestry activity and caribou indicators). The area of interest could be any portion of British Columbia, but is typically a forest management unit, like a timber supply area or tree farm licence area. The dataLoaderCLUS module takes these data from a PostgreSQL database and compiles it into a SQL Lite database for the area of interest.
+
+Many of the data in the PostgreSQL database were created as "parameters", using scripts in the R->Params folder. To run the "dataLoaderCLUS", you need to have created the following spatial files within the PostgreSQL database that you will be connecting to (parameter names as they are named in the "dataLoaderCLUS" module are indicated in parentheses):
+- the analysis area boundary file, e.g., timber supply areas (nameBoundaryFile) 
+- the column/field in the analysis area boundary file that contains the names of each unique area of interest  (nameBoundaryColumn)
+- the name of the area of interest, as defined in the column (nameBoundary)
+- the geometry type in the analysis area boundary file (nameBoundaryGeom)
+- the rasterized version of the analysis area boundaries (nameCompartmentRaster)
+- the value attribute table (VAT) that links the integer values in the analysis area raster to the name of the area of interest (nameCompartmentTable)
+- the raster of the timber harvest land base (nameMaskHarvestLandbaseRaster)
+- the rasters of each zone where a forest harvest constraint will be applied, including all zones in the 'business-as-usual' or alternative forest management scenarios (nameZoneRasters)
+- the table where the constraints for each raster zone are defined (nameZoneTable)
+- a raster with a unique integer id for each unique 'natural' forest stand yield curve, i.e., Variable Density Yield Projection (VDYP) curves, corresponding to the raster pixel where that curve applies (nameYieldsRaster)
+- the VDYP yield table, which can be linked to each stand by the unique integer id (nameYieldTable)
+- a raster with a unique integer id for each unique 'managed' forest stand yield curve, i.e., Table Interpolation Program for Stand Yields (TIPSY) curves, which can be linked to each stand by the unique id (nameYieldsTransitionRaster)
+- the TIPSY table, which can be linked to each stand by the unique integer id (nameYieldTransitionTable)
+- the forest inventory raster, with a unique integer id for each forest stand in the inventory (nameForestInventoryRaster)
+- the inventory data table (nameForestInventoryTable)
+- the column/field in the the forest inventory data that defines each unique forest stand (nameForestInventoryKey), that can be linked to the raster integer id
+- the column/field in the the forest inventory data that defines the age of each unique forest stand (nameForestInventoryAge)
+- the column/field in the the forest inventory data that defines the height of each unique forest stand (nameForestInventoryHeight)
+- the column/field in the the forest inventory data that defines the crown closure of each unique forest stand (nameForestInventoryCrownClosure)
+- the column/field in the the forest inventory data that defines the site index of each unique forest stand (nameForestInventorySiteIndex)
+
+At a minimum, the SQLite database that is created by the "dataLoaderCLUS" includes four tables, called "pixels", "yields", "zone" and "zoneConstraints". The "pixels" table includes (but is not limited) to columns with the unique integer for each pixel in the area of interest (pixelid), each yield curve id (yieldid and yieldid_trans), THLB (thlb), stand age (age), volume (vol), height (height), crown closure (crownclosure), site index (siteindex), and percent deciduous (dec_pcnt) aassigned to that pixel, and columns for each relevant zone (e.g., zone1, zone2, zone3....) that identifies which zones the pixel occurs within. The "yields" table includes the volume (tvol) of each unique yield curve (yieldid) at each age and height. The "zone" table contains the identifier for each zone (e.g., zone1, zone2, zone3....) in the "pixels" table, and the unique zone constraint identifier in the raster (reference_zone). The "zoneConstraints" table also contains the zone identifier, and the related information on the constraint in each zone (e.g., type and threshold).  
+
+We recommend using the "dataLoaderCLUS" with the "blockingCLUS", "roadCLUS", "survivalCLUS", "disturbanceCalcCLUS" and "rsfCLUS" modules to create additional information and data for tracking caribou indicators, and to model forest harvest blocks and roads. 
+
+The "blockingCLUS" module puts forested pixels into similar clusters or groups. It takes data on crown closure and height in each pixel and calculates "distance" statistics between neighbouring pixels, then "groups" those neighbouring pixels together where they are below a specified distance threshold (i.e., neighbouring pixels with similar charactersitics will have relatively small distance metrics and get grouped into 'blocks'). Thus, the module is used to identify spatially accurate cutblock boundaries, assuming a forestry company is likely to cut stands with uniform characteristics. To use the "blockingCLUS" module, include the module in the "dataLoaderCLUS" module list and set the parameters for blockMethod (set this to 'pre' to define the blocks as part of the "dataLoaderCLUS" process), patchZone (we use the rast.zone_cond_beo raster, as stored in our PostgreSQL database, which defines BEO areas), patchVariation (we recommend setting to 6), nameCutblockRaster (the name of raster that defines existing cutblocks; we use rast.cns_cut_bl, as stored in our PostgreSQL database) and useLandingsArea (set to FALSE - why???). Ypu will also need to set the patchSizeDist targets in "dataLoaderCLUS". We provide the distribution targets for BEO natural disturbance types (NDTs) as a 'default' value. The  "blockingCLUS" module adds a blockid column to the "pixels" table to identify each unique block. 
+
+The "roadCLUS" module needs to be used to simulate roads on the landscape. It simulates roads to each potential cutblock landing in the analysis area. Thus, it 'pre-solves' the road network and then if a cutblock is cut in a simulation, the road to teh cutblock landign gets simulated. It can be presolved using two methods 'snap' or 'pre', where 'pre' creates roads from the exsiting road network to each landing following a least cost pathway while minimumizing the amount of roads needed to reach multiple nearby landings, and where 'snap' creates direct, straight-line roads between landings and the network (see R->reports->roads->draft-CLUS-roads.Rmd for more details on these methods). The 'pre' method has a more complex algortihm that takes a computer longer to solve than the 'snap' method. However,the 'pre' method appears to be more accurate than the 'snap', as it creates much fewer roads. We reocmmend usign the 'pre' method unless computer processing power and time are a concern. To use this module, set the roadMethod ('snap' or 'pre'), nameCostSurfaceRas (the cost surface raster; called rast.rd_cost_surface in our PostgreSQL database) and nameRoads (the raster of the exsiting road network; called rast.crds_resource in our PostgreSQL database).
+
+
+
+The  "roadCLUS" module adds a "roadyear" column to the "pixels", which gets updated with the time interval in the CLUS model that a road gets built and a "roadslist" table to the SQLite datbase that contains the landing is that each potential road is attributed to and a character list fo the pixel ides that need to be converted into a road to reach the  landing??
+
+
+
+
+
+
+
+
+
+yieldUncertaintyCLUS
+uploaderCLUS
+
+
+patchSizeDist
+scenario
+
+
+
+
+
+
+
+
+
+
+
+
+
+Each raster in the PostgreSQL database conforms to the provincial standard 1 ha raster grid. This facilitates the spatial joining of data from different sources.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<< HEAD
 ## Data Inputs (dataLoaderCLUS)
 much data needs to be pre-processed and put into a postgres database that the dataloaderCLUS will read; this includes:
 
 - TSA boundaries (or whaterver boudanries you want to create a harvest flow within). This can be done by updating the file in the Params folder called study_area_boundaries.Rmd ??
 
 - timber harvest land base (THLB); sets the area that is harvestable by the model; comes form FAIB's provncial THLB dataset
+=======
+>>>>>>> master
 
-need to create a raster of each of these that corrresponds to the standard provincial 1 ha raster, and a corresponding value attrtibute table (vat) that links to the raster via a unique integer id
 
 
 ### Params
+Much of the data required by the dataLoaderCLUS can be created and populated into a Postgres database using .Rmd files in the "Params" folder of CLUS (clus/R/Params).
 
-Params folder in teh github (clus/R/Params) is where we create data in postgres that will be used by dataloaderLCUS and other CLUS modules
+The "criticalHabitatRaster.Rmd" creates rasters of critical habitat areas for caribou, and to define 'constraints' to apply to those areas. It takes polygonal critical habitat data, assigns an integer to each unique herd and type of critical habitat and creates a raster for each unique type. It also allows you to create a 'constraint' table that allows you to identify a forest harvest constaint to each unique raster zonis. The table includes the zone ID integer, the name of the zone, the "variable" to be constrained (i.e., age, height, crown closure, or whatever data is in, or can be created from the 'pixels' table in the SQLite database), the type of constraint (i.e., 'nh' = no harvest, 'ge' = greater than or equal to, or 'le' = less than or equal to), the threshold of the constraint (i.e., the value at which the variable will be constrained), and the "percentage" of the zone that must meet the constraint threshold. For example, if you want to apply a minimum 40% of an zone to be age 40 or more, then for that zone, variable = 'age', type = 'ge' and percentage = '40'.  
+
+Similarly, the "parntershipAgreementRaster.Rmd" 
+
+
+
+
+
+
+Here we develop rasters that specify the location of areas of interest for estimating volume by area as outptus from CLUS. Can be used to estimate the contribution of a spatially defined area to annual harvested volume. 
+
+
+
+
+
+
+
+The following not in the SQL lite
+
+The "areaofinterstRaster.Rmd" can be used to create rasters and associated VAT's of areas of interest 
+
+
+"caribou_herd_raster.Rmd" can be used to to create rasters and associated VAT's for caribou herd areas. These get used in  
+
+
+
+
+
+
 - criticalHabitatRaster: where set critical habitat and herd boudanries for cariobu and set constraints for those areas
+
+
+
+
+
+discuss how can use CLUS scneario tool to create a zone cosnraitn area, and process to get that into SQLite dbase
+
+
+
+
 
 
 #### Zone constraints
@@ -146,6 +309,15 @@ Params folder in teh github (clus/R/Params) is where we create data in postgres 
   - "growingStockReport" = reports on growing stock (forest stand ????) by time interval adn compartment
   - "tableSurvival" = 
   - "disturbanceReport"
+  - "volumebyareaReport" = reports volume harvested by the model within a specified area 
+    - the 'specified area(s)' can be defined using the Params -> areaofinterestRaster.Rmd
+        - this create a raster and vat table for the area(s) of interest based 
+    - does nto need to be implemented as part of teh sql lite db; can be included after the fact, because it referes to       the data in the CLUS db
+    - then, need to identify the report in the parameter list, modules list and outputs within the forestryCLUS.Rmd    
+      (can see 'forestryCLUS_tfl48_volumebyarea_example.Rmd' for an example)
+      
+  
+
     
     
     

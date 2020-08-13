@@ -41,12 +41,51 @@ This module could be a parent module?? It relies on:
 # Dawson Creek TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
+no harvest in Central Group caribou critical habtiat; to support Central groups  planning, we run a sceanrio with no harvest in the  Central Group HEWSR, LEWSR and Matrix; harvest is BAU in other herds; assesses the potential maximum impact of protecting Central groups only, assuming other herds unprotected
 
+"ECCC" in Central groups caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central group only
+
+Partnership Agreement Scenario; BC, West Moberly First Nation, Saulteau First Nation and Canada have an agreement to protect certain areas in the central group; No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35%  disturbance (15%) harvest in  Central group partnership agreement areas A1, B1, B4 and B5.
+
+No harvest in all Partnership Agreement areas; this scenario assesses the potential maximum impact of protecting all the partnership agreement areas, assuming other herds unprotected
+
+no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (including matrix); establishes the 'maximum impact' that protection of caribou habitat might potentially have on forest harvest; in Dawson Creek TSA these include: Narraway HEWSR, Narraway HESR, Narraway HEWR, Narraway LEWR, Narraway Matrix, Quintettes HESR, Quintette HEWR, Quintette HEWSR, Quintette LEWR, Quintette Matrix, Burnt Pine HESR, Burnt Pine HEWR, Burnt Pine HEWSR, Burnt Pine Matrix, Kennedy Siding HEWSR, Kennedy Siding HESR, Kennedy Siding HEWR, Kennedy Siding Matrix, Moberly HESR, Moberly HEWSR, Moberly Matrix, Graham HEWSR, Graham HESR, Graham Matrix
+
+'ECCC' in caribou critical habtait areas; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low eleavtion cirtcial habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
 
 # Dawson Creek  TSA Parameters 
 
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
+
+No harvest in Central Group = "rast.zone_cond_noharvest_quintette_crithab_or_herd",
+                              "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                               "rast.zone_cond_noharvest_narraway_crithab_or_herd",
+                               "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
+                               "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+
+ECCC Central Group = "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
+                      "rast.zone_cond_eccc_quintette_crithab_or_herd",
+                      "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                      "rast.zone_cond_eccc_narraway_crithab_or_herd",
+                      "rast.zone_cond_eccc_moberly_crithab_or_herd",
+
+Parntership Agreement = rast.zone_cond_partnership_agreement
+
+Parntership Agreement - ho harvest = rast.zone_cond_partnership_agreement (but change constraint to no harvest 'nh')
+
+No harvest in all herds = "rast.zone_cond_noharvest_quintette_crithab_or_herd",
+                              "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                               "rast.zone_cond_noharvest_narraway_crithab_or_herd",
+                               "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
+                               "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                            rast.zone_cond_noharvest_graham_crithab_or_herd
+
+ECCC in all herds = rast.zone_cond_eccc_central_rockies_crithab_or_herd,
+                    rast.zone_cond_eccc_columbia_north_crithab_or_herd,
+                    rast.zone_cond_eccc_columbia_south_crithab_or_herd,
+                    rast.zone_cond_eccc_central_selkirks_crithab_or_herd
+                    "rast.zone_cond_eccc_graham_crithab_or_herd"
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -104,7 +143,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list( 
                            dbName='clus',
-                           save_clusdb = TRUE,
+                           save_clusdb = FALSE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
