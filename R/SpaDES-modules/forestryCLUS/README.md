@@ -18,7 +18,7 @@ It was designed to provide rapid feeback - for exploring the decision space for 
 
 ##### Constraints 
 
-The various constraints apploed to forest management scenarios include:
+The various constraints applied within forest management scenarios include:
 
 * *Land cover*. Percentage of zone to be above or below a given threshold for a particular forest attribute
 
@@ -39,32 +39,36 @@ The constraints table is a parent table with child tables inheriting the followi
     percentage double precision,
     multi_condition text COLLATE pg_catalog."default"
 
-zoneid = a forgien key that specifies the raster value that identifies the constraints spatial boundary.
+zoneid = a foreign key that specifies the raster value identifying the  spatial boundary of the constraint.
 
 reference_zone = the name of the corresponding raster that contains the zoneid e.g. rast.zone_cond_beo
 
 ndt = natural disturbance type - required for BEO constraints. Can be left blank if not used.
 
-percentage = the percent [0, 100] of the zoneid requiring the constraint.
+percentage = the percent [0, 100] of the zoneid from which the constraint will be applied.
 
-threshold = the value of the variable (RHS) that achieves the constraint.
+threshold = the value of the variable (see below) that determines the constraint.
 
-type = refers to the inequality of the threshold. These can be {le, ge} refering to: less than or equal to (le), greater than or equal to (ge). An important note between le and ge:
+type = refers to the inequality of the threshold {le (<=), ge (>=)}. An important note between 'le' and 'ge':
 
- if ge, the model sets the number of no harvest pixels = percentage*total area 
- if le, the model sets the number of no harvest pixels = (1-percentage)*total area 
+ if 'ge', the model sets the number of no harvest pixels = percentage*(total zone area) 
+ if 'le', the model sets the number of no harvest pixels = (1-percentage)*(total zone area) 
  
-Both {le, ge} set a no harvest flag to pixels that first meet the logic of the inequality statement and if there aren't enough pixels, the model sorts the pixels remaining in zone according to the variable as either ASC with le or DESC with ge. 
+**total zone area is calculated by CLUS.
+ 
+Both {le, ge} set a no harvest flag to pixels that first meet the logic of the inequality statement and if there aren't enough pixels, the model sorts the remaining pixels in the zone according to the variable as either ASC with le or DESC with ge. 
 
-An example, for a constraint with variable = age, type = ge, threshold = 12 and percentage = 10 for a zone with 100 ha -- The model will assign no harvesting for 10% of the zone (10 ha) in pixels with age > 12 and if there are not enough pixels with age > 12 to achieve 10 ha, the model will sort pixels within the zone according to age in a DESC fashion and select the remainder required. Conversely, if the type was then set to 'le' then the model will constrain no harvesting for 90% of the zone (90 ha) for pixels with age < 12 and if there are not enough pixels with age < 12 to achieve 90 ha, the model will sort pixels within the zone according to age in a ASC fashion and select the remainder required.
+An example, for a constraint with variable = age, type = ge, threshold = 12 and percentage = 10 for a zone with 100 ha -- The model will assign no harvesting for 10% of the zone (10 ha) in pixels with age > 12 and if there are not enough pixels with age > 12 to achieve 10 ha, the model will sort pixels within the zone according to age in a DESC fashion and select the remainder required. 
 
-variable = the variable in the pixels table that is to be constrained. There are three hard coded variables of interest: eca, dist and multi.
+Conversely, if the type was then set to 'le' then the model will constrain no harvesting for 90% of the zone (90 ha) to pixels with age < 12 and if there are not enough pixels with age < 12 to achieve 90 ha, the model will sort pixels within the zone according to age in a ASC fashion and select the remainder required.
+
+variable = the variable in the pixels table that is to be constraine upon. Note: there are three hard coded variables of interest: eca, dist and multi.
 
 * eca = equivalent clear cut area. This variable uses growingstockCLUS to update its value through simulation time. All cases where eca is used require type = 'le'.
 
-* dist = euclidean distance. This variable uses disturbanceCalcCLUS to update its value through simulation time. All cases where dist is used require type = 'ge'.
+* dist = euclidean distance from a forestry disturbance. This variable uses disturbanceCalcCLUS to update its value through simulation time. All cases where dist is used require type = 'ge'.
 
-* multi = multiple condition. This variable requires an sql statement in the multi_condition column e.g., age > 12 & blockid > 0. All cases where multi is used require type = 'ge'.
+* multi = multiple condition. This variable requires an sql statement in the multi_condition column e.g., age > 12 & blockid > 0. All cases where multi is used require type = 'ge'. Because more than one variable is used in the constraint, and if there are not enough pixels to meet the constraint, the order of the remaining pixels required will follow the order in which the mutli condition was set. Thus, for age > 12 & crown_closure > 50, the model will select the remainder from a sort as: age DESC, crown_closure DESC.
 
 ### Input Parameters
 
