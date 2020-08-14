@@ -6,7 +6,7 @@ forestryCLUS is a convenient calculator for massive spatial calculations. Simply
 
 It was designed to provide rapid feeback - for exploring the decision space for caribou and forestry related impacts. The following diagram is a simple representation of these impacts. The solid arrows are positive impacts, while the dashed arrows are negative impacts.
 
-<img src="data/CaribouNetwork.jpeg" width="200" height="200" />
+<img src="data/CaribouNetwork.jpeg" width="400" height="500" />
 
 #### Management levers
 
