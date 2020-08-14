@@ -642,6 +642,11 @@ abline(0,0, col = "yellow")
 summary(l.early.seral.per)
 
 early.seral.per.reml<- lme(lambda.dift ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
+
+#early.seral.per.reml.slope<- lme(lambda.dift ~ matrix.early.seral.per , random=~matrix.early.seral.per|herd_name, method = 'REML', data = model.data, control = con1)
+
+#anova(early.seral.per.reml,early.seral.per.reml.slope)
+
 early.seral.per<- lme(lambda.dift ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
 ##Diagnostics
 acf(residuals(early.seral.per , type = 'normalized'),lag.max =10)#No issues
@@ -667,6 +672,11 @@ abline(0,0, col = "yellow")
 summary(l.early.seral.rate)
 
 early.seral.rate.reml<- lme(lambda.dift ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
+
+early.seral.rate.reml.slope<- lme(lambda.dift ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1+core.early.seral.rate|herd_name, method = 'REML', data = model.data, control = con1)
+
+anova(early.seral.rate.reml,early.seral.rate.reml.slope)
+
 early.seral.rate<- lme(lambda.dift ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
 ##Diagnostics
 acf(residuals(early.seral.rate , type = 'normalized'),lag.max =10)#No issues
@@ -796,16 +806,24 @@ getVarCov(m0.b)
 
 summary(m0.b.reml)
 intervals(m0.b.reml)
+cor(fitted(m0.b.reml, level =0),model.data$lambda.dift) #0.7786
+
 summary(early.seral.per.reml)
 intervals(early.seral.per.reml)
+cor(fitted(early.seral.per.reml, level =0),model.data$lambda.dift) #0.7786
+
 summary(early.seral.rate.reml)
+cor(fitted(early.seral.rate.reml, level =0),model.data$lambda.dift)
 
 summary(dist.per.reml)
+cor(fitted(dist.per.reml, level =0),model.data$lambda.dift)
 summary(dist.rate.reml)
+cor(fitted(dist.rate.reml, level =0),model.data$lambda.dift)
 
 summary(dist500.per.reml)
+cor(fitted(dist500.per.reml, level =0),model.data$lambda.dift)
 summary(dist500.rate.reml)
-
+cor(fitted(dist500.rate.reml, level =0),model.data$lambda.dift)
 ```
 #FIGURE 3: observed vs predicted
 ```{r, obs_pred}
@@ -844,10 +862,10 @@ bh_herds<-data.table(herd_name=unique(model.data$herd_name), herd_id =1)
 bh_herds2<-merge(bh_herds, bh, by.x="herd_id", by.y="herd_id", all=TRUE, allow= TRUE)
 
 bh_herds2$pred<-predict(dist500.rate.reml, bh_herds2)
-bh_herds2[core.dist500.rate == -0.1, core:='Core = -0.1']
-bh_herds2[core.dist500.rate == 0, core:='Core = 0']
-bh_herds2[core.dist500.rate == 0.1, core:='Core = 0.1']
-bh_herds2[core.dist500.rate == 0.3, core:='Core = 0.3']
+bh_herds2[core.dist500.rate == -0.1, core:='CR500 Core = -0.1']
+bh_herds2[core.dist500.rate == 0, core:='CR500 Core = 0']
+bh_herds2[core.dist500.rate == 0.1, core:='CR500 Core = 0.1']
+bh_herds2[core.dist500.rate == 0.3, core:='CR500 Core = 0.3']
 
 bh$pred<-predict(dist500.rate.reml, bh,level=0)
 bh[core.dist500.rate == 0, core:='0']
@@ -861,7 +879,7 @@ fig4<-ggplot(data = bh_herds2,aes(x = matrix.dist500.rate, y = pred, color = her
   geom_line() +
   geom_abline(slope = 0, intercept = 0, color= "black") +
   theme_bw() +
-  labs(y = expression(paste("Population trend ", italic("r"))), x = "Matrix")+
+  labs(y = expression(paste("Population trend ", hat(italic("r")))), x = "CR500 Matrix (% of initial survey (PInit))")+
   guides(color=guide_legend(title = "Herd"))
 fig4
 
