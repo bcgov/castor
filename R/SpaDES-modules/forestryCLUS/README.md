@@ -14,13 +14,19 @@ It was designed to provide rapid feeback - for exploring the decision space for 
 * Harvest flow priority - what should be harvested first
 * Constraints 
 
-*Land cover*. Percentage of zone to be above or below a given threshold for a particular forest attribute
+##### Constraints 
 
-*No havesting*. Removing area from the thlb
+The various constraints apploed to forest management scenarios include:
 
-*Equivalent Clear Cut Area*. Constraining aggregated disturbance for watershed indicators.
+* *Land cover*. Percentage of zone to be above or below a given threshold for a particular forest attribute
 
-*Growing stock*. Forcing the future states of the forest to maintain a percentage of the current merchantable growing stock (i.e., standing volume)
+* *No havesting*. Removing area from the thlb
+
+* *Equivalent Clear Cut Area*. Constraining aggregated disturbance for watershed indicators.
+
+* *Growing stock*. Forcing the future states of the forest to maintain a percentage of the current merchantable growing stock (i.e., standing volume)
+
+--- 
 
 The constraints table is a parent table with child tables inheriting the following structure:
 
