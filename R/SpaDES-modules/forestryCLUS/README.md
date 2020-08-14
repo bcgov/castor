@@ -13,10 +13,42 @@ It was designed to provide rapid feeback - for exploring the decision space for 
 * Harvest flow targets - how much to cut in any given time period
 * Harvest flow priority - what should be harvested first
 * Constraints 
+
 *Land cover*. Percentage of zone to be above or below a given threshold for a particular forest attribute
+
 *No havesting*. Removing area from the thlb
+
 *Equivalent Clear Cut Area*. Constraining aggregated disturbance for watershed indicators.
-*Growing stck*. Forcing the future states of the forest to maintain a percentage of the current merchantable growing stock (i.e., standing volume)
+
+*Growing stock*. Forcing the future states of the forest to maintain a percentage of the current merchantable growing stock (i.e., standing volume)
+
+The constraints table is a parent table with child tables inheriting the following structure:
+
+    zoneid integer,
+    reference_zone text COLLATE pg_catalog."default",
+    ndt integer,
+    variable text COLLATE pg_catalog."default",
+    threshold double precision,
+    type text COLLATE pg_catalog."default",
+    percentage double precision,
+    multi_condition text COLLATE pg_catalog."default"
+
+zoneid = a forgien key that specifies the raster value which identifies the constraints spatial boundary.
+
+reference_zone = the name of the corresponding raster that contains the zoneid e.g. rast.zone_cond_beo
+
+ndt = natural disturbance type - required for BEO constraints. can be left blank if not used.
+
+type = the type of constraint. These can be {le, ge} refering to: less than or equal to (le), greater than or equal to (ge). 
+
+variable = the variable in the pixels table that is to be constrained. There are three hard coded variables of interest: eca, dist and multi.
+
+* eca = equivalent clear cut area. This variable uses a growingstockCLUS to update its value through simulation time. All cases where eca is used require type = 'le'.
+
+* dist = euclidean distance. This variable uses disturbanceCalcCLUS to update its value through simulation time. All cases where dist is used require type = 'ge'.
+
+* multi = multiple conditions. This variable requires an sql statement in the multi_condition column. All cases where multi is used require type = 'ge'.
+
 
 ### Input Parameters
 
