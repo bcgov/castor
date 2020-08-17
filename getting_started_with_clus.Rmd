@@ -16,7 +16,9 @@ Fundamentally, the CLUS model is a forest harvest simulator with the ability to 
 ## Model "Software" and Framework
 CLUS is primarily built using [R programming language](https://www.r-project.org/), with a dash of JAVA in the module to create harvest blocks. An advantage of using R is that it is supported by many users that are actively creating 'packages' to do various analytical functions. There is a strong library of statistical packages, but also a diversity of data management and visualization packages. Working in R therefore provides a lot of flexibility. R packages are also typically well documented, so it is usually straighforward to learn how to use and apply the functions in a given package. 
 
-The CLUS model proper is implemented using the [SpaDES package](https://spades.predictiveecology.org/). SpaDES provides a structure for implementing discrete-event, spatial simulation models, not unlike what a SELES model does. Importantly, SpaDES provides functions to manage 'events' in a model. Events are scheduled within 'modules' that represent independent processes within a model. Modules, and events within them, are scheduled and then actioned using SpaDES functions. 
+The CLUS model is implemented using the [SpaDES package](https://spades.predictiveecology.org/). SpaDES provides a structure for implementing discrete-event, spatial simulation models, not unlike what a SELES model does. Importantly, SpaDES provides functions to manage 'events' in a model. Events are scheduled within 'modules' that represent independent processes within a model. Modules, and the 'events' within them, are scheduled and then actioned using SpaDES functions. SpaDES creates a 'sim' object that stores and tracks the events and modules    
+
+SpaDES modules consist of two key files, a .R file and .Rmd file. The .R file contains the R script functions of the 'events' that occur within the module. It also defines the module parameters, expected inputs and ouputs. The .Rmd file provides the text description of the module, and importantly, contains the code chunk needed to run the .R functions. The .Rmd code chunk contains the standard elements needed to run a SpaDES module (e.g., parameters and objects in the sim). We don't provide a detailed description of SpaDES here, but more resources can be obtained using the SpaDES [getting started guide](https://github.com/PredictiveEcology/SpaDES/wiki/Getting-Started-Guide). 
 
 All the programming code needed to run CLUS is available on [GitHub](https://github.com/bcgov/clus), an internet repository for developing software code. It is provided under the [Apache 2.0 software license](https://github.com/bcgov/clus/blob/master/LICENSE). To run the software on a local computer, you will need to [clone the repository](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) code to that computer. We assume that you have an understanding of how to use program R, and R interfaces like [RStudio](https://rstudio.com/), and thus we do not go into detail on those here. 
 
@@ -36,7 +38,7 @@ If you do not have an SQLite database then you will need to run the "dataLoaderC
 The "dataLoaderCLUS" module connects to a PostgreSQL database using the ["DBI" package](https://cran.r-project.org/web/packages/DBI/index.html). We have the model configured to connect to a PostgreSQL database on a network computer, with passwords protected using the ["keyring" package](https://cran.r-project.org/web/packages/keyring/index.html). These configurations can be modified to connect the CLUS model to any local or network PostgreSQL database, or you can request permission to use our database. Either way, the PostgreSQL houses the 'core' data needed to run the CLUS model, i.e., source datasets for the model, which typically cover the extent of British Columbia, and are updated relatively infrequently (annually or less). 
 
 ## SpaDES Modules
-There are essentially two modules that run the bulk of the CLUS functions and processes, i.e., the dataLoaderCLUS and the forestryCLUS. These modules connect to other modules to run specific functions within them. The dataLoaderCLUS module essentially creates a database of the data needed to run the simulation. Thus you need to run it for each unique area where you want to run simulations, but you can also typically re-use it for multiple scenarios being run within the same area. The forestryCLUS module essentially runs the forest harvest functions and tracks the forest characteristics of interest. In short, to run a CLUS model, you need to foirst parameterize and run the dataLoaderCLUS module, and then second, parameterize and run the forestryCLUS module. 
+There are essentially two modules that run the bulk of the CLUS functions and processes, i.e., the dataLoaderCLUS and the forestryCLUS. These modules connect to other modules to run specific functions within them. The dataLoaderCLUS module essentially creates a database of the data needed to run the simulation. Thus, you need to run teh dataLoaderCLUS .Rmd for each unique area where you want to run simulations, but you can also typically re-use it for multiple scenarios being run within the same area. The forestryCLUS module essentially runs the forest harvest functions and tracks the forest characteristics of interest. In short, to run a CLUS model, you need to foirst parameterize and run the dataLoaderCLUS module, and then second, parameterize and run the forestryCLUS module. 
 
 Below is a description of each module, what parameters need you need to set for each module, and how it is connected to other modules (particularly the dataLoaderCLUS and forestryCLUS modules).
 
@@ -71,16 +73,7 @@ We recommend using the "dataLoaderCLUS" with the "blockingCLUS", "roadCLUS", "su
 
 Within the "dataLoaderCLUS" you can set the "scenario" parameter to identify the name and description of the scenario. Since you aren't running a scenario in "dataLoaderCLUS", it's not critical to set this parameter, but you can set it to be consistent with the forestryCLUS module.    
 
-Also, within the "dataLoaderCLUS" module you set the patchSizeDist parameter, which establishes the size of blocks and the frequency of each block size by each natural disturbance type (ndt). 
-
-
-
-
-
-
-
-
-
+Also, within the "dataLoaderCLUS" module you set the patchSizeDist parameter, which establishes the size of blocks and the frequency of each block size by each natural disturbance type (ndt). These are currently determined based on the provincial biodiversity guidebook(??). These pacth size distributions get used in the blockingCLUS module to pre-identify harvest blocks. 
 
 ### blockingCLUS
 The "blockingCLUS" module puts forested pixels into similar clusters or groups. It takes data on crown closure and height in each pixel and calculates "distance" statistics between neighbouring pixels, then "groups" those neighbouring pixels together where they are below a specified distance threshold (i.e., neighbouring pixels with similar charactersitics will have relatively small distance metrics and get grouped into 'blocks'). Thus, the module is used to identify spatially accurate cutblock boundaries, assuming a forestry company is likely to cut stands with uniform characteristics. To use the "blockingCLUS" module, include the module in the "dataLoaderCLUS" module list and set the parameters for blockMethod (set this to 'pre' to define the blocks as part of the "dataLoaderCLUS" process), patchZone (we use the rast.zone_cond_beo raster, as stored in our PostgreSQL database, which defines BEO areas), patchVariation (we recommend setting to 6), nameCutblockRaster (the name of raster that defines existing cutblocks; we use rast.cns_cut_bl, as stored in our PostgreSQL database) and useLandingsArea (set to FALSE - why???). Ypu will also need to set the patchSizeDist targets in "dataLoaderCLUS". We provide the distribution targets for BEO natural disturbance types (NDTs) as a 'default' value. The  "blockingCLUS" module adds a blockid column to the "pixels" table to identify each unique block. 
@@ -104,11 +97,8 @@ The "yieldUncertaintyCLUS" module calculates uncertainty metrics around the amou
 ### uploaderCLUS
 The "uploaderCLUS" module defines the data (tablesa nd rasters) that get output from the model and saved in a PostgreSQL database. These data can then be summarized in the CLUS Explorer application. Typically these tables are 'empty' after running dataLoaderCLUS, but the parameters for the name of the area of interest (aoiName) and the database where the data is uploaded (dbInfo).
 
-
-
-
-
-
+### forestryCLUS
+The "forestryCLUS" module is the primary module for running the forest harvest simulator. The key parameters in the modules include the 'study area' parameters, as defined in the dataLoaderCLUS module, including    
 
 
 
