@@ -41,7 +41,7 @@ This module could be a parent module?? It relies on:
 # Great Bear Rainforest North TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in caribou critical habtait areas; where there is critical habitat, no harvest in any types (includign matrix); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in GRB South this includes Charlotte Alplands
+no harvest in caribou critical habtait areas; where there is critical habitat, no harvest in any types (includign matrix); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in GRB north this includes Charlotte Alplands
 
 'ECCC' in caribou critical habtait areas; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
 
@@ -64,9 +64,7 @@ ECCC in all herds = rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd
       - 'vol DESC', i.e., descending volume (highest volume first)
 
 ## 'harvestFlow'
-No information on the even flow harvest could be found for GBR south, except in the data packages for Kingcome and Strathcona TSA's. However, since GBR south is only a portion of these old TSA's it difficult to work out how to add the harvest flows and soI started with the value for the ACC as the even flow value i.e. 830,500 m^3/year. This value was too high so I dropped it to 700,000m^3/yr but this too was still to high. I then tried 600,000. 
-
-Interestingly, I found by adjusting the volume to 90 cubic meteres per hectare and stand age to 60 I could incease the harvest flow from 600,000m^3/year to 620,000m^3/year. but for the final run and scenarios I decided to use150 m3/ha as minimum harvest volume as this is what was done in most of the other TSA's.
+No information for current harvest flow projects are available for GBR North. However, old information from the data packeges for the North and Midcoast TSA's do have projections for even flow harvests. According to the 2006 Timber Supply Analysis Report for the North Coast TSA an even flow harvest would be ~429,900m^3/yr. For the Mid Coast TSA the even flow harvest rate is ~ 764,000m^3.yr according to the 2010 Timber Supply Review Analysis Report. Thus if we add these two harvest flows together we might expect an even flow harvest rate of 1,193,900 m^3/yr.  However,this I think is too high as since these TSA reports were cretated, quite a few more areas have been designated as no harvest e.g. Grizzly Bear Habitat and some important watersheds. Thus, I decided to start testing the harvest flow at the current AAC (803,000 m^3/yr). This value was too high so I reduced it as follows: 660,000 m^3/yr, 600,000m^3/yr, 580,000
 
 For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; thus is a bit conservative
 
@@ -168,17 +166,17 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
- scenario = data.table (name = "GBR_north_bau",
+ scenario = data.table (name = "gbrn_bau",
                         description = "Business as usual (BAU)")
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_South_TSA",
+harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_North_TSA",
                                      partition = ' vol > 150', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 3300000))) # try 1 3300000
+                                     flow = 2000000))) # try 1 3300000, try 2 3000000,3.) 2900000, 4.) 2500000
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
