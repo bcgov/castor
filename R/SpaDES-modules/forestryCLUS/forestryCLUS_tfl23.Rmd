@@ -22,6 +22,80 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# TFL 23 Block Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in Central Selkirks caribou critical habtiat; to support 
+herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+
+ECCC in Central Selkirks caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central Selkirks
+
+no harvest in Columbia North, Columbia South, and frisby-boulder caribou critical habtiat; to support 
+herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+
+ECCC in Columbia North, Columbia South, and frisby-boulder caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on these herds
+
+no harvest in all herds that overlap the TFL i.e. Central Selkirks, Monashee, Columbia North, Columbia South, and frisby-boulder caribou critical habtiat; to support 
+herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+
+ECCC in Central Selkirks, Monashee, Columbia North, Columbia South, and frisby-boulder caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on all these herds
+
+
+
+# TFL 23 Parameters 
+
+## New Caribou Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
+
+No harvest in all herds overlaping the TFL = rast.zone_cond_noharvest_central_selkirks_crithab_or_herd,
+rast.zone_cond_noharvest_columbia_south_crithab_or_herd,
+rast.zone_cond_noharvest_monashee_crithab_or_herd.
+
+No harvest in all herds high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_central_selkirks_crithab_or_herd,
+rast.zone_cond_eccc_columbia_south_crithab_or_herd,
+rast.zone_cond_eccc_monashee_crithab_or_herd.
+
+No havest in all Central Selkirk herds: rast.zone_cond_eccc_central_selkirks_crithab_or_herd
+
+No harvest in all Central Selkirk herds in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
+
+No havest in Columbia South herd: rast.zone_cond_eccc_columbia_south_crithab_or_herd
+
+No harvest in Columbia South herds in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_columbia_south_crithab_or_herd
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+      
+## 'harvestFlow'
+from 2017 determination: 
+"...The initial harvest level was high starting at 530 000 cubic metres per year. This was maintained for one decade before declining to 475 500 cubic metres per year. In the mid term, harvest levels declined to 426 000 cubic metres (after decade two), 382 000 cubic metres (after decade three) and then further declined to 343 000 cubic metres per year (after decade four). After decade 10, harvest levels increased to a long-term harvest level of 523 000 cubic metres per year.."
+
+- started at 523,000m^3/year; this was too high so I dropped gradually setting on l40,000 m^3/yr
+
+- I used 150 m3/ha as minimum harvest volume; nothing in determination on this
+
+- I used 3 m adjacency; nothing in determination on this
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)

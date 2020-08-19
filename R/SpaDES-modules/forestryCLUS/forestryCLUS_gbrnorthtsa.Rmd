@@ -97,13 +97,13 @@ parameters <- list(
                                            "rast.zone_cond_uwr_gbr", 
                                            "rast.zone_cond_nharv_gbr", 
                                            "rast.zone_cond_fsw_gbr", 
-                                           "rast.zone_cond_cw"),
-                                           #"rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
-#"rast.zone_cond_noharvest_rainbows_crithab_or_herd",
-#"rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-                                           #"rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
-#"rast.zone_cond_eccc_rainbows_crithab_or_herd"
-#"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
+                                           "rast.zone_cond_cw",
+#                                            "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+# "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
+# "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"),
+                                           "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
+"rast.zone_cond_eccc_rainbows_crithab_or_herd",
+"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
                                            
                            nameZoneTable = "zone_constraints_gbr",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -166,17 +166,21 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
- scenario = data.table (name = "gbrn_bau",
-                        description = "Business as usual (BAU)")
+# scenario = data.table (name = "gbrn_bau",
+#                         description = "Business as usual (bau)")
+ # scenario = data.table (name = "gbrn_chil_nh",
+ #                        description = "No harvest in Chilcotin herds and habitat that overlap with the harvest unit (e.g., TSA or TFL)")
 
+ scenario = data.table (name = "gbrn_chil_ch_he0d_m15d",
+                        description = "No harvest in Chilcotin high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_North_TSA",
-                                     partition = ' vol > 150', 
+                                     partition = ' vol > 150 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 2000000))) # try 1 3300000, try 2 3000000,3.) 2900000, 4.) 2500000
+                                     flow = 2100000))) # try 1 3300000, try 2 3000000,3.) 2900000, 4.) 2500000 5.) 2100000 (worked), 2200000 (did not),
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
