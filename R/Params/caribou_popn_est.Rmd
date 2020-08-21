@@ -20,7 +20,7 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 ```
 
 # Background
-We need data on caribou population estimates. This creates a table of that information, including source of the information, to be uploaded into our database for use in moduels or as part of information summary.
+In this analysis, we fit models of caribou population trend using measures of disturbance. Various disturbance measures are tested and compared to find applicability to caribou recovery efforts.
 
 Note: currently in contact with Nicola Dodd about getting this data
 
@@ -298,13 +298,13 @@ data.set<-merge(data.core, data.matrix, by.x = c("herd_name", "year"), by.y = c(
 data.set[, time:=year-year.0]
 
 #Calc diturbance indicators
-data.set[, core.dist.per:= core.dist/core.area]
-data.set[, core.dist500.per:= core.dist500/core.area]
-data.set[, core.early.seral.per:= core.early.seral/core.area]
+data.set[, core.dist.per:= (core.dist/core.area)*100]
+data.set[, core.dist500.per:= (core.dist500/core.area)*100]
+data.set[, core.early.seral.per:= (core.early.seral/core.area)*100]
 data.set[, core.rsf.avg:= core.sum.rsf.hat/core.area]
-data.set[, matrix.dist.per:= matrix.dist/matrix.area]
-data.set[, matrix.dist500.per:= matrix.dist500/matrix.area]
-data.set[, matrix.early.seral.per:= core.early.seral/matrix.area]
+data.set[, matrix.dist.per:= (matrix.dist/matrix.area)*100]
+data.set[, matrix.dist500.per:= (matrix.dist500/matrix.area)*100]
+data.set[, matrix.early.seral.per:= (core.early.seral/matrix.area)*100]
 data.set[, matrix.rsf.avg:= matrix.sum.rsf.hat/matrix.area]
 
 #RATES
@@ -314,9 +314,9 @@ data.set.0<-data.set[year == year.0, c("herd_name", "core.burn40","matrix.burn40
 setnames(data.set.0,c("herd_name", "core.burn40","matrix.burn40", "core.early.seral","matrix.early.seral","core.dist", "matrix.dist", "core.dist500", "matrix.dist500", "core.sum.rsf.hat", "matrix.sum.rsf.hat"),c("herd_name", "core.burn40.0","matrix.burn40.0","core.early.seral.0","matrix.early.seral.0", "core.dist.0", "matrix.dist.0", "core.dist500.0", "matrix.dist500.0", "core.sum.rsf.hat.0", "matrix.sum.rsf.hat.0"))
 data.set<-merge(data.set, data.set.0, by.x = "herd_name", by.y = "herd_name", all.x = TRUE)
 data.set[, core.burn40.rate:= (core.burn40-core.burn40.0)/core.burn40.0]
-data.set[, core.early.seral.rate:= (core.early.seral-core.early.seral.0)/core.early.seral.0]
-data.set[, core.dist.rate:= (core.dist-core.dist.0)/core.dist.0]
-data.set[, core.dist500.rate:= (core.dist500-core.dist500.0)/core.dist500.0]
+data.set[, core.early.seral.rate:=( (core.early.seral-core.early.seral.0)/core.early.seral.0)*100]
+data.set[, core.dist.rate:= ((core.dist-core.dist.0)/core.dist.0)*100]
+data.set[, core.dist500.rate:= ((core.dist500-core.dist500.0)/core.dist500.0)*100]
 data.set[, core.rsf.rate:= (core.sum.rsf.hat-core.sum.rsf.hat.0)/core.sum.rsf.hat.0]
 
 data.set[, core.burn40.rate2:= (core.burn40-core.burn40.0)/(year-year.0)]
@@ -327,9 +327,9 @@ data.set[, core.rsf.rate2:= (core.sum.rsf.hat-core.sum.rsf.hat.0)/(year-year.0)]
 
 ##Matrix
 data.set[, matrix.burn40.rate:= (matrix.burn40-matrix.burn40.0)/matrix.burn40.0]
-data.set[, matrix.early.seral.rate:= (matrix.early.seral-matrix.early.seral.0)/matrix.early.seral.0]
-data.set[, matrix.dist.rate:= (matrix.dist-matrix.dist.0)/matrix.dist.0]
-data.set[, matrix.dist500.rate:= (matrix.dist500-matrix.dist500.0)/matrix.dist500.0]
+data.set[, matrix.early.seral.rate:=( (matrix.early.seral-matrix.early.seral.0)/matrix.early.seral.0)*100]
+data.set[, matrix.dist.rate:= ((matrix.dist-matrix.dist.0)/matrix.dist.0)*100]
+data.set[, matrix.dist500.rate:=( (matrix.dist500-matrix.dist500.0)/matrix.dist500.0)*100]
 data.set[, matrix.rsf.rate:= (matrix.sum.rsf.hat-matrix.sum.rsf.hat.0)/matrix.sum.rsf.hat.0]
 
 data.set[, matrix.burn40.rate2:= (matrix.burn40-matrix.burn40.0)/(year-year.0)]
@@ -401,11 +401,16 @@ matrix.graph.dist[,hab:='Matrix']
 
 graph.dist<-rbind(core.graph.dist,matrix.graph.dist)
 graph.dist<-graph.dist[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
-out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value, color = herd_name )) +
+
+graph.dist %>% mutate(rolling_sd=rollapply(value, width=10, sd,  fill=NA), rolling_mean=rollmean(value, k=10, fill=NA)) %>%  # table_browser()
+    ## build the plot
+  
+out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value) ) +
   facet_grid(type+hab~dm  , scales='free') +
   labs(y = "Disturbance Measure (%)", x = "Year")+
-  geom_point() +
-  geom_line() +
+  geom_point(aes(color = herd_name)) +
+  geom_smooth(se=FALSE, color = 'black') +
+  #stat_summary(fun.data=mean_cl_boot, geom="ribbon", alpha=0.25)+
   guides(color=guide_legend(title = "Herd")) +
   theme_bw() 
 
@@ -504,7 +509,7 @@ summary(model.data)
 
 Note that herd_name is the identifier for each herd. This model is simply the average of the log ratio of population change by herd = exp(-0.48) = 0.619 or a decline of ~40% across the years surveyed
 ```{r, reduced_model}
-m0.a <- lme(lambda.dift ~ 1 , random=~ 1|group, data = model.data, method = 'REML', control = con1)
+m0.a <- lme(lambda.dift ~ 1 , random=~ 1|group, data = model.data, method = 'ML', control = con1)
 summary(m0.a) #AIC:273, logl:-133
 plot(m0.a)
 
@@ -515,7 +520,7 @@ acf(residuals(m0.b,type="normalized"))
 summary(m0.b)#AIC:183, logl:-88.7
 plot(m0.b)# variances are different by herd
 
-#anova(m0.a,m0.b)
+anova(m0.a,m0.b)
 #Try adding a random effect for herd. Also, a different Variance for each herd. "The lme function allow the modeling of heteroscesdasticity of the within-error group via a weights argument. This topic will be covered in detail in § 5.2, but, for now, it suffices to know that the varIdent variance function structure allows different variances for each level of a factor and can be used to fit the heteroscedastic model [...]" Pinheiro and Bates, p. 177
 VarCorr(m0.b)
 getVarCov(m0.b)
@@ -630,22 +635,13 @@ anova(burn.per,burn.rate)
 #Early Seral Stage which is just clear cuts -- doesn't include burns
 ```{r, eary_seral}
 #---Percentage---
-l.early.seral.per<- lme(l.lambda ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~time|herd_name), data = model.data, control = con1)
-##Diagnostics
-acf(residuals(l.early.seral.per , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(l.early.seral.per),residuals(l.early.seral.per, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(l.early.seral.per, level=1),model.data$l.lambda) #0.797
-plot(model.data$l.lambda~fitted(l.early.seral.per))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(l.early.seral.per)
-
 early.seral.per.reml<- lme(lambda.dift ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
 
-#early.seral.per.reml.slope<- lme(lambda.dift ~ matrix.early.seral.per , random=~matrix.early.seral.per|herd_name, method = 'REML', data = model.data, control = con1)
+early.seral.per.reml.int<- lme(lambda.dift ~ core.early.seral.per+ matrix.early.seral.per, random=~1|herd_name, method = 'REML', data = model.data, control = con1)
 
-#anova(early.seral.per.reml,early.seral.per.reml.slope)
+early.seral.per.reml.slope<- lme(lambda.dift ~ core.early.seral.per+ matrix.early.seral.per, random=~-1+ core.early.seral.per|herd_name, method = 'REML', data = model.data, control = con1)
+
+anova(early.seral.per.reml.int,early.seral.per.reml.slope)
 
 early.seral.per<- lme(lambda.dift ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
 ##Diagnostics
@@ -660,22 +656,12 @@ summary(early.seral.per)
 
 
 #---Rate---
-l.early.seral.rate<- lme(l.lambda ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.3, form =~time|herd_name), data = model.data, control = con1)
-##Diagnostics
-acf(residuals(l.early.seral.rate , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(l.early.seral.rate),residuals(l.early.seral.rate, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(l.early.seral.rate, level =1),model.data$l.lambda) #0.8767
-plot(model.data$l.lambda~fitted(l.early.seral.rate))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(l.early.seral.rate)
+early.seral.rate.reml.slope<- lme(lambda.dift ~  core.early.seral.rate + matrix.early.seral.rate, random=~ core.early.seral.rate|herd_name, method = 'REML', data = model.data, control = con1)
 
-early.seral.rate.reml<- lme(lambda.dift ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
-
-early.seral.rate.reml.slope<- lme(lambda.dift ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1+core.early.seral.rate|herd_name, method = 'REML', data = model.data, control = con1)
+early.seral.rate.reml<- lme(lambda.dift ~ core.early.seral.rate * matrix.early.seral.rate, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
 
 anova(early.seral.rate.reml,early.seral.rate.reml.slope)
+summary(early.seral.rate.reml.slope)
 
 early.seral.rate<- lme(lambda.dift ~  core.early.seral.rate*matrix.early.seral.rate, random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
 ##Diagnostics
@@ -683,10 +669,10 @@ acf(residuals(early.seral.rate , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(early.seral.rate),residuals(early.seral.rate, type="normalized"))# variances are homogenous
 abline(0,0, col = 'red')
 cor(fitted(early.seral.rate.reml, level =0),model.data$lambda.dift) #0.8767
-plot(model.data$lambda.dift~fitted(early.seral.rate))
+plot(model.data$lambda.dift~fitted(early.seral.rate.reml.slope))
 abline(0,1, col = "red")
 abline(0,0, col = "yellow")
-summary(early.seral.rate)
+summary(early.seral.rate.reml.slope)
 
 #Rate model has higher correlation
 anova(early.seral.per, early.seral.rate)
@@ -698,17 +684,14 @@ intervals(early.seral.rate)
 #Percentage disturbed - includes only cutblocks and roads buffered by 50m
 ```{r, dist}
 #---Percentage---
-l.dist.per<- lme(l.lambda ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.5, form =~time|herd_name), data = model.data, control = con1)
-acf(residuals(l.dist.per , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(l.dist.per),residuals(l.dist.per, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(l.dist.per, level =0),model.data$l.lambda) #0.809
-plot(model.data$l.lambda~fitted(l.dist.per, level =0))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(l.dist.per)
-
 dist.per.reml<- lme(lambda.dift ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
+
+dist.per.reml.int<- lme(lambda.dift ~ core.dist.per+ matrix.dist.per, random=~1|herd_name, method = 'REML', data = model.data, control = con1)
+
+dist.per.reml.slope<- lme(lambda.dift ~ core.dist.per+ matrix.dist.per, random=~-1+ matrix.dist.per|herd_name, method = 'REML', data = model.data, control = con1)
+
+anova(dist.per.reml.int,dist.per.reml.slope)
+
 dist.per<- lme(lambda.dift ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
 acf(residuals(dist.per , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(dist.per),residuals(dist.per, type="normalized"))# variances are homogenous
@@ -720,17 +703,14 @@ abline(0,0, col = "yellow")
 summary(dist.per)
 
 #---Rate---
-l.dist.rate<- lme(l.lambda ~ core.dist.rate*matrix.dist.rate, random=~ 1|herd_name,method = 'ML', correlation = corAR1(0.5, form =~time|herd_name), data = model.data, control = con1)
-acf(residuals(l.dist.rate , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(l.dist.rate),residuals(l.dist.rate, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(l.dist.rate, level =0),model.data$l.lambda) #0.876
-plot(model.data$l.lambda~fitted(l.dist.rate, level =0))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(l.dist.rate)
-
 dist.rate.reml<- lme(lambda.dift ~ core.dist.rate*matrix.dist.rate, random=~ 1|herd_name,method = 'REML', data = model.data, control = con1)
+
+dist.rate.reml.int<- lme(lambda.dift ~ core.dist.rate+ matrix.dist.rate, random=~1|herd_name, method = 'REML', data = model.data, control = con1)
+
+dist.rate.reml.slope<- lme(lambda.dift ~ core.dist.rate+ matrix.dist.rate, random=~-1+ core.dist.rate|herd_name, method = 'REML', data = model.data, control = con1)
+
+anova(dist.rate.reml.int,dist.rate.reml.slope)
+
 dist.rate<- lme(lambda.dift ~ core.dist.rate*matrix.dist.rate, random=~ 1|herd_name,method = 'ML', data = model.data, control = con1)
 acf(residuals(dist.rate , type = 'normalized'),lag.max =10)#No issues
 plot( fitted(dist.rate),residuals(dist.rate, type="normalized"))# variances are homogenous
@@ -746,18 +726,14 @@ anova(dist.per, dist.rate)
 
 #Disturbance including cutblocks and roads with buffering each by 500m
 ```{r, dist500}
-#---Percentage---
-l.dist500.per<- lme(l.lambda ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.5, form =~time|herd_name),data = model.data, control = con1)
-acf(residuals(l.dist500.per, type = 'normalized'),lag.max =10)#No issues
-plot( fitted(l.dist500.per),residuals(l.dist500.per, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(l.dist500.per, level =1),model.data$l.lambda) #0.7786
-plot(model.data$l.lambda~fitted(l.dist500.per))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(l.dist500.per)
-
+#---Percentage--
 dist500.per.reml<- lme(lambda.dift ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
+
+dist500.per.reml.int<- lme(lambda.dift ~ core.dist500.per+ matrix.dist500.per, random=~1|herd_name, method = 'REML', data = model.data, control = con1)
+
+dist500.per.reml.slope<- lme(lambda.dift ~ core.dist500.per+ matrix.dist500.per, random=~-1+ matrix.dist500.per|herd_name, method = 'REML', data = model.data, control = con1)
+
+anova(dist500.per.reml.int,dist500.per.reml.slope)
 
 dist500.per<- lme(lambda.dift ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
 acf(residuals(dist500.per, type = 'normalized'),lag.max =10)#No issues
@@ -770,15 +746,13 @@ abline(0,0, col = "yellow")
 summary(dist500.per)
 
 #---Rate---
-l.dist500.rate<- lme(l.lambda ~ core.dist500.rate*matrix.dist500.rate,random=~ 1|herd_name, method = 'ML', correlation = corAR1(0.5, form =~time|herd_name), data = model.data, control = con1)
-acf(residuals(l.dist500.rate , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(l.dist500.rate),residuals(l.dist500.rate, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(l.dist500.rate, level =1),model.data$l.lambda) #0.86
-plot(model.data$l.lambda~fitted(l.dist500.rate))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(l.dist500.rate)
+dist500.rate.reml.int<- lme(lambda.dift ~ core.dist500.rate* matrix.dist500.rate, random=~1|herd_name, method = 'REML', data = model.data, control = con1)
+
+dist500.rate.reml.slope<- lme(lambda.dift ~ core.dist500.rate* matrix.dist500.rate, random=~-1+ matrix.dist500.rate|herd_name, method = 'REML', data = model.data, control = con1)
+
+anova(dist500.rate.reml.int,dist500.rate.reml.slope)
+
+
 
 dist500.rate.reml<- lme(lambda.dift ~ core.dist500.rate*matrix.dist500.rate,random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
 
@@ -792,7 +766,15 @@ abline(0,1, col = "red")
 abline(0,0, col = "yellow")
 summary(dist500.rate)
 
-anova(dist500.per, dist500.rate)
+drop1(dist500.rate,test="Chisq")
+
+dist500.rate.null<- lme(lambda.dift ~ core.dist500.rate+matrix.dist500.rate,random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
+
+dist500.rate.x1<- lme(lambda.dift ~ core.dist500.rate*matrix.dist500.rate,random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
+
+anova(dist500.rate.null, dist500.rate.x1)
+
+
 ```
 
 ## OVERALL
@@ -810,20 +792,22 @@ cor(fitted(m0.b.reml, level =0),model.data$lambda.dift) #0.7786
 
 summary(early.seral.per.reml)
 intervals(early.seral.per.reml)
-cor(fitted(early.seral.per.reml, level =0),model.data$lambda.dift) #0.7786
+cor(fitted(early.seral.per.reml, level =1),model.data$lambda.dift) #0.7786
 
 summary(early.seral.rate.reml)
-cor(fitted(early.seral.rate.reml, level =0),model.data$lambda.dift)
+cor(fitted(early.seral.rate.reml, level =1),model.data$lambda.dift)
 
 summary(dist.per.reml)
-cor(fitted(dist.per.reml, level =0),model.data$lambda.dift)
+cor(fitted(dist.per.reml, level =1),model.data$lambda.dift)
 summary(dist.rate.reml)
-cor(fitted(dist.rate.reml, level =0),model.data$lambda.dift)
+cor(fitted(dist.rate.reml, level =1),model.data$lambda.dift)
 
 summary(dist500.per.reml)
 cor(fitted(dist500.per.reml, level =0),model.data$lambda.dift)
 summary(dist500.rate.reml)
 cor(fitted(dist500.rate.reml, level =0),model.data$lambda.dift)
+
+coef(dist500.per.reml)
 ```
 #FIGURE 3: observed vs predicted
 ```{r, obs_pred}
@@ -844,17 +828,25 @@ ggplot(data = dtgx3, aes(y=lambda.dift, x =fitted, color = herd_name)) +
   theme_bw() +
   guides(color=guide_legend(title = "Herd")) 
 
+a1<-ggplot(data = model.data, aes(x = core.dist500.rate, y = lambda.dift, colour = factor(herd_name))) +
+    geom_point(size=0.5) +
+    geom_line(aes(y = predict(dist500.rate.reml))) 
 
+a2<-ggplot(data = model.data, aes(x = matrix.dist500.rate, y = lambda.dift, colour = factor(herd_name))) +
+    geom_point(size=0.5) +
+    geom_line(aes(y = predict(dist500.rate.reml))) 
+library(gridExtra)
+grid.arrange(a1, a2,nrow=1)
 
 ```
 
 #FIGURE 4. Behaviour of the model
 
 ```{r, behave}
-bhv0<-data.table(matrix.dist500.rate=seq(-0.4,0.4, 0.02), core.dist500.rate = -0.1)
-bhv1<-data.table(matrix.dist500.rate=seq(-0.4,0.4, 0.02), core.dist500.rate = 0)
-bhv2<-data.table(matrix.dist500.rate=seq(-0.4,0.4, 0.02), core.dist500.rate = 0.1)
-bhv3<-data.table(matrix.dist500.rate=seq(-0.4,0.4, 0.02), core.dist500.rate = 0.3)
+bhv0<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = -10)
+bhv1<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = 0)
+bhv2<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = 10)
+bhv3<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = 30)
 bh<-rbindlist(list(bhv0,bhv1, bhv2, bhv3))
 bh[, herd_id:= 1]
 
@@ -862,15 +854,15 @@ bh_herds<-data.table(herd_name=unique(model.data$herd_name), herd_id =1)
 bh_herds2<-merge(bh_herds, bh, by.x="herd_id", by.y="herd_id", all=TRUE, allow= TRUE)
 
 bh_herds2$pred<-predict(dist500.rate.reml, bh_herds2)
-bh_herds2[core.dist500.rate == -0.1, core:='CR500 Core = -0.1']
-bh_herds2[core.dist500.rate == 0, core:='CR500 Core = 0']
-bh_herds2[core.dist500.rate == 0.1, core:='CR500 Core = 0.1']
-bh_herds2[core.dist500.rate == 0.3, core:='CR500 Core = 0.3']
+bh_herds2[core.dist500.rate == -10, core:='CR500(PInit) Core =-10%']
+bh_herds2[core.dist500.rate == 0, core:='CR500(PInit) Core=0%']
+bh_herds2[core.dist500.rate == 10, core:='CR500(PInit) Core=10%']
+bh_herds2[core.dist500.rate == 30, core:='CR500(PInit) Core=30%']
 
 bh$pred<-predict(dist500.rate.reml, bh,level=0)
 bh[core.dist500.rate == 0, core:='0']
-bh[core.dist500.rate == 0.1, core:='0.1']
-bh[core.dist500.rate == 0.3, core:='0.3']
+bh[core.dist500.rate == 10, core:='10']
+bh[core.dist500.rate == 30, core:='30']
 
 bh_herds2[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
 
@@ -879,7 +871,7 @@ fig4<-ggplot(data = bh_herds2,aes(x = matrix.dist500.rate, y = pred, color = her
   geom_line() +
   geom_abline(slope = 0, intercept = 0, color= "black") +
   theme_bw() +
-  labs(y = expression(paste("Population trend ", hat(italic("r")))), x = "CR500 Matrix (% of initial survey (PInit))")+
+  labs(y = expression(paste("Population trend ", hat(italic("r")))), x = "CR500(PInit) Matrix (%)")+
   guides(color=guide_legend(title = "Herd"))
 fig4
 
