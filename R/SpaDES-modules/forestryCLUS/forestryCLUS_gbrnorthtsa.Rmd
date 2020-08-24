@@ -102,9 +102,9 @@ parameters <- list(
 # "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
 # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"),
                                            "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
-"rast.zone_cond_eccc_rainbows_crithab_or_herd",
-"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
-                                           
+                                           "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+                                           "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
+
                            nameZoneTable = "zone_constraints_gbr",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -176,10 +176,12 @@ modules <- list("dataLoaderCLUS",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_North_TSA",
                                      partition = ' vol > 150 ', 
+
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
+
                                      flow = 2100000))) # try 1 3300000, try 2 3000000,3.) 2900000, 4.) 2500000 5.) 2100000 (worked), 2200000 (did not),
 
 
