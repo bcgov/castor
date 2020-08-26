@@ -22,6 +22,73 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# Okanagan TSA Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in Columbia North and Frisbee/Boulder caribou critical habtiat; to support herd planning, we run a sceanrio with no harvest in the HEWSR and Matrix habitats of these herds; harvest is BAU in other herds; assesses the potential maximum impact of protecting Columbia North and Frisbee/Boulder only, assuming other herds unprotected
+
+"ECCC" in Columbia North and Frisbee/Boulder caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central Selkirks only
+
+no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (including matrix); establishes the 'maximum impact' that protection of caribou habitat might potentially have on forest harvest; in Okanagan these include Columbia North HEWSR, Columbia North Matrix, Monashee Matrix, Monashee HEWSR, Frisby Boulder HEWSR, Frisby Boulder Matrix
+
+'ECCC' in caribou critical habtait areas; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low eleavtion cirtcial habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
+
+# Okanagan TSA Parameters 
+
+## New Caribou Zone Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
+
+No harvest in all herds = rast.zone_cond_noharvest_columbia_north_crithab_or_herd,
+                          rast.zone_cond_noharvest_frizby_boulder_crithab_or_herd,
+                          rast.zone_cond_noharvest_monashee_crithab_or_herd
+
+ECCC in all herds = rast.zone_cond_eccc_columbia_north_crithab_or_herd,
+                          rast.zone_cond_eccc_frizby_boulder_crithab_or_herd,
+                          rast.zone_cond_eccc_monashee_crithab_or_herd
+
+No harvest in columbia north and Frisbee/Boulder = rast.zone_cond_noharvest_columbia_north_crithab_or_herd,
+                          rast.zone_cond_noharvest_frizby_boulder_crithab_or_herd
+
+ECCC Columbia North and Frisbee/Boulder = rast.zone_cond_eccc_columbia_north_crithab_or_herd,
+                          rast.zone_cond_eccc_frizby_boulder_crithab_or_herd rast.zone_cond_eccc_columbia_south_crithab_or_herd
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+
+## 'harvestFlow'
+from 2011 analysis report:  maximum even flow harvest was 2,469,000m^3^/year; from detemrination, January 1, 2013, the  AAC was set at 3 078 405 cubic metres 
+
+- First, I tested a harvest flow of 2,000,000m^3^/year (10,000,000m^3^/5-year); was not able to achieve an even harvest flow, so I dropped to 1,400,000, then 1,200,000 this still did not work so I went down to 1,140,000
+
+
+
+why was this model max even flow so low compared to that in the analysis report? maybe adjacney?, maybe min. volume? or maybe harvest queue?
+
+From the 2011 analysis report, they say that in the future the average age of harvested volume will be 80yrs old so maybe we are restricting the model to wood that is too old. However, the average volume of harvested wood per ha is predicted to be above 250 m^3/ha which is higher than the value we specify in our model. I used 150 m3/ha as minimum harvest volume instead
+
+For cutblock adjacency, I used 3 m adjacncey; no real mention fo this in aanylsis report; used 'green-up' targets at coarser scales
+
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
