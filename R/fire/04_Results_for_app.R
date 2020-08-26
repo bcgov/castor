@@ -106,7 +106,7 @@ Fire_cummulative<-rbind(Fire_cummulative,as.data.frame(fire.summary))
 
 tail(Fire_cummulative,100)
 
-Itcha<-Fire_cummulative %>% filter(herd_bounds=="Itcha-Ilgachuz Matrix")
+Itcha<-Fire_cummulative %>% filter(herd_bounds=="Itcha-Ilgachuz Matrix") # example plot for one herd.
 
 ggplot(Itcha, aes (x=year, y=cummulative.area.burned)) +
   facet_wrap(.~herd_bounds, ncol = 4)+
