@@ -41,7 +41,7 @@ cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 2)
 parameters <- list(.progress = list(type = NA, interval = NA),
   .globals = list(),
-  roadCLUS = list(roadMethod = 'snap', 
+  roadCLUS = list(roadMethod = 'snap', # pre(?), lcp, mst
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.pre_roads'),
   dataLoaderCLUS = list(dbName='clus',

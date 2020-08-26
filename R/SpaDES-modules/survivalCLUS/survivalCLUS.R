@@ -84,7 +84,8 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
     herdbounds [, pixelid := seq_len(.N)] # add pixelid value
     
     vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableCaribouHerd))) # get the herd name attribute table that corresponds to the integer values
-
+    # print(vat_table)
+    # print(herdbounds)
     herdbounds <- merge (herdbounds, vat_table, by.x = "herd_bounds", by.y = "value", all.x = TRUE) # left join the herd name to the intger
     herdbounds [, herd_bounds := NULL] # drop the integer value 
     

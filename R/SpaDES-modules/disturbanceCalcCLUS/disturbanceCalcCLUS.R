@@ -43,6 +43,7 @@ defineModule(sim, list(
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    #expectsInput(objectName ="harvestPixelList", objectClass ="data.table", desc = 'The list of pixels being harvesting in a time period', sourceURL = NA)
     ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -72,7 +73,7 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   sim$disturbanceReport<-data.table(scenario = character(), compartment = character(), timeperiod= integer(),
                                     critical_hab = character(), dist500 = numeric(), dist500_per = numeric(), dist = numeric(), dist_per = numeric())
-  sim$disturbance<-sim$pts
+  sim$disturbance <- sim$pts
   
   #Get the critical habitat
   if(P(sim, "disturbanceCalcCLUS", "criticalHabRaster") == '99999'){
@@ -108,7 +109,7 @@ Init <- function(sim) {
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN dist numeric DEFAULT 0")
     # add in the raster
     if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
-      message("Need to supply a permanent disturbance raster parameter as permDisturbanceRaster = ... defaulting to no permanent disturbances")
+      message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
       dbExecute(sim$clusdb, "Update pixels set perm_dist = 0;")
     }else{
     perm_dist <- data.table (c(t(raster::as.matrix( 
@@ -165,11 +166,13 @@ distAnalysis <- function(sim) {
   #out.ras[]<-sim$disturbance$dist
   #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
+  #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
+  
   #Sum the area up > 500 m
   tempDisturbanceReport<-merge(sim$disturbance[dist > 500, .(hab500 = uniqueN(.I)), by = "critical_hab"], sim$disturbance[!is.na(critical_hab), .(total = uniqueN(.I)), by = "critical_hab"])
   tempDisturbanceReport<-merge(tempDisturbanceReport, sim$disturbance[dist > 0, .(hab = uniqueN(.I)), by = "critical_hab"] )
   tempDisturbanceReport[, c("scenario", "compartment", "timeperiod", "dist500_per", "dist500", "dist_per", "dist") := list(scenario$name,sim$boundaryInfo[[3]],time(sim)*sim$updateInterval,((total - hab500)/total)*100,total - hab500,((total - hab)/total)*100, total - hab)]
-  tempDisturbanceReport[, c("total","hab500","hab") := list(NULL, NULL,NULL)]
+  tempDisturbanceReport[, c("total","hab500","hab") := list(NULL, NULL,NULL)]#remove cols
 
   sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE )
   sim$disturbance[, dist:=NULL]

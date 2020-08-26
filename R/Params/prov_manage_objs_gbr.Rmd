@@ -1,0 +1,553 @@
+<!--
+Copyright 2018 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Provincial Forest Management Objectives"
+author: "Kyle Lochhead"
+date: "March 15, 2019"
+output: 
+  html_document: 
+    keep_md: yes
+    toc: true
+---
+
+## Purpose
+
+Create a provincial scale forest management objective raster(s) based on two categories: i) zonal constraints; ii) no-harvesting constraints and iii) conditional harvesting constraints. For iii) condition harvesting constraints refer to: [uwr_cond_harvest](https://github.com/bcgov/clus/blob/master/R/Params/uwr_cond_harvest.Rmd) and [wha_cond_harvest](https://github.com/bcgov/clus/blob/master/R/Params/wha_cond_harvest.Rmd). The various management objectives being considered and sources include:
+
+```{r table_objs, echo=FALSE}
+library(data.table)
+library(here)
+knitr::kable(data.table(objective = c(
+                        "Aspatial Old Growth Retention",
+                        "Fisheries Sensitive Watersheds",
+                        "Visual Quality Objectives"), 
+             source = c("https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/policies-guides/old_growth_order_may18th_final.pdf",
+                       "http://www.env.gov.bc.ca/wld/frpa/fsw/approved.html" ,
+                       "https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/visual-resource-management"
+                        )),
+             caption = "Zonal Constraints")
+
+knitr::kable(data.table(objective = c(
+                        "Wildlife Habitat Areas",
+                        "Ungulate Winter Range",
+                        "Wildlife Management Areas",
+                        "Visual Quality Objectives",
+                        "Spatial Old Growth Management Areas"),
+             source = c(
+               "http://www.env.gov.bc.ca/cgi-bin/apps/faw/wharesult.cgi?search=show_approved",
+               "http://www.env.gov.bc.ca/wld/frpa/uwr/approved_uwr.html",
+               "https://catalogue.data.gov.bc.ca/dataset/tantalis-wildlife-management-areas",
+               "https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/visual-resource-mgmt/vrm_a_guide_to_visual_quality_objectives.pdf",
+               "https://catalogue.data.gov.bc.ca/dataset/old-growth-management-areas-legal-current"
+             )),
+             caption = "Harvesting Constraint")
+```
+
+>Note: these management objectives are not inclusive of all objectives - but rather they are a set of common constraints considered in timber supply review. Remaining detailed layers indicating either zonal or harvesting constraints will be incorporated at a later time
+
+## Biodiversity Emphasis Options - Zonal Constraints
+
+Biodiversity Emphasis Options (BEO) are defined during landscape level planning, typically an a landscape unit or on BEC zones (natural disturbance types) within a landscape unit. If no landscape unit has been designated for an area, or an emphasis option has not been assigned for a particular landscape unit, the default is that the area is managed using the lower biodiversity emphasis option. see [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid)
+
+#### Get data  
+```{r zoneStep1, echo=FALSE}
+source (paste0(here(),"/R/functions/R_Postgres.R"))
+
+lu<-getSpatialQuery("SELECT lu_id, 
+case 
+	when beo = 'High' then 1 
+	when beo = 'Intermediate' then 2
+	else 3 
+end as beo2, wkb_geometry 
+FROM public.rmp_lu_sp_polygon 
+WHERE beo <> 'Multiple' AND rt_dt Is NULL Order by gis_ch_dt")
+
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+#Rasterize the bidodiversity emphasis options
+beo.ras<-fasterize::fasterize(sf= lu, raster = ProvRast , field = "beo2")
+luid.ras<-fasterize::fasterize(sf= lu, raster = ProvRast , field = "lu_id")
+
+#Get the natural disturbance types
+ndt<-getSpatialQuery("SELECT  wkb_geometry,
+case
+  WHEN natural_disturbance = 'NDT1' then 1
+  WHEN natural_disturbance = 'NDT2' then 2
+  WHEN natural_disturbance = 'NDT3' then 3
+  WHEN natural_disturbance = 'NDT4' then 4
+  else 5
+end as ndt from public.bec_zone")
+
+#Rasterize the NDT
+ndt.ras<-fasterize::fasterize(sf= ndt, raster = ProvRast , field = "ndt")
+
+#Get the bec zones and assign them a key called zone
+bec<- getSpatialQuery("SELECT wkb_geometry, 
+case
+  WHEN zone = 'BWBS' then 1
+  WHEN zone = 'CDF' then 2
+  WHEN zone = 'CWH' then 3
+  WHEN zone = 'ESSF' then 4
+  WHEN zone = 'ICH' then 5
+  WHEN zone = 'IDF' then 6
+  WHEN zone = 'MH' then 7
+  WHEN zone = 'MS' then 8
+  WHEN zone = 'PP' then 9
+  WHEN zone = 'SBPS' then 10
+  WHEN zone = 'SBS' then 11
+  WHEN zone = 'SWB' then 12
+end as zone FROM public.bec_zone") #Alpine Tundra and Bunchgrass are not included?
+
+#Rasterize the BEC zone (key for BEC zones)
+bec.ras<-fasterize::fasterize(sf= bec, raster = ProvRast , field = "zone")
+
+rm(lu,bec,ndt) # free some memory
+gc()# Clean up
+
+#Make a stack raster with all the information needed for BEO contraints
+ogm<-stack(bec.ras, ndt.ras, luid.ras, beo.ras)
+names(ogm)<-c("BEC", "NDT", "LU_ID", "BEO")
+raster::plot(ogm) #plot the stack
+```
+
+#### Make unique zones within Landscape Units
+
+```{r zoneStep2, echo=FALSE}
+library(data.table)
+library(here)
+
+#------------------------------------
+#Biodiversity Emphasis Options on Age
+#------------------------------------
+ogm.table<-data.table(as.data.frame(ogm)) #ogn is the stacked raster of the BEO
+ogm.table[, id := seq_len(.N)]#assign a unique id for each pixel
+
+rm(ogm, bec.ras, beo.ras, ndt.ras, luid.ras) #clear up some memory
+gc() # clean up
+
+#concactenate and join in old growth percentage
+print(head(ogm.table))
+ogm.table[, ogm := paste0(BEC, '_', NDT, '_', BEO)]
+#print(ogm.table[!is.na(BEC)])#CHECK
+
+#Create oldgrowth look up table. Note for ndt 3 in the BWBS there is a further difference between conifer and deciduous. I omitted this level of precision and used the most conservative one -- the conifer percentage . This adds an extra 2-3 percent!!! see Table 3 in https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/policies-guides/old_growth_order_may18th_final.pdf
+
+NDT1<-data.table(BEC = c("CWH", "CWH", "CWH", 
+                         "ICH", "ICH", "ICH",
+                         "ESSF","ESSF","ESSF",
+                         "MH",  "MH",  "MH"),  
+                 p_OGR= c(19, 13, 13,
+                          19, 13, 13,
+                          28, 19, 19,
+                          28, 19, 19), AGE = 250, NDT = 1, BEO = 1:3)
+
+NDT2<-data.table(BEC = c("CWH", "CWH", "CWH",
+                         "CDF", "CDF", "CDF", 
+                         "ICH", "ICH", "ICH",
+                         "SBS", "SBS", "SBS",
+                         "ESSF","ESSF","ESSF",
+                         "SWB", "SWB", "SWB"),
+                 p_OGR= c(13, 9, 9,
+                          13, 9, 9,
+                          13, 9, 9,
+                          13, 9, 9), AGE = 250, NDT = 2, BEO = 1:3)
+
+NDT3<-data.table(BEC = c("BWBS","BWBS","BWBS", 
+                         "SBPS","SBPS","SBPS",
+                         "SBS", "SBS", "SBS",
+                         "MS",  "MS",  "MS",
+                         "ESSF","ESSF","ESSF",
+                         "ICH", "ICH", "ICH",
+                         "CWH", "CWH", "CWH"),
+                 p_OGR= c(19, 13, 13,
+                          10, 7, 7,
+                          16, 11, 11,
+                          21, 14, 14,
+                          21, 14, 14,
+                          21, 14, 14,
+                          16, 11, 11), 
+                 AGE = c(100, 140, 140,
+                         140, 140, 140,
+                         140, 140, 140,
+                         140, 140, 140,
+                         140, 140, 140,
+                         140, 140, 140,
+                         140, 140, 140), NDT = 3, BEO = 1:3)
+
+NDT4<-data.table(BEC = c("ICH", "ICH", "ICH",
+                         "IDF", "IDF", "IDF",
+                         "PP",  "PP",  "PP"),  
+                 p_OGR= c(19, 13, 13,
+                          19, 13, 13,
+                          19, 13, 13), AGE = 250, NDT = 4, BEO = 1:3)
+
+p_OGR<-rbind(NDT1, NDT2, NDT3, NDT4) #this is the lookup for geting the percentage of old growth required for retention by bec and ndt
+
+#Create a value attribute table which assigns an integer key called BEC2 to each BEC zone
+vat<-data.table(BEC  = 
+                c('BWBS', 'CDF', 'CWH', 'ESSF', 'ICH', 'IDF', 'MH', 'MS', 'PP','SBPS', 'SBS', 'SWB'),
+                BEC2 = 1:12)
+
+p_OGR<-merge(x=p_OGR, y=vat, by.x= "BEC", by.y= "BEC") # join vat and p_OGR to get BEC2 key
+p_OGR[, ogm := paste0(BEC2, '_', NDT, '_', BEO)] # concatenate to get a unique constraint
+p_OGR<-p_OGR[, c(2:3,7)] #Keep only the unique constraint, the p_OGR and age threshold
+
+setkey(ogm.table, ogm) # assign a data.table key thats the unique constraint for joining
+setkey(p_OGR, ogm)# assign a data.table key thats the unique constraint for joining
+
+ogm.final<-merge(x=p_OGR, y=ogm.table, by="ogm", all.y=TRUE) # merge the constraint with each spatial landscape unit
+
+rm(ogm.table) # clear memory
+gc() # clean up
+#----Checking----
+#print(ogm.final[!is.na(p_OGR)])
+#out<-data.frame(ogm.final[order(id)])
+#print(head(out[]))
+#ogm.ras<-ProvRast
+#ogm.ras[]<-out[,2]
+#writeRaster(ogm.ras, file="ogm_ret_thres.tif", format="GTiff", overwrite=TRUE)
+rm(ogm.ras, out, NDT1, NDT2, NDT3, NDT4, vat, p_OGR)
+gc()
+
+ogm.final[, zone := .GRP, by=.(LU_ID,BEC,NDT)] #Creates a unique id for each zone grouped by Lu_ID, BEC and NDT
+#remove zones that are ndt5 or other wise do not have a ogr, age
+print(head(ogm.final[is.na(AGE),]))
+ogm.final[is.na(AGE), zone:=NA]
+out<-data.frame(ogm.final[order(id)])
+gc()
+zone.ras<-ProvRast
+zone.ras[]<-out[,9] #assign the zone to each pixel
+
+
+writeRaster(zone.ras, file=paste0(here(),"/zone_beo.tif"), format="GTiff", overwrite=TRUE)#print the raster
+rm(zone.ras, out)
+
+# Upload to postgres database
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_beo.tif -t 100x100 rast.zone_cond_beo |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
+
+library(RPostgreSQL)
+ogm.final[zone == 2435,]
+zone_beo_table<-setDT(ogm.final)[, .SD[which.max(AGE)], by=zone]
+
+zone_beo_table<-zone_beo_table[,c(1,3:4, 6)]
+zone_beo_table[, reference_zone := 'rast.zone_beo']
+zone_beo_table[, variable := 'age']
+zone_beo_table[, type := 'ge']
+
+setnames(zone_beo_table, c("zoneid", "percentage", 
+                  "threshold","ndt", "reference_zone", 
+                  "variable", "type"))
+zone_beo_table[, ndt := as.integer(ndt)]
+df<-as.data.frame(zone_beo_table)
+df$label<-'beo' #TODO: label this is as high/I/L ?
+
+#Upload the constraint table to the db
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+ 
+DBI::dbWriteTable(conn, c("public", "zone_beo"), value= df, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+rm(zone_beo_table, df, ogm.final)
+gc()
+
+```
+
+# Fisheries Sensitive Areas and Equivalent Clearcut Area
+```{r, fsw}
+#Fisheries Sensitive Areas
+#source (paste0(here(),"/R/functions/R_Postgres.R"))
+
+fsw<-getSpatialQuery("SELECT fsw_id, wkb_geometry FROM public.wcp_f_s_ws_polygon")
+
+# in GBR there are important fisheries areas where maintenance of an equivalent clearcut area of less than 20% is allowed. See Part 3 of (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/northislandcentralcoast-lu/coast_lud_centralandnorth_luor_13jun2013consolidated.pdf)
+
+# There is also high value fish habitat where 100% of the forest needs to be preserved. These areas include the Kimsquit River, Klinaklini River, and Viner Creek Reserve Zones. See Part 3 of (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/northislandcentralcoast-lu/coast_lud_centralandnorth_luor_13jun2013consolidated.pdf); and schedule P of 2016 Great Bear Rainforest (GBR) Order - Map Schedule Data. (https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements)
+
+# Im going to add the above GBR layers to the fsw layer. 
+
+gbr_ifa<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchE_IFW_20160104.shp")
+
+gbr_hvfh_1<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchP_Kimsquit_20151105.shp")
+gbr_hvfh_2<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchP_Klinaklini_20151105.shp")
+gbr_hvfh_3<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchP_Viner_20151105.shp")
+
+gbr_hvfh_1$WSNAME<-gbr_hvfh_1$Obj11_Exce
+gbr_hvfh_1$WS_NUM<-max(gbr_ifa$WS_NUM)+1
+gbr_hvfh_2$WSNAME<-gbr_hvfh_2$Obj11_Exce
+gbr_hvfh_2$WS_NUM<-max(gbr_ifa$WS_NUM)+2
+gbr_hvfh_3$WSNAME<-gbr_hvfh_3$Obj11_Exce
+gbr_hvfh_3$WS_NUM<-max(gbr_ifa$WS_NUM)+3
+
+gbr_hvfh<-rbind(rbind(gbr_hvfh_1,gbr_hvfh_2),gbr_hvfh_3)
+gbr_hvfh <- gbr_hvfh[,!(names(gbr_hvfh) %in% "Obj11_Exce")]
+
+gbr_fsw<-rbind(gbr_ifa,gbr_hvfh)
+plot(gbr_fsw)
+gbr_fsw$fsw_id<-gbr_fsw$WS_NUM
+
+name<-c("WSNAME", "WS_NUM", "Shape_Leng", "Shape_Area")
+gbr_fsw1 <- gbr_fsw[,!(names(gbr_fsw) %in% name)]
+
+names(gbr_fsw1)<-c("wkb_geometry", "fsw_id")
+st_geometry(gbr_fsw1) <- "wkb_geometry"
+st_geometry(fsw) <- "wkb_geometry"
+gbr_fsw2<-st_cast(gbr_fsw1, "MULTIPOLYGON")
+
+fsw.all<-rbind(fsw, gbr_fsw2)
+
+#Rasterize the fisher sensitive areas
+fsw.ras<-fasterize::fasterize(sf= fsw.all, raster = ProvRast , field = "fsw_id")
+writeRaster(fsw.ras, file=paste0(here(),"/zone_fsw_gbr.tif"), format="GTiff", overwrite=TRUE)
+
+#upload to db
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_fsw_gbr.tif -t 100x100 rast.zone_cond_fsw_gbr |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+rm(fsw.ras)
+gc()
+library(dplyr)
+
+df<-as.data.frame(fsw.all)
+
+df_gbr1<- df %>% filter(fsw_id<=max(gbr_ifa$WS_NUM))
+df_gbr1$type<-'le' # less than (le), greater than (ge)
+df_gbr1$variable<-'eca' # equivalent clear cut area (eca)
+df_gbr1$threshold<-20
+df_gbr1$reference_zone<-'rast.zone_cond_fsw'
+df_gbr1$percentage<-100
+df_gbr1$ndt<-as.integer(0)
+df_gbr1<-df_gbr1[,c(1,3:8)]
+
+
+df_gbr2<- df %>% filter(fsw_id==max(gbr_ifa$WS_NUM)+1 | fsw_id==max(gbr_ifa$WS_NUM)+2 |fsw_id==max(gbr_ifa$WS_NUM)+3)
+df_gbr2$type<-'le' # less than (le), greater than (ge)
+df_gbr2$variable<-'eca' # equivalent clear cut area (eca)
+df_gbr2$threshold<-0
+df_gbr2$reference_zone<-'rast.zone_cond_fsw'
+df_gbr2$percentage<-100
+df_gbr2$ndt<-as.integer(0)
+df_gbr2<-df_gbr2[,c(1,3:8)]
+
+
+df_other<- df %>% filter(fsw_id>max(gbr_ifa$WS_NUM)+3)
+df_other$type<-'le' # less than (le), greater than (ge)
+df_other$variable<-'eca' # equivalent clear cut area (eca)
+df_other$threshold<-25
+df_other$reference_zone<-'rast.zone_cond_fsw'
+df_other$percentage<-100
+df_other$ndt<-as.integer(0)
+df_other<-df_other[,c(1,3:8)]
+
+
+df_final<-rbind(rbind(df_gbr1, df_gbr2), df_other)
+
+colnames(df_final) <- c("zoneid", "type", "variable", "threshold", "reference_zone", "percentage", "ndt")
+df_final$zoneid<-as.integer(df_final$zoneid)#assign integer
+df_final$label<-'fsw'
+
+#upload the constraint table for FSW to the db
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+ 
+DBI::dbWriteTable(conn, c("public", "zone_fsw_gbr"), value= df_final, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+```
+
+# Visual Quality Constraints
+```{r, vqo}
+source (paste0(here(),"/R/functions/R_Postgres.R"))
+
+lu<-getSpatialQuery("SELECT wkb_geometry 
+FROM public.rmp_lu_sp_polygon limit 1")
+
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
+)
+#Visual Quality Constraints on height
+#see https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/visual-resource-mgmt/vrm_a_guide_to_visual_quality_objectives.pdf
+vqo<-getSpatialQuery("SELECT 
+case
+  WHEN evqo_cd = 'P' then 0
+  WHEN evqo_cd = 'R' then 2
+  WHEN evqo_cd = 'PR' then 7
+  WHEN evqo_cd = 'M' then 18
+  WHEN evqo_cd = 'MM' then 30
+end as vqo, 
+case
+WHEN evqo_cd = 'P' then 0 else vli_id
+end as vli_id, wkb_geometry FROM public.rec_vlnd_polygon WHERE evqo_cd <> 'SCO'")
+
+vqo.ras<-fasterize::fasterize(sf= vqo, raster = ProvRast , field = "vli_id")
+writeRaster(vqo.ras, file=paste0(here(),"/zone_vqo.tif"), format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_vqo.tif -t 100x100 rast.zone_cond_vqo |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+df<-as.data.frame(vqo)
+df<-df[,1:2]
+df$type<-'le'
+df$variable<-'height'
+df$threshold<-5
+df$reference_zone<-'rast.zone_vqo'
+df$ndt<-as.integer(0)
+colnames(df) <- c("percentage", "zoneid", "type", "variable", "threshold", "reference_zone", "ndt") # the vqo column gets labeled as percentage
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$percentage<-as.numeric(df$percentage)#assign integer
+df$label<-'vqo'
+
+df<-data.table(unique(df))# get rid of the multiple zoneid = 0 )
+df[zoneid == 0, type := 'nh']
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_vqo"), value= df, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+rm(df, fsw, vqo.ras, vqo)
+gc()
+```
+
+# Spatial No Harvesting Constraints 
+
+These are areas that can contribute to zonal constraints but cannot harvest within these boundaries. For instance a spatial OGMA constraint refers to a mapped out spatial location for no harvesting. This area may be within a larger BEO that would include these pixels as part of the landscape level age constraint.
+
+The steps involved in the harvesting constraints:
+1. Get spatial old growth management areas (OGMA) - legal - no harvesting
+2. Get Parks and Protected Areas (parks)
+3. Biodiversity, Mining and Tourism areas 
+
+```{r hc_step1, echo=FALSE}
+source (paste0(here(),"/R/functions/R_Postgres.R"))
+library(here)
+lu<-getSpatialQuery("SELECT wkb_geometry 
+FROM public.rmp_lu_sp_polygon limit 1")
+
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+#ogma
+ogma<-getSpatialQuery("SELECT ogma_type, wkb_geometry FROM public.ogma_legal_polygon WHERE rt_dt Is NOT NULL")
+ogma$harvest<-1
+ogma.ras<-fasterize::fasterize(sf= ogma, raster = ProvRast , field = "harvest")
+ogma.ras[is.na(ogma.ras)]<-0
+
+#parks
+parks<-getSpatialQuery("SELECT wkb_geometry FROM public.ta_pep_svw_polygon")
+parks$harvest<-1
+parks.ras<-fasterize::fasterize(sf= parks, raster = ProvRast , field = "harvest")
+parks.ras[is.na(parks.ras)]<-0
+
+#conservancies
+conserv<-getSpatialQuery("SELECT wkb_geometry FROM public.ta_ca_svw_polygon")
+conserv$harvest<-1
+conserv.ras<-fasterize::fasterize(sf= conserv, raster = ProvRast , field = "harvest")
+conserv.ras[is.na(conserv.ras)]<-0
+
+#Biodiversity, mining and tourism areas
+# Data was taken from https://catalogue.data.gov.bc.ca/dataset/legal-planning-objectives-all-polygon
+
+RMP_poly<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/BCGW_7113060B_1596086267627_5328/RMP_PLAN_LEGAL_POLY_SVW/RMP_LG_PL_polygon.shp")
+
+bmta<-RMP_poly %>% filter(FEAT_OBJ=="Biodiversity, Mining and Tourism Areas (BMTA)") %>%
+  dplyr::select(geometry)
+bmta$harvest<-1
+
+names(bmta)<-c("wkb_geometry", "harvest")
+st_geometry(bmta) <- "wkb_geometry"
+bmta.ras<-fasterize::fasterize(sf= bmta, raster = ProvRast , field = "harvest")
+
+nharv.ras<- ogma.ras + parks.ras+ conserv.ras + bmta.ras
+plot(nharv.ras)
+nharv.ras[nharv.ras[] == 0 ] <- NA
+nharv.ras[nharv.ras[] > 0 ] <- 0
+writeRaster(nharv.ras, file=paste0(here(),"/nharv.tif"), format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M  ', here::here(), '/nharv.tif -t 100x100 rast.zone_cond_nharv_gbr | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+df<-data.frame(type='nh', variable= '', threshold=0, reference_zone='rast.zone_nharv_grb',
+ndt=0,percentage = 0, zoneid =0)
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$percentage<-as.numeric(df$percentage)#assign integer
+df$label<-'parks or OGMA'
+df$ndt<-as.integer(0)
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_nharv_grb"), value= df, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+rm(uwr.ras, wha.ras ,ogma.ras , pres.ras , parks.ras, parks, ogma, pres, wha, uwr)
+gc()
+```
+
+### Community Watersheds
+Water in community watersheds is a value identified under the Forest and Range Practices Act. From the Kamloops TSR:  The approach was to ensure that no more than an equivalent clear-cut area (ECA) of 20% of the gross land base that applies to the upper 60% of all community watersheds and that standard management practices applies to the lower 40% of the watershed. The upper 60% (snow pack area) is considered hydrologically recovered upon
+reaching 9 metres in height and the lower 40% being a 3 metre green up height. Therefore, averaging the above, in each community watershed the modelled practice was that no more than 25.2% of the gross area in a community watershed could be less than 6.6 metres in height.
+```{r, com_water}
+com_wat<-getSpatialQuery("SELECT * FROM com_ws_pub_polygon;")
+
+#Rasterize the community watersheds
+com_wat.ras<-fasterize::fasterize(sf= com_wat, raster = ProvRast , field = "ogc_fid")
+writeRaster(com_wat.ras, file=paste0(here::here(),"/zone_cw.tif"), format="GTiff", overwrite=TRUE)
+
+#upload to db
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here(), '/zone_cw.tif -t 100x100 rast.zone_cond_cw |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+rm(com_wat.ras)
+gc()
+df<-as.data.frame(com_wat)
+df$zoneid<-df$ogc_fid
+df$type<-'le'
+df$variable<-'eca'
+df$threshold<-20
+df$reference_zone<-'rast.zone_cond_cw'
+df$percentage<-100
+df$ndt<-as.integer(0)
+df<-df[,c("zoneid", "type", "variable", "threshold", "reference_zone", "percentage", "ndt")]
+colnames(df) <- c("zoneid", "type", "variable", "threshold", "reference_zone", "percentage", "ndt")
+df$zoneid<-as.integer(df$zoneid)#assign integer
+df$label<-'cw'
+
+#upload the constraint table for CW to the db
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+ 
+DBI::dbWriteTable(conn, c("public", "zone_cw"), value= df, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+```
+
+# Setting PostgreSQL Inheritance
+PostgreSQL implements table inheritance. See [here]("https://www.postgresql.org/docs/9.5/ddl-inherit.html")
+
+```{r zoneCleanUp, echo=FALSE, eval=FALSE}
+#----------------------------
+#Inheritability in PostgreSQL
+#----------------------------
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints_gbr (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
+
+dbExecute(conn, "ALTER TABLE zone_nharv INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_fsw_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
+dbDisconnect(conn)
+```

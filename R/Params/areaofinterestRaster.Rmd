@@ -1,0 +1,60 @@
+---
+title: "Area of Interest Raster"
+author: "Tyler Muhly"
+date: "Jul;y 16, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(data.table)
+library (here)
+source (here ("R/functions/R_Postgres.R"))
+library(tidyverse)
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(getSpatialQuery("Select * from bc_carib_poly_20090904 limit 1"))$proj4string, resolution = c(100, 100), vals = 0)
+```
+
+## Purpose
+Here we develop rasters that specify the location of areas of interest for estimating volume by area as outptus from CLUS. Can be used to estimate the contribution of a spatially defined area to annual harvested volume. 
+
+### Parnertship Agreement Areas
+Below creates a raster for summarizing by partnership agreement areas.
+
+```{r, partnership agreement areas}
+partnership <- getSpatialQuery("SELECT * from mtn_caribou_pa_jan_2020;")
+# spatial critical habitat polygon data
+
+#all - create the raster for each herd and critical habitat type
+all.partnership <- partnership 
+all.vat <- data.table (st_drop_geometry (all.partnership [, c ('zone', 'detail')]))
+all.vat [, value:= seq_len(.N)]
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+
+DBI::dbWriteTable(conn, c("public", "partnership_agreement_vat"), value= all.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+all.partnership2 <- merge (all.partnership, all.vat, by.x = "zone",by.y = "zone") # merge id with the polygon data
+
+ras.partnership <-fasterize::fasterize(all.partnership2, prov.rast, field = "value") # rasterzie the polygon data to the provicnal raster
+
+writeRaster(ras.partnership, "area_of_interest.tif", overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/area_of_interest.tif -t 100x100 rast.aoi_partnership_agree | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+
+
+
+
+

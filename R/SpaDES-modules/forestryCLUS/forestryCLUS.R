@@ -56,6 +56,7 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
+    createsOutput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
     createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
@@ -132,7 +133,7 @@ setConstraints<- function(sim) {
   message("....assigning zone_const")
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
-    numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
+    numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type, multi_condition FROM zoneConstraints WHERE
                                zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
     if(nrow(numConstraints) > 0){
       for(k in 1:nrow(numConstraints)){
@@ -142,22 +143,20 @@ setConstraints<- function(sim) {
                                                         END AS limits
                                                         FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
                                                             numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-       #TODO: Allow user to write own constraints according to many fields - right now only one variable
        switch(
           as.character(query_parms[1, "type"]),
             ge = {
               if(as.character(query_parms[1, "variable"]) == 'dist' ){
-                #num500<- dbGetQuery(sim$clusdb, paste0("select count(*) as count from pixels where dist > 500 and ", as.character(query_parms[1, "zone_column"]), " = ", query_parms[1, "zoneid"]))$count
-               #print(num500)
-               #print(query_parms$limits )
-                 #if(num500 < query_parms$limits ){
-                  #message(paste0(query_parms[1, "zoneid"]," in ",query_parms[1, "zone_column"], " surpassed disturbance threshold - shutting off harvesting"))
-                  #query_parms[1, limits:= t_area] 
-                #}
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
                         SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                         " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
+                        LIMIT :limits);")
+              }else if(as.character(query_parms[1, "variable"]) == 'multi' ){ #Allow user to write own constraints according to many fields - right now only one variable
+                sql<-paste0("UPDATE pixels SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                            " ORDER BY CASE WHEN ", as.character(query_parms[1, "multi_condition"])," then 0 ELSE 1 END, thlb, zone_const DESC
                         LIMIT :limits);")
               }else{
                 sql<-paste0("UPDATE pixels 
@@ -185,15 +184,13 @@ setConstraints<- function(sim) {
                 
                 query_parms<-merge(query_parms, eca_current, by.x ="zoneid", by.y =as.character(query_parms[1, "zone_column"]) , all.x =TRUE )
                 query_parms[,limits:=as.integer((1-(threshold/100 - eca/t_area))*t_area)]
-
+                query_parms[is.na(limits), limits:=0] # add so its not NA    
                 sql<-paste0("UPDATE pixels 
                       SET zone_const = 1
                             WHERE pixelid IN ( 
                             SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
                             " ORDER BY thlb, zone_const DESC, eca DESC 
-                            LIMIT :limits);") #limits equal the area that needs preservation 
-                #Preserve the non thlb, and areas already zone constrainted
-                #Update pixels in clusdb for zonal constraints
+                            LIMIT :limits);") #limits = the area that needs preservation 
                 dbBegin(sim$clusdb)
                 rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "limits")])
                 dbClearResult(rs)
@@ -214,10 +211,8 @@ setConstraints<- function(sim) {
                 dbCommit(sim$clusdb)
               }
             },
-        warning(paste0("Undefined 'type' in zoneConstraints: ", query_parms[1, "type"]))
+            warning(paste0("Undefined 'type' in zoneConstraints: ", query_parms[1, "type"]))
         )
-        
-
       } 
     }
   }
@@ -289,7 +284,8 @@ getHarvestQueue<- function(sim) {
           #rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
         dbClearResult(rs)
         dbCommit(sim$clusdb)
-      
+        
+        sim$harvestPixelList<-queue
 
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
