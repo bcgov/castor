@@ -22,6 +22,76 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# Morice TSA Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in Wolverine, Chase and Takla herds; to support herd planning in Wolverine, Chase and Takla, we run a sceanrio with no harvest in the  Takla HEWSR and Matrix (the other two did not overlap with the TSA); harvest is BAU in other herds; assesses the potential maximum impact of protecting these herds, assuming other herds unprotected
+
+No harvest in all Chilcotin caribou critical habtiat; to support Chilcotin herd planning, we run a sceanrio with no harvest in the Tweedsmuir HEWSR and Matrix; harvest is BAU in other herds; assesses the potential maximum impact of protecting Chilcotin herds only, assuming other herds unprotected
+
+"ECCC" in chilcotin caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Tweedsmuir only
+
+no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (including matrix); establishes the 'maximum impact' that protection of caribou habitat might potentially have on forest harvest; in Morice these include Takla herd, Telkwa HEWSR, Telkwa Matrix, Tweesdmuir HEWSR, Tweesdmuir LESR, Tweesdmuir Matrix
+
+'ECCC' in caribou critical habtait areas; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low eleavtion cirtcial habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
+
+# Morice TSA Parameters 
+
+## New Caribou Zone Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
+
+No harvest in all herds = rast.zone_cond_noharvest_takla_crithab_or_herd,
+                          rast.zone_cond_noharvest_telkwa_crithab_or_herd,
+                          rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd
+
+ECCC in all herds = rast.zone_cond_eccc_takla_crithab_or_herd,
+                          rast.zone_cond_eccc_telkwa_crithab_or_herd,
+                          rast.zone_cond_eccc_tweedsmuir_crithab_or_herd
+
+No harvest in Wolverine, Chase and Takla  = rast.zone_cond_noharvest_takla_crithab_or_herd
+
+No harvest in Chilcotin caribou (Tweedsmuir) = rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd
+
+ECCC in Chilcotin = rast.zone_cond_eccc_tweedsmuir_crithab_or_herd
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+
+## 'harvestFlow'
+from 2014 public discussion paper:  maximum even flow harvest was 1,600,000m^3^/year; from detemrination, March 16, 2020, the  AAC was set at 1,600,000 cubic metres 
+
+- First, I tested a harvest flow of 1,600,000m^3^/year (8,000,000 m^3^/5-year); was not able to achieve this, so dropped to down until 1,220,000 m^3/yr to get an even harvest flow. The discussion paper says they assumed a minimum volume of 150 cubic meters per ha.
+
+
+
+why was this model max even flow below our previosu model? maybe adjacney?, maybe min. volume? or maybe harvest queue? no indications in TSR documentation of signficant inventory or yeidl probelms 
+
+
+From 2016 analysis report, used a minimum harvets age to achieve 95% of the stands maximum mean annual increment; never decalred what this age was
+
+For cutblock adjacency, I used 3 m adjacncey; no real mention fo this in aanylsis report; used 'green-up' targets at coarser scales
+
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)

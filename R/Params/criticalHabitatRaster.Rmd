@@ -48,6 +48,7 @@ bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_m
 
 #all - create the raster for each herd and critical habitat type
 all.bc<-bc.crit
+
 all.bc$crithab<-paste(all.bc$herd_name, all.bc$bchab_code) # create unique id ("value") for each unique herd name and habitat type
 all.vat<-data.table(unique(all.bc$crithab))
 setnames(all.vat, "V1", "crithab")
@@ -156,11 +157,9 @@ for(herd in herds){ # create a table of the constraints for each herd
 
 ```{r, scenario: bc critical habitat, no harvest}
 #Canadian (Federal) contraints
-#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;")
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
 
-#herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
-herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek")
+herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
 
 for(herd in herds){
 bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
