@@ -401,9 +401,6 @@ matrix.graph.dist[,hab:='Matrix']
 
 graph.dist<-rbind(core.graph.dist,matrix.graph.dist)
 graph.dist<-graph.dist[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
-
-graph.dist %>% mutate(rolling_sd=rollapply(value, width=10, sd,  fill=NA), rolling_mean=rollmean(value, k=10, fill=NA)) %>%  # table_browser()
-    ## build the plot
   
 out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value) ) +
   facet_grid(type+hab~dm  , scales='free') +
@@ -774,6 +771,8 @@ dist500.rate.x1<- lme(lambda.dift ~ core.dist500.rate*matrix.dist500.rate,random
 
 anova(dist500.rate.null, dist500.rate.x1)
 
+dist500.rate.test<- lme(lambda.dift ~ core.dist500.rate*matrix.dist500.rate,random=~ 1|herd_name, method = 'ML', data = model.data, control = con1)
+summary(dist500.rate.test)
 
 ```
 
@@ -843,10 +842,10 @@ grid.arrange(a1, a2,nrow=1)
 #FIGURE 4. Behaviour of the model
 
 ```{r, behave}
-bhv0<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = -10)
-bhv1<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = 0)
-bhv2<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = 10)
-bhv3<-data.table(matrix.dist500.rate=seq(-40,40, 2), core.dist500.rate = 30)
+bhv0<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = -10)
+bhv1<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = 0)
+bhv2<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = 10)
+bhv3<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = 50)
 bh<-rbindlist(list(bhv0,bhv1, bhv2, bhv3))
 bh[, herd_id:= 1]
 
@@ -857,12 +856,12 @@ bh_herds2$pred<-predict(dist500.rate.reml, bh_herds2)
 bh_herds2[core.dist500.rate == -10, core:='CR500(PInit) Core =-10%']
 bh_herds2[core.dist500.rate == 0, core:='CR500(PInit) Core=0%']
 bh_herds2[core.dist500.rate == 10, core:='CR500(PInit) Core=10%']
-bh_herds2[core.dist500.rate == 30, core:='CR500(PInit) Core=30%']
+bh_herds2[core.dist500.rate == 50, core:='CR500(PInit) Core=50%']
 
 bh$pred<-predict(dist500.rate.reml, bh,level=0)
 bh[core.dist500.rate == 0, core:='0']
 bh[core.dist500.rate == 10, core:='10']
-bh[core.dist500.rate == 30, core:='30']
+bh[core.dist500.rate == 50, core:='50']
 
 bh_herds2[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
 
@@ -874,6 +873,43 @@ fig4<-ggplot(data = bh_herds2,aes(x = matrix.dist500.rate, y = pred, color = her
   labs(y = expression(paste("Population trend ", hat(italic("r")))), x = "CR500(PInit) Matrix (%)")+
   guides(color=guide_legend(title = "Herd"))
 fig4
+
+```
+
+## Thresholds
+```{r, thresholds}
+#get 2018 disturbance estiamtes
+dist2018.core<-data.2[year == 2018 & critical_hab %like% 'Core',c("herd_name", "dist500", "area")]
+setnames(dist2018.core, c("dist500", "area"), c("core.dist500.2018", "core.area"))
+dist2018.matrix<-data.2[year == 2018 & critical_hab %like% 'Matrix',c("herd_name","dist500", "area")]
+setnames(dist2018.matrix, c("dist500", "area"), c("matrix.dist500.2018", "matrix.area"))
+dist2018<-merge(dist2018.core, dist2018.matrix, by.x = "herd_name", by.y = "herd_name")
+
+dist.init<-data.set.0[,c("herd_name", "core.dist500.0", "matrix.dist500.0")]
+#create dataset for a prestine core
+trajectory <-with(dist.init, expand.grid(matrix.dist500.rate = seq(from = 0,to = 35, by =1), core.dist500.rate = -100))
+trajectory <-data.table(trajectory)[,herd_id:=1]
+#merge in herds
+bh_herds<-data.table(herd_name=unique(model.data$herd_name), herd_id =1)
+trajectory.2<-merge(bh_herds, trajectory, by.x="herd_id", by.y="herd_id", all=TRUE, allow= TRUE)
+trajectory.2$pred<-predict(dist500.rate.reml, trajectory.2,level=1)
+
+
+#Current level of core
+dist.traj<-merge(dist.init, dist2018, by.x = "herd_name", by.y = "herd_name")
+dist.traj[,core.dist500.rate:=((core.dist500.2018-core.dist500.0)/core.dist500.0)*100]
+dist.traj[,matrix.dist500.rate:=((matrix.dist500.2018-matrix.dist500.0)/matrix.dist500.0)*100]
+test.core<-dist.traj[,c("herd_name", "core.dist500.rate")]
+
+trajectory <-with(dist.init, expand.grid(matrix.dist500.rate = seq(from = -20,to = 35, by =1), core.dist500.rate= test.core$core.dist500.rate))
+trajectory.2<-merge(test.core, trajectory, by.x="core.dist500.rate", by.y="core.dist500.rate", all=TRUE, allow= TRUE)
+
+trajectory.2$pred<-predict(dist500.rate.reml, trajectory.2,level=1)
+
+#projections for 2018
+dist.traj$pred<-predict(dist500.rate.reml, dist.traj,level=1)
+
+out5<-dist.traj[, c("herd_name", "pred")]
 
 ```
 
