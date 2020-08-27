@@ -1,10 +1,10 @@
 ---
 title: "forestryCLUS"
-author: ""
-date: "08 April 2019"
+author: "Elizabeth Kleynhans"
+date: "29 June 2020"
 output:
-  html_document: 
-    keep_md: yes
+html_document: 
+keep_md: yes
 ---
 
 <!--
@@ -38,12 +38,13 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# TFL 33 Block Scenarios
+# TFL 14 Block Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Frisby-Boulder, Columbia North, and Columbia South caribou critical habtiat; to support  herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+no harvest in Central Selkirks caribou critical habtiat; to support 
+herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
 
-ECCC in Frisby-Boulder, Columbia North, and Columbia South caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Frisby-Boulder
+ECCC in Central Selkirks caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia North, Columbia South and Frisby-Boulder
 
 
 
@@ -52,9 +53,9 @@ ECCC in Frisby-Boulder, Columbia North, and Columbia South caribou critical habi
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest in Columbia Norht, South and Frisby-Boulder = rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd
+No harvest in Central Selkirks = rast.zone_cond_noharvest_central_selkirks_crithab_or_herd
 
-No harvest in Columbia North, Columbia South and Frisby-Boulder high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_frisby_boulder_crithab_or_herd
+No harvest in  Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -64,13 +65,10 @@ No harvest in Columbia North, Columbia South and Frisby-Boulder high elevation c
       - 'vol DESC', i.e., descending volume (highest volume first)
       
 ## 'harvestFlow'
-from 2017 determination: 
-"... harvest was projected to begin January 1, 2014, with an initial harvest level of 145 000 cubic metres for the first ten years. This was followed by a decline to 130 000 cubic metres in the second decade and then to the mid-term level of less than 119 000 cubic metres in the third decade. In the sixth decade, the harvest increased to 132 000 cubic metres, after which the harvest slowly increased to 184 000 cubic metres by the
-25th decade."
-- started at 145,000m^3/year; way too high, dropped to 5,000, 2,500
+from 2019 determination: 
+"...the harvest projection suggests an initial harvest level of 181 000 cubic metres per year starting in 2019 followed by a reduction to  163 000 cubic metres per year in 2039 and another decline after 40 yrs in 2059 to 157 000 which is thought to be a sustainable long term level
+- I started at 160 000m^3/year which was too high and tried various smaller values eventually stopping at  126,000 m^3/yr which was sustaibable.
 
-
-- very low cut levels seem to be due to inventory having few polygons with a site prodcutivity value; harvest in the model is limited to those patches
 
 - I used 150 m3/ha as minimum harvest volume; nothing in determination on this
 
@@ -91,26 +89,26 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL33_clusdb.sqlite"),
+                           save_clusdb = TRUE,
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL14_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "TFL33",
+                           nameBoundary = "TFL14",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters = c("rast.zone_cond_beo", 
-                                               "rast.zone_cond_vqo", 
-                                               "rast.zone_cond_wha", 
-                                               "rast.zone_cond_uwr",
-                                               "rast.zone_cond_fsw",
-                                               "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
-                                               # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
-                                                "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
-                                               ),
+                           nameZoneRasters=c("rast.zone_cond_beo", # rasters of the zone constraints to include. Add all zone rasters that might be needed here. First 7 always stay.
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_cond_wha", 
+                                           "rast.zone_cond_uwr", 
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw",
+                                          # "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd"),
+                                           "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"),
+                           
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -148,7 +146,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'tfl33', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'tfl14', # name of the schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -172,20 +170,21 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "tfl33_bau",
-#                        description = "Business-as-usual (BAU); harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl33_colnsfb_nh",
-#                        description = "No harvest in Frisby-Boulder critical habitat; harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
-scenario = data.table (name = "tfl33_colnsfb_ch_he0d_m15d",
-                       description = "No harvest in Frisby-Boulder HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl14_bau",
+#                        description = "Business as usual (BAU). Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl14_centselk_nh",
+#                        description = "No harvest in all Central Selkirks critical habitat. Adjacency was set to 3m.")
+scenario = data.table (name = "tfl14_centselk_ch_he0d_m15d",
+                       description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
 
-harvestFlow <- rbindlist(list(data.table(compartment ="TFL33",
-                                         partition = ' vol > 150 ', 
-                                         year = rep( seq (from = 2018, 
-                                                          to = 2218, 
-                                                          by = 5),
-                                                    1), 
-                                         flow = 12500) # 2,500m3/yr 
+
+harvestFlow <- rbindlist(list(data.table(compartment ="TFL14",
+                                     partition = ' vol > 150 ', 
+                                     year = rep( seq (from = 2018, 
+                                                      to = 2218, 
+                                                      by = 5),
+                                                1), 
+                                     flow = 630000) 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
@@ -237,6 +236,7 @@ system.time({mysimout<-spades(mySim)})
 
 
 ```
+
 
 # Events
 

@@ -9,11 +9,13 @@ source(here::here("R/functions/R_Postgres.R"))
 library(data.table)
 library(sf)
 library(tidyverse)
+library(rgeos)
 layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
 #Create a provincial raster
 prov.rast <- raster::raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(layeraoi)$proj4string, resolution = c(100, 100), vals = 0)
+
 ```
 # get data
 ```{r, data4}
@@ -62,7 +64,51 @@ mackenzie_sw$tsa_name<-'MacKenzie SW TSA'
 mackenzie_sw <-mackenzie_sw %>% group_by (tsa_name) %>% summarise()
 st_crs(mackenzie_sw)
 
-forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko) 
+###TFLs
+tfl <-getSpatialQuery("SELECT for_fl_id as tsa_name, wkb_geometry FROM tfl_all_polygon")
+tfl<-tfl%>% group_by (tsa_name) %>% summarise()
+st_crs(tfl)<-st_crs(pg_north)
+plot(tfl["tsa_name"]) 
+
+###GBR TSA's
+#TSA boundary data was taken from https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements
+
+# GBR North
+gbr_north<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchB_CNC_20160104.shp")
+gbr_north$tsa_name<-"Great Bear Rainforest North TSA"
+gbr_north<- gbr_north %>% group_by (tsa_name) %>% summarise()
+st_crs(gbr_north)<-st_crs(pg_north)
+names(gbr_north)<-c("tsa_name", "wkb_geometry")
+st_geometry(gbr_north) <- "wkb_geometry"
+
+# Now removing the tfl's out of GBR North
+tfl_union<-st_union(tfl)
+tfl2<-st_intersection(tfl_union, gbr_north)
+gbr_north2<-st_difference(gbr_north,tfl2)
+plot(gbr_north2)
+
+#GBR South
+gbr_south<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchC_SCC_20151105.shp")
+gbr_south$tsa_name<-"Great Bear Rainforest South TSA"
+gbr_south<- gbr_south %>% group_by (tsa_name) %>% summarise()
+st_crs(gbr_south)<-st_crs(pg_north)
+names(gbr_south)<-c("tsa_name", "wkb_geometry")
+st_geometry(gbr_south) <- "wkb_geometry"
+
+# Now removing the tfl's out of GBR South
+tfl3<-st_intersection(tfl_union, gbr_south)
+gbr_south2<-st_difference(gbr_south,tfl3)
+plot(gbr_south2)
+
+# looks mostly good when checked against https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-tenures/tfl_tsa_district_map.pdf
+
+
+```
+
+#Combine them into one dataset
+```{r, mergethem}
+
+forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko, gbr_north2, gbr_south2, tfl) 
 
 forest.tenure.vat<-unique(forest.tenure3$tsa_name)
 forest.tenure.vat2<-unlist(lapply(forest.tenure.vat, function(x){
@@ -75,24 +121,41 @@ forest.tenure4<-merge(forest.tenure3,forest.tenure.vat3)
 
 #get ride of the tsa_name -- its sperated by spaces
 forest.tenure4$tsa_name<-NULL
-setnames(forest.tenure4, c("tsa_name2"), c("tsa_name"))
+setnames(forest.tenure4, c("tsa_name2", "geometry"), c("tsa_name", "wkb_geometry"))
+st_geometry(forest.tenure4) <- "wkb_geometry"
+
 
 #Call value tsa_number
 forest.tenure5<-forest.tenure4
 setnames(forest.tenure5, c("value"), c("tsa_number"))
-st_write(forest.tenure5, "forest_ten.shp", delete_layer=TRUE)
-#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=klochhea" C:\Users\klochhea\clus\R\Params\forest_ten.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+st_write(forest.tenure5, "forest_tenures_GBR.shp", delete_layer=TRUE)
 
-#Alter table forest_ten rename to tsa_aac_bounds;
-#GRANT ALL ON TABLE public.tsa_aac_bounds TO postgres;
-#GRANT ALL ON TABLE public.tsa_aac_bounds TO clus_project;
-#GRANT ALL ON TABLE public.tsa_aac_bounds TO tmuhly;
+# commit the shape file to postgres
+# this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
+
+host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+password=keyring::key_get('dbpass', keyring = 'postgreSQL')
+
+
+
+ogr2ogr -f "PostgreSQL" PG:"host= user= dbname= password= port=5432" C:\Work\caribou\clus\R\Params\forest_tenures_GBR.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+# In PGAdmin run these lines of code to alter the table i.e. change its name and grant permissions
+# Alter table forest_ten rename to tsa_aac_bounds_gbr;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO postgres;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO clus_project;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO tmuhly;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO ekleynha;
+# GRANT ALL ON TABLE public.tsa_aac_bounds_gbr TO klochhea;
+
 
 
 #RAsterize 
 ras.forest.tenure <-fasterize::fasterize(st_cast(forest.tenure4, "MULTIPOLYGON"), prov.rast, field = "tsa_number") 
 raster::plot(ras.forest.tenure)
-writeRaster(ras.forest.tenure, "forest_ten.tif")
+writeRaster(ras.forest.tenure, "forest_ten_GBR.tif", overwrite=TRUE)
 
 ```
 
@@ -103,12 +166,12 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 forest.tenure.vat3$tsa_name<-NULL
 setnames(forest.tenure.vat3, c("tsa_name2"), c("tsa_name"))
-DBI::dbWriteTable(conn, c("public", "tsa_aac_bounds_vat"), value= forest.tenure.vat3, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "tsa_aac_bounds_vat_gbr"), value= forest.tenure.vat3, row.names = FALSE, overwrite = TRUE)
 
 #dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints")
 dbDisconnect(conn)
 
 #upload to db
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_ten.tif -t 100x100 rast.tsa_aac_boundary | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_ten_GBR.tif -t 100x100 rast.tsa_aac_boundary_GBR | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```
 

@@ -161,41 +161,6 @@ kable (table.volume,
 ### Actual Annual Harvested Volume
 Recent billed harvest in the Quesnel and Williams Lake TSA's has been below the current live and dead stand AAC in those units (Fig. 2). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the Williams Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as the majority of mountain pine beetle killed stands may have already been harvested. However, it is worth noting that recently the AAC was not being achieved in these TSAs.  
 
-```{r, workign with hbs data example, echo = F, error = F, eval = F, include = F, message = F}
-data.hbs<-read.delim("C:\\Work\\caribou\\clus_data\\forestry\\hbs_1999_2019.txt", header= TRUE, sep = "\t", dec = ".") 
-data.hbs2<-data.hbs%>%filter(SCALE_SITE != 'ZZZ')
-
-data.hbs.zzz<-data.hbs%>%filter(SCALE_SITE == 'ZZZ')
-
-data.hbs2 <- data.hbs2 %>%
-              filter (TFL_TSA_NAME == "Williams Lake TSA" | TFL_TSA_NAME == "Quesnel TSA") %>%
-              select (SCALE_YEAR, TFL_TSA_NAME, VOLUME)
-  
-data.hbs2.sum <- data.hbs2 %>%
-                  group_by (TFL_TSA_NAME, SCALE_YEAR) %>%
-                  summarise (volume_m3 = sum (VOLUME))
-
-data.hbs.zzz <- data.hbs.zzz %>%
-                  filter (TFL_TSA_NAME == "Williams Lake TSA" | TFL_TSA_NAME == "Quesnel TSA") %>%
-                  select (SCALE_YEAR, TFL_TSA_NAME, VOLUME)
-
-data.hbs.zzz.sum <- data.hbs.zzz %>%
-                  group_by (TFL_TSA_NAME, SCALE_YEAR) %>%
-                  summarise (volume_m3 = sum (VOLUME))
-
-data.hbs2.sum$id <- paste0 (data.hbs2.sum$TFL_TSA_NAME, data.hbs2.sum$SCALE_YEAR)
-data.hbs.zzz.sum$id <- paste0 (data.hbs.zzz.sum$TFL_TSA_NAME, data.hbs.zzz.sum$SCALE_YEAR)
-
-data.hbs.fin.sum[is.na(data.hbs.fin.sum)] <- 0
-
-data.hbs.fin.sum <- full_join (data.hbs2.sum, data.hbs.zzz.sum, by = "id")
-
-data.hbs.fin.sum$volume_m3 <- data.hbs.fin.sum$volume_m3.x + data.hbs.fin.sum$volume_m3.y
-
-data.hbs.fin.sum <- data.hbs.fin.sum %>%
-    select (TFL_TSA_NAME.x, SCALE_YEAR.x, volume_m3)
-```
-
 ```{r, FIG 2, harvest actual, echo = F, error = F, eval = T, include = T, message = F}
 data.harvest <- read.csv (here ("reports/scenarios/data", "volume_actual_itcha_scenario_March2020.csv"))
 data.harvest <- data.harvest %>%

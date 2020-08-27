@@ -106,7 +106,9 @@ Fire_results_tab[, herd_bounds:= paste(herd_name, habitat, sep=" ")]
 
 # write data to the virtual machine
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host='206.12.91.188', dbname = 'clus', port='5432', user='appuser', password='sHcL5w9RTn8ZN3kc')
+
 dbWriteTable(conn,c("public","firesummary"),Fire_results_tab, overwrite=T)
+
 dbDisconnect(conn)
 
 
@@ -118,7 +120,8 @@ Burned<-fire.bound %>%
 plot<-ggplot(Burned, aes(x=year,y = area_m2/10000)) + 
   theme_bw() +
   theme(text = element_text(size=16))+
-  geom_bar(stat="identity" ) +
+  geom_point(size=3,alpha=0.5) +
+  geom_line(alpha=0.2,size=1)+
   facet_grid(habitat~.) +
   labs(y="Area burned (ha2)", x="Year")
   #geom_vline(data=burn_per_area, aes(xintercept=mean_ha2)) 

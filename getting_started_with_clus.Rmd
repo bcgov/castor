@@ -162,7 +162,6 @@ Each raster in the PostgreSQL database conforms to the provincial standard 1 ha 
 
 
 
-
 ### Params
 Much of the data required by the dataLoaderCLUS can be created and populated into a Postgres database using .Rmd files in the "Params" folder of CLUS (clus/R/Params).
 

@@ -425,10 +425,11 @@ setTablesCLUSdb <- function(sim) {
       stop(paste0("Specify the nameYieldTransitionTable =", P(sim, "dataLoaderCLUS", "nameYieldTransitionTable")))
     }
     
-    yld.ids.trans<-paste( unique(pixels[!is.na(yieldid_trans),"yieldid_trans"])$yieldid_trans, sep=" ", collapse = ", ")
-    
+    yld.ids.trans<-paste( as.integer(unique(pixels[!is.na(yieldid_trans),"yieldid_trans"])$yieldid_trans), sep=" ", collapse = ", ")    
+  
     #Set the yields table with yield curves that are only in the study area
     yields.trans<-getTableQuery(paste0("SELECT ycid, age, tvol, dec_pcnt, height, eca FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
+    
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca) 
