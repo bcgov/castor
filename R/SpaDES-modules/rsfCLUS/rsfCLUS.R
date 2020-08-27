@@ -60,7 +60,7 @@ doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there a
     eventType,
     init = {
       sim <- Init (sim) # this function inits two new data.tables in the RSQLite db: rsfCovar and rsf; clips the RSF boundary by the analysis area boundary (e.g., TSA); then clips each RSF area to the area of analysis (e.g., TSA)
-      sim <- predictInitRSF (sim) # this function predicts each unique RSF 
+      sim <- predictRSF (sim) # this function predicts each unique RSF 
       sim <- scheduleEvent (sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     calculateRSF = {
@@ -504,12 +504,14 @@ predictRSF <- function(sim){
   #Loop through each population and season to predict its resource selection probability at each applicable pixel
   message("predicting RSF")
   rsfPops<- unique(rsf_model_coeff[,c("rsf", "population")]) # list of unique RSFs (concatenated column created at init)
-  
+ 
+  test3<<-sim$rsfcovar
   for(i in 1:nrow(rsfPops)){ # for each unique RSF
-    expr2 <- parse(text = paste0(rsfPops[[2]][[i]])) # get the critical habitat object
+    expr <- parse(text = paste0(rsfPops[[1]][[i]]))
+    expr2 <- parse(text = paste0(rsfPops[[2]][[i]]))
     
-    #predict the rsf using the glm object and rsfcovar
     pred_rsf<-cbind(sim$rsfcovar[, eval(expr2)], data.table(predict.glm(sim$rsfGLM[[i]], sim$rsfcovar, type = "response"))) # predict the rsf score using each glm object
+
     setnames(pred_rsf, c("crit_hab" , "rsf_hat")) # name each rsf prediction appropriately
     
     #scale the rsf predictions between 0 and 1
@@ -534,13 +536,14 @@ predictRSF <- function(sim){
     rsfdt<-merge(rsfdt.all,rsfdt.new, by.x = 'critical_hab', by.y = 'critical_hab', all.x = TRUE)
     rsfdt[, timeperiod:=time(sim)*sim$updateInterval]
     rsfdt[, rsf_model:=paste0(rsfPops[[1]][[i]])]
+    setnames(rsfdt, c("critical_hab", "sum_rsf_hat", "timeperiod", "rsf_model"))
     rsfdt[, scenario:=scenario$name]
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
-    
+
     if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
       out.ras<-sim$ras
-      out.ras[]<-pred_rsf$rsf_hat 
+      out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
       rm(out.ras)
     }#----------------------------------------------

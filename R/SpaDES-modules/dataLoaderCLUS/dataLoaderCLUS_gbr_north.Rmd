@@ -24,6 +24,8 @@ The dataloaderCLUS preps the database and other objects required to run CLUS. A 
 
 Here I set the parameters to create a database for the [Great Bear Rainforest (GBR) North timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/great-bear-rainforest-north), (https://www.bclaws.ca/civix/document/id/complete/statreg/327_2016#section2), (https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements). In 2016 GBR North TSA replaced the North Coast and Mid Coast TSA's. As of 1 January 2017 the allowable annual cut is set at 803,000 cubic metres per year. 
 
+GBR is different to other TSA's in that the AAC is determined by the chief forester and then set by the Lieutenant Governor in Council. As a result there are no data packages available to understand how the AAC was determine and old data packages for the North Coast and Mid Coast TSA's were followed. 
+
 Three caribou herds overlaps with the GBR north TSA - Charlotte Alplands, Rainbows, and Tweedsmuir.
 
 # Usage

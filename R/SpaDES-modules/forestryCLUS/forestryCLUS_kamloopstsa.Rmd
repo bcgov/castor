@@ -22,6 +22,81 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# Kamloops TSA Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in Columbia North critical habtiat; to support Columbia North herd planning, we run a sceanrio with no harvest in the  Columbia North HEWSR and Matrix; harvest is BAU in other herds; assesses the potential maximum impact of protecting Columbia North only, assuming other herds unprotected
+
+"ECCC" in Columbia North caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia North only
+
+No harvest in all Wells Gray South and groundhog critical habitat caribou critical habtiat; to support Wells Gray South and groundhog herd planning, we run a sceanrio with no harvest in the Wells Gray South and groundhog HEWSR and Matrix; harvest is BAU in other herds; assesses the potential maximum impact of protecting Wells Gray South and groundhog only, assuming other herds unprotected
+
+"ECCC" in Wells Gray South and groundhog caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia/Frisbee only
+
+no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (including matrix); establishes the 'maximum impact' that protection of caribou habitat might potentially have on forest harvest; in Kamloops these include Columbia North HEWSR, Columbia North Matrix, Groundhog HESWR, Groundhog Matrix, Wells Gray North HEWSR, Wells Gray North Matrix, Wells Gray South HEWSR, Wells Gray South Matrix
+
+
+'ECCC' in caribou critical habtait areas; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low eleavtion cirtcial habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
+
+# Kamloops TSA Parameters 
+
+## New Caribou Zone Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
+
+No harvest in all herds = rast.zone_cond_noharvest_columbia_north_crithab_or_herd,
+                          rast.zone_cond_noharvest_groundhog_crithab_or_herd,
+                          rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd,
+                          rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd
+
+ECCC in all herds = rast.zone_cond_eccc_columbia_north_crithab_or_herd,
+                    rast.zone_cond_eccc_groundhog_crithab_or_herd,
+                    rast.zone_cond_eccc_wells_gray_south_crithab_or_herd,
+                    rast.zone_cond_eccc_wells_gray_north_crithab_or_herd
+
+No harvest in Columbia North = rast.zone_cond_noharvest_columbia_north_crithab_or_herd
+
+ECCC Columbia North = rast.zone_cond_eccc_columbia_north_crithab_or_herd
+
+No harvest in Wells Grey South and Groundhog = rast.zone_cond_noharvest_wells_grey_south_crithab_or_herd,
+rast.zone_cond_noharvest_groundhog_crithab_or_herd
+
+ECCC in Wells Grey South and Groundhog = rast.zone_eccc_wells_grey_south_crithab_or_herd,
+rast.zone_cond_eccc_groundhog_crithab_or_herd
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+
+## 'harvestFlow'
+from 2015 analysis discussion paper:  maximum even flow harvest was 2,000,000m^3^/year; from detemrination, June 3, 2010, the  AAC was set at 485 000 cubic metres 
+
+- First, I tested a harvest flow of 2,000,000m^3^/year (10,000,000m^3^/5-year); was not able to achieve this, so dropped to the harvest flow eventually settling on 1,400,000m^3/yr. This havest rate was only possible with with a minimum harvest volume > 90 and age >= 60. In the report they say that to meet mid-term harvest levels they expect a significant poriton of the harvest will come from stands less than 80yrs. they also provide a figure showing that between 1/4 and 1/3 of the volume harvested will be within the age range of 61 to 80 yrs So setting a minimum age to 60 is probably reasonable for this TSA
+
+
+
+
+For cutblock adjacency, I used 3 m adjacncey; no real mention fo this in aanylsis report; used 'green-up' targets at coarser scales
+
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)

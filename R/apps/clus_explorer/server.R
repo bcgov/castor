@@ -62,13 +62,12 @@ ON c.compartment = a.compartment;")))
     
     data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
     sum(dist500) as dist500, sum(dist) as dist, sum(dist/((dist_per+0.000001)/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+
     
     data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
-    
     data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
- round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent 
-                                    FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+ round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     
     
     
@@ -490,6 +489,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   })
   
   output$fireByYearPlot <- renderPlotly ({
+
     withProgress(message = 'Making Plot', value = 0.1,{
       data<-reportList()$fire
       # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )

@@ -22,6 +22,58 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# TFL 18 Block Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in Wells Grey South caribou critical habtiat; to support 
+herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+
+ECCC in Wells Grey South caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Frisby-Boulder
+
+
+
+# TFL 18 Parameters 
+
+## New Caribou Constraints
+BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
+
+No harvest in Wells Grey South = rast.zone_cond_noharvest_wells_grey_south_crithab_or_herd
+
+No harvest in Wells Grey South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_wells_grey_south_crithab_or_herd
+
+## 'harvestPriority' parameter 
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+      
+## 'harvestFlow'
+from 2017 determination: 
+"... harvest was projected to begin January 1, 2014, with an initial harvest level of 145 000 cubic metres for the first ten years. This was followed by a decline to 130 000 cubic metres in the second decade and then to the mid-term level of less than 119 000 cubic metres in the third decade. In the sixth decade, the harvest increased to 132 000 cubic metres, after which the harvest slowly increased to 184 000 cubic metres by the
+25th decade."
+- started at 145,000m^3/year; way too high, so I dropped it several times eventually settling on 115 000 m^3/yr. This value of 115,000 somewhat matches the mid-term harvest flow
+
+- I used 150 m3/ha as minimum harvest volume; nothing in determination on this
+
+- I used 3 m adjacency; nothing in determination on this
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)

@@ -41,10 +41,9 @@ This module could be a parent module?? It relies on:
 # TFL 33 Block Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Columbia North, Columbia South and Frisby-Boulder caribou critical habtiat; to support 
-herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+no harvest in Frisby-Boulder, Columbia North, and Columbia South caribou critical habtiat; to support  herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
 
-ECCC in Columbia North, Columbia South and Frisby-Boulder caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia North, Columbia South and Frisby-Boulder
+ECCC in Frisby-Boulder, Columbia North, and Columbia South caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Frisby-Boulder
 
 
 
@@ -53,10 +52,9 @@ ECCC in Columbia North, Columbia South and Frisby-Boulder caribou critical habit
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest in Columbia North, Columbia South and Frisby-Boulder = rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd
-*NOTE: This scenario puts harvest to 0 because these areas fully cover the TFL. The harvest output doesn't get loaded into the vm dbase becuase it = 0.*
+No harvest in Columbia Norht, South and Frisby-Boulder = rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd
 
-No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_frisby_boulder_crithab_or_herd
+No harvest in Columbia North, Columbia South and Frisby-Boulder high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_frisby_boulder_crithab_or_herd
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -66,9 +64,10 @@ No harvest in Columbia North high elevation critical habitat, maximum 35% buffer
       - 'vol DESC', i.e., descending volume (highest volume first)
       
 ## 'harvestFlow'
-from 2011 determination: 
-"...the harvest projection suggests an initial harvest level of 20,250 cubic metres per year starting in 2009 followed by a reduction to 18,100 cubic metres per year in 2019 and a small increase to 18,750 cubic metres per year in 2079." and "...an even-flow over the forecast period of 19 000 cubic metres per year can be achieved."
-- started at 19,000m^3^/year (95,000m^3^/5-year); way too high, dropped to 5,000, 2,500
+from 2017 determination: 
+"... harvest was projected to begin January 1, 2014, with an initial harvest level of 145 000 cubic metres for the first ten years. This was followed by a decline to 130 000 cubic metres in the second decade and then to the mid-term level of less than 119 000 cubic metres in the third decade. In the sixth decade, the harvest increased to 132 000 cubic metres, after which the harvest slowly increased to 184 000 cubic metres by the
+25th decade."
+- started at 145,000m^3/year; way too high, dropped to 5,000, 2,500
 
 
 - very low cut levels seem to be due to inventory having few polygons with a site prodcutivity value; harvest in the model is limited to those patches
