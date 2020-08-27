@@ -13,12 +13,17 @@ shinyServer(function(input, output, session) {
   #----------------
     herd_bound <<- sf::st_zm(getSpatialQuery("SELECT ogc_fid as gid, herd_name, eco_group as ecotype, trend_long as risk_stat, wkb_geometry FROM public.bc_carib_poly_20090904 WHERE herd_name <> 'NA'"))
     sp_herd_bound<<-sf::as_Spatial(st_transform(herd_bound, 4326))
-    progress$set(value = 0.3, message = 'Loading...')
+    progress$set(value = 0.1, message = 'Loading...')
     uwr<<- getSpatialQuery("SELECT approval_year, geom FROM public.uwr_caribou_no_harvest_20180627 ")
-    progress$set(value = 0.5, message = 'Loading...')
+    progress$set(value = 0.4, message = 'Loading...')
     wha<<- getSpatialQuery("SELECT approval_year, geom FROM public.wha_caribou_no_harvest_20180627 ")
     empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
-    progress$set(value = 0.6, message = 'Loading...')
+    progress$set(value = 0.5, message = 'Loading...')
+    # cutblock<<- getSpatialQuery("SELECT harvest_ye, wkb_geometry FROM public.cutblocks_2020 ")
+    # progress$set(value = 0.7, message = 'Loading...')
+    fire<<- getSpatialQuery("SELECT fire_year, wkb_geometry FROM public.fire_historic_2020 ")
+    progress$set(value = 0.8, message = 'Loading...')
+    
   #----------------
   #Non-Spatial 
   #Get climate data
@@ -27,9 +32,10 @@ shinyServer(function(input, output, session) {
     #progress$set(value = 0.7, message = 'Loading...')
     #clime<<-getTableQuery("SELECT * FROM public.clim_plot_data")
   #----------------
-  #get cached cutblock summary
-    progress$set(value = 0.8, message = 'Loading...')
-    cb_sumALL<<-getTableQuery("SELECT * FROM public.cb_sum")
+    ## OLD ##
+    #get cached cutblock summary
+    # progress$set(value = 0.9, message = 'Loading...')
+    # cb_sumALL<<-getTableQuery("SELECT * FROM public.cb_sum")
   #----------------
     #get cached thlb summary
     progress$set(value = 0.9, message = 'Loading...')
@@ -88,7 +94,7 @@ shinyServer(function(input, output, session) {
     req(input$map_shape_click$group)
     sum(st_area(herd_bound[herd_bound$herd_name == input$map_shape_click$group, ]))
     })
-  
+
   caribouHerd<-reactive({
     req(input$map_shape_click$group)
     if(input$map_shape_click$group != "Wildlife Habitat Area"){
@@ -125,20 +131,21 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  dist_data <- reactive({
-    req(caribouHerd())
-    req(cb_sumALL)
-    req(input$sliderCutAge)
-    cb_sum<-rbind(cb_sumALL[which(cb_sumALL$herd_name ==caribouHerd()),],c(0,NA,1900),c(0,NA,2019)) #Add 50 years prior to the first cutblock date in cns_polys (~1950) and current date
-    
-    if(!is.null(cb_sum$harvestyr)){
-      cb2<-tidyr::complete(cb_sum, harvestyr = full_seq(harvestyr,1), fill = list(sumarea = 0))
-      cb2$Dist40<-zoo::rollapplyr(cb2$sumarea, input$sliderCutAge, FUN = sum, fill=0)
-    }else{
-      cb2 <- data.frame(harvestyr = 2000:2018, Dist40 = 0)
-    }
-    cb2 %>% filter(harvestyr>1960)
-  })
+  ## OLD ##
+  # dist_data <- reactive({
+  #   req(caribouHerd())
+  #   req(cb_sumALL)
+  #   req(input$sliderCutAge)
+  #   cb_sum<-rbind(cb_sumALL[which(cb_sumALL$herd_name ==caribouHerd()),],c(0,NA,1900),c(0,NA,2019)) #Add 50 years prior to the first cutblock date in cns_polys (~1950) and current date
+  #   
+  #   if(!is.null(cb_sum$harvestyr)){
+  #     cb2<-tidyr::complete(cb_sum, harvestyr = full_seq(harvestyr,1), fill = list(sumarea = 0))
+  #     cb2$Dist40<-(cb2$sumarea, input$sliderCutAge, FUN = sum, fill=0)
+  #   }else{
+  #     cb2 <- data.frame(harvestyr = 2000:2018, Dist40 = 0)
+  #   }
+  #   cb2 %>% filter(harvestyr>1960)
+  # })
   #this should be merged in dist_data?
   #fire_data <- reactive({
    # fire_sum[which(fire_sum$herd_name == caribouHerd() & fire_sum$fire_year > 1960 ),]
@@ -356,25 +363,127 @@ shinyServer(function(input, output, session) {
     })
   }) 
   
-  output$cutPlot <- renderPlotly({
-    withProgress(message = 'Running Cutblock Query', value = 0.1, {
-      ta<-as.numeric(totalArea())
-      incProgress(0.3)
-      data<-dist_data()
-      data$per_harvest<-(data$Dist40/ta)*100
-      incProgress(0.6)
-      
-      p<- ggplot(data, aes(x =harvestyr, y=per_harvest) )+
-        geom_line()+
-        xlab ("Year") +
-        ylab (paste0("% Boundary with Age < ", input$sliderCutAge)) + 
-        scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
-        expand_limits(y=0) +
-        #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
-        theme_bw()
-      
-      incProgress(0.8)
-      ggplotly(p)
+  ## OLD ##
+  # output$cutPlot <- renderPlotly({ # old
+  #   withProgress(message = 'Running Cutblock Query...takes a while', value = 0.1, {
+  #     ta<-as.numeric(totalArea())
+  #     incProgress(0.3)
+  #     data<-dist_data()
+  #     data$per_harvest<-(data$Dist40/ta)*100
+  #     incProgress(0.6)
+  #     
+  #     p<- ggplot(data, aes(x =harvestyr, y=per_harvest) )+
+  #       geom_line()+
+  #       xlab ("Year") +
+  #       ylab (paste0("% Boundary with Age < ", input$sliderCutAge)) + 
+  #       scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
+  #       expand_limits(y=0) +
+  #       #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
+  #       theme_bw()
+  #     
+  #     incProgress(0.8)
+  #     ggplotly(p)
+  #   })
+  # })
+  
+  output$cutPlot<-renderPlotly({
+    withProgress(message = 'Running Cutblock Query...takes a while', value = 0, {
+      # req(input$sliderBuffer) # TODO
+      req(totalArea())
+      req (input$sliderCutAge)
+      if(input$queryType == 2){
+        incProgress(0.2)
+        #Convert the polygon object to sql polygon
+        data<-getTableQuery(paste0("SELECT =cut.harvest_ye,sum(st_area(cut.wkb_geometry))/10000 as area_ha, 
+                            st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
+                              FROM public.cutblocks_2020 AS cut,  
+                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+                             WHERE
+                             ST_Contains(m.st_geomfromtext,cut.wkb_geometry) 
+                             GROUP BY  cut.harvest_ye
+                             ORDER BY  cut.harvest_ye"))
+        incProgress(0.7)
+        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        data$per_boundary<-(data$area_ha/ta)*100
+        data$per_boundary_buffer <- (data$area_ha_buffer/ta)*100
+        names(data)<-c("year", "area_ha","area_ha_buffer", "perc_area", "perc_area_buffer")
+        
+                # not every year cut, so need to add some years
+        dat.year <- data.table (c (1940:2019))
+        names (dat.year) <- "year"
+        data <- as.data.table (data)
+        setkey(dat.year,year)
+        setkey(data,year)
+        data <- merge(data,dat.year, all=TRUE)
+        data[is.na(data)] <- 0
+        
+        data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderCutAge, FUN = sum, fill=0)
+        data$perc_area_buff_time<-zoo::rollapplyr(data$perc_area_buffer, input$sliderCutAge, FUN = sum, fill=0)
+        data <- as.data.frame (data)
+        
+        ggplotly (ggplot(data, aes(x =year) )+
+                    geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
+                    geom_line(aes (y=perc_area_buff_time), colour = "green1", linetype = "longdash") +
+                    xlab ("Year") +
+                    ylab (paste0("% Area with Age < ", input$sliderCutAge)) +
+                    scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
+                    scale_y_continuous(breaks = seq(0, 100, by = 10))+
+                    expand_limits(y=0) +
+                    #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
+                    theme_bw() +
+                    labs( caption = "Solid blue line = total area and dashed green line = buffered area."))  
+        # incProgress(0.9)
+        # print (p)
+        #ggplotly(p)
+        
+      }else{
+        incProgress(0.2)
+        data<-getTableQuery(paste0("SELECT 
+                             cut.harvest_ye, 
+                             sum(st_area(cut.wkb_geometry))/10000 as area_ha,
+                             st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
+                              FROM 
+                             public.cutblocks_2020 AS cut,  
+                             (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+                             WHERE
+                             ST_Contains(m.geom,cut.wkb_geometry) 
+                             GROUP BY  cut.harvest_ye
+                             ORDER BY  cut.harvest_ye"))
+        incProgress(0.7)
+        ta<-as.numeric(totalArea()/10000)
+        data$per_boundary<-(data$area_ha/ta)*100
+        data$per_boundary_buffer <- (data$area_ha_buffer/ta)*100
+        names(data)<-c("year", "area_ha", "area_ha_buffer", "perc_area", "perc_area_buffer")
+        
+        # not every year cut, so need to add some years
+        dat.year <- data.table (c (1940:2019))
+        names (dat.year) <- "year"
+        data <- as.data.table (data)
+        setkey(dat.year,year)
+        setkey(data,year)
+        data <- merge(data,dat.year, all=TRUE)
+        data[is.na(data)] <- 0
+        
+        data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderCutAge, FUN = sum, fill=0)
+        data$perc_area_buff_time<-zoo::rollapplyr(data$perc_area_buffer, input$sliderCutAge, FUN = sum, fill=0)
+        data <- as.data.frame (data)
+        
+        ggplotly (ggplot(data, aes(x =year) )+
+                    geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
+                    geom_line(aes (y=perc_area_buff_time), colour = "green1", linetype = "longdash") +
+                    xlab ("Year") +
+                    ylab (paste0("% Area with Age < ", input$sliderCutAge)) +
+                    scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
+                    scale_y_continuous(breaks = seq(0, 100, by = 10))+
+                    expand_limits(y=0) +
+                    #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
+                    theme_bw() +
+                    labs( caption = "Solid blue line = total area and dashed green line = buffered area."))  
+        # incProgress(0.9)
+        # print (p)
+       # ggplotly(p)
+        
+      }
     })
   })
   
