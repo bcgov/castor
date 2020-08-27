@@ -98,7 +98,16 @@ The "yieldUncertaintyCLUS" module calculates uncertainty metrics around the amou
 The "uploaderCLUS" module defines the data (tablesa nd rasters) that get output from the model and saved in a PostgreSQL database. These data can then be summarized in the CLUS Explorer application. Typically these tables are 'empty' after running dataLoaderCLUS, but the parameters for the name of the area of interest (aoiName) and the database where the data is uploaded (dbInfo).
 
 ### forestryCLUS
-The "forestryCLUS" module is the primary module for running the forest harvest simulator. The key parameters in the modules include the 'study area' parameters, as defined in the dataLoaderCLUS module, including    
+The "forestryCLUS" module is the primary module for running the forest harvest simulator, i.e., it contains many of the forest harvest event functions. The key parameters in the modules include the database, 'study area', forest inventory, blocking, harvest queue, caribou indicator, harvest flow, patch size and scenario parameters.
+
+Database parameters are indicated as part of the downloaderCLUS module. This helps keeps the forestryCLUS module consistent with the data produced using the downloaderCLUS. You need to specify the PostgreSQL database name (dbName), and the location fo the SQLite database that was created by the downloaderCLUS module (useCLUSdb).  
+
+
+
+
+
+
+The database and study area paramters are defined via the dataLoaderCLUS module, and include  
 
 
 
