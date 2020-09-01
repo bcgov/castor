@@ -85,7 +85,7 @@ shinyServer(function(input, output, session) {
       p.df$label<- df$Label[match(p.df$ID, df$ID)]
       SPDF<-spTransform(SpatialPolygonsDataFrame(spPolys, data=p.df), CRS("+init=epsg:3005"))
     }else{
-      SDPF<-NULL
+      SPDF<-NULL
     }
     SPDF
   }) 
@@ -213,7 +213,7 @@ shinyServer(function(input, output, session) {
           showModal(warningModal)}
       }
 
-      if(!"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList ){
+      if(!"shp" %in% fileList | !"dbf" %in% fileList | !"shx" %in% fileList | !"prj" %in% fileList){
         shpValid <- FALSE
         showModal(warningModal)
       }
@@ -224,7 +224,9 @@ shinyServer(function(input, output, session) {
           file.rename(shpdf$datapath[i], paste0(tempdirname, "/", shpdf$name[i]))
         }
         tryCatch({
-          outShp <- st_transform(st_read(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), crs = "+init=epsg:4326")}, # CRS("+init=epsg:4326"))
+          # outShp <- st_transform(st_read(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), crs = "+init=epsg:4326")}, # CRS("+init=epsg:4326"))
+          outShp <-  spTransform(readOGR(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326"))},
+          
           error=function(cond) {
             shpValid <- FALSE
             showModal(warningModal)
@@ -388,16 +390,19 @@ shinyServer(function(input, output, session) {
   
   output$cutPlot<-renderPlotly({
     withProgress(message = 'Running Cutblock Query...takes a while', value = 0, {
-      # req(input$sliderBuffer) # TODO
+      req(input$sliderBuffer2) 
       req(totalArea())
       req (input$sliderCutAge)
       if(input$queryType == 2){
         incProgress(0.2)
         #Convert the polygon object to sql polygon
-        data<-getTableQuery(paste0("SELECT =cut.harvest_ye,sum(st_area(cut.wkb_geometry))/10000 as area_ha, 
-                            st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
-                              FROM public.cutblocks_2020 AS cut,  
-                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+        data<-getTableQuery(paste0("SELECT 
+                                    cut.harvest_ye,
+                                    sum(st_area(cut.wkb_geometry))/10000 as area_ha, 
+                                    st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer2,")))/10000 as area_ha_buffer 
+                                    FROM 
+                                    public.cutblocks_2020 AS cut,  
+                                    (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
                              WHERE
                              ST_Contains(m.st_geomfromtext,cut.wkb_geometry) 
                              GROUP BY  cut.harvest_ye
@@ -419,29 +424,88 @@ shinyServer(function(input, output, session) {
         
         data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderCutAge, FUN = sum, fill=0)
         data$perc_area_buff_time<-zoo::rollapplyr(data$perc_area_buffer, input$sliderCutAge, FUN = sum, fill=0)
+        data$perc_area_buff_time [data$perc_area_buff_time > 100] <- 100
         data <- as.data.frame (data)
-        
+
         ggplotly (ggplot(data, aes(x =year) )+
                     geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
                     geom_line(aes (y=perc_area_buff_time), colour = "green1", linetype = "longdash") +
                     xlab ("Year") +
                     ylab (paste0("% Area with Age < ", input$sliderCutAge)) +
-                    scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
-                    scale_y_continuous(breaks = seq(0, 100, by = 10))+
-                    expand_limits(y=0) +
-                    #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
                     theme_bw() +
-                    labs( caption = "Solid blue line = total area and dashed green line = buffered area."))  
-        # incProgress(0.9)
-        # print (p)
-        #ggplotly(p)
+                    scale_x_continuous (breaks = seq (1960, 2018, by = 5),
+                                        limits = c (1960, 2018)) +
+                    scale_y_continuous (breaks = seq (0, 100, by = 10),
+                                        limits = c (0, 100)) +
+                    expand_limits (y = 0))  %>% 
+          layout(annotations = list(x = 0, y = 0, 
+                                    text = "Solid blue line = total area. Dashed green line = buffered area.", 
+                                    showarrow = F, xref='paper', yref='paper', 
+                                    xanchor='left', yanchor='auto', xshift=0, yshift=0,
+                                    font=list(size=12)
+          )
+        )
+       
         
+      }else if (input$queryType == 3){
+        incProgress(0.2)
+        #Convert the polygon object to sql polygon
+        data<-getTableQuery(paste0("SELECT cut.harvest_ye,
+        sum(st_area(cut.wkb_geometry))/10000 as area_ha,
+        st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer2,")))/10000 as area_ha_buffer
+        FROM
+        public.cutblocks_2020 AS cut,
+        (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(spTransform (uploadPolys(),CRS("+init=epsg:3005"))), EWKT = FALSE),"', 3005)) as m
+        WHERE
+        ST_Contains(m.st_geomfromtext,cut.wkb_geometry)
+        GROUP BY cut.harvest_ye
+        ORDER BY cut.harvest_ye"))
+        incProgress(0.7)
+        ta<-as.numeric(sf::st_area(st_as_sfc(uploadPolys()))/10000)
+        data$per_boundary<-(data$area_ha/ta)*100
+        data$per_boundary_buffer <- (data$area_ha_buffer/ta)*100
+        names(data)<-c("year", "area_ha","area_ha_buffer", "perc_area", "perc_area_buffer")
+
+        # not every year cut, so need to add some years
+        dat.year <- data.table (c (1940:2019))
+        names (dat.year) <- "year"
+        data <- as.data.table (data)
+        setkey(dat.year,year)
+        setkey(data,year)
+        data <- merge(data,dat.year, all=TRUE)
+        data[is.na(data)] <- 0
+
+        data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderCutAge, FUN = sum, fill=0)
+        data$perc_area_buff_time<-zoo::rollapplyr(data$perc_area_buffer, input$sliderCutAge, FUN = sum, fill=0)
+        data$perc_area_buff_time [data$perc_area_buff_time > 100] <- 100
+        data <- as.data.frame (data)
+
+        ggplotly (ggplot(data, aes(x =year) )+
+                    geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
+                    geom_line(aes (y=perc_area_buff_time), colour = "green1", linetype = "longdash") +
+                    xlab ("Year") +
+                    ylab (paste0("% Area with Age < ", input$sliderCutAge)) +
+                    theme_bw() +
+                    scale_x_continuous (breaks = seq (1960, 2018, by = 5),
+                                        limits = c (1960, 2018)) +
+                    scale_y_continuous (breaks = seq (0, 100, by = 10),
+                                        limits = c (0, 100)) +
+                    expand_limits (y = 0))  %>%
+          layout(annotations = list(x = 0, y = 0,
+                                    text = "Solid blue line = total area. Dashed green line = buffered area.",
+                                    showarrow = F, xref='paper', yref='paper',
+                                    xanchor='left', yanchor='auto', xshift=0, yshift=0,
+                                    font=list(size=12)
+          )
+          )
+        
+
       }else{
         incProgress(0.2)
         data<-getTableQuery(paste0("SELECT 
                              cut.harvest_ye, 
                              sum(st_area(cut.wkb_geometry))/10000 as area_ha,
-                             st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
+                             st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer2,")))/10000 as area_ha_buffer 
                               FROM 
                              public.cutblocks_2020 AS cut,  
                              (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
@@ -466,6 +530,7 @@ shinyServer(function(input, output, session) {
         
         data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderCutAge, FUN = sum, fill=0)
         data$perc_area_buff_time<-zoo::rollapplyr(data$perc_area_buffer, input$sliderCutAge, FUN = sum, fill=0)
+        data$perc_area_buff_time [data$perc_area_buff_time > 100] <- 100
         data <- as.data.frame (data)
         
         ggplotly (ggplot(data, aes(x =year) )+
@@ -473,12 +538,20 @@ shinyServer(function(input, output, session) {
                     geom_line(aes (y=perc_area_buff_time), colour = "green1", linetype = "longdash") +
                     xlab ("Year") +
                     ylab (paste0("% Area with Age < ", input$sliderCutAge)) +
-                    scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
-                    scale_y_continuous(breaks = seq(0, 100, by = 10))+
-                    expand_limits(y=0) +
-                    #theme (axis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
                     theme_bw() +
-                    labs( caption = "Solid blue line = total area and dashed green line = buffered area."))  
+                    scale_x_continuous (breaks = seq (1960, 2018, by = 5),
+                                        limits = c (1960, 2018)) +
+                    scale_y_continuous (breaks = seq (0, 100, by = 10),
+                                        limits = c (0, 100)) +
+                    expand_limits (y = 0))  %>% 
+          layout(annotations = list(x = 0, y = 0, 
+                                    text = "Solid blue line = total area. Dashed green line = buffered area.", 
+                                    showarrow = F, xref='paper', yref='paper', 
+                                    xanchor='left', yanchor='auto', xshift=0, yshift=0,
+                                    font=list(size=12)
+                              )
+                )
+          
         # incProgress(0.9)
         # print (p)
        # ggplotly(p)
@@ -489,21 +562,128 @@ shinyServer(function(input, output, session) {
   
   output$firePlot <- renderPlotly({
     withProgress(message = 'Running Fire Query', value = 0, {
-      incProgress(0.2)
-      fire_data<-getTableQuery(paste0("SELECT fire_year, (sumarea/10000) AS area FROM public.fire_sum WHERE herd_name = '", caribouHerd() ,"' AND fire_year > 1960
-                                      GROUP BY sumarea, herd_name, fire_year ORDER BY fire_year "))
-      #print(paste0("SELECT fire_year, (sumarea/10000) AS area FROM public.fire_sum WHERE herd_name = '", caribouHerd() ,"' AND fire_year > 1960;"))
-      incProgress(0.5)
-      p1<-ggplot(fire_data, aes(x =fire_year, y=area))+
-        geom_bar (stat = "identity") +
-        xlab ("Year") +
-        ylab ("Area burnt (ha)") + 
-        scale_x_continuous(breaks = seq(1960, 2018, by = 10))+
-        scale_y_continuous(limits=c(0,max(fire_data$area)))+ 
-        #theme (xis.text = element_text (size = 12), axis.title =  element_text (size = 14, face = "bold"))
-        theme_bw()
-      incProgress(0.8)
-      ggplotly(p1)
+      req(totalArea())
+      if(input$queryType == 2){
+        incProgress(0.2)
+        #Convert the polygon object to sql polygon
+        data<-getTableQuery(paste0("SELECT 
+                                    fire.fire_year,
+                                    sum(st_area(fire.wkb_geometry))/10000 as area_ha 
+                                    FROM 
+                                    public.fire_historic_2020 AS fire,  
+                                    (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+                             WHERE
+                             ST_Contains(m.st_geomfromtext,fire.wkb_geometry) 
+                             GROUP BY  fire.fire_year
+                             ORDER BY  fire.fire_year"))
+        incProgress(0.7)
+        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        data$per_boundary<-(data$area_ha/ta)*100
+        names(data)<-c("year", "area_ha","perc_area")
+        
+        # not every year burned, so need to add some years
+        dat.year <- data.table (c (1940:2019))
+        names (dat.year) <- "year"
+        data <- as.data.table (data)
+        setkey(dat.year,year)
+        setkey(data,year)
+        data <- merge(data,dat.year, all=TRUE)
+        data[is.na(data)] <- 0
+        
+        data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderFireAge, FUN = sum, fill=0)
+        data <- as.data.frame (data)
+        
+        ggplotly (ggplot(data, aes(x =year)) +
+                    geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
+                    xlab ("Year") +
+                    ylab (paste0("% Area with Age < ", input$sliderFireAge)) +
+                    theme_bw() +
+                    scale_x_continuous (breaks = seq (1960, 2018, by = 10),
+                                        limits = c (1960, 2018)) +
+                    scale_y_continuous (breaks = seq (0, 25, by = 5),
+                                        limits = c (0, 25)) +
+                    expand_limits (y = 0))  
+        
+      }else if (input$queryType == 3){
+        incProgress(0.2)
+        data<-getTableQuery(paste0("SELECT fire.fire_year,
+							 sum(st_area(fire.wkb_geometry))/10000 as area_ha
+							 FROM
+							 public.fire_historic_2020 AS fire,
+							 (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(spTransform (uploadPolys(),CRS("+init=epsg:3005"))), EWKT = FALSE),"', 3005)) as m
+							 WHERE
+							 ST_Contains(m.st_geomfromtext,fire.wkb_geometry)
+							 GROUP BY fire.fire_year
+							 ORDER BY fire.fire_year"))
+        incProgress(0.7)
+        ta<-as.numeric(sf::st_area(st_as_sfc(uploadPolys()))/10000)
+        data$per_boundary<-(data$area_ha/ta)*100
+        names(data)<-c("year","area_ha","perc_area")
+
+        # not every year burned, so need to add some years
+        dat.year <- data.table (c (1940:2019))
+        names (dat.year) <- "year"
+        data <- as.data.table (data)
+        setkey(dat.year,year)
+        setkey(data,year)
+        data <- merge(data,dat.year, all=TRUE)
+        data[is.na(data)] <- 0
+
+        data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderFireAge, FUN = sum, fill=0)
+        data <- as.data.frame (data)
+
+        ggplotly (ggplot(data, aes(x =year) )+
+                    geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
+                    xlab ("Year") +
+                    ylab (paste0("% Area with Age < ", input$sliderFireAge)) +
+                    theme_bw() +
+                    scale_x_continuous (breaks = seq (1960, 2018, by = 10),
+                                        limits = c (1960, 2018)) +
+                    scale_y_continuous (breaks = seq (0, 25, by = 5),
+                                        limits = c (0, 25)) +
+                    expand_limits (y = 0))
+        
+      }else{
+        incProgress(0.2)
+        data<-getTableQuery(paste0("SELECT 
+                             fire.fire_year, 
+                             sum(st_area(fire.wkb_geometry))/10000 as area_ha 
+                             FROM 
+                             public.fire_historic_2020 AS fire,  
+                             (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+                             WHERE
+                             ST_Contains(m.geom,fire.wkb_geometry) 
+                             GROUP BY  fire.fire_year
+                             ORDER BY  fire.fire_year"))
+        incProgress(0.7)
+        ta<-as.numeric(totalArea()/10000)
+        data$per_boundary<-(data$area_ha/ta)*100
+        names(data)<-c("year", "area_ha","perc_area")
+        
+        # not every year cut, so need to add some years
+        dat.year <- data.table (c (1940:2019))
+        names (dat.year) <- "year"
+        data <- as.data.table (data)
+        setkey(dat.year,year)
+        setkey(data,year)
+        data <- merge(data,dat.year, all=TRUE)
+        data[is.na(data)] <- 0
+        
+        data$perc_area_time<-zoo::rollapplyr(data$perc_area, input$sliderFireAge, FUN = sum, fill=0)
+        data <- as.data.frame (data)
+        
+        ggplotly (ggplot(data, aes(x =year))+
+                    geom_line(aes (y=perc_area_time), colour = "blue1", linetype = "solid")+
+                    xlab ("Year") +
+                    ylab (paste0("% Area with Age < ", input$sliderFireAge)) +
+                    theme_bw() +
+                    scale_x_continuous (breaks = seq (1960, 2018, by = 10),
+                                        limits = c (1960, 2018)) +
+                    scale_y_continuous (breaks = seq (0, 25, by = 5),
+                                        limits = c (0, 25)) +
+                    expand_limits (y = 0))
+        
+      }
     })
   })
   
@@ -770,7 +950,7 @@ shinyServer(function(input, output, session) {
   observe({
     if(!is.null(uploadPolys())){ # drawnPolys
 
-     bb <- st_bbox (sf::as_Spatial (uploadPolys())) # drawnPolys
+     bb <- st_bbox (sf::as_Spatial (st_as_sfc(uploadPolys()))) # drawnPolys
 
      leafletProxy("map") %>%
         addPolygons (data = uploadPolys(), # drawnPolys
