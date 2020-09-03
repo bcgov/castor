@@ -37,13 +37,40 @@ This module could be a parent module?? It relies on:
 5. (Optionally) roadCLUS (preforms the access to the harvest units)
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
-
-
-
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = "C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite" ) # connext to pgdb
+
+dbGetQuery(clusdb, "SELECT * from zone;")
+dbGetQuery(clusdb, "SELECT * from pixels where basal_area > 10 limit 1;")
+dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_fisher_sb_wet_denning';")
+
+query_params<-dbGetQuery(clusdb, "Select count() as t_area, zone9 as zoneid from pixels where zone9 is not null group by zone9 order by zone9")
+query_params$t_area<-as.integer(query_params$t_area)
+
+sql<- paste0("UPDATE zoneconstraints
+SET t_area = :t_area where zoneid = :zoneid and reference_zone = 'rast.zone_cond_fisher_sb_dry'")
+
+dbBegin(clusdb)
+rs<-dbSendQuery(clusdb, sql, query_params)
+dbClearResult(rs)
+dbCommit(clusdb)
+
+dbExecute(clusdb, "Update zoneconstraints set threshold = 12  where reference_zone in( 'rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_sb_dry', 'rast.zone_cond_fisher_dry')")
+dbExecute(clusdb, "Update zoneconstraints set variable = 'age' where  reference_zone in( 'rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_sb_dry', 'rast.zone_cond_fisher_dry')")
+dbExecute(clusdb, "Update zoneconstraints set type = 'le' where  reference_zone in( 'rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_sb_dry', 'rast.zone_cond_fisher_dry')")
+dbExecute(clusdb, "Update zoneconstraints set percentage = 10 where  reference_zone in( 'rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_sb_dry', 'rast.zone_cond_fisher_dry')")
+dbExecute(clusdb, "Update zoneconstraints set multi_condition = 'age < 12 and blockid > 0' where  reference_zone in( 'rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_sb_dry', 'rast.zone_cond_fisher_dry')")
+
+dbExecute(clusdb, "Update zoneconstraints set multi_condition = NULL")
+
+dbDisconnect(clusdb)
+```
+
+```{r, model_run}
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
@@ -55,7 +82,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list( 
                            dbName='clus',
-                           save_clusdb = TRUE,
+                           save_clusdb = FALSE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -72,9 +99,10 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
-                                             "rast.zone_cond_fisher_sb_wet",
+                                             "rast.zone_cond_fisher_sb_wet_denning",                                             "rast.zone_cond_fisher_sb_wet",
                                              "rast.zone_cond_fisher_sb_dry",
                                              "rast.zone_cond_fisher_dry"
+                                             
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -126,8 +154,8 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCalcCLUS",
                 "uploaderCLUS"
                 )
-scenario = data.table (name = "all_terr_10per_max12yrs",
-                       description = "All fisher territories (sb-dry,sb-wet,dry) having max 10% with age less than 12 years ")
+scenario = data.table (name = "all_terr_10per_max12yrs_le_denning",
+                       description = "All fisher territories maintaining denning habitat and age")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 100 and age > 60 ', 
