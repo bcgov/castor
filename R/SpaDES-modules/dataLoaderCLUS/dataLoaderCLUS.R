@@ -473,27 +473,35 @@ setTablesCLUSdb <- function(sim) {
         }
       })
       #If there is a multi variable condition add them to the query
-      queryMulti<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
+      queryMulti<-dbGetQuery(sim$clusdb, "SELECT distinct(variable) FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
+
       if(nrow(queryMulti) > 0){
-        multiVars<-unlist(strsplit(paste(queryMulti$multi_condition, collapse = ', ', sep = ','), ",| > | < | = | <= | >= | and | AND | or | OR | in | IN | + "))
-        multiVars<-unique(gsub("[[:space:]]", "", multiVars[c(TRUE, FALSE)]))
-        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index')]
+        multiVars<-unlist(strsplit(paste(queryMulti$variable, collapse = ', ', sep = ','), ","))
+        multiVars<-unique(gsub("[[:space:]]", "", multiVars))
+        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure')]
         
-        multiVars1<-multiVars #used for altering pixels table in clusdb
-        #Add the multivars to the pixels data table
-        forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars)
-        
-        #format for pixels upload
-        multiVars2<-multiVars
-        multiVars2[1]<-paste0(', :',multiVars2[1])
-        multiVars[1]<-paste0(', ',multiVars[1])
-        
+        if(!identical(character(0), multiVars)){
+          multiVars1<-multiVars #used for altering pixels table in clusdb i.e., adding in the required information to run the query
+          #Add the multivars to the pixels data table
+          forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars)
+          
+          #format for pixels upload
+          multiVars2<-multiVars
+          multiVars2[1]<-paste0(', :',multiVars2[1])
+          multiVars[1]<-paste0(', ',multiVars[1])
+        }else{
+          multiVars<-''
+          multiVars2<-''
+          multiVars1<-NULL
+          }
         #Update the multi conditional constraints so the names match the dynamic variables
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_age_1', 'age') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
-      }else{
+          
+        
+        }else{
         multiVars<-''
         multiVars2<-''
         multiVars1<-NULL
