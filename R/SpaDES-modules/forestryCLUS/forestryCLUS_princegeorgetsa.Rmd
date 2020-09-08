@@ -129,7 +129,9 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
-'rast.zone_cond_partnership_agreement'
+                                               #'rast.zone_cond_partnership_agreement'
+                                            "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
+                                            #"rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",

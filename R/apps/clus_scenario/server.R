@@ -24,6 +24,18 @@ shinyServer(function(input, output, session) {
     fire<<- getSpatialQuery("SELECT fire_year, wkb_geometry FROM public.fire_historic_2020 ")
     progress$set(value = 0.8, message = 'Loading...')
     
+    # Protected Areas
+    # federal protected areas downloaded from: https://cws-scf.ca/CPCAD-BDCAPC_Dec2019.gdb.zip
+    # NGO conservation areas from BCGW: https://catalogue.data.gov.bc.ca/dataset/ngo-conservation-areas-fee-simple
+    # Conservation Lands from BCGW: https://catalogue.data.gov.bc.ca/dataset/conservation-lands
+    
+    # pre-processing; as per approach of BC protected lands and water analysis (http://www.env.gov.bc.ca/soe/indicators/land/protected-lands-and-waters.html#details)
+    # 01_load and 02_clean create teh unioned protected area dataset
+    
+    
+    
+    
+    
   #----------------
   #Non-Spatial 
   #Get climate data
@@ -131,7 +143,7 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  ## OLD ##
+  ## OLD way to esitmate cutblock density ##
   # dist_data <- reactive({
   #   req(caribouHerd())
   #   req(cb_sumALL)
