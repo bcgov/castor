@@ -80,7 +80,7 @@ metres per year is attributed to deciduous-leading stands. A maximum of 750,000 
 #UPDATE SCENARIO
 ```{r, zone_update}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_North_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zone") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
@@ -130,8 +130,8 @@ parameters <- list(
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
                                                #'rast.zone_cond_partnership_agreement'
-                                            "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
-                                            #"rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
+                                            #"rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
+                                            "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -191,8 +191,13 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS"
                 )
 
-scenario = data.table (name = "pg_centgrp_pa_nh",
-                       description = "No harvest in all central group partnership agreement areas")
+# scenario = data.table (name = "pg_centgrp_pa_nh",
+#                        description = "No harvest in all central group partnership agreement areas")
+# scenario = data.table (name = "pg_chil_nh_notweeds",
+#                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) habitat that overlap with the harvest unit (e.g., TSA or TFL).")
+scenario = data.table (name = "pg_chil_chil_notweeds_ch_hele0d_m15d",
+                       description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat.")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA",
                                      partition = ' vol > 182 and age >= 75  ', 
