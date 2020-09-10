@@ -76,7 +76,11 @@ Within the "dataLoaderCLUS" you can set the "scenario" parameter to identify the
 Also, within the "dataLoaderCLUS" module you set the patchSizeDist parameter, which establishes the size of blocks and the frequency of each block size by each natural disturbance type (ndt). These are currently determined based on the provincial biodiversity guidebook(??). These pacth size distributions get used in the blockingCLUS module to pre-identify harvest blocks. 
 
 ### blockingCLUS
-The "blockingCLUS" module puts forested pixels into similar clusters or groups. It takes data on crown closure and height in each pixel and calculates "distance" statistics between neighbouring pixels, then "groups" those neighbouring pixels together where they are below a specified distance threshold (i.e., neighbouring pixels with similar charactersitics will have relatively small distance metrics and get grouped into 'blocks'). Thus, the module is used to identify spatially accurate cutblock boundaries, assuming a forestry company is likely to cut stands with uniform characteristics. To use the "blockingCLUS" module, include the module in the "dataLoaderCLUS" module list and set the parameters for blockMethod (set this to 'pre' to define the blocks as part of the "dataLoaderCLUS" process), patchZone (we use the rast.zone_cond_beo raster, as stored in our PostgreSQL database, which defines BEO areas), patchVariation (we recommend setting to 6), nameCutblockRaster (the name of raster that defines existing cutblocks; we use rast.cns_cut_bl, as stored in our PostgreSQL database) and useLandingsArea (set to FALSE - why???). Ypu will also need to set the patchSizeDist targets in "dataLoaderCLUS". We provide the distribution targets for BEO natural disturbance types (NDTs) as a 'default' value. The  "blockingCLUS" module adds a blockid column to the "pixels" table to identify each unique block. 
+The "blockingCLUS" module provides the option to pre-define cutblocks, by clustering or grouping similar forested pixels together. When setting the blockMethod to "pre", it takes data on crown closure and height in each pixel and calculates "distance" statistics between neighbouring pixels, then "groups" those neighbouring pixels together where they are below a specified distance threshold, as defined by the "patchVariation" parameter (i.e., neighbouring pixels with similar charactersitics will have relatively small distance metrics and get grouped into 'blocks'). Thus, the module is used to identify spatially accurate cutblock boundaries, assuming a forestry company is likely to cut stands with uniform characteristics. 
+
+To use the "blockingCLUS" module, include the module in the "dataLoaderCLUS" module list and set the parameters for blockMethod (set this to 'pre' to define the blocks as part of the "dataLoaderCLUS" process), patchZone (we use the rast.zone_cond_beo raster, as stored in our PostgreSQL database, which defines BEO areas), patchVariation (we recommend setting to 6???), nameCutblockRaster (the name of raster that defines existing cutblocks; we use rast.cns_cut_bl, as stored in our PostgreSQL database) and useLandingsArea (set to FALSE - why???). Ypu will also need to set the patchSizeDist targets in "dataLoaderCLUS". We provide the distribution targets for BEO natural disturbance types (NDTs) as a 'default' value. The  "blockingCLUS" module adds a blockid column to the "pixels" table to identify each unique block. 
+
+If you do not wish to pre-define cutblocks, and want harvest to occur randomly, set the blockMethod parameter to "dynamic". This harvests pixels based on a random probabiltiy of 'spreading' from one pixel to a neighbouring pixel.  
 
 ### roadCLUS
 The "roadCLUS" module needs to be used to simulate roads on the landscape. It simulates roads to each potential cutblock landing in the analysis area. Thus, it 'pre-solves' the road network and then if a cutblock is cut in a simulation, the road to the cutblock landign gets simulated. It can be presolved using two methods 'snap' or 'pre', where 'pre' creates roads from the exsiting road network to each landing following a least cost pathway while minimumizing the amount of roads needed to reach multiple nearby landings, and where 'snap' creates direct, straight-line roads between landings and the network (see R->reports->roads->draft-CLUS-roads.Rmd for more details on these methods). The 'pre' method has a more complex algortihm that takes a computer longer to solve than the 'snap' method. However,the 'pre' method appears to be more accurate than the 'snap', as it creates much fewer roads. We reocmmend usign the 'pre' method unless computer processing power and time are a concern. To use this module, set the roadMethod ('snap' or 'pre'), nameCostSurfaceRas (the cost surface raster; called rast.rd_cost_surface in our PostgreSQL database) and nameRoads (the raster of the exsiting road network; called rast.crds_resource in our PostgreSQL database). The  "roadCLUS" module adds a "roadyear" column to the "pixels" table, which gets updated with the time interval in the CLUS model that a road gets built. It also adds a "roadslist" table to the SQLite database that contains the landing that each potential road is attributed to and a character list of the pixel ID's that need to be converted into a road to reach the landing. Thus, if the landing gets selected for harvest as part of the forestry module, then the asccosiated pixels get converted to roads.  
@@ -95,58 +99,22 @@ The module creates two new columns in the 'pixels' table, 'perm_dist' and 'dist'
 The "yieldUncertaintyCLUS" module calculates uncertainty metrics around the amount of volume harvested for a stand, using a yield uncertainty model. For the "dataLoaderCLUS", the module adds an elevation field (elv) to the 'pixels' table. Elevation is a parameter in the model to calculate uncertainty metrics around harvest yield. 
 
 ### uploaderCLUS
-The "uploaderCLUS" module defines the data (tablesa nd rasters) that get output from the model and saved in a PostgreSQL database. These data can then be summarized in the CLUS Explorer application. Typically these tables are 'empty' after running dataLoaderCLUS, but the parameters for the name of the area of interest (aoiName) and the database where the data is uploaded (dbInfo).
+The "uploaderCLUS" module defines the data (tables and rasters) that get output from the model and saved in a PostgreSQL database. These data can then be summarized in the CLUS Explorer application. Typically these tables are 'empty' after running dataLoaderCLUS, but the parameters for the name of the area of interest (aoiName) and the database where the data is uploaded (dbInfo).
 
 ### forestryCLUS
-The "forestryCLUS" module is the primary module for running the forest harvest simulator. The key parameters in the modules include the 'study area' parameters, as defined in the dataLoaderCLUS module, including    
+The "forestryCLUS" module is the primary module for running the forest harvest simulator, i.e., it contains many of the forest harvest event functions. The key parameters in the modules include the database, 'study area', forest inventory, blocking, harvest queue, caribou indicator, harvest flow, patch size and scenario parameters.
 
+Database parameters are listed within forestryCLUS as part of the dataLoaderCLUS module parameters. You need to specify the PostgreSQL database name (dbName), and the location fo the SQLite database that was created by the downloaderCLUS module (useCLUSdb). Here you also specify the spatial area of the analysis (nameBoundaryFile, nameBoundaryColumn, nameBoundary, nameBoundaryGeom, nameCompartmentRaster and nameCompartmentTable), the timber harvest land base area (nameMaskHarvestLandbaseRaster), and importantly, the names of the rasters where forest harvest contraints will be applied (nameZoneRasters). Forest harvest constraints will include existing legal constraints as are typically defined for timber supply modeling in BC. They include biodiversity emphasis options (rast.zone_cond_beo), visual quality objectives (rast.zone_cond_vqo), wildlife habtiat areas (rast.zone_cond_wha), ungulate winter ranges (rast.zone_cond_uwr), fisheries sensitive watersheds (rast.zone_cond_fsw), community watersheds (rast.zone_cond_cw) and no harvest areas (rast.zone_cond_nharv), such as provincial parks. The forest harvest constraints to apply to these areas are defined in the nameZoneTable parameter. Refer to the "Params" section below for details. 
 
+Also, within dataLoaderCLUS, the forest inventory parameters are defined, including the yield tables and rasters, and forest stand characteristics such as age, height, crown closure and site index.
 
+Blocking parameters in the forestryCLUS module are referred to in blockingCLUS module. You will have needed to define the blocking method as part of runnign the dataLoaderCLUS module. It will have created a "blocks" table in the SQLite database that will be used to define forest stands for harvest. 
 
+You can periodically calculate growing stock as part of the using forestry simulation by listing the growingStockCLUS module. You only need to set the periodLength paramter, and the forestry CLUS module will call the growingStockCLUS at that interval and cauclate teh amount of volume availabe to be harvested.
+ 
+The roadCLUS can be listed as parameter to create roads within a forestry simulation. 
 
-
-
-
-
-
-
-
-
-
-
-
-Each raster in the PostgreSQL database conforms to the provincial standard 1 ha raster grid. This facilitates the spatial joining of data from different sources.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+or if ran 'pre' in dataLoaderCLUS
 
 
 
@@ -169,7 +137,7 @@ Here we develop rasters that specify the location of areas of interest for estim
 
 
 
-
+Each of the constraint rasters and their associated constraints are created and defined in the R->Params folder via .Rmd files. These scripts load the source polygonal spatial data for each constraint area and rasterize them to the provincial standard, and create a table of constraints for each unique type of zone in the raster. The nameZoneTable is a table in the PostgreSQL database (zone_constraints) that inherits all of the zone constraint  tables. Therefore, you only need to specify this one table to define constraints for all the nameZoneRasters that you include in the analysis.
 
 
 
@@ -228,6 +196,62 @@ discuss how can use CLUS scneario tool to create a zone cosnraitn area, and proc
     
 - the .rmd creates a raster, but also a table that correpsonds to teh raster id
 - a table gest created for each zone constaint, and these get aggregated in teh postgres database into the "zone_constraints" table (a 'parent' table in postgres to all the constraint tables)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Each raster in the PostgreSQL database conforms to the provincial standard 1 ha raster grid. This facilitates the spatial joining of data from different sources.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #### Growth and Yeild Models
