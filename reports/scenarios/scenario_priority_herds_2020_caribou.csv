@@ -1,24 +1,24 @@
-planning_unit,scenario,annual_volume,diff_annual_volume,perc_diff_tot_volume
-Central Group,BAU,10658593,0,0
-Central Group,No harvest in critical habitat,9532405,-1126188,-11%
-Central Group,35% disturbance in matrix critical habitat,9767734,-890859,-8%
-Central Selkirks,BAU,1790139,0,0
-Central Selkirks,No harvest in critical habitat,1640825,-149314,-8%
-Central Selkirks,35% disturbance in matrix critical habitat,1706092,-84047,-5%
-Chilcotin,BAU,13299188,0,0
-Chilcotin,No harvest in critical habitat,12360292,-938896,-7%
-Chilcotin,35% disturbance in matrix critical habitat,12565535,-733653,-6%
-Hart Ranges,BAU,7052780,0,0
-Hart Ranges,No harvest in critical habitat,6708338,-344442,-5%
-Hart Ranges,35% disturbance in matrix critical habitat,6728186,-324594,-5%
-Partenership Agreement,BAU,10658593,0,0
-Partenership Agreement,No harvest in all Partnership Agreement Areas,10437691,-220902,-2%
-Partenership Agreement,"No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance in Central group partnership agreement areas A1, B1, B4 and B5",10464906,-193687,-2%
-Revelstoke,BAU,3504325,0,0
-Revelstoke,No harvest in critical habitat,3166017,-338308,-10%
-Revelstoke,35% disturbance in matrix critical habitat,3252520,-251805,-7%
-Wells Gray South/Groundhog,BAU,1459268,0,0
-Wells Gray South/Groundhog,No harvest in critical habitat,1059871,-399397,-27%
-Wells Gray South/Groundhog,35% disturbance in matrix critical habitat,1136336,-322932,-22%
-Wolverine/Chase/Takla,BAU,10894709,0,0
-Wolverine/Chase/Takla,No harvest in herd boundaries,10065771,-828938,-8%
+"","planning_unit","scenario","annual_volume","diff_annual_volume","perc_diff_tot_volume"
+"1","Central Group","BAU",10658593,0,"0"
+"2","Central Group","No harvest in critical habitat",9532405,-1126188,"-11%"
+"3","Central Group","35% disturbance in matrix critical habitat",9767734,-890859,"-8%"
+"4","Central Selkirks","BAU",1790139,0,"0"
+"5","Central Selkirks","No harvest in critical habitat",1640825,-149314,"-8%"
+"6","Central Selkirks","35% disturbance in matrix critical habitat",1706092,-84047,"-5%"
+"7","Chilcotin","BAU",13299188,0,"0"
+"8","Chilcotin","No harvest in critical habitat",12360292,-938896,"-7%"
+"9","Chilcotin","35% disturbance in matrix critical habitat",12565535,-733653,"-6%"
+"10","Hart Ranges","BAU",7052780,0,"0"
+"11","Hart Ranges","No harvest in critical habitat",6708338,-344442,"-5%"
+"12","Hart Ranges","35% disturbance in matrix critical habitat",6728186,-324594,"-5%"
+"13","Partenership Agreement","BAU",10658593,0,"0"
+"14","Partenership Agreement","No harvest in all Partnership Agreement Areas",10437691,-220902,"-2%"
+"15","Partenership Agreement","No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance in Central group partnership agreement areas A1, B1, B4 and B5",10464906,-193687,"-2%"
+"16","Revelstoke","BAU",3504325,0,"0"
+"17","Revelstoke","No harvest in critical habitat",3166017,-338308,"-10%"
+"18","Revelstoke","35% disturbance in matrix critical habitat",3252520,-251805,"-7%"
+"19","Wells Gray South/Groundhog","BAU",1459268,0,"0"
+"20","Wells Gray South/Groundhog","No harvest in critical habitat",1059871,-399397,"-27%"
+"21","Wells Gray South/Groundhog","35% disturbance in matrix critical habitat",1136336,-322932,"-22%"
+"22","Wolverine/Chase/Takla","BAU",10894709,0,"0"
+"23","Wolverine/Chase/Takla","No harvest in herd boundaries",10065771,-828938,"-8%"
