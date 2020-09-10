@@ -156,7 +156,7 @@ kable (table.volume,
                  font_size = 11) %>%
   footnote (general = "BAU = business-as-usual scenario; ECCC = Environment and Climate Change Canada; BC = British Columbia",
             fixed_small_size = T)
-```
+```     
 
 ### Actual Annual Harvested Volume
 Recent billed harvest in the Quesnel and Williams Lake TSA's has been below the current live and dead stand AAC in those units (Fig. 2). Annual harvest in 2019 was at approximately 58% and 54% of the AAC in the Williams Lake and Quesnel TSA's, respectively. Much of this decline may be due to a reduction in harvest of dead stands, as the majority of mountain pine beetle killed stands may have already been harvested. However, it is worth noting that recently the AAC was not being achieved in these TSAs.  
