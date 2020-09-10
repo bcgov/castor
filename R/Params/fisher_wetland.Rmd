@@ -1,0 +1,59 @@
+---
+title: "fisher_wetland"
+author: "Kyle"
+date: "10/09/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library (keyring)
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+## Wetland and permanent open areas
+
+This script builds the wetlands and permanent open areas layer needed for the Weir and Corbould 2010 model of relative probability of fisher occupancy.
+
+Wetlands and other permanently open areas:
+*o*	all BCLCS_LEVEL_1 = 'N' (Non-Vegetated)
+*o*	BCLCS_LEVEL_2 = 'N' and LINE_7B_DISTURBANCE_HISTORY  Is Null and (CROWN_CLOSURE<6 or CROWN_CLOSURE Is Null) and (BASAL_AREA <5 or BASAL_AREA Is Null))
+*o*	BCLCS_LEVEL_3 = 'Wetland' and (BCLCS_LEVEL_5='Sparse' or BCLCS_LEVEL_5='Open'))
+*o*	TRIM wetlands (WHSE_BASEMAPPING.TRIM_EBM_WETLANDS)
+
+
+## Get Layers
+```{r, layers}
+vri_layer<-getSpatialQuery("SELECT 1 as wetland, shape as geom FROM veg_comp_lyr_r1_poly2019 
+where bclcs_level_1 = 'N' 
+OR (bclcs_level_2 = 'N' and line_7b_disturbance_history Is Null and 
+	(crown_closure <6 or crown_closure Is Null) and (basal_area <5 or basal_area Is Null)) 
+OR bclcs_level_3 = 'Wetland' and (bclcs_level_5='Sparse' or bclcs_level_5='Open')")
+
+trim_layer<-getSpatialQuery("Select 1 as wetland, wkb_geometry as geom FROM  ebm_wetlnd_polygon")
+
+#Provincial raster at hectares BC extent
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(vri_layer)$proj4string, resolution = c(100, 100), vals = 0
+)
+```
+
+## Rasterize
+
+```{r, rasterize}
+ras.vri<-fasterize::fasterize(vri_layer, ProvRast, "wetland")
+ras.trim<-fasterize::fasterize(trim_layer, ProvRast, "wetland")
+
+ras.wetland<-ras.vri + ras.trim
+ras.wetland[ras.wetland[] > 1]<-1
+
+```
+
+## Export to postgres
+```{r, postgres}
+writeRaster(ras.wetland, file=paste0(here::here(),"/wetland.tif"), format="GTiff", overwrite=TRUE)#print the raster
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here(), '/wetland.tif -t 100x100 rast.wetland |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
+```
