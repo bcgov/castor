@@ -46,6 +46,7 @@ doEvent.fisherCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim)
+      sim <- predictOccupancy(sim)
       sim <- scheduleEvent (sim, time(sim) + P(sim, "fisherCLUS", "calculateInterval"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event 
     },
     calculateFisherOccupancy = { # calculate fisher occupancy at each time interval 
@@ -104,35 +105,40 @@ Init <- function(sim) {
     ras.wetland[, pixelid := seq_len(.N)] # add pixelid value
     
     dbBegin (sim$clusdb) # add values to the pixels table 
-      rs <- dbSendQuery (sim$clusdb, paste0("Update pixels set wetland = :V1 where pixelid = :pixelid", ras.wetland)) 
+      rs <- dbSendQuery (sim$clusdb, paste0("Update pixels set wetland = :V1 where pixelid = :pixelid"), ras.wetland) 
     dbClearResult (rs)
     dbCommit (sim$clusdb) # commit the new column to the db
     
     rm(ras.wetland)
     }
-  gc()
+   gc()
+  
+  #Initiate the time 0 output object tableFisherOccupancy
+  sim$tableFisherOccupancy<-data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric())
+
   return(invisible(sim))
 }
 
 predictOccupancy<- function(sim) {
   getFisherTerritory<-dbGetQuery(sim$clusdb, paste0("SELECT * FROM zone WHERE reference_zone IN ('", paste(P(sim, "fisherCLUS", "nameRasFisherTerritory"), sep = " ", collapse="', '"),"')"))
-  getFisherTerritory<-dbGetQuery(clusdb, paste0("SELECT * FROM zone"))
   #Build the query -- appending by fisher territory
   sql_fisher<-lapply(1:length(getFisherTerritory$zone_column), 
                      function(i){
-                      data.table(dbGetQuery(sim$clusdb, paste0("Select sum(case when wetland > 0 OR age < 12 then 1 else 0 end)/count() as openess, ", getFisherTerritory$zone_column[i] ," as zone, '",getFisherTerritory$reference_zone[i],"' as reference_zone from pixels 
-                      group by ",getFisherTerritory$zone_column[i] )))
+                      data.table(dbGetQuery(sim$clusdb, paste0("Select (cast(sum(case when wetland > 0 OR age < 12 then 1 else 0 end) as float)/count())*100 as openess, ", getFisherTerritory$zone_column[i] ," as zone, '",getFisherTerritory$reference_zone[i],"' as reference_zone from pixels 
+                      where ", getFisherTerritory$zone_column[i]," is not null group by ",getFisherTerritory$zone_column[i] )))
                       })
   occupancy<-rbindlist(sql_fisher)
-  #Formula/model from Weir and Corbould 2010
+  #Model from Weir and Corbould 2010
   occupancy[, rel_prob_occup:= ((exp(-0.219*openess))/(1+exp(-0.219*openess )))/0.5]
+  occupancy[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] 
   
+  sim$tableFisherOccupancy<-rbindlist(list(sim$tableFisherOccupancy, occupancy), use.names = TRUE)
   return(invisible(sim))
 }
 
 .inputObjects <- function(sim) {
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
-  message(currentModule(sim), ": using dataPath '", dPath, "'.")
+  #dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  #message(currentModule(sim), ": using dataPath '", dPath, "'.")
   return(invisible(sim))
 }
 

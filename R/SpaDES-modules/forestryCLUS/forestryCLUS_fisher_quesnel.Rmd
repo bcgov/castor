@@ -98,8 +98,7 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
-                                             "rast.zone_cond_fisher_sb_wet_denning",                                             "rast.zone_cond_fisher_sb_wet",
+                                               "rast.zone_cond_cw",                                              "rast.zone_cond_fisher_sb_wet",
                                              "rast.zone_cond_fisher_sb_dry",
                                              "rast.zone_cond_fisher_dry"
                                              
@@ -131,6 +130,8 @@ parameters <- list(
   survivalCLUS = list (caribou_herd_density = 0.05, 
                        nameRasCaribouHerd = "rast.caribou_herd", 
                        tableCaribouHerd = "public.caribou_herd_vat"), 
+  fisherCLUS = list(nameRasFisherTerritory = c('rast.zone_cond_fisher_sb_dry','rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_dry'),
+                    nameRasWetlands = 'rast.wetland'),
   disturbanceCalcCLUS = list(calculateInterval = 5, 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
@@ -149,13 +150,13 @@ modules <- list("dataLoaderCLUS",
                 "blockingCLUS", 
                 "forestryCLUS", 
                 "roadCLUS",  
-                #"yieldUncertaintyCLUS",
+                "fisherCLUS",
                 "survivalCLUS",
                 "disturbanceCalcCLUS",
                 "uploaderCLUS"
                 )
-scenario = data.table (name = "all_terr_10per_max12yrs_le_denning",
-                       description = "All fisher territories maintaining denning habitat and age")
+scenario = data.table (name = "all_terr_10per_max12yrs_le",
+                       description = "All fisher territories maintaining less than 10% of the territory less than 12 years")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 100 and age > 60 ', 
@@ -196,7 +197,7 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 # outputs to keep; these are tables that get used in the uploader
-#outputs(mySim) <- data.frame (objectName = c("harvestReport","growingStockReport"))
+outputs(mySim) <- data.frame (objectName = c("tableFisherOccupancy"))
 mysimout<-spades(mySim)
 
 #Run the model with experiment
