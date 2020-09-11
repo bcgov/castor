@@ -29,7 +29,7 @@ vri_layer<-getSpatialQuery("SELECT 1 as wetland, shape as geom FROM veg_comp_lyr
 where bclcs_level_1 = 'N' 
 OR (bclcs_level_2 = 'N' and line_7b_disturbance_history Is Null and 
 	(crown_closure <6 or crown_closure Is Null) and (basal_area <5 or basal_area Is Null)) 
-OR bclcs_level_3 = 'Wetland' and (bclcs_level_5='Sparse' or bclcs_level_5='Open')")
+OR (bclcs_level_3 = 'Wetland' and (bclcs_level_5='Sparse' or bclcs_level_5='Open'))")
 
 trim_layer<-getSpatialQuery("Select 1 as wetland, wkb_geometry as geom FROM  ebm_wetlnd_polygon")
 
@@ -44,7 +44,9 @@ ProvRast <- raster(
 
 ```{r, rasterize}
 ras.vri<-fasterize::fasterize(vri_layer, ProvRast, "wetland")
+ras.vri[is.na(ras.vri[])]<-0 #Need to do this in order to add the rasters together
 ras.trim<-fasterize::fasterize(trim_layer, ProvRast, "wetland")
+ras.trim[is.na(ras.trim[])]<-0
 
 ras.wetland<-ras.vri + ras.trim
 ras.wetland[ras.wetland[] > 1]<-1
