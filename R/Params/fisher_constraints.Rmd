@@ -67,7 +67,7 @@ writeRaster(ras.sb.wet.territory, "fisher_sb_wet.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_sb_wet.tif -t 100x100 rast.zone_cond_fisher_sb_wet | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 sb.wet.vat<-data.table(zoneid = 1:1941, reference_zone= 'rast.zone_cond_fisher_sb_wet',
-variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = 'NA')
+variable= 'age', type ='le', threshold= 0, percentage= 10, ndt =as.integer(0), multi_condition = 'age > 12 AND blockid > 0')
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -85,7 +85,7 @@ writeRaster(ras.sb.dry.territory, "fisher_sb_dry.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_sb_dry.tif -t 100x100 rast.zone_cond_fisher_sb_dry | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 sb.dry.vat<-data.table(zoneid = 1:1313, reference_zone= 'rast.zone_cond_fisher_sb_dry',
-variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = 'NA')
+variable= 'age', type ='le', threshold= 0, percentage= 10, ndt =as.integer(0), multi_condition = 'age > 12 AND blockid > 0')
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -104,7 +104,7 @@ writeRaster(ras.dry.territory, "fisher_dry.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_dry.tif -t 100x100 rast.zone_cond_fisher_dry | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 dry.vat<-data.table(zoneid = 1:1769, reference_zone= 'rast.zone_cond_fisher_dry',
-variable= 'age', type ='le', threshold= 12, percentage= 10, ndt =as.integer(0), multi_condition = NULL)
+variable= 'age', type ='le', threshold= 0, percentage= 10, ndt =as.integer(0), multi_condition = 'age > 12 AND blockid > 0')
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -132,6 +132,17 @@ habitat<-data.table(layer2)
 ```{r, denning}
 #SBS: WET
 denning.sbs.wet<- habitat[(species_cd_1 %in% c( 'ACT') | species_cd_2 %in% c( 'ACT') | (species_cd_1 %in% c('SX') & species_pct_1 == 100)) & crown_closure >= 30 & quad_diam_125 >= 28.5 & basal_area >= 29.7 & proj_age_1 >= 125 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
+
+sb.wet.vat.denning<-data.table(zoneid = 1:1941, reference_zone= 'rast.zone_cond_fisher_sb_wet_denning',
+variable= 'species_cd_1, species_cd_2, species_pct_1, crown_closure, quad_diam_125, basal_area, proj_age_1', type ='ge', threshold= 0, percentage= 4.9, ndt =as.integer(0), multi_condition = "(species_cd_1 = 'ACT' | species_cd_2 = 'ACT' | (species_cd_1 = 'SX' & species_pct_1 == 100)) & crown_closure >= 30 & quad_diam_125 >= 28.5 & basal_area >= 29.7 & proj_age_1 >= 125")
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("public", "zone_fisher_sb_wet_denning"), value= sb.wet.vat.denning, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_fisher_sb_wet_denning INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/fisher_sb_wet.tif -t 100x100 rast.zone_cond_fisher_sb_wet_denning | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 #SBS DRY: Act leading, secondary, or tertiary species (or hybrid spruce (Sx) as only species) Crown closure ≥20% QMD_125 ≥28 cm Basal area ≥28 m²/ha Stand age ≥125 years 
 denning.sbs.dry<- habitat[(species_cd_1 %in% c( 'ACT') | species_cd_2 %in% c( 'ACT') | (species_cd_1 %in% c('SX') & species_pct_1 == 100)) & crown_closure >= 20 & quad_diam_125 >= 28 & basal_area >= 28 & proj_age_1 >= 125 & bec_zone_code == 'SBS' & bec_subzone %in% c('dw','dh','dk'), "feature_id"]
