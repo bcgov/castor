@@ -24,17 +24,6 @@ shinyServer(function(input, output, session) {
     fire<<- getSpatialQuery("SELECT fire_year, wkb_geometry FROM public.fire_historic_2020 ")
     progress$set(value = 0.8, message = 'Loading...')
     
-    # Protected Areas
-    # federal protected areas downloaded from: https://cws-scf.ca/CPCAD-BDCAPC_Dec2019.gdb.zip
-    # NGO conservation areas from BCGW: https://catalogue.data.gov.bc.ca/dataset/ngo-conservation-areas-fee-simple
-    # Conservation Lands from BCGW: https://catalogue.data.gov.bc.ca/dataset/conservation-lands
-    
-    # pre-processing; as per approach of BC protected lands and water analysis (http://www.env.gov.bc.ca/soe/indicators/land/protected-lands-and-waters.html#details)
-    # 01_load and 02_clean create teh unioned protected area dataset
-    
-    
-    
-    
     
   #----------------
   #Non-Spatial 
@@ -184,6 +173,7 @@ shinyServer(function(input, output, session) {
     }
     
   })
+  
   uwrHerdSelect<-reactive({
     req(herdSelect())
     #print(paste0("SELECT uwr_caribou_no_harvest_20180627.approval_year, uwr_caribou_no_harvest_20180627.geom 
@@ -202,6 +192,23 @@ shinyServer(function(input, output, session) {
       empt
     }
   })
+  
+  # code to make a reactive protected area polygon to pu on leaflet map
+  # sp_desig_lands<-reactive({
+  #   req(herdSelect())
+  #   
+  #   desig_lands<<- getSpatialQuery("SELECT ogc_fid, category, wkb_geometry FROM public.designatedlands_2018 where ST_DWithin( public.designatedlands_2018.wkb_geometry , (SELECT geom FROM gcbp_carib_polygon WHERE gcbp_carib_polygon.herd_name = '",caribouHerd(),"'), 25000) ") # Protected Areas as per approach  BC protected lands and water analysis https://catalogue.data.gov.bc.ca/dataset/land-designations-that-contribute-to-conservation-in-bc-spatial-data
+  #   desig_lands<<-desig_lands[!st_is_empty(desig_lands) , ] # drop some empty polys
+  #   sp_desig_lands<<-sf::as_Spatial(st_transform(desig_lands, 4326), cast = TRUE)
+  #   
+  #   uw<-uwr[st_buffer(herdSelect(), dist=20000),,op=st_intersects]
+  #   if(length(uw$geom) > 0){
+  #     uw
+  #   }else{
+  #     empt
+  #   }
+  # })
+  
   
   # to upload shapefile... 
   uploadPolys <- reactive({ # drawnPolys
@@ -264,7 +271,8 @@ shinyServer(function(input, output, session) {
   ## Create scatterplot object the plotOutput function is expecting
   ## set the pallet for mapping
   pal <- colorFactor(palette = c("red", "#000000", "darkblue", "#0000FF", "lightblue"),  sp_herd_bound$risk_stat)
-  ## render the leaflet map  
+  # pal2 <- colorFactor(palette = c("green", "#000000", "darkblue", "#0000FF", "lightblue"),  desig_lands$category)
+    ## render the leaflet map  
   output$map = renderLeaflet({ 
     leaflet(sp_herd_bound, options = leafletOptions(doubleClickZoom= TRUE)) %>% 
       setView(-121.7476, 53.7267, 4.3) %>%
@@ -280,10 +288,26 @@ shinyServer(function(input, output, session) {
                   label = ~herd_name,
                   labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
                   highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
+      
+      
+      # addPolygons(data=sp_desig_lands, 
+      #             fillColor = ~pal2(category), 
+      #             weight = 1,opacity = 1,color = "white", dashArray = "1", fillOpacity = 0.5,
+      #             layerId = ~ogc_fid,
+      #             group= ~category,
+      #             smoothFactor = 0.5,
+      #             label = ~category,
+      #             labelOptions = labelOptions(noHide = FALSE, textOnly = TRUE, opacity = 0.5 , color= "black", textsize='13px'),
+      #             highlight = highlightOptions(weight = 4, color = "white", dashArray = "", fillOpacity = 0.3, bringToFront = TRUE)) %>%
+      # 
+      
       addScaleBar(position = "bottomright") %>%
       addControl(actionButton("reset","Refresh", icon =icon("refresh"), style="
                               background-position: -31px -2px;"),position="bottomleft") %>%
       addLegend("bottomright", pal = pal, values = unique(sp_herd_bound$risk_stat), title = "Population Trend", opacity = 1) %>%
+
+      #addLegend("bottomleft", pal = pal2, values = unique(desig_lands$category), title = "Land Designation", opacity = 1) %>%
+      
       addDrawToolbar(
         editOptions = editToolbarOptions(),
         targetGroup='Drawn',
