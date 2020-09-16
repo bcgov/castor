@@ -21,7 +21,7 @@ shinyServer(function(input, output, session) {
     progress$set(value = 0.5, message = 'Loading...')
     # cutblock<<- getSpatialQuery("SELECT harvest_ye, wkb_geometry FROM public.cutblocks_2020 ")
     # progress$set(value = 0.7, message = 'Loading...')
-    fire<<- getSpatialQuery("SELECT fire_year, wkb_geometry FROM public.fire_historic_2020 ")
+    #fire<<- getSpatialQuery("SELECT fire_year, wkb_geometry FROM public.fire_historic_2020 ")
     progress$set(value = 0.8, message = 'Loading...')
     
     
@@ -686,9 +686,9 @@ shinyServer(function(input, output, session) {
                              sum(st_area(fire.wkb_geometry))/10000 as area_ha 
                              FROM 
                              public.fire_historic_2020 AS fire,  
-                             (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+                             (SELECT wkb_geometry FROM bc_carib_poly_20090904 WHERE herd_name = '",caribouHerd(),"') AS m 
                              WHERE
-                             ST_Contains(m.geom,fire.wkb_geometry) 
+                             ST_Contains(m.wkb_geometry,fire.wkb_geometry) 
                              GROUP BY  fire.fire_year
                              ORDER BY  fire.fire_year"))
         incProgress(0.7)
