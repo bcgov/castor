@@ -34,7 +34,7 @@ defineModule(sim, list(
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = "Name of the area of interest(aoi) eg. Quesnel_TSA", sourceURL = NA),
-    expectsInput(objectName ="zone.length", objectClass ="integer", desc = "The number of zones", sourceURL = NA)
+    expectsInput(objectName ="zone.available", objectClass ="data.table", desc = "The number of zones", sourceURL = NA)
   ),
   outputObjects = bind_rows(
     createsOutput (objectName = "tableFisherOccupancy", objectClass = "data.table", desc = "A data.table object. Consists of fisher occupancy estimates for each territory in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
@@ -45,12 +45,12 @@ doEvent.fisherCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim <- Init(sim)
-      sim <- predictOccupancy(sim)
+      sim <- Init(sim) #Gets the needed spatial layers
+      sim <- predictOccupancy(sim)# Predicts the time =0 fisher occupancy
       sim <- scheduleEvent (sim, time(sim) + P(sim, "fisherCLUS", "calculateInterval"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event 
     },
     calculateFisherOccupancy = { # calculate fisher occupancy at each time interval 
-      sim <- predictOccupancy (sim) # this function calculates survival rate
+      sim <- predictOccupancy (sim) # Calculates fisher occupancy
       sim <- scheduleEvent (sim, time(sim) + P(sim, "fisherCLUS", "calculateInterval"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event  
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
@@ -62,10 +62,10 @@ doEvent.fisherCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   fisher.ras.ter<-data.table(reference_zone = P(sim, "fisherCLUS", "nameRasFisherTerritory"))
   #Add any territory not already in the clusdb
-  getFisherTerritory<-fisher.ras.ter[!(reference_zone %in% dbGetQuery(sim$clusdb, "SELECT reference_zone FROM zone")$reference_zone),]
+  getFisherTerritory<-fisher.ras.ter[!(reference_zone %in% sim$zone.available$reference_zone),]
+
   if(nrow(getFisherTerritory) > 0){
-    getFisherTerritory[,zone:= paste0("zone", .I + as.integer(sim$zone.length))] #assign zone name as the last zone number plus the new zones
-    
+    getFisherTerritory[,zone:= paste0("zone", .I + as.integer(length(sim$zone.available$reference_zone)))] #assign zone name as the last zone number plus the new zones
     for(i in 1:nrow(getFisherTerritory)){
       dbExecute (sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", getFisherTerritory$zone[i], " integer")) # add a column to the pixel table that will define the fisher territory  
       
@@ -120,7 +120,7 @@ Init <- function(sim) {
 }
 
 predictOccupancy<- function(sim) {
-  getFisherTerritory<-dbGetQuery(sim$clusdb, paste0("SELECT * FROM zone WHERE reference_zone IN ('", paste(P(sim, "fisherCLUS", "nameRasFisherTerritory"), sep = " ", collapse="', '"),"')"))
+  getFisherTerritory<- sim$zone.available[reference_zone %in% P(sim, "fisherCLUS", "nameRasFisherTerritory"),]
   #Build the query -- appending by fisher territory
   sql_fisher<-lapply(1:length(getFisherTerritory$zone_column), 
                      function(i){
