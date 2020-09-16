@@ -221,10 +221,10 @@ ui <- dashboardPage(skin = "black",
                         ),
                         tabItem(tabName = "fisher",
                                 fluidRow(
-                                  box(title = "Occupancy", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "green", width =6,
+                                  box(title = "Occupancy", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "purple", width =6,
                                       plotlyOutput(outputId = "fisherOccupancyPlot", height = "300px")
                                   ),
-                                  box(title = "Territory", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "green", width =6,
+                                  box(title = "Territory", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "purple", width =6,
                                       tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs {max-height: 50px;}, .irs-grid-pol { background:blue; border-color: blue;}"),
                                       sliderInput("fisherTerritoryYear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
                                       plotOutput(outputId = "fisherTerritoryPlot", height = "200px")

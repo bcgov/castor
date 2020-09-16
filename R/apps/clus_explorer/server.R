@@ -71,6 +71,9 @@ ON c.compartment = a.compartment;")))
     
     data.fisherOccupancy<-data.table(getTableQuery(paste0("SELECT rel_prob_occup, zone, reference_zone, timeperiod, scenario  FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, timeperiod;")))
     
+    data.fisher.hexa<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts "))
+    data.fisherPoints<-merge(data.fisher.hexa, data.fisherOccupancy[timeperiod == 0 & scenario == input$scenario[1], c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
+    
     list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
          growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
          rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
@@ -78,14 +81,15 @@ ON c.compartment = a.compartment;")))
          disturbance = data.disturbance,
          fire = data.fire,
          fire2=data.fire2,
-         fisher = data.fisherOccupancy)
+         fisher = data.fisherOccupancy,
+         fisherPts= data.fisherPoints)
   })
   
-  fisherPoints<-reactive({
-    req(input$schema)
-    req(input$scenario)
-    out<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts"))
-    merge(out, reportList()$fisher[timeperiod == 0, c('zone', 'reference_zone')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
+  fisherPointsFilter<-reactive({
+    req(reportList())
+    req(input$fisheryear)
+    req(input$fisher_scenario_selected)
+    merge(reportList()$fisherPts[,c('zone', 'reference_zone', 'size', 'x', 'y')], reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected, c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
   })
   
   radarList<-reactive({
@@ -123,9 +127,13 @@ ON (foo1.scenario = foo2.scenario) )")))
   })
   
   observeEvent(input$fisheryear, {
-    leafletProxy("fishermapper", data = fisherPoints(), session) %>%
+    pal<-colorNumeric(
+      palette = 'Blues',
+      domain = reportList()$fisherPts$rel_prob_occup
+    )
+    leafletProxy("fishermapper", data = fisherPointsFilter(), session) %>%
       clearShapes() %>%
-      addCircles(lat = ~y, lng = ~x, color="blue", radius = size*10)
+      addCircles(lat = ~y, lng = ~x, fillColor = ~pal(fisherPointsFilter()$rel_prob_occup), color=~pal(fisherPointsFilter()$rel_prob_occup), radius = fisherPointsFilter()$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup))
   })
   
   #---Observe
@@ -259,10 +267,13 @@ ON (foo1.scenario = foo2.scenario) )")))
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"))
     
   })
-  
+
   output$fishermapper <- renderLeaflet({
-    
-    leaflet(fisherPoints(), options = leafletOptions(doubleClickZoom= TRUE))%>%
+    pal<-colorNumeric(
+      palette = 'Blues',
+      domain = reportList()$fisherPts$rel_prob_occup
+    )
+    leaflet(reportList()$fisherPts)%>%
       addTiles() %>% 
       fitBounds(~min(x), ~min(y), ~max(x), ~max(y)) %>%
       addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
@@ -270,9 +281,9 @@ ON (foo1.scenario = foo2.scenario) )")))
       addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
       addScaleBar(position = "bottomright") %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme")) %>%
-      addCircles(lat = ~y, lng = ~x, color=colorNumeric("Blues", x), radius = size*10)
-      
-    
+      addCircles(lat = ~y, lng = ~x, fillColor = ~pal(reportList()$fisherPts$rel_prob_occup), color=~pal(reportList()$fisherPts$rel_prob_occup), radius = reportList()$fisherPts$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup)) %>%
+      addLegend(position = "topright",
+                    pal = pal, values = ~reportList()$fisherPts$rel_prob_occup, title = "Prob")
   })
   
   output$climatemap <-renderPlot({
