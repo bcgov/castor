@@ -19,25 +19,16 @@ shinyServer(function(input, output, session) {
     wha<<- getSpatialQuery("SELECT approval_year, geom FROM public.wha_caribou_no_harvest_20180627 ")
     empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
     progress$set(value = 0.5, message = 'Loading...')
-    # cutblock<<- getSpatialQuery("SELECT harvest_ye, wkb_geometry FROM public.cutblocks_2020 ")
-    # progress$set(value = 0.7, message = 'Loading...')
-    #fire<<- getSpatialQuery("SELECT fire_year, wkb_geometry FROM public.fire_historic_2020 ")
-    progress$set(value = 0.8, message = 'Loading...')
-    
-    
+
   #----------------
   #Non-Spatial 
   #Get climate data
-    #bec<<-getTableQuery("SELECT * FROM public.clime_bec")
-    #bec$year <<- relevel(as.factor(bec$year), "Current")
-    #progress$set(value = 0.7, message = 'Loading...')
-    #clime<<-getTableQuery("SELECT * FROM public.clim_plot_data")
+    bec<<-getTableQuery("SELECT * FROM public.clime_bec")
+    bec$year <<- relevel(as.factor(bec$year), "Current")
+    progress$set(value = 0.8, message = 'Loading...')
+    clime<<-getTableQuery("SELECT * FROM public.clim_plot_data")
   #----------------
-    ## OLD ##
-    #get cached cutblock summary
-    # progress$set(value = 0.9, message = 'Loading...')
-    # cb_sumALL<<-getTableQuery("SELECT * FROM public.cb_sum")
-  #----------------
+    
     #get cached thlb summary
     progress$set(value = 0.9, message = 'Loading...')
     gcbp_thlb<<-getTableQuery("SELECT herd_name, sum FROM public.gcbp_thlb_sum")
@@ -84,11 +75,12 @@ shinyServer(function(input, output, session) {
       colnames(df)<-c("ID", "Label")
       #merge to the original ID of the polygons
       p.df$label<- df$Label[match(p.df$ID, df$ID)]
-      SPDF<-spTransform(SpatialPolygonsDataFrame(spPolys, data=p.df), CRS("+init=epsg:3005"))
+      SPDF<-st_as_sfc (spTransform(SpatialPolygonsDataFrame(spPolys, data=p.df), CRS("+init=epsg:3005")))
     }else{
       SPDF<-NULL
     }
     SPDF
+    #print(sf::st_as_text(st_as_sfc(SPDF), EWKT = FALSE)) 
   }) 
   
   totalArea<- reactive({
@@ -244,7 +236,7 @@ shinyServer(function(input, output, session) {
         }
         tryCatch({
           # outShp <- st_transform(st_read(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), crs = "+init=epsg:4326")}, # CRS("+init=epsg:4326"))
-          outShp <-  spTransform(readOGR(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326"))},
+          outShp <- st_as_sfc (spTransform(readOGR(paste(tempdirname, shpdf$name[grep(pattern = "*.shp$", shpdf$name)], sep = "/")), CRS("+init=epsg:4326")))},
           
           error=function(cond) {
             shpValid <- FALSE
@@ -262,7 +254,7 @@ shinyServer(function(input, output, session) {
       outShp = NULL
 
     } else {
-      outShp 
+      outShp
     }
   })
   
@@ -320,8 +312,8 @@ shinyServer(function(input, output, session) {
                                                                           color = 'red',
                                                                           weight = 3, 
                                                                           clickable = TRUE))) %>%
-      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area', 'Caribou Selection')) 
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'), options = layersControlOptions(collapsed = TRUE)) %>%
+      hideGroup(c('Drawn', 'Ungulate Winter Range','Wildlife Habitat Area')) 
   })
   
   # Create a shapefile to download
@@ -438,13 +430,13 @@ shinyServer(function(input, output, session) {
                                     st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer2,")))/10000 as area_ha_buffer 
                                     FROM 
                                     public.cutblocks_2020 AS cut,  
-                                    (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+                                    (SELECT ST_GeomFromText('",sf::st_as_text(drawnPolys(), EWKT = FALSE),"', 3005)) as m 
                              WHERE
                              ST_Contains(m.st_geomfromtext,cut.wkb_geometry) 
                              GROUP BY  cut.harvest_ye
                              ORDER BY  cut.harvest_ye"))
         incProgress(0.7)
-        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        ta<-as.numeric(sf::st_area(drawnPolys())/10000)
         data$per_boundary<-(data$area_ha/ta)*100
         data$per_boundary_buffer <- (data$area_ha_buffer/ta)*100
         names(data)<-c("year", "area_ha","area_ha_buffer", "perc_area", "perc_area_buffer")
@@ -491,13 +483,13 @@ shinyServer(function(input, output, session) {
         st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer2,")))/10000 as area_ha_buffer
         FROM
         public.cutblocks_2020 AS cut,
-        (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(spTransform (uploadPolys(),CRS("+init=epsg:3005"))), EWKT = FALSE),"', 3005)) as m
+        (SELECT ST_GeomFromText('",sf::st_as_text(st_transform (uploadPolys(), crs = 3005), EWKT = FALSE),"', 3005)) as m
         WHERE
         ST_Contains(m.st_geomfromtext,cut.wkb_geometry)
         GROUP BY cut.harvest_ye
         ORDER BY cut.harvest_ye"))
         incProgress(0.7)
-        ta<-as.numeric(sf::st_area(st_as_sfc(uploadPolys()))/10000)
+        ta<-as.numeric(sf::st_area(uploadPolys())/10000)
         data$per_boundary<-(data$area_ha/ta)*100
         data$per_boundary_buffer <- (data$area_ha_buffer/ta)*100
         names(data)<-c("year", "area_ha","area_ha_buffer", "perc_area", "perc_area_buffer")
@@ -544,9 +536,9 @@ shinyServer(function(input, output, session) {
                              st_area(st_union(st_buffer(cut.wkb_geometry, ", input$sliderBuffer2,")))/10000 as area_ha_buffer 
                               FROM 
                              public.cutblocks_2020 AS cut,  
-                             (SELECT * FROM gcbp_carib_polygon WHERE herd_name = '",caribouHerd(),"') AS m 
+                             (SELECT * FROM bc_carib_poly_20090904 WHERE herd_name = '",caribouHerd(),"') AS m 
                              WHERE
-                             ST_Contains(m.geom,cut.wkb_geometry) 
+                             ST_Contains(m.wkb_geometry,cut.wkb_geometry) 
                              GROUP BY  cut.harvest_ye
                              ORDER BY  cut.harvest_ye"))
         incProgress(0.7)
@@ -607,13 +599,13 @@ shinyServer(function(input, output, session) {
                                     sum(st_area(fire.wkb_geometry))/10000 as area_ha 
                                     FROM 
                                     public.fire_historic_2020 AS fire,  
-                                    (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+                                    (SELECT ST_GeomFromText('",sf::st_as_text(drawnPolys(), EWKT = FALSE),"', 3005)) as m 
                              WHERE
                              ST_Contains(m.st_geomfromtext,fire.wkb_geometry) 
                              GROUP BY  fire.fire_year
                              ORDER BY  fire.fire_year"))
         incProgress(0.7)
-        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        ta<-as.numeric(sf::st_area(drawnPolys())/10000)
         data$per_boundary<-(data$area_ha/ta)*100
         names(data)<-c("year", "area_ha","perc_area")
         
@@ -646,13 +638,13 @@ shinyServer(function(input, output, session) {
 							 sum(st_area(fire.wkb_geometry))/10000 as area_ha
 							 FROM
 							 public.fire_historic_2020 AS fire,
-							 (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(spTransform (uploadPolys(),CRS("+init=epsg:3005"))), EWKT = FALSE),"', 3005)) as m
+							 (SELECT ST_GeomFromText('",sf::st_as_text(st_transform (uploadPolys(),crs =3005), EWKT = FALSE),"', 3005)) as m
 							 WHERE
 							 ST_Contains(m.st_geomfromtext,fire.wkb_geometry)
 							 GROUP BY fire.fire_year
 							 ORDER BY fire.fire_year"))
         incProgress(0.7)
-        ta<-as.numeric(sf::st_area(st_as_sfc(uploadPolys()))/10000)
+        ta<-as.numeric(sf::st_area(uploadPolys())/10000)
         data$per_boundary<-(data$area_ha/ta)*100
         names(data)<-c("year","area_ha","perc_area")
 
@@ -686,7 +678,7 @@ shinyServer(function(input, output, session) {
                              sum(st_area(fire.wkb_geometry))/10000 as area_ha 
                              FROM 
                              public.fire_historic_2020 AS fire,  
-                             (SELECT wkb_geometry FROM bc_carib_poly_20090904 WHERE herd_name = '",caribouHerd(),"') AS m 
+                            (SELECT * FROM bc_carib_poly_20090904 WHERE herd_name = '",caribouHerd(),"') AS m 
                              WHERE
                              ST_Contains(m.wkb_geometry,fire.wkb_geometry) 
                              GROUP BY  fire.fire_year
@@ -769,11 +761,11 @@ shinyServer(function(input, output, session) {
         table<-getTableQuery(paste0("SELECT (ST_SummaryStatsAgg(x.intersectx,1,true)).sum 
           FROM
         (SELECT ST_Intersection(rast,1,ST_AsRaster(geom, rast),1) as intersectx
-          FROM bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005) as geom ) as t 
+          FROM bc_thlb2018, (SELECT ST_GeomFromText('",sf::st_as_text(drawnPolys(), EWKT = FALSE),"', 3005) as geom ) as t 
           WHERE ST_Intersects(geom, rast)) as x
         WHERE x.intersectx IS NOT NULL;"))
         incProgress(0.95)
-        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        ta<-as.numeric(sf::st_area(drawnPolys())/10000)
         table$per_boundary<-(table$sum/ta)*100
         names(table)<-c("Sum THLB (ha)", "Percent of Drawn Area (%)")
         table
@@ -812,13 +804,13 @@ shinyServer(function(input, output, session) {
         table<-getTableQuery(paste0("SELECT r.road_surface,sum(ST_Length(r.wkb_geometry))/1000 as length_km, 
                             st_area(st_union(st_buffer(r.wkb_geometry, ", input$sliderBuffer,")))/10000 as area_ha_buffer 
                               FROM public.integrated_roads AS r,  
-                             (SELECT ST_GeomFromText('",sf::st_as_text(st_as_sfc(drawnPolys()), EWKT = FALSE),"', 3005)) as m 
+                             (SELECT ST_GeomFromText('",sf::st_as_text(drawnPolys(), EWKT = FALSE),"', 3005)) as m 
                              WHERE
                              ST_Contains(m.st_geomfromtext,r.wkb_geometry) 
                              GROUP BY  r.road_surface
                              ORDER BY  r.road_surface"))
         incProgress(0.95)
-        ta<-as.numeric(sf::st_area(st_as_sfc(drawnPolys()))/10000)
+        ta<-as.numeric(sf::st_area(drawnPolys())/10000)
         table$per_boundary<-(table$area_ha_buffer/ta)*100
         names(table)<-c("Road Surface", "Length (km)", paste0("Total Area (ha) with ",input$sliderBuffer ,"m Buffer"), "Percent of Drawn Area (%)")
         table
@@ -928,9 +920,9 @@ shinyServer(function(input, output, session) {
                                                                               clickable = TRUE))) %>%
           
           addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"), 
-                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn', 'Caribou Selection'), 
+                           overlayGroups = c('Ungulate Winter Range','Wildlife Habitat Area', 'Drawn'), 
                            options = layersControlOptions(collapsed = TRUE)) %>%
-          hideGroup(c('Drawn', 'Caribou Selection')) 
+          hideGroup(c('Drawn')) 
       }
   })
   
@@ -986,7 +978,7 @@ shinyServer(function(input, output, session) {
   observe({
     if(!is.null(uploadPolys())){ # drawnPolys
 
-     bb <- st_bbox (sf::as_Spatial (st_as_sfc(uploadPolys()))) # drawnPolys
+     bb <- st_bbox (sf::as_Spatial (uploadPolys())) # drawnPolys
 
      leafletProxy("map") %>%
         addPolygons (data = uploadPolys(), # drawnPolys
