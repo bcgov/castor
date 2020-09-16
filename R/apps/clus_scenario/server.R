@@ -19,7 +19,7 @@ shinyServer(function(input, output, session) {
     wha<<- getSpatialQuery("SELECT approval_year, geom FROM public.wha_caribou_no_harvest_20180627 ")
     empt<<-st_sf(st_sfc(st_polygon(list(cbind(c(0,1,1,0,0),c(0,0,1,1,0)))),crs=3005))
     progress$set(value = 0.5, message = 'Loading...')
-   
+
   #----------------
   #Non-Spatial 
   #Get climate data
@@ -678,7 +678,7 @@ shinyServer(function(input, output, session) {
                              sum(st_area(fire.wkb_geometry))/10000 as area_ha 
                              FROM 
                              public.fire_historic_2020 AS fire,  
-                             (SELECT * FROM bc_carib_poly_20090904 WHERE herd_name = '",caribouHerd(),"') AS m 
+                            (SELECT * FROM bc_carib_poly_20090904 WHERE herd_name = '",caribouHerd(),"') AS m 
                              WHERE
                              ST_Contains(m.wkb_geometry,fire.wkb_geometry) 
                              GROUP BY  fire.fire_year

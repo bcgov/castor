@@ -69,7 +69,10 @@ ON c.compartment = a.compartment;")))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
  round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     
+    data.fisherOccupancy<-data.table(getTableQuery(paste0("SELECT rel_prob_occup, zone, reference_zone, timeperiod, scenario  FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, timeperiod;")))
     
+    data.fisher.hexa<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts "))
+    data.fisherPoints<-merge(data.fisher.hexa, data.fisherOccupancy[timeperiod == 0 & scenario == input$scenario[1], c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
     
     list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
          growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
@@ -77,7 +80,16 @@ ON c.compartment = a.compartment;")))
          survival = data.survival,
          disturbance = data.disturbance,
          fire = data.fire,
-         fire2=data.fire2)
+         fire2=data.fire2,
+         fisher = data.fisherOccupancy,
+         fisherPts= data.fisherPoints)
+  })
+  
+  fisherPointsFilter<-reactive({
+    req(reportList())
+    req(input$fisheryear)
+    req(input$fisher_scenario_selected)
+    merge(reportList()$fisherPts[,c('zone', 'reference_zone', 'size', 'x', 'y')], reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected, c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
   })
   
   radarList<-reactive({
@@ -114,6 +126,16 @@ ON (foo1.scenario = foo2.scenario) )")))
       addScaleBar(position = "bottomleft") 
   })
   
+  observeEvent(input$fisheryear, {
+    pal<-colorNumeric(
+      palette = 'Blues',
+      domain = reportList()$fisherPts$rel_prob_occup
+    )
+    leafletProxy("fishermapper", data = fisherPointsFilter(), session) %>%
+      clearShapes() %>%
+      addCircles(lat = ~y, lng = ~x, fillColor = ~pal(fisherPointsFilter()$rel_prob_occup), color=~pal(fisherPointsFilter()$rel_prob_occup), radius = fisherPointsFilter()$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup))
+  })
+  
   #---Observe
   observe({
     updateSelectInput(session, "tsa_selected",
@@ -128,7 +150,6 @@ ON (foo1.scenario = foo2.scenario) )")))
                              selected = character(0)
     )
   })
-  
   
   observe({
     updateSelectInput(session, "queryColumns",
@@ -146,6 +167,11 @@ ON (foo1.scenario = foo2.scenario) )")))
                       selected = character(0))
   })
   
+  observe({
+    updateSelectInput(session, "fisher_scenario_selected",
+                      choices = input$scenario,
+                      selected = character(0))
+  })
   
   #---Outputs
   
@@ -162,6 +188,7 @@ ON (foo1.scenario = foo2.scenario) )")))
             marker = list(line = list(color = "black", width =1))) %>% add_pie(hole = 0.6)%>%
       layout(plot_bgcolor='#00000000',legend = list(orientation = 'v'),paper_bgcolor='#00000000',title = "Seral Stage", font = list(color = 'White'))
   })
+  
   output$statusTHLB<-renderInfoBox({
     data<-statusData()[compartment %in% input$tsa_selected,]
     infoBox(title = NULL, subtitle = "THLB", 
@@ -211,12 +238,24 @@ ON (foo1.scenario = foo2.scenario) )")))
     )
   })
   
+  output$numberFisherTerritory<-renderValueBox({
+    valueBoxSpark(
+      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.2, "zone"]))),
+      title = toupper("Territories"),
+      subtitle = NULL,
+      icon = icon("times-circle"),
+      width = 4,
+      color = "blue"
+    )
+  })
+  
   output$resultSetTable<-renderDataTable({
     #print(paste0("SELECT ", paste(c(input$queryRows,input$queryColumns), sep="' '", collapse=", "), " FROM ", input$schema, ".", input$queryTable, " WHERE scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY ", input$queryColumns))
     data.table(getTableQuery(paste0("SELECT scenario, ", paste(c(paste0(input$queryValue, "(", input$queryRows, ")"),input$queryColumns), sep="' '", collapse=", "), " FROM ", 
                                     input$schema, ".", input$queryTable, " WHERE scenario IN ('",
                                     paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY scenario, ", input$queryColumns, " ORDER BY ", input$queryColumns)))
   })
+  
   output$resultSetRaster <- renderLeaflet({
     leaflet(options = leafletOptions(doubleClickZoom= TRUE))%>%
       setView(-124.87, 54.29, zoom = 5) %>%
@@ -227,6 +266,24 @@ ON (foo1.scenario = foo2.scenario) )")))
       addScaleBar(position = "bottomright") %>%
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"))
     
+  })
+
+  output$fishermapper <- renderLeaflet({
+    pal<-colorNumeric(
+      palette = 'Blues',
+      domain = reportList()$fisherPts$rel_prob_occup
+    )
+    leaflet(reportList()$fisherPts)%>%
+      addTiles() %>% 
+      fitBounds(~min(x), ~min(y), ~max(x), ~max(y)) %>%
+      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
+      addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
+      addScaleBar(position = "bottomright") %>%
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme")) %>%
+      addCircles(lat = ~y, lng = ~x, fillColor = ~pal(reportList()$fisherPts$rel_prob_occup), color=~pal(reportList()$fisherPts$rel_prob_occup), radius = reportList()$fisherPts$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup)) %>%
+      addLegend(position = "topright",
+                    pal = pal, values = ~reportList()$fisherPts$rel_prob_occup, title = "Prob")
   })
   
   output$climatemap <-renderPlot({
@@ -467,6 +524,30 @@ ON (foo1.scenario = foo2.scenario) )")))
         )# change seasonal values
     })
   }) 
+  
+  output$fisherOccupancyPlot<- renderPlotly({
+    data<-reportList()$fisher[,sum(rel_prob_occup), by =c('scenario', 'timeperiod')]
+    p<-ggplot(data, aes (x=timeperiod, y=V1, group = scenario, color = scenario)) +
+      geom_line() +
+      xlab ("Future year") +
+      ylab ("Sum relative probability of occupancy") +
+      theme_bw()+
+      theme (legend.title = element_blank())
+    ggplotly(p) %>%
+      layout (legend = list (orientation = "h", y = -0.1))
+  })
+  
+  output$fisherTerritoryPlot<- renderPlot({
+    data <- reportList()$fisher[timeperiod==input$fisherTerritoryYear]
+    ggplot(data, aes(rel_prob_occup, color = scenario,fill= scenario)) +
+      facet_grid(.~reference_zone)+
+      geom_density(aes(y=..scaled..),alpha = 0.1) +
+      xlab ("Relative probability of occupancy") +
+      ylab ("Frequency") +
+      theme_bw()+
+      theme (legend.title = element_blank(), legend.position = 'bottom')
+    
+  })
   
   output$rsfPlot <- renderPlotly ({
     data<-reportList()$rsf

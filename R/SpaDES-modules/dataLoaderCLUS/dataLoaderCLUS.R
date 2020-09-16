@@ -75,7 +75,8 @@ defineModule(sim, list(
     expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
     ),
   outputObjects = bind_rows(
-    createsOutput("zone.length", objectClass ="numeric", desc = NA),
+    createsOutput("zone.length", objectClass ="integer", desc = NA), # the number of zones to constrain on
+    createsOutput("zone.available", objectClass ="data.table", desc = NA), # the available zones of the clusdb
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
@@ -130,6 +131,9 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
         #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
+        
+        #Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
+        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;"))
       }
       #disconnect the db once the sim is over?
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
