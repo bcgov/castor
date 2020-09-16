@@ -238,7 +238,7 @@ ui <- dashboardPage(skin = "black",
                                               tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs-grid-pol { background:black; border-color: black;}"),
                                               sliderInput("fisheryear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
                                               valueBoxOutput("numberFisherTerritory", width = 12),
-                                              bsTooltip("numberFisherTerritory", "Number of fisher territories with relative probability of occupancy > 0.2", "bottom"),
+                                              bsTooltip("numberFisherTerritory", "Number of fisher territories with relative probability of occupancy > 0.2", "bottom")
                                   )
                                 )
                         ),

@@ -69,11 +69,16 @@ ON c.compartment = a.compartment;")))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
  round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     
-    data.fisherOccupancy<-data.table(getTableQuery(paste0("SELECT rel_prob_occup, zone, reference_zone, timeperiod, scenario  FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, timeperiod;")))
-    
-    data.fisher.hexa<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts "))
-    data.fisherPoints<-merge(data.fisher.hexa, data.fisherOccupancy[timeperiod == 0 & scenario == input$scenario[1], c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
-    
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'fisher'")))> 0){
+      data.fisherOccupancy<-data.table(getTableQuery(paste0("SELECT rel_prob_occup, zone, reference_zone, timeperiod, scenario  FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, timeperiod;")))
+      data.fisher.hexa<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts "))
+      data.fisherPoints<-merge(data.fisher.hexa, data.fisherOccupancy[timeperiod == 0 & scenario == input$scenario[1], c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
+    }else{
+      data.fisherPoints<-NULL
+      data.fisherOccupancy<-NULL
+    }
+
     list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
          growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
          rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
