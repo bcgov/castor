@@ -324,7 +324,7 @@ shinyServer(function(input, output, session) {
         file.remove(Sys.glob("CLUSshpExport.*"))
       }
       if(!is.null(input$map_draw_all_features)){
-        rgdal::writeOGR(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
+        rgdal::writeOGR(as (drawnPolys(), "Spatial"), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
       }
 
       zip(zipfile='CLUSshpExport.zip', files=Sys.glob("CLUSshpExport.*"))
