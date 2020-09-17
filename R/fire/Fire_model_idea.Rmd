@@ -1,0 +1,76 @@
+---
+title: "Fire models - Brief Literature Review"
+author: "Elizabeth Kleynhans"
+date: "26/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+- here are some ideas and lit. review about how to go about developing a 'fire model' for caribou recovery
+
+## Possible Approaches
+
+### FAIB - TSA 16 Fire Modeling Methodology
+
+They model it in STSM with a four step process. 
+
+1.) Examine the fire regime in study area by getting spatial files of historic fire perimeters and BC wildfire Provincial Strategic Threat Analysis (PSTA) dataset which determines threat of fires to different areas. THey then calculate how much of the area was burned since fire data is available and from this determine how long it would take for an equivalent area of the forested portion of the TSA to burn (refered to as rotation period). The inverse of the rotation period (1/rotation period) is the expected annual rate of disturbance or in other words the proportion of the total forested area burned per year.
+
+2.) Establish a theoretical simulated distribution. Using the fire perimeter data they fit a distribution to a log transformation of the data e.g. using fitdistrplus in R and test whether the determined distribution is a good fit.
+
+3.) Parametrize the timber supply model. They parameterized the SELES model with parameters such as 20% of the burned forest being destroyed, the rest is then available for harvest for the next 5 years after which the amount of availabel timber is set to 0%. Where a fire initially ignites is dependent on the PSTA wildfire threat analysis layer with areas with higher hazard having a greater probability of ignition and the subsequent fire patch size is determined from the lognormal distribution. Also fire preferentially spreads to higher hazard areas.
+
+4.) the model is then run and the distributions are reviewd. They also examine scenarios where fire frequency is increased so that it doubles over a 100 year period to examine the impacts of that.
+
+### Marchal et. al. (2020) Turning down the heat: Vegetation feedbacks limit fire regime responses to global warming. Ecosystems 23: 204-216.
+
+These authors simulate annual fire activity from 2011 to 2099 in hard wood, mixed wood and coniferous forests in Quebec.  They used a spatial resolution of 1ha and temporal resolution of 1 year. For the study area they classified vegetation into 5 different fuel types: Hardwoods (HW), conifers (CN), disturbed (D), open (O), and open water (WT). Areas that were less than 15 years since disturbance were classified as disturbed, areas with >50% basal area of hard wood  or conifer were classified as HW or C and everything else was labeled O.They then simulated vegetation dynamics as fuel-type trajectories and assumed that fires were stand replacing. After a fire they tested various scenarios of vegetation trajectories on future fires. The scenarios are 
+1.) there is no change in category. After a fire HW areas stay HW, cN areas stay CN and open areas stay open.
+2.) there is a 15 year lag. In the first 15 years after fire the area is classified as disturbed then after 15 years it goes abck to what it was before the disturbance.
+3.) There is a vegetation trajectory of mixedwood forests going to CN forests after 81 years. Other forest types stay as is after a disturbance.
+4.) As scenario 3 except that the first 15 years after disturbance are classified as disturbed then the vegetation trajectories kick in i.e. after 81 years mixed wood forests go to coniferous.
+
+They simulated fire by breaking down the process of buring into three processes: ignition, escape and spread which were each modelled separately as functions of fire weather and vegetation. 
+
+They simulated spread across the landscape using the spread function in SpaDES package, which immulates bond percolation where fire spreads from a burning cell to an unburned neighbouring cell according to some probability. This probability depends on fire size distributional parameters (predicted from fuels and weather). They tested there fire spread model by simulating fire spread of known fires between the years 2000 - 2010 using known vegetation and fire weather data to parameterize the model over time and also simulated out into the future.
+
+Ignition: they developed predictive statistical models of annual fire frequency as a function of fire weather and fuel type. Fire weather was represented as the month drought code (Van Wagner 1987).
+
+Escape: they used logistic regression to predict sensitivity to  fire weather and vegetation conditions. They then estimated the probability that a fire would be at least 1ha in size (escape) and derived an equation for this. 
+
+### Lakes TSA Discussion paper 2019
+Seems like they did not include fire in the future forecasts. Rather they obtained layers of historical fires (fire peremiter) and burn severities (to classify injury to trees i.e. amount of timber thats still harvestable) and adjusted the available timber volumes from those. 
+
+### Marchal J, Cumming SG, McIntire EJB (2017) Exploiting poisson additivity to predict fire frequency from maps of fire weather and land cover in boreal forests of Quebec, Canada. Ecography 40: 200-209.
+
+Here they statistically predict the probability that a fire will start in a 10 x 10km pixel as a result of lighting or humans. The first thing they do determine vegetation categories for each pixel and calculate the proportion of proportion of these vegetation categores in each pixel. Vegetation categories are: coniferous (<50% of basal area deciduous), hardwood (>50% of basal area is deciduous), disturbed (disturbed within past 15 years), and open or open water. 
+They then obtained fire counts and determined the cause to classify then as lighting or human.
+They also obtained weather data: max monthly temp, monthly precipetation, and they estimated monthly drought code (MDC) using the equation in (Begeron et. al. (2010) Will climate change drive 21st centuary burn rates in Canadian boreal forest outside of its natural variability: collating global climate model experiments with sedimentary charcoal data. Int J. Wildland Fire 19: 1127-1139).
+
+Then they performed negative binomial regressions (because of overdispersion in the count data) looking at the relationship between each of the weather variables and lighting or human caused weather. They tried various combinations of weather including each month alone, and combinations of months together. Overall they found that July monthly drought code was the best predictor of fires using AICc. 
+
+Then they examined the relationship between fire ignition and fire weather (MDC) and vegetation type/land cover by testing each term individually, and with the interaction between them. They also examined fire weather with varying slopes for vegeation, fire weather with varying slopes and intercepts, and some fancy pants models where they allowed break points i.e. changes in slope because a visual examination of fire weather and vegetation suggested there might be break points. 
+
+Overall they found that for lighting caused fires models with varying intercepts and slopes and break points was best. Although if you examine the results the model with just varying intercepts and slopes and no breakpoints was not far behind. 
+
+For human caused fires they also included road densities within the pixel as a model term. Here they found the best model was a model that allowed varying intercepts and slopes according to vegetation type and included the interaction between fire weather and road density. Models with breakpoints were not better in this case. Again they used AICc to determine the top candidate model. 
+
+### Approaches
+
+## Rothermel Fire Spread Model
+
+Vacchiano et al. (2015) An Implementation of the Rothermel Fire Spread Model in the R Programming Language. Fire Technology
+
+This paper outlines a R package that estimates the rate of a fires spread [ros()] by implementing the Rothermel Equation. Essentially this equation is a physics based equation and  calculates rate of spread as heat source divided by heat sink. It takes into account fuel characteristics such as fuel load i.e. amount of fuel per ha, surface area to volume ratio of fuel, fuel moisture contents,  how much moisture is needed in the fuel for fire extinction, how much heat different fuels give out, slope and wind characteristics. These values feed in to calculate the rate of spread.
+
+I could use this equation with these fuel characteristics and topography and use it to give the fire a probability of spread to the next cell or to define how the fire is spreading.
+
+Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associated Developments: A Comprehensive Explanation. USDA - General Technical Report RMRS-GTR-371
+
+
+
