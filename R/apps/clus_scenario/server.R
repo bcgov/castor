@@ -325,6 +325,7 @@ shinyServer(function(input, output, session) {
       }
       if(!is.null(input$map_draw_all_features)){
         sf::st_write(drawnPolys(), dsn="CLUSshpExport.shp", layer="CLUSshpExport", driver="ESRI Shapefile")
+
       }
 
       zip(zipfile='CLUSshpExport.zip', files=Sys.glob("CLUSshpExport.*"))
