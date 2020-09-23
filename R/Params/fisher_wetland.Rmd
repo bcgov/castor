@@ -19,7 +19,7 @@ This script builds the wetlands and permanent open areas layer needed for the We
 Wetlands and other permanently open areas:
 *o*	all BCLCS_LEVEL_1 = 'N' (Non-Vegetated)
 *o*	BCLCS_LEVEL_2 = 'N' and LINE_7B_DISTURBANCE_HISTORY  Is Null and (CROWN_CLOSURE<6 or CROWN_CLOSURE Is Null) and (BASAL_AREA <5 or BASAL_AREA Is Null))
-*o*	BCLCS_LEVEL_3 = 'Wetland' and (BCLCS_LEVEL_5='Sparse' or BCLCS_LEVEL_5='Open'))
+*o*	BCLCS_LEVEL_3 = 'W' and (BCLCS_LEVEL_5='SP' or BCLCS_LEVEL_5='OP'))
 *o*	TRIM wetlands (WHSE_BASEMAPPING.TRIM_EBM_WETLANDS)
 
 
@@ -28,10 +28,13 @@ Wetlands and other permanently open areas:
 vri_layer<-getSpatialQuery("SELECT 1 as wetland, shape as geom FROM veg_comp_lyr_r1_poly2019 
 where bclcs_level_1 = 'N' 
 OR (bclcs_level_2 = 'N' and line_7b_disturbance_history Is Null and 
-	(crown_closure <6 or crown_closure Is Null) and (basal_area <5 or basal_area Is Null)) 
-OR (bclcs_level_3 = 'Wetland' and (bclcs_level_5='Sparse' or bclcs_level_5='Open'))")
+	(crown_closure < 6 or crown_closure Is Null) and (basal_area < 5 or basal_area Is Null)) 
+OR (bclcs_level_3 = 'W' and (bclcs_level_5='SP' or bclcs_level_5='OP'))")
 
-trim_layer<-getSpatialQuery("Select 1 as wetland, wkb_geometry as geom FROM  ebm_wetlnd_polygon")
+#trim_layer<-getSpatialQuery("Select 1 as wetland, wkb_geometry as geom FROM  ebm_wetlnd_polygon")
+
+rich.layer<-st_read("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/fisher/perm_wetland.shp")
+rich.layer$wetland<-1
 
 #Provincial raster at hectares BC extent
 ProvRast <- raster(
@@ -43,12 +46,16 @@ ProvRast <- raster(
 ## Rasterize
 
 ```{r, rasterize}
-ras.vri<-fasterize::fasterize(vri_layer, ProvRast, "wetland")
-ras.vri[is.na(ras.vri[])]<-0 #Need to do this in order to add the rasters together
-ras.trim<-fasterize::fasterize(trim_layer, ProvRast, "wetland")
-ras.trim[is.na(ras.trim[])]<-0
+#ras.vri<-fasterize::fasterize(vri_layer, ProvRast, "wetland")
+#ras.vri[is.na(ras.vri[])]<-0 #Need to do this in order to add the rasters together
+#ras.trim<-fasterize::fasterize(trim_layer, ProvRast, "wetland")
+#ras.trim[is.na(ras.trim[])]<-0
+ras.phe<-fasterize::fasterize(rich.layer, ProvRast, "wetland")
 
-ras.wetland<-ras.vri + ras.trim
+#ras.wetland<-ras.vri + ras.trim
+#ras.wetland<-ras.vri
+ras.wetland<-ras.phe
+
 ras.wetland[ras.wetland[] > 1]<-1
 
 ```
