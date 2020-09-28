@@ -62,6 +62,32 @@ For human caused fires they also included road densities within the pixel as a m
 
 ### Approaches
 
+### Approach to making fire model
+
+## 1.) Following methods outlined in Marchal et al. 2017. Ecography calculate the probability of ignition according to vegetation type and fire weather.
+
+To do this I need to get the following layers: 
+1.) history of fire ignitions in BC both lighting and human caused. I need to split these ignitions up because models for human caused versus lighting caused fires are probably a little different
+2.) get a vegetation layer particularly forestry layer that has information about the kinds of trees i.e. deciduous versus coniferous. Also get disturbance information (Kyles cutblocks layer) for the same years as we have fire ignition data.
+3.) get weather data: monthly means of daily mean temp, monthly means of average daily temp, monthly means of daily max temp, monthly precipitation.
+4.) estimate monthly drought code following Bergeron et al (2010) Int. J. Wildland Fire 19: 1127-1139
+using the following equations. Im a bit confused but I think they must assume that MDC is 0 in march and then calculate the April value from that. Not sure this is right but maybe its close enough?
+
+Evapotranspiration = # days in month * (0.36 (monthly mean of daily max Temp) + day length adjustment factor)
+
+DC_half (Drought Code for first half of month = MDC_0 (MDC value from previous month) + 0.25 Evapotranspiration
+
+MDC for second half of month after rainfall for that month happens  is calculated as follows:
+
+Q_mr (moisture equivalent after rain) =  [3.937*(0.83 * rainfall (in mm))]/800*     exp(- MDC_0/400)
+
+MDC_m (Drying over second half of month) = DC_half + 0.25Evapotranspiration
+
+
+
+
+
+
 ## Rothermel Fire Spread Model
 
 Vacchiano et al. (2015) An Implementation of the Rothermel Fire Spread Model in the R Programming Language. Fire Technology

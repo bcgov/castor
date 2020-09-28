@@ -19,9 +19,9 @@ ProvRast <- raster(
 forest.tenure<-getSpatialQuery("SELECT tsa_name, tsa_number, wkb_geometry FROM study_area_compart where tsa_name in ('MacKenzie TSA')")
 forest.tenure<-st_transform(forest.tenure, 3005)
 
-layer<-getSpatialQuery("SELECT feature_id, geometry FROM public.veg_comp_lyr_r1_poly2018")
+layer<-getSpatialQuery("SELECT object_id, geometry FROM public.veg_comp_lyr_r1_poly2018")
 veg <- st_transform (layer, 3005)
-veg.mckenzie<-st_intersection(forest.tenure,veg)
+veg.lightning<-st_intersection(forest.tenure,veg)
 
 
 forest.tenure.ras <-fasterize::fasterize(sf= forest.tenure, raster = ProvRast , field = "tsa_number")
