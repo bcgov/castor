@@ -11,8 +11,7 @@ source(here::here("R/functions/R_Postgres.R"))
 # Layers needed:
 # 1.) Fire ignition history, 2.) vegetation, 3.) Weather (monthly mean rainfall, monthly mean max temp, monthly average temp)
 
-#bc<-bc_bound()
-
+#### FIRE IGNITION DATA ####
 fire.ignit.hist<-sf::st_read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\BCGW_7113060B_1600358424324_13780\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp")
 st_crs(fire.ignit.hist)
 head(fire.ignit.hist)
@@ -28,29 +27,43 @@ str(lightning_clipped)
 lightning_clipped$FIRE_YEAR <- as.character(lightning_clipped$FIRE_YEAR)
 st_write(lightning_clipped, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\bc_fire_ignition.shp")
 
+## Load ignigition data into postgres (either my local one or Kyles)
+host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
 ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
-
+#### TEMPERATURE DATA ####
 # To get temperature data Im pulling out the fires that started in the years 2002 : 2019 and writing them as a csv file so that I can go and extract the relevant weather data from climateBC (https://cfcg.forestry.ubc.ca/projects/climate-data/climatebcwna/). 
 
 setwd("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\input")
 
-years<- c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+lightning_clipped$FIRE_YEAR<-as.numeric(lightning_clipped$FIRE_YEAR)
+x <- lightning_clipped %>% 
+  filter(FIRE_YEAR >= 2002)%>%
+  select(FIRE_ID, FIRE_YEAR, LATITUDE, LONGITUDE) %>%
+  rename(ID1 = FIRE_ID, ID2 = FIRE_YEAR, lat = LATITUDE, long = LONGITUDE)
 
-for (i in 1:length(years)) {
-x<- lightning_clipped %>% 
-  filter(FIRE_YEAR==years[i]) %>% 
-  select(FIRE_NO, FIRE_YEAR, LATITUDE, LONGITUDE) %>%
-  rename(ID1 = FIRE_NO, ID2 = FIRE_YEAR, lat = LATITUDE, long = LONGITUDE)
-x$el<-"."
-x2<-st_set_geometry(x,NULL)
+  x$el<-"."
+  x2<-st_set_geometry(x,NULL)
+  write.csv(x2, file="Fire.Ignition.points.csv", row.names = FALSE)
 
-name<-paste("ignitions", years[i], "csv", sep=".")
-write.csv(x2, file = name, row.names = FALSE )
-
-}
+#years<- c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+# for (i in 1:length(years)) {
+# x<- lightning_clipped %>% 
+#   filter(FIRE_YEAR==years[i]) %>% 
+#   select(FIRE_NO, FIRE_YEAR, LATITUDE, LONGITUDE) %>%
+#   rename(ID1 = FIRE_NO, ID2 = FIRE_YEAR, lat = LATITUDE, long = LONGITUDE)
+# x$el<-"."
+# x2<-st_set_geometry(x,NULL)
+# 
+# name<-paste("ignitions", years[i], "csv", sep=".")
+# write.csv(x2, file = name, row.names = FALSE )
+# 
+# }
 
 #I then manually extract the monthly climate data for each of the relevant years at each of the fire ignition locations and saved the files as .csv's. Here I import them again.
 
@@ -62,30 +75,129 @@ for (i in 1:length(file.list)){
   assign(paste0(y[i]),read.csv (file=paste0(file.list[i])))
 }
 
+## calculate the drought code for each month
 
-## VEGETATION DATA downloaded for years 2002 to 2019
-# now I need to get the relevant vegetation data which I downloaded from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2018-
-# I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. For some reason postgres would not let me upload all the files, maybe because their column names were the same. So Im going to try upload them one at a time. Query them and then delete them before moving on to the next. 
+##############
+# Equations
+##############
+#### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
+# Month <- Lf value
+# LF[[1]] is the value for Jan
 
-ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VRI_data\\veg_comp_lyr_r1_poly2002.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+Lf<-c(-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6)
+####
 
-# and rename the table in postgres if need be
+Em <- n * ((0.36 * Tmax)+ Lf) # Em = Evapotranspiration; n= # days in month; Tmax = Monthly mean of                                 daily max temps; Lf = standard day length adjustment factor
+DChalf <- MDC0 + 0.25* Em #MDC0 = MDC from end of previous month
+
+# All rain simulated to occur in middle of month and moisture equivalent in the layer after rain (Qmr) is calculated
+Qmr <- 3.937 * (0.83*rm)/(800*exp(-MDC0/400)) # rm = monthly rainfall accounting for canopy and surface interception.
+
+DCmr <- DChalf - 400 * log(1+Qmr) # Drying over middel of month
+
+MDCm <-DCmr + 0.25*Em # MDC value at end of month
+
+# Finally average MDC0 and MDCm 
+MDC = (MDC0 + MDCm)/2
+
+years<- c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
+
+file.list<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output", pattern=".csv", all.files=FALSE, full.names=FALSE)
+y<-gsub("M.csv","",file.list)
+y2 <- gsub("Fire.Ignition.points_", "", y)
+
+# Read in weather data
+setwd("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output")
+for (i in 1:length(file.list)){
+  assign(paste0(y2[i]),read.csv (file=paste0(file.list[i])))
+}
+
+lightning_clipped2<- lightning_clipped %>% 
+  filter (FIRE_YEAR>=2002, FIRE_TYPE=="Fire") %>%
+  select(FIRE_ID, FIRE_YEAR : FIRE_CAUSE, FIRE_TYPE, SIZE_HA, geometry)
+
+filenames<-list()
+for (i in 1: length(y2)){
+  
+  x<-eval(as.name(y2[1])) %>% 
+    rename(FIRE_ID=ID1, FIRE_YEAR=ID2) %>%
+    select(FIRE_ID, FIRE_YEAR, Tmax01:Tmax12, Tave01:Tave12, PPT01:PPT12, PAS01:PAS12)
+  
+  x2<-left_join(lightning_clipped2, x, by= c("FIRE_ID", "FIRE_YEAR"))
+  nam1<-paste("Fire_weather",y2[i],sep="_") #defining the name
+  assign(nam1,x2)
+  filenames<-append(filenames,nam1)
+}
+
+lightning_weather<-left_join(lightning_clipped2, weath_2000, by= "FIRE_ID")
+lightning_weather2 <- lightning_weather %>%
+  select(FIRE_NO:FIRE_CAUSE, FIRE_ID, FIRE_TYPE,SIZE_HA,Tmax01:Tmax12, PPT01:PPT12, PAS01:PAS12) %>%
+  filter(FIRE_TYPE=="Fire")
+
+#Em <- n * ((0.36 * Tmax)+ Lf)
+days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+
+lightning_weather2$Em_04 <- days_month[[4]] * ((0.36*lightning_weather2$Tmax01)+Lf[[4]])
+
+dc_0<-16 # initial drought code value. Took this value from https://cran.r-project.org/web/packages/cffdrs/cffdrs.pdf, who use it in their example as a starting value. 
+
+lightning_weather2$DC_half_04<- dc_0 + (0.25*lightning_weather2$Em_04)
+lightning_weather2$Qmr_04<- (3.937 * 0.83 * (lightning_weather2$PPT04 + lightning_weather2$PAS04/10))/(800 * exp(-dc_0/400))
+lightning_weather2$DC_mr_04<-lightning_weather2$DC_half_04 - 400 * log(1+lightning_weather2$Qmr_04)
+lightning_weather2$MDC_m_04<-lightning_weather2$DC_mr_04 + (0.25 * lightning_weather2$Em_04)
+
+lightning_weather2$MDC_04 <- (dc_0 + lightning_weather2$MDC_m_04)/2
+
+
+
+
+
+
+
+
+data<- lightning_weather %>%
+  filter(FIRE_YEAR >= 2002)
+
+
+
+ 
+
+
+
+#### VEGETATION DATA #### 
+#downloaded for years 2002 to 2019. These are the only years that VRI data exists for there is no earlier data.
+#from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2018-
+# I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. 
+
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VRI_data\\veg_comp_lyr_r1_poly2003.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+# rename the table in postgres if need be
 #ALTER TABLE veg_comp_lyr_r1_poly RENAME TO veg_comp_lyr_r1_poly2017
 
-# now query
-WITH ignit as (SELECT fire_no, fire_year, fire_cause, size_ha, wkb_geometry 
-               FROM bc_fire_ignition WHERE fire_type = 'Fire' and fire_year = '2002'),
-veg as (SELECT bclcs_level_1, bclcs_level_2, bclcs_level_4, bclcs_level_5, crown_closure, geometry 
-        FROM veg_comp_lyr_r1_poly2002) 
-SELECT st_intersection (ignit.wkb_geometry, veg.geometry) 
-as geom from ignit, veg where st_intersects (ignit.wkb_geometry, veg.geometry);
+# When the table name is changed the idx name is not so you might have to change that too so that more files can be uploaded into postgres by running the following command
+#ALTER INDEX veg_comp_lyr_r1_poly_finalv4_geometry_geom_idx RENAME TO veg_comp_lyr_r1_poly2002_geometry_geom_idx
+
+#### Join ignition data to VRI data ####
+# Run following query in postgres. This is fast
+#CREATE TABLE Fire_veg_2016 AS
+#(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
+#  fire.fire_id, fire.fire_no, fire.fire_year, fire.fire_cause, fire.size_ha, veg_comp_lyr_r1_poly20# 16.geometry FROM veg_comp_lyr_r1_poly2016, (SELECT wkb_geometry, fire_id, fire_no, fire_year, fire_cause, size_ha  from bc_fire_ignition 
+#  where fire_type = 'Fire' and fire_year = '2016') as fire 
+#  where st_contains (veg_comp_lyr_r1_poly2016.geometry, fire.wkb_geometry));
 
 
-WITH ignit as (SELECT fire_no, fire_year, fire_cause, size_ha, wkb_geometry FROM bc_fire_ignition WHERE fire_type = "Fire" and fire_year = "2002"), veg as (SELECT bclcs_level_1, bclcs_level2, bclcs_level_4, bclcs_level_5, crown_closure, geometry FROM veg_comp_lyr_r1_poly2002) SELECT st_intersection (ignit.wkb_geometry, veg.geometry) as geom, fire_no, fire_year, fire_cause, size_ha from ignit, bclcs_level_1, bclcs_level2, bclcs_level_4, bclcs_level_5, crown_closure from veg where st_intersects (ignit.geom, veg.geom);
+# This also works but is super slow, dont run this one!
+# CREATE TABLE Fire_veg_2002 AS (WITH ignit as 
+#         (SELECT fire_no, fire_year, fire_cause, size_ha, wkb_geometry from bc_fire_ignition 
+#         where fire_type = 'Fire' and fire_year = '2002'), 
+#         veg as (SELECT bclcs_level_4, bclcs_level_5, geometry FROM veg_comp_lyr_r1_poly2002 where bclcs_level_2 = 'T') 
+#         SELECT veg.geometry as geom, fire_no, fire_year, fire_cause, size_ha, bclcs_level_4, bclcs_level_5 
+#         FROM ignit, veg WHERE st_intersects (ignit.wkb_geometry, veg.geometry));
 
-with core as (SELECT herd_name, wkb_geometry from bc_caribou_linework_v20200507_shp_core_matrix where bc_habitat = 'Core' and herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks' )), nohab as (SELECT shape from veg_comp_lyr_r1_poly2019 WHERE bclcs_level_5 in ('GL', 'TA') or non_productive_descriptor_cd in ('ICE', 'L', 'RIV'))  select sum(st_area(st_intersection(core.wkb_geometry, nohab.shape))/10000) as area, core.herd_name from core, nohab where st_intersects(core.wkb_geometry, nohab.shape) group by core.herd_name ;
 
-WITH tsa as (SELECT geom from tsa_table where tsa = 'Quesnel'), veg as ( SELECT geom, species_cd_1 from veg_comp where bclcs_level_1 = 'T') Select st_intersection(tsa.geom, veg.geom) as geom, species_cd_1 from tsa, veg where st_intersects (tsa.geom, veg.geom);
+#### Join ignition, VRI and climate data #### 
+
+
 
 
 
@@ -106,17 +218,6 @@ password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
 # Run this in terminal
 #ogr2ogr -f PostgreSQL PG:"host= user= dbname= password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\lightning_strikes.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-# Now query Postgres database
-WITH tsa as (SELECT tsa_name, wkb_geometry from tsa_aac_bounds_gbr where tsa_name = 'Arrow_TSA') , veg as (SELECT shape, species_cd_1 from veg_comp_lyr_r1_poly2019 where bclcs_level_1 = 'V') Select veg.geom as shape, species_cd_1 from tsa, veg where st_intersects (tsa.geom, veg.geom);
-
-
-with core as (SELECT herd_name, wkb_geometry from bc_caribou_linework_v20200507_shp_core_matrix where bc_habitat = 'Core' and herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks' )), nohab as (SELECT shape from veg_comp_lyr_r1_poly2019 WHERE bclcs_level_5 in ('GL', 'TA') or non_productive_descriptor_cd in ('ICE', 'L', 'RIV'))  select sum(st_area(st_intersection(core.wkb_geometry, nohab.shape))/10000) as area, core.herd_name from core, nohab where st_intersects(core.wkb_geometry, nohab.shape) group by core.herd_name ; 
-
-
-
-
-
 
 
 
