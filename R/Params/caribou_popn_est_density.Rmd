@@ -20,43 +20,110 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 ```
 
 # Background
-In this analysis, we fit models of caribou population trend using measures of disturbance. Various disturbance measures are tested and compared to find applicability to caribou recovery efforts.
+In this analysis, we fit models of caribou density using measures of disturbance. Various disturbance measures are tested and compared to find applicability to caribou recovery efforts.
 
-Note: currently in contact with Nicola Dodd about getting this data
+### Caribou Coritical Habitat
+Criticalhabitat has been defined. However this contains non-habitat areas such as glaciers and steep cliffs. This section nets these non-habitat areas needed to get at population density.
+
+Using VRI, non-habitat is conservative using glaciers and steep rock screes along with lakes and rivers. The area of the core minus this non-habitat area will be used as the denomminator of the population density estimate.
+
+```{r, core_matrix}
+
+#area.ice<-getTableQuery("with core as (SELECT herd_name, wkb_geometry from bc_caribou_linework_v20200507_shp_core_matrix where bc_habitat = 'Core' and herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks' )), nohab as (SELECT shape from veg_comp_lyr_r1_poly2019 WHERE bclcs_level_5 in ('GL', 'TA') or non_productive_descriptor_cd in ('ICE', 'L', 'RIV'))  select sum(st_area(st_intersection(core.wkb_geometry, nohab.shape))/10000) as area, core.herd_name from core, nohab where st_intersects(core.wkb_geometry, nohab.shape) group by core.herd_name ;")
+
+#area.ice.hr.south<-getTableQuery("with core as (SELECT herd_name, wkb_geometry from hart_ranges_south_bnds where bc_habitat = 'Core'), nohab as (SELECT shape from veg_comp_lyr_r1_poly2019 WHERE bclcs_level_5 in ('GL', 'TA') or non_productive_descriptor_cd in ('ICE', 'L', 'RIV'))  select sum(st_area(st_intersection(core.wkb_geometry, nohab.shape))/10000) as area, core.herd_name from core, nohab where st_intersects(core.wkb_geometry, nohab.shape) group by core.herd_name ;")
+
+area.ice<-data.table(herd_name = c('Barkerville', 'Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks', 'Wells_Gray_South','Wells_Gray_North','Hart_Ranges_South'), ice=c(117.109072842166, 17892.4221042202,
+12945.2994439308,7014.79151159945,6763.99471008934,2.8945917329086,
+906.392742195574,17256.9050646071,4384.33746236994,
+2180.62003260568,3711.54252050654,22712.172978544,11776.5414584458), critical_hab = 'Core')
+
+
+#for.area<-data.table(getTableQuery("create table caribou_sm_forest_area as (select a.herd_name, a.bc_habitat, sum(ST_Area(ST_Intersection(a.geom, b.geom))) FROM (select herd_name, bc_habitat, wkb_geometry as geom from public.bc_caribou_linework_v20200507_shp_core_matrix where herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks')) as a, (select shape as geom from veg_comp_lyr_r1_poly2019 where bclcs_level_2 = 'T') as b WHERE ST_Intersects(a.geom, b.geom) GROUP BY a.herd_name, a.bc_habitat);"))
+
+for.area<-data.table(getTableQuery(paste0("SELECT herd as herd_name, hab as critical_hab, area_for/10000 as area_for from caribou_sm_forest_area where herd <> 'Hart_Ranges'")))
+
+if(FALSE){
+  
+hr.for.area<-getSpatialQuery("SELECT feature_id, shape, bclcs_level_2
+FROM veg_comp_lyr_r1_poly2019 
+WHERE bclcs_level_2 = 'T' and 
+ST_Intersects(shape, 'SRID=3005;POLYGON((1237665.5001 943506.823450048,1237665.5001 1073059.65781366,1399606.37521117 1073059.65781366,1399606.37521117 943506.823450048,1237665.5001 943506.823450048))'::geometry);")
+hr.poly<-getSpatialQuery("SELECt * from hart_ranges_south_bnds;")
+
+hr.for.area.dissolve<-hr.for.area %>%
+   group_by(bclcs_level_2) %>%
+   summarise()
+test<-st_intersection(hr.for.area.dissolve, hr.poly) 
+test$area<-st_area(test)
+test[c("bc_habitat", "area")]
+}
+
+for.area<-rbindlist(list(for.area, data.table( herd_name= 'Hart_Ranges_South', critical_hab = c('Core', 'Matrix'), area_for = c(1865470516/10000, 3921853454/10000))))
+
+areas<-merge(for.area, area.ice, by.x = c("herd_name", "critical_hab"), by.y =c("herd_name", "critical_hab"), all.x = TRUE )
+```
 
 ### Caribou population data
+Caribou surveys have been completed for a number of southern-mountain caribou herds.Some of these surveys include expert opionon, minimum counts or total counts. Here we use model corrected survey estimates which correct for sightability. 
+
 ```{r, pop}
+if(FALSE){
 caribou_pop<-read.csv("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/population/herd_estimates_simple_20200106.csv")
 caribou_pop<-data.table(caribou_pop)
 caribou_pop<-caribou_pop[,year := as.integer(year)][,herd_name:= trimws(herd_name)]
+
+#Tyler had pers. Com biologist Mike K. North cariboo and Hart Ranges South. More surveys for North Cariboo can be added. For Hart Ranges the survey was broken into two sub-groups - Parsnip and Hart South. The Parsnip recieved pop-control (wilf,moose etc). Defining the boundary of Hart South is needed.
+hart.south<-data.table(read.csv("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/population/hart_south_estimates.csv"))[!is.na(Estimate) & Type == 'Corrected Estimate',][,herd_name:= 'Hart Ranges South']
+setnames(hart.south, c("Type", "Year", "Estimate"),c("estimate_type", "year", "pop_estimate"))
+hart.south<-hart.south[,c("estimate_type", "year", "pop_estimate", "herd_name")]
+
+#Added some data for North Cariboo
+n.cariboo<-data.table(read.csv("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/population/NC_estimates2.csv"))[!is.na(Estimate) & Type == 'Corrected Estimate',][,herd_name:= 'North Cariboo'][Year %in% c(1999,2018,2020)]#Other years already in the caribou_pop dataset
+setnames(n.cariboo, c("Type", "Year", "Estimate"),c("estimate_type", "year", "pop_estimate"))
+n.cariboo<-n.cariboo[,c("estimate_type", "year", "pop_estimate", "herd_name")]
+#Merge them together to one dataset
+caribou_pop<-rbindlist(list(caribou_pop, hart.south, n.cariboo), use.names = TRUE)
+
+#Export to postgres
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
 DBI::dbWriteTable(conn, c("public", "caribou_pop_simple"), value= caribou_pop, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
+}
+
+caribou_pop<-data.table(getTableQuery("SELECT * FROM caribou_pop_simple;"))
+
 ```
 
 
-### Wolf control data
+### Predator management data
 
-Tyler pulled this dataset together -- to determine in which years population control activities take place.
+Predator management may confound the habitat-population density response. Tyler pulled this dataset together -- to determine in which years population control activities take place.
 
 ```{r, pop_control}
 
+if(FALSE){
 wolf_actions<-read.csv("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/population/table_wolf_control_20200302.csv")
 colnames(wolf_actions)<-c("herd_name", "year", "type")
 wolf_actions<-data.table(wolf_actions)
-wolf_actions<-wolf_actions[,herd_name:= trimws(herd_name)][herd_name == 'Wells Gray', herd_name:= 'Wells Gray North']
+wolf_actions<-wolf_actions[,herd_name:= trimws(herd_name)][herd_name == 'Wells Gray', herd_name:= 'Wells Gray North'] #Determined this was WGN
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 #data.table(wolf_actions)[,herd_name:= gsub(" ", "_", herd_name)]
 DBI::dbWriteTable(conn, c("public", "wolf_control"), value= wolf_actions, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
+}
+
+wolf_actions<-data.table(getTableQuery("SELECT * FROM wolf_control;"))
 
 ```
 
-### Merge wolf and pop data
+### Merge predator management and caribou population survey data
+Determine the population surveys that are not confounded by predator management strategies.
 
 ```{r, final, echo=FALSE}
+if(FALSE){
 data_new<-data.table(merge(caribou_pop, wolf_actions, by.x = c("herd_name", "year"), by.y =c("herd_name", "year"), all.x = TRUE))
 #Remove minimum counts and exper opinion estimates
 data_new<-data_new[!(estimate_type %in% c("Expert Opinion", "Survey Observation","Minimum count", "Minimum Count", "Unknown"))]
@@ -79,14 +146,14 @@ data_new<-data_new[!(herd_name == 'Barkerville' & year > 2007),]
 
 data_new<-data_new[!(herd_name == 'Wells Gray North' & year > 2001),]
 
-#Graham seems to have an outlier nad has a histroy of pop control
+#Graham seems to have an outlier nad has a histroy of pop control and is DU7
 data_new<-data_new[!(herd_name == 'Graham'),]
 
 #Narraway in DU8
 data_new<-data_new[!(herd_name == 'Narraway'),]
 
 #remove herds with only two data point
-herds_counts <- data_new[, .(rowCount = .N), by = herd_name][rowCount >= 3,]
+herds_counts <- data_new[, .(rowCount = .N), by = herd_name][rowCount >= 2,]
 data_new<-data_new[herd_name %in% herds_counts$herd_name,]
 
 #calc the averaged census lambda
@@ -130,32 +197,68 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 DBI::dbWriteTable(conn, c("public", "caribou_trend"), value= data_new, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
-
-table2<-data_new[year==year.0, c("herd_name", "pop.0")]
+}
 
 ```
 
 #### Map of herds
-```{r, graph_pop}
+Most of the DU9 herds have core and matrix habitat delinated. The exception is Hart Ranges South. This section will create a map of the herd boundaries and their corresponding critical habtiat types.
+
+##### Hart Ranges South critical habitat
+```{r, hr_crithab}
+
+if(FALSE){
+hart.south.noRR.poly<-st_read("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/caribou_herd/HartRanges_WC_Area_without_kennedy_withoutRR.shp")
+hart.south.noRR.poly<-hart.south.noRR.poly[hart.south.noRR.poly$OBJECTID_1 == 1,]
+
 herd.spat<-getSpatialQuery( "Select * from public.bc_caribou_linework_v20200507_shp_core_matrix")
+herd.spat.hr<-herd.spat[herd.spat$herd_name == 'Hart_Ranges',]
+
+hr.south.poly<-st_intersection(herd.spat.hr,hart.south.noRR.poly)
+hr.south.poly <- st_zm(hr.south.poly, drop=T, what='ZM')
+
+poly2 <-st_union(hr.south.poly, by_feature = TRUE)
+poly2$OBJECTID<-NULL
+poly2$objectid<-NULL
+poly2$OBJECTID_1<-NULL
+poly2$Shape_Leng<-NULL
+poly2$study_area<-NULL
+poly2$Shape_Le_1<-NULL
+poly2$Shape_Area<-NULL
+poly2$shape_area<-NULL
+poly2$shape_leng<-NULL
+
+st_write(poly2,"T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/caribou_herd/hart_ranges_south_bnds.shp" ,append=FALSE)
+
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres" T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\caribou_herd\hart_ranges_south_bnds.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+}
+
+```
+
+#### Map critical habitat
+Map of critical habitat to be used as a map of the study area.
+```{r, map_figure}
+herd.spat<-getSpatialQuery( "Select herd_name, bc_habitat, wkb_geometry from public.bc_caribou_linework_v20200507_shp_core_matrix where herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks')")
+
+hr.south<-getSpatialQuery( "Select herd_name, bc_habitat, wkb_geometry from public.hart_ranges_south_bnds")
+
+herd.spat<-rbind(herd.spat,hr.south)
+herd.spat<-st_zm(herd.spat, drop=TRUE, what = 'ZM')
+
 
 #Make a grouping variable
-herd.spat$herd_hab<-herd.spat$herd_name
-non.herds<-c('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks')
-herd.spat[herd.spat$herd_name %in% non.herds,]$herd_hab<-paste(herd.spat[herd.spat$herd_name %in% non.herds,]$herd_name,herd.spat[herd.spat$herd_name %in% non.herds,]$bc_habitat)
+herd.spat$herd_hab<-paste(herd.spat$herd_name, herd.spat$bc_habitat)
+
+herd.spat$herd_name2<-gsub("_", " ", herd.spat$herd_name)
 
 #Dissolve
-herd.spat1<-herd.spat %>%
-   group_by(herd_hab) %>%
+herd.bounds<-herd.spat %>%
+   group_by(herd_name2) %>%
    summarise()
-
-#Add matrix/core and herd_name columns
-herd.spat1$crit <- 0
-herd.spat1[herd.spat1$herd_hab %like% "Matrix", ]$crit <- 1
-herd.spat1[herd.spat1$herd_hab %like% "Core", ]$crit <- 2
-string.list<-unlist(strsplit(herd.spat1$herd_hab, ' '))
-herd.spat1$herd_name<-string.list[!string.list %in% c('Matrix' , 'Core')]
-
+#Add XY for labels
+xys<-st_coordinates(st_centroid(st_transform(herd.bounds, 4326)))
+herd.bounds<-cbind(herd.bounds, xys)
+herd.bounds[herd.bounds$herd_name2 == 'Hart Ranges',]$herd_name2 <- 'Hart Ranges South'
 #Get the map of canada
 if (!file.exists("./src/ref/ne_50m_admin_1_states_provinces_lakes/ne_50m_admin_1_states_provinces_lakes.dbf")){
   download.file(file.path('http://www.naturalearthdata.com/http/',
@@ -179,22 +282,8 @@ canada1<-canada %>%
 canada1$prov<-''
 canada1[canada1$groups == 0,]$prov<-"BC" 
 
-#Get the herd boundries
-herd.spat<-getSpatialQuery( "Select * from public.bc_caribou_herd_boundary_v20200507 where herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks' )")
-#herd.spat2<-herd.spat %>% group_by(herd_name) %>% summarise()
-
 #Get the bounding box of the study area
-southern.mountain.bb = st_as_sfc(st_bbox(getSpatialQuery( "Select * from public.bc_caribou_herd_boundary_v20200507 where herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks', 'Rainbows' )")))
-
-
-xys<-st_coordinates(st_centroid(st_transform(herd.spat, 4326)))
-herd.spat2<-cbind(herd.spat, xys)
-
-herds.inc<-unique(gsub("_", " ", data_new$herd_name))
-herd.spat2$herd_name2<-gsub("_", " ", herd.spat2$herd_name)
-
-#herd.spat2[!herd.spat2$herd_name2 %in% herds.inc, ]$herd_name2<-NA
-#herd.spat2$herd_name2
+southern.mountain.bb = st_as_sfc(st_bbox(herd.spat))
 
 inset<-ggplot() + 
   geom_sf(data = canada1,  fill = "white") + 
@@ -205,14 +294,14 @@ inset<-ggplot() +
 
 main<-ggplot() +
     geom_sf(data = canada1, aes(alpha = 0.4), show.legend=FALSE)+
-    geom_sf(data = herd.spat1[herd.spat1$crit==1,], aes(fill = "yellow"), color = NA, show.legend=FALSE )+
-  geom_sf(data = herd.spat1[herd.spat1$crit==2,], aes(fill = "blue"), color = NA, show.legend=FALSE )+
+    geom_sf(data = herd.spat[herd.spat$bc_habitat=='Core',], aes(fill = "yellow"), color = NA, show.legend=FALSE )+
+   geom_sf(data = herd.spat[herd.spat$bc_habitat=='Matrix',], aes(fill = "blue"), color = NA, show.legend=FALSE )+
     
-    geom_sf(data = herd.spat2, aes(alpha = 0.2), show.legend=FALSE ) +
+    geom_sf(data = herd.bounds, aes(alpha = 0.2), show.legend=FALSE ) +
     #geom_text_repel(data = herd.spat2, aes(x=X, y=Y, label = herd_name), fontface = "bold", size = 1.5)+
-  geom_text_repel(data = herd.spat2, aes(x=X, y=Y, label = herd_name2), 
+  geom_text_repel(data = herd.bounds, aes(x=X, y=Y, label = herd_name2), 
         fontface = "bold", size = 3,nudge_x = c(-4,-2.25,-4,-4,-4,-3,-2,-3,-4,-3.15,-2.25,-3,-4), nudge_y = c(-0.2,0,-0.1,-0.5,-0.35,0,0,0.5,0,0.15,0.05,0,0))+
-    coord_sf(xlim = c(-128,-115.2), ylim = c(48.9, 55.4), expand = FALSE) +
+    coord_sf(xlim = c(-128,-115.2), ylim = c(48.9, 54.8), expand = FALSE) +
     theme_bw()+
     xlab("Longitude") + ylab("Latitude") +
     annotation_scale(location = "bl", width_hint = 0.4) +
@@ -227,10 +316,7 @@ ggdraw() +
 ```
 #### Graph of population data
 ```{r, graph_pop}
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-data_new<-dbGetQuery(conn, "Select * from caribou_trend where herd_name not in ('Muskwa', 'Pink_Mountain', 'Chase', 'Wolverine');")
-dbDisconnect(conn)
-
+data_new<-data.table(getTableQuery( "Select * from caribou_trend where herd_name in ('Barkerville', 'Wells_Gray_South','Wells_Gray_North','Central_Selkirks','Columbia_North','Columbia_South', 'Groundhog', 'Hart_Ranges_South', 'Narrow_Lake', 'North_Cariboo', 'Purcell_Central', 'Purcells_South', 'South_Selkirks');"))
 ggplotly(ggplot(data = data_new, aes(x=year, y = pop_estimate, color = herd_name))+
   geom_point() + geom_line())
 ```
@@ -238,24 +324,24 @@ ggplotly(ggplot(data = data_new, aes(x=year, y = pop_estimate, color = herd_name
 #### Get the disturbance information
 
 ```{r, disturbance}
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-
-for.area<-data.table(dbGetQuery(conn, paste0("SELECT herd as herd_name, hab as critical_hab, area_for/10000 as area_for from caribou_sm_forest_area")))
-dbDisconnect(conn)
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('vmdbuser', keyring = 'postgreSQL') ,password= keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 
-disturb<-data.table(dbGetQuery(conn, paste0("SELECT * from disturbance_measures.disturbance where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
+disturb<-data.table(dbGetQuery(conn, paste0("SELECT * from dm_40yrs_500m.disturbance where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
 
-seral<-data.table(dbGetQuery(conn, paste0("SELECT * from disturbance_measures.survival where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
-
-rsf<-data.table(dbGetQuery(conn, paste0("SELECT * from disturbance_measures.rsf where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
+seral<-data.table(dbGetQuery(conn, paste0("SELECT * from dm_40yrs_500m.survival where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
 
 dbDisconnect(conn)
 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-fire<-data.table(dbGetQuery(conn, paste0("SELECT sumarea/10000 as area_burn, fire_year as year, herd_name, bc_habitat as critical_hab from public.fire_sum_crithab where herd_name in ('", paste(unique(data_new$herd_name), collapse = "', '"),"') order by herd_name, year;")))
-dbDisconnect(conn)
+
+fire<-data.table(getTableQuery(paste0("SELECT sumarea/10000 as area_burn, fire_year as year, herd_name, bc_habitat as critical_hab from public.fire_sum_crithab where herd_name in ('", paste(unique(data_new$herd_name), collapse = "', '"),"') order by herd_name, year;")))
+fire.hr<-data.table(getTableQuery(paste0("SELECT SUM(ST_Area(ST_Intersection(y.wkb_geometry, b.wkb_geometry ))) AS area_burn, herd_name ,bc_habitat as critical_hab,fire_year as year
+      FROM public.h_fire_ply_polygon b, public.hart_ranges_south_bnds y
+      WHERE ST_INTERSECTS(b.wkb_geometry, y.wkb_geometry) 
+      GROUP BY fire_year, herd_name, bc_habitat
+      ORDER BY  fire_year, herd_name, bc_habitat;")))
+fire.hr[,herd_name:='Hart_Ranges_South']
+fire<-rbind(fire, fire.hr)
 
 #fill in the years with zero
 fire2<-fire %>%
@@ -272,12 +358,8 @@ setnames(disturb, "scenario", "herd_name")
 seral<-seral[,year:=as.integer(timeperiod+1980)]
 setnames(seral, c("scenario", "herd_bounds"), c("herd_name","critical_hab"))
 
-rsf<-rsf[,year:=as.integer(timeperiod+1980)]
-setnames(rsf, "scenario", "herd_name")
-
 #merge them together
-data.0<-merge(disturb, rsf, by.x = c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab"))
-data.1<-merge(data.0, seral, by.x = c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab"))
+data.1<-merge(disturb, seral, by.x = c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab"))
 
 data.1[, early_seral:=prop_age*area]
 #rename critical_hab to either matrix or core
@@ -285,23 +367,23 @@ data.1[critical_hab %like% "Matrix",critical_hab:= 'Matrix' ]
 data.1[critical_hab %like% "Core",critical_hab:= 'Core' ]
 
 #Merge in the fire disturbance
-data.2<-merge(data.1, fire3, by.x =c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab") )
+data.2<-merge(data.1, fire3, by.x =c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab"), all.x =TRUE )
 
-data.2<-merge(data.2, for.area, by.x =c("herd_name", "critical_hab"), by.y = c("herd_name", "critical_hab") )
+data.2<-merge(data.2, areas, by.x =c("herd_name", "critical_hab"), by.y = c("herd_name", "critical_hab") )
 
 ```
 ### Create the linkage
 ```{r, linkage}
 
 data.3<-merge(data.2, data_new, by.x = c("herd_name", "year"), by.y = c("herd_name", "year"), all.x=TRUE)
-data.3[, pop.den:= pop_estimate/(area*0.01)]
+data.3[, pop.den:= pop_estimate/((area-ice)*0.01)]
 
 #subset by habitat type
-data.core<-data.3[critical_hab== 'Core', c("herd_name", "year", "pop_estimate", "lambda", "year.0","pop.0","pop.den", "area", "lambda.ratio", "lambda.finite", "per.pop", "early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75","per_rsf_hat_75", "pop_lag", "log.pop", "year_lag", "burn40", "survival_rate","lambda.dift","lambda.dif", "pop.change","lambda.dift.n0","lambda.dif.n0", "area_for")]
-setnames(data.core, c("early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "pop_lag", "year_lag","burn40","per_rsf_hat_75","survival_rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "area_for"), c("core.early.seral", "core.dist", "core.dist500", "core.sum.rsf.hat", "core.sum.rsf.hat.75", "core.area", "pop_lag", "year_lag","core.burn40","core.per.rsf.hat.75","core.survival.rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "core.area.for"))
+data.core<-data.3[critical_hab== 'Core', c("herd_name", "year", "pop_estimate", "lambda", "year.0","pop.0","pop.den", "area", "lambda.ratio", "lambda.finite", "per.pop", "early_seral", "dist", "dist500", "pop_lag", "log.pop", "year_lag", "burn40", "survival_rate","lambda.dift","lambda.dif", "pop.change","lambda.dift.n0","lambda.dif.n0", "area_for")]
+setnames(data.core, c("early_seral", "dist", "dist500", "area", "pop_lag", "year_lag","burn40","survival_rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "area_for"), c("core.early.seral", "core.dist", "core.dist500", "core.area", "pop_lag", "year_lag","core.burn40","core.survival.rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "core.area.for"))
 
-data.matrix<-data.3[critical_hab == 'Matrix',c("herd_name", "year", "early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "burn40", "per_rsf_hat_75", "survival_rate", "area_for")]
-setnames(data.matrix, c("early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "burn40","per_rsf_hat_75", "survival_rate","area_for"), c("matrix.early.seral", "matrix.dist", "matrix.dist500", "matrix.sum.rsf.hat", "matrix.sum.rsf.hat.75", "matrix.area", "matrix.burn40","matrix.per.rsf.hat.75","matrix.survival.rate","matrix.area.for"))
+data.matrix<-data.3[critical_hab == 'Matrix',c("herd_name", "year", "early_seral", "dist", "dist500", "area", "burn40", "survival_rate", "area_for")]
+setnames(data.matrix, c("early_seral", "dist", "dist500", "area", "burn40", "survival_rate","area_for"), c("matrix.early.seral", "matrix.dist", "matrix.dist500", "matrix.area", "matrix.burn40","matrix.survival.rate","matrix.area.for"))
 data.core<-data.core[,core.burn40.per:=core.burn40/core.area.for]
 data.matrix<-data.matrix[,matrix.burn40.per:=matrix.burn40/matrix.area.for]
 
@@ -309,14 +391,25 @@ data.set<-merge(data.core, data.matrix, by.x = c("herd_name", "year"), by.y = c(
 data.set[, time:=year-year.0]
 
 #Calc diturbance indicators
-data.set[, core.dist.per:= (core.dist/core.area.for)*100]
-data.set[, core.dist500.per:= (core.dist500/core.area.for)*100]
-data.set[, core.early.seral.per:= (core.early.seral/core.area.for)*100]
-data.set[, core.rsf.avg:= core.sum.rsf.hat/core.area.for]
-data.set[, matrix.dist.per:= (matrix.dist/matrix.area.for)*100]
-data.set[, matrix.dist500.per:= (matrix.dist500/matrix.area.for)*100]
-data.set[, matrix.early.seral.per:= (core.early.seral/matrix.area.for)*100]
-data.set[, matrix.rsf.avg:= matrix.sum.rsf.hat/matrix.area.for]
+data.set[, core.dist.per:= (core.dist/core.area)*100]
+data.set[, core.dist500.per:= (core.dist500/core.area)*100]
+data.set[, core.early.seral.per:= (core.early.seral/core.area)*100]
+data.set[, core.roads.per:= ((core.dist-core.early.seral)/core.area)*100]
+
+data.set[, matrix.dist.per:= (matrix.dist/matrix.area)*100]
+data.set[, matrix.dist500.per:= (matrix.dist500/matrix.area)*100]
+data.set[, matrix.early.seral.per:= (matrix.early.seral/matrix.area)*100]
+data.set[, matrix.roads.per:= ((matrix.dist-matrix.early.seral)/matrix.area)*100]
+
+data.set[, total.early.seral.per:= ((core.early.seral+matrix.early.seral)/(core.area.for + matrix.area.for))*100]
+data.set[, total.dist.per:= ((core.dist+matrix.dist)/(core.area.for + matrix.area.for))*100]
+data.set[, total.dist500.per:= ((core.dist500+matrix.dist500)/(core.area.for + matrix.area.for))*100]
+data.set[, total.roads.per:= (((core.dist-core.early.seral) + (matrix.dist-matrix.early.seral))/(core.area.for + matrix.area.for))*100]
+
+data.set[, ratio.early.seral.per:= (core.early.seral/matrix.early.seral)]
+data.set[, ratio.dist.per:= (core.dist/matrix.dist)]
+data.set[, ratio.dist500.per:= (core.dist500/matrix.dist500)]
+
 
 #RATES
 ##Core
@@ -342,8 +435,9 @@ data.set[, matrix.dist500.rate:=( (matrix.dist500-matrix.dist500.lag)/matrix.are
 
 #Final
 data.set<-data.set[!is.na(pop.den),]
+data.set<-data.set[!herd_name == 'Purcell_Central',]
 
-table1<- data.set[year == year.0, c("herd_name", "core.early.seral","core.dist","core.dist500", "matrix.early.seral","matrix.dist","matrix.dist500")]
+table1<- data.set[year == year.0, c("herd_name", "core.burn40.per", "core.early.seral","core.dist","core.dist500","matrix.burn40.per", "matrix.early.seral","matrix.dist","matrix.dist500")]
 ```
 
 # Figure of disturbance profile
@@ -360,18 +454,10 @@ one2<-data.set[, c("herd_name", "year","core.dist500.per")]
 setnames(one2, "core.dist500.per" , "value")
 one2[, dm:='CR500']
 one2[, type:='PHab']
-one3<-data.set[, c("herd_name", "year","core.early.seral.rate")]
-setnames(one3, "core.early.seral.rate" , "value")
-one3[, dm:='C']
-one3[, type:='PInit']
-one4<-data.set[, c("herd_name", "year","core.dist.rate")]
-setnames(one4, "core.dist.rate" , "value")
-one4[, dm:='CR']
-one4[, type:='PInit']
-one5<-data.set[, c("herd_name", "year","core.dist500.rate")]
-setnames(one5, "core.dist500.rate" , "value")
-one5[, dm:='CR500']
-one5[, type:='PInit']
+one3<-data.set[, c("herd_name", "year","core.roads.per")]
+setnames(one3, "core.roads.per" , "value")
+one3[, dm:='R']
+one3[, type:='PHab']
 
 t0<-data.set[, c("herd_name", "year","matrix.early.seral.per")]
 setnames(t0, "matrix.early.seral.per" , "value")
@@ -385,22 +471,14 @@ t2<-data.set[, c("herd_name", "year","matrix.dist500.per")]
 setnames(t2, "matrix.dist500.per" , "value")
 t2[, dm:='CR500']
 t2[, type:='PHab']
-t3<-data.set[, c("herd_name", "year","matrix.early.seral.rate")]
-setnames(t3, "matrix.early.seral.rate" , "value")
-t3[, dm:='C']
-t3[, type:='PInit']
-t4<-data.set[, c("herd_name", "year","matrix.dist.rate")]
-setnames(t4, "matrix.dist.rate" , "value")
-t4[, dm:='CR']
-t4[, type:='PInit']
-t5<-data.set[, c("herd_name", "year","matrix.dist500.rate")]
-setnames(t5, "matrix.dist500.rate" , "value")
-t5[, dm:='CR500']
-t5[, type:='PInit']
+t3<-data.set[, c("herd_name", "year","matrix.roads.per")]
+setnames(t3, "matrix.roads.per" , "value")
+t3[, dm:='R']
+t3[, type:='PHab']
 
-core.graph.dist<-rbind(one0,one1,one2,one3,one4,one5)
+core.graph.dist<-rbind(one0,one1,one2,one3)
 core.graph.dist[, hab:='Core']
-matrix.graph.dist<-rbind(t0,t1,t2,t3,t4,t5)
+matrix.graph.dist<-rbind(t0,t1,t2,t3)
 matrix.graph.dist[,hab:='Matrix']
 
 
@@ -408,7 +486,7 @@ graph.dist<-rbind(core.graph.dist,matrix.graph.dist)
 graph.dist<-graph.dist[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
   
 out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value) ) +
-  facet_grid(type+hab~dm  , scales='free') +
+  facet_grid(hab ~dm , scales='free') +
   labs(y = "Disturbance Measure (%)", x = "Year")+
   geom_point(aes(color = herd_name)) +
   geom_smooth(se=FALSE, color = 'black') +
@@ -418,53 +496,51 @@ out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value) ) +
 
 out.graph.dist
 ```
+## Plot between total disturbance and population
+```{r, total_dist_plots}
+total.p0<-ggplot(data = data.set, aes(x =total.roads.per, y =pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
 
+total.p1<-ggplot(data = data.set, aes(x =total.early.seral.per, y = pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
+
+total.p2<-ggplot(data = data.set, aes(x =total.dist.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
+
+total.p3<-ggplot(data = data.set, aes(x =total.dist500.per, y =pop.den, color = herd_name  )) + geom_line()  + theme(legend.position = "none")
+
+ggplotly(total.p0)
+ggplotly(total.p1)
+ggplotly(total.p2)
+ggplotly(total.p3)
+```
 ## Plot between core disturbance and ratio between population estimates
 ```{r, pop_graph_core}
-p1<-ggplot(data = data.set, aes(x =core.early.seral.rate, y = log(pop.den), color = herd_name )) +  geom_point() + theme(legend.position = "none")
+core.p0<-ggplot(data = data.set, aes(x =core.roads.per, y =pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
 
-p2<-ggplot(data = data.set, aes(x =core.dist.rate, y =log(pop.den), color = herd_name  )) + geom_point() + theme(legend.position = "none")
+core.p1<-ggplot(data = data.set, aes(x =core.early.seral.per, y = pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
 
-p3<-ggplot(data = data.set, aes(x =core.dist500.rate, y = log(pop.den), color = herd_name  )) + geom_point()  + theme(legend.position = "none")
-ggplotly(p3)
+core.p2<-ggplot(data = data.set, aes(x =core.dist.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
 
-gridExtra::grid.arrange(p1,p2,p3)
+core.p3<-ggplot(data = data.set, aes(x =core.dist500.per, y =pop.den, color = herd_name  )) + geom_line()  + theme(legend.position = "none")
 
-p1<-ggplot(data = data.set, aes(x =core.early.seral.per, y = pop.den, color = herd_name )) +  geom_point() + theme(legend.position = "none")
-
-p2<-ggplot(data = data.set, aes(x =core.dist.per, y =pop.den, color = herd_name  )) + geom_point() + theme(legend.position = "none")
-
-p3<-ggplot(data = data.set, aes(x =core.dist500.per, y =pop.den, color = herd_name  )) + geom_point()  + theme(legend.position = "none")
-
-
-outp<-gridExtra::grid.arrange(p1,p2,p3)
-
-ggplotly(p1)
-ggplotly(p2)
-ggplotly(p3)
+ggplotly(core.p0)
+ggplotly(core.p1)
+ggplotly(core.p2)
+ggplotly(core.p3)
 ```
 
 ## Plot between matrix disturbance and ratio between population estimates
 ```{r, pop_graph_core}
-p1<-ggplot(data = data.set, aes(x =matrix.early.seral.rate, y =pop.den, color = herd_name )) +  geom_point() + theme(legend.position = "none")
+matrix.p0<-ggplot(data = data.set, aes(x =matrix.roads.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
 
-p2<-ggplot(data = data.set, aes(x =matrix.dist.rate, y =pop.den, color = herd_name  )) + geom_point() + theme(legend.position = "none")
+matrix.p1<-ggplot(data = data.set, aes(x =matrix.early.seral.per, y =pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
 
-p3<-ggplot(data = data.set, aes(x =matrix.dist500.rate, y = pop.den, color = herd_name  )) + geom_point() + theme(legend.position = "none")
+matrix.p2<-ggplot(data = data.set, aes(x =matrix.dist.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
 
+matrix.p3<-ggplot(data = data.set, aes(x =matrix.dist500.per, y = pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
 
-gridExtra::grid.arrange(p1,p2,p3)
-
-p1<-ggplot(data = data.set, aes(x =matrix.early.seral.per, y =pop.den, color = herd_name )) +  geom_point() + theme(legend.position = "none")
-
-p2<-ggplot(data = data.set, aes(x =matrix.dist.per, y =pop.den, color = herd_name  )) + geom_point() + theme(legend.position = "none")
-
-p3<-ggplot(data = data.set, aes(x =matrix.dist500.per, y = pop.den, color = herd_name  )) + geom_point() + theme(legend.position = "none")
-
-out.m<-gridExtra::grid.arrange(p1,p2,p3)
-ggplotly(p1)
-ggplotly(p2)
-ggplotly(p3)
+ggplotly(matrix.p0)
+ggplotly(matrix.p1)
+ggplotly(matrix.p2)
+ggplotly(matrix.p3)
 ```
 .(count = .N, var = sum(VAR))
 # Table of disturbance and population
@@ -478,7 +554,7 @@ I start with a normal distribution- since the change in population is likely sym
 ```{r, assump}
 library(gamlss)
 data.set[, log.pop.den:=log(pop.den)]
-histDist(log.pop.den,family="NO", data=data.set, nbins = 12)
+histDist(pop.den,family="NO", data=data.set, nbins = 12)
 histDist(pop.den,family="LOGNO", data=data.set, nbins = 12)
 histDist(pop.den,family="BE", data=data.set, nbins = 12)
 histDist(pop.den,family="GA", data=data.set, nbins = 12)
@@ -489,21 +565,25 @@ histDist(pop.den,family="EXP", data=data.set, nbins = 12)
 library(usdm)
 test<-data.set[,c("core.early.seral.per","matrix.early.seral.per")]
 vif(test)
-
-test<-data.set[,c("core.early.seral.rate","matrix.early.seral.rate")]
-vif(test)
-
+cor(data.set[,"matrix.early.seral.per"],data.set[,"core.early.seral.per"])
 test<-data.set[,c("core.dist.per","matrix.dist.per")]
 vif(test)
-
-test<-data.set[,c("core.dist.rate","matrix.dist.rate")]
-vif(test)
-
 test<-data.set[,c("core.dist500.per","matrix.dist500.per")]
 vif(test)
+cor(data.set[,"matrix.dist500.per"],data.set[,"core.dist500.per"])
 
-test<-data.set[,c("core.dist500.rate","matrix.dist500.rate")]
-vif(test)
+
+cor(data.set[,"matrix.roads.per"],data.set[,"core.roads.per"])
+cor(data.set[,"core.dist500.per"],data.set[,"core.roads.per"])
+
+cor(data.set[,"core.dist500.per"],data.set[,"log.pop.den"])
+cor(data.set[,"core.dist.per"],data.set[,"log.pop.den"])
+cor(data.set[,"core.early.seral.per"],data.set[,"log.pop.den"])
+cor(data.set[,"core.roads.per"],data.set[,"log.pop.den"])
+cor(data.set[,"matrix.dist500.per"],data.set[,"log.pop.den"])
+cor(data.set[,"matrix.dist.per"],data.set[,"log.pop.den"])
+cor(data.set[,"matrix.early.seral.per"],data.set[,"log.pop.den"])
+cor(data.set[,"matrix.roads.per"],data.set[,"log.pop.den"])
 ```
 
 
@@ -511,13 +591,16 @@ vif(test)
 
 Here the data set is cleaned up to only include those variables that are important to the modelling process. Further, the control parameters are set for the model fitting algorithums
 ```{r, setting}
-model.data<-data.set[,c("herd_name","pop_estimate", "pop.den", "log.pop.den", "time", "year", "core.early.seral.per", "core.dist.per", "core.dist500.per", "core.early.seral.rate", "core.dist.rate", "core.dist500.rate", "matrix.early.seral.per", "matrix.dist.per", "matrix.dist500.per", "matrix.early.seral.rate", "matrix.dist.rate", "matrix.dist500.rate")]
-con1 <- gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000)
-xys2<-herd.spat2[,c("herd_name", "X", "Y")]
-xys2$shape<-NULL
-xys2<-data.table(xys2)
+library(gamlss)
+library(nlme)
+
+model.data<-data.set[,c("herd_name","pop_estimate", "pop.den",  "time", "year","core.roads.per", "core.early.seral.per", "core.dist.per", "core.dist500.per","matrix.roads.per", "matrix.early.seral.per", "matrix.dist.per", "matrix.dist500.per")]
+con1 <- gamlss::gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000)
+#xys2<-herd.bounds[,c("herd_name2", "X", "Y")]
+#xys2$shape<-NULL
+#xys2<-data.table(xys2)
 #Add in the X and Y from the xys object
-model.data<-merge(model.data, xys2, by.x= "herd_name", by.y = "herd_name")
+#model.data<-merge(model.data, xys2, by.x= "herd_name", by.y = "herd_name2", all.x=TRUE)
 # Add the null group
 model.data[,group:=1]
 #model.data<-model.data[!herd_name %in% c("Purcell_Central", "Narrow_Lake"),]
@@ -526,52 +609,152 @@ model.data[,group:=1]
 
 # SUMMARY OF DISTURBANCE
 ```{r,sum_dist}
-
 summary(model.data)
 ```
-#NULL Model
+#Linear Models
 
-Note that herd_name is the identifier for each herd. This model is simply the average of the log ratio of population change by herd = exp(-0.48) = 0.619 or a decline of ~40% across the years surveyed
 ```{r, reduced_model}
-m0.a <- lme(log.pop.den ~ 1 , random=~ 1|group, data = model.data, method = 'ML', control = con1)
+m0.a <- lme(pop.den ~ 1 , random=~ 1|group, data = model.data, method = 'ML', control = con1)
 summary(m0.a) #AIC:-410
 plot(m0.a)
 
 #Try adding a random effect for herd. 
-m0.b.reml <- lme(log.pop.den ~ 1 , random=~ 1|herd_name, data = model.data, method = 'REML', control = con1)
-m0.b <- lme(log.pop.den  ~ 1 , random=~ 1|herd_name, data = model.data, method = 'ML', control = con1)
-acf(residuals(m0.b,type="normalized"))
+m0.b.reml <- lme(pop.den ~ 1 , random=~ 1|herd_name, data = model.data, method = 'REML', control = con1)
+m0.b <- lme(pop.den  ~ 1 , random=~ 1|herd_name, data = model.data, method = 'ML', control = con1)
+pacf(residuals(m0.b,type="normalized"))
 summary(m0.b)#AIC:183, logl:-88.7
 plot(m0.b)# variances are different by herd
-
 anova(m0.a,m0.b)
 
-m0.d <- lme(log.pop.den ~ 1 , random=~ 1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'REML', control = con1)
-#anova(m0.c, m0.d) # model m0.d is better LRT: p<0.001
-acf(residuals(m0.d,type="normalized"), lag.max = 10) # phi = 0.9. No significant lags
-plot( fitted(m0.d, level =1),residuals(m0.d, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-summary(m0.d)
-VarCorr(m0.d)
 
 anova(m0.b.reml,m0.d)
+c.0 <- lme(pop.den ~ core.early.seral.per*matrix.early.seral.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(c.0,type="normalized"), lag.max = 10)
+summary(c.0)
+plot(model.data$pop.den, resid(c.0))
+abline(0,0)
 
+r.0 <- lme(pop.den ~ core.roads.per*matrix.roads.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(r.0,type="normalized"), lag.max = 10)
+summary(r.0)
+plot(model.data$pop.den, resid(r.0))
+abline(0,0)
+
+cr.0 <- lme(pop.den ~ core.dist.per*matrix.dist.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(cr.0,type="normalized"), lag.max = 10)
+summary(cr.0)
+plot(model.data$pop.den, resid(cr.0))
+abline(0,0)
+
+
+cr500.0 <- lme(pop.den ~ core.dist500.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(cr500.0,type="normalized"), lag.max = 10)
+summary(cr500.0)
+plot(model.data$pop.den, resid(cr500.0))
+abline(0,0)
+
+aic.values<-AIC(m0.b,cr500.0,cr.0,r.0 ,c.0 )
+aic.values$delta<-round(qpcR::akaike.weights(aic.values$AIC)$deltaAIC, 3)
+aic.values$weights<-round(qpcR::akaike.weights(aic.values$AIC)$weights, 3)
+aic.values
+
+```
+
+#Exponential models
+```{r, nonliner}
+#Models. Exponential type I: ln(Y) = b0 + b1 X
+expo.model <- function(a, b, c, x, y) {
+  f <- a*exp(x*b + y*c)
+  return(f)
+}
+
+#CUTBLOCKS
+start.c.0 <- nls(pop.den ~ expo.model(a,b,c, core.early.seral.per, matrix.early.seral.per), start=list(a=0.01,b=0.1, c = 0.05), data= model.data)
+expo.c.0 <- nlme(pop.den ~ expo.model(a,b,c, core.early.seral.per, matrix.early.seral.per), fixed =list(a~1,b~1, c~1), random= b~1|herd_name, start =list(fixed=coef(start.c.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(expo.c.0,type="normalized"), lag.max = 10) 
+summary(expo.c.0)
+plot(expo.c.0)
+abline(0,0, col = 'red')
+plot(model.data$pop.den, predict(expo.c.0))
+abline(0,1, col = 'red')
+
+#ROADS
+start.r.0 <- nls(pop.den ~ expo.model(a,b,c, core.roads.per,matrix.roads.per), start=list(a=0.01,b=0.1,c=0.01), data= model.data)
+expo.r.0 <- nlme(pop.den ~ expo.model(a,b,c,core.roads.per,matrix.roads.per), fixed =list(a~1,b~1,c~1), random= b~1|herd_name, start =list(fixed=coef(start.r.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(expo.r.0,type="normalized"), lag.max = 10)
+pacf(residuals(expo.r.0,type="normalized"), lag.max = 10) 
+summary(expo.r.0)
+plot(expo.r.0)
+abline(0,0, col = 'red')
+plot(model.data$pop.den, predict(expo.r.0))
+abline(0,1, col = 'red')
+cor(model.data$pop.den, predict(expo.r.0, level=0))
+
+newdat<-expand.grid(herd_name = 'Barkerville', core.roads.per=seq(from = min(model.data$core.roads.per),
+                            to = max(model.data$core.roads.per),
+                            by = 0.1),
+                    matrix.roads.per= mean(model.data$matrix.roads.per))
+ggplot(model.data, aes(x=core.roads.per, y=pop.den, colour=herd_name)) +
+  geom_point(size=3) +
+  geom_line(aes(y=predict(expo.r.0), group=herd_name)) +
+  geom_line(data=newdat, aes(y=predict(expo.r.0, level=0, newdata=newdat) ),size =1.5)
+
+
+#CUTBLOCKS + ROADS
+
+start.cr.0 <- nls(pop.den ~ expo.model(a,b,c, core.dist.per, matrix.dist.per), start=list(a=0.01,b=0.1, c = 0.05), data= model.data)
+expo.cr.0 <- nlme(pop.den ~ expo.model(a,b,c, core.dist.per, matrix.dist.per), fixed =list(a~1,b~1, c~1), random= b~1|herd_name, start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(expo.cr.0,type="normalized"), lag.max = 10) 
+summary(expo.cr.0)
+plot(expo.cr.0)
+abline(0,0, col = 'red')
+plot(model.data$pop.den, predict(expo.cr.0))
+abline(0,1, col = 'red')
+
+#CUTBLOCKS + ROADS BUFFER 500m
+
+start.cr500.0 <- nls(pop.den ~ expo.model(a,b,c, core.dist500.per, matrix.dist500.per), start=list(a=0.01,b=0.1, c = 0.05), data= model.data)
+expo.cr500.0 <- nlme(pop.den ~ expo.model(a,b,c, core.dist500.per, matrix.dist500.per), fixed =list(a~1,b~1, c~1), random= b~1|herd_name, start =list(fixed=coef(start.cr500.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(expo.cr500.0,type="normalized"), lag.max = 10) 
+summary(expo.cr500.0)
+plot(expo.cr500.0)
+abline(0,0, col = 'red')
+plot(model.data$pop.den, predict(expo.cr500.0))
+abline(0,1, col = 'red')
+
+aic.values<-AIC(expo.cr500.0,expo.cr.0,expo.r.0 ,expo.c.0 )
+aic.values$delta<-round(qpcR::akaike.weights(aic.values$AIC)$deltaAIC, 3)
+aic.values$weights<-round(qpcR::akaike.weights(aic.values$AIC)$weights, 3)
+aic.values
+
+```
+
+
+#GAMS
+```{r, gams}
 #GAMLSS
-gam.null<-gamlss(pop.den ~ 1 + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.null<-gamlss(pop.den ~ 1 + re(random=~1|herd_name, method = "ML"), opt="optim",   sigma.formula = ~1, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.null)
 
-gam.c<-gamlss(pop.den ~ matrix.early.seral.per + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1 + core.early.seral.rate, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.c<-gamlss(pop.den ~ core.early.seral.per + re(random=~1|herd_name,  method = "ML"), opt="optim",   sigma.formula = ~1+matrix.early.seral.per  , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.c)
 
-gam.cr<-gamlss(pop.den ~core.dist.per + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1+core.dist.per, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.r<-gamlss(pop.den ~ core.roads.per + re(random=~1|herd_name, correlation = corARMA(p=1), method = "ML"), opt="optim",   sigma.formula = ~1+ matrix.roads.per  , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+summary(gam.r)
+
+gam.cr<-gamlss(pop.den ~core.dist.per + re(random=~1|herd_name, method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist.per, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr)
 
-gam.cr500<-gamlss(pop.den ~ core.dist500.per+core.dist500.rate+ re(random=~1|herd_name,correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist500.rate, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.cr500<-gamlss(pop.den ~ core.dist500.per+ re(random=~1|herd_name, method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist500.per, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr500)
 
-plot(exp(predict(gam.cr500)), model.data$pop.den) 
+plot(exp(predict(gam.c)), model.data$pop.den)
 abline(0,1, col = 'red')
-plot(predict(gam.c), model.data$pop.den)
+plot(exp(predict(gam.r)), model.data$pop.den)
+abline(0,1, col = 'red')
+plot(exp(predict(gam.cr)), model.data$pop.den)
+abline(0,1, col = 'red')
+plot(exp(predict(gam.cr500)), model.data$pop.den) 
 abline(0,1, col = 'red')
 
 d1<-data.table(type ='c', residuals(gam.c))
@@ -580,121 +763,11 @@ d3<-data.table(type ='cr500', residuals(gam.cr500))
 vegLengths<-rbindlist(list(d1,d2,d3))
 ggplot(vegLengths, aes(V2, fill = type)) + geom_density(alpha = 0.2)
 
+acfResid(gam.r)
+acf(resid(gam.r))
 
 ```
 
-
-
-#Alternative models
-
-Comaring the use of early.seral, dist, dist500.
-
-#Early Seral Stage which is just clear cuts -- doesn't include burns
-```{r, eary_seral}
-#---Percentage---
-early.seral.per.reml<- lme(log.pop.den ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
-acf(residuals(early.seral.per.reml,type="normalized"), lag.max = 10) 
-
-early.seral.per.reml.ar1<- lme(log.pop.den ~ core.early.seral.per*matrix.early.seral.per, random=~ 1|herd_name, method = 'REML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-acf(residuals(early.seral.per.reml.ar1,type="normalized"), lag.max = 10) 
-summary(early.seral.per.reml.ar1)
-anova(early.seral.per.reml,early.seral.per.reml.ar1)
-
-early.seral.per.reml.ar1.nint<- lme(log.pop.den ~ core.early.seral.per+matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-
-early.seral.per.reml.slope<- lme(log.pop.den ~ core.early.seral.per+ matrix.early.seral.per, random=~-1+ matrix.early.seral.per+ core.early.seral.per|herd_name, corAR1(value = 0.8, form = ∼time|herd_name), method = 'ML', data = model.data, control = con1)
-
-anova(early.seral.per.reml.ar1.nint,early.seral.per.reml.slope)
-
-#Random intercept model with AR1 is best
-##Diagnostics
-acf(residuals(early.seral.per.reml.ar1 , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(early.seral.per.reml.ar1),residuals(early.seral.per.reml.ar1, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(early.seral.per.reml.ar1, level=0),model.data$log.pop.den) #0.5855
-plot(model.data$log.pop.den~fitted(early.seral.per.reml.ar1))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(early.seral.per.reml.ar1)
-
-#To compare fixed effects models
-early.seral.per.ml.ar1<- lme(log.pop.den ~ matrix.early.seral.per, random=~ 1|herd_name, method = 'ML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-summary(early.seral.per.ml.ar1)
-
-
-```
-
-#Percentage disturbed - includes only cutblocks and roads buffered by 50m
-```{r, dist}
-#---Percentage---
-dist.per.reml<- lme(log.pop.den ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
-acf(residuals(dist.per.reml,type="normalized"), lag.max = 10) 
-
-dist.per.reml.ar1<- lme(log.pop.den ~ core.dist.per*matrix.dist.per, random=~ 1|herd_name, method = 'REML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-
-acf(residuals(dist.per.reml.ar1,type="normalized"), lag.max = 10) 
-summary(dist.per.reml.ar1)
-anova(dist.per.reml,dist.per.reml.ar1)
-
-dist.per.reml.ar1.nint<- lme(log.pop.den ~ core.dist.per+matrix.dist.per, random=~ 1|herd_name, method = 'ML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-
-dist.per.reml.slope<- lme(log.pop.den ~ core.dist.per+ matrix.dist.per, random=~-1+ core.dist.per|herd_name, corAR1(value = 0.8, form = ∼time|herd_name), method = 'ML', data = model.data, control = con1)
-
-anova(dist.per.reml.ar1.nint,dist.per.reml.slope)
-
-#Random intercept model with AR1 is best
-##Diagnostics
-acf(residuals(dist.per.reml.ar1 , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(dist.per.reml.ar1),residuals(dist.per.reml.ar1, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(dist.per.reml.ar1, level=0),model.data$log.pop.den) #0.5855
-plot(model.data$log.pop.den~fitted(dist.per.reml.ar1))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(dist.per.reml.ar1)
-
-#To compare fixed effects models
-dist.per.ml.ar1<- lme(log.pop.den ~ core.dist.per, random=~ 1|herd_name, method = 'ML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-summary(dist.per.ml.ar1)
-
-```
-
-#Disturbance including cutblocks and roads with buffering each by 500m
-```{r, dist500}
-#---Percentage---
-dist500.per.reml<- lme(log.pop.den ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'REML', data = model.data, control = con1)
-acf(residuals(dist500.per.reml,type="normalized"), lag.max = 10) 
-
-dist500.per.reml.ar1<- lme(log.pop.den ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'REML', corAR1(value = 0.2, form = ∼time|herd_name), data = model.data, control = con1)
-
-acf(residuals(dist500.per.reml.ar1,type="normalized"), lag.max = 10) 
-summary(dist500.per.reml.ar1)
-anova(dist500.per.reml,dist500.per.reml.ar1)
-
-dist500.per.reml.ar1.nint<- lme(log.pop.den ~ core.dist500.per+matrix.dist500.per, random=~ 1|herd_name, method = 'REML', corAR1(value = 0.2, form = ∼time|herd_name), data = model.data, control = con1)
-
-dist500.per.reml.slope<- lme(log.pop.den ~ core.dist500.per+ matrix.dist500.per, random=~-1+ matrix.dist500.per+ core.dist500.per|herd_name, corAR1(value = 0.2, form = ∼time|herd_name), method = 'REML', data = model.data, control = con1)
-
-anova(dist500.per.reml.ar1.nint,dist500.per.reml.slope)
-
-#Random intercept model with AR1 is best
-##Diagnostics
-acf(residuals(dist500.per.reml.ar1 , type = 'normalized'),lag.max =10)#No issues
-plot( fitted(dist500.per.reml.ar1),residuals(dist.per.reml.ar1, type="normalized"))# variances are homogenous
-abline(0,0, col = 'red')
-cor(fitted(dist500.per.reml.ar1, level=1),model.data$log.pop.den) #0.257
-plot(model.data$log.pop.den~fitted(dist500.per.reml.ar1))
-abline(0,1, col = "red")
-abline(0,0, col = "yellow")
-summary(dist500.per.reml.ar1)
-
-#To compare fixed effects models
-dist500.per.ml.ar1<- lme(log.pop.den ~ core.dist500.per*matrix.dist500.per, random=~ 1|herd_name, method = 'ML', corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, control = con1)
-
-dist500.per.ml.ar1<- lme(log.pop.den ~ core.dist500.per, random=~ 1|herd_name, corAR1(value = 0.8, form = ∼time|herd_name), method = 'REML', data = model.data, control = con1)
-summary(dist500.per.ml.ar1)
-
-```
 
 ## OVERALL
 ```{r, overall}
