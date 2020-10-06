@@ -518,29 +518,172 @@ We compared our annual harvested volume results to results from timber supply an
 
 
 
-```{r, FIG , Quesnel disturbance scenario compare, echo = F, error = F, eval = F, include = F, message = F, warning = F}
-# turned off for now
-data.dist <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_quesnel_20200909.csv")
-data.dist <- data.dist %>%
-              filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
-                      scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
-              filter (critical_hab == "Itcha-Ilgachuz HEWSR" | critical_hab == "Itcha-Ilgachuz LESR" |
-                      critical_hab == "Itcha-Ilgachuz LEWR" | critical_hab == "Itcha-Ilgachuz Matrix")
-ggplot (data.dist, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+```{r, FIG , otehr output figures - scenario compare, echo = F, error = F, eval = F, include = F, message = F, warning = F}
+
+###### Turned off for now ######
+
+### Disturbance ###
+## Quesnel ##
+data.dist.q <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_quesnel_20200909.csv")
+data.dist.q$scenario <- factor(data.dist.q$scenario, levels = c("quesnel_bau", "quesnel_chil_notweeds_nh", "quesnel_chil_notweeds_ch_hele0d_m15d"))
+# Itcha #
+data.dist.q.i <- data.dist.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (critical_hab == "Itcha_Ilgachuz HEWSR" | critical_hab == "Itcha_Ilgachuz LESR" |
+                          critical_hab == "Itcha_Ilgachuz LEWR" | critical_hab == "Itcha_Ilgachuz Matrix")
+ggplot (data.dist.q.i, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
   geom_line (position = position_dodge (width = 1)) + 
   facet_grid (. ~critical_hab) +
-  labs (title = "Figure 1. Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat 
-in the Quesnel TSA Under the Different Habitat Management Scenarios.", 
+  labs (title = "Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA Under the 
+Different Habitat Management Scenarios.", 
         x = "Future Year", 
         y = "Percent Disturbed",
-        caption = "BAU = business-as-usual scenario; 
-ECCC = Environment and Climate Change Canada; 
-BC = British Columbia") + 
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
   scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
                                                       "Matrix 35%")) +
   scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
                                                          "Matrix 35%")) +
-  theme (legend.position = c (0.15, 0.75),
+  theme (legend.position = c (0.10, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# TWeeds and Wells #
+data.dist.q.t <- data.dist.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (critical_hab == "Tweedsmuir LEWR" | critical_hab == "Tweedsmuir Matrix" |
+                          critical_hab == "Wells_Gray_North HEWSR" | critical_hab == "Wells_Gray_North Matrix")
+ggplot (data.dist.q.t, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Tweedsmuir and Wells Gray North Critical Habitat in the Quesnel 
+TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.15, 0.15),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+
+## Williams Lake ##
+data.dist.w <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_williams_lake_20200909.csv")
+data.dist.w$scenario <- factor(data.dist.w$scenario, levels = c("williams_lake_bau", "willake_chil_nh", "willake_chil_ch_hle0d_m15d"))
+
+# Itcha #
+data.dist.w.i <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Itcha_Ilgachuz HEWSR" | critical_hab == "Itcha_Ilgachuz LESR" |
+                          critical_hab == "Itcha_Ilgachuz LEWR" | critical_hab == "Itcha_Ilgachuz Matrix")
+ggplot (data.dist.w.i, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat in the Williams Lake TSA Under the
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# Rainbows #
+data.dist.w.r <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Rainbows HEWSR" | critical_hab == "Rainbows LESR" |
+                          critical_hab == "Rainbows LEWR" | critical_hab == "Rainbows Matrix")
+data.dist.w$scenario <- factor(data.dist.w$scenario, levels = c("williams_lake_bau", "willake_chil_nh", "willake_chil_ch_hle0d_m15d"))
+ggplot (data.dist.w.r, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Rainbows Critical Habitat in the Williams Lake TSA Under the
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.20),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# Wells #
+data.dist.w.w <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Wells_Gray_North HEWSR" |
+                          critical_hab == "Wells_Gray_North Matrix")
+ggplot (data.dist.w.w, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Wells Gray North Critical Habitat in the Williams Lake TSA 
+Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+### Early Seral ###
+## Quesnel ##
+data.surv.q <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\survival_quesnel_20200911.csv")
+data.surv.q$scenario <- factor(data.surv.q$scenario, levels = c("quesnel_bau", "quesnel_chil_notweeds_nh", "quesnel_chil_notweeds_ch_hele0d_m15d"))
+
+# Itcha #
+data.surv.q.i <- data.surv.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (herd_bounds == "Itcha_Ilgachuz HEWSR" | herd_bounds == "Itcha_Ilgachuz LESR" |
+                          herd_bounds == "Itcha_Ilgachuz LEWR" | herd_bounds == "Itcha_Ilgachuz Matrix")
+ggplot (data.surv.q.i, aes (x = timeperiod, y = prop_age*100, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~herd_bounds) +
+  labs (title = "Percent Early Seral Forest in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA Under the 
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Young Forest",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.75),
          legend.title = element_text(size = 10),
          legend.text = element_text( size = 8))
 ```

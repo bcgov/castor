@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install libgdal-dev libpq-dev libudunits2-dev libp
 RUN apt-get clean
 
 # Download and install library
-RUN R -e "install.packages(c('shiny','shinythemes','plotly','leaflet','leaflet.extras','DBI','RPostgreSQL','rgdal','data.table', 'sf', 'sp','keyring','zoo','dplyr', 'ggplot2'))"
+RUN R -e "install.packages(c('shiny','shinythemes','plotly','leaflet','leaflet.extras','DBI','RPostgreSQL','rgdal','data.table', 'sf', 'sp','zoo','dplyr', 'ggplot2'))"
 
 
 # copy the app to the image 

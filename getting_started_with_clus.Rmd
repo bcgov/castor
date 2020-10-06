@@ -110,7 +110,7 @@ Also, within dataLoaderCLUS, the forest inventory parameters are defined, includ
 
 Blocking parameters in the forestryCLUS module are referred to in blockingCLUS module. You will have needed to define the blocking method as part of runnign the dataLoaderCLUS module. It will have created a "blocks" table in the SQLite database that will be used to define forest stands for harvest. 
 
-You can periodically calculate growing stock as part of the using forestry simulation by listing the growingStockCLUS module. You only need to set the periodLength paramter, and the forestry CLUS module will call the growingStockCLUS at that interval and cauclate teh amount of volume availabe to be harvested.
+You can periodically calculate growing stock as part of the using forestry simulation by listing the growingStockCLUS module. You only need to set the periodLength paramter, and the forestry CLUS module will call the growingStockCLUS at that interval and calculate the amount of volume available to be harvested.
  
 The roadCLUS can be listed as parameter to create roads within a forestry simulation. 
 
