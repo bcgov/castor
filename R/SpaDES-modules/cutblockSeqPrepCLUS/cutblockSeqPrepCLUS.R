@@ -99,6 +99,7 @@ getHistoricalLandings <- function(sim) {
                                          AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"))
   
   if(length(sim$histLandings)==0){ 
+    message("histLandings is NULL")
     sim$histLandings <- NULL
   }else{
     landings <- sim$histLandings %>% dplyr::filter(harvestyr <= P(sim)$startHarvestYear) 
