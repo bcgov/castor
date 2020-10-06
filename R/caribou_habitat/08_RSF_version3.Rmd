@@ -23,7 +23,7 @@ library (plotly)
 
 
 # NOTE
-This model is no longer in use; don't use it - see version 4! 
+This model is no longer in use; don't use it - see version 4 in 'clus/reports/caribou_rsf/12_RSF_version4.html'
 
 We were having problems fitting the functional response model; version 4 will eliminate this part of the model. We believe we were unable to predict an appropriate functional response surface by caribou in low disturbance areas. It was predicting these habitats as low value, but we believe they should be viewed as high-value habitats. 
 

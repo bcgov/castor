@@ -27,11 +27,19 @@ shinyServer(function(input, output, session) {
     bec$year <<- relevel(as.factor(bec$year), "Current")
     progress$set(value = 0.8, message = 'Loading...')
     clime<<-getTableQuery("SELECT * FROM public.clim_plot_data")
+
   #----------------
     
     #get cached thlb summary
     progress$set(value = 0.9, message = 'Loading...')
     gcbp_thlb<<-getTableQuery("SELECT herd_name, sum FROM public.gcbp_thlb_sum")
+    
+    gcbp_thlb$herd_name <<- sub("_", " ", gcbp_thlb$herd_name) # need to make names consistent with herd bounds 
+      gcbp_thlb$herd_name <<- sub("Itcha Ilgachuz", "Itcha-Ilgachuz", gcbp_thlb$herd_name)
+      gcbp_thlb$herd_name <<- sub("Level Kawdy", "Level-Kawdy", gcbp_thlb$herd_name)
+      gcbp_thlb$herd_name <<- sub("Snake Sahtaneh", "Snake-Sahtaneh", gcbp_thlb$herd_name)
+      gcbp_thlb$herd_name <<- sub("Redrock Prairie_Creek", "Redrock-Prairie Creek", gcbp_thlb$herd_name)
+    
   #----------------
   #get cached fire summary
     #fire_sum<<-getTableQuery("SELECT * FROM public.fire_sum")
@@ -144,7 +152,7 @@ shinyServer(function(input, output, session) {
    # fire_sum[which(fire_sum$herd_name == caribouHerd() & fire_sum$fire_year > 1960 ),]
    # })
   
-  thlb_data<- reactive({
+  thlb_data <- reactive({
     req(caribouHerd())
     req(gcbp_thlb)
     req(totalArea())
