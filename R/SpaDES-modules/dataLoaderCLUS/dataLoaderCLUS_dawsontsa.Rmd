@@ -47,9 +47,9 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
-                         nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
+                         nameBoundaryFile = "tsa_aac_bounds", # name of the (TSA) boundary data in postgres
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
-                         nameBoundary = "Dawson_Creek_TSA", # the boudnary (TSA) name
+                         nameBoundary = "Dawson_Creek_TSA", # the boundary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -58,23 +58,25 @@ parameters <-  list(
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
                                              "rast.zone_cond_uwr",
-                                             "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
+                                             "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
                                              'rast.zone_cond_partnership_agreement',
-
- "rast.zone_cond_noharvest_graham_crithab_or_herd",                                           "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                          "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
-                                          "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
- "rast.zone_cond_noharvest_quintette_crithab_or_herd",
- "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
- "rast.zone_cond_noharvest_narraway_crithab_or_herd",
-                                            "rast.zone_cond_eccc_graham_crithab_or_herd",                                           "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                          "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
-                                          "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
- "rast.zone_cond_eccc_quintette_crithab_or_herd",
- "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
- "rast.zone_cond_eccc_narraway_crithab_or_herd"
+                                             "rast.zone_cond_noharvest_graham_crithab_or_herd",                                                                    "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_quintette_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_narraway_crithab_or_herd",
+                                             "rast.zone_cond_eccc_graham_crithab_or_herd",                                                                         "rast.zone_cond_eccc_moberly_crithab_or_herd",
+                                             "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
+                                             "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
+                                             "rast.zone_cond_eccc_quintette_crithab_or_herd",
+                                             "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                             "rast.zone_cond_eccc_narraway_crithab_or_herd",
+                                             "rast.central_grp_proposed_luo",
+                                             "rast.central_grp_proposed_luo_buffer",
+                                             "rast.central_grp_proposed_luo_matrix"
                                           ), 
                          nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
@@ -116,10 +118,10 @@ parameters <-  list(
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_rds", # permanently disturbed features (never recover)
-                             recovery = 40) # time for roads adn cutblocks to 'recover' from disturbance
+                             recovery = 40) # time for roads and cutblocks to 'recover' from disturbance
   )
 
-rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
+rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU8' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 #rsf_model_coeff[, population := 'Tweedsmuir'] 
 
 scenario = data.table(name="load_data", 
