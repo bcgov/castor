@@ -80,26 +80,6 @@ for (i in 1:length(file.list)){
 ##############
 # Equations
 ##############
-#### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
-# Month <- Lf value
-# LF[[1]] is the value for Jan
-
-Lf<-c(-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6)
-####
-
-Em <- n * ((0.36 * Tmax)+ Lf) # Em = Evapotranspiration; n= # days in month; Tmax = Monthly mean of                                 daily max temps; Lf = standard day length adjustment factor
-DChalf <- MDC0 + 0.25* Em #MDC0 = MDC from end of previous month
-
-# All rain simulated to occur in middle of month and moisture equivalent in the layer after rain (Qmr) is calculated
-Qmr <- 3.937 * (0.83*rm)/(800*exp(-MDC0/400)) # rm = monthly rainfall accounting for canopy and surface interception.
-
-DCmr <- DChalf - 400 * log(1+Qmr) # Drying over middel of month
-
-MDCm <-DCmr + 0.25*Em # MDC value at end of month
-
-# Finally average MDC0 and MDCm 
-MDC = (MDC0 + MDCm)/2
-
 years<- c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
 
 file.list<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output", pattern=".csv", all.files=FALSE, full.names=FALSE)
@@ -116,12 +96,51 @@ lightning_clipped2<- lightning_clipped %>%
   filter (FIRE_YEAR>=2002, FIRE_TYPE=="Fire") %>%
   select(FIRE_ID, FIRE_YEAR : FIRE_CAUSE, FIRE_TYPE, SIZE_HA, geometry)
 
+# Parameters to calculate monthly drought code (DC)
+
+days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31) # number of days in each month starting in Jan
+#### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
+# Month <- Lf value
+# LF[1] is the value for Jan
+Lf<-c(-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6)
+####
+
+
 filenames<-list()
 for (i in 1: length(y2)){
   
-  x<-eval(as.name(y2[1])) %>% 
+  x<-eval(as.name(y2[i])) %>% 
     rename(FIRE_ID=ID1, FIRE_YEAR=ID2) %>%
-    select(FIRE_ID, FIRE_YEAR, Tmax01:Tmax12, Tave01:Tave12, PPT01:PPT12, PAS01:PAS12)
+    select(FIRE_ID, FIRE_YEAR, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09)
+  
+  for (j in 5 : 9) {
+    
+    x$MDC_04<-15
+    
+    Em<- days_month[j]*((0.36*x[[paste0("Tmax0",j)]])+Lf[j])
+    Em <- ifelse(Em<0, 0, Em)
+    DC_half<- x[[paste0("MDC_0",j-1)]] + (0.25 * Em)
+    RMeff<-(0.83 * (x[[paste0("PPT0",j)]] + (x[[paste0("PAS0",j)]]/10)))
+    Qmr<- (800 * exp(-(DC_half)/400)) + (3.937 * RMeff)
+    Qmr2 <- ifelse(Qmr>800, 800, Qmr)
+    MDC_m <- 400 * log(800/Qmr2) + 0.25*Em
+    x[[paste0("MDC_0",j)]] <- (x[[paste0("MDC_0",j-1)]] + MDC_m)/2
+    x[[paste0("MDC_0",j)]] <- ifelse(x[[paste0("MDC_0",j)]] <15, 15, x[[paste0("MDC_0",j)]])
+    
+    
+  }
+  
+  nam1<-paste("DC",y2[i],sep=".") #defining the name
+  assign(nam1,x)
+  filenames<-append(filenames,nam1)
+}
+  
+  
+  
+  
+  
+  
+  
   
   x2<-left_join(lightning_clipped2, x, by= c("FIRE_ID", "FIRE_YEAR"))
   nam1<-paste("Fire_weather",y2[i],sep="_") #defining the name
@@ -129,17 +148,12 @@ for (i in 1: length(y2)){
   filenames<-append(filenames,nam1)
 }
 
-lightning_weather<-left_join(lightning_clipped2, weath_2000, by= "FIRE_ID")
-lightning_weather2 <- lightning_weather %>%
-  select(FIRE_NO:FIRE_CAUSE, FIRE_ID, FIRE_TYPE,SIZE_HA,Tmax01:Tmax12, PPT01:PPT12, PAS01:PAS12) %>%
-  filter(FIRE_TYPE=="Fire")
 
-#Em <- n * ((0.36 * Tmax)+ Lf)
-days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
-lightning_weather2$Em_04 <- days_month[[4]] * ((0.36*lightning_weather2$Tmax01)+Lf[[4]])
 
-dc_0<-16 # initial drought code value. Took this value from https://cran.r-project.org/web/packages/cffdrs/cffdrs.pdf, who use it in their example as a starting value. 
+lightning_weather2$Em_04 <- days_month[[5]] * ((0.36*lightning_weather2$Tmax01)+Lf[[5]])
+
+dc_0<-15 # initial drought code value. Took this value from https://pacificclimate.org/sites/default/files/publications/evaluation_of_the_monthly_drought_code.pdf, who use it in their study and assumed it reset to 15 at the start of every May.
 
 lightning_weather2$DC_half_04<- dc_0 + (0.25*lightning_weather2$Em_04)
 lightning_weather2$Qmr_04<- (3.937 * 0.83 * (lightning_weather2$PPT04 + lightning_weather2$PAS04/10))/(800 * exp(-dc_0/400))
@@ -251,5 +265,20 @@ forest.tenure.ras <-fasterize::fasterize(sf= forest.tenure, raster = ProvRast , 
 
 
 
+
+for (j in 5 : 10) {
+  
+  x[[paste0("Em0",j)]]<- days_month[j]*((0.36*x[[paste0("Tmax0",j)]])+Lf[j])
+  
+  #dc_0 <- 15 # initial drought code value. Took this value from https://pacificclimate.org/sites/default/files/publications/evaluation_of_the_monthly_drought_code.pdf, who use it in their study and assumed it reset to 15 at the start of every May.
+  dc_0<- if_else(j<6, 15, x[[paste0("MDC_0",j-1)]])
+  print(dc_0)
+  
+  x[[paste0("DC_half_0",j)]]<- dc_0 + (0.25 * x[[paste0("Em0",j)]])
+  x[[paste0("Qmr_0",j)]] <- (3.937 * 0.83 * (x[[paste0("PPT0",j)]] + x[[paste0("PAS0",j)]]/10))/(800 * exp(-dc_0/400))
+  x[[paste0("DC_mr_0",j)]]<- x[[paste0("DC_half_0",j)]] - 400 * log(1+x[[paste0("Qmr_0",j)]])
+  x[[paste0("MDC_m_0",j)]]<-x[[paste0("DC_mr_0",j)]] + (0.25 * x[[paste0("Em0",j)]])
+  x[[paste0("MDC_0",j)]] <- (dc_0 + x[[paste0("MDC_m_0",j)]])/2
+  
 
 
