@@ -143,7 +143,8 @@ setConstraints<- function(sim) {
                                                         END AS limits
                                                         FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
                                                             numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-        query_parms<-query_parms[!is.na(limits), ]
+        query_parms<-query_parms[!is.na(limits) | limits > 0, ]
+        
        switch(
           as.character(query_parms[1, "type"]),
             ge = {
@@ -198,8 +199,11 @@ setConstraints<- function(sim) {
                             SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
                             " ORDER BY thlb, zone_const DESC, eca DESC 
                             LIMIT :limits);") #limits = the area that needs preservation 
+                
+                #query_parms<-query_parms[, limits := as.integer (limits)]
+                
                 dbBegin(sim$clusdb)
-                rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "limits")])
+                rs<-dbSendQuery(sim$clusdb, sql, query_parms[!is.na (limits), c("zoneid", "limits")])
                 dbClearResult(rs)
                 dbCommit(sim$clusdb)
                 
@@ -228,11 +232,11 @@ setConstraints<- function(sim) {
                 dbClearResult(rs)
                 dbCommit(sim$clusdb)
               }
-            },
+            }, 
             warning(paste0("Undefined 'type' in zoneConstraints: ", query_parms[1, "type"]))
         )
       } 
-    }
+    } 
   }
   
   if(!(P(sim, "forestryCLUS", "adjacencyConstraint") == 9999)){
