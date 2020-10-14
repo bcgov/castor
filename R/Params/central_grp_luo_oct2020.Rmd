@@ -53,7 +53,7 @@ zone_luo <- data.table (zoneid = 1:8,
                         reference_zone = 'rast.central_grp_proposed_luo', 
                         percentage = 35, 
                         ndt = as.integer(0), 
-                        multi_condition = '')
+                        multi_condition = as.character(NA))
 
 # commit tables to pg
 conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
@@ -91,7 +91,7 @@ zone_luo_buffer <- data.table (zoneid = as.integer(1),
                                 reference_zone = 'rast.central_grp_proposed_luo_buffer', 
                                 percentage = 35, 
                                 ndt = as.integer(0), 
-                                multi_condition = '')
+                                multi_condition = as.character(NA))
 
 # commit tables to pg
 conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
@@ -132,7 +132,7 @@ zone_luo_matrix <- data.table (zoneid = as.integer(1),
                                 reference_zone = 'rast.central_grp_proposed_luo_matrix', 
                                 percentage = 35, 
                                 ndt = as.integer(0), 
-                                multi_condition = '')
+                                multi_condition = as.character(NA))
 
 # commit tables to pg
 conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
