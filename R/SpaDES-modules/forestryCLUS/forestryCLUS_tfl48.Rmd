@@ -160,16 +160,18 @@ parameters <- list(
                                                # 'rast.zone_cond_partnership_agreement'
                                                
                                                # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
+                                              # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                          # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_graham_crithab_or_herd"
                                                 
-                                               "rast.zone_cond_eccc_quintette_crithab_or_herd",
-                                               "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
-                                               "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                               "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
-                                               "rast.zone_cond_eccc_graham_crithab_or_herd"
+                                               # "rast.zone_cond_eccc_quintette_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_moberly_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_graham_crithab_or_herd",
+                                               
+                                               "rast.central_grp_proposed_luo_matrix"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -244,9 +246,10 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Central group partnership agreement areas; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl48_all_nh",
 #                        description = "No harvest in all critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-scenario = data.table (name = "tfl48_all_ch_he0d_m15d",
-                       description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-
+# scenario = data.table (name = "tfl48_all_ch_he0d_m15d",
+#                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
+scenario = data.table (name = "tfl48_luo_35p_25yo",
+                       description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL48",
                                          partition = ' vol > 150 ', 

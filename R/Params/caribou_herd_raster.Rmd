@@ -25,7 +25,7 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 #poly.caribou <- st_read ("C:\\Work\\caribou\\clus_data\\caribou\\caribou_herd\\bcdata_herds\\GCPB_CARIBOU_POPULATION_SP\\GCBP_CARIB_polygon.shp",  stringsAsFactors = FALSE)
 
 #Upto date version of the caribou boundaries?
-poly.caribou<-getSpatialQuery("SELECT * FROM bc_carib_poly_20090904") 
+poly.caribou<-getSpatialQuery("SELECT * FROM bc_caribou_herd_boundary_v20200507") 
 # ------- # NEEDS update to bc_caribou_herd_boundary_v20200507
 # plot (st_geometry (poly.caribou))
 ```
