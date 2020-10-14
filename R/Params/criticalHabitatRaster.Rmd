@@ -45,6 +45,9 @@ Caribou critical habitat boudnaries have been defined independently by the gover
 # BC critical habitat 
 #bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;") # old version
 bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # spatial critical habitat polygon data
+# ------- # NEEDS update to bc_critical_habitat_all_herds_20200615
+
+
 
 #all - create the raster for each herd and critical habitat type
 all.bc<-bc.crit

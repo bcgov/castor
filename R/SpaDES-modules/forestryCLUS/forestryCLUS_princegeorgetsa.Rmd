@@ -131,7 +131,8 @@ parameters <- list(
                                                "rast.zone_cond_cw",
                                                #'rast.zone_cond_partnership_agreement'
                                             #"rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
-                                            "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
+                                            # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
+                                            "rast.central_grp_proposed_luo_matrix"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -195,9 +196,10 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in all central group partnership agreement areas")
 # scenario = data.table (name = "pg_chil_nh_notweeds",
 #                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) habitat that overlap with the harvest unit (e.g., TSA or TFL).")
-scenario = data.table (name = "pg_chil_chil_notweeds_ch_hele0d_m15d",
-                       description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat.")
-
+# scenario = data.table (name = "pg_chil_chil_notweeds_ch_hele0d_m15d",
+#                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat.")
+scenario = data.table (name = "pg_luo_35p_25yo",
+                       description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA",
                                      partition = ' vol > 182 and age >= 75  ', 
@@ -209,7 +211,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA",
                               data.table(compartment ="Prince_George_TSA",
                                      partition = ' vol > 182 and age >= 75  ', 
                                      year = rep( seq (from = 2022, # run the 
-                                      ^                to = 2222, 
+                                                      to = 2222, 
                                                       by = 5),
                                                 1), 
                                      flow = 27800000)
