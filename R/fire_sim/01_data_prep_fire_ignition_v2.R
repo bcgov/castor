@@ -22,6 +22,7 @@ bc.tsa <-bc.tsa %>%
 bc.tsa <- st_transform (bc.tsa, 3005)
 tsa.points<- st_sample(bc.tsa, size=20000, type="regular")
 tsa.points.transformed <- st_transform(tsa.points, "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
+st_crs(tsa.points.transformed)
 tsa.points.transformed1<-as.data.frame(tsa.points.transformed)
 # Try find a way to split the data up into 3 colums and the remove the brackets. 
 tsa.points.transformed2<- tsa.points.transformed1 %>%
@@ -58,6 +59,7 @@ for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(file.list1[i])))
 }
 
+
 #I also manually extract the monthly climate data for each of the random locations within BC that I sampled for each year from climate BC (http://climatebc.ca/) and saved the files as .csv's. Here I import them again.
 
 file.list2<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output", pattern="sample_pts_Year", all.files=FALSE, full.names=FALSE)
@@ -92,7 +94,7 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    select(ID1, YEAR, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09)
+    select(ID1, YEAR,Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09)
   
   for (j in 5 : 9) {
     
@@ -123,6 +125,8 @@ mkFrameList <- function(nfiles) {
 
 n<-length(filenames)
 DC.ignitions<-mkFrameList(n) 
+DC.ignitions$ID1<- as.factor(DC.ignitions$ID1)
+DC.ignitions$pttype <- 1
 
 
 ### Random point data
@@ -130,7 +134,7 @@ filenames2<-list()
 for (i in 1: length(y2)){
   
   x<-eval(as.name(y2[i])) %>% 
-    select(ID1, YEAR, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09) %>%
+    select(ID1, YEAR, Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09) %>%
     filter(Tmax05 != -9999)
   
   for (j in 5 : 9) {
@@ -163,17 +167,40 @@ mkFrameList <- function(nfiles) {
 rm(n)
 n<-length(filenames2)
 DC.sample.pts<-mkFrameList(n)
+DC.sample.pts$ID1<- as.factor(DC.sample.pts$ID1)
+DC.sample.pts$pttype <- 0
 
 DC_ignitions_and_sample_pts<- rbind(DC.ignitions, DC.sample.pts)
 
-# upload reduced data set with locations and years to Postgres
+DC_sf = st_as_sf(DC_ignitions_and_sample_pts, coords = c("Longitude", "Latitude"))
+DC_sf1 <- st_set_crs (DC_sf, 4326)
+DC_sf2<- transform_bc_albers(DC_sf1)
+DC_sf_clipped<-DC_sf2[bc.tsa,]
+DC_sf_clipped %>% group_by(YEAR) %>% count (YEAR)
 
-# join the lat long location data to each of these samples and convert back to geometry for the vegetation query in postgres
+# check that it looks ok, it does.
+ggplot() +
+  geom_sf(data=bc.tsa, col='red') +
+  geom_sf(data=DC_sf2)
+  
 
-fire.locations<- DC_ignitions_and_sample_pts %>% 
-  select ("ID1", "YEAR")
+st_write(DC_sf_clipped, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\DC_data.shp", delete_layer=TRUE)
 
+# commit the shape file to postgres
+# this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
 
+# To Kyles Clus
+#host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+#user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+#dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+#password=keyring::key_get('dbpass', keyring = 'postgreSQL')
+
+# Run this in terminal
+#ogr2ogr -f PostgreSQL PG:"host= user= dbname= password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\fire_ignitions.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+# OR my local machine
+
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\DC_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##### NOW GET THE VEGETATION DATA!####
 
@@ -192,11 +219,12 @@ fire.locations<- DC_ignitions_and_sample_pts %>%
 
 #### Join ignition data to VRI data ####
 # Run following query in postgres. This is fast
-#CREATE TABLE Fire_veg_2016 AS
-#(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
-#  fire.fire_id, fire.fire_no, fire.fire_year, fire.fire_cause, fire.size_ha, veg_comp_lyr_r1_poly20# 16.geometry FROM veg_comp_lyr_r1_poly2016, (SELECT wkb_geometry, fire_id, fire_no, fire_year, fire_cause, size_ha  from bc_fire_ignition 
-#  where fire_type = 'Fire' and fire_year = '2016') as fire 
-#  where st_contains (veg_comp_lyr_r1_poly2016.geometry, fire.wkb_geometry));
+CREATE TABLE fire_veg_2006 AS
+(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
+  fire.id1, fire.pttype, fire.year, fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.pas05, fire.pas06, fire.pas07, fire.pas08, fire.pas09, fire.mdc_05, fire.mdc_06, fire.mdc_07,  fire.mdc_08, fire.mdc_09, 
+  veg_comp_lyr_r1_poly2006.shape FROM veg_comp_lyr_r1_poly2006, (SELECT wkb_geometry, id1, pttype, year, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, pas05, pas06, pas07, pas08, pas09, mdc_05, mdc_06, mdc_07,  mdc_08, mdc_09  
+      from dc_data where year = '2006') as fire 
+  where st_contains (veg_comp_lyr_r1_poly2006.shape, fire.wkb_geometry));
 
 
 # This also works but is super slow, dont run this one!
