@@ -68,7 +68,7 @@ areas<-merge(for.area, area.ice, by.x = c("herd_name", "critical_hab"), by.y =c(
 Caribou surveys have been completed for a number of southern-mountain caribou herds.Some of these surveys include expert opionon, minimum counts or total counts. Here we use model corrected survey estimates which correct for sightability. 
 
 ```{r, pop}
-if(FALSE){
+if(TRUE){
 caribou_pop<-read.csv("T:/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/caribou/population/herd_estimates_simple_20200106.csv")
 caribou_pop<-data.table(caribou_pop)
 caribou_pop<-caribou_pop[,year := as.integer(year)][,herd_name:= trimws(herd_name)]
@@ -123,7 +123,7 @@ wolf_actions<-data.table(getTableQuery("SELECT * FROM wolf_control;"))
 Determine the population surveys that are not confounded by predator management strategies.
 
 ```{r, final, echo=FALSE}
-if(FALSE){
+if(TRUE){
 data_new<-data.table(merge(caribou_pop, wolf_actions, by.x = c("herd_name", "year"), by.y =c("herd_name", "year"), all.x = TRUE))
 #Remove minimum counts and exper opinion estimates
 data_new<-data_new[!(estimate_type %in% c("Expert Opinion", "Survey Observation","Minimum count", "Minimum Count", "Unknown"))]
@@ -795,19 +795,19 @@ ggplotly(ggplot(model.data, aes(x=matrix.road50.per, y=pop_estimate, colour=herd
 
 #CUTBLOCKS + ROADS
 start.cr.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80r500.per, matrix.cut80r50.per, herd.size), start=list(a=5,b=0.1, c = 0.05, d= 1), data= model.data)
-expo.cr.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.cut80r500.per, matrix.cut80r50.per, herd.size), fixed =list(a~1,b~1, c~1, d~1), random= b~1|herd_name, correlation = corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+expo.cr.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.cut80r50.per, matrix.cut80r50.per, herd.size), fixed =list(a~1,b~1, c~1, d~1), random= b~1|herd_name, correlation = corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(expo.cr.0,type="normalized"), lag.max = 10) 
 summary(expo.cr.0)
 plot(expo.cr.0)
 plot(model.data$pop_estimate, predict(expo.cr.0))
 abline(0,1, col = 'red')
 
-newdat.cr<-expand.grid(herd_name = 'Barkerville', core.cut40r500.per=seq(from = min(model.data$core.cut40r500.per),
-                            to = max(model.data$core.cut40r500.per),
+newdat.cr<-expand.grid(herd_name = 'Barkerville', core.cut80r50.per=seq(from = min(model.data$core.cut80r50.per),
+                            to = max(model.data$core.cut80r50.per),
                             by = 0.1),
-                    matrix.cut40r500.per= mean(model.data$matrix.cut40r500.per),
+                    matrix.cut80r50.per= mean(model.data$matrix.cut80r50.per),
                     herd.size =1)
-ggplotly(ggplot(model.data, aes(x=core.cut40r500.per, y=pop_estimate, colour=herd_name)) +
+ggplotly(ggplot(model.data, aes(x=core.cut80r50.per, y=pop_estimate, colour=herd_name)) +
   geom_point(size=3) +
   geom_line(aes(y=predict(expo.r.0), group=herd_name)) +
   geom_line(data=newdat.cr, aes(y=predict(expo.cr.0, level=0, newdata=newdat.cr) ),size =1.5)) #AIC:866, PHI:0.84
@@ -826,7 +826,7 @@ gam.null<-gamlss(pop_estimate ~ 1 + re(random=~1|herd_name, method = "ML", corre
 summary(gam.null)
 acf(residuals(getSmo(gam.null),type="normalized"), lag.max = 10)
 
-gam.c<-gamlss(pop_estimate ~ core.cut80.per  + re(random=~1|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1 + herd.size , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.01, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.c<-gamlss(pop_estimate ~ core.cut80.per  +matrix.cut80.per+ re(random=~1|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1 + herd.size , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
 plot(gam.c)
 summary(gam.c)
 plot(model.data$pop_estimate, exp(predict(gam.c)))
@@ -834,7 +834,7 @@ abline(0,1,col='red')
 acf(residuals(getSmo(gam.c),type="normalized"), lag.max = 10) 
 
 
-gam.r<-gamlss(pop_estimate ~ core.road50.per+matrix.road50.per+re(random=~1|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.01, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.r<-gamlss(pop_estimate ~ core.road50.per+matrix.road50.per+re(random=~1|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.r)
 plot(gam.r)
 plot(model.data$pop_estimate, exp(predict(gam.r)), col = as.factor(model.data$herd_name))
@@ -847,7 +847,7 @@ hist(exp(predict(gam.r)),prob=TRUE,ylim=c(0,0.009))
 curve(dlnorm(x, mean=mean((predict(gam.r))), sd=sqrt(var((predict(gam.r))))), 
       col="darkblue", lwd=2, add=TRUE, yaxt="n")
 
-gam.cr500<-gamlss(pop_estimate ~core.cut80r50.per +re(random=~1|herd_name, method = "ML", correlation = corAR1(value = 0.8, form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1 +herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.01, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.cr500<-gamlss(pop_estimate ~core.cut80r50.per+matrix.cut80r50.per +re(random=~1|herd_name, method = "ML", correlation = corAR1(value = 0.8, form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1 +herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr500)
 plot(model.data$pop_estimate, exp(predict(gam.cr500)))
 abline(0,1)
