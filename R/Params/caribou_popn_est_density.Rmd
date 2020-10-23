@@ -20,12 +20,12 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 ```
 
 # Background
-In this analysis, we fit models of caribou density using measures of disturbance. Various disturbance measures are tested and compared to find applicability to caribou recovery efforts.
+In this analysis, we fit models of caribou abundance using measures of disturbance. Various disturbance measures are tested and compared to find applicability to caribou recovery efforts.
 
 ### Caribou Coritical Habitat
 Criticalhabitat has been defined. However this contains non-habitat areas such as glaciers and steep cliffs. This section nets these non-habitat areas needed to get at population density.
 
-Using VRI, non-habitat is conservative using glaciers and steep rock screes along with lakes and rivers. The area of the core minus this non-habitat area will be used as the denomminator of the population density estimate.
+Using VRI, non-habitat is conservative using glaciers and steep rock screes along with lakes and rivers. The area of the core minus this non-habitat area will be used.
 
 ```{r, core_matrix}
 
@@ -327,9 +327,9 @@ ggplotly(ggplot(data = data_new, aes(x=year, y = pop_estimate, color = herd_name
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('vmdbuser', keyring = 'postgreSQL') ,password= keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 
-disturb<-data.table(dbGetQuery(conn, paste0("SELECT * from dm_40yrs_500m.disturbance where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
-
-seral<-data.table(dbGetQuery(conn, paste0("SELECT * from dm_40yrs_500m.survival where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
+disturb<-data.table(dbGetQuery(conn, paste0("SELECT * from dm_all.disturbance where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
+disturb<-disturb[,road50:=as.numeric(road50)]
+#seral<-data.table(dbGetQuery(conn, paste0("SELECT * from dm_80yrs_500m.survival where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
 
 dbDisconnect(conn)
 
@@ -355,13 +355,14 @@ fire3[, burn40 := zoo::rollapplyr(area_burn, 40, FUN = sum, fill=0), by = c("her
 disturb<-disturb[,year:=as.integer(timeperiod+1980)]
 setnames(disturb, "scenario", "herd_name")
 
-seral<-seral[,year:=as.integer(timeperiod+1980)]
-setnames(seral, c("scenario", "herd_bounds"), c("herd_name","critical_hab"))
+#seral<-seral[,year:=as.integer(timeperiod+1980)]
+#setnames(seral, c("scenario", "herd_bounds"), c("herd_name","critical_hab"))
 
 #merge them together
-data.1<-merge(disturb, seral, by.x = c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab"))
+#data.1<-merge(disturb, seral, by.x = c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab"))
+#data.1[, early_seral:=prop_age*area]
 
-data.1[, early_seral:=prop_age*area]
+data.1<-disturb
 #rename critical_hab to either matrix or core
 data.1[critical_hab %like% "Matrix",critical_hab:= 'Matrix' ]
 data.1[critical_hab %like% "Core",critical_hab:= 'Core' ]
@@ -376,43 +377,121 @@ data.2<-merge(data.2, areas, by.x =c("herd_name", "critical_hab"), by.y = c("her
 ```{r, linkage}
 
 data.3<-merge(data.2, data_new, by.x = c("herd_name", "year"), by.y = c("herd_name", "year"), all.x=TRUE)
-data.3[, pop.den:= pop_estimate/((area-ice)*0.01)]
 
 #subset by habitat type
-data.core<-data.3[critical_hab== 'Core', c("herd_name", "year", "pop_estimate", "lambda", "year.0","pop.0","pop.den", "area", "lambda.ratio", "lambda.finite", "per.pop", "early_seral", "dist", "dist500", "pop_lag", "log.pop", "year_lag", "burn40", "survival_rate","lambda.dift","lambda.dif", "pop.change","lambda.dift.n0","lambda.dif.n0", "area_for")]
-setnames(data.core, c("early_seral", "dist", "dist500", "area", "pop_lag", "year_lag","burn40","survival_rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "area_for"), c("core.early.seral", "core.dist", "core.dist500", "core.area", "pop_lag", "year_lag","core.burn40","core.survival.rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "core.area.for"))
+data.core<-data.3[critical_hab== 'Core', c("herd_name", "year", "pop_estimate", "lambda", "year.0","pop.0", "lambda.ratio", "lambda.finite", "per.pop", "total_area", "pop_lag", "log.pop", "year_lag", "lambda.dift","lambda.dif", "pop.change","lambda.dift.n0","lambda.dif.n0", "area_for","burn40", "cut20", "cut40", "cut80", "road50", "road250", "road500", "road750", "c20r50", "c20r250", "c20r500", "c20r750","c40r50", "c40r250", "c40r500", "c40r750","c80r50", "c80r250", "c80r500", "c80r750")]
+setnames(data.core, c("total_area", "area_for", "burn40","cut20", "cut40", "cut80", "road50", "road250", "road500", "road750", "c20r50", "c20r250", "c20r500", "c20r750","c40r50", "c40r250", "c40r500", "c40r750","c80r50", "c80r250", "c80r500", "c80r750"), 
+         c("core.area", "core.area.for", "core.burn40","core.cut20", "core.cut40", "core.cut80", "core.road50", "core.road250", "core.road500", "core.road750", "core.c20r50", "core.c20r250", "core.c20r500", "core.c20r750","core.c40r50", "core.c40r250", "core.c40r500", "core.c40r750","core.c80r50", "core.c80r250", "core.c80r500", "core.c80r750"))
 
-data.matrix<-data.3[critical_hab == 'Matrix',c("herd_name", "year", "early_seral", "dist", "dist500", "area", "burn40", "survival_rate", "area_for")]
-setnames(data.matrix, c("early_seral", "dist", "dist500", "area", "burn40", "survival_rate","area_for"), c("matrix.early.seral", "matrix.dist", "matrix.dist500", "matrix.area", "matrix.burn40","matrix.survival.rate","matrix.area.for"))
+data.matrix<-data.3[critical_hab == 'Matrix',c("herd_name", "year","total_area","area_for","burn40", "cut20", "cut40", "cut80", "road50", "road250", "road500", "road750", "c20r50", "c20r250", "c20r500", "c20r750","c40r50", "c40r250", "c40r500", "c40r750","c80r50", "c80r250", "c80r500", "c80r750" )]
+setnames(data.matrix, c("total_area", "area_for", "burn40","cut20", "cut40", "cut80", "road50", "road250", "road500", "road750", "c20r50", "c20r250", "c20r500", "c20r750","c40r50", "c40r250", "c40r500", "c40r750","c80r50", "c80r250", "c80r500", "c80r750"), c("matrix.area","matrix.area.for", "matrix.burn40","matrix.cut20", "matrix.cut40", "matrix.cut80", "matrix.road50", "matrix.road250", "matrix.road500", "matrix.road750", "matrix.c20r50", "matrix.c20r250", "matrix.c20r500", "matrix.c20r750","matrix.c40r50", "matrix.c40r250", "matrix.c40r500", "matrix.c40r750","matrix.c80r50", "matrix.c80r250", "matrix.c80r500", "matrix.c80r750"))
 data.core<-data.core[,core.burn40.per:=core.burn40/core.area.for]
 data.matrix<-data.matrix[,matrix.burn40.per:=matrix.burn40/matrix.area.for]
 
 data.set<-merge(data.core, data.matrix, by.x = c("herd_name", "year"), by.y = c("herd_name", "year"))
 data.set[, time:=year-year.0]
+data.set[, pop.den:= pop_estimate/((core.area)*0.01)]
 
 #Calc diturbance indicators
-data.set[, core.dist.per:= (core.dist/core.area)*100]
-data.set[, core.dist500.per:= (core.dist500/core.area)*100]
-data.set[, core.early.seral.per:= (core.early.seral/core.area)*100]
-data.set[, core.roads.per:= ((core.dist-core.early.seral)/core.area)*100]
+data.set[, core.cut20.per:= (core.cut20/core.area.for)*100]
+data.set[, core.cut40.per:= (core.cut40/core.area.for)*100]
+data.set[, core.cut80.per:= (core.cut80/core.area.for)*100]
+data.set[, core.road50.per:= (core.road50/core.area.for)*100]
+data.set[, core.road250.per:= (core.road250/core.area.for)*100]
+data.set[, core.road500.per:= (core.road500/core.area.for)*100]
+data.set[, core.road750.per:= (core.road750/core.area.for)*100]
+data.set[, core.cut20r50.per:= (core.c20r50/core.area.for)*100]
+data.set[, core.cut20r250.per:= (core.c20r250/core.area.for)*100]
+data.set[, core.cut20r500.per:= (core.c20r500/core.area.for)*100]
+data.set[, core.cut20r750.per:= (core.c20r750/core.area.for)*100]
+data.set[, core.cut40r50.per:= (core.c40r50/core.area.for)*100]
+data.set[, core.cut40r250.per:= (core.c40r250/core.area.for)*100]
+data.set[, core.cut40r500.per:= (core.c40r500/core.area.for)*100]
+data.set[, core.cut40r750.per:= (core.c40r750/core.area.for)*100]
+data.set[, core.cut80r50.per:= (core.c80r50/core.area.for)*100]
+data.set[, core.cut80r250.per:= (core.c80r250/core.area.for)*100]
+data.set[, core.cut80r500.per:= (core.c80r500/core.area.for)*100]
+data.set[, core.cut80r750.per:= (core.c80r750/core.area.for)*100]
+data.set[, core.af.cut20:= core.area.for-core.cut20]
+data.set[, core.af.cut20.per:= (core.af.cut20/core.area.for)*100]
+data.set[, core.af.cut40:= core.area.for-core.cut40]
+data.set[, core.af.cut40.per:= (core.af.cut40/core.area.for)*100]
+data.set[, core.af.cut80:= core.area.for-core.cut80]
+data.set[, core.af.cut80.per:= (core.af.cut80/core.area.for)*100]
+data.set[, core.af.road50:= core.area.for-core.road50]
+data.set[, core.af.road50.per:= (core.af.road50/core.area.for)*100]
+data.set[, core.af.road500:= core.area.for-core.road500]
+data.set[, core.af.road500.per:= (core.af.road500/core.area.for)*100]
+data.set[, core.af.road750:= core.area.for-core.road750]
+data.set[, core.af.road750.per:= (core.af.road750/core.area.for)*100]
+data.set[, core.af.cut20r50:= core.area.for-core.c20r50]
+data.set[, core.af.cut20r50.per:= (core.af.cut20r50/core.area.for)*100]
+data.set[, core.af.cut20r500:= core.area.for-core.c20r500]
+data.set[, core.af.cut20r500.per:= (core.af.cut20r500/core.area.for)*100]
+data.set[, core.af.cut40r50:= core.area.for-core.c40r50]
+data.set[, core.af.cut40r50.per:= (core.af.cut40r50/core.area.for)*100]
+data.set[, core.af.cut40r500:= core.area.for-core.c40r500]
+data.set[, core.af.cut40r500.per:= (core.af.cut40r500/core.area.for)*100]
 
-data.set[, matrix.dist.per:= (matrix.dist/matrix.area)*100]
-data.set[, matrix.dist500.per:= (matrix.dist500/matrix.area)*100]
-data.set[, matrix.early.seral.per:= (matrix.early.seral/matrix.area)*100]
-data.set[, matrix.roads.per:= ((matrix.dist-matrix.early.seral)/matrix.area)*100]
+#MAtrix
+data.set[, matrix.cut20.per:= (matrix.cut20/matrix.area.for)*100]
+data.set[, matrix.cut40.per:= (matrix.cut40/matrix.area.for)*100]
+data.set[, matrix.cut80.per:= (matrix.cut80/matrix.area.for)*100]
+data.set[, matrix.road50.per:= (matrix.road50/matrix.area.for)*100]
+data.set[, matrix.road250.per:= (matrix.road250/matrix.area.for)*100]
+data.set[, matrix.road500.per:= (matrix.road500/matrix.area.for)*100]
+data.set[, matrix.road750.per:= (matrix.road750/matrix.area.for)*100]
+data.set[, matrix.cut20r50.per:= (matrix.c20r50/matrix.area.for)*100]
+data.set[, matrix.cut20r250.per:= (matrix.c20r250/matrix.area.for)*100]
+data.set[, matrix.cut20r500.per:= (matrix.c20r500/matrix.area.for)*100]
+data.set[, matrix.cut20r750.per:= (matrix.c20r750/matrix.area.for)*100]
+data.set[, matrix.cut40r50.per:= (matrix.c40r50/matrix.area.for)*100]
+data.set[, matrix.cut40r250.per:= (matrix.c40r250/matrix.area.for)*100]
+data.set[, matrix.cut40r500.per:= (matrix.c40r500/matrix.area.for)*100]
+data.set[, matrix.cut40r750.per:= (matrix.c40r750/matrix.area.for)*100]
+data.set[, matrix.cut80r50.per:= (matrix.c80r50/matrix.area.for)*100]
+data.set[, matrix.cut80r250.per:= (matrix.c80r250/matrix.area.for)*100]
+data.set[, matrix.cut80r500.per:= (matrix.c80r500/matrix.area.for)*100]
+data.set[, matrix.cut80r750.per:= (matrix.c80r750/matrix.area.for)*100]
 
-data.set[, total.early.seral.per:= ((core.early.seral+matrix.early.seral)/(core.area.for + matrix.area.for))*100]
-data.set[, total.dist.per:= ((core.dist+matrix.dist)/(core.area.for + matrix.area.for))*100]
-data.set[, total.dist500.per:= ((core.dist500+matrix.dist500)/(core.area.for + matrix.area.for))*100]
-data.set[, total.roads.per:= (((core.dist-core.early.seral) + (matrix.dist-matrix.early.seral))/(core.area.for + matrix.area.for))*100]
+data.set[, matrix.af.cut20:= matrix.area.for-matrix.cut20]
+data.set[, matrix.af.cut20.per:= (matrix.af.cut20/matrix.area.for)*100]
+data.set[, matrix.af.cut40:= matrix.area.for-matrix.cut40]
+data.set[, matrix.af.cut40.per:= (matrix.af.cut40/matrix.area.for)*100]
+data.set[, matrix.af.cut80:= matrix.area.for-matrix.cut80]
+data.set[, matrix.af.cut80.per:= (matrix.af.cut80/matrix.area.for)*100]
+data.set[, matrix.af.road50:= matrix.area.for-matrix.road50]
+data.set[, matrix.af.road50.per:= (matrix.af.road50/matrix.area.for)*100]
+data.set[, matrix.af.road500:= matrix.area.for-matrix.road500]
+data.set[, matrix.af.road500.per:= (matrix.af.road500/matrix.area.for)*100]
+data.set[, matrix.af.road750:= matrix.area.for-matrix.road750]
+data.set[, matrix.af.road750.per:= (matrix.af.road750/matrix.area.for)*100]
+data.set[, matrix.af.cut20r50:= matrix.area.for-matrix.c20r50]
+data.set[, matrix.af.cut20r50.per:= (matrix.af.cut20r50/matrix.area.for)*100]
+data.set[, matrix.af.cut40r50:= matrix.area.for-matrix.c40r50]
+data.set[, matrix.af.cut40r50.per:= (matrix.af.cut40r50/matrix.area.for)*100]
+data.set[, matrix.af.cut40r500:= matrix.area.for-matrix.c40r500]
+data.set[, matrix.af.cut40r500.per:= (matrix.af.cut40r50/matrix.area.for)*100]
+data.set[, matrix.af.cut40r500:= matrix.area.for-matrix.c40r500]
+data.set[, matrix.af.cut40r500.per:= (matrix.af.cut40r500/matrix.area.for)*100]
 
-data.set[, ratio.early.seral.per:= (core.early.seral/matrix.early.seral)]
-data.set[, ratio.dist.per:= (core.dist/matrix.dist)]
-data.set[, ratio.dist500.per:= (core.dist500/matrix.dist500)]
+##TOTAL
+data.set[, total.cut20.per:= (matrix.cut20 + core.cut20)/(matrix.area.for+core.area.for)*100]
+data.set[, total.cut40.per:= (matrix.cut40 + core.cut40)/(matrix.area.for+core.area.for)*100]
+data.set[, total.cut80.per:= (matrix.cut80 + core.cut80)/(matrix.area.for+core.area.for)*100]
+
+data.set[, total.road50.per:= (matrix.road50 + core.road50)/(matrix.area.for+core.area.for)*100]
+data.set[, total.road250.per:= (matrix.road250 + core.road250)/(matrix.area.for+core.area.for)*100]
+data.set[, total.road500.per:= (matrix.road500 + core.road500)/(matrix.area.for+core.area.for)*100]
+data.set[, total.road750.per:= (matrix.road750 + core.road750)/(matrix.area.for+core.area.for)*100]
+
+data.set[, total.cut40r50.per:= (matrix.c40r50 + core.c40r50)/(matrix.area+core.area)*100]
+data.set[, total.cut40r500.per:= (matrix.c40r500 + core.c40r500)/(matrix.area+core.area)*100]
 
 
 #RATES
 ##Core
+if(FALSE){
 data.set[, core.early.seral.lag:= lapply(.SD, function(x) c(NA,x[-.N])), by = herd_name, .SDcols = "core.early.seral"]
 data.set[, core.dist.lag:= lapply(.SD, function(x) c(NA,x[-.N])), by = herd_name, .SDcols = "core.dist"]
 data.set[, core.dist500.lag:= lapply(.SD, function(x) c(NA,x[-.N])), by = herd_name, .SDcols = "core.dist500"]
@@ -432,115 +511,113 @@ data.set[, core.dist500.rate:= ((core.dist500-core.dist500.lag)/core.area.for)*1
 data.set[, matrix.early.seral.rate:=( (matrix.early.seral-matrix.early.seral.lag)/matrix.area.for)*100]
 data.set[, matrix.dist.rate:= ((matrix.dist-matrix.dist.lag)/matrix.area.for)*100]
 data.set[, matrix.dist500.rate:=( (matrix.dist500-matrix.dist500.lag)/matrix.area.for)*100]
+}
 
 #Final
 data.set<-data.set[!is.na(pop.den),]
 data.set<-data.set[!herd_name == 'Purcell_Central',]
 
-table1<- data.set[year == year.0, c("herd_name", "core.burn40.per", "core.early.seral","core.dist","core.dist500","matrix.burn40.per", "matrix.early.seral","matrix.dist","matrix.dist500")]
+#table1<- data.set[year == year.0, c("herd_name", 'core.cut40r500')]
 ```
 
 # Figure of disturbance profile
 ```{r, dist_graph}
-one0<-data.set[, c("herd_name", "year","core.early.seral.per")]
-setnames(one0, "core.early.seral.per" , "value")
+one0<-data.set[, c("herd_name", "year","core.cut40.per")]
+setnames(one0, "core.cut40.per" , "value")
 one0[, dm:='C']
-one0[, type:='PHab']
-one1<-data.set[, c("herd_name", "year","core.dist.per")]
-setnames(one1, "core.dist.per" , "value")
-one1[, dm:='CR']
-one1[, type:='PHab']
-one2<-data.set[, c("herd_name", "year","core.dist500.per")]
-setnames(one2, "core.dist500.per" , "value")
-one2[, dm:='CR500']
-one2[, type:='PHab']
-one3<-data.set[, c("herd_name", "year","core.roads.per")]
-setnames(one3, "core.roads.per" , "value")
+
+one3<-data.set[, c("herd_name", "year","core.road50.per")]
+setnames(one3, "core.road50.per" , "value")
 one3[, dm:='R']
-one3[, type:='PHab']
 
-t0<-data.set[, c("herd_name", "year","matrix.early.seral.per")]
-setnames(t0, "matrix.early.seral.per" , "value")
-t0[, dm:='C']
-t0[, type:='PHab']
-t1<-data.set[, c("herd_name", "year","matrix.dist.per")]
-setnames(t1, "matrix.dist.per" , "value")
-t1[, dm:='CR']
-t1[, type:='PHab']
-t2<-data.set[, c("herd_name", "year","matrix.dist500.per")]
-setnames(t2, "matrix.dist500.per" , "value")
-t2[, dm:='CR500']
-t2[, type:='PHab']
-t3<-data.set[, c("herd_name", "year","matrix.roads.per")]
-setnames(t3, "matrix.roads.per" , "value")
-t3[, dm:='R']
-t3[, type:='PHab']
 
-core.graph.dist<-rbind(one0,one1,one2,one3)
+one2<-data.set[, c("herd_name", "year","core.cut40r500.per")]
+setnames(one2, "core.cut40r500.per" , "value")
+one2[, dm:='CR500']
+
+core.graph.dist<-rbind(one0,one2,one3)
 core.graph.dist[, hab:='Core']
-matrix.graph.dist<-rbind(t0,t1,t2,t3)
+
+t0<-data.set[, c("herd_name", "year","matrix.cut40.per")]
+setnames(t0, "matrix.cut40.per" , "value")
+t0[, dm:='C']
+
+t3<-data.set[, c("herd_name", "year","matrix.road50.per")]
+setnames(t3, "matrix.road50.per" , "value")
+t3[, dm:='R']
+
+t2<-data.set[, c("herd_name", "year","matrix.cut40r500.per")]
+setnames(t2, "matrix.cut40r500.per" , "value")
+t2[, dm:='CR500']
+
+matrix.graph.dist<-rbind(t0,t2,t3)
 matrix.graph.dist[,hab:='Matrix']
 
 
 graph.dist<-rbind(core.graph.dist,matrix.graph.dist)
 graph.dist<-graph.dist[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
-  
-out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value) ) +
-  facet_grid(hab ~dm , scales='free') +
+
+graph.dist$dm<- factor(graph.dist$dm, levels = c('R','C','CR500'))
+
+out.graph.dist<- ggplot(data = graph.dist, aes(x = year, y =value,color = herd_name) ) +
+  facet_wrap(hab~dm , scales="free_y") +
   labs(y = "Disturbance Measure (%)", x = "Year")+
-  geom_point(aes(color = herd_name)) +
-  geom_smooth(se=FALSE, color = 'black') +
+  geom_point() +
+  stat_smooth(method = "loess", formula = y ~ x, se = FALSE)+
+  #geom_smooth(method = 'lm', se=FALSE) +
   #stat_summary(fun.data=mean_cl_boot, geom="ribbon", alpha=0.25)+
   guides(color=guide_legend(title = "Herd")) +
   theme_bw() 
 
 out.graph.dist
 ```
-## Plot between total disturbance and population
-```{r, total_dist_plots}
-total.p0<-ggplot(data = data.set, aes(x =total.roads.per, y =pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
+## Population threshold
+```{r, threshold_pop}
+library(minpack.lm)
+logistic.model <- function( a, b, c, x) {
+  f <-a/(1+exp(b*(x-log(c))))
+  return(f)
+}
+data.set[,log.core.area := log(core.area)]
+pop.size <- nlsLM(pop_estimate~ logistic.model( a, b, c, log.core.area), start=list( a=201, b=-9, c=224000), data= data.set, control=c(maxiter =500))
+summary(pop.size)
+data.set[,herd.size:=0]
+data.set[core.area >= coef(pop.size)[3],herd.size:=1]
 
-total.p1<-ggplot(data = data.set, aes(x =total.early.seral.per, y = pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
+ggplot(data = data.set, aes(x = log.core.area, y = pop_estimate)) + 
+  geom_point(color='blue') +
+  geom_line(color='red',data = data.table(pred=predict(pop.size), core.area = data.set$log.core.area), aes(y=pred, x= core.area))+
+              geom_vline(xintercept = log(coef(pop.size)[3]))
 
-total.p2<-ggplot(data = data.set, aes(x =total.dist.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
 
-total.p3<-ggplot(data = data.set, aes(x =total.dist500.per, y =pop.den, color = herd_name  )) + geom_line()  + theme(legend.position = "none")
 
-ggplotly(total.p0)
-ggplotly(total.p1)
-ggplotly(total.p2)
-ggplotly(total.p3)
 ```
+
 ## Plot between core disturbance and ratio between population estimates
 ```{r, pop_graph_core}
-core.p0<-ggplot(data = data.set, aes(x =core.roads.per, y =pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
+core.p0<-ggplot(data = data.set, aes(x =core.cut80.per, y =pop_estimate, color = herd_name )) +  geom_point() + geom_smooth(method = 'lm',se= FALSE) + theme(legend.position = "none")
 
-core.p1<-ggplot(data = data.set, aes(x =core.early.seral.per, y = pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
+core.p1<-ggplot(data = data.set, aes(x =core.road50.per, y =pop_estimate, color = herd_name ,  linetype = as.factor(herd.size))) +  geom_point() + geom_smooth(method = 'lm',se= FALSE) + theme(legend.position = "none")
 
-core.p2<-ggplot(data = data.set, aes(x =core.dist.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
-
-core.p3<-ggplot(data = data.set, aes(x =core.dist500.per, y =pop.den, color = herd_name  )) + geom_line()  + theme(legend.position = "none")
+core.p2<-ggplot(data = data.set, aes(x =core.cut40r500.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
 ggplotly(core.p0)
 ggplotly(core.p1)
 ggplotly(core.p2)
-ggplotly(core.p3)
+
 ```
 
 ## Plot between matrix disturbance and ratio between population estimates
 ```{r, pop_graph_core}
-matrix.p0<-ggplot(data = data.set, aes(x =matrix.roads.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
+matrix.p0<-ggplot(data = data.set, aes(x =matrix.road50.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
-matrix.p1<-ggplot(data = data.set, aes(x =matrix.early.seral.per, y =pop.den, color = herd_name )) +  geom_line() + theme(legend.position = "none")
+matrix.p1<-ggplot(data = data.set, aes(x =matrix.cut80.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
-matrix.p2<-ggplot(data = data.set, aes(x =matrix.dist.per, y =pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
-
-matrix.p3<-ggplot(data = data.set, aes(x =matrix.dist500.per, y = pop.den, color = herd_name  )) + geom_line() + theme(legend.position = "none")
+matrix.p2<-ggplot(data = data.set, aes(x =matrix.cut40r500.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
 ggplotly(matrix.p0)
 ggplotly(matrix.p1)
 ggplotly(matrix.p2)
-ggplotly(matrix.p3)
 ```
 .(count = .N, var = sum(VAR))
 # Table of disturbance and population
@@ -554,36 +631,28 @@ I start with a normal distribution- since the change in population is likely sym
 ```{r, assump}
 library(gamlss)
 data.set[, log.pop.den:=log(pop.den)]
-histDist(pop.den,family="NO", data=data.set, nbins = 12)
-histDist(pop.den,family="LOGNO", data=data.set, nbins = 12)
-histDist(pop.den,family="BE", data=data.set, nbins = 12)
-histDist(pop.den,family="GA", data=data.set, nbins = 12)
-histDist(pop.den,family="EXP", data=data.set, nbins = 12)
+histDist(pop_estimate,family="NO", data=data.set, nbins = 12)
+histDist(pop_estimate,family="LOGNO", data=data.set, nbins = 12)
+#histDist(pop_estimate,family="BE", data=data.set, nbins = 12)
+histDist(pop_estimate,family="GA", data=data.set, nbins = 12)
+histDist(pop_estimate,family="NBI", data=data.set, nbins = 12)
+histDist(pop_estimate,family="PO", data=data.set, nbins = 12)
+histDist(pop_estimate,family="LNO", data=data.set, nbins = 12)
 ```
 #CORRELATION BETWEEN X
 ```{r, cor_x}
 library(usdm)
-test<-data.set[,c("core.early.seral.per","matrix.early.seral.per")]
-vif(test)
-cor(data.set[,"matrix.early.seral.per"],data.set[,"core.early.seral.per"])
-test<-data.set[,c("core.dist.per","matrix.dist.per")]
-vif(test)
-test<-data.set[,c("core.dist500.per","matrix.dist500.per")]
-vif(test)
-cor(data.set[,"matrix.dist500.per"],data.set[,"core.dist500.per"])
-
-
-cor(data.set[,"matrix.roads.per"],data.set[,"core.roads.per"])
-cor(data.set[,"core.dist500.per"],data.set[,"core.roads.per"])
-
-cor(data.set[,"core.dist500.per"],data.set[,"log.pop.den"])
-cor(data.set[,"core.dist.per"],data.set[,"log.pop.den"])
-cor(data.set[,"core.early.seral.per"],data.set[,"log.pop.den"])
-cor(data.set[,"core.roads.per"],data.set[,"log.pop.den"])
-cor(data.set[,"matrix.dist500.per"],data.set[,"log.pop.den"])
-cor(data.set[,"matrix.dist.per"],data.set[,"log.pop.den"])
-cor(data.set[,"matrix.early.seral.per"],data.set[,"log.pop.den"])
-cor(data.set[,"matrix.roads.per"],data.set[,"log.pop.den"])
+vif(data.set[,c("core.cut40.per","matrix.cut40.per")])
+vif(data.set[,c("core.cut40r50.per","matrix.cut40r50.per")])
+vif(data.set[,c("core.cut40r500.per","matrix.cut40r500.per")])
+vif(data.set[,c("core.road50.per","matrix.road50.per")])
+cor(data.set[,"matrix.cut40.per"],data.set[,"core.cut40.per"])
+cor(data.set[,"matrix.road50.per"],data.set[,"core.road50.per"])
+cor(data.set[,"core.cut40r500.per"],data.set[,"matrix.cut40r500.per"])
+cor(data.set[,"matrix.road50.per"],data.set[,"core.cut40.per"])
+cor(data.set[,"matrix.cut40.per"],data.set[,"core.road50.per"])
+cor(data.set[,"core.cut40.per"],data.set[,"core.road50.per"])
+cor(data.set[,"matrix.cut40.per"],data.set[,"matrix.road50.per"])
 ```
 
 
@@ -594,7 +663,7 @@ Here the data set is cleaned up to only include those variables that are importa
 library(gamlss)
 library(nlme)
 
-model.data<-data.set[,c("herd_name","pop_estimate", "pop.den",  "time", "year","core.roads.per", "core.early.seral.per", "core.dist.per", "core.dist500.per","matrix.roads.per", "matrix.early.seral.per", "matrix.dist.per", "matrix.dist500.per")]
+model.data<-data.set[,c("herd_name","herd.size","core.area", "pop_estimate", "pop.den",  "time", "year","core.road50.per","core.road500.per","core.road250.per","core.road750.per","core.cut40.per", "core.cut20.per", "core.cut80.per", "core.cut40r50.per", "core.cut40r500.per","core.cut80r500.per","core.cut80r50.per","core.cut20r500.per","core.af.cut40.per","core.af.cut20r500.per", "matrix.road50.per","matrix.road250.per", "matrix.road500.per","matrix.road750.per","matrix.cut40.per","matrix.cut80.per","matrix.cut20.per", "matrix.cut40r50.per", "matrix.cut40r500.per","matrix.cut80r500.per","matrix.cut80r50.per","matrix.cut20r500.per")]
 con1 <- gamlss::gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000)
 #xys2<-herd.bounds[,c("herd_name2", "X", "Y")]
 #xys2$shape<-NULL
@@ -607,208 +676,224 @@ model.data[,group:=1]
 
 ```
 
-# SUMMARY OF DISTURBANCE
-```{r,sum_dist}
-summary(model.data)
-```
-#Linear Models
 
+#Linear Models
 ```{r, reduced_model}
-m0.a <- lme(pop.den ~ 1 , random=~ 1|group, data = model.data, method = 'ML', control = con1)
-summary(m0.a) #AIC:-410
-plot(m0.a)
+m0.a.reml <- lme(pop_estimate ~ 1 , random=~ 1|group, data = model.data, method = 'REML', control = con1)
+summary(m0.a.reml) #AIC:1106
+plot(m0.a.reml)
 
 #Try adding a random effect for herd. 
-m0.b.reml <- lme(pop.den ~ 1 , random=~ 1|herd_name, data = model.data, method = 'REML', control = con1)
-m0.b <- lme(pop.den  ~ 1 , random=~ 1|herd_name, data = model.data, method = 'ML', control = con1)
+m0.b.reml <- lme(pop_estimate ~ 1 , random=~ 1|herd_name, data = model.data, method = 'REML', control = con1)
+summary(m0.b.reml) #974
+
+anova(m0.a.reml,m0.b.reml)
+
+m0.b <- lme(pop_estimate ~ 1 , random=~ 1|herd_name,  correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = con1)
 pacf(residuals(m0.b,type="normalized"))
-summary(m0.b)#AIC:183, logl:-88.7
-plot(m0.b)# variances are different by herd
-anova(m0.a,m0.b)
+summary(m0.b)#AIC:881
+
+m0.b.reml <- lme(pop_estimate ~ 1 , random=~ 1|herd_name,  correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'REML', control = con1)
+
+m0.c <- lme(pop_estimate ~ 1 , random=~ 1|herd_name, correlation = corARMA(p=2,q=0, form = ∼time|herd_name), data = model.data, method = 'REML', control = con1)
+acf(residuals(m0.c,type="normalized"))
+summary(m0.c)#AIC:891
+anova(m0.c, m0.b.reml)
 
 
-anova(m0.b.reml,m0.d)
-c.0 <- lme(pop.den ~ core.early.seral.per*matrix.early.seral.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
-acf(residuals(c.0,type="normalized"), lag.max = 10)
-summary(c.0)
-plot(model.data$pop.den, resid(c.0))
+c.0 <- lme(pop_estimate ~ core.cut40.per+matrix.cut40.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(c.0,type="normalized"), lag.max = 5)
+summary(c.0) #AIC:879, Phi:0.889
+plot(model.data$pop_estimate, resid(c.0))
 abline(0,0)
+plot(predict(c.0),model.data$pop_estimate)
+abline(0,1, col = 'red')
 
-r.0 <- lme(pop.den ~ core.roads.per*matrix.roads.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
-acf(residuals(r.0,type="normalized"), lag.max = 10)
+r.0 <- lme(pop_estimate ~ core.road50.per+matrix.road50.per, random=~ 1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(r.0,type="normalized"), lag.max = 5)
 summary(r.0)
-plot(model.data$pop.den, resid(r.0))
-abline(0,0)
+plot(r.0)
+plot(model.data$pop_estimate, resid(r.0))
+abline(0,0) #AIC:874, PHI:0.88
+plot(predict(r.0),model.data$pop_estimate)
+abline(0,1, col = 'red')
 
-cr.0 <- lme(pop.den ~ core.dist.per*matrix.dist.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
-acf(residuals(cr.0,type="normalized"), lag.max = 10)
-summary(cr.0)
-plot(model.data$pop.den, resid(cr.0))
-abline(0,0)
-
-
-cr500.0 <- lme(pop.den ~ core.dist500.per, random=~1|herd_name, data = model.data, method = 'ML', control = c(maxIter = 10000))
-acf(residuals(cr500.0,type="normalized"), lag.max = 10)
+cr500.0 <- lme(pop_estimate ~ core.cut40r500.per+matrix.cut40r500.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
+acf(residuals(cr500.0,type="normalized"), lag.max = 5)
 summary(cr500.0)
-plot(model.data$pop.den, resid(cr500.0))
-abline(0,0)
+plot(model.data$pop_estimate, resid(cr500.0))
+abline(0,0)#AIC 875, PHI:0.874
+plot(predict(cr500.0),model.data$pop_estimate)
+abline(0,1, col = 'red')
 
-aic.values<-AIC(m0.b,cr500.0,cr.0,r.0 ,c.0 )
-aic.values$delta<-round(qpcR::akaike.weights(aic.values$AIC)$deltaAIC, 3)
-aic.values$weights<-round(qpcR::akaike.weights(aic.values$AIC)$weights, 3)
-aic.values
+lin.aic.values<-AIC(m0.b,cr500.0,r.0 ,c.0)
+lin.aic.values$delta<-round(qpcR::akaike.weights(lin.aic.values$AIC)$deltaAIC, 3)
+lin.aic.values$weights<-round(qpcR::akaike.weights(lin.aic.values$AIC)$weights, 3)
+lin.aic.values
 
 ```
 
 #Exponential models
 ```{r, nonliner}
 #Models. Exponential type I: ln(Y) = b0 + b1 X
-expo.model <- function(a, b, c, x, y) {
-  f <- a*exp(x*b + y*c)
+expo.model <- function(a, b, c,d,x, y,z) {
+  f <- exp(a + d*z + x*b + y*c)
   return(f)
 }
 
 #CUTBLOCKS
-start.c.0 <- nls(pop.den ~ expo.model(a,b,c, core.early.seral.per, matrix.early.seral.per), start=list(a=0.01,b=0.1, c = 0.05), data= model.data)
-expo.c.0 <- nlme(pop.den ~ expo.model(a,b,c, core.early.seral.per, matrix.early.seral.per), fixed =list(a~1,b~1, c~1), random= b~1|herd_name, start =list(fixed=coef(start.c.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+start.c.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80.per, matrix.cut80.per, herd.size), start=list(a=5,c=0.1, b=0.1,d=0.5), data= model.data)
+
+expo.c.0 <- nlme(pop_estimate  ~ expo.model(a,b,c,d, core.cut80.per,matrix.cut80.per,  herd.size), fixed =list(a~1,b~1,c~1,d~1), random= b~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), start =list(fixed=coef(start.c.0)), data = model.data, method = 'ML', control = c(maxIter = 100000))
 acf(residuals(expo.c.0,type="normalized"), lag.max = 10) 
-summary(expo.c.0)
+pacf(residuals(expo.c.0,type="normalized"), lag.max = 10) 
+summary(expo.c.0) #AIC:877 PHI:0.884
 plot(expo.c.0)
-abline(0,0, col = 'red')
-plot(model.data$pop.den, predict(expo.c.0))
+plot(predict(expo.c.0),model.data$pop_estimate)
 abline(0,1, col = 'red')
+cor(model.data$pop_estimate, predict(expo.c.0, level=1))
+newdat<-expand.grid(herd_name = 'Barkerville', core.cut80.per=seq(from = min(model.data$core.cut80.per),
+                            to = max(model.data$core.cut80.per),
+                            by = 0.1),
+                    matrix.cut80.per= mean(model.data$matrix.cut80.per),
+                    herd.size = 0)
+ggplotly(ggplot(model.data, aes(x=core.cut80.per, y=pop_estimate, colour=herd_name)) +
+  geom_point(size=3) +
+  geom_line(aes(y=predict(expo.c.0), group=herd_name)) +
+  geom_line(data=newdat, aes(y=predict(expo.c.0, level=0, newdata=newdat) ),size =1.5)) 
 
 #ROADS
-start.r.0 <- nls(pop.den ~ expo.model(a,b,c, core.roads.per,matrix.roads.per), start=list(a=0.01,b=0.1,c=0.01), data= model.data)
-expo.r.0 <- nlme(pop.den ~ expo.model(a,b,c,core.roads.per,matrix.roads.per), fixed =list(a~1,b~1,c~1), random= b~1|herd_name, start =list(fixed=coef(start.r.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+start.r.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.road50.per,matrix.road50.per,herd.size), start=list(a=5,b=0.1,c=0.01,d=1), data= model.data)
+expo.r.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.road50.per,matrix.road50.per, herd.size), fixed =list(a~1,b~1,c~1, d~1), random=b~1|herd_name, correlation=corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.r.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(expo.r.0,type="normalized"), lag.max = 10)
 pacf(residuals(expo.r.0,type="normalized"), lag.max = 10) 
+hist(predict(expo.r.0),prob=TRUE)
+curve(dnorm(x, mean=mean(predict(expo.r.0)), sd=sqrt(var(predict(expo.r.0)))), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
 summary(expo.r.0)
 plot(expo.r.0)
-abline(0,0, col = 'red')
-plot(model.data$pop.den, predict(expo.r.0))
+plot(model.data$pop_estimate, predict(expo.r.0))
 abline(0,1, col = 'red')
-cor(model.data$pop.den, predict(expo.r.0, level=0))
+cor(model.data$pop_estimate, predict(expo.r.0, level=0))
 
-newdat<-expand.grid(herd_name = 'Barkerville', core.roads.per=seq(from = min(model.data$core.roads.per),
-                            to = max(model.data$core.roads.per),
+newdat<-expand.grid(herd_name = 'Barkerville', matrix.road50.per=seq(from = min(model.data$matrix.road50.per),
+                            to = max(model.data$matrix.road50.per),
                             by = 0.1),
-                    matrix.roads.per= mean(model.data$matrix.roads.per))
-ggplot(model.data, aes(x=core.roads.per, y=pop.den, colour=herd_name)) +
+                    core.road50.per= mean(model.data$core.road50.per),
+                    herd.size =0)
+newdat2<-expand.grid(herd_name = 'Barkerville', matrix.road50.per=seq(from = min(model.data$matrix.road50.per),
+                            to = max(model.data$matrix.road50.per),
+                            by = 0.1),
+                    core.road50.per= mean(model.data$core.road50.per),
+                    herd.size =1)
+ggplotly(ggplot(model.data, aes(x=matrix.road50.per, y=pop_estimate, colour=herd_name)) +
   geom_point(size=3) +
   geom_line(aes(y=predict(expo.r.0), group=herd_name)) +
-  geom_line(data=newdat, aes(y=predict(expo.r.0, level=0, newdata=newdat) ),size =1.5)
+  geom_line(data=newdat, aes(y=predict(expo.r.0, level=0, newdata=newdat) ),size =1.5)+
+   geom_line(data=newdat2, aes(y=predict(expo.r.0, level=0, newdata=newdat2) ),size =1.5) ) #AIC:859, PHI:0.77
 
 
 #CUTBLOCKS + ROADS
-
-start.cr.0 <- nls(pop.den ~ expo.model(a,b,c, core.dist.per, matrix.dist.per), start=list(a=0.01,b=0.1, c = 0.05), data= model.data)
-expo.cr.0 <- nlme(pop.den ~ expo.model(a,b,c, core.dist.per, matrix.dist.per), fixed =list(a~1,b~1, c~1), random= b~1|herd_name, start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+start.cr.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80r500.per, matrix.cut80r50.per, herd.size), start=list(a=5,b=0.1, c = 0.05, d= 1), data= model.data)
+expo.cr.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.cut80r500.per, matrix.cut80r50.per, herd.size), fixed =list(a~1,b~1, c~1, d~1), random= b~1|herd_name, correlation = corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(expo.cr.0,type="normalized"), lag.max = 10) 
 summary(expo.cr.0)
 plot(expo.cr.0)
-abline(0,0, col = 'red')
-plot(model.data$pop.den, predict(expo.cr.0))
+plot(model.data$pop_estimate, predict(expo.cr.0))
 abline(0,1, col = 'red')
 
-#CUTBLOCKS + ROADS BUFFER 500m
+newdat.cr<-expand.grid(herd_name = 'Barkerville', core.cut40r500.per=seq(from = min(model.data$core.cut40r500.per),
+                            to = max(model.data$core.cut40r500.per),
+                            by = 0.1),
+                    matrix.cut40r500.per= mean(model.data$matrix.cut40r500.per),
+                    herd.size =1)
+ggplotly(ggplot(model.data, aes(x=core.cut40r500.per, y=pop_estimate, colour=herd_name)) +
+  geom_point(size=3) +
+  geom_line(aes(y=predict(expo.r.0), group=herd_name)) +
+  geom_line(data=newdat.cr, aes(y=predict(expo.cr.0, level=0, newdata=newdat.cr) ),size =1.5)) #AIC:866, PHI:0.84
 
-start.cr500.0 <- nls(pop.den ~ expo.model(a,b,c, core.dist500.per, matrix.dist500.per), start=list(a=0.01,b=0.1, c = 0.05), data= model.data)
-expo.cr500.0 <- nlme(pop.den ~ expo.model(a,b,c, core.dist500.per, matrix.dist500.per), fixed =list(a~1,b~1, c~1), random= b~1|herd_name, start =list(fixed=coef(start.cr500.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
-acf(residuals(expo.cr500.0,type="normalized"), lag.max = 10) 
-summary(expo.cr500.0)
-plot(expo.cr500.0)
-abline(0,0, col = 'red')
-plot(model.data$pop.den, predict(expo.cr500.0))
-abline(0,1, col = 'red')
-
-aic.values<-AIC(expo.cr500.0,expo.cr.0,expo.r.0 ,expo.c.0 )
+aic.values<-AIC(m0.b,expo.cr.0,expo.r.0 ,expo.c.0 )
 aic.values$delta<-round(qpcR::akaike.weights(aic.values$AIC)$deltaAIC, 3)
 aic.values$weights<-round(qpcR::akaike.weights(aic.values$AIC)$weights, 3)
 aic.values
 
 ```
-
 
 #GAMS
 ```{r, gams}
 #GAMLSS
-gam.null<-gamlss(pop.den ~ 1 + re(random=~1|herd_name, method = "ML"), opt="optim",   sigma.formula = ~1, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.null<-gamlss(pop_estimate ~ 1 + re(random=~1|herd_name, method = "ML", correlation = corAR1(form=~time|herd_name)), opt="optim",   sigma.formula = ~1 + herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.null)
+acf(residuals(getSmo(gam.null),type="normalized"), lag.max = 10)
 
-gam.c<-gamlss(pop.den ~ core.early.seral.per + re(random=~1|herd_name,  method = "ML"), opt="optim",   sigma.formula = ~1+matrix.early.seral.per  , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.c<-gamlss(pop_estimate ~ core.cut80.per  + re(random=~1|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1 + herd.size , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.01, n.cyc=5000,msMaxIter=1000000), method=CG())
+plot(gam.c)
 summary(gam.c)
+plot(model.data$pop_estimate, exp(predict(gam.c)))
+abline(0,1,col='red')
+acf(residuals(getSmo(gam.c),type="normalized"), lag.max = 10) 
 
-gam.r<-gamlss(pop.den ~ core.roads.per + re(random=~1|herd_name, correlation = corARMA(p=1), method = "ML"), opt="optim",   sigma.formula = ~1+ matrix.roads.per  , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+
+gam.r<-gamlss(pop_estimate ~ core.road50.per+matrix.road50.per+re(random=~1|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.01, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.r)
+plot(gam.r)
+plot(model.data$pop_estimate, exp(predict(gam.r)), col = as.factor(model.data$herd_name))
+abline(0,1,col='red')
+cor(log(model.data$pop_estimate), predict(gam.r))
+wp(gam.r)
+acf(residuals(getSmo(gam.r),type="normalized"), lag.max = 10)
+pacf(residuals(getSmo(gam.r),type="normalized"), lag.max = 10)
+hist(exp(predict(gam.r)),prob=TRUE,ylim=c(0,0.009))
+curve(dlnorm(x, mean=mean((predict(gam.r))), sd=sqrt(var((predict(gam.r))))), 
+      col="darkblue", lwd=2, add=TRUE, yaxt="n")
 
-gam.cr<-gamlss(pop.den ~core.dist.per + re(random=~1|herd_name, method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist.per, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
-summary(gam.cr)
-
-gam.cr500<-gamlss(pop.den ~ core.dist500.per+ re(random=~1|herd_name, method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist500.per, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.cr500<-gamlss(pop_estimate ~core.cut80r50.per +re(random=~1|herd_name, method = "ML", correlation = corAR1(value = 0.8, form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1 +herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.01, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr500)
+plot(model.data$pop_estimate, exp(predict(gam.cr500)))
+abline(0,1)
+cor(log(model.data$pop_estimate), predict(gam.cr500))
+wp(gam.cr500)
+acf(residuals(getSmo(gam.cr500),type="normalized"), lag.max = 10)
+pacf(residuals(getSmo(gam.cr500),type="normalized"), lag.max = 10)
 
-plot(exp(predict(gam.c)), model.data$pop.den)
+plot(exp(predict(gam.c)), model.data$pop_estimate, col=as.factor(model.data$herd_name))
 abline(0,1, col = 'red')
-plot(exp(predict(gam.r)), model.data$pop.den)
+plot(exp(predict(gam.r)), model.data$pop_estimate,col=as.factor(model.data$herd_name))
 abline(0,1, col = 'red')
-plot(exp(predict(gam.cr)), model.data$pop.den)
-abline(0,1, col = 'red')
-plot(exp(predict(gam.cr500)), model.data$pop.den) 
+plot(exp(predict(gam.cr500)), model.data$pop_estimate,col=as.factor(model.data$herd_name)) 
 abline(0,1, col = 'red')
 
-d1<-data.table(type ='c', residuals(gam.c))
-d2<-data.table(type ='cr', residuals(gam.cr))
-d3<-data.table(type ='cr500', residuals(gam.cr500))
-vegLengths<-rbindlist(list(d1,d2,d3))
-ggplot(vegLengths, aes(V2, fill = type)) + geom_density(alpha = 0.2)
-
-acfResid(gam.r)
-acf(resid(gam.r))
+gam.aic.values<-AIC(gam.null,gam.c,gam.r,gam.cr500)
+gam.aic.values$delta<-round(qpcR::akaike.weights(gam.aic.values$AIC)$deltaAIC, 3)
+gam.aic.values$weights<-round(qpcR::akaike.weights(gam.aic.values$AIC)$weights, 3)
+gam.aic.values
 
 ```
 
 
-## OVERALL
-```{r, overall}
-aic.values<-AIC(m0.d,early.seral.per.ml.ar1,dist.per.ml.ar1,dist500.per.ml.ar1)
-aic.values$delta<-round(qpcR::akaike.weights(aic.values$AIC)$deltaAIC, 3)
-aic.values$weights<-round(qpcR::akaike.weights(aic.values$AIC)$weights, 3)
-aic.values
-
-cor(fitted(m0.d, level =1),model.data$log.pop.den) 
-cor(fitted(early.seral.per.ml.ar1, level =1),model.data$log.pop.den) 
-cor(fitted(dist.per.ml.ar1, level =1),model.data$log.pop.den)
-cor(fitted(dist500.per.ml.ar1, level =1),model.data$log.pop.den)
-```
 #FIGURE 3: observed vs predicted
 ```{r, obs_pred}
-dtgx<-data.table(cbind(model.data[,c("lambda.dift", "herd_name")],fitted = fitted(dist500.rate.reml, level =1)))
-dtgx[,type:='PInit']
-dtgx2<-data.table(cbind(model.data[,c("lambda.dift","herd_name")],fitted = fitted(dist500.per.reml, level =1)))
-dtgx2[,type:='PHab']
+dtgx<-data.table(cbind(model.data[,c("pop_estimate", "herd_name", "herd.size")],fitted = predict(gam.r)))
 
-dtgx3<-rbind(dtgx,dtgx2)
-dtgx3<-dtgx3[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
+dtgx<-dtgx[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
 
-dtgx3<-dtgx3[!lambda.dift > 0.4,]
-ggplot(data = dtgx3, aes(y=lambda.dift, x =fitted, color = herd_name)) +
-  facet_grid(type~.)+
+ggplot(data = dtgx, aes(y=pop_estimate, x =exp(fitted), color = herd_name)) +
+  #facet_wrap(.~herd.size)+
   geom_point() +
   labs(y = "Observed", x = "Predicted")+
   geom_abline(intercept = 0, slope = 1) +
   theme_bw() +
   guides(color=guide_legend(title = "Herd")) 
 
-a1<-ggplot(data = model.data, aes(x = core.dist500.rate, y = lambda.dift, colour = factor(herd_name))) +
+a1<-ggplot(data = model.data, aes(x = core.road50.per, y = pop_estimate, colour = factor(herd_name))) +
   theme(legend.position = "none")+
-    geom_point(size=0.5) +
-    geom_line(aes(y = predict(dist500.rate.reml)) ) 
+    geom_point(size=3) +
+    geom_line(aes(y = exp(predict(gam.r)) ) )
 
-a2<-ggplot(data = model.data, aes(x = matrix.dist500.rate, y = lambda.dift, colour = factor(herd_name))) +
+a2<-ggplot(data = model.data, aes(x = matrix.road50.per, y = pop_estimate, colour = factor(herd_name))) +
     theme(legend.position = "none")+
-    geom_point(size=0.5) +
-    geom_line(aes(y = predict(dist500.rate.reml))) 
+    geom_point(size=3) +
+    geom_line(aes(y = exp(predict(gam.r))) )
 library(gridExtra)
 grid.arrange(a1, a2,nrow=1)
 
@@ -817,37 +902,25 @@ grid.arrange(a1, a2,nrow=1)
 #FIGURE 4. Behaviour of the model
 
 ```{r, behave}
-bhv0<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = -10)
-bhv1<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = 0)
-bhv2<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = 10)
-bhv3<-data.table(matrix.dist500.rate=seq(-40,80, 2), core.dist500.rate = 50)
-bh<-rbindlist(list(bhv0,bhv1, bhv2, bhv3))
-bh[, herd_id:= 1]
 
-bh_herds<-data.table(herd_name=unique(model.data$herd_name), herd_id =1)
-bh_herds2<-merge(bh_herds, bh, by.x="herd_id", by.y="herd_id", all=TRUE, allow= TRUE)
-
-bh_herds2$pred<-predict(dist500.rate.reml, bh_herds2)
-bh_herds2[core.dist500.rate == -10, core:='CR500(PInit) Core =-10%']
-bh_herds2[core.dist500.rate == 0, core:='CR500(PInit) Core=0%']
-bh_herds2[core.dist500.rate == 10, core:='CR500(PInit) Core=10%']
-bh_herds2[core.dist500.rate == 50, core:='CR500(PInit) Core=50%']
-
-bh$pred<-predict(dist500.rate.reml, bh,level=0)
-bh[core.dist500.rate == 0, core:='0']
-bh[core.dist500.rate == 10, core:='10']
-bh[core.dist500.rate == 50, core:='50']
-
-bh_herds2[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
-
-fig4<-ggplot(data = bh_herds2,aes(x = matrix.dist500.rate, y = pred, color = herd_name)) +
-  facet_grid(~core) +
+curves <- lapply(seq_len(NROW(df)), function(i) {
+  mu <- df$y[i]
+  range <- mu + c(-3, 3)
+  seq <- seq(range[1], range[2], length.out = 100)
+  data.frame(
+    x = -1 * dnorm(seq, mean = mu) + df$x[i],
+    y = seq,
+    grp = i
+  )
+})
+# Combine above densities in one data.frame
+curves <- do.call(rbind, curves)
+ggplot(df, aes(x, y)) +
+  geom_point() +
   geom_line() +
-  geom_abline(slope = 0, intercept = 0, color= "black") +
-  theme_bw() +
-  labs(y = expression(paste("Population trend ", hat(italic("r")))), x = "CR500(PInit) Matrix (%)")+
-  guides(color=guide_legend(title = "Herd"))
-fig4
+  # The path draws the curve
+  geom_path(data = curves, aes(group = grp))
+
 
 ```
 
