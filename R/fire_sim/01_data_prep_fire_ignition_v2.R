@@ -209,22 +209,24 @@ st_write(DC_sf_clipped, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data
 #from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2018-
 # I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. 
 
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VRI_data\\veg_comp_lyr_r1_poly2003.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VEG_COMP_LYR_R1_POLY.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 # rename the table in postgres if need be
 #ALTER TABLE veg_comp_lyr_r1_poly RENAME TO veg_comp_lyr_r1_poly2017
 
 # When the table name is changed the idx name is not so you might have to change that too so that more files can be uploaded into postgres by running the following command
-#ALTER INDEX veg_comp_lyr_r1_poly_finalv4_geometry_geom_idx RENAME TO veg_comp_lyr_r1_poly2002_geometry_geom_idx
+#ALTER INDEX veg_comp_lyr_r1_poly_shape_geom_idx RENAME TO veg_comp_lyr_r1_poly2019_geometry_geom_idx;
+# and if need be change the name of the geometry column from shape to geometry
+#ALTER TABLE veg_comp_lyr_r1_poly2019 RENAME COLUMN shape TO geometry;
 
 #### Join ignition data to VRI data ####
 # Run following query in postgres. This is fast
-CREATE TABLE fire_veg_2006 AS
-(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
-  fire.id1, fire.pttype, fire.year, fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.pas05, fire.pas06, fire.pas07, fire.pas08, fire.pas09, fire.mdc_05, fire.mdc_06, fire.mdc_07,  fire.mdc_08, fire.mdc_09, 
-  veg_comp_lyr_r1_poly2006.shape FROM veg_comp_lyr_r1_poly2006, (SELECT wkb_geometry, id1, pttype, year, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, pas05, pas06, pas07, pas08, pas09, mdc_05, mdc_06, mdc_07,  mdc_08, mdc_09  
-      from dc_data where year = '2006') as fire 
-  where st_contains (veg_comp_lyr_r1_poly2006.shape, fire.wkb_geometry));
+# CREATE TABLE fire_veg_2006 AS
+# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
+#   fire.id1, fire.pttype, fire.year, fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.pas05, fire.pas06, fire.pas07, fire.pas08, fire.pas09, fire.mdc_05, fire.mdc_06, fire.mdc_07,  fire.mdc_08, fire.mdc_09, 
+#   veg_comp_lyr_r1_poly2006.shape FROM veg_comp_lyr_r1_poly2006, (SELECT wkb_geometry, id1, pttype, year, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, pas05, pas06, pas07, pas08, pas09, mdc_05, mdc_06, mdc_07,  mdc_08, mdc_09  
+#       from dc_data where year = '2006') as fire 
+#   where st_contains (veg_comp_lyr_r1_poly2006.shape, fire.wkb_geometry));
 
 
 # This also works but is super slow, dont run this one!
@@ -235,87 +237,79 @@ CREATE TABLE fire_veg_2006 AS
 #         SELECT veg.geometry as geom, fire_no, fire_year, fire_cause, size_ha, bclcs_level_4, bclcs_level_5 
 #         FROM ignit, veg WHERE st_intersects (ignit.wkb_geometry, veg.geometry));
 
+#Import all fire_veg
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+fire_veg_2002 <- sf::st_read  (dsn = conn, # connKyle
+                              query = "SELECT * FROM public.fire_veg_2002")
+fire_veg_2003 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2003")
+fire_veg_2004 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2004")
+fire_veg_2005 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2005")
+fire_veg_2006 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2006")
+fire_veg_2007 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2007")
+fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2008")
+fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2009")
+fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2010")
+fire_veg_2011 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2011")
+fire_veg_2012 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2012")
+fire_veg_2013 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2013")
+fire_veg_2014 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2014")
+fire_veg_2015 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2015")
+fire_veg_2016 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2016")
+fire_veg_2017 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2017")
+fire_veg_2018 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2018")
+fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2019")
 
+dbDisconnect (conn) # connKyle
 
+# join all fire_veg datasets together. This function is faster than a list of rbinds
+filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bc.tsa<-getSpatialQuery("SELECT administrative_area_name, shape 
-                        FROM tsa_boundaries 
-                        WHERE administrative_area_name != 'Queen Charlotte Timber Supply Area' AND administrative_area_name != 'North Island Timber Supply Area' AND administrative_area_name != 'Arrowsmith Timber Supply Area' AND administrative_area_name != 'Pacific Timber Supply Area'")
-bc.tsa <- st_transform (bc.tsa, 3005)
-bc.tsa_sp<-as(bc.tsa, "Spatial")
-class(bc.tsa_sp)
-
-
-# prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T)
-# st_crs(prov.bnd)
-# prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
-# bc.bnd <- st_transform (prov.bnd, 3005)
-# bc.bnd.valid<-st_make_valid(bc.bnd)
-
-
-#### FIRE IGNITION DATA ####
-fire.ignit.hist<-sf::st_read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\BCGW_7113060B_1600358424324_13780\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp")
-st_crs(fire.ignit.hist)
-head(fire.ignit.hist)
-#lighting.hist<-fire.ignit.hist %>% filter(FIRE_CAUSE=="Lightning", FIRE_TYPE=="Fire")
-fire.ignit.hist <- st_transform (fire.ignit.hist, 3005)
-lightning_clipped<-fire.ignit.hist[bc.tsa,]
-
-lightning_clipped2<- lightning_clipped %>% 
-  filter (FIRE_YEAR>=2002, FIRE_TYPE=="Fire") %>%
-  select(FIRE_ID, FIRE_YEAR : FIRE_CAUSE, FIRE_TYPE, SIZE_HA, geometry)
-
-
-# what I think I need to do: clip out ignition locations then randomly sample points across bc for the available data. 
-foo <- lightning_clipped2 %>%
-  filter(FIRE_YEAR == 2002)
-bc.tsa.points<- spsample(bc.tsa_sp, n=20000, type="regular")
-foo.buffered<-st_buffer(foo, 500)
-
-bc.tsa.clipped<- st_difference(bc.tsa, foo.buffered)
-bc.tsa.clipped_sp<-as(bc.tsa.clipped, "Spatial")
-bc.bnd.points<- spsample(bc.bnd.clipped_sp, n=20000, type="regular")
-
-sample.pts <- data.frame (matrix (ncol = 4, nrow = nrow (bc.bnd.points@coords)))
-colnames (sample.pts) <- c ("Year","pttype", "uniqueID", "FIRE_CAUSE")
-sample.pts.start.data$pttype <- 0
-sample.pts.start.data$uniqueID <- "du6_EarlyWinter_HSCEK077_2012"
-id.points.out.all <- SpatialPointsDataFrame (sample.pts.start, data = sample.pts.start.data)
-
-years<- c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019")
-for (i in 1:length(years)) {
-  foo <- lightning_clipped2 %>%
-    filter(FIRE_YEAR == years[i])
-  foo.buffered<-st_buffer(foo, 500)
-  bc.bnd.clipped<- st_difference(bc.tsa, foo.buffered)
-  bc.bnd.clipped_sp<-as(bc.bnd.clipped, "Spatial")
-  bc.bnd.points<- spsample(bc.bnd.clipped_sp, n=20000, type="regular")
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames3[i])) # for new files lists change the name at filenames2
+  })
+  do.call(rbind,d)
 }
+
+n<-length(filenames3)
+fire_veg_data<-mkFrameList(n)
+
+# write final fire ignitions, weather and vegetation types to postgres
+
+# save data 
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+st_write (obj = fire_veg_data, 
+          dsn = connKyle, 
+          layer = c ("public", "fire_ignitions_veg_climate"))
+dbDisconnect (connKyle)
+
 
 
 
@@ -325,34 +319,3 @@ ggplot() +
   geom_sf(data=lightning_clipped)
 
 head(lightning_clipped)
-
-
-
-
-sample.pts.boreal <- spsample (caribou.boreal.sa, cellsize = c (2000, 2000), type = "regular")
-
-#Make an empty provincial raster aligned with hectares BC
-ProvRast <- raster(
-  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = 3005, resolution = c(100, 100), vals = 0
-) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
-bc.tsa.raster <- fasterize (bc.tsa, ProvRast, 
-                            field = NULL,# raster cells that were cut get in 2017 get a value of 1
-                            background = 0) # unharvested raster cells get value = 0 
-
-st_write(lightning_clipped2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\fire_ignitions.shp", delete_layer=TRUE)
-
-# commit the shape file to postgres
-# this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
-
-host=keyring::key_get('dbhost', keyring = 'postgreSQL')
-user=keyring::key_get('dbuser', keyring = 'postgreSQL')
-dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
-password=keyring::key_get('dbpass', keyring = 'postgreSQL')
-
-# Run this in terminal
-#ogr2ogr -f PostgreSQL PG:"host= user= dbname= password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\fire_ignitions.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-
-
-
