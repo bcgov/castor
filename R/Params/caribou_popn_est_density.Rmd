@@ -522,8 +522,8 @@ data.set<-data.set[!herd_name == 'Purcell_Central',]
 
 # Figure of disturbance profile
 ```{r, dist_graph}
-one0<-data.set[, c("herd_name", "year","core.cut40.per")]
-setnames(one0, "core.cut40.per" , "value")
+one0<-data.set[, c("herd_name", "year","core.cut80.per")]
+setnames(one0, "core.cut80.per" , "value")
 one0[, dm:='C']
 
 one3<-data.set[, c("herd_name", "year","core.road50.per")]
@@ -531,23 +531,23 @@ setnames(one3, "core.road50.per" , "value")
 one3[, dm:='R']
 
 
-one2<-data.set[, c("herd_name", "year","core.cut40r500.per")]
-setnames(one2, "core.cut40r500.per" , "value")
+one2<-data.set[, c("herd_name", "year","core.cut80r50.per")]
+setnames(one2, "core.cut80r50.per" , "value")
 one2[, dm:='CR500']
 
 core.graph.dist<-rbind(one0,one2,one3)
 core.graph.dist[, hab:='Core']
 
-t0<-data.set[, c("herd_name", "year","matrix.cut40.per")]
-setnames(t0, "matrix.cut40.per" , "value")
+t0<-data.set[, c("herd_name", "year","matrix.cut80.per")]
+setnames(t0, "matrix.cut80.per" , "value")
 t0[, dm:='C']
 
 t3<-data.set[, c("herd_name", "year","matrix.road50.per")]
 setnames(t3, "matrix.road50.per" , "value")
 t3[, dm:='R']
 
-t2<-data.set[, c("herd_name", "year","matrix.cut40r500.per")]
-setnames(t2, "matrix.cut40r500.per" , "value")
+t2<-data.set[, c("herd_name", "year","matrix.cut80r50.per")]
+setnames(t2, "matrix.cut80r50.per" , "value")
 t2[, dm:='CR500']
 
 matrix.graph.dist<-rbind(t0,t2,t3)
@@ -599,7 +599,7 @@ core.p0<-ggplot(data = data.set, aes(x =core.cut80.per, y =pop_estimate, color =
 
 core.p1<-ggplot(data = data.set, aes(x =core.road50.per, y =pop_estimate, color = herd_name ,  linetype = as.factor(herd.size))) +  geom_point() + geom_smooth(method = 'lm',se= FALSE) + theme(legend.position = "none")
 
-core.p2<-ggplot(data = data.set, aes(x =core.cut40r500.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
+core.p2<-ggplot(data = data.set, aes(x =core.cut80r50.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
 ggplotly(core.p0)
 ggplotly(core.p1)
@@ -613,7 +613,7 @@ matrix.p0<-ggplot(data = data.set, aes(x =matrix.road50.per, y =pop_estimate, co
 
 matrix.p1<-ggplot(data = data.set, aes(x =matrix.cut80.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
-matrix.p2<-ggplot(data = data.set, aes(x =matrix.cut40r500.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
+matrix.p2<-ggplot(data = data.set, aes(x =matrix.cut80r50.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
 ggplotly(matrix.p0)
 ggplotly(matrix.p1)
@@ -642,17 +642,17 @@ histDist(pop_estimate,family="LNO", data=data.set, nbins = 12)
 #CORRELATION BETWEEN X
 ```{r, cor_x}
 library(usdm)
-vif(data.set[,c("core.cut40.per","matrix.cut40.per")])
-vif(data.set[,c("core.cut40r50.per","matrix.cut40r50.per")])
+vif(data.set[,c("core.cut80.per","matrix.cut80.per")])
+vif(data.set[,c("core.cut80r50.per","matrix.cut80r50.per")])
 vif(data.set[,c("core.cut40r500.per","matrix.cut40r500.per")])
 vif(data.set[,c("core.road50.per","matrix.road50.per")])
-cor(data.set[,"matrix.cut40.per"],data.set[,"core.cut40.per"])
+cor(data.set[,"matrix.cut80.per"],data.set[,"core.cut80.per"])
 cor(data.set[,"matrix.road50.per"],data.set[,"core.road50.per"])
-cor(data.set[,"core.cut40r500.per"],data.set[,"matrix.cut40r500.per"])
+cor(data.set[,"core.cut80r50.per"],data.set[,"matrix.cut80r50.per"])
 cor(data.set[,"matrix.road50.per"],data.set[,"core.cut40.per"])
-cor(data.set[,"matrix.cut40.per"],data.set[,"core.road50.per"])
-cor(data.set[,"core.cut40.per"],data.set[,"core.road50.per"])
-cor(data.set[,"matrix.cut40.per"],data.set[,"matrix.road50.per"])
+cor(data.set[,"matrix.cut80.per"],data.set[,"core.road50.per"])
+cor(data.set[,"core.cut80.per"],data.set[,"core.road50.per"])
+cor(data.set[,"matrix.cut80.per"],data.set[,"matrix.road50.per"])
 ```
 
 
@@ -701,7 +701,7 @@ summary(m0.c)#AIC:891
 anova(m0.c, m0.b.reml)
 
 
-c.0 <- lme(pop_estimate ~ core.cut40.per+matrix.cut40.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
+c.0 <- lme(pop_estimate ~ core.cut80.per+matrix.cut80.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(c.0,type="normalized"), lag.max = 5)
 summary(c.0) #AIC:879, Phi:0.889
 plot(model.data$pop_estimate, resid(c.0))
@@ -718,7 +718,7 @@ abline(0,0) #AIC:874, PHI:0.88
 plot(predict(r.0),model.data$pop_estimate)
 abline(0,1, col = 'red')
 
-cr500.0 <- lme(pop_estimate ~ core.cut40r500.per+matrix.cut40r500.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
+cr500.0 <- lme(pop_estimate ~ core.cut80r50.per+matrix.cut80r50.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(cr500.0,type="normalized"), lag.max = 5)
 summary(cr500.0)
 plot(model.data$pop_estimate, resid(cr500.0))
@@ -776,17 +776,17 @@ plot(model.data$pop_estimate, predict(expo.r.0))
 abline(0,1, col = 'red')
 cor(model.data$pop_estimate, predict(expo.r.0, level=0))
 
-newdat<-expand.grid(herd_name = 'Barkerville', matrix.road50.per=seq(from = min(model.data$matrix.road50.per),
-                            to = max(model.data$matrix.road50.per),
+newdat<-expand.grid(herd_name = 'Barkerville', core.road50.per=seq(from = min(model.data$core.road50.per),
+                            to = max(model.data$core.road50.per),
                             by = 0.1),
-                    core.road50.per= mean(model.data$core.road50.per),
+                    matrix.road50.per= mean(model.data$matrix.road50.per),
                     herd.size =0)
-newdat2<-expand.grid(herd_name = 'Barkerville', matrix.road50.per=seq(from = min(model.data$matrix.road50.per),
-                            to = max(model.data$matrix.road50.per),
+newdat2<-expand.grid(herd_name = 'Barkerville', core.road50.per=seq(from = min(model.data$core.road50.per),
+                            to = max(model.data$core.road50.per),
                             by = 0.1),
-                    core.road50.per= mean(model.data$core.road50.per),
+                    matrix.road50.per= mean(model.data$matrix.road50.per),
                     herd.size =1)
-ggplotly(ggplot(model.data, aes(x=matrix.road50.per, y=pop_estimate, colour=herd_name)) +
+ggplotly(ggplot(model.data, aes(x=core.road50.per, y=pop_estimate, colour=herd_name)) +
   geom_point(size=3) +
   geom_line(aes(y=predict(expo.r.0), group=herd_name)) +
   geom_line(data=newdat, aes(y=predict(expo.r.0, level=0, newdata=newdat) ),size =1.5)+
@@ -794,7 +794,7 @@ ggplotly(ggplot(model.data, aes(x=matrix.road50.per, y=pop_estimate, colour=herd
 
 
 #CUTBLOCKS + ROADS
-start.cr.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80r500.per, matrix.cut80r50.per, herd.size), start=list(a=5,b=0.1, c = 0.05, d= 1), data= model.data)
+start.cr.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80r50.per, matrix.cut80r50.per, herd.size), start=list(a=5,b=0.1, c = 0.05, d= 1), data= model.data)
 expo.cr.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.cut80r50.per, matrix.cut80r50.per, herd.size), fixed =list(a~1,b~1, c~1, d~1), random= b~1|herd_name, correlation = corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(expo.cr.0,type="normalized"), lag.max = 10) 
 summary(expo.cr.0)
@@ -822,11 +822,11 @@ aic.values
 #GAMS
 ```{r, gams}
 #GAMLSS
-gam.null<-gamlss(pop_estimate ~ 1 + re(random=~1|herd_name, method = "ML", correlation = corAR1(form=~time|herd_name)), opt="optim",   sigma.formula = ~1 + herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.null<-gamlss(pop_estimate ~ 1 + re(random=~1|herd_name, method = "ML", correlation = corAR1(form=~time|herd_name)), opt="optim",   sigma.formula = ~1+core.area, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.null)
 acf(residuals(getSmo(gam.null),type="normalized"), lag.max = 10)
 
-gam.c<-gamlss(pop_estimate ~ core.cut80.per  +matrix.cut80.per+ re(random=~1|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1 + herd.size , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.c<-gamlss(pop_estimate ~ core.cut80.per  +matrix.cut80.per+ re(random=~1|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1 +core.area , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
 plot(gam.c)
 summary(gam.c)
 plot(model.data$pop_estimate, exp(predict(gam.c)))
@@ -834,7 +834,7 @@ abline(0,1,col='red')
 acf(residuals(getSmo(gam.c),type="normalized"), lag.max = 10) 
 
 
-gam.r<-gamlss(pop_estimate ~ core.road50.per+matrix.road50.per+re(random=~1|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.r<-gamlss(pop_estimate ~ re(fixed=~core.road50.per+matrix.road50.per, random=~core.road50.per|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+core.area, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.r)
 plot(gam.r)
 plot(model.data$pop_estimate, exp(predict(gam.r)), col = as.factor(model.data$herd_name))
@@ -847,7 +847,7 @@ hist(exp(predict(gam.r)),prob=TRUE,ylim=c(0,0.009))
 curve(dlnorm(x, mean=mean((predict(gam.r))), sd=sqrt(var((predict(gam.r))))), 
       col="darkblue", lwd=2, add=TRUE, yaxt="n")
 
-gam.cr500<-gamlss(pop_estimate ~core.cut80r50.per+matrix.cut80r50.per +re(random=~1|herd_name, method = "ML", correlation = corAR1(value = 0.8, form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1 +herd.size, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.cr500<-gamlss(pop_estimate ~core.cut80r50.per+matrix.cut80r50.per +re(random=~1|herd_name, method = "ML", correlation = corAR1(value = 0.8, form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1 +core.area, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr500)
 plot(model.data$pop_estimate, exp(predict(gam.cr500)))
 abline(0,1)
