@@ -703,20 +703,22 @@ anova(m0.c, m0.b.reml)
 
 c.0 <- lme(pop_estimate ~ core.cut80.per+matrix.cut80.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(c.0,type="normalized"), lag.max = 5)
-summary(c.0) #AIC:879, Phi:0.889
+summary(c.0) #AIC:1018, Phi:0.96
 plot(model.data$pop_estimate, resid(c.0))
 abline(0,0)
 plot(predict(c.0),model.data$pop_estimate)
 abline(0,1, col = 'red')
+#Core or matrix slope AIC: 1022
 
 r.0 <- lme(pop_estimate ~ core.road50.per+matrix.road50.per, random=~ 1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(r.0,type="normalized"), lag.max = 5)
 summary(r.0)
 plot(r.0)
 plot(model.data$pop_estimate, resid(r.0))
-abline(0,0) #AIC:874, PHI:0.88
+abline(0,0) #AIC:1016, PHI:0.96
 plot(predict(r.0),model.data$pop_estimate)
 abline(0,1, col = 'red')
+#Core or matrix slope AIC: 1020
 
 cr500.0 <- lme(pop_estimate ~ core.cut80r50.per+matrix.cut80r50.per, random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(cr500.0,type="normalized"), lag.max = 5)
@@ -725,6 +727,7 @@ plot(model.data$pop_estimate, resid(cr500.0))
 abline(0,0)#AIC 875, PHI:0.874
 plot(predict(cr500.0),model.data$pop_estimate)
 abline(0,1, col = 'red')
+#Core or matrix slope AIC: 1021
 
 lin.aic.values<-AIC(m0.b,cr500.0,r.0 ,c.0)
 lin.aic.values$delta<-round(qpcR::akaike.weights(lin.aic.values$AIC)$deltaAIC, 3)
@@ -744,7 +747,7 @@ expo.model <- function(a, b, c,d,x, y,z) {
 #CUTBLOCKS
 start.c.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80.per, matrix.cut80.per, herd.size), start=list(a=5,c=0.1, b=0.1,d=0.5), data= model.data)
 
-expo.c.0 <- nlme(pop_estimate  ~ expo.model(a,b,c,d, core.cut80.per,matrix.cut80.per,  herd.size), fixed =list(a~1,b~1,c~1,d~1), random= b~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), start =list(fixed=coef(start.c.0)), data = model.data, method = 'ML', control = c(maxIter = 100000))
+expo.c.0 <- nlme(pop_estimate  ~ expo.model(a,b,c,d, core.cut80.per,matrix.cut80.per,  herd.size), fixed =list(a~1,b~1,c~1,d~1), random= a~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), start =list(fixed=coef(start.c.0)), data = model.data, method = 'ML', control = c(maxIter = 100000))
 acf(residuals(expo.c.0,type="normalized"), lag.max = 10) 
 pacf(residuals(expo.c.0,type="normalized"), lag.max = 10) 
 summary(expo.c.0) #AIC:877 PHI:0.884
@@ -764,7 +767,7 @@ ggplotly(ggplot(model.data, aes(x=core.cut80.per, y=pop_estimate, colour=herd_na
 
 #ROADS
 start.r.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.road50.per,matrix.road50.per,herd.size), start=list(a=5,b=0.1,c=0.01,d=1), data= model.data)
-expo.r.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.road50.per,matrix.road50.per, herd.size), fixed =list(a~1,b~1,c~1, d~1), random=b~1|herd_name, correlation=corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.r.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+expo.r.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.road50.per,matrix.road50.per, herd.size), fixed =list(a~1,b~1,c~1, d~1), random=a~1|herd_name, correlation=corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.r.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(expo.r.0,type="normalized"), lag.max = 10)
 pacf(residuals(expo.r.0,type="normalized"), lag.max = 10) 
 hist(predict(expo.r.0),prob=TRUE)
@@ -795,7 +798,7 @@ ggplotly(ggplot(model.data, aes(x=core.road50.per, y=pop_estimate, colour=herd_n
 
 #CUTBLOCKS + ROADS
 start.cr.0 <- nls(pop_estimate ~ expo.model(a,b,c,d, core.cut80r50.per, matrix.cut80r50.per, herd.size), start=list(a=5,b=0.1, c = 0.05, d= 1), data= model.data)
-expo.cr.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.cut80r50.per, matrix.cut80r50.per, herd.size), fixed =list(a~1,b~1, c~1, d~1), random= b~1|herd_name, correlation = corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
+expo.cr.0 <- nlme(pop_estimate ~ expo.model(a,b,c,d, core.cut80r50.per, matrix.cut80r50.per, herd.size), fixed =list(a~1,b~1, c~1, d~1), random= a~1|herd_name, correlation = corAR1(value = 0.5, form = ∼time|herd_name), start =list(fixed=coef(start.cr.0)), data = model.data, method = 'ML', control = c(maxIter = 10000))
 acf(residuals(expo.cr.0,type="normalized"), lag.max = 10) 
 summary(expo.cr.0)
 plot(expo.cr.0)
@@ -826,7 +829,7 @@ gam.null<-gamlss(pop_estimate ~ 1 + re(random=~1|herd_name, method = "ML", corre
 summary(gam.null)
 acf(residuals(getSmo(gam.null),type="normalized"), lag.max = 10)
 
-gam.c<-gamlss(pop_estimate ~ core.cut80.per  +matrix.cut80.per+ re(random=~1|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1 +core.area , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.c<-gamlss(pop_estimate ~ re(fixed=~core.cut80.per + core.area, random=~-1+core.cut80.per|herd_name, method = "ML", correlation = corAR1(value =0.8, form=~time|herd_name)), opt="optim",   sigma.formula = ~1+ core.area , family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.05, n.cyc=5000,msMaxIter=1000000), method=CG())
 plot(gam.c)
 summary(gam.c)
 plot(model.data$pop_estimate, exp(predict(gam.c)))
@@ -834,9 +837,10 @@ abline(0,1,col='red')
 acf(residuals(getSmo(gam.c),type="normalized"), lag.max = 10) 
 
 
-gam.r<-gamlss(pop_estimate ~ re(fixed=~core.road50.per+matrix.road50.per, random=~core.road50.per|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+core.area, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=0.1, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.r<-gamlss(pop_estimate ~ re(fixed=~ core.road50.per+matrix.road50.per, random=~ core.road50.per|herd_name, method = 'ML',  correlation = corAR1(form = ∼time|herd_name)), opt="optim",   sigma.formula = ~1+core.area, family = LOGNO(), data = model.data, control =gamlss.control(c.crit=.01, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.r)
-plot(gam.r)
+plot(predict(gam.r),residuals(gam.r))
+abline(0,0, col = 'red')
 plot(model.data$pop_estimate, exp(predict(gam.r)), col = as.factor(model.data$herd_name))
 abline(0,1,col='red')
 cor(log(model.data$pop_estimate), predict(gam.r))
@@ -851,7 +855,6 @@ gam.cr500<-gamlss(pop_estimate ~core.cut80r50.per+matrix.cut80r50.per +re(random
 summary(gam.cr500)
 plot(model.data$pop_estimate, exp(predict(gam.cr500)))
 abline(0,1)
-cor(log(model.data$pop_estimate), predict(gam.cr500))
 wp(gam.cr500)
 acf(residuals(getSmo(gam.cr500),type="normalized"), lag.max = 10)
 pacf(residuals(getSmo(gam.cr500),type="normalized"), lag.max = 10)
@@ -868,6 +871,20 @@ gam.aic.values$delta<-round(qpcR::akaike.weights(gam.aic.values$AIC)$deltaAIC, 3
 gam.aic.values$weights<-round(qpcR::akaike.weights(gam.aic.values$AIC)$weights, 3)
 gam.aic.values
 
+test<-model.data[,c('herd_name', 'pop_estimate', 'core.area', 'herd.size')]
+test$mu<-predictAll(gam.r)$mu
+test$mu.e<-exp(test$mu)
+test$sigma<-predictAll(gam.r)$sigma
+test$res<-test$mu-log(test$pop_estimate)
+plot( test$mu,test$res)
+abline(0,0, col ='red')
+
+one<-data.table(v=rlnorm(10000, 3.91, 0.33), type = 'high')
+two<-data.table(v=rlnorm(10000, 3.91, 0.17), type = 'low')
+histogram.data<-rbindlist(list(one,two))
+ggplot(histogram.data, aes(v, group = type)) + 
+       geom_histogram(data=subset(histogram.data,type == 'high'),fill = "red", alpha = 0.2) +
+geom_histogram(data=subset(histogram.data,type == 'low'),fill = "blue", alpha = 0.2) 
 ```
 
 
