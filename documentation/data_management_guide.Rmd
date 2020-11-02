@@ -1,0 +1,28 @@
+---
+title: "Data Management Guidelines"
+author: "Tyler Muhly"
+date: "02/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Management Guidelines for the Caribou and Land Use Simulator
+The caribou and land use simulator (CLUS) has a specific framework for using and managing its datasets and 
+
+
+
+
+
+```{r}
+
+
+# load the data
+# edit table
+# add new row
+# re-upload data to postgres
+
+```
+
