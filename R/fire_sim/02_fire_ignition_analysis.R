@@ -133,7 +133,7 @@ names(ignition_pres_abs1)
 dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (12:16, 32:36)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
+            title = "Correlation between maximum temperature and MDC")
 
 dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (17:21, 32:36)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
@@ -179,7 +179,7 @@ variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mea
 table.glm.climate <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate) <- c ("Variable", "AIC")
 
-for (i in 21: length(variables)){
+for (i in 11: length(variables)){
   print(i)
 model1 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] +
                    ignition_pres_abs2[, variables[i]]||ignition_pres_abs2$year,
@@ -208,7 +208,9 @@ for (i in 1: length(variables)){
 
 table.glm.climate_simple$deltaAIC<-table.glm.climate_simple$AIC- min(table.glm.climate_simple$AIC)
 
-# From the above analysis it seems the best variable is the maximum temperature in August. Which Im a little suprised about.
+# From the above analysis it seems the best variable is the maximum temperature in August. Which Im a little suprised about because I thought 
+
+
 
 
 
