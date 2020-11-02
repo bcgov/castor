@@ -1,3 +1,23 @@
+# Copyright 2020 Province of British Columbia
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
+
+#=================================
+#  Script Name: 01_data_prep_fire_ignition_v2.R
+#  Script Version: 1.0
+#  Script Purpose: Prepare data for provincial analysis of fire ignitions. This includes obtaining weather data from climate BC, vegetation data from the Vegetation Resource inventory, and fire ignitions from Fire Incident Locations hosted on the Data Catalogue
+#  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+
 library(raster)
 library(data.table)
 library(sf)
@@ -12,7 +32,10 @@ require (dplyr)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-#### Provincial boundary with fire ignitions
+#### Provincial boundary with fire ignitions clipped out of it. 
+# The goal is to get climate, vegetation and fire ignition (presence or abscence) data together to run an statistical model to see if I can figure out places that fires are likely to start. In this file Im just pulling the data together.
+# The fire ignition data I obtained from (https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical : WHSE_LAND_AND_NATURAL_RESOURCE_ PROT_HISTORICAL_FIRE_POLYS_SP)
+# I started by clipping out the fire ignition areas (buffered by 500m) across BC so that I could sample points across BC where fires had not started. Then I sample points on a grid across BC to get my data for places where fires did not start. 
 bc.tsa <- st_read ( dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Ignition_clipped.shp", stringsAsFactors = T)# In QGIS I buffered the location where a fire started by 500m and then clipped out the buffered locations between the years 2002 - 2019 from the bc tsa boundaries.  I wanted to do this for each year separately but could not work out how to do this in QGIS and when I tried to do it in R, R crashed my whole computer so after trying 4 times I gave up. 
 bc.tsa <-bc.tsa %>% 
   filter (administra != 'Queen Charlotte Timber Supply Area') %>%
@@ -36,7 +59,7 @@ tsa.points.transformed2$lat<- gsub(")", "", as.character(tsa.points.transformed2
 tsa.points.transformed2$lat<- as.numeric(tsa.points.transformed2$lat)
 tsa.points.transformed2$lat<- round(tsa.points.transformed2$lat, digits=4)
 
-
+# these are the sample points for where fires did not start.
 sample.pts <- data.frame (matrix (ncol = 5, nrow = nrow (tsa.points.transformed1)))
 colnames (sample.pts) <- c ("ID1","ID2", "lat", "long", "el")
 sample.pts$ID1<- 1:length(tsa.points.transformed2$lon)
@@ -48,7 +71,8 @@ sample.pts$el <- "."
 write_csv(sample.pts, path="C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\input\\sample_pts.csv")
 
 
-#### GET CLIMATE DATA FOR EACH LOCATION ####
+#### GET CLIMATE DATA FOR LOCATIONs WHERE FIRES STARTED ####
+# ID1 is the fire_no and ID2 is the year the fire occured in the file bc_fire_ignition 
 #I then manually extract the monthly climate data for each of the relevant years at each of the fire ignition locations from climate BC (http://climatebc.ca/) and saved the files as .csv's. Here I import them again.
 
 file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output", pattern="ignition.", all.files=FALSE, full.names=FALSE)
@@ -59,7 +83,7 @@ for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(file.list1[i])))
 }
 
-
+#### GET CLIMATE DATA FOR LOCATIONs WHERE FIRES DID NOT START ####
 #I also manually extract the monthly climate data for each of the random locations within BC that I sampled for each year from climate BC (http://climatebc.ca/) and saved the files as .csv's. Here I import them again.
 
 file.list2<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output", pattern="sample_pts_Year", all.files=FALSE, full.names=FALSE)
@@ -74,12 +98,11 @@ for (i in 1:length(file.list2)){
   assign(paste0(y2[i]),x)
 }
 
-## calculate the drought code for each month
+# FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE
 
 #######################################
 #### Equations to calculate drought code ####
 #######################################
-# Parameters to calculate monthly drought code (DC)
 
 days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31) # number of days in each month starting in Jan
 #### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
@@ -88,7 +111,7 @@ days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31) # number of days 
 Lf<-c(-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6)
 ####
 
-### Fire ignition data
+### Calculate drought code for Fire ignition data
 filenames<-list()
 for (i in 1: length(y1)){
   
@@ -129,7 +152,7 @@ DC.ignitions$ID1<- as.factor(DC.ignitions$ID1)
 DC.ignitions$pttype <- 1
 
 
-### Random point data
+### Calculate the drought code for all Random point data i.e. where ignitions did not occur
 filenames2<-list()
 for (i in 1: length(y2)){
   
@@ -221,12 +244,12 @@ st_write(DC_sf_clipped, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data
 
 #### Join ignition data to VRI data ####
 # Run following query in postgres. This is fast
-# CREATE TABLE fire_veg_2006 AS
-# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
-#   fire.id1, fire.pttype, fire.year, fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.pas05, fire.pas06, fire.pas07, fire.pas08, fire.pas09, fire.mdc_05, fire.mdc_06, fire.mdc_07,  fire.mdc_08, fire.mdc_09, 
-#   veg_comp_lyr_r1_poly2006.shape FROM veg_comp_lyr_r1_poly2006, (SELECT wkb_geometry, id1, pttype, year, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, pas05, pas06, pas07, pas08, pas09, mdc_05, mdc_06, mdc_07,  mdc_08, mdc_09  
-#       from dc_data where year = '2006') as fire 
-#   where st_contains (veg_comp_lyr_r1_poly2006.shape, fire.wkb_geometry));
+# CREATE TABLE fire_veg_2002 AS
+# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, harvest_date, age_1, age_2,
+#   fire.id1, fire.pttype, fire.year, fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.pas05, fire.pas06, fire.pas07, fire.pas08, fire.pas09, fire.mdc_05, fire.mdc_06, fire.mdc_07,  fire.mdc_08, fire.mdc_09,
+#   veg_comp_lyr_r1_poly2006.geometry FROM veg_comp_lyr_r1_poly2002, (SELECT wkb_geometry, id1, pttype, year, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, pas05, pas06, pas07, pas08, pas09, mdc_05, mdc_06, mdc_07,  mdc_08, mdc_09
+#       from dc_data where year = '2002') as fire
+#   where st_contains (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry));
 
 
 # This also works but is super slow, dont run this one!
@@ -282,6 +305,37 @@ fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2019")
 
 dbDisconnect (conn) # connKyle
+
+# the VRI for 2007 did not have a column for harvest_data so Ill just add it in here
+fire_veg_2007$harvest_date <- NA
+
+# I also need to change the names of the columns age_1 and age_2 to proj_age_1 and proj_age_2 this is because the naming convention for this colum changed across the years of the VRI
+
+fire_veg_2002 <- fire_veg_2002 %>%
+  rename(proj_age_1=age_1,
+         proj_age_2=age_2)
+fire_veg_2003 <- fire_veg_2003 %>%
+  rename(proj_age_1=age_1,
+         proj_age_2=age_2)
+fire_veg_2004 <- fire_veg_2004 %>%
+  rename(proj_age_1=age_1,
+         proj_age_2=age_2)
+fire_veg_2005 <- fire_veg_2005 %>%
+  rename(proj_age_1=age_1,
+         proj_age_2=age_2)
+fire_veg_2006 <- fire_veg_2006 %>%
+  rename(proj_age_1=age_1,
+         proj_age_2=age_2)
+fire_veg_2007 <- fire_veg_2007 %>%
+  rename(proj_age_1=age_1,
+         proj_age_2=age_2)
+
+# Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
+# ALTER TABLE fire_veg_2011  
+# ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 3005) 
+# USING ST_Force_2D(geometry);
+
+
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
 filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019")
