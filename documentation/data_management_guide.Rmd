@@ -1,5 +1,5 @@
 ---
-title: "Data Management Guidelines"
+title: " Data Management Guidelines for the Caribou and Land Use Simulator"
 author: "Tyler Muhly"
 date: "02/11/2020"
 output: html_document
@@ -15,11 +15,10 @@ source (here ("R/functions/R_Postgres.R"))
 
 ```
 
-## Data Management Guidelines for the Caribou and Land Use Simulator
-The caribou and land use simulator (CLUS) has a specific framework for using datasets and parameters. For details on the framework, see the 'Getting Started with CLUS' documentation. Here we describe how to document and manage datasets used within this framework. 
+Like any quantitative model, the caribou and land use simulator (CLUS) has a specific framework for how it uses datasets in the modeling platform. For details on this framework, see the *Getting Started with CLUS* documentation. Here we describe how to document those datasets that are developed and used within the CLUS model. 
 
-### Data Tracking Table
-Spatial and aspatial data and parameters used in CLUS are stored in postgres databases. We uploaded a data table called 'pgdbs_data_list' to the DC052586 CLUS postgres database that describes each table in the databases used by CLUS and CLUS applications. This table is intended to simplify CLUS users ability to understand the origin and appropriate end-use of datasets used in the CLUS model.  
+### The Data Tracking Table
+Spatial and aspatial data and parameters used in CLUS are stored in [PostgreSQL databases](https://www.postgresql.org/). We uploaded a data tracking table called 'pgdbs_data_list' to a CLUS PostgreSQL database that describes each 'table' (i.e., dataset) in each PostgreSQL database used by the CLUS model or CLUS web applications. This tracking table is intended to help CLUS users understand the origin, status and appropriate end-use of datasets in the CLUS model.  
 
 ```{r, write original spreadsheet to postgres, eval = F, echo = T, warning = F, message = F}
 pgdbs_data_list <- read.table ("C:\\Work\\pgdbs_data_list.csv",
@@ -32,18 +31,24 @@ conn <- DBI::dbConnect(dbDriver("PostgreSQL"),
                        user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
                        password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
-                  value = pgdbs_data_list, row.names = FALSE, overwrite = TRUE)
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
 ```
 
-The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique table in a postgres database. The *computer*, *database* and *schema* fields identify where the table is stored, and the *table_name* field identifies the name of the table in the database. The *type* field identifies whether the data table is one of three types: a simple 'table', spatial 'polygon' or 'raster'.  The *script* field identifies where in the CLUS repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus\R\Params\prov_manage_objs.Rmd*. The *source* field describes where the original data were obtained, and the *public* field describes whether the data can be shared with the public ('Yes') or must be kept internal and confidential ('No'). The *last_updated* field documents the year the data was added to the database or last modified, and the *next_update* field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database the *next_update* field can be set to 'NA'. When it is not clear when an update is needed but we anticipate that a dataset will be updated periodically the *next_update* field can be set to 'as needed'. Finally, the *where_used* field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don't want to delete it, the *where_used* field  can be set to 'archive'. If the data are no longer used anywhere, but you think it should be deleted the *where_used* field can be set to 'deprecated'. 
-
+The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique data 'table' in a PostgreSQL database. The *computer*, *database* and *schema* fields identify the location of the PostgreSQL database that the table is stored in, and the *table_name* field identifies the name of the table in the database. The *type* field identifies whether the data table is one of three types: an aspatial 'table', spatial 'polygon' or spatial 'raster'.  The *script* field identifies where in the CLUS script repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus\R\Params\prov_manage_objs.Rmd*. The *source* field describes in brief what the data is and where the original data were obtained, and the *public* field describes whether the data can be shared with the public ('Yes'), or must be kept internal and confidential ('No'). The *last_updated* field documents the year the data was added to the database or last modified, and the *next_update* field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database (e.g., a 'static' landscape dataset such as a digital elevation model) the *next_update* field can be set to 'NA'. When it is not clear when an update is needed but we anticipate that a dataset will need to be updated at some point soon (e.g., the spatial boundaries of caribou population ranges) the *next_update* field can be set to 'as needed'. Finally, the *where_used* field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don't want to delete it, the *where_used* field can be set to 'archive' (adn teh data moved to teh archive schema of the database - see below). If the data are no longer used anywhere, but you think it should be deleted the *where_used* field can be set to 'deprecated' (see below). 
 ### Updating the Tracking Table
-The data tracking table (pgdbs_data_list) should be updated whenever a new dataset is added or modified in the CLUS model. For example, if a new management area with a new management objective is defined and created in the database it should be documented by adding new row to the tracking table. 
+The data tracking table (pgdbs_data_list) should be updated whenever a new dataset is added to or modified in the CLUS model or web applications. For example, if a new management area with a new management objective is defined and created in the database it should be documented by adding a new row to the tracking table. 
 
 When adding new data that you anticipate will be updated on a annual basis, include the year it was uploaded to the end of the table name, e.g., 'new_table_2020'. If you anticipate the data will be updated monthly, include the year and month at the end of the table name, e.g., 'new_table_202011'. 
 
 ```{r, add new row (new data) to the table, eval = F, echo = T, warning = F, message = F}
 # load the existing data tracking table
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 pgdbs_data_list <- getTableQuery("SELECT * from public.pgdbs_data_list;")
 
 #Create new row for table
@@ -57,42 +62,68 @@ new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DC052586
                         public = 'test', # Yes, if can be shared with public, otherwise No
                         last_updated = 'test', # year when data added
                         next_update = 'test', # year when data should ideally be updated
-                        where_used = 'test' # name of module of application where data used
+                        where_used = 'test' # name of module of application where data used, set to 'deprecated' if no longer used, and 'archive' if moved to the archive schema
                         )
 
 # merge tables
 pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
 
 # re-upload data to postgres
-DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), value= pgdbs_data_list_new, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
 ```
 
-If an existing table is updated in the data tracking table (pgdbs_data_list), the modifications to the data should be documented.  
+If an existing dataset is updated in the database, teh *last_updated* and *next_update* fields needs to be updated and documented in the tracking table (pgdbs_data_list).  
 
 ```{r, modify an existing row (table), eval = F, echo = T, warning = F, message = F}
-# load the existing data tracking table
-pgdbs_data_list <- getTableQuery("SELECT * from public.pgdbs_data_list;")
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# edit row
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set last_updated = '2020' where table_name = 'test';") # This example will edit the year of last update for the table called 'test'
 
-
-
-
-# edit table
-
-# re-upload data to postgres
 ```
 
+### Deleting or Archiving Data
+If data is no longer needed in the database it should be labelled as ‘deprecated’. This data should be kept in the database for one year, and re-evaluated on an annual basis. If the data is not needed after a year, it can be deleted or archived. If it is unlikely the data will be used in future analyses, delete it.  
 
+```{r, delete an existing row (table), eval = F, echo = T, warning = F, message = F}
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# label data as deprecated
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'test';") # This example will edit the year of last update for the table called 'test'
 
-### Replacing Exidting Datasets
+# delete row
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'test';") # This example will delete the table called 'test'
 
+```
 
--	If data is no longer needed label it as ‘deprecated’ or 'archive' and check with other team members to ensure they no longer needed
-o	If consensus is that the data is no longer needed, delete it from the data
+If the data is no longer used, but there is soem anticipated need to keep it for future analysis, it can be archived. In these cases, copy the table to the 'archive' schema in the database, and label the relevant row in the data tracking table as 'archive'.
 
+```{r, acrhive a table, eval = F, echo = T, warning = F, message = F}
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# copy table to archive schema and delete from active schema
+dbExecute (conn, 
+           "SELECT * INTO archive.cb_sum FROM public.cb_sum;")
 
-
-
-
-### Archiving Data
-
+# label data as 'archive'
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'test';") # This example will set the table called 'test' to the 'archive' status
+```
 
