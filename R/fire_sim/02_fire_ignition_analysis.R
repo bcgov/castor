@@ -93,14 +93,17 @@ p <- ggplot(ignition_pres_abs1, aes(mdc_08, as.numeric(pttype))) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("August MDC") + ylab("Pr (ignition)")
 
+p2 <- p + facet_wrap(~ year, nrow=3)
+
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\MDC08_allYears_loess.pdf")
+print(p2)
+dev.off()
+
 p <- ggplot(ignition_pres_abs1, aes(mdc_09, as.numeric(pttype))) +
   stat_smooth(method="glm", formula=y~x,
               alpha=0.2, size=2) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("August MDC") + ylab("Pr (ignition)")
-
-
-p2 <- p + facet_wrap(~ year, nrow=3)
 
 # Rainfall
 p <- ggplot(ignition_pres_abs1, aes(allppt08, as.numeric(pttype))) +
@@ -112,6 +115,18 @@ p <- ggplot(ignition_pres_abs1, aes(allppt08, as.numeric(pttype))) +
 p2 <- p + facet_wrap(~ year, nrow=3)
 
 pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\PPT08_allYears.pdf")
+print(p2)
+dev.off()
+
+p <- ggplot(ignition_pres_abs1, aes(allppt08, as.numeric(pttype))) +
+  stat_smooth(method="loess", formula=y~x,
+              alpha=0.2, size=2) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("August Precipitation") + ylab("Pr (ignition)")
+
+p2 <- p + facet_wrap(~ year, nrow=3)
+
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\allPPT08_allYears_loess.pdf")
 print(p2)
 dev.off()
 
@@ -127,6 +142,19 @@ p2 <- p + facet_wrap(~ year, nrow=3)
 pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax08_allYears.pdf")
 print(p2)
 dev.off()
+
+p <- ggplot(ignition_pres_abs1, aes(tmax08, as.numeric(pttype))) +
+  stat_smooth(method="loess", formula=y~x,
+              alpha=0.2, size=2) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("August MDC") + ylab("Pr (ignition)")
+
+p2 <- p + facet_wrap(~ year, nrow=3)
+
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax08_allYears_loess.pdf")
+print(p2)
+dev.off()
+
 
 ##################
 #### Analysis ####
@@ -184,6 +212,9 @@ ignition_pres_abs2$mean_mdc06_mdc07_mdc08_mdc09<- (ignition_pres_abs2$mdc_06+ ig
 
 
 variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09" , "mean_tmax06_tmax07_tmax08_tmax09","ppt06", "ppt07", "ppt08", "ppt09", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", "mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09", "mean_ppt06_ppt07_ppt08_ppt09","mdc_06", "mdc_07", "mdc_08", "mdc_09", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", "mean_mdc06_mdc07_mdc08_mdc09")
+
+variables1<-c("tmax06", "tmax07", "tmax08", "tmax09")
+variables2<-c("ppt06", "ppt07", "ppt08", "ppt09")
               
               
 #Create frame of AIC table
@@ -199,8 +230,6 @@ model1 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] 
                  family = binomial (link = "logit"),
                  verbose = TRUE)
 
-
-
 table.glm.climate[i,1]<-variables[i]
 table.glm.climate[i,2]<-extractAIC(model1)[2]
 }
@@ -214,13 +243,24 @@ for (i in 1: length(variables1)){
                    family = binomial (link = "logit"),
                    verbose = TRUE)
 
-  table.glm.climate[(i+31),1]<-variables[i]
-  table.glm.climate[(i+31),2]<-extractAIC(model2)[2]
+  table.glm.climate[(i+30),1]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate[(i+30),2]<-extractAIC(model2)[2]
+}
+
+for (i in 1: length(variables1)){
+  print(i)
+  model2 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]] *
+                     (ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]])||ignition_pres_abs2$year,
+                   family = binomial (link = "logit"),
+                   verbose = TRUE)
+  
+  table.glm.climate[(i+34),1]<-paste0(variables1[i],"X", variables2[i])
+  table.glm.climate[(i+34),2]<-extractAIC(model2)[2]
 }
 
 table.glm.climate$deltaAIC<-table.glm.climate$AIC- min(table.glm.climate$AIC)
 
-# Trying with simpler model of varying intecept only for year
+# Trying with simpler model of varying intecept only for year. Odd thing is this model seems to run more slowly
 table.glm.climate_simple <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate_simple) <- c ("Variable", "AIC")
 for (i in 1: length(variables)){
@@ -251,6 +291,50 @@ for (i in 1: length(variables1)){
 }
 
 table.glm.climate_simple$deltaAIC<-table.glm.climate_simple$AIC- min(table.glm.climate_simple$AIC)
+
+##############################################################
+# Trying with simplest model of no random effects only fixed effects. 
+
+table.glm.climate_simplest <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (table.glm.climate_simplest) <- c ("Variable", "AIC")
+for (i in 1: length(variables)){
+  print(i)
+  model3 <- glm (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] + ignition_pres_abs2$year,
+                   family = binomial (link = "logit"))
+  
+  table.glm.climate_simplest[i,1]<-variables[i]
+  table.glm.climate_simplest[i,2]<-extractAIC(model3)[2]
+}
+
+
+
+for (i in 1: length(variables1)){
+  print(i)
+  model4 <- glm (ignition_pres_abs2$pttype ~ 
+                   ignition_pres_abs2[, variables1[i]] +
+                     ignition_pres_abs2[, variables2[i]] +
+                     ignition_pres_abs2$year,
+                   family = binomial (link = "logit"))
+  
+  table.glm.climate_simplest[(i + 30),1]<-paste0(variables1[i], "+",variables2[i])
+  table.glm.climate_simplest[(i + 30),2]<-extractAIC(model4)[2]
+}
+
+for (i in 1: length(variables1)){
+  print(i)
+  model4 <- glm (ignition_pres_abs2$pttype ~ 
+                   ignition_pres_abs2[, variables1[i]] *
+                   ignition_pres_abs2[, variables2[i]] +
+                   ignition_pres_abs2$year,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate_simplest[(i + 34),1]<-paste0(variables1[i], "*",variables2[i])
+  table.glm.climate_simplest[(i + 34),2]<-extractAIC(model4)[2]
+}
+
+table.glm.climate_simplest$deltaAIC<-table.glm.climate_simplest$AIC- min(table.glm.climate_simplest$AIC)
+
+###############################################################
 
 # From the above analysis it seems the best combination of variables is the maximum temperature in August + the total precipitation in August.
 
@@ -293,11 +377,33 @@ ignition_pres_abs3<- ignition_pres_abs3 %>%
 ignition_pres_abs3$veg_openess[which(ignition_pres_abs3$vegtype == "0")]<-"0"
 table(ignition_pres_abs3$veg_openess)
 
+# whats the relationship between vegetation type and probabilty of ignition
 
+p1<-ggplot (ignition_pres_abs3, aes (x = as.factor(pttype), y = tmax08)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Probability of ignition",
+        y = "Max Temp in Aug") +
+  facet_grid (. ~ vegtype, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
 
+# How many NA's are there and remove them.
+sum(is.na(ignition_pres_abs3$vegtype))
+ignition_pres_abs3<- ignition_pres_abs3 %>% drop_na(vegtype)
 
+# now run the model on this dataset
 
+model4 <- glmer (pttype ~ tmax08 + 
+                   allppt08 + 
+                   vegtype +
+                   veg_openess +
+                   tmax08:vegtype +
+                   1|year,
+                 data= ignition_pres_abs3,
+                 family = binomial (link = "logit"), 
+                 nAGQ=0,
+                 verbose=TRUE,
+                 control=glmerControl(optimizer = "nloptwrap"))
 
-
-
+summary(model4)
 
