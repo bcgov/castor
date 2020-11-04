@@ -252,14 +252,6 @@ st_write(DC_sf_clipped, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data
 #   where st_contains (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry));
 
 
-# This also works but is super slow, dont run this one!
-# CREATE TABLE Fire_veg_2002 AS (WITH ignit as 
-#         (SELECT fire_no, fire_year, fire_cause, size_ha, wkb_geometry from bc_fire_ignition 
-#         where fire_type = 'Fire' and fire_year = '2002'), 
-#         veg as (SELECT bclcs_level_4, bclcs_level_5, geometry FROM veg_comp_lyr_r1_poly2002 where bclcs_level_2 = 'T') 
-#         SELECT veg.geometry as geom, fire_no, fire_year, fire_cause, size_ha, bclcs_level_4, bclcs_level_5 
-#         FROM ignit, veg WHERE st_intersects (ignit.wkb_geometry, veg.geometry));
-
 #Import all fire_veg
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -334,7 +326,6 @@ fire_veg_2007 <- fire_veg_2007 %>%
 # ALTER TABLE fire_veg_2011  
 # ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 3005) 
 # USING ST_Force_2D(geometry);
-
 
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
