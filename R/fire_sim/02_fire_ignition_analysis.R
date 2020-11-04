@@ -73,6 +73,13 @@ no_ignit<- ignition_pres_abs %>%
 ignition_pres_abs1<- rbind(ignition_pres_abs1, no_ignit)
 table(ignition_pres_abs1$year, ignition_pres_abs1$pttype)
 
+ignition_pres_abs1$allppt05<- ignition_pres_abs1$ppt05+ignition_pres_abs1$pas05/10
+ignition_pres_abs1$allppt06<- ignition_pres_abs1$ppt06+ignition_pres_abs1$pas06/10
+ignition_pres_abs1$allppt07<- ignition_pres_abs1$ppt07+ignition_pres_abs1$pas07/10
+ignition_pres_abs1$allppt08<- ignition_pres_abs1$ppt08+ignition_pres_abs1$pas08/10
+ignition_pres_abs1$allppt09<- ignition_pres_abs1$ppt09+ignition_pres_abs1$pas09/10
+
+
 # ignition_pres_abs1 is the final dataset
 ##################
 #### FIGURES ####
@@ -80,7 +87,7 @@ table(ignition_pres_abs1$year, ignition_pres_abs1$pttype)
 
 # Plotting Probability of ignition versus drought code. Seems like similar trends are found in each month (June to August) but trend seems to get stronger in later months i.e. July and August.
 
-p <- ggplot(ignition_pres_abs1, aes(mdc_09, as.numeric(pttype))) +
+p <- ggplot(ignition_pres_abs1, aes(mdc_08, as.numeric(pttype))) +
   stat_smooth(method="loess", formula=y~x,
               alpha=0.2, size=2) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -96,11 +103,11 @@ p <- ggplot(ignition_pres_abs1, aes(mdc_09, as.numeric(pttype))) +
 p2 <- p + facet_wrap(~ year, nrow=3)
 
 # Rainfall
-p <- ggplot(ignition_pres_abs1, aes(ppt08, as.numeric(pttype))) +
+p <- ggplot(ignition_pres_abs1, aes(allppt08, as.numeric(pttype))) +
   stat_smooth(method="glm", formula=y~x,
               alpha=0.2, size=2) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("ppt08") + ylab("Pr (ignition)")
+  xlab("All ppt in Aug") + ylab("Pr (ignition)")
 
 p2 <- p + facet_wrap(~ year, nrow=3)
 
@@ -109,15 +116,15 @@ print(p2)
 dev.off()
 
 # Temperature
-p <- ggplot(ignition_pres_abs1, aes(tmax09, as.numeric(pttype))) +
+p <- ggplot(ignition_pres_abs1, aes(tmax08, as.numeric(pttype))) +
   stat_smooth(method="glm", formula=y~x,
               alpha=0.2, size=2) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("tmax09") + ylab("Pr (ignition)")
+  xlab("tmax08") + ylab("Pr (ignition)")
 
 p2 <- p + facet_wrap(~ year, nrow=3)
 
-pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax09_allYears.pdf")
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax08_allYears.pdf")
 print(p2)
 dev.off()
 
@@ -134,6 +141,11 @@ dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (12:16, 32:36)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
+
+dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (12:16, 39:43)], NULL)
+corr <- round (cor (dist.cut.corr), 3)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between maximum temperature and all precipitation (snow + rain)")
 
 dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (17:21, 32:36)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
@@ -179,7 +191,8 @@ variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mea
 table.glm.climate <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate) <- c ("Variable", "AIC")
 
-for (i in 11: length(variables)){
+# Creates AIC table with a model that that allows slope and intercept to vary
+for (i in 1: length(variables)){
   print(i)
 model1 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] +
                    ignition_pres_abs2[, variables[i]]||ignition_pres_abs2$year,
@@ -192,26 +205,93 @@ table.glm.climate[i,1]<-variables[i]
 table.glm.climate[i,2]<-extractAIC(model1)[2]
 }
 
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(i)
+  model2 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]] +
+                     (ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]])||ignition_pres_abs2$year,
+                   family = binomial (link = "logit"),
+                   verbose = TRUE)
+
+  table.glm.climate[(i+31),1]<-variables[i]
+  table.glm.climate[(i+31),2]<-extractAIC(model2)[2]
+}
+
 table.glm.climate$deltaAIC<-table.glm.climate$AIC- min(table.glm.climate$AIC)
 
-# Trying with simpler model
+# Trying with simpler model of varying intecept only for year
 table.glm.climate_simple <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate_simple) <- c ("Variable", "AIC")
 for (i in 1: length(variables)){
   print(i)
-  model1 <- glm (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]],
-                   family = binomial (link = "logit"))
+  model3 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] +
+                     1|ignition_pres_abs2$year,
+                   family = binomial (link = "logit"), 
+                   nAGQ=0,
+                   control=glmerControl(optimizer = "nloptwrap"))
   
   table.glm.climate_simple[i,1]<-variables[i]
-  table.glm.climate_simple[i,2]<-extractAIC(model1)[2]
+  table.glm.climate_simple[i,2]<-extractAIC(model3)[2]
+}
+
+
+
+for (i in 1: length(variables1)){
+  print(i)
+  model4 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables1[i]] +
+                     ignition_pres_abs2[, variables2[i]] + 
+                     1|ignition_pres_abs2$year,
+                   family = binomial (link = "logit"), 
+                   nAGQ=0,
+                   control=glmerControl(optimizer = "nloptwrap"))
+  
+  table.glm.climate_simple[(i + 30),1]<-paste0(variables1[i], "_",variables2[i])
+  table.glm.climate_simple[(i + 30),2]<-extractAIC(model4)[2]
 }
 
 table.glm.climate_simple$deltaAIC<-table.glm.climate_simple$AIC- min(table.glm.climate_simple$AIC)
 
-# From the above analysis it seems the best variable is the maximum temperature in August. Which Im a little suprised about because I thought 
+# From the above analysis it seems the best combination of variables is the maximum temperature in August + the total precipitation in August.
+
+plot(ignition_pres_abs2$tmax08, ignition_pres_abs2$allppt08)
 
 
+# assembling landscape variables 
 
+names(ignition_pres_abs1)
+
+# remove points that landed on water (obviously ignitions will not start there)
+ignition_pres_abs3 <-ignition_pres_abs1 %>%
+  filter(bclcs_level_2!="W") %>%
+  filter(bclcs_level_2!=" ")
+
+#Creating new variable of vegetation type and a description of how open the vegetation is
+# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, TC = tall shrubs, D = disturbed, O = open
+ignition_pres_abs3$bclcs_level_4<- as.factor(ignition_pres_abs3$bclcs_level_4)
+ignition_pres_abs3$bclcs_level_5<- as.factor(ignition_pres_abs3$bclcs_level_5)
+ignition_pres_abs3$proj_age_1<- as.numeric(ignition_pres_abs3$proj_age_1)
+
+ignition_pres_abs3$vegtype<-"0"
+ignition_pres_abs3 <- ignition_pres_abs3 %>%
+  mutate(vegtype = if_else(bclcs_level_4=="TC","TC",
+                       if_else(bclcs_level_4=="TM", "TM",
+                               if_else(bclcs_level_4== "TB","TB",
+                                       if_else(bclcs_level_4=="SL", "SL",
+                                               if_else(bclcs_level_4=="ST", "ST", vegtype))))))
+ignition_pres_abs3$vegtype[which(ignition_pres_abs3$proj_age_1 <16)]<-"D"
+
+table(ignition_pres_abs3$vegtype)
+
+unique(ignition_pres_abs3$bclcs_level_5)
+
+ignition_pres_abs3$veg_openess<- "NA"
+ignition_pres_abs3<- ignition_pres_abs3 %>%
+  mutate(veg_openess = if_else(bclcs_level_5 == "DE", 'DE',
+                               if_else(bclcs_level_5 == "OP", "OP",
+                                       if_else(bclcs_level_5 == "SP", "SP", "NA"))))
+ignition_pres_abs3$veg_openess[which(ignition_pres_abs3$vegtype == "0")]<-"0"
+table(ignition_pres_abs3$veg_openess)
 
 
 

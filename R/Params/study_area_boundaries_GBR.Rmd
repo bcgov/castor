@@ -119,7 +119,7 @@ setnames(forest.tenure.vat3, c("tsa_name", "tsa_name2"))
 forest.tenure.vat3<-forest.tenure.vat3[,value:=seq_len(.N)]
 forest.tenure4<-merge(forest.tenure3,forest.tenure.vat3)
 
-#get ride of the tsa_name -- its sperated by spaces
+#get rid of the tsa_name -- its sperated by spaces
 forest.tenure4$tsa_name<-NULL
 setnames(forest.tenure4, c("tsa_name2", "geometry"), c("tsa_name", "wkb_geometry"))
 st_geometry(forest.tenure4) <- "wkb_geometry"
