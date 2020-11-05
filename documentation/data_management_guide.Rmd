@@ -22,7 +22,7 @@ Spatial and aspatial data and parameters used in CLUS are stored in [PostgreSQL 
 
 ```{r, write original spreadsheet to postgres, eval = F, echo = F, warning = F, message = F}
 # Example scipt to delete row in trackign table
-pgdbs_data_list <- read.table ("C:\\Work\\pgdbs_data_list.csv",
+pgdbs_data_list <- read.csv ("C:\\Work\\pgdbs_data_list.csv",
                                header = T,
                                sep = ",") 
 conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
@@ -36,7 +36,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 ```
 
-The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique data 'table' in a PostgreSQL database. The *computer*, *database* and *schema* fields identify the location of the PostgreSQL database that the table is stored in, and the *table_name* field identifies the name of the table in the database. The *type* field identifies whether the data table is one of three types: an aspatial 'table', spatial 'polygon' or spatial 'raster'.  The *script* field identifies where in the CLUS script repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus\R\Params\prov_manage_objs.Rmd*. The *source* field describes in brief what the data is and where the original data were obtained, and the *public* field describes whether the data can be shared with the public ('Yes'), or must be kept internal and confidential ('No'). The *last_updated* field documents the year the data was added to the database or last modified, and the *next_update* field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database (e.g., a 'static' landscape dataset such as a digital elevation model) the *next_update* field can be set to 'NA'. When it is not clear when an update is needed but we anticipate that a dataset will need to be updated at some point soon (e.g., the spatial boundaries of caribou population ranges) the *next_update* field can be set to 'as needed'. Finally, the *where_used* field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don't want to delete it, the *where_used* field can be set to 'archive' (adn teh data moved to teh archive schema of the database - see below). If the data are no longer used anywhere, but you think it should be deleted the *where_used* field can be set to 'deprecated' (see below). 
+The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique data 'table' in a PostgreSQL database. The *computer*, *database* and *schema* fields identify the location of the PostgreSQL database that the table is stored in, and the *table_name* field identifies the name of the table in the database. The *type* field identifies whether the data table is one of three types: an aspatial 'table', spatial 'polygon', 'point' or 'line' or spatial 'raster'.  The *script* field identifies where in the CLUS script repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus\R\Params\prov_manage_objs.Rmd*. The *source* field describes in brief what the data is and where the original data were obtained, and the *public* field describes whether the data can be shared with the public ('Yes'), or must be kept internal and confidential ('No'). The *last_updated* field documents the year the data was added to the database or last modified, and the *next_update* field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database (e.g., a 'static' landscape dataset such as a digital elevation model) the *next_update* field can be set to 'NA'. When it is not clear when an update is needed but we anticipate that a dataset will need to be updated at some point soon (e.g., the spatial boundaries of caribou population ranges) the *next_update* field can be set to 'as needed'. Finally, the *where_used* field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don't want to delete it, the *where_used* field can be set to 'archive' (adn teh data moved to teh archive schema of the database - see below). If the data are no longer used anywhere, but you think it should be deleted the *where_used* field can be set to 'deprecated' (see below). 
 
 ### Updating the Tracking Table
 The data tracking table (pgdbs_data_list) should be updated whenever a new dataset is added to or modified in the CLUS model or web applications. For example, if a new management area with a new management objective is defined and created in the database it should be documented by adding a new row to the tracking table. 
@@ -60,7 +60,7 @@ new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DC052586
                         database = 'test', # clus
                         schema = 'test', # caribou, public or rast
                         table_name = 'test', # add year adn month if relevant
-                        type = 'test', # polygon, raster or table
+                        type = 'test', # polygon, point, line, raster or table
                         script = 'test', # name and location of script to produce the data
                         source = 'test', # description of data source
                         public = 'test', # Yes, if can be shared with public, otherwise No
@@ -68,10 +68,8 @@ new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DC052586
                         next_update = 'test', # year when data should ideally be updated
                         where_used = 'test' # name of module of application where data used, set to 'deprecated' if no longer used, and 'archive' if moved to the archive schema
                         )
-
 # merge tables
 pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
-
 # re-upload data to postgres
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list_new, 
@@ -143,5 +141,32 @@ Changes to the tracking table can be documented in the code chunk below. We can 
 
 ```{r, change log, eval = F, echo = T, warning = F, message = F}
 # Change Log
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+dbExecute (conn, # update to refer to amalgamated caribou Param scripts
+           "UPDATE public.pgdbs_data_list SET script = 'clus\\R\\Params\\caribou_management_areas.Rmd' WHERE (table_name = 'caribou_herd') OR (table_name = 'bc_carib_poly_20090904') OR (table_name = 'bc_caribou_herd_boundary_v20200507') OR (table_name = 'du6_bounds') OR (table_name = 'du7_bounds') OR (table_name = 'du8_bounds') OR (table_name = 'du9_bounds') OR (table_name = 'caribou_herd_vat') OR (table_name = 'caribou_herd_25');")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set script = 'clus\\R\\Params\\caribou_management_areas.Rmd' where (table_name = 'scenario_central_grp_proposed_luo') OR (table_name = 'scenario_central_grp_proposed_luo_buffer_vat') OR (table_name = 'scenario_central_grp_proposed_luo_matrix_vat') OR (table_name = 'scenario_central_grp_proposed_luo_vat') OR (table_name = 'zone_scenario_central_grp_proposed_luo') OR (table_name = 'zone_scenario_central_grp_proposed_luo_buffer') OR (table_name = 'zone_scenario_central_grp_proposed_luo_matrix') OR (table_name = 'central_grp_proposed_luo') OR (table_name = 'central_grp_proposed_luo_buffer') OR (table_name = 'central_grp_proposed_luo_matrix') OR (table_name = 'zone_cond_partnership_agreement');")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set script = 'clus\\R\\Params\\caribou_management_areas.Rmd' where (table_name = 'mtn_caribou_pa_jan_2020') OR (table_name = 'partnership_agreement_vat') OR (table_name = 'aoi_partnership_agree');")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```
 
