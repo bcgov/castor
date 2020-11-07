@@ -147,7 +147,9 @@ conn <- DBI::dbConnect(dbDriver("PostgreSQL"),
                        port='5432' ,
                        user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
                        password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-dbExecute (conn, # update to refer to amalgamated caribou Param scripts
+
+# updates to refer to amalgamated caribou Param scripts
+dbExecute (conn, 
            "UPDATE public.pgdbs_data_list SET script = 'clus\\R\\Params\\caribou_management_areas.Rmd' WHERE (table_name = 'caribou_herd') OR (table_name = 'bc_carib_poly_20090904') OR (table_name = 'bc_caribou_herd_boundary_v20200507') OR (table_name = 'du6_bounds') OR (table_name = 'du7_bounds') OR (table_name = 'du8_bounds') OR (table_name = 'du9_bounds') OR (table_name = 'caribou_herd_vat') OR (table_name = 'caribou_herd_25');")
 dbExecute (conn, 
            "UPDATE public.pgdbs_data_list set script = 'clus\\R\\Params\\caribou_management_areas.Rmd' where (table_name = 'scenario_central_grp_proposed_luo') OR (table_name = 'scenario_central_grp_proposed_luo_buffer_vat') OR (table_name = 'scenario_central_grp_proposed_luo_matrix_vat') OR (table_name = 'scenario_central_grp_proposed_luo_vat') OR (table_name = 'zone_scenario_central_grp_proposed_luo') OR (table_name = 'zone_scenario_central_grp_proposed_luo_buffer') OR (table_name = 'zone_scenario_central_grp_proposed_luo_matrix') OR (table_name = 'central_grp_proposed_luo') OR (table_name = 'central_grp_proposed_luo_buffer') OR (table_name = 'central_grp_proposed_luo_matrix') OR (table_name = 'zone_cond_partnership_agreement');")
@@ -156,13 +158,98 @@ dbExecute (conn,
 
 
 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set script = 'clus\\R\\Params\\caribou_management_areas.Rmd' where (table_name = 'criticalhabitat_bc_vat') OR (table_name = 'crithab') OR (table_name = 'criticalhabitat_barkerville_vat') OR (table_name = 'criticalhabitat_barkerville_vat') OR (table_name = 'criticalhabitat_burnt_pine_vat') OR (table_name = 'criticalhabitat_central_rockies_vat') OR (table_name = 'criticalhabitat_central_selkirks_vat') OR (table_name = 'criticalhabitat_charlotte_alplands_vat') OR (table_name = 'criticalhabitat_columbia_north_vat') OR (table_name = 'criticalhabitat_columbia_south_vat') OR (table_name = 'criticalhabitat_frisby_boulder_vat') OR (table_name = 'criticalhabitat_graham_vat') OR (table_name = 'criticalhabitat_groundhog_vat') OR (table_name = 'criticalhabitat_hart_ranges_vat') OR (table_name = 'criticalhabitat_itcha_ilgachuz_vat') OR (table_name = 'criticalhabitat_itchas_vat') OR (table_name = 'criticalhabitat_kennedy_siding_vat') OR (table_name = 'criticalhabitat_moberly_vat') OR (table_name = 'criticalhabitat_monashee_vat') OR (table_name = 'criticalhabitat_narraway_vat') OR (table_name = 'criticalhabitat_narrow_lake_vat') OR (table_name = 'criticalhabitat_north_cariboo_vat') OR (table_name = 'criticalhabitat_purcell_central_vat') OR (table_name = 'criticalhabitat_purcells_south_vat') OR (table_name = 'criticalhabitat_quintette_vat') OR (table_name = 'criticalhabitat_rainbows_vat') OR (table_name = 'criticalhabitat_redrock_prairie_creek_vat') OR (table_name = 'criticalhabitat_south_selkirks_vat') OR (table_name = 'criticalhabitat_telkwa_vat') OR (table_name = 'criticalhabitat_wells_gray_north_vat') OR (table_name = 'criticalhabitat_wells_gray_south_vat') OR (table_name = 'zone_cond_eccc_barkerville_crithab') OR (table_name = 'zone_cond_eccc_burnt_pine_crithab')
+OR (table_name = 'zone_cond_eccc_central_rockies_crithab') OR (table_name = 'zone_cond_eccc_central_selkirks_crithab') OR (table_name = 'zone_cond_eccc_charlotte_alplands_crithab') OR (table_name = 'zone_cond_eccc_columbia_north_crithab') OR (table_name =  'zone_cond_eccc_columbia_south_crithab') OR (table_name = 'zone_cond_eccc_frisby_boulder_crithab') OR (table_name = 'zone_cond_eccc_graham_crithab')
+OR (table_name = 'zone_cond_eccc_groundhog_crithab') OR (table_name = 'zone_cond_eccc_hart_ranges_crithab') OR (table_name = 'zone_cond_eccc_itcha_ilgachuz_crithab') OR (table_name = 'zone_cond_eccc_kennedy_siding_crithab') OR (table_name = 'zone_cond_eccc_moberly_crithab')
+OR (table_name = 'zone_cond_eccc_monashee_crithab') OR (table_name = 'zone_cond_eccc_narraway_crithab') OR (table_name = 'zone_cond_eccc_narrow_lake_crithab')
+OR (table_name = 'zone_cond_eccc_north_cariboo_crithab') OR (table_name = 'zone_cond_eccc_purcell_central_crithab') OR (table_name = 'zone_cond_eccc_purcells_south_crithab') OR (table_name = 'zone_cond_eccc_quintette_crithab') OR (table_name = 'zone_cond_eccc_rainbows_crithab') OR (table_name = 'zone_cond_eccc_redrock_prairie_creek_crithab') OR (table_name = 'zone_cond_eccc_south_selkirks_crithab') OR (table_name = 'zone_cond_eccc_telkwa_crithab') OR (table_name = 'zone_cond_eccc_wells_gray_north_crithab') OR (table_name = 'zone_cond_eccc_wells_gray_south_crithab') OR (table_name = 'zone_eccc_barkerville_crithab')
+OR (table_name = 'zone_eccc_burnt_pine_crithab') OR (table_name = 'zone_eccc_central_rockies_crithab') OR (table_name = 'zone_eccc_central_selkirks_crithab')
+OR (table_name = 'zone_eccc_charlotte_alplands_crithab') OR (table_name = 'zone_eccc_columbia_north_crithab') OR (table_name = 'zone_eccc_columbia_south_crithab')
+OR (table_name = 'zone_eccc_frisby_boulder_crithab') OR (table_name = 'zone_eccc_graham_crithab') OR (table_name = 'zone_eccc_groundhog_crithab') OR (table_name = 'zone_eccc_hart_ranges_crithab') OR (table_name = 'zone_eccc_itcha_ilgachuz_crithab')
+OR (table_name = 'zone_eccc_kennedy_siding_crithab') OR (table_name = 'zone_eccc_moberly_crithab') OR (table_name = 'zone_eccc_monashee_crithab') OR (table_name = 'zone_eccc_narraway_crithab') OR (table_name = 'zone_eccc_narrow_lake_crithab') OR (table_name = 'zone_eccc_north_cariboo_crithab') OR (table_name =  'zone_eccc_purcell_central_crithab') OR (table_name = 'zone_eccc_purcells_south_crithab') OR (table_name = 'zone_eccc_quintette_crithab') OR (table_name = 'zone_eccc_rainbows_crithab')
+OR (table_name = 'zone_eccc_redrock_prairie_creek_crithab') OR (table_name = 'zone_eccc_south_selkirks_crithab') OR (table_name = 'zone_eccc_telkwa_crithab') OR (table_name = 'zone_eccc_wells_gray_north_crithab') OR (table_name = 'zone_eccc_wells_gray_south_crithab') OR (table_name = 'zone_cond_bc_barkerville_crithab')
+OR (table_name = 'zone_cond_bc_burnt_pine_crithab') OR (table_name = 'zone_cond_bc_central_rockies_crithab') OR (table_name = 'zone_cond_bc_central_selkirks_crithab') OR (table_name = 'zone_cond_bc_charlotte_alplands_crithab') OR (table_name = 'zone_cond_bc_columbia_north_crithab') OR (table_name = 'zone_cond_bc_columbia_south_crithab') OR (table_name = 'zone_cond_bc_crithab') OR (table_name = 'zone_cond_bc_frisby_boulder_crithab') OR (table_name = 'zone_cond_bc_graham_crithab') OR (table_name = 'zone_cond_bc_groundhog_crithab') OR (table_name = 'zone_cond_bc_hart_ranges_crithab') OR (table_name = 'zone_cond_bc_itcha_ilgachuz_crithab') OR (table_name = 'zone_cond_bc_kennedy_siding_crithab') OR (table_name = 'zone_cond_bc_moberly_crithab') OR (table_name = 'zone_cond_bc_monashee_crithab') OR (table_name = 'zone_cond_bc_narraway_crithab') OR (table_name = 'zone_cond_bc_narrow_lake_crithab') OR (table_name = 'zone_cond_bc_north_cariboo_crithab') OR (table_name = 'zone_cond_bc_purcell_central_crithab') OR (table_name = 'zone_cond_bc_purcells_south_crithab') OR (table_name = 'zone_cond_bc_quintette_crithab') OR (table_name = 'zone_cond_bc_rainbows_crithab') OR (table_name = 'zone_cond_bc_redrock_prairie_creek_crithab') OR (table_name = 'zone_cond_bc_south_selkirks_crithab') OR (table_name = 'zone_cond_bc_telkwa_crithab') OR (table_name = 'zone_cond_bc_wells_gray_north_crithab') OR (table_name = 'zone_cond_bc_wells_gray_south_crithab') OR (table_name = 'zone_bc_barkerville_crithab')
+OR (table_name = 'zone_bc_burnt_pine_crithab') OR (table_name = 'zone_bc_central_rockies_crithab') OR (table_name = 'zone_bc_charlotte_alplands_crithab')
+OR (table_name = 'zone_bc_columbia_north_crithab') OR (table_name = 'zone_bc_columbia_south_crithab') OR (table_name = 'zone_bc_crithab') OR (table_name = 'zone_bc_frisby_boulder_crithab') OR (table_name = 'zone_bc_graham_crithab') OR (table_name = 'zone_bc_groundhog_crithab') OR (table_name = 'zone_bc_hart_ranges_crithab') OR (table_name = 'zone_bc_itcha_ilgachuz_crithab') OR (table_name = 'zone_bc_kennedy_siding_crithab') OR (table_name = 'zone_bc_moberly_crithab') OR (table_name = 'zone_bc_monashee_crithab') OR (table_name = 'zone_bc_narraway_crithab') OR (table_name = 'zone_bc_narrow_lake_crithab') OR (table_name = 'zone_bc_north_cariboo_crithab') OR (table_name = 'zone_bc_purcell_central_crithab') OR (table_name = 'zone_bc_purcells_south_crithab') OR (table_name = 'zone_bc_quintette_crithab') OR (table_name = 'zone_bc_rainbows_crithab') OR (table_name = 'zone_bc_redrock_prairie_creek_crithab') OR (table_name = 'zone_bc_south_selkirks_crithab')
+OR (table_name = 'zone_bc_telkwa_crithab') OR (table_name = 'zone_bc_wells_gray_north_crithab') OR (table_name = 'zone_bc_wells_gray_south_crithab') OR (table_name = 'zone_bc_bounds_atlin_noharvest') OR (table_name = 'zone_bc_bounds_barkerville_noharvest') OR (table_name = 'zone_bc_bounds_burnt_pine_noharvest') OR (table_name = 'zone_bc_bounds_calendar_noharvest')
+OR (table_name = 'zone_bc_bounds_carcross_noharvest') OR (table_name = 'zone_bc_bounds_central_rockies_noharvest') OR (table_name = 'zone_bc_bounds_central_selkirks_noharvest') OR (table_name = 'zone_bc_bounds_charlotte_alplands_noharvest') OR (table_name = 'zone_bc_bounds_chase_noharvest') OR (table_name = 'zone_bc_bounds_chinchaga_noharvest') OR (table_name = 'zone_bc_bounds_columbia_north_noharvest') OR (table_name = 'zone_bc_bounds_columbia_south_noharvest') OR (table_name = 'zone_bc_bounds_edziza_noharvest') OR (table_name = 'zone_bc_bounds_finlay_noharvest') OR (table_name = 'zone_bc_bounds_frisby_boulder_noharvest') OR (table_name = 'zone_bc_bounds_frog_noharvest') OR (table_name = 'zone_bc_bounds_gataga_noharvest') OR (table_name = 'zone_bc_bounds_george_mountain_noharvest') OR (table_name = 'zone_bc_bounds_graham_noharvest') OR (table_name = 'zone_bc_bounds_groundhog_noharvest') OR (table_name = 'zone_bc_bounds_hart_ranges_noharvest') OR (table_name = 'zone_bc_bounds_horseranch_noharvest') OR (table_name = 'zone_bc_bounds_itcha_ilgachuz_noharvest') OR (table_name = 'zone_bc_bounds_kennedy_siding_noharvest') OR (table_name = 'zone_bc_bounds_level_kawdy_noharvest') OR (table_name = 'zone_bc_bounds_liard_plateau_noharvest') OR (table_name = 'zone_bc_bounds_little_rancheria_noharvest') OR (table_name = 'zone_bc_bounds_maxhamish_noharvest') OR (table_name = 'zone_bc_bounds_moberly_noharvest') OR (table_name = 'zone_bc_bounds_monashee_noharvest') OR (table_name = 'zone_bc_bounds_muskwa_noharvest') OR (table_name = 'zone_bc_bounds_narraway_noharvest') OR (table_name = 'zone_bc_bounds_narrow_lake_noharvest') OR (table_name = 'zone_bc_bounds_north_cariboo_noharvest') OR (table_name = 'zone_bc_bounds_pink_mountain_noharvest') OR (table_name = 'zone_bc_bounds_purcell_central_noharvest') OR (table_name = 'zone_bc_bounds_purcells_south_noharvest') OR (table_name = 'zone_bc_bounds_quintette_noharvest') OR (table_name = 'zone_bc_bounds_rabbit_noharvest') OR (table_name = 'zone_bc_bounds_rainbows_noharvest') OR (table_name = 'zone_bc_bounds_redrock_prairie_creek_noharvest') OR (table_name = 'zone_bc_bounds_scott_noharvest') OR (table_name = 'zone_bc_bounds_snake_sahtaneh_noharvest') OR (table_name = 'zone_bc_bounds_south_selkirks_noharvest') OR (table_name = 'zone_bc_bounds_spatsizi_noharvest') OR (table_name = 'zone_bc_bounds_swan_lake_noharvest') OR (table_name = 'zone_bc_bounds_takla_noharvest') OR (table_name = 'zone_bc_bounds_telkwa_noharvest') OR (table_name = 'zone_bc_bounds_thutade_noharvest') OR (table_name = 'zone_bc_bounds_tsenaglode_noharvest') OR (table_name = 'zone_bc_bounds_tweedsmuir_noharvest') OR (table_name = 'zone_bc_bounds_wells_gray_north_noharvest') OR (table_name = 'zone_bc_bounds_wells_gray_south_noharvest') OR (table_name = 'zone_bc_bounds_westside_fort_nelson_noharvest') OR (table_name = 'zone_bc_bounds_wolverine_noharvest') OR (table_name = 'zone_bc_bounds_atlin_nh') OR (table_name = 'zone_bc_bounds_barkerville_nh') OR (table_name = 'zone_bc_bounds_burnt_pine_nh') OR (table_name = 'zone_bc_bounds_calendar_nh') OR (table_name = 'zone_bc_bounds_carcross_nh') OR (table_name = 'zone_bc_bounds_central_rockies_nh') OR (table_name = 'zone_bc_bounds_central_selkirks_nh') OR (table_name = 'zone_bc_bounds_charlotte_alplands_nh') OR (table_name = 'zone_bc_bounds_chase_nh') OR (table_name = 'zone_bc_bounds_chinchaga_nh') OR (table_name = 'zone_bc_bounds_columbia_north_nh') OR (table_name = 'zone_bc_bounds_columbia_south_nh') OR (table_name = 'zone_bc_bounds_edziza_nh') OR (table_name = 'zone_bc_bounds_finlay_nh') OR (table_name = 'zone_bc_bounds_frisby_boulder_nh') OR (table_name = 'zone_bc_bounds_frog_nh')
+OR (table_name = 'zone_bc_bounds_gataga_nh') OR (table_name = 'zone_bc_bounds_george_mountain_nh') OR (table_name = 'zone_bc_bounds_graham_nh')
+OR (table_name = 'zone_bc_bounds_groundhog_nh') OR (table_name = 'zone_bc_bounds_hart_ranges_nh') OR (table_name = 'zone_bc_bounds_horseranch_nh') OR (table_name = 'zone_bc_bounds_itcha_ilgachuz_nh') OR (table_name = 'zone_bc_bounds_kennedy_siding_nh') OR (table_name = 'zone_bc_bounds_level_kawdy_nh')
+OR (table_name = 'zone_bc_bounds_liard_plateau_nh') OR (table_name = 'zone_bc_bounds_little_rancheria_nh') OR (table_name = 'zone_bc_bounds_maxhamish_nh') OR (table_name = 'zone_bc_bounds_moberly_nh') OR (table_name = 'zone_bc_bounds_monashee_nh')
+OR (table_name = 'zone_bc_bounds_muskwa_nh') OR (table_name = 'zone_bc_bounds_narraway_nh')
+OR (table_name = 'zone_bc_bounds_narrow_lake_nh') OR (table_name = 'zone_bc_bounds_north_cariboo_nh') OR (table_name = 'zone_bc_bounds_pink_mountain_nh')
+OR (table_name = 'zone_bc_bounds_pinkmountain_nh') OR (table_name = 'zone_bc_bounds_purcell_central_nh') OR (table_name = 'zone_bc_bounds_purcells_south_nh')
+OR (table_name = 'zone_bc_bounds_quintette_nh') OR (table_name = 'zone_bc_bounds_rabbit_nh')
+OR (table_name = 'zone_bc_bounds_rainbows_nh') OR (table_name = 'zone_bc_bounds_redrock_prairie_creek_nh') OR (table_name = 'zone_bc_bounds_scott_nh')
+OR (table_name = 'zone_bc_bounds_snake_sahtaneh_nh') OR (table_name = 'zone_bc_bounds_south_selkirks_nh') OR (table_name = 'zone_bc_bounds_spatsizi_nh') OR (table_name = 'zone_bc_bounds_swan_lake_nh') OR (table_name = 'zone_bc_bounds_takla_nh')
+OR (table_name = 'zone_bc_bounds_telkwa_nh') OR (table_name = 'zone_bc_bounds_thutade_nh')
+OR (table_name = 'zone_bc_bounds_tsenaglode_nh') OR (table_name = 'zone_bc_bounds_tweedsmuir_nh') OR (table_name = 'zone_bc_bounds_wells_gray_north_nh')
+OR (table_name = 'zone_bc_bounds_wells_gray_south_nh') OR (table_name = 'zone_bc_bounds_westside_fort_nelson_nh') OR (table_name = 'zone_bc_bounds_wolverine_nh');")
 
 
 
 
 
+OR (table_name = '')
+OR (table_name = '')
+OR (table_name = '')
+OR (table_name = '')
 
-
+zone_nh_crit_barkerville_crithab
+zone_nh_crit_burnt_pine_crithab
+zone_nh_crit_central_rockies_crithab
+zone_nh_crit_central_selkirks_crithab
+zone_nh_crit_charlotte_alplands_crithab
+zone_nh_crit_columbia_north_crithab
+zone_nh_crit_columbia_south_crithab
+zone_nh_crit_frisby_boulder_crithab
+zone_nh_crit_graham_crithab
+zone_nh_crit_groundhog_crithab
+zone_nh_crit_hart_ranges_crithab
+zone_nh_crit_itcha_ilgachuz_crithab
+zone_nh_crit_kennedy_siding_crithab
+zone_nh_crit_moberly_crithab
+zone_nh_crit_monashee_crithab
+zone_nh_crit_narraway_crithab
+zone_nh_crit_narrow_lake_crithab
+zone_nh_crit_north_cariboo_crithab
+zone_nh_crit_purcell_central_crithab
+zone_nh_crit_purcells_south_crithab
+zone_nh_crit_quintette_crithab
+zone_nh_crit_rainbows_crithab
+zone_nh_crit_redrock_prairie_creek_crithab
+zone_nh_crit_south_selkirks_crithab
+zone_nh_crit_telkwa_crithab
+zone_nh_crit_wells_gray_north_crithab
+zone_nh_crit_wells_gray_south_crithab
+zone_cond_nh_crit_barkerville_crithab
+zone_cond_nh_crit_burnt_pine_crithab
+zone_cond_nh_crit_central_rockies_crithab
+zone_cond_nh_crit_central_selkirks_crithab
+zone_cond_nh_crit_charlotte_alplands_crithab
+zone_cond_nh_crit_columbia_north_crithab
+zone_cond_nh_crit_columbia_south_crithab
+zone_cond_nh_crit_frisby_boulder_crithab
+zone_cond_nh_crit_graham_crithab
+zone_cond_nh_crit_groundhog_crithab
+zone_cond_nh_crit_hart_ranges_crithab
+zone_cond_nh_crit_itcha_ilgachuz_crithab
+zone_cond_nh_crit_kennedy_siding_crithab
+zone_cond_nh_crit_moberly_crithab
+zone_cond_nh_crit_monashee_crithab
+zone_cond_nh_crit_narraway_crithab
+zone_cond_nh_crit_narrow_lake_crithab
+zone_cond_nh_crit_north_cariboo_crithab
+zone_cond_nh_crit_purcell_central_crithab
+zone_cond_nh_crit_purcells_south_crithab
+zone_cond_nh_crit_quintette_crithab
+zone_cond_nh_crit_rainbows_crithab
+zone_cond_nh_crit_redrock_prairie_creek_crithab
+zone_cond_nh_crit_south_selkirks_crithab
+zone_cond_nh_crit_telkwa_crithab
+zone_cond_nh_crit_wells_gray_north_crithab
+zone_cond_nh_crit_wells_gray_south_crithab
 
 
 

@@ -70,32 +70,19 @@ Caribou critical habitat has not been defined for all caribou herds in BC. There
 
 ### Caribou Critical Habitat 
 #### British Columbia Boundaries
-Critical habitat boudnaries were defined by provincial caribou biologists. They are currently (as of November 2020) in *Draft* from, and have been deemed 'not for distribution' to the public. The data used here was obtained from Nicola Dodd, Knowledge Management Branch, Ministry of Environment and Climate Change Strategy (i.e., the data custodians). Updates are expected periodically over the next few months. 
+BC's critical habitat boudnaries were defined by provincial caribou biologists in 2020. They are currently (as of November 2020) in *Draft* from, and have been deemed 'not for distribution' to the public. The data used here was obtained from Nicola Dodd, Knowledge Management Branch, Ministry of Environment and Climate Change Strategy (i.e., the data custodians). Updates are expected periodically over the next few months. 
 
-#### British Columbia Caribou Critical Habitat Partial Harvest Constraint
-
-
-
-
-
-
-
-
-
-
-- below is for a scenario where  no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix in BC critical habitat
+##### British Columbia Caribou Critical Habitat Partial Harvest Constraint
+Below is a script to create rasters and constraint tables for BC critical habitat, where no 'disturbance' (i.e., no forest harvest) is applied to high elevation critical habitat types, 15% 'disturbance' (i.e., maximum 15% of area < 500 m from a forestry road or cutblock) is applied to low elevation habitat and 35% 'disturbance' (i.e., maximum 35% of area < 500 m from a forestry road or cutblock) is applied to matrix habitat.
 
 ```{r, scenario: bc critical habitat, no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix}
-# BC critical habitat 
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 #bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;") # old version
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # spatial critical habitat polygon data
-# ------- # NEEDS update to bc_critical_habitat_all_herds_20200615
-
-
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # 
+# NEEDS update to bc_critical_habitat_all_herds_20200615
 
 #all - create the raster for each herd and critical habitat type
 all.bc<-bc.crit
-
 all.bc$crithab<-paste(all.bc$herd_name, all.bc$bchab_code) # create unique id ("value") for each unique herd name and habitat type
 all.vat<-data.table(unique(all.bc$crithab))
 setnames(all.vat, "V1", "crithab")
@@ -106,7 +93,7 @@ dbDisconnect(conn)
 
 all.bc2<-merge(all.bc, all.vat, by.x = "crithab",by.y = "crithab") # merge id with the polygon data
 
-ras.all.bc <-fasterize::fasterize(all.bc2, prov.rast, field = "value") # rasterzie the polygon data to the provicnal raster
+ras.all.bc <-fasterize::fasterize(all.bc2, prov.rast, field = "value") # rasterize the polygon data to the provicnal raster
 writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
@@ -195,14 +182,15 @@ for(herd in herds){ # create a table of the constraints for each herd
 
 }
 
-
 ```
 
+#### Canada Boundaries
+Canada's critical habitat boundaries were defined ca. 2019. These have not been released publically and are *Draft*. Thus, these data should not shared publicly. Geenrally these data should not be used in scenarios unless there is an explicit need to consider how Canada spatially defines critical habitat.
 
-#### Scenario 2
-- below is for a scenario where there is no harvest in any BC critical habitat
+##### Canada Caribou Critical Habitat No Harvest Constraint
+Below is a script to create rasters and constraint tables for Canada critical habitat, where no 'disturbance' (i.e., no forest harvest) is applied to all critical habitat types.
 
-```{r, scenario: bc critical habitat, no harvest}
+```{r, scenario: Canada critical habitat, no harvest}
 #Canadian (Federal) contraints
 bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
 
@@ -233,12 +221,16 @@ DBI::dbWriteTable(conn, c("public", paste0("zone_nh_crit_",tolower(herd),"_crith
 }
 ```
 
-#### Scenario 3
-- below is for a scenario where there is no harvest BC herd boundaries
+### Caribou Herd Boundaries
+Below are scripts to create rasters and constraint tables for caribou herd boundaries.
+
+#### Caribou Herd Boundaries No Harvest Constraint
+Below is a script to create rasters and constraint tables for BC caribou herd boundaries, where no 'disturbance' (i.e., no forest harvest) is applied within those boundaries.
 
 ```{r, scenario: bc herd boundaries, no harvest}
+bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_herd_boundary_v20200507;") 
+# NEEDS update to bc_critical_habitat_all_herds_20200615
 
-bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_herd_boundary_v20200507;") # data from caribou prorgam; uploaded into postgres via ogr2ogr
 herds <- c(unique (bc.bounds$herd_name))
 
 for (herd in herds){
@@ -281,6 +273,20 @@ system ("cmd.exe",
 
 }
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #### Scenario 4
 - below is for a scenario that combines herds with and without critical habitat data
