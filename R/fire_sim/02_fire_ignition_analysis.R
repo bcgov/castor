@@ -53,6 +53,17 @@ fire_ignitions <- sf::st_read  (dsn = conn, # connKyle
 dbDisconnect (conn) # connKyle
 
 fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column for dataset
+
+# look at histogram of when fires were ignited per year
+fire_ignitions1$month<- substring(fire_ignitions1$ign_date, 5, 6)
+fire_ignitions1_new<- fire_ignitions1 %>%
+  filter(fire_cause!="Person") 
+fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
+
+hist(fire_ignitions1_new$month) # most fires appear to occur between May - Sept!
+
+
+
 fire_ignitions2 <- fire_ignitions1 %>%
   dplyr::select(fire_no, fire_year, fire_cause) %>%
   rename(id1=fire_no,
@@ -99,7 +110,7 @@ pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\MDC08_allYears_
 print(p2)
 dev.off()
 
-p <- ggplot(ignition_pres_abs1, aes(mdc_09, as.numeric(pttype))) +
+p <- ggplot(ignition_pres_abs1, aes(mdc_08, as.numeric(pttype))) +
   stat_smooth(method="glm", formula=y~x,
               alpha=0.2, size=2) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -351,12 +362,12 @@ ignition_pres_abs3 <-ignition_pres_abs1 %>%
   filter(bclcs_level_2!=" ")
 
 #Creating new variable of vegetation type and a description of how open the vegetation is
-# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, TC = tall shrubs, D = disturbed, O = open
+# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open
 ignition_pres_abs3$bclcs_level_4<- as.factor(ignition_pres_abs3$bclcs_level_4)
 ignition_pres_abs3$bclcs_level_5<- as.factor(ignition_pres_abs3$bclcs_level_5)
 ignition_pres_abs3$proj_age_1<- as.numeric(ignition_pres_abs3$proj_age_1)
 
-ignition_pres_abs3$vegtype<-"0"
+ignition_pres_abs3$vegtype<-"OP"
 ignition_pres_abs3 <- ignition_pres_abs3 %>%
   mutate(vegtype = if_else(bclcs_level_4=="TC","TC",
                        if_else(bclcs_level_4=="TM", "TM",
@@ -379,6 +390,50 @@ table(ignition_pres_abs3$veg_openess)
 
 # whats the relationship between vegetation type and probabilty of ignition
 
+# plot lines of probability of ignition versus maximum temperature in August with different colours for each year, according to each vegetation type.
+
+p <- ggplot(ignition_pres_abs3, aes(tmax08, as.numeric(pttype), color=year)) +
+  stat_smooth(method="loess", formula=y~x,
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Maximum Temperature in August") + ylab("Pr (ignition)")
+
+p2 <- p + facet_wrap(~ vegtype, nrow=3)
+
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax08_allYears_by_vegType_loess.pdf")
+print(p2)
+dev.off()
+
+# same plot as above but for precipitation
+p <- ggplot(ignition_pres_abs3, aes(allppt08, as.numeric(pttype), color=year)) +
+  stat_smooth(method="loess", formula=y~x,
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.01, width=0)) +
+  xlab("Total precipitation in August") + ylab("Pr (ignition)")
+
+p2 <- p + facet_wrap(~ vegtype, nrow=3)
+
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\ppt08_allYears_by_vegType_loess.pdf")
+print(p2)
+dev.off()
+
+# Whats the impact of vegetation density?
+x<- ignition_pres_abs3 %>%
+  drop_na(veg_openess) %>%
+  filter(veg_openess!="NA")
+
+p <- ggplot(x, aes(tmax08, as.numeric(pttype), color=year)) +
+  stat_smooth(method="loess", formula=y~x,
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Maximum Temperature in August") + ylab("Pr (ignition)")
+
+p2 <- p + facet_wrap(~ veg_openess, nrow=3)
+
+pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax08_allYears_by_vegOpenenss_loess.pdf")
+print(p2)
+dev.off()
+
 p1<-ggplot (ignition_pres_abs3, aes (x = as.factor(pttype), y = tmax08)) +
   geom_boxplot (outlier.colour = "red") +
   labs (x = "Probability of ignition",
@@ -387,23 +442,74 @@ p1<-ggplot (ignition_pres_abs3, aes (x = as.factor(pttype), y = tmax08)) +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))
 
+# what happens is if I bin rainfall
+names(ignition_pres_abs3)
+
+tags <- c("(0 - 43)", "(43-57)", "(57 - 1428)")
+
+v <- ignition_pres_abs3 %>% 
+  mutate(precip_class = case_when(
+    allppt08 < 43 ~ tags[1],
+    allppt08 >= 43 & allppt08 < 57 ~ tags[2],
+    allppt08 >=57 ~ tags[3]))
+v$precip_class <- factor(v$precip_class,
+                     levels = tags,
+                     ordered = FALSE)
+summary(v$precip_class)
+
+
+# Observations from plots. It does not look like including vegetation density has much impact. So ill leave it out of the model. the other think I observe is that Open landscapes and landscapes with short shrubs seem to respond in much the same way to the probability of ignition so Im going to lump those two categories as well.
+ignition_pres_abs3$vegtype<-as.character(ignition_pres_abs3$vegtype)
+
+ignition_pres_abs3 <- ignition_pres_abs3 %>%
+  mutate(vegtype2=if_else(vegtype=="SL", "OP", vegtype))
+table(ignition_pres_abs3$vegtype)
+table(ignition_pres_abs3$vegtype2)
+
+
+
+
 # How many NA's are there and remove them.
 sum(is.na(ignition_pres_abs3$vegtype))
 ignition_pres_abs3<- ignition_pres_abs3 %>% drop_na(vegtype)
 
+ignition_pres_abs3<- st_set_geometry(ignition_pres_abs3, NULL)
+ignition_pres_abs3$vegtype <-as.factor(ignition_pres_abs3$vegtype)
+ignition_pres_abs3$veg_openess <-as.factor(ignition_pres_abs3$veg_openess)
+ignition_pres_abs3$year<-as.factor(ignition_pres_abs3$year)
+str(levels(ignition_pres_abs3$year))
+
 # now run the model on this dataset
+library(mgcv)
 
-model4 <- glmer (pttype ~ tmax08 + 
-                   allppt08 + 
-                   vegtype +
-                   veg_openess +
-                   tmax08:vegtype +
-                   1|year,
+system.time({model4 <- bam (pttype ~ tmax08 + 
+                              allppt08 +
+                              tmax08:allppt08 +
+                              vegtype2 +
+                              s(year, bs="re") +
+                              s(vegtype2, year, bs="re"),
+                            data= ignition_pres_abs3,
+                            family = binomial,
+                            na.action=na.omit,
+                            discrete = TRUE)
+})
+
+
+system.time({model5 <- bam (pttype ~ tmax08 + 
+                 allppt08 +
+                 tmax08:allppt08 +
+                 vegtype +
+                 veg_openess +
+                 vegtype:veg_openess +
+                 tmax08:vegtype +
+                 allppt08:vegtype +
+                 s(year, bs="re") + 
+                 s(tmax08, year, bs="re"),
                  data= ignition_pres_abs3,
-                 family = binomial (link = "logit"), 
-                 nAGQ=0,
-                 verbose=TRUE,
-                 control=glmerControl(optimizer = "nloptwrap"))
+                 family = binomial,
+                 na.action=na.omit,
+               discrete = TRUE)
+})
 
-summary(model4)
+summary(model5)
 
