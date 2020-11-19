@@ -185,7 +185,7 @@ for(herd in herds){ # create a table of the constraints for each herd
 ```
 
 #### Canada Boundaries
-Canada's critical habitat boundaries were defined ca. 2019. These have not been released publically and are *Draft*. Thus, these data should not shared publicly. Geenrally these data should not be used in scenarios unless there is an explicit need to consider how Canada spatially defines critical habitat.
+Canada's critical habitat boundaries were defined ca. 2019. These have not been released publically and are *Draft*. Thus, these data should not shared publicly. Generally, these data should not be used in scenarios unless there is an explicit need to consider how Canada spatially defines critical habitat. These data were obtained from the federal government via Nicola Dodd, Knowledge Management Branch, Ministry of Environment and Climate Change Strategy.
 
 ##### Canada Caribou Critical Habitat No Harvest Constraint
 Below is a script to create rasters and constraint tables for Canada critical habitat, where no 'disturbance' (i.e., no forest harvest) is applied to all critical habitat types.
