@@ -126,18 +126,18 @@ parameters <- list(
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
-                                           # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
-                                           # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
+                                           # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"),
-                                           # "rast.zone_cond_eccc_barkerville_crithab_or_herd",
-                                            "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
+                                           # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"
+                                           # "rast.zone_cond_eccc_barkerville_crithab_or_herd"
+                                           # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
                                            # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
                                            # "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
                                            # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
-                                           # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
+                                            "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
                                            ),
                                            
                                            
@@ -214,9 +214,22 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit. Adjacency was set to 3m.")
 # scenario = data.table (name = "quesnel_chil_notweeds_nh",
 #                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+# scenario = data.table (name = "quesnel_chil_notweeds_ch_hele0d_m15d",
+#                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "quesnel_north_cariboo_nh",
+#                        description = "No harvest in North Cariboo critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+# scenario = data.table (name = "quesnel_narrow_lake_nh",
+#                        description = "No harvest in Narrow Lake critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+# scenario = data.table (name = "quesnel_barkerville_nh",
+#                        description = "No harvest in Barkerville critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+# scenario = data.table (name = "quesnel_barkerville_ch_hele0d_m15d",
+#                        description = "No harvest in Barkerville high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Barkerville matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "quesnel_wells_north_nh",
+#                        description = "No harvest in Wells Gray North critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
 
-scenario = data.table (name = "quesnel_chil_notweeds_ch_hele0d_m15d",
-                       description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
+scenario = data.table (name = "quesnel_wells_north_ch_hele0d_m15d",
+                       description = "No harvest in Wells Gray North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray North matrix critical habitat. Adjacency was set to 3m.")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', # yes this is the true value that was used in Morice for modelling AAC

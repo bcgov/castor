@@ -88,6 +88,23 @@ No harvest in Wells Gray S/Groundhog = rast.zone_cond_noharvest_wells_gray_south
 
 ECCC in Wells Gray S/Groundhog = rast.zone_cond_eccc_wells_gray_south_crithab_or_herd
 
+#UPDATE SCENARIO
+```{r, zone_update}
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Robson_Valley_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+#STEP 3: Update the constraints available to a zone as specified in the scenario
+dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where (reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd') AND (variable = 'dist')") 
+
+#dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
+#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
+
+#STEP 4: Remove the connection to the database
+dbDisconnect(clusdb)
+```
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -137,17 +154,17 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
-                                             # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                             # "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
+                                             #  "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd"
                                              # "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
-                                             # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
                                              # "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd"
                                              
-                                             "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                             "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd",
-                                             "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
-                                             "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
-                                             "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd"
+                                             # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                              "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
+                                             # "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
+                                             #  "rast.zone_cond_eccc_north_cariboo_crithab_or_herd"
+                                             # "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -226,8 +243,22 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Wells Gray South/Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray South/Groundhog matrix critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "robson_all_nh",
 #                        description = "No harvest in all critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m.")
-scenario = data.table (name = "robson_all_ch_he0d_m15d",
-                       description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap the TSA. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_all_ch_he0d_m15d",
+#                        description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap the TSA. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_north_cariboo_nh",
+#                        description = "No harvest in North Cariboo critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_north_cariboo_he0d_m15d",
+#                        description = "No harvest in North Cariboo high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in North Cariboo matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_columbia_north_nh",
+#                        description = "No harvest in Columbia North critical habitat o. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_columbia_north_he0d_m15d",
+#                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_wells_gray_south_nh",
+#                        description = "No harvest in Wells Gray South critical habitat. Adjacency was set to 3m.")
+
+scenario = data.table (name = "robson_wells_gray_south_he0d_m15d",
+                       description = "No harvest in Wells Gray South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray South matrix critical habitat. Adjacency was set to 3m.")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Robson_Valley_TSA",
                                          partition = ' vol > 150 ', 

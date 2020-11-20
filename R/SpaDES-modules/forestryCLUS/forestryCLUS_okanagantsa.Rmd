@@ -120,12 +120,13 @@ parameters <- list(
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
-                                           # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
+                                            "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_monashee_crithab_or_herd"),
-                                           "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                           "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd",
-                                           "rast.zone_cond_eccc_monashee_crithab_or_herd"),
+                                           # "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_monashee_crithab_or_herd"
+                                           ),
                                            # 
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -196,8 +197,13 @@ modules <- list("dataLoaderCLUS",
 #                         description = "No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "okanagan_all_nh",
 #                         description = "No harvest in all critical habitat of all herds that overlap with the harvest unit.")
-scenario = data.table (name = "okanagan_all_ch_he0d_m15d",
-                        description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit.")
+# scenario = data.table (name = "okanagan_all_ch_he0d_m15d",
+#                         description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit.")
+
+scenario = data.table (name = "okanagan_columbia_north_nh",
+                        description = "No harvest in all Columbia North critical habitat. Adjacency was set to 3m.")
+
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Okanagan_TSA",
                                      partition = ' vol > 150 ', 
