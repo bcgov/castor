@@ -38,41 +38,41 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# Invermere TSA Scenarios
+# TFL 53 Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Purcell Central caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (includign matrix); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in Inveremere these include Purcell Central HEWSR and matrix
+no harvest in Narrow Lake caribou critical habtiat; to support Narrow Lake herd planning, we run a sceanrio with no harvest in the Narrow Lake HEWSR and Matrix; assesses the potential maximum impact of protecting Narrow Lake only
 
-'ECCC' in Purcell Central caribou critical habtait areas; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high adn low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
+ECCC in Narrow Lake caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Narrow Lake only
 
-# Invermere TSA Parameters 
+# TFL 53 Parameters 
 
 ## New Caribou Constraints
+The TFL overlaps with critical habitat of the Narrow Lake caribou herd in DU9.
+
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest in Purcell Central herd = rast.zone_cond_noharvest_purcell_central_crithab_or_herd
+No harvest in Narrow Lake = rast.zone_cond_noharvest_narrow_lake_crithab_or_herd
 
-ECCC in all Purcell Central herd = rast.zone_cond_eccc_purcell_central_crithab_or_herd
+No harvest in Narrow Lake high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_narrow_lake_crithab_or_herd
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+- focus on minimizzing 'disturabnce; for cariobu, then older, higher volume stands
   - 'dist, age DESC, vol DESC' priortize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
       
-- harvest priorities in base case of AAC determiantion were: >50% pine stand first, then open forest stands in open range for ecosystem restoration purposes, and then harvest the oldest stands 
-
 ## 'harvestFlow'
-from June 2017 determination: AAC was 496,720m^3^/year until 2022 and 424,800m^3^/year thereafte; base case maintained a harvest of 447,158m^3^/year for 100 years, amd could be sustained for a 250-year forecast
+from 2010 determination: AAC was 219,000 cubic metres
 
-- First, I tested a harvest flow of 475,000m^3^/year (2,375,000m^3^/5-year), then 400,000m^3^/year, then 350,000m^3^/year, 325,000m^3^/year, 335,000m^3^/year, 345,000m^3^/year, 340,000m^3^/year
+- First, I tested a harvest flow of 219,000m^3^/year; 210,000, 205,000; 
 
-- 340,000m^3^/year was used; coudl be maitnained except last time step (years 195-200)
+- 205,000 provided even flow
 
-- I used 150 m3/ha as minimum harvest volume, dta package used minimum age 60 for pine, 80 for everything else
+- I used 150 m3/ha as minimum harvest volume;  
 
-- For cutblock adjacency, I used 3 m adjacncey; this varied adn was not clear in data package
+- I used 3 m adjacency
 
 
 ```{r module_usage}
@@ -90,11 +90,11 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Invermere_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL53_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Invermere_TSA",
+                           nameBoundary = "TFL53",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -105,9 +105,10 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                           # "rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
-                                            "rast.zone_cond_eccc_purcell_central_crithab_or_herd"
-                                               ),
+                                               "rast.zone_cond_cw", 
+                                               # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd" 
+                                                "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
+                                              ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -145,7 +146,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'invermere_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'tfl53', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -169,22 +170,25 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "invermere_bau",
-#                        description = "Business-as-usual case; sustainable flow = 340,000m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "invermere_purcell_central_nh",
-                       # description = "No harvest in Purcell Central critical habitat. Adjacency was set to 3m. Harvest flow = 340,000m3/yr.")
-scenario = data.table (name = "invermere_purcell_central_ch_he0d_m15d",
-                       description = "No harvest in Purcell Central high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcell Central matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl53_bau",
+#                        description = "Business-as-usual (BAU); harvest flow 205,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl53_narrow_lake_nh",
+#                        description = "No harvest in Narrow Lake critical habitat; harvest flow 205,000 m3/yr. Adjacency was set to 3m.")
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Invermere_TSA",
-                                     partition = ' vol > 150 ', 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
-                                                1), 
-                                     flow = 1700000) #340,000m3/yr 
+scenario = data.table (name = "tfl53_narrow_lake_ch_he0d_m15d",
+                       description = "No harvest in Narrow Lake HEWSR, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat that overlap with the harvest unit; harvest flow 205,000 m3/yr. Adjacency was set to 3m.")
+
+
+harvestFlow <- rbindlist(list(data.table(compartment ="TFL53",
+                                         partition = ' vol > 150 ', 
+                                         year = rep( seq (from = 2018, 
+                                                          to = 2218, 
+                                                          by = 5),
+                                                    1), 
+                                         flow = 1025000) #205,000m3/yr 
 ))
+
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 
