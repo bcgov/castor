@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for TFL 56 Analyses Version 1.0"
+title: "Database creation for TFL 52 Analyses Version 1.0"
 author: "Tyler Muhly"
-date: "10 July 2020"
+date: "24 November 2020"
 output: pdf_document
 ---
 
@@ -22,9 +22,11 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for [Tree Farm Licence (TFL) 56](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/cascadia-tsahttps://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/56tf10ra.pdf). TFL 56 is held by the Revelstoke Community Forest Corporation and is located 40 kilometres north of Revelstoke. The TFL occupies a total area of 119,823 hectares, of which 59,855 is considered prodcutive forest/
+Here I set the parameters to create a database for [Tree Farm Licence (TFL) 52](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/52tfra_2019.pdf)). TFL 52 is located east of Quesnel, in the Cariboo region. The TFL occupies a total area of 261,468 hectares, of which 171,884 hectares is within the THLB. 
 
-On September 8, 2010, the  AAC for TFL 56 was set at 90 000 cubic metres,
+On June 17, 2019, the  AAC for TFL 52 was set at 592,500 cubic metres, of which 570,000 cubic metres was partitioned for conifer.
+
+The TFL overlaps with critical habitat of the North Cariboo, Narrow Lake	and Barkerville cariobu herds in DU9.
 
 # Usage
 Set parameters for creating the database in the code chunk below. 
@@ -51,7 +53,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = "TFL56",
+                         nameBoundary = "TFL52",
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -63,11 +65,9 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",                                  "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
-                                "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",
-                                "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                                 "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",                                   "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
+                                 "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",                                     "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
+                                 "rast.zone_cond_noharvest_barkerville_crithab_or_herd",                                     "rast.zone_cond_eccc_barkerville_crithab_or_herd"
                                           ), 
                          nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
@@ -89,7 +89,7 @@ parameters <-  list(
                       useLandingsArea = FALSE),
   roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network using a a minimum spanning tree to all potential 'ladndings (created in blockingCLUS)
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_all'# existign road network
+                  nameRoads =  'rast.crds_all'# existing road network
                   ),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
   #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
@@ -99,7 +99,7 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
-  uploaderCLUS = list(aoiName = 'tfl56',
+  uploaderCLUS = list(aoiName = 'tfl52',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -139,8 +139,9 @@ modules <- list("dataLoaderCLUS",
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                scenario = scenario, 
-                rsf_model_coeff = rsf_model_coeff)
+                #rsf_model_coeff = rsf_model_coeff,
+                scenario = scenario 
+                )
 
 inputs <- list()
 outputs <- list()

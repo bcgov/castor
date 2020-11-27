@@ -371,29 +371,19 @@ summary {
 </div>
 
 
-<p>The caribou and land use simulator (CLUS) has a specific framework for using datasets and parameters. For details on the framework, see the ‘Getting Started with CLUS’ documentation. Here we describe how to document and manage datasets used within this framework.</p>
-<div id="data-tracking-table" class="section level3">
-<h3>Data Tracking Table</h3>
-<p>Spatial and aspatial data and parameters used in CLUS are stored in postgres databases. We uploaded a data table called ‘pgdbs_data_list’ to the DC052586 CLUS postgres database that describes each table in the databases used by CLUS and CLUS applications. This table is intended to simplify CLUS users ability to understand the origin and appropriate end-use of datasets used in the CLUS model.</p>
-<pre class="r"><code>pgdbs_data_list &lt;- read.table (&quot;C:\\Work\\pgdbs_data_list.csv&quot;,
-                               header = T,
-                               sep = &quot;,&quot;) 
-conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
-                       host = keyring::key_get(&#39;dbhost&#39;, keyring = &#39;postgreSQL&#39;), 
-                       dbname = keyring::key_get(&#39;dbname&#39;, keyring = &#39;postgreSQL&#39;), 
-                       port=&#39;5432&#39; ,
-                       user=keyring::key_get(&#39;dbuser&#39;, keyring = &#39;postgreSQL&#39;) ,
-                       password= keyring::key_get(&#39;dbpass&#39;, keyring = &#39;postgreSQL&#39;))
-DBI::dbWriteTable(conn, c(&quot;public&quot;, &quot;pgdbs_data_list&quot;), 
-                  value = pgdbs_data_list, 
-                  row.names = FALSE, overwrite = TRUE)</code></pre>
-<p>The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique table in a postgres database. The <em>computer</em>, <em>database</em> and <em>schema</em> fields identify where the table is stored, and the <em>table_name</em> field identifies the name of the table in the database. The <em>type</em> field identifies whether the data table is one of three types: a simple ‘table’, spatial ‘polygon’ or ‘raster’. The <em>script</em> field identifies where in the CLUS repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus_manage_objs.Rmd<em>. The </em>source* field describes where the original data were obtained, and the <em>public</em> field describes whether the data can be shared with the public (‘Yes’) or must be kept internal and confidential (‘No’). The <em>last_updated</em> field documents the year the data was added to the database or last modified, and the <em>next_update</em> field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database the <em>next_update</em> field can be set to ‘NA’. When it is not clear when an update is needed but we anticipate that a dataset will be updated periodically the <em>next_update</em> field can be set to ‘as needed’. Finally, the <em>where_used</em> field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don’t want to delete it, the <em>where_used</em> field can be set to ‘archive’. If the data are no longer used anywhere, but you think it should be deleted the <em>where_used</em> field can be set to ‘deprecated’.</p>
+<p>Like any quantitative model, the caribou and land use simulator (CLUS) has a specific framework for how it uses datasets in the modeling platform. For details on this framework, see the <em>Getting Started with CLUS</em> documentation. Here we describe how to document those datasets that are developed and used within the CLUS model.</p>
+<div id="the-data-tracking-table" class="section level3">
+<h3>The Data Tracking Table</h3>
+<p>Spatial and aspatial data and parameters used in CLUS are stored in <a href="https://www.postgresql.org/">PostgreSQL databases</a>. We uploaded a data tracking table called ‘pgdbs_data_list’ to a CLUS PostgreSQL database that describes each ‘table’ (i.e., dataset) in each PostgreSQL database used by the CLUS model or CLUS web applications. This tracking table is intended to help CLUS users understand the origin, status and appropriate end-use of datasets in the CLUS model.</p>
+<p>The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique data ‘table’ in a PostgreSQL database. The <em>computer</em>, <em>database</em> and <em>schema</em> fields identify the location of the PostgreSQL database that the table is stored in, and the <em>table_name</em> field identifies the name of the table in the database. The <em>type</em> field identifies whether the data table is one of three types: an aspatial ‘table’, spatial ‘polygon’ or spatial ‘raster’. The <em>script</em> field identifies where in the CLUS script repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus_manage_objs.Rmd<em>. The </em>source* field describes in brief what the data is and where the original data were obtained, and the <em>public</em> field describes whether the data can be shared with the public (‘Yes’), or must be kept internal and confidential (‘No’). The <em>last_updated</em> field documents the year the data was added to the database or last modified, and the <em>next_update</em> field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database (e.g., a ‘static’ landscape dataset such as a digital elevation model) the <em>next_update</em> field can be set to ‘NA’. When it is not clear when an update is needed but we anticipate that a dataset will need to be updated at some point soon (e.g., the spatial boundaries of caribou population ranges) the <em>next_update</em> field can be set to ‘as needed’. Finally, the <em>where_used</em> field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don’t want to delete it, the <em>where_used</em> field can be set to ‘archive’ (adn teh data moved to teh archive schema of the database - see below). If the data are no longer used anywhere, but you think it should be deleted the <em>where_used</em> field can be set to ‘deprecated’ (see below).</p>
 </div>
 <div id="updating-the-tracking-table" class="section level3">
 <h3>Updating the Tracking Table</h3>
-<p>The data tracking table (pgdbs_data_list) should be updated whenever a new dataset is added or modified in the CLUS model. For example, if a new management area with a new management objective is defined and created in the database it should be documented by adding new row to the tracking table.</p>
+<p>The data tracking table (pgdbs_data_list) should be updated whenever a new dataset is added to or modified in the CLUS model or web applications. For example, if a new management area with a new management objective is defined and created in the database it should be documented by adding a new row to the tracking table.</p>
 <p>When adding new data that you anticipate will be updated on a annual basis, include the year it was uploaded to the end of the table name, e.g., ‘new_table_2020’. If you anticipate the data will be updated monthly, include the year and month at the end of the table name, e.g., ‘new_table_202011’.</p>
-<pre class="r"><code># load the existing data tracking table
+<pre class="r"><code># Example scipt to add new row to tracking table
+
+# load the existing data tracking table
 conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
                        host = keyring::key_get(&#39;dbhost&#39;, keyring = &#39;postgreSQL&#39;), 
                        dbname = keyring::key_get(&#39;dbname&#39;, keyring = &#39;postgreSQL&#39;), 
@@ -423,8 +413,9 @@ pgdbs_data_list_new &lt;- merge (pgdbs_data_list, new_data, all = T)
 DBI::dbWriteTable(conn, c(&quot;public&quot;, &quot;pgdbs_data_list&quot;), 
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)</code></pre>
-<p>If an existing dataset is updated in the database, it needs to be updated and documented in the tracking table (pgdbs_data_list).</p>
-<pre class="r"><code>(dbDriver(&quot;PostgreSQL&quot;), 
+<p>If an existing dataset is updated in the database, the <em>last_updated</em> and <em>next_update</em> fields needs to be updated and documented in the tracking table (pgdbs_data_list).</p>
+<pre class="r"><code># Example scipt to modify row in tracking table
+conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
                        host = keyring::key_get(&#39;dbhost&#39;, keyring = &#39;postgreSQL&#39;), 
                        dbname = keyring::key_get(&#39;dbname&#39;, keyring = &#39;postgreSQL&#39;), 
                        port=&#39;5432&#39; ,
@@ -437,7 +428,8 @@ dbExecute (conn,
 <div id="deleting-or-archiving-data" class="section level3">
 <h3>Deleting or Archiving Data</h3>
 <p>If data is no longer needed in the database it should be labelled as ‘deprecated’. This data should be kept in the database for one year, and re-evaluated on an annual basis. If the data is not needed after a year, it can be deleted or archived. If it is unlikely the data will be used in future analyses, delete it.</p>
-<pre class="r"><code>conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
+<pre class="r"><code># Example scipt to delete row in trackign table
+conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
                        host = keyring::key_get(&#39;dbhost&#39;, keyring = &#39;postgreSQL&#39;), 
                        dbname = keyring::key_get(&#39;dbname&#39;, keyring = &#39;postgreSQL&#39;), 
                        port=&#39;5432&#39; ,
@@ -450,8 +442,9 @@ dbExecute (conn,
 # delete row
 dbExecute (conn, 
            &quot;DELETE FROM public.pgdbs_data_list WHERE table_name = &#39;test&#39;;&quot;) # This example will delete the table called &#39;test&#39;</code></pre>
-<p>If data is no longer used, but there is a likely need to keep it for future analysis, it can be archived. In these cases, copy the table to the ‘archive’ schema in the database, and label the relevant row in the data tracking table as ‘archive’.</p>
-<pre class="r"><code>conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
+<p>If the data are no longer used, but there is some anticipated need to keep it for future analysis, it can be archived. In these cases, copy the table to the ‘archive’ schema in the database, and label the relevant row in the data tracking table as ‘archive’. Also, change the <em>schema</em> to ‘archive’.</p>
+<pre class="r"><code>#Example scipt to archive data
+conn &lt;- DBI::dbConnect(dbDriver(&quot;PostgreSQL&quot;), 
                        host = keyring::key_get(&#39;dbhost&#39;, keyring = &#39;postgreSQL&#39;), 
                        dbname = keyring::key_get(&#39;dbname&#39;, keyring = &#39;postgreSQL&#39;), 
                        port=&#39;5432&#39; ,
@@ -463,7 +456,16 @@ dbExecute (conn,
 
 # label data as &#39;archive&#39;
 dbExecute (conn, 
-           &quot;UPDATE public.pgdbs_data_list set where_used = &#39;archive&#39; where table_name = &#39;test&#39;;&quot;) # This example will set the table called &#39;test&#39; to the &#39;archive&#39; status</code></pre>
+           &quot;UPDATE public.pgdbs_data_list set where_used = &#39;archive&#39; where table_name = &#39;test&#39;;&quot;) # This example will set the table called &#39;test&#39; to the &#39;archive&#39; status
+
+# update the schema
+dbExecute (conn, 
+           &quot;UPDATE public.pgdbs_data_list set schema = &#39;archive&#39; where table_name = &#39;test&#39;;&quot;) # This example will set the schema to &#39;archive&#39; for the table called &#39;test&#39; </code></pre>
+</div>
+<div id="tracking-table-change-log" class="section level3">
+<h3>Tracking Table Change Log</h3>
+<p>Changes to the tracking table can be documented in the code chunk below. We can use this, and the orignal .csv (archived in <em>spatialfiles2.bcgov/archive/FOR/VIC/HTS/ANA/PROJECTS/CLUS/Data/pgdbs_data_list.csv</em>) to recreate the table in the event we lose the PostgreSQL database table.</p>
+<pre class="r"><code># Change Log</code></pre>
 </div>
 
 

@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for TFL 56 Analyses Version 1.0"
+title: "Database creation for Cranbrook TSA Analyses Version 1.0"
 author: "Tyler Muhly"
-date: "10 July 2020"
+date: "25 November 2020"
 output: pdf_document
 ---
 
@@ -22,9 +22,9 @@ output: pdf_document
 
 The dataloaderCLUS preps the database and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`.
 
-Here I set the parameters to create a database for [Tree Farm Licence (TFL) 56](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/cascadia-tsahttps://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/tree-farm-license/56tf10ra.pdf). TFL 56 is held by the Revelstoke Community Forest Corporation and is located 40 kilometres north of Revelstoke. The TFL occupies a total area of 119,823 hectares, of which 59,855 is considered prodcutive forest/
+Here I set the parameters to create a database for the [Cranbrook timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/cranbrook-tsa). 
 
-On September 8, 2010, the  AAC for TFL 56 was set at 90 000 cubic metres,
+The TSA is located in south-eastern corner of British Columbia, encompasses approximately 1.2 million hectares of land. It overlaps with the Purcell Central and Purcells South caribou herds (all in DU9). On August 24, 2017, the allowable annual cut was set at 808,000 cubic metres.
 
 # Usage
 Set parameters for creating the database in the code chunk below. 
@@ -49,73 +49,71 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
-                         nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
+                         nameBoundaryFile = "tsa_aac_bounds", 
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = "TFL56",
-                         nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
-                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
-                         nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
-                         nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
+                         nameBoundary = "Cranbrook_TSA", 
+                         nameBoundaryGeom = 'wkb_geometry', 
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", 
+                         nameCompartmentTable = "tsa_aac_bounds_vat", 
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', 
+                         nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
                                              "rast.zone_cond_uwr",
-                                             "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
-                                             "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 
-                                "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",                                  "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
-                                "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",
-                                "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                                          "rast.zone_cond_noharvest_purcell_central_crithab_or_herd",                                                "rast.zone_cond_noharvest_purcells_south_crithab_or_herd",
+                                          "rast.zone_cond_eccc_purcell_central_crithab_or_herd",
+                                          "rast.zone_cond_eccc_purcells_south_crithab_or_herd"
                                           ), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
-                         nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
-                         nameYieldTable = "yc_vdyp", # VDYP yield  table
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds
-                         nameYieldTransitionTable = "yc_tipsy", # table that transitions stands onto TIPSY yield curve once they are cut
-                         nameForestInventoryRaster = "rast.vri2018_id", # raster of the forest inventory 
-                         nameForestInventoryKey = "feature_id", # unique id of each polygon (stand) in the inventory 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018", # the invenotry data
-                         nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
-                         nameForestInventoryHeight = "proj_height_1", # name of the height column in the inventory data
-                         nameForestInventoryCrownClosure = "crown_closure", # name of the crown closure column in the inventory data
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameZoneTable = "zone_constraints", 
+                         nameYieldsRaster = "rast.ycid_vdyp", 
+                         nameYieldTable = "yc_vdyp", 
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2018_id", 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018", 
+                         nameForestInventoryAge = "proj_age_1", 
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
-  blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
-                      patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
+                      nameCutblockRaster ="rast.cns_cut_bl", 
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network using a a minimum spanning tree to all potential 'ladndings (created in blockingCLUS)
+  roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_all'# existign road network
+                  nameRoads =  'rast.crds_all'
                   ),
-  # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
+  # rsfCLUS = list (calculateInterval = 10, 
   #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
-  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
-                       nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
+  survivalCLUS = list (caribou_herd_density = 0.05, 
+                       nameRasCaribouHerd = "rast.caribou_herd",
                        tableCaribouHerd = "public.caribou_herd_vat"),
-  uploaderCLUS = list(aoiName = 'tfl56',
+  uploaderCLUS = list(aoiName = 'cranbrook_tsa',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
                                      keyring::key_get("vmdbname", keyring="postgreSQL"))),
-  yieldUncertaintyCLUS = list (elevationRaster = 'rast.dem'), # elevation parameter needed to estimate uncertainty
-  disturbanceCalcCLUS = list(calculateInterval = 5, # at what time interval to calculate disturbance
+  yieldUncertaintyCLUS = list (elevationRaster = 'rast.dem'), 
+  disturbanceCalcCLUS = list(calculateInterval = 5, 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
-                             permDisturbanceRaster = "rast.perm_dist_rds", # permanently disturbed features (never recover)
-                             recovery = 40) # time for roads adn cutblocks to 'recover' from disturbance
+                             permDisturbanceRaster = "rast.perm_dist_rds",
+                             recovery = 40)
   )
 
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 #rsf_model_coeff[, population := 'Tweedsmuir'] 
 
-scenario = data.table(name = "load_data", 
+scenario = data.table(name="load_data", 
                       description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
@@ -139,8 +137,9 @@ modules <- list("dataLoaderCLUS",
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                scenario = scenario, 
-                rsf_model_coeff = rsf_model_coeff)
+                #rsf_model_coeff = rsf_model_coeff,
+                scenario = scenario
+                )
 
 inputs <- list()
 outputs <- list()

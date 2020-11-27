@@ -106,11 +106,13 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
-                                               
-                                               # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                             "rast.zone_cond_noharvest_columbia_south_crithab_or_herd" 
-                                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                               "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
-                                               ),
+                                # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
+                                # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd" 
+                                # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                 "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
+                                # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
+                                # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -176,12 +178,20 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Business-as-usual (BAU); harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl56_colnsfb_nh",
 #                        description = "No harvest in Columbia North and Columbia South critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
-scenario = data.table (name = "tfl56_colnsfb_ch_he0d_m15d",
-                       description = "No harvest in Columbia North and Columbia South HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
-
-
-# No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat	
-
+# scenario = data.table (name = "tfl56_colnsfb_ch_he0d_m15d",
+#                        description = "No harvest in Columbia North and Columbia South HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.") # No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat	
+# scenario = data.table (name = "tfl56_columbia_north_nh",
+#                        description = "No harvest in Columbia North critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl56_columbia_north_ch_he0d_m15d",
+#                        description = "No harvest in Columbia North HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl56_central_rockies_nh",
+#                        description = "No harvest in Central Rockies critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl56_central_rockies_ch_he0d_m15d",
+#                        description = "No harvest in Central Rockies HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl56_columbia_south_nh",
+#                        description = "No harvest in Columbia South critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
+scenario = data.table (name = "tfl56_columbia_souths_ch_he0d_m15d",
+                       description = "No harvest in Columbia South HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 31,000 m3/yr. Adjacency was set to 3m.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL56",

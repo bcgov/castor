@@ -116,11 +116,9 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
-                                               
-                                               # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                             "rast.zone_cond_noharvest_central_rockies_crithab_or_herd" 
-                                               
-                                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                               "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                              #  "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"                                # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
+                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                              # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -191,8 +189,13 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Columbia North HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl55_all_nh",
 #                        description = "No harvest in critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.") # NOTE: THIS SCENARIO = 0 m3 harvest
-scenario = data.table (name = "tfl55_all_ch_he0d_m15d",
-                       description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.") 
+# scenario = data.table (name = "tfl55_all_ch_he0d_m15d",
+#                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.") 
+# scenario = data.table (name = "tfl55_columbia_north_nh",
+#                        description = "No harvest in Columbia North critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
+scenario = data.table (name = "tfl55_columbia_north_ch_he0d_m15d",
+                       description = "No harvest in Columbia North HEWSR, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL55",
                                          partition = ' vol > 150 ', 

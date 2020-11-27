@@ -1,10 +1,10 @@
 ---
 title: "forestryCLUS"
-author: "Elizabeth Kleynhans"
-date: "29 June 2020"
+author: ""
+date: "08 April 2019"
 output:
-html_document: 
-keep_md: yes
+  html_document: 
+    keep_md: yes
 ---
 
 <!--
@@ -38,46 +38,42 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# TFL 23 Block Scenarios
+# Revelstoke TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Central Selkirks caribou critical habtiat; to support 
-herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+no harvest in Columbia North, Columbia South and Frisby-Boulder critical habtiat; to support Columbia North, Columbia South and Frisby-Boulder herd planning, we run a sceanrio with no harvest in the Columbia North, Columbia South and Frisby-Boulder HEWSR and Matrix; harvest is BAU in other herds; assesses the potential maximum impact of protecting Columbia North, Columbia South and Frisby-Boulder only, assuming other herds unprotected
 
-ECCC in Central Selkirks caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central Selkirks
+"ECCC" in Columbia North, Columbia South and Frisby-Boulder caribou critical habtiat; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low elevation critical habitat, and up to 35% disturbance in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Columbia North, Columbia South and Frisby-Boulder only
 
-no harvest in Columbia North, Columbia South, and frisby-boulder caribou critical habtiat; to support 
-herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
+no harvest in caribou critical habtait areas; where there is cirtical habitat, no harvest in any types (including matrix); establishes the 'maximum impact' that protection of caribou habitat might potentially have on forest harvest; in Kootenay Lake TSA these include Monashee Matrix, Frisby Boulder HEWSR, Frisby Boulder Matrix, Columbia South HEWSR, Columbia South Matrix, Central Rockies Matrix, Central Rockies HEWSR, Columbia North Matrix, Columbia North HEWSR
 
-ECCC in Columbia North, Columbia South, and frisby-boulder caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on these herds
-
-no harvest in all herds that overlap the TFL i.e. Central Selkirks, Monashee, Columbia North, Columbia South, and frisby-boulder caribou critical habtiat; to support 
-herd planning, we run a scenario with no harvest in theh HEWSR and Matrix; assesses the potential maximum impact of protecting these herds 
-
-ECCC in Central Selkirks, Monashee, Columbia North, Columbia South, and frisby-boulder caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on all these herds
+'ECCC' in caribou critical habtait areas; an alternative to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no disturbance in high and low eleavtion cirtcial habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes all herds protected
 
 
+# Revelstoke TSA Parameters 
 
-# TFL 23 Parameters 
-
-## New Caribou Constraints
+## New Caribou Zone Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest in all herds overlaping the TFL = rast.zone_cond_noharvest_central_selkirks_crithab_or_herd,
-rast.zone_cond_noharvest_columbia_south_crithab_or_herd,
-rast.zone_cond_noharvest_monashee_crithab_or_herd.
+No harvest in all herds = rast.zone_cond_noharvest_monashee_crithab_or_herd
+                          rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd
+                          rast.zone_cond_noharvest_columbia_south_crithab_or_herd
+                          rast.zone_cond_noharvest_central_rockies_crithab_or_herd
+                          rast.zone_cond_noharvest_columbia_north_crithab_or_herd
 
-No harvest in all herds high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_central_selkirks_crithab_or_herd,
-rast.zone_cond_eccc_columbia_south_crithab_or_herd,
-rast.zone_cond_eccc_monashee_crithab_or_herd.
+ECCC in all herds = rast.zone_cond_eccc_monashee_crithab_or_herd
+                    rast.zone_cond_eccc_frisby_boulder_crithab_or_herd
+                    rast.zone_cond_eccc_columbia_south_crithab_or_herd
+                    rast.zone_cond_eccc_central_rockies_crithab_or_herd
+                    rast.zone_cond_eccc_columbia_north_crithab_or_herd
 
-No havest in all Central Selkirk herds: rast.zone_cond_eccc_central_selkirks_crithab_or_herd
+No harvest in Columbia North, Columbia South and Frisby-Boulder = rast.zone_cond_noharvest_columbia_north_crithab_or_herd
+rast.zone_cond_noharvest_columbia_south_crithab_or_herd
+rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd
 
-No harvest in all Central Selkirk herds in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
-
-No havest in Columbia South herd: rast.zone_cond_eccc_columbia_south_crithab_or_herd
-
-No harvest in Columbia South herds in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_columbia_south_crithab_or_herd
+ECCC in Columbia North, Columbia South and Frisby-Boulder = rast.zone_cond_eccc_columbia_north_crithab_or_herd
+                                                            rast.zone_cond_eccc_columbia_south_crithab_or_herd
+                                                            rast.zone_cond_eccc_frisby_boulder_crithab_or_herd
 
 ## 'harvestPriority' parameter 
 - focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
@@ -85,16 +81,18 @@ No harvest in Columbia South herds in high elevation critical habitat, maximum 3
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
-      
+
 ## 'harvestFlow'
-from 2017 determination: 
-"...The initial harvest level was high starting at 530 000 cubic metres per year. This was maintained for one decade before declining to 475 500 cubic metres per year. In the mid term, harvest levels declined to 426 000 cubic metres (after decade two), 382 000 cubic metres (after decade three) and then further declined to 343 000 cubic metres per year (after decade four). After decade 10, harvest levels increased to a long-term harvest level of 523 000 cubic metres per year.."
+- based on interpretation of analysis report, I tested a harvest flow of 200,000m^3^/year (1,000,000m^3^/5-year); 150,000, 175,000, 165,000, 160,000, then 155,000
 
-- started at 523,000m^3/year; this was too high so I dropped gradually setting on l40,000 m^3/yr
+from detemiantion: used 'oldest first' priority queue
 
-- I used 150 m3/ha as minimum harvest volume; nothing in determination on this
+From analysis report: large majority of minimum harvest ages used in the base case scenario was based on achieving 95% of the stands maximum mean annual increment (MAI). 
 
-- I used 3 m adjacency; nothing in determination on this
+- I used 150 m3/ha as minimum harvest volume instead
+
+For cutblock adjacency, I used 3 m adjacncey; in analysis report: 25% of the THLB in each LU was allowed to be less than the greenup age (13 years old)
+
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -109,31 +107,35 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = TRUE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL23_clusdb.sqlite"),
+  dataLoaderCLUS = list (  dbName='clus',
+                           save_clusdb = FALSE,
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "TFL23",
+                           nameBoundary = "Revelstoke_TSA",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters=c("rast.zone_cond_beo", # rasters of the zone constraints to include. Add all zone rasters that might be needed here. First 7 always stay.
-                                           "rast.zone_cond_vqo", 
-                                           "rast.zone_cond_wha", 
-                                           "rast.zone_cond_uwr", 
-                                           "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
-                              # "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
-                              # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
-                              # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
-                              # "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
-                               "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
-                              # "rast.zone_cond_eccc_monashee_crithab_or_herd"
-                           ),
+                           nameZoneRasters = c("rast.zone_cond_beo", 
+                                               "rast.zone_cond_vqo", 
+                                               "rast.zone_cond_wha", 
+                                               "rast.zone_cond_uwr",
+                                               "rast.zone_cond_fsw",
+                                               "rast.zone_cond_nharv",
+                                               "rast.zone_cond_cw",
+                                               # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
+                                               # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
+                                               # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
+                                               # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
+                                               # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
+                                                "rast.zone_cond_eccc_monashee_crithab_or_herd"
+                                               # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
+                                               # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
+                                               # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                                               # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                               ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -171,7 +173,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'tfl23', # name of the schema that gets uploaded to postgres
+  uploaderCLUS = list(aoiName = 'revelstoke_tsa', # name of the schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -195,35 +197,19 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
- # scenario = data.table (name = "tfl23_bau",
- #                        description = "Business as usual (BAU). Adjacency was set to 3m.")
- # scenario = data.table (name = "tfl23_centselk_nh",
- #                        description = "No harvest in all Central Selkirks critical habitat. Adjacency was set to 3m.")
- # scenario = data.table (name = "tfl23_centselk_ch_he0d_m15d",
- #                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
- # scenario = data.table (name = "tfl23_colnsfb_nh",
- #                        description = "No harvest in all CN, CS and FB critical habitat. Adjacency was set to 3m.")
-  # scenario = data.table (name = "tfl23_colnsfb_ch_he0d_m15d",
-  #                       description = "No harvest in CN, CS and FB high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in CN, CS and FB matrix critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl23_monashee_nh",
-#                         description = "No harvest in all Monashee critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl23_monashee_ch_he0d_m15d",
-#                         description = "No harvest in Monashee high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Monashee matrix critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl23_columbia_south_nh",
-#                         description = "No harvest in all Columbia South critical habitat. Adjacency was set to 3m.")
-
-scenario = data.table (name = "tfl23_columbia_south_ch_he0d_m15d",
-                        description = "No harvest in Columbia South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia South matrix critical habitat. Adjacency was set to 3m.")
+scenario = data.table (name = "100Mile_bau",
+                       description = "Business-as-usual case; sustainable flow = 155,000m^3^/year. Adjacency was set to 3m.")
 
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="TFL23",
-                                     partition = ' vol > 150 ', 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
-                                                1), 
-                                     flow = 2100000) # 420 000m3/yr 
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
+                                         partition = ' vol > 150 ', 
+                                         year = rep(seq (from = 2018, 
+                                                         to = 2218, 
+                                                         by = 5),
+                                                    1), 
+                                         flow = 775000) # 155,000m^3^/year
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
@@ -275,7 +261,6 @@ system.time({mysimout<-spades(mySim)})
 
 
 ```
-
 
 # Events
 
