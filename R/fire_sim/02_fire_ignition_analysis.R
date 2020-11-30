@@ -76,9 +76,8 @@ fire_ignitions2 <- fire_ignitions1_new %>%
   rename(id1=fire_no,
          year=fire_year)
 fire_veg_data1<-fire_veg_data[,c(1:36)]
-ones<-ignition_pres_abs %>% filter(pttype==1)
 
-ignition_pres_abs <- left_join(fire_veg_data1, fire_ignitions2)
+ignition_pres_abs <- left_join(fire_veg_data, fire_ignitions2)
 # for some reason a whole lot of fire ignition locations are being lost why and where? CORRECT!!!
 
 
