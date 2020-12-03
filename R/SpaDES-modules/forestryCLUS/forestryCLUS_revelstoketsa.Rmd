@@ -93,6 +93,26 @@ From analysis report: large majority of minimum harvest ages used in the base ca
 
 For cutblock adjacency, I used 3 m adjacncey; in analysis report: 25% of the THLB in each LU was allowed to be less than the greenup age (13 years old)
 
+## Modify Constraints
+
+```{r, zone_update}
+library (DBI)
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+#STEP 3: Update the constraints available to a zone as specified in the scenario
+dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #This example will set all the zones in the partnership agreement to no harvest
+
+#dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
+#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
+
+#STEP 4: Remove the connection to the database
+dbDisconnect(clusdb)
+```
+
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -125,12 +145,13 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
+                                               "rast.zone_cond_reve_area"
                                                # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
                                                # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
                                                # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
                                                # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
                                                # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
-                                                "rast.zone_cond_eccc_monashee_crithab_or_herd"
+                                                # "rast.zone_cond_eccc_monashee_crithab_or_herd"
                                                # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                                                # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                                                # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
@@ -165,15 +186,15 @@ parameters <- list(
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
-  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
-                       nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
-                       tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
+  survivalCLUS = list (caribou_herd_density = 0.05, 
+                       nameRasCaribouHerd = "rast.caribou_herd", 
+                       tableCaribouHerd = "public.caribou_herd_vat"), 
   disturbanceCalcCLUS = list(calculateInterval = 5, 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'revelstoke_tsa', # name of the schema that gets uploaded to postgres
+  uploaderCLUS = list(aoiName = 'revelstoke_tsa', 
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -225,10 +246,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Frisby Boulder high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Frisby Boulder matrix critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "revelstoke_monashee_nh",
 #                        description = "No harvest in all Monashee critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "revelstoke_monashee_he0d_m15d",
+#                        description = "No harvest in Monashee high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Monashee matrix critical habitat. Adjacency was set to 3m.")
 
-scenario = data.table (name = "revelstoke_monashee_he0d_m15d",
-                       description = "No harvest in Monashee high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Monashee matrix critical habitat. Adjacency was set to 3m.")
-
+scenario = data.table (name = "revelstoke_ernst",
+                       description = "No harvest in Columbia North, Columbia South and Frisby-Boulder high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
