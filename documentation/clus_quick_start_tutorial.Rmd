@@ -1,0 +1,23 @@
+---
+title: "CLUS Quick Start Tutorial"
+author: "Tyler Muhly"
+date: "02/12/2020"
+output: html_document
+---
+
+# Caribou and Land Use Simulator (CLUS) Quick Start  Tutorial
+
+
+
+
+
+"Quick Start" Steps
+1.  Doanload R and R STudio
+2. clone the repository https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
+3. Set-up keyring
+4. Create a shapefile in sceanrio tool
+5. create a parameter
+6. create a sql lite db
+7. 
+
+
