@@ -789,7 +789,7 @@ anova(lev) #f-stat for levenes
 anova(expo.null.1,expo.total.road500.1 )
 
 #Core and Matrix road 500
-start.road50<-nlsLM(pop_estimate~exp(a+b*core.road500.per+c*matrix.road500.per) ,start=list(a=-3.5, b=-0.001, c= -0.009), data=model.data)
+start.road500<-nlsLM(pop_estimate~exp(a+b*core.road500.per+c*matrix.road500.per) ,start=list(a=-3.5, b=-0.001, c= -0.009), data=model.data)
 
 expo.road500.1 <- nlme(pop_estimate  ~ exp(a+b*core.road500.per+c*matrix.road500.per), fixed =list(a~1,b~1,c~1), weights= varExp(form=~pop.0), random= a+c~1|herd_name, start =list(fixed=c(a=-2.4, b=-0.002, c=-0.002)), data = model.data, method = 'ML', control = c(maxIter = 100000))
 summary(expo.road500.1) #AIC:877 PHI:0.884
@@ -810,7 +810,7 @@ anova(expo.road50.1, expo.total.road50.1)
 #Total cut10-40
 start.total.cut10_40<-nlsLM(pop_estimate~exp(a+b*total.cut10_40.per) ,start=list(a=0, b=-0.002), data=model.data, control = nls.lm.control(maxiter=100))
 
-expo.total.cut10_40.1 <- nlme(pop_estimate~exp(a+b*total.cut10_40.per), fixed =list(a~1, b~1),  random= a+b~1|herd_name, weights=varExp(form=~pop.0), start =list(fixed=coef(start.total.cut10_40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
+expo.total.cut10_40.1 <- nlme(pop_estimate~exp(a+b*total.cut10_40.per), fixed =list(a~1, b~1),  random= a+b~1|herd_name, weights=varExp(form=~herd.size), start =list(fixed=coef(start.total.cut10_40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
 summary(expo.total.cut10_40.1) #AIC:877 PHI:0.884
 report(expo.total.cut10_40.1)
 model.data$res<-abs(residuals(expo.total.cut10_40.1, type= 'normalized'))**2
@@ -819,7 +819,7 @@ anova(lev) #f-stat for levenes
 
 #Core and Matrix cut10_40
 start.cut10_40<-nlsLM(pop_estimate  ~ exp(a+b*core.cut10_40.per+c*matrix.cut10_40.per) ,start=list(a=-4, b=-0.001, c =-0.001), data=model.data)
-expo.cut10_40.1 <- nlme(pop_estimate  ~ exp(a+b*core.cut10_40.per+c*matrix.cut10_40.per), fixed =list(a~1, b~1,c~1),  random= a+c~1|herd_name,weights=varPower(form=~pop.0), start =list(fixed=coef(start.cut10_40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
+expo.cut10_40.1 <- nlme(pop_estimate  ~ exp(a+b*core.cut10_40.per+c*matrix.cut10_40.per), fixed =list(a~1, b~1,c~1),  random= a+c~1|herd_name,weights=varExp(form=~herd.size), start =list(fixed=coef(start.cut10_40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
 summary(expo.cut10_40.1) #AIC:877 PHI:0.884
 report(expo.cut10_40.1)
 model.data$res<-abs(residuals(expo.cut10_40.1, type= 'normalized'))**2
@@ -829,17 +829,20 @@ anova(lev) #f-stat for levenes
 #Cut40
 start.total.cut40<-nlsLM(pop_estimate  ~ exp(a+b*total.cut40.per) ,start=list(a=1, b=-0.001), data=model.data)
 expo.total.cut40.1 <- nlme(pop_estimate  ~ exp(a+b*total.cut40.per), fixed =list(a~1,b~1), weights=varExp(form=~herd.size), random= a+b~1|herd_name, start =list(fixed=coef(start.total.cut40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
-summary(expo.total.cut40.1) #AIC:877 PHI:0.884
+summary(expo.total.cut40.1) 
 report(expo.total.cut40.1)
 model.data$res<-abs(residuals(expo.total.cut40.1, type= 'normalized'))**2
 lev<- lm(res ~ as.factor(herd_name), data=model.data) 
 anova(lev) #f-stat for levenes
 
 #Core and Matrix cut40
-start.cut40<-nls(pop_estimate~exp(a+b*core.cut40.per+c*matrix.cut40.per) ,start=list(a=.001, b=-0.001, c =-0.002), data=model.data)
-expo.cut40.1 <- nlme(pop_estimate  ~ exp(a+b*core.cut40.per+c*matrix.cut40.per), fixed =list(a~1,b~1, c~1), weights=varExp(form=~herd.size), random=a+c~1|herd_name, start =list(fixed=coef(start.cut40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
-summary(expo.cut40.1) #AIC:877 PHI:0.884
+start.cut40<-nls(pop_estimate~exp(a+b*core.cut40.per+c*matrix.cut40.per) ,start=list(a=.001, b=-0.001, c=-0.0001), data=model.data)
+expo.cut40.1 <- nlme(pop_estimate  ~ exp(a+b*core.cut40.per+c*matrix.cut40.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~herd.size), random=a+c~1|herd_name, start =list(fixed=coef(start.cut40)), data = model.data, method = 'ML', control = c(maxIter = 100000))
+summary(expo.cut40.1) 
 report(expo.cut40.1)
+model.data$res<-abs(residuals(expo.cut40.1, type= 'normalized'))**2
+lev<- lm(res ~ as.factor(herd_name), data=model.data) 
+anova(lev) #f-stat for levenes
 
 #Cut80
 start.total.cut80<-nls(pop_estimate~exp(a+b*total.cut80.per) ,start=list(a=2, b=-0.001), data=model.data)
@@ -859,7 +862,7 @@ anova(lev) #f-stat for levenes
 #Core and Matrix cut80
 start.cut80<-nls(pop_estimate~exp(a+b*core.cut80.per+c*matrix.cut80.per) ,start=list( a=0.01, b=-0.01, c=-0.009), data=model.data)
 expo.cut80.1 <- nlme(pop_estimate~exp(a+b*core.cut80.per+c*matrix.cut80.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~herd.size), random= a+c~1|herd_name, start =list(fixed=coef(start.cut80)), data = model.data, method = 'ML', control = c(maxIter = 100000))
-summary(expo.cut80.1) #AIC:877 PHI:0.884
+summary(expo.cut80.1) 
 report(expo.cut80.1)
 model.data$res<-abs(residuals(expo.cut80.1, type= 'normalized'))**2
 lev<- lm(res ~ as.factor(herd_name), data=model.data) 
@@ -922,13 +925,13 @@ anova(lev) #f-stat for levenes
 #Total Cut40r50
 start.total.cut40r50<-nls(pop_estimate~exp(a+b*total.cut40r50.per) ,start=list(a=0.01,b=-0.002), data=model.data)
 expo.total.cut40r50.1 <- nlme(pop_estimate~exp(a+b*total.cut40r50.per), fixed =list(a~1,b~1), weights= varExp(form=~herd.size),random= a+b~1|herd_name, start =list(fixed=coef(start.total.cut40r50)), data = model.data, method = 'ML', control = c(maxIter = 100000))
-summary(expo.total.cut40r50.1) #AIC:877 PHI:0.884
+summary(expo.total.cut40r50.1) 
 report(expo.total.cut40r50.1)
 
 #Core and Matrix cut40r50
 start.cut40r50<-nls(pop_estimate  ~exp(a+b*core.cut40r50.per+c*matrix.cut40r50.per) ,start=list( a=0.01, b=-0.001, c=-0.001), data=model.data)
 expo.cut40r50.1 <- nlme(pop_estimate~exp(a+b*core.cut40r50.per+c*matrix.cut40r50.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~herd.size), random= a+c~1|herd_name, start =list(fixed=coef(start.cut40r50)), data = model.data, method = 'ML', control = c(maxIter = 100000))
-summary(expo.cut40r50.1) #AIC:877 PHI:0.884
+summary(expo.cut40r50.1) 
 report(expo.cut40r50.1)
 
 #Total Cut40r500
@@ -954,7 +957,7 @@ anova(lev) #f-stat for levenes
 
 #Core and Matrix cut80r50
 start.cut80r50<-nls(pop_estimate~exp(a+b*core.cut80r50.per+c*matrix.cut80r50.per),start=list(a=0.01, b=-0.001, c=-0.002), data=model.data)
-expo.cut80r50.1 <- nlme(pop_estimate~exp(a+b*core.cut80r50.per+c*matrix.cut80r50.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~pop.0), random= a+b~1|herd_name, start =list(fixed=coef(start.cut80r50)), data = model.data, method = 'ML', control = c(maxIter = 100000))
+expo.cut80r50.1 <- nlme(pop_estimate~exp(a+b*core.cut80r50.per+c*matrix.cut80r50.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~herd.size), random= a+b~1|herd_name, start =list(fixed=coef(start.cut80r50)), data = model.data, method = 'ML', control = c(maxIter = 100000))
 summary(expo.cut80r50.1) #AIC:877 PHI:0.884
 report(expo.cut80r50.1)
 model.data$res<-abs(residuals(expo.cut80r50.1, type= 'normalized'))**2
@@ -964,7 +967,7 @@ anova(lev) #f-stat for levenes
 #Scaled
 model.data[, s.core.cut80r50.per:=scale(core.cut80r50.per, center=TRUE,scale=TRUE)]
 model.data[, s.matrix.cut80r50.per:=scale(matrix.cut80r50.per,center=TRUE,scale=TRUE)]
-expo.cut80r50.s <- nlme(pop_estimate~exp(a+b*s.core.cut80r50.per+c*s.matrix.cut80r50.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~pop.0), random= a+b~1|herd_name, start =list(fixed=coef(start.cut80r50)), data = model.data, method = 'REML', control = c(maxIter = 100000))
+expo.cut80r50.s <- nlme(pop_estimate~exp(a+b*s.core.cut80r50.per+c*s.matrix.cut80r50.per), fixed =list(a~1,b~1,c~1), weights=varExp(form=~herd.size), random= a+c~1|herd_name, start =list(fixed=coef(start.cut80r50)), data = model.data, method = 'REML', control = c(maxIter = 100000))
 summary(expo.cut80r50.s) 
 report(expo.cut80r50.s)
 model.data$res<-abs(residuals(expo.cut80r50.s, type= 'normalized'))**2
@@ -1019,11 +1022,6 @@ summary(update(expo.cut80r50.1, method = 'REML'))
 
 #FIGURE 3: observed vs predicted
 ```{r, obs_pred}
-ggplot(model.data[,c("core.road50.per", "matrix.road50.per", "pop_estimate", "herd_name", "time", "pop.0")], aes(x=matrix.road50.per, y=pop_estimate, colour=herd_name)) +
-  geom_point(size=3) +
-  geom_line(aes(y=predict(expo.road50.1, level =1), group=herd_name) )
-  #geom_line(data=newdat, aes(y=predict(expo.cut80r500.1, level=0, newdata=newdat) ),size =1.5)
-  
 par(mfrow=c(2,2))
 plot(predict(expo.road50.1, level =1), model.data$pop_estimate)
 abline(0,1, col = 'red')
@@ -1034,29 +1032,55 @@ hist(residuals(expo.road500.1,  type= 'normalized') , freq = FALSE)
 curve(dnorm(x,0, sd(residuals(expo.road500.1,  type= 'normalized'))), add=T)
 
 
-dtgx<-data.table(cbind(model.data[,c("pop_estimate", "herd_name", "herd.size")],fitted = predict(expo.road50.1)))
+mean.matrix<-with(model.data,
+       expand.grid(core.road50.per =
+                   seq(from = min(core.road50.per),
+                       to = max(core.road50.per), by = 0.1),
+                       matrix.road50.per = mean(matrix.road50.per)
+                   ))
+mean.matrix$pop.pred<- predict(expo.road50.1, newdata = mean.matrix, level =0) 
+mean.matrix$herd_name<-"All"
+mean.matrix$type<-'Core'
+mean.matrix$matrix.road50.per<-NULL
+setnames(mean.matrix, "core.road50.per", "R50")
 
-dtgx<-dtgx[, herd_name:=lapply(.SD, function(x) { gsub("_", " ", x)}), .SDcols = "herd_name"]
+mean.core<-with(model.data,
+       expand.grid(matrix.road50.per =
+                   seq(from = min(matrix.road50.per),
+                       to = max(matrix.road50.per), by = 0.1),
+                       core.road50.per = mean(core.road50.per)
+                   ))
+mean.core$pop.pred<- predict(expo.road50.1, newdata = mean.core, level =0) 
+mean.core$herd_name<-"All"
+mean.core$type<-'Matrix'
+mean.core$core.road50.per<-NULL
+setnames(mean.core, "matrix.road50.per", "R50")
 
-ggplot(data = dtgx, aes(y=pop_estimate, x =fitted, color = herd_name)) +
-  #facet_wrap(.~herd.size)+
+fig.data<-rbind(mean.core,mean.matrix)
+fig.data$pop_estimate<-NA
+
+raw.data<-model.data[, c("core.road50.per","matrix.road50.per", "pop_estimate", "herd_name")]
+raw.data$pop.pred<-predict(expo.road50.1)
+
+raw.data1<-raw.data[, c("core.road50.per", "pop_estimate", "herd_name", "pop.pred")]
+raw.data1$type = 'Core'
+setnames(raw.data1, "core.road50.per", "R50")
+
+raw.data2<-raw.data[, c("matrix.road50.per", "pop_estimate", "herd_name","pop.pred")]
+raw.data2$type = 'Matrix'
+setnames(raw.data2, "matrix.road50.per", "R50")
+
+fig.data2<-rbind(fig.data, raw.data1,raw.data2 )
+
+ggplot(data = fig.data2, aes(x = R50, y = pop_estimate, colour = factor(herd_name))) +
+  facet_wrap(~type, nrow =2, ncol=1)+
   geom_point() +
-  labs(y = "Observed", x = "Predicted")+
-  geom_abline(intercept = 0, slope = 1) +
-  theme_bw() +
-  guides(color=guide_legend(title = "Herd")) 
+  geom_line(aes(y = pop.pred ))+
+  labs(x = 'R50 (%)', y ='Caribou Abundance', colour = "Herd")+
+  theme_bw() 
+                
 
-a1<-ggplot(data = model.data[, c("core.road50.per", "pop_estimate", "herd_name")], aes(x = core.road50.per, y = pop_estimate, colour = factor(herd_name))) +
-  theme(legend.position = "none")+
-    geom_point(size=3) +
-    geom_line(aes(y = predict(expo.road50.1) ) )
 
-a2<-ggplot(data = model.data[, c("matrix.road50.per", "pop_estimate", "herd_name")], aes(x = matrix.road50.per, y = pop_estimate, colour = factor(herd_name))) +
-    theme(legend.position = "none")+
-    geom_point(size=3) +
-    geom_line(aes(y = predict(expo.road50.1)))+
-    geom_line(aes(y = predict(expo.road50.1, level=0)),col='red' )
-grid.arrange(a1, a2,nrow=1)
 
 ```
 
