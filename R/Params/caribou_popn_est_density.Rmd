@@ -632,7 +632,7 @@ matrix.p0<-ggplot(data = data.set, aes(x =matrix.road50.per, y =pop_estimate, co
 
 matrix.p1<-ggplot(data = data.set, aes(x =matrix.cut80.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
-matrix.p2<-ggplot(data = data.set, aes(x =matrix.cut10_40.per, y =pop_estimate, color = herd_name,  linetype = as.factor(herd.size)  )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
+matrix.p2<-ggplot(data = data.set, aes(x =matrix.cut40r500.per, y =pop_estimate, color = herd_name )) +  geom_point() + geom_smooth(method = 'lm', se= FALSE) + theme(legend.position = "none")
 
 ggplotly(matrix.p0)
 ggplotly(matrix.p1)
@@ -878,7 +878,6 @@ model.data$res<-abs(residuals(expo.cut80.s, type= 'normalized'))**2
 lev<- lm(res ~ as.factor(herd_name), data=model.data) 
 anova(lev) #f-stat for levenes
 
-anova(expo.null.1,expo.cut80.1, expo.total.cut80.1)
 AICc(expo.null.1,expo.cut10_40.1, expo.total.cut10_40.1, expo.cut40.1, expo.total.cut40.1,expo.cut80.1, expo.total.cut80.1)
 ```
 
@@ -990,6 +989,13 @@ summary(expo.cut80r500.1) #AIC:877 PHI:0.884
 report(expo.cut80r500.1)
 
 
+#Core and Matrix cut80r500
+start.cut80plusr50<-nls(pop_estimate~exp(a+b*core.cut80.per+c*matrix.road50.per), start=list(a=7, b=-0.01, c=-0.0002), data=model.data)
+expo.cut80plusr50.1 <- nlme(pop_estimate~exp(a+b*core.cut80.per+c*matrix.road50.per), fixed =list(a~1,b~1,c~1), weights= varExp(form=~herd.size), random= a+b~1|herd_name, start =list(fixed=coef(start.cut80plusr50)), data = model.data, method = 'ML', control = c(maxIter = 100000))
+summary(expo.cut80plusr50.1) #AIC:877 PHI:0.884
+report(expo.cut80plusr50.1)
+
+
 AICc(expo.null.1,expo.total.cut10_40r50.1,expo.cut10_40r50.1,expo.total.cut10_40r500.1,expo.cut10_40r500.1,expo.total.cut40r50.1,expo.cut40r50.1,
      expo.total.cut40r500.1,expo.cut40r500.1,expo.total.cut80r50.1,expo.cut80r50.1,expo.total.cut80r500.1,expo.cut80r500.1)
 ```
@@ -1001,6 +1007,8 @@ aic.values<-AICc(expo.null.1,expo.total.cut80.1,expo.cut80.1,expo.total.road50.1
 aic.values$delta<-round(qpcR::akaike.weights(aic.values$AIC)$deltaAIC, 3)
 aic.values$weights<-round(qpcR::akaike.weights(aic.values$AIC)$weights, 3)
 aic.values
+
+plot(model.data$time,residuals(expo.road50.1, type='normalized'))
 
 summary(update(expo.null.1, method = 'ML'))
 summary(update(expo.total.cut80.1, method = 'ML'))
@@ -1023,12 +1031,12 @@ summary(update(expo.cut80r50.1, method = 'REML'))
 #FIGURE 3: observed vs predicted
 ```{r, obs_pred}
 par(mfrow=c(2,2))
-plot(predict(expo.road50.1, level =1), model.data$pop_estimate)
+plot(predict(expo.road50.1, level =1), model.data$pop_estimate, title= '', ylab = 'Observed', xlab = 'Predicted')
 abline(0,1, col = 'red')
-plot(predict(expo.road500.1, level =1), residuals(expo.road500.1, type= 'normalized'))
+plot(predict(expo.road500.1, level =1), residuals(expo.road500.1, type= 'normalized'), title= '', ylab = 'Normalized Residuals', xlab = 'Predicted')
 abline(0,0, col = 'red')
-acf(residuals(expo.road500.1,  type= 'normalized'))
-hist(residuals(expo.road500.1,  type= 'normalized') , freq = FALSE)
+acf(residuals(expo.road500.1,  type= 'normalized'), main = '')
+hist(residuals(expo.road500.1,  type= 'normalized') , freq = FALSE,main = '', xlab = 'Normalized Residuals')
 curve(dnorm(x,0, sd(residuals(expo.road500.1,  type= 'normalized'))), add=T)
 
 
