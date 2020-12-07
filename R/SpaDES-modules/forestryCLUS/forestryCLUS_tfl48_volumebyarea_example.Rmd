@@ -155,9 +155,9 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
+                                               "rast.zone_cond_cw" 
                                                
-                                                'rast.zone_cond_partnership_agreement'
+                                                #'rast.zone_cond_partnership_agreement'
                                                
                                                # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
@@ -229,7 +229,7 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
-                "uploaderCLUS",
+                #"uploaderCLUS",
                 "volumebyareaReportCLUS"
                 )
 
