@@ -106,7 +106,14 @@ Init <- function(sim) {
                     rsf = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric() , sum_rsf_hat_75 = numeric(), per_rsf_hat_75 = numeric(), rsf_model= character()), 
 
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
-                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric(), dist= numeric(), dist_per = numeric()),
+                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod= integer(),
+                                             critical_hab = character(), total_area = numeric(), cut20 = numeric(), cut40 = numeric(), cut80 = numeric(), 
+                                             road50 = numeric(), road250 = numeric(), road500 = numeric(),road750 = numeric(),
+                                             c20r50 = numeric(), c20r250=numeric(), c20r500=numeric(),  c20r750=numeric(),
+                                             c40r50 = numeric(), c40r250=numeric(), c40r500=numeric(),  c40r750=numeric(),
+                                             c80r50 = numeric(), c80r250=numeric(), c80r500=numeric(),  c80r750=numeric(),
+                                             c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric()),
+                    
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() ),
                     fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric()))
 
