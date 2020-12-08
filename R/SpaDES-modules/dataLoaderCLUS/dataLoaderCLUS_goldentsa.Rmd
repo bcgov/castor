@@ -56,7 +56,7 @@ parameters <-  list(
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
-                         nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
+                         nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
                                              "rast.zone_cond_uwr",
@@ -70,8 +70,9 @@ parameters <-  list(
                                              "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",
                                              "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
                                              "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd" 
-                                             ), 
+                                             "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
+                                             "rast.zone_cond_reve_area"
+                                              ), 
                          nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table

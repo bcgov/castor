@@ -84,6 +84,21 @@ from 2017 determination: base case satrted at 90,000m^3^/year for 10 years, foll
 
 - I used 3 m adjacency; nothing in determination on this
 
+## Modify Constraints
+
+```{r, zone_update}
+library (DBI)
+# STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL55_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+# STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+
+
+dbDisconnect(clusdb)
+```
+
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -116,9 +131,10 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
-                              #  "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"                                # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
-                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                              #  "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"                                               # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
+                              # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                               # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                              "rast.zone_cond_reve_area"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -193,8 +209,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.") 
 # scenario = data.table (name = "tfl55_columbia_north_nh",
 #                        description = "No harvest in Columbia North critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
-scenario = data.table (name = "tfl55_columbia_north_ch_he0d_m15d",
-                       description = "No harvest in Columbia North HEWSR, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl55_columbia_north_ch_he0d_m15d",
+#                        description = "No harvest in Columbia North HEWSR, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
+
+scenario = data.table (name = "tfl55_columbia_north_ch_he10d_m15d",
+                       description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL55",

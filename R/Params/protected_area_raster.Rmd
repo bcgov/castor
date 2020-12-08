@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Purpose
 This rmd produces a raster that specifies protected areas in British Columbia, as defined by [Environmental Reporting BC](https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc). 
 
-It was developed to use in the CLUS scenario app to map protected areas, but could be used in the CLUS model to summarize or calculate information by protected area. C
+It was developed to use in the CLUS scenario app to map protected areas, but could be used in the CLUS model to summarize or calculate information by protected area.
 
 ## Spatial Data on Protected Areas
 Spatial protected areas data is available from  [DataBC](https://catalogue.data.gov.bc.ca/dataset/land-designations-that-contribute-to-conservation-in-bc-spatial-data). The documentation and code for how the data was created is availabel on [GitHub](https://github.com/bcgov/land-designations-indicator). 

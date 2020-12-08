@@ -122,6 +122,19 @@ not cear from pdp or detemiantion what the priority queue, adjacency or min harv
 
 For cutblock adjacency, I used 3 m adjacncey
 
+## Modify Constraints
+
+```{r, zone_update}
+library (DBI)
+# STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Robson_Valley_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+# STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+dbDisconnect(clusdb)
+```
+
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -158,14 +171,14 @@ parameters <- list(
                                              #  "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd"
                                              # "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
                                              # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
-                                             # "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd"
-                                             
+                                      # "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd"
                                              # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
-                                              "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
+                                             # "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
                                              # "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
                                              #  "rast.zone_cond_eccc_north_cariboo_crithab_or_herd"
                                              # "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd"
-                                               ),
+                                             "rast.zone_cond_reve_area"
+                                              ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -255,9 +268,12 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "robson_wells_gray_south_nh",
 #                        description = "No harvest in Wells Gray South critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "robson_wells_gray_south_he0d_m15d",
+#                        description = "No harvest in Wells Gray South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray South matrix critical habitat. Adjacency was set to 3m.")
 
-scenario = data.table (name = "robson_wells_gray_south_he0d_m15d",
-                       description = "No harvest in Wells Gray South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray South matrix critical habitat. Adjacency was set to 3m.")
+scenario = data.table (name = "robson_columbia_north_ch_he10d_m15d",
+                       description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
+
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Robson_Valley_TSA",
