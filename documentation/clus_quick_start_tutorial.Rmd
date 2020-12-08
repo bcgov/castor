@@ -5,14 +5,22 @@ date: "02/12/2020"
 output: html_document
 ---
 
-# Caribou and Land Use Simulator (CLUS) Quick Start  Tutorial
+## Caribou and Land Use Simulator (CLUS) Quick Start Tutorial
+The CLUS quick-start tutorial provides step-by-step instructions on how to use CLUS. It is designed to familiarize you with creating and running a simple forest harvest scenario analysis with CLUS. It takes you through all the steps needed to set-up and run CLUS from scratch.
+
+## Download R and R Studio
+CLUS is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R softwrae. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, adn tehreforree we also you recommend downlaoding teh free version of [RStudio](https://rstudio.com/products/rstudio/download/). 
+
+RStudio is.....
 
 
+
+If you are a government employee, you may want to download these software as approved by your information technology deparment.  
 
 
 
 "Quick Start" Steps
-1.  Doanload R and R STudio
+1.  Download R and R STudio
 2. clone the repository https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
 3. Set-up keyring
 4. Create a shapefile in sceanrio tool
@@ -21,3 +29,69 @@ output: html_document
 7. 
 
 
+
+
+
+
+### Running Scenarios (forestryCLUS)
+- to run sceanrios, satrt with teh forestryCLUS module
+  - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
+  is simulated
+
+#### Time Intervals
+- specify in times 
+  - start = 0
+  - end = number of intervals, e.g., if using a 5 year interval and want to sim over a 200 year period, end = 40
+
+  
+#### harvestPriority
+- The harvest queue is established using the 'harvestPriority' parameter
+  - the paramter is an SQL query for how to prioritize stand characteristics 
+  - it queires the pixels table (i.e., you can prirotize based on any values in teh pixels table)
+  - for example 'dist, age DESC, vol DESC' says to priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+- also need to set the adjacency height constraint (adjacencyConstraint)
+
+#### growingStockCLUS
+- you  set the time interval between simulating forest stand characteristics within the growingStockCLUS parameters 
+  - growingStockCLUS = list (periodLength = 5); here we simulate teh parameters every 5 years   
+
+#### scenario 
+- there is a parameter ('scenario') to name the scenario and provide a brief description of it
+  - this can be used to track scenarios and will be uploaded to the server with the app for interfacing with results  
+  - for BAU scenario, may need to do several 'test' runs to identify the appropriate harvest flow
+  - keep all scenarios and variations in aprametrs as you run them (comment them out) so there is a record
+
+#### harvestFlow
+- harvestFlow parameter is where the annual cut level is set
+  - will likely need to do multiple test runs to identify an appropriate BAU sceanrio
+  - can use AAC dtermination or base-case models form last TSR for analysis unti workign in, but as our model may output differ then these, will likely nee dto test and adjust different leveles.
+  - goal for BAU is to get a susitaned flow over 200 year period 
+  - creates a list of data.tables where you can set the harvest level by TSA or TFL and for specific time periods 
+  - can also set a 'partition' to identify other criteria for allocatign harvest
+    - for example, a minimum volume havest criteria of 110m^3^/ha (' vol > 110 ')
+  - remeber that if simualting with time intervals >1 year to multiply annual harvest flwo target by the interval
+
+#### patchSizeDist
+  - establsihes the size of cutblocks to be harvested adn the frequency to haveset them by natural disturabcen type (ndt), as defined in the Forest Practices Code [Biodiversity Guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf); NDT's are associated with biogeolcimatic units
+  
+#### Outputs
+- define where table ouputs get uploaded (via 'uploaderCLUS')
+- currently we upload to a postgres on a VM server; 
+  -  define the area of interest name that (aoiName); this sets the name of the schema wehre tables get uploaded to postgres
+
+- decalre in outputs(mySim) which 'reports', i.e., tables to save and uplaod to the vritual machine
+  - "harvestReport" = reports inforamtion on harvest volume and area harvested, age of harvested stand, by time interval and comaprtment
+  - "growingStockReport" = reports on growing stock (forest stand ????) by time interval adn compartment
+  - "tableSurvival" = 
+  - "disturbanceReport"
+  - "volumebyareaReport" = reports volume harvested by the model within a specified area 
+    - the 'specified area(s)' can be defined using the Params -> areaofinterestRaster.Rmd
+        - this create a raster and vat table for the area(s) of interest based 
+    - does nto need to be implemented as part of teh sql lite db; can be included after the fact, because it referes to       the data in the CLUS db
+    - then, need to identify the report in the parameter list, modules list and outputs within the forestryCLUS.Rmd    
+      (can see 'forestryCLUS_tfl48_volumebyarea_example.Rmd' for an example)
+      
+  
