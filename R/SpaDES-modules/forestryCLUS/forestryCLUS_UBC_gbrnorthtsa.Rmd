@@ -65,7 +65,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 3 year interval; 30 years = 10 intervals # this was originally increased by 5 years and 40 intervals i.e. to get a 200 year simulation
+times <- list(start = 0, end = 40) # this was originally increased by 5 years and 40 intervals i.e. to get a 200 year simulation
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -108,7 +108,8 @@ parameters <- list(
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestPriority = "dist, age DESC, vol DESC",
-                      adjacencyConstraint = 3),
+                      adjacencyConstraint = 3), # try tweak adjacencyHeight=3m
+  # dont know how good growth and yeild is for coast. Look at growing stock now and what it says it is in the TSR. Divide growing stock by 200 to get quick and dirty AAC. 
   growingStockCLUS = list (periodLength = 5), # was 5
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -152,19 +153,23 @@ modules <- list("dataLoaderCLUS",
 
  # scenario = data.table (name = "ubc_gbrn_art_only",
  #                         description = "removed all constraints except art (average retention targets")
- # 
- scenario = data.table (name = "ubc_gbrn_bau",
-                         description = "includes all constraints vqo, wha, uwr, cw, fsa,nharv, and art (average retention targets")
 
+  scenario = data.table (name = "ubc_gbrn_bau",
+                          description = "includes all constraints vqo, wha, uwr, cw, fsa,nharv, and art (average retention targets")
+
+  # scenario = data.table (name = "ubc_gbrn_without_art",
+  #                         description = "includes all constraints vqo, wha, uwr, cw, fsa,nharv, but not art (average retention targets")
+
+  
 harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
-                                     partition = ' vol > 150 ', 
+                                     partition = ' vol > 170 ',# was set at vol > 150 for bau 
 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, # was 2218
                                                       by = 5), # was 5
                                                 1), 
 
-                                     flow = 1800000))) # try 1 3300000, try 2 3000000,3.) 2900000, 4.) 2500000 5.) 2100000 (worked), 2200000 (did not),
+                                     flow = 1795000))) # 1780000 works  with vol >150
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
