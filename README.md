@@ -6,6 +6,16 @@ The code in this github is open-source and provides a transparent record of the 
 
 For more information on working with the CLUS team to use the model for a forest management problem, please don't hesitate to contact Tyler Muhly (tyler.muhly@gov.bc.ca), Acting Team Lead, Strategic Analysis, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development.  
 
+### Core Team
+Tyler Muhly, Team Lead, Strategic Analysis, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
+
+Kyle Lochhead, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
+
+Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
+
+Mike Fowler, Spatial Data Analyst, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
+
+
 ### Requirements
 The model is coded using the R programming language. Thus, you will need to [download program R](https://cran.r-project.org/bin/windows/base/) to run the code, but don't worry, it's free, open-source software. We also recommend downloading the free version of [RStudio](https://rstudio.com/products/rstudio/download/), which provides a nice integrated development environment for working with R. 
 
