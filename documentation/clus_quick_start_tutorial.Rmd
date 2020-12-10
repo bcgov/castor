@@ -57,25 +57,27 @@ Click on the "Commit" button and it opens a new window with three windows in it.
 
 ![](images/git_commit.jpg)
 
-In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result fo the commit (e.g., "1 file changed, 1 insertion(+)"). Close that box, then click the "Push" button. Anotehr window will open, again with command line git code that was run to push the comit to the GitHub repository. This 'saves' the changes to the file to the GitHub repository. 
+In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result fo the commit (e.g., "1 file changed, 1 insertion(+)"). Close that box, then click the "Push" button. Anotehr window will open, again with command line git code that was run to push the comit to the GitHub repository. This 'saves' the changes to the file to the GitHub repository. Congratulations, you are now a contributor to CLUS!
 
 If other people are working in the same branch of the repository, it is good to get in the habit of clickng the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
 
-Since you are working in an independent branch, you should mostly be commiting changes to your own code. Howevere, at some point you will likely want to integrate your code back to the "Master" branch, or more likely intgrate changes to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". 
+Since you are working in an independent branch, you will mostly be commiting changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or intgrate changes to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". 
 
+Pull Requests are managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labelled "New pull request". 
 
+![](images/github_pull1.jpg)
 
-Pull rRequests
+Click on the "New pull request" button. This will open a new page with "Comparing changes" at the top. Underneath that you will see two buttons "base:master" and "compare:master" with an error between them pointing right to left. Click on the "base" button and yuo will get a drop-down menu with the name of teh different branches. Select your branch and then click the green "Create pull request" button. This will open a new page where you can add a messaeg to describe the pull request (e.g., "added my name to the conributors list"). Click again on the the green "Create pull request" button. This will send a request to the CLUS team to integrate chanegs to the code to the master. They will review and approve those changes. 
 
+![](images/github_pull2.jpg)
 
+Now you have a working understanding of how to use Git and GitHub to manage edits to your CLUS code.
 
+## 4. Set-up a Keyring
+CLUS uses networked PostgreSQL databases. To keep these databases and the netwrok secure, we do not post the database access credentials (e.g., password) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally and use the "keyring" function to call those credentials from R scripts. 
 
-RStudio is Tools > Terminal or Tools > Shell
+We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> fucntions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Contact the CLUS core team (kyle.)
 
-
-
- branch?
-https://github.com/bcgov/clus
 
 
 
