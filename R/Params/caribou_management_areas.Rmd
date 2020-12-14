@@ -275,19 +275,6 @@ system ("cmd.exe",
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #### Scenario 4
 - below is for a scenario that combines herds with and without critical habitat data
 - first I combined recent critical habitat and herd data together in ArcGIS, using "Merge" 
@@ -596,8 +583,6 @@ zone.crithab<-rbindlist(list(zone.crithab, zone.crithab.nh))
 writeRaster(ras.zone, "test.tif", overwrite = TRUE)
 ```
 
-
-
 ## Commit to postgreSQL
 ```{r, commit_db}
 
@@ -614,43 +599,6 @@ dbDisconnect(conn)
 #upload to db
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/test.tif -t 100x100 rast.zone_cond_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## Central Group Partnership Agreement: Proposed Land Use Order Areas 
 Here we develop rasters and constraint tables for proposed land use orders in the central group caribou herds. These areas and orders were proposed to support caribou recovery planning as part of the southern mountain caribou Partnership Agreement between BC, West Moberly First Nations, Sauteau First Nations and Canada. 
@@ -859,6 +807,55 @@ du9.ras<-fasterize::fasterize (du9, prov.rast, field = "bounds")
 writeRaster (du9.ras, file = "du9.tif", format = "GTiff", overwrite = TRUE)
 system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/du9.tif -t 100x100 rast.du9_bounds | psql postgresql://', keyring::key_get('dbuser', keyring='postgreSQL'),':',keyring::key_get('dbname', keyring='postgreSQL'),'@',keyring::key_get('dbhost', keyring='postgreSQL'),':5432/', keyring::key_get('dbpass', keyring='postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
 ```
+
+## DU9 Scenario Zones
+These zones were created to supprot DU9 herd planning.
+
+### Revelstoke
+The following creates zones for the Revelstoke 'group' of caribou (Columbia North, Columbia South and Frisby-Boulder). Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different contraints on different herds and different habtait types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area).  
+
+Here we start with consistent constraints across herds and scenarios, but vary constraints across habitat types, where no harvest is applied to core habitat and maximum 35% disturbance is applied to matrix. Note that for 35% disturbance I used a 15% threshold to account for edge effects of buffered areas that are difficult to account for in the model, but this can be varied as needed.
+
+```{r, proposed Reve areas}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+reve_area <- getSpatialQuery("SELECT * from public.reve_ernst_20201204;")
+reve_area$zone <- paste (reve_area$herd_name, # create concatenated var to id each zone
+                         reve_area$bc_habitat, 
+                         reve_area$scenario_n,
+                         sep="_")
+# zone integer  
+reve_area_vat <- data.table (st_drop_geometry (reve_area [, c ('zone')]))  
+reve_area_vat [, value := seq_len(.N)]   
+all_reve_area <- merge (reve_area, reve_area_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(poly.caribou)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_reve_area <- fasterize::fasterize (all_reve_area, prov.rast, field = "value")
+writeRaster (ras_reve_area, "ras_reve_area.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ras_reve_area.tif -t 100x100 rast.zone_cond_reve_area | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1,3,5,7,9,11,13,15,17,19,21,23)), type = 'nh', variable = '', threshold = 0, reference_zone = 'rast.zone_cond_reve_area', percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(2,4,6,8,10,12,14,16,18,20,22,24)), type = 'ge', variable = 'dist', threshold = 500, reference_zone = 'rast.zone_cond_reve_area', percentage = 85, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_reve <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_reve_vat"), value = reve_area_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "zone_reve_area"), value = zone_reve, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_reve_area INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
+
+
 
 ## Modify Constraints Defined in SQLite Databases
 If necessary, the script below provides an example of how to modify proposed constraints in the SQLite databases created using dataLoaderCLUS.

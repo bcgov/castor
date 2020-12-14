@@ -74,17 +74,12 @@ ECCC in all Purcells South herd = rast.zone_cond_eccc_purcells_south_crithab_or_
 ## 'harvestFlow'
 from August 24 2017 determination: AAC was 808,000m^3^/year
 
-- First, I tested a harvest flow of 808,000m^3^/year (2,375,000m^3^/5-year), 750,000
 
+- First, I tested a harvest flow of 808,000m^3^/year (2,375,000m^3^/5-year), 750,000, 700,000, 650,000, 675,000, 665,000, 670,000
 
+- 670,000m^3^/year was used; coudl be maitnained except last time step (years 195-200)
 
-
-
-
-
-- 340,000m^3^/year was used; coudl be maitnained except last time step (years 195-200)
-
-- I used 150 m3/ha as minimum harvest volume, dta package used minimum age 60 for pine, 80 for everything else
+- I used 150 m3/ha as minimum harvest volume, data package used minimum age 60 for pine, 80 for everything else
 
 - For cutblock adjacency, I used 3 m adjacncey; this varied adn was not clear in data package
 
@@ -118,11 +113,19 @@ parameters <- list(
                                                "rast.zone_cond_wha", 
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
+<<<<<<< HEAD
+                                               "rast.zone_cond_nharv",
+                                #"rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
+                                #"rast.zone_cond_eccc_purcell_central_crithab_or_herd"
+                                # "rast.zone_cond_noharvest_purcells_south_crithab_or_herd" 
+                                 "rast.zone_cond_eccc_purcells_south_crithab_or_herd"
+=======
                                                "rast.zone_cond_nharv"
                                            # "rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
                                            # "rast.zone_cond_eccc_purcell_central_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_purcells_south_crithab_or_herd" 
                                            # "rast.zone_cond_eccc_purcells_south_crithab_or_herd"
+>>>>>>> d3c0af3aa91f4d929a8dd443511aab8c1415b9bb
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -185,6 +188,20 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
+<<<<<<< HEAD
+# scenario = data.table (name = "cranbrook_bau",
+#                        description = "Business-as-usual case; sustainable flow = 670,000m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "cranbrook_purcell_central_nh",
+# description = "No harvest in Purcell Central critical habitat. Adjacency was set to 3m. Harvest flow = 670,000m3/yr.")
+# scenario = data.table (name = "cranbrook_purcell_central_ch_he0d_m15d",
+#                        description = "No harvest in Purcell Central high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcell Central matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "cranbrook_purcells_south_nh",
+# description = "No harvest in Purcells South critical habitat. Adjacency was set to 3m. Harvest flow = 670,000m3/yr.")
+
+
+scenario = data.table (name = "cranbrook_purcells_south_ch_he0d_m15d",
+                       description = "No harvest in Purcells South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcells South matrix critical habitat. Adjacency was set to 3m. Harvest flow = 670,000m3/yr.")
+=======
 scenario = data.table (name = "cranbrook_bau",
                        description = "Business-as-usual case; sustainable flow = 750,000m3/yr. Adjacency was set to 3m.")
 
@@ -192,6 +209,7 @@ scenario = data.table (name = "cranbrook_bau",
                        # description = "No harvest in Purcell Central critical habitat. Adjacency was set to 3m. Harvest flow = 340,000m3/yr.")
 # scenario = data.table (name = "cranbrook_purcell_central_ch_he0d_m15d",
 #                        description = "No harvest in Purcell Central high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcell Central matrix critical habitat. Adjacency was set to 3m.")
+>>>>>>> d3c0af3aa91f4d929a8dd443511aab8c1415b9bb
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Cranbrook_TSA",
@@ -200,7 +218,11 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Cranbrook_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
+<<<<<<< HEAD
+                                     flow = 3350000) #670,000m3/yr 
+=======
                                      flow = 3750000) #750,000m3/yr 
+>>>>>>> d3c0af3aa91f4d929a8dd443511aab8c1415b9bb
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

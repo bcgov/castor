@@ -101,6 +101,37 @@ From 2016 analysis report, used a minimum harvets age to achieve 95% of the stan
 
 For cutblock adjacency, I used 3 m adjacncey; no real mention fo this in aanylsis report; used 'green-up' targets at coarser scales
 
+## Modify Constraints
+
+```{r, zone_update}
+library (DBI)
+# STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Golden_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+# STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+# COLUMBIA SOUTH Update the constraints available to a zone as specified in the scenario
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 11) OR (zoneid = 12) OR (zoneid = 13) OR (zoneid = 14) OR (zoneid = 17) OR (zoneid = 18) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 23) OR (zoneid = 24)") #This will set Columbia North and Frisby Boulder as 'harvestable' areas
+ 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 3) OR (zoneid = 9) OR (zoneid = 15) OR (zoneid = 21)") #This will set Columbia South core as no harvest areas 
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 4) OR (zoneid = 10) OR (zoneid = 16) OR (zoneid = 22)") #This will set Columbia South matrix as constrained areas 
+
+dbDisconnect(clusdb)
+
+
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 11) OR (zoneid = 12) OR (zoneid = 15) OR (zoneid = 16) OR (zoneid = 17) OR (zoneid = 18) OR (zoneid = 21) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") #This will set Columbia North and Frisby Boulder as 'harvestable' areas
+ 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 1) OR (zoneid = 7) OR (zoneid = 13) OR (zoneid = 19)") #This will set Columbia South core as no harvest areas 
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 2) OR (zoneid = 8) OR (zoneid = 14) OR (zoneid = 20)") #This will set Columbia South matrix as constrained areas 
+
+dbDisconnect(clusdb)
+```
+
+
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -136,11 +167,12 @@ parameters <- list(
                               # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
                               # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                               # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
-                               "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
+                              # "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
                               # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
                               #" rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
                               # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
                               # "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd"
+                              "rast.zone_cond_reve_area"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -235,11 +267,13 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Central Rockies high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Rockies matrix critical habitat in the TSA. Adjacency was set to 3m.")
 # scenario = data.table (name = "golden_central_selkirks_nh",
 #                        description = "No harvest in Central Selkirks critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "golden_central_selkirks_ch_he0d_m15d",
+#                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat in the TSA. Adjacency was set to 3m.")
+# scenario = data.table (name = "golden_columbia_south_ch_he10d_m15d",
+#                        description = "No harvest in Columbia South high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia South matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
-
-scenario = data.table (name = "golden_central_selkirks_ch_he0d_m15d",
-                       description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat in the TSA. Adjacency was set to 3m.")
-
+scenario = data.table (name = "golden_columbia_north_ch_he10d_m15d",
+                       description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Golden_TSA",
                                          partition = ' vol > 150 ', 
