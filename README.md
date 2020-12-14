@@ -1,3 +1,4 @@
+[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 ## Caribou and Land Use Simulator
 ### Usage
 Much of the code here is currently in beta version. Contact tyler.muhly@gov.bc.ca for questions.  
