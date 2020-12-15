@@ -45,7 +45,7 @@ GitHub branches can be considered as 'working copies' of code (see image below).
 
 For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. To create a new branch click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
 
-![](images/github_branch2.jpg)
+![](images/git_branch2.jpg)
 
 You will notice the name of the new branch appears in the text drop-down. Now you are workign in a seperate branch of the code. Any changes you make to the code will only occur in the branch you created, as long as it is the selected branch in the drop-down text box. 
 
@@ -76,7 +76,38 @@ Now you have a working understanding of how to use Git and GitHub to manage edit
 ## 4. Set-up a Keyring
 CLUS uses networked PostgreSQL databases. To keep these databases and the netwrok secure, we do not post the database access credentials (e.g., password) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally and use the "keyring" function to call those credentials from R scripts. 
 
-We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> fucntions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Contact the CLUS core team (kyle.)
+We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> fucntions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain the credentials for the PostgreSQL databases. 
+
+Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to conenct to teh databases adn examine some of the data to familiarize yourself with the data structure. In the 'clus' database on our local network computer, within teh "public" schema, there is a trable called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. Within the 'documentation'  folder of CLUS, there is also a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table, and in the event that you need to add or update data at some point, instructions on how to update the table. 
+
+## 5. Create a Shapefile for a Hypothetical Forest Harvest Scenario
+At this point you're probably itching to do some modeling. However, before we do that, we want to introduce you to the process of developing a model to address alternate, hypothetical forest management scenarios. To do that, you will use one of CLUS' web applications to create a shapefile, then develop a land use constraint parameter from this shapefile that you will use in the hypothetical model you are going to buidl and run.
+
+To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you have that login, and click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. However, you will note that the app was designed for caribou recovery planning, dn thus much of teh inforamtion is tailored to support that. Neverthless, conceptually the app can apply to any forest managrment planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and an order (i.e., the constraint to apply within the defined location).
+
+![](images/scen_tool.jpg)
+
+Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North cariobu herd and the Revlstoke timebr supply area (TSA) as our 'example'. Click on the "Columbia North' herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habtiat areas (WHAs). 
+
+![](images/scen_tool_cn.jpg)
+
+Now 'zoom in' to a portion of the map where you can see cutblocks around the UWRs. Within that area, draw a new polygon (click on the button with a pentagon shape on the left side of the map) in an area between the UWRs, preferably that is forested and where you can see some forestry activity. Once you are done, name the polygon and click on the "Drawn" drop down box; this should display it on the map. You can also edit this polygon by clicking on the button with the box with a pen in it on the left side of the map. 
+
+![](images/scen_tool_cn2.jpg)
+
+Once you have a reasonable polygon that covers a large area, click the "Download Crawn/Edited Shapefile". This will save a shapefile in a zipped folder of your downloads folder. Unzip the folder and copy the shapefile to your working folder.  
+
+## 6. Create a Spatial Model Parameter for CLUS Usign the Shapefile
+Here we use the shapefile you created to create a spatial model parameter in CLUS. This spatial parameter will be a new spatial constraint on forest harvest activity. We will make it fairly constainign to show it's effect.
+
+To create a spatial parameter, you will need to upload the polygon data to the PostgreSQL database 
+
+
+
+```{r}
+
+```
+
 
 
 
@@ -90,9 +121,12 @@ We have developed an R markdown document for setting up a keyring. In the CLUS r
 5. create a parameter
 - osgeo?
 6. create a sql lite db
-7. 
+ 
 
+##  Creating a Business-as-Usual Harvest Flow
+Now you should have all of the software and code you need to run CLUS models. Here we descirbe how to get a 
 
+## Alterante harvest flow
 
 
 
