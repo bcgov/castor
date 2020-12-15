@@ -32,9 +32,10 @@ library(SpaDES.core)
 library(data.table)
 source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 
-#aoi_herds<-c("Barkerville", "Central_Selkirks", "Central_Rockies", "Columbia_North", "Columbia_South", "Frisby_Boulder", "Groundhog", "Hart_Ranges", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcells_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
+aoi_herds<-c("Barkerville", "Central_Selkirks", "Columbia_North", "Columbia_South", "Groundhog", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcell_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
 #aoi_herds<-c("Kennedy_Siding", "Moberly", "Narraway") #DU8
 #aoi_herds<-c("Graham") #DU7
+#aoi_herds<-c("Hart_Ranges")
 aoi_herds<-c("Onehundred_Mile_House_TSA")
 
 #Standard values for scaling rsf
@@ -42,12 +43,12 @@ aoi_herds<-c("Onehundred_Mile_House_TSA")
 # "Purcells_South","Barkerville","Central_Selkirks","Central_Rockies","Columbia_North","Columbia_South","Frisby_Boulder","Groundhog","Hart_Ranges","Narrow_Lake","North_Cariboo","South_Selkirks","Wells_Gray_North","Wells_Gray_South","Kennedy_Siding","Moberly","Narraway", "Purcell_Central"),
 # minv=c(0.02661948,0.06266979,0.05392171,0.03799885,0.03801286,0.0487691,0.04730855,0.06147054,0.05599202,0.03572763,0.05730409,0.03987817,0.03995903, 0.0238606, 0.034116,0.02274269,0.02198394,0.01151656,0.05296088), maxv =c(0.8703865, 0.2027866,0.1510717,0.5228453,0.296431,0.7164107,0.4480757,0.3119703,0.4411238,0.1800473,0.1180433,0.495245,0.5252465,0.4278086,0.9800901,0.2208816,0.1985523,0.9751709,0.6806737))
 
-
 for(herd in aoi_herds){
 setPaths(modulePath = here::here("R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
+
 setPaths(outputPath  = here::here("R/SpaDES-modules/dataLoaderCLUS/tests"))  
-times <- list(start = 0, end = 38)
+times <- list(start = 0, end = 40)
 
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
@@ -58,11 +59,13 @@ parameters <-  list(
                          nameBoundaryColumn="tsa_name",
                          nameBoundary = "Onehundred_Mile_House_TSA",
                          nameBoundaryGeom='wkb_geometry'
+
                     ),
     roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'
                   ),
+
     cutblockSeqPrepCLUS = list( startHarvestYear = 1980,
                                 nameCutblockRaster= 'rast.cns_cut_bl',
                                 nameCutblockTable= 'cns_cut_bl_polygon',
@@ -99,6 +102,8 @@ modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS")
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 # objects <- list(scenario = scenario, rsf_model_coeff=rsf_model_coeff)
+
+objects <- list(scenario = scenario)
 
 inputs <- list()
 outputs <- list()

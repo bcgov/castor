@@ -57,9 +57,13 @@ ON c.compartment = a.compartment;")))
   reportList<-reactive({
     req(input$schema)
     req(input$scenario)
-    data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
-    data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
-    
+    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+      data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
+      data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
+    }
+    else{
+      data.survival<-NULL
+    }
     data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
     sum(dist500) as dist500, sum(dist) as dist, sum(dist/((dist_per+0.000001)/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
 
@@ -78,7 +82,7 @@ ON c.compartment = a.compartment;")))
       data.fisherPoints<-NULL
       data.fisherOccupancy<-NULL
     }
-
+  
     list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
          growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
          rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
@@ -299,6 +303,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   
   output$harvestAreaPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
+      
       data<-reportList()$harvest[,sum(area), by=c("scenario", "timeperiod")]
       data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
       data[,timeperiod:= as.integer(timeperiod)]

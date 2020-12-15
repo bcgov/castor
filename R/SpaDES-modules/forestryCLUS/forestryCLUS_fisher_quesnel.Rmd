@@ -37,10 +37,16 @@ This module could be a parent module?? It relies on:
 5. (Optionally) roadCLUS (preforms the access to the harvest units)
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
-```{r module_usage}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 library (SpaDES.core)
 library (data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+```
+
+###Change Settings
+```{r module_usage}
+
 
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = "C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite" ) # connext to pgdb
 
@@ -70,13 +76,15 @@ dbExecute(clusdb, "Update zoneconstraints set multi_condition = NULL")
 dbDisconnect(clusdb)
 ```
 
+
+#Run scenario
 ```{r, model_run}
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 20) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -98,9 +106,7 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw",                                              "rast.zone_cond_fisher_sb_wet",
-                                             "rast.zone_cond_fisher_sb_dry",
-                                             "rast.zone_cond_fisher_dry"
+                                               "rast.zone_cond_cw",'rast.zone_cond_fisher_sb_dry','rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_dry'
                                              
                                                ),
                            nameZoneTable = "zone_constraints",
@@ -155,8 +161,8 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCalcCLUS",
                 "uploaderCLUS"
                 )
-scenario = data.table (name = "all_terr_10per_max12yrs_le",
-                       description = "All fisher territories maintaining less than 10% of the territory less than 12 years")
+scenario = data.table (name = "all_terr_10per_max_12yrs_le_wetland2",
+                       description = "Max 10 percent 12 years in each territory. New wetland or permanent raster layer.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 100 and age > 60 ', 

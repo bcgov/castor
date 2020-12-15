@@ -1,3 +1,4 @@
+[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 ## Caribou and Land Use Simulator
 ### Description and Usage
 The Caribou and Land Use Simulator (CLUS) is a spatial, large-scale analytical model for simulating forest harvest and it's potential influence on other forest values (e.g., wildlife habitat). It was first designed to support the government of British Columbia's caribou recovery program, by providing a tool to spatially estimate future forestry and caribou habitat conditions under hypothetical, alternative forest management regimes. It has since been and will continue to be expanded and developed to examine other forest values. 
