@@ -211,7 +211,7 @@ main<-ggplot() +
     geom_sf(data = herd.spat2, aes(alpha = 0.2), show.legend=FALSE ) +
     #geom_text_repel(data = herd.spat2, aes(x=X, y=Y, label = herd_name), fontface = "bold", size = 1.5)+
   geom_text_repel(data = herd.spat2, aes(x=X, y=Y, label = herd_name2), 
-        fontface = "bold", size = 3,nudge_x = c(-4,-2.25,-4,-5,-4,-4,-4,-3,-4,-3.15,-2.25,-3,4), nudge_y = c(-0.15,0,0.25,1.5,-0.25,-0.25,0.25,0,1,0.15,0.05,0,0.75))+
+        fontface = "bold", size = 3,nudge_x = c(-4,-2.25,-4,-4,-4,-3,-2,-3,-4,-3.15,-2.25,-3,-4), nudge_y = c(-0.2,0,-0.1,-0.5,-0.35,0,0,0.5,0,0.15,0.05,0,0))+
     coord_sf(xlim = c(-128,-115.2), ylim = c(48.9, 55.4), expand = FALSE) +
     theme_bw()+
     xlab("Longitude") + ylab("Latitude") +
@@ -238,6 +238,11 @@ ggplotly(ggplot(data = data_new, aes(x=year, y = pop_estimate, color = herd_name
 #### Get the disturbance information
 
 ```{r, disturbance}
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+for.area<-data.table(dbGetQuery(conn, paste0("SELECT herd as herd_name, hab as critical_hab, area_for/10000 as area_for from caribou_sm_forest_area")))
+dbDisconnect(conn)
+
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('vmdbuser', keyring = 'postgreSQL') ,password= keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 
 disturb<-data.table(dbGetQuery(conn, paste0("SELECT * from disturbance_measures.disturbance where scenario in ('", paste(unique(data_new$herd_name), collapse = "', '"),"');")))
@@ -282,6 +287,8 @@ data.1[critical_hab %like% "Core",critical_hab:= 'Core' ]
 #Merge in the fire disturbance
 data.2<-merge(data.1, fire3, by.x =c("herd_name", "year", "critical_hab"), by.y = c("herd_name", "year", "critical_hab") )
 
+data.2<-merge(data.2, for.area, by.x =c("herd_name", "critical_hab"), by.y = c("herd_name", "critical_hab") )
+
 ```
 ### Create the linkage
 ```{r, linkage}
@@ -290,26 +297,26 @@ data.3<-merge(data.2, data_new, by.x = c("herd_name", "year"), by.y = c("herd_na
 data.3[, pop.den:= pop_estimate/(area*0.01)]
 
 #subset by habitat type
-data.core<-data.3[critical_hab== 'Core', c("herd_name", "year", "pop_estimate", "lambda", "year.0","pop.0","pop.den", "area", "lambda.ratio", "lambda.finite", "per.pop", "early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75","per_rsf_hat_75", "pop_lag", "log.pop", "year_lag", "burn40", "survival_rate","lambda.dift","lambda.dif", "pop.change","lambda.dift.n0","lambda.dif.n0")]
-setnames(data.core, c("early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "pop_lag", "year_lag","burn40","per_rsf_hat_75","survival_rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0"), c("core.early.seral", "core.dist", "core.dist500", "core.sum.rsf.hat", "core.sum.rsf.hat.75", "core.area", "pop_lag", "year_lag","core.burn40","core.per.rsf.hat.75","core.survival.rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0"))
+data.core<-data.3[critical_hab== 'Core', c("herd_name", "year", "pop_estimate", "lambda", "year.0","pop.0","pop.den", "area", "lambda.ratio", "lambda.finite", "per.pop", "early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75","per_rsf_hat_75", "pop_lag", "log.pop", "year_lag", "burn40", "survival_rate","lambda.dift","lambda.dif", "pop.change","lambda.dift.n0","lambda.dif.n0", "area_for")]
+setnames(data.core, c("early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "pop_lag", "year_lag","burn40","per_rsf_hat_75","survival_rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "area_for"), c("core.early.seral", "core.dist", "core.dist500", "core.sum.rsf.hat", "core.sum.rsf.hat.75", "core.area", "pop_lag", "year_lag","core.burn40","core.per.rsf.hat.75","core.survival.rate","log.pop","lambda.dift","lambda.dif","pop.change","lambda.dift.n0","lambda.dif.n0", "core.area.for"))
 
-data.matrix<-data.3[critical_hab == 'Matrix',c("herd_name", "year", "early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "burn40", "per_rsf_hat_75", "survival_rate")]
-setnames(data.matrix, c("early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "burn40","per_rsf_hat_75", "survival_rate"), c("matrix.early.seral", "matrix.dist", "matrix.dist500", "matrix.sum.rsf.hat", "matrix.sum.rsf.hat.75", "matrix.area", "matrix.burn40","matrix.per.rsf.hat.75","matrix.survival.rate"))
-data.core<-data.core[,core.burn40.per:=core.burn40/core.area]
-data.matrix<-data.matrix[,matrix.burn40.per:=matrix.burn40/matrix.area]
+data.matrix<-data.3[critical_hab == 'Matrix',c("herd_name", "year", "early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "burn40", "per_rsf_hat_75", "survival_rate", "area_for")]
+setnames(data.matrix, c("early_seral", "dist", "dist500", "sum_rsf_hat", "sum_rsf_hat_75", "area", "burn40","per_rsf_hat_75", "survival_rate","area_for"), c("matrix.early.seral", "matrix.dist", "matrix.dist500", "matrix.sum.rsf.hat", "matrix.sum.rsf.hat.75", "matrix.area", "matrix.burn40","matrix.per.rsf.hat.75","matrix.survival.rate","matrix.area.for"))
+data.core<-data.core[,core.burn40.per:=core.burn40/core.area.for]
+data.matrix<-data.matrix[,matrix.burn40.per:=matrix.burn40/matrix.area.for]
 
 data.set<-merge(data.core, data.matrix, by.x = c("herd_name", "year"), by.y = c("herd_name", "year"))
 data.set[, time:=year-year.0]
 
 #Calc diturbance indicators
-data.set[, core.dist.per:= (core.dist/core.area)*100]
-data.set[, core.dist500.per:= (core.dist500/core.area)*100]
-data.set[, core.early.seral.per:= (core.early.seral/core.area)*100]
-data.set[, core.rsf.avg:= core.sum.rsf.hat/core.area]
-data.set[, matrix.dist.per:= (matrix.dist/matrix.area)*100]
-data.set[, matrix.dist500.per:= (matrix.dist500/matrix.area)*100]
-data.set[, matrix.early.seral.per:= (core.early.seral/matrix.area)*100]
-data.set[, matrix.rsf.avg:= matrix.sum.rsf.hat/matrix.area]
+data.set[, core.dist.per:= (core.dist/core.area.for)*100]
+data.set[, core.dist500.per:= (core.dist500/core.area.for)*100]
+data.set[, core.early.seral.per:= (core.early.seral/core.area.for)*100]
+data.set[, core.rsf.avg:= core.sum.rsf.hat/core.area.for]
+data.set[, matrix.dist.per:= (matrix.dist/matrix.area.for)*100]
+data.set[, matrix.dist500.per:= (matrix.dist500/matrix.area.for)*100]
+data.set[, matrix.early.seral.per:= (core.early.seral/matrix.area.for)*100]
+data.set[, matrix.rsf.avg:= matrix.sum.rsf.hat/matrix.area.for]
 
 #RATES
 ##Core
@@ -323,15 +330,15 @@ data.set[, matrix.dist.lag:= lapply(.SD, function(x) c(NA,x[-.N])), by = herd_na
 data.set[, matrix.dist500.lag:= lapply(.SD, function(x) c(NA,x[-.N])), by = herd_name, .SDcols = "matrix.dist500"]
 
 #Metrics
-data.set[, core.early.seral.rate:=( (core.early.seral-core.early.seral.lag)/core.area)*100]
-data.set[, core.dist.rate:= ((core.dist-core.dist.lag)/core.area)*100]
-data.set[, core.dist500.rate:= ((core.dist500-core.dist500.lag)/core.area)*100]
+data.set[, core.early.seral.rate:=( (core.early.seral-core.early.seral.lag)/core.area.for)*100]
+data.set[, core.dist.rate:= ((core.dist-core.dist.lag)/core.area.for)*100]
+data.set[, core.dist500.rate:= ((core.dist500-core.dist500.lag)/core.area.for)*100]
 
 
 ##Matrix
-data.set[, matrix.early.seral.rate:=( (matrix.early.seral-matrix.early.seral.lag)/matrix.area)*100]
-data.set[, matrix.dist.rate:= ((matrix.dist-matrix.dist.lag)/matrix.area)*100]
-data.set[, matrix.dist500.rate:=( (matrix.dist500-matrix.dist500.lag)/matrix.area)*100]
+data.set[, matrix.early.seral.rate:=( (matrix.early.seral-matrix.early.seral.lag)/matrix.area.for)*100]
+data.set[, matrix.dist.rate:= ((matrix.dist-matrix.dist.lag)/matrix.area.for)*100]
+data.set[, matrix.dist500.rate:=( (matrix.dist500-matrix.dist500.lag)/matrix.area.for)*100]
 
 #Final
 data.set<-data.set[!is.na(pop.den),]
@@ -553,18 +560,18 @@ anova(m0.b.reml,m0.d)
 gam.null<-gamlss(pop.den ~ 1 + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.null)
 
-gam.c<-gamlss(pop.den ~ matrix.early.seral.per + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1 + core.early.seral.per, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.c<-gamlss(pop.den ~ matrix.early.seral.per + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1 + core.early.seral.rate, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.c)
 
 gam.cr<-gamlss(pop.den ~core.dist.per + re(random=~1|herd_name, correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1+core.dist.per, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr)
 
-gam.cr500<-gamlss(pop.den ~ core.dist500.per + re(random=~1|herd_name,correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist500.per, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
+gam.cr500<-gamlss(pop.den ~ core.dist500.per+core.dist500.rate+ re(random=~1|herd_name,correlation = corAR1(value = 0.8, form = ∼time|herd_name), method = "ML"), opt="optim",   sigma.formula = ~1+matrix.dist500.rate, family = GA(), data = model.data, control =gamlss.control(c.crit=0.001, n.cyc=5000,msMaxIter=1000000), method=CG())
 summary(gam.cr500)
 
-plot(predict(gam.cr500), model.data$log.pop.den) 
+plot(exp(predict(gam.cr500)), model.data$pop.den) 
 abline(0,1, col = 'red')
-plot(predict(gam.c), model.data$log.pop.den)
+plot(predict(gam.c), model.data$pop.den)
 abline(0,1, col = 'red')
 
 d1<-data.table(type ='c', residuals(gam.c))
