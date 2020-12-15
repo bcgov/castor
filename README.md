@@ -23,7 +23,7 @@ The model is coded using the R programming language. Thus, you will need to [dow
 R consists of many 'packages' developed by R users that bundle-up specific functions for manipulating, analyzing and visualizing aspatail and spatial data. The packages needed to run CLUS are documented in the respective pieces of code where they are used, and we do not list them all here. However, we note here that you will need the open source simulation engine ['SpaDES'](https://spades.predictiveecology.org/) R package to use CLUS. We recommend familiarizing yourself with this package if you want to use CLUS.
 
 ### Getting Help or Reporting an Issue
-We've developed two documents to help you with using CLUS. The ["Getting Started with CLUS" guide](https://github.com/bcgov/clus/blob/master/documentation/getting_started_with_clus.Rmd) provides a summary of the structure and functions of the CLUS model. Once you've read that, you can use our ["Quick Start Tutorial"](https://github.com/bcgov/clus/blob/master/documentation/clus_quick_start_tutorial.Rmd) to walk through the steps to get a basic CLUS model up and running. 
+We've developed two documents to help you with using CLUS. The ["Getting Started with CLUS" guide](https://github.com/bcgov/clus/blob/master/documentation/getting_started_with_clus.html) provides a summary of the structure and functions of the CLUS model. Once you've read that, you can use our ["Quick Start Tutorial"](https://github.com/bcgov/clus/blob/master/documentation/clus_quick_start_tutorial.html) to walk through the steps to get a basic CLUS model up and running. 
 
 Once you are familiar with CLUS, if you have find any errors with the code, please submit them via the github  ["Issues"](https://github.com/bcgov/clus/issues) tab.
 
