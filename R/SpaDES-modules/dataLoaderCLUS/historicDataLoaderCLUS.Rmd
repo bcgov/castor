@@ -35,7 +35,10 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 #aoi_herds<-c("Barkerville", "Central_Selkirks", "Central_Rockies", "Columbia_North", "Columbia_South", "Frisby_Boulder", "Groundhog", "Hart_Ranges", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcells_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
 #aoi_herds<-c("Kennedy_Siding", "Moberly", "Narraway") #DU8
 #aoi_herds<-c("Graham") #DU7
-aoi_herds<-c("Onehundred_Mile_House_TSA")
+#aoi_herds<-c("Onehundred_Mile_House_TSA")
+#aoi_herds<-c("Williams_Lake_TSA")
+#aoi_herds<-c("Quesnel_TSA")
+aoi_herds<-c("Kamloops_TSA")
 
 #Standard values for scaling rsf
 # scale_rsf<-data.table(herd_name = c("Graham",
@@ -46,17 +49,17 @@ aoi_herds<-c("Onehundred_Mile_House_TSA")
 for(herd in aoi_herds){
 setPaths(modulePath = here::here("R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
-setPaths(outputPath  = here::here("R/SpaDES-modules/dataLoaderCLUS/tests"))  
-times <- list(start = 0, end = 38)
+setPaths(outputPath  = here::here("R/SpaDES-modules/dataLoaderCLUS/"))  
+times <- list(start = 0, end = 40)
 
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
-                         nameBoundaryFile="tsa_aac_bounds",
-                         nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Onehundred_Mile_House_TSA",
+                    nameBoundaryFile="tsa_aac_bounds", #"bc_caribou_herd_boundary_v20200507"
+                         nameBoundaryColumn="tsa_name", #"herd_name"
+                         nameBoundary = "Kamloops_TSA",#herd
                          nameBoundaryGeom='wkb_geometry'
                     ),
     roadCLUS = list(roadMethod = 'pre', 
