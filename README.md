@@ -6,8 +6,6 @@ The code in this github is open-source and provides a transparent record of the 
 
 For more information on working with the CLUS team to use the model for a forest management problem, please don't hesitate to contact Tyler Muhly (tyler.muhly@gov.bc.ca), Acting Team Lead, Strategic Analysis, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development.  
 
-[![img](https://img.shields.io/badge/Lifecycle-Maturing-007EC6)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
-
 ### Core Team
 Tyler Muhly, Team Lead, Strategic Analysis, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
 
