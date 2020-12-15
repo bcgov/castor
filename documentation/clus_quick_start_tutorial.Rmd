@@ -102,16 +102,31 @@ Once you have a reasonable polygon that covers a large area, click the "Download
 ## 6. Create a Spatial Model Parameter for CLUS Usign the Shapefile
 Here we use the shapefile you created to create a spatial model parameter in CLUS. This spatial parameter will be a new spatial constraint on forest harvest activity. We will make it fairly constainign to show it's effect.
 
-To create a spatial parameter, you will need to upload the polygon data to the PostgreSQL database 
+To create a spatial parameter, you will need to upload the polygon data to the PostgreSQL database. This needs to be run from the OSGeo4W shell via QGIS (unfortunately, there does not appear to be a way to run the shell directly through R). To use OSGeo4W, search for it in your Windows search bar. Open the app and you will get a simple command line prompt with 'C:\>' 
+
+![](images/osgeo.jpg)
+
+Below we provide a chunk of code to upload a shapefile to teh PostgreSQL database using gdal functionality (ogr2ogr command) through the OSGeo4W command line interface. Here you will also need to contact the CLUS core team to get database credentials. The *-f* declares the output file format (here we use PostgreSQL); *PG:*  
+
+```{r, eval = F, message = F}
+
+# this uses the ogr2ogr function to 
+ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx" C:\\Work\\shapefile_name.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+# Alter table designatedlands rename to designatedlands_2018;
+GRANT ALL ON TABLE archive.designatedlands_caribou TO postgres;
+GRANT ALL ON TABLE archive.designatedlands_caribou TO clus_project;
+GRANT ALL ON TABLE archive.designatedlands_caribou TO tmuhly;
 
 
 
-```{r}
+
+
 
 ```
 
 
-
+open pgadmin to view
 
 
 
