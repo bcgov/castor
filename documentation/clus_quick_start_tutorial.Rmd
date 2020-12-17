@@ -85,7 +85,7 @@ Once you are set-up with keyring, you can also use the credentials information t
 ## 5. Create a Shapefile for a Hypothetical Forest Harvest Scenario
 At this point you're probably itching to do some modeling. However, before we do that, we want to introduce you to the process of developing a model to address alternate, hypothetical forest management scenarios. To do that, you will use one of CLUS' web applications to create a shapefile, then develop a land use constraint parameter from this shapefile that you will use in the hypothetical model you are going to buidl and run.
 
-To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you have that login, and click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. However, you will note that the app was designed for caribou recovery planning, dn thus much of teh inforamtion is tailored to support that. Neverthless, conceptually the app can apply to any forest managrment planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and an order (i.e., the constraint to apply within the defined location).
+To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you have that login, and click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. However, you will note that the app was designed for caribou recovery planning, dn thus much of the inforamtion is tailored to support that. Neverthless, conceptually the app can apply to any forest managrment planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and an order (i.e., the constraint to apply within the defined location).
 
 ![](images/scen_tool.jpg)
 
@@ -99,39 +99,149 @@ Now 'zoom in' to a portion of the map where you can see cutblocks around the UWR
 
 Once you have a reasonable polygon that covers a large area, click the "Download Crawn/Edited Shapefile". This will save a shapefile in a zipped folder of your downloads folder. Unzip the folder and copy the shapefile to your working folder.  
 
-## 6. Create a Spatial Model Parameter for CLUS Usign the Shapefile
-Here we use the shapefile you created to create a spatial model parameter in CLUS. This spatial parameter will be a new spatial constraint on forest harvest activity. We will make it fairly constainign to show it's effect.
-
-To create a spatial parameter, you will need to upload the polygon data to the PostgreSQL database. This needs to be run from the OSGeo4W shell via QGIS (unfortunately, there does not appear to be a way to run the shell directly through R). To use OSGeo4W, search for it in your Windows search bar. Open the app and you will get a simple command line prompt with 'C:\>' 
+To create a spatial parameter for the CLUS model, you will need to upload this polygon data to the PostgreSQL database. This needs to be run from the OSGeo4W shell via QGIS (unfortunately, there does not appear to be a way to run the shell directly through R). To use OSGeo4W, search for it in your Windows search bar. Open the app and you will get a simple command line prompt with 'C:\>' 
 
 ![](images/osgeo.jpg)
 
-Below we provide a chunk of code to upload a shapefile to teh PostgreSQL database using gdal functionality (ogr2ogr command) through the OSGeo4W command line interface. Here you will also need to contact the CLUS core team to get database credentials. The *-f* declares the output file format (here we use PostgreSQL); *PG:*  
+Below we provide a chunk of code to upload a shapefile to the PostgreSQL database using gdal functionality (ogr2ogr command) through the OSGeo4W command line interface. Here you will also need to contact the CLUS core team to get database credentials. Within the line of code, *-f* declares the output file format (here we use PostgreSQL); *PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx"*  are the credentials needed to access the database; you need to provide the location of the shapefile; *-overwrite* allows you to delete and recreate any existing data; *-a_srs* referes to the spatial reference system, and here we use *EPSG:3500*, which is NAD83/BC Albers, the provincial standard for spatial data); *-progress* displays a progress bar in the command line terminal; *--config* is a configuration command, and here we use it to apply the *PG_USE_COPY* command, which uses the PostgreSQL COPY command for inserting data to PostgreSQL that is faster than the default INSERT.COPY command; *-nlt* is used to define the geometry of spatial data (e.g., point, line, polygon), and here we use the *PROMOTE_TO_MULTI* which promotes spatial data that mix polygon or multipolygons (which is the case for many polygonal datasets) to the multipolygons type. For more on gdal and ogr2ogr command fucntionalisty see [here](https://gdal.org/programs/ogr2ogr.html) and [here](https://gdal.org/drivers/vector/pg.html).
+
+Copy and paste the code below into the OSGeo4W command line and hit enter. 
 
 ```{r, eval = F, message = F}
-
-# this uses the ogr2ogr function to 
 ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx" C:\\Work\\shapefile_name.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-# Alter table designatedlands rename to designatedlands_2018;
-GRANT ALL ON TABLE archive.designatedlands_caribou TO postgres;
-GRANT ALL ON TABLE archive.designatedlands_caribou TO clus_project;
-GRANT ALL ON TABLE archive.designatedlands_caribou TO tmuhly;
-
-
-
-
-
-
 ```
 
+Once the command has finished running, open the pgAdmin application. You will need to use the same credentials to connect to the database using pgAdmin. To do this, right click on "Servers", select "Create", "Server" and then enter the credentials in the "Connection" tab of the window that opens. You will then see the "clus" server in the list of servers.     
 
-open pgadmin to view
+![](images/pgadmin.jpg)
+
+Click on the "clus" server and it opens up a series of drop down menus. Click on "Schemas", then "Public" and "Tables". This is where much of the CLUS data is stored, and you should be able to naviagte to and view the data you just created. 
+
+You will note that the "clus" database is organized into schemas: "archive", "caribou", "public", and "rast".  The "archive" schema is where we keep data that were previously used in analysis and are no longer used regularly, but may need to be used in the future. The "caribou" schema contains several caribou-specific datasets, including resource selection function (RSF) habitat models. 
+
+![](images/pgadmin2.jpg)
+
+For spatial data in the database, you can also view it using QGIS. To do this, open the QGIS app and start a new project. Click on the "Open Data Source Manager Button" (it's in the top left and looks like three squares with a plus sign) to open a new window. Click on "PostgreSQL" on the left side and it will open a "Connections" tab. Click on the "New" button and it will open another window called "Create a New PostGIS Connection". Here you can enter the clus database credentials, close the window by clicking "Ok" and then click the "Connect" and once connected, the "Close" button. 
+
+![](images/qgis.jpg)
+
+You can open and view a spatial dataset by clicking the "Database" tab at the top of the app, and then select "DB Manager". This will open a new window, where you can select "PostGIS" and then the name of the clus database, and public schema. You should see the spatial data you added. Right click on the table select "add to Canvas" to add it to the viewer. Here you can check that the spatial data is accurately represented.
+
+![](images/qgis2.jpg)
+
+The above provide a set of tools to check and visualize data in the CLUS database. In the next steps you will create a spatial parameter for a CLUS model 
+
+## 6. Create a Spatial Model Parameter for CLUS Using the Shapefile
+Here we use the shapefile you created to create a spatial model parameter in CLUS. This spatial parameter will be a new spatial constraint on forest harvest activity. We will make it fairly constraining to show it's effect. We'll apply the constraint to the Revelstoke TSA, which overlaps the Columbia North cariobu herd, where you drew your polygon.
+
+Many of the model parameters in CLUS are created in the "R->Params" folder. In this folder there are a bunch of .Rmd's with scripts and text describing how to create those parameters. You can look in this folder to see how we defined various parameters. Below we describe a similar script as an example that you can use to learn the process. 
+
+The spatial parameter scripts convert spatial polygons to raster data with an assoicated table that defines the constraint to be applied to the spatial area. To create the raster adn table, you will need the "raster", "fasterize", "sf", "here", "data.table" and "DBI" packages (these can be downlaoded via RStudio if you do not already have them). You will also need to load our R_Postgres functions, using the "source" command. These are specific functions created for accessing PostgreSQL data from R (located in the "R->functions" folder).
+
+First, you will connect to the database (using the "dbConnect" function, and the keyring for credentials). You will then use the "getSpatialQuery" function (one of our custom functions) to SELECT your shapefile table from the database as an SQL query (enter the name of your table in place of "name_of_your_poly_table").  
+
+Second, you create an 'empty' raster object (all pixels will have a 0 value) configured to the provincial standard. We use this for all rasters to ensure that all of our data aligns. Make sure not to change the parameters of the raster (e.g., nrows, xmn, etc.).
+
+Third, you create an integer value for each unique type or 'zone' within the polygon data. Here, we are using a single polygon with a single 'zone', and therefore we create a 'zone' field where zone = 1. In the Params folder you will find examples of spatial polygons with unique 'zones', for example, caribou herd boundary polygons, where each herd is a unique zone. Essentially we are creating an integer value for each unique zone that will be the value attributed to the raster. Thus, the raster represents the spatial location of each zone. 
+
+Fourth, you will convert the polygon to a raster across the extent of BC, using the provincial standard as a template. This is done to ensure that each unique raster in the data is aligned with each other, and raster data can then be 'stacked' to measure multiple raster values at the same location. In this step, the raster is saved to a local drive, and then a command line is called from R to upload the data to the PostgreSQL using the *raster2pgsql* function. Within this function, *-s* assigns the spatial reference system, which is *3005* (BC Albers); *-d* drops (deletes) any existing raster in teh database with the same name and creates a new one; *-I* creates an index for the raster data; *-C* applies constraints to the raster to ensure it is registered properly (e.g., correct pixel size); *-M* 'vacuums' the data, which reclaims any obsolute or deleted data; *-N* applies a "NODATA" value to where there is no data; *2147483648* defines the raster as a 32-bit integer; *-t* defines the number of 'tiles' or rows in the database, and here we use 100x100 to create a tile for each pixel; *rast.raster_test* defines the schema and table name to save in the PostgreSQL database; the *psql* statement defines the credentials for the database (fill in the appropriate credentials). 
+
+Fifth, you create a 'look-up table' that links each raster integer zone to a zone name. In the example here, we create a name for the 'zone'. In the Params folder you will find examples with polygonal data that have multiple exsiting zones and zone names (e.g., caribou herds). Once the table is created, you upload it to the PostgreSQL datbase.
+
+In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% of the forest within the zone to be greater than or equal to 80 years old. Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the schema is also included); *zoneid*, which is the integer id for the zone in the raster that want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value variable at which to apply the threshold; *type* defines whether the threshold is greater than or equal (i.e., 'ge') or less than or equal (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to teh zone (typically 0); *multi_condition* is a field that can be used to develop more complicated criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply the constraint where crown closure and basal area of the forest stand meet the defined, specific characteristics.    
+
+Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constaints for multiple rows (i.e., unique zoneid's) may need to be created.
+
+Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" fucntion. The command will incorporate the new table into the a 'zone_constraints' table in the database. The 'zone_constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorproated into this table. 
+
+```{r, eval = F, message = F}
+library (raster)
+library (fasterize)
+library (sf)
+library (DBI)
+library (here)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+# 1. Connect to db and get polygon data
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.data <- getSpatialQuery ("SELECT * FROM public.name_of_your_poly_table")
+
+# 2. Create provincial raster 
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(poly.data)$proj4string, 
+                              resolution = c(100, 100), 
+                              vals = 0)
+
+# 3. Create an integer value attributed to each unique zone
+poly.data$zone <- as.integer (1) # create a zone field with integer value of 1
+# OR 
+poly.data$zone <- as.integer (as.factor (poly.data$zone)) # if there is an exsiting zone create an integer to define each zone (factor)
+
+# 4. Create a raster and upload to the postgres database
+ras.data <-fasterize::fasterize (poly.data, prov.rast, field = "zone") # converts polygon to raster
+writeRaster (ras.data, file = "raster_test.tif", format = "GTiff", overwrite = TRUE) # saves the raster to your local folder
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here (), 
+                                  '/R/params/raster_test.tif -t 100x100 rast.raster_test | psql postgresql://user:dbname@host:port/dbname'), 
+        show.output.on.console = FALSE, 
+        invisible = TRUE) #upload to db
+
+# 5. Create Look-up Table of the zone integers
+poly.data$zone_name <- as.character ("test_scenario")
+lu.poly.data <- unique (data.table (cbind (poly.data$zone, poly.data$zone_name)))
+lu.poly.data <- lu.poly.data [order(V1)]
+setnames (lu.poly.data, c("V1", "V2"), c("raster_integer", "zone_name"))
+DBI::dbWriteTable (conn, 
+                   c("public", "vat_test"),
+                   value = lu.poly.data, 
+                   row.names = FALSE, 
+                   overwrite = TRUE)
+
+# 6. Create zone constraint table
+zone_test <- data.table (zoneid = 1, 
+                         type = 'ge', 
+                         variable = 'age', 
+                         threshold = as.numeric(80), 
+                         reference_zone = 'rast.raster_test', 
+                         percentage = 90, 
+                         ndt = as.integer(0), 
+                         multi_condition = as.character(NA))
+DBI::dbWriteTable (conn, c("public", "zone_test"), # commit tables to pg
+                   value = zone_test, 
+                   row.names = FALSE, 
+                   overwrite = TRUE) 
+dbExecute (conn, paste0("ALTER TABLE zone_test INHERIT zone_constraints"))
+dbDisconnect (conn)
+```
+
+## 7. Create a CLUS SQLite Database
+The CLUS simulator model does not run directly off of the PostgreSQL database. Instead CLUS has a module called 'dataLoaderCLUS' that consolidates data from the PostgreSQL database into a portable SQLite database. This data contains all the data need to run the simulator modules for the area and constraints of itnerest. This approach has a great degree of flexibility, as it creates a self-contained, low memory database that can thus be easily shared amongst users. One way to think about the CLUS data structure, is that the PostgreSQL database servers as the repository for provincial-scale, 'stable' and comprehensive datasets, such as for example, the forest inventory. The SQLite database typically applies to a subset of the province and is designed to compile data for a specific simulation scenario or group of scenarios.  
+
+In this section you will learn how to use the 'dataLoaderCLUS' module to create a SQLite databse to run in the forestry simulator model. The 'dataLoaderCLUS' module is located in the "R->SpaDES-modules" folder. Within the folder you will find a single dataLoaderCLUS.R file and several variations of a dataLoaderCLUS_xxxx.Rmd. The .R file is the script that contains the functions that consolidate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the parameters that get implemented in the .R file.  
+
+Here we have created a new scearnio to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the exsiting parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd".
+
+Within the .Rmd you will notice features of the SpaDES module sturcture. 
+
+
+
+
+
+
+
 
 
 
 "Quick Start" Steps
-1.  Download R and R STudio
+1.  Download R and R Studio
 2. clone the repository https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
 3. Set-up keyring
 4. Create a shapefile in sceanrio tool

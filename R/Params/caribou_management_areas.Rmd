@@ -331,7 +331,7 @@ for (herd in herds) { # create a table of the constraints for each herd; here we
   
   ras.bc.selected <- fasterize::fasterize (bc.selected2, prov.rast, field = "zoneid") #
 
-#### ECCCC ####
+#### ECCC ####
   eccc.vat <- vat # create a constraint for a specific scenario; here the scenario is "ECCC" for the federal recovery plan 
   eccc.vat [, reference_zone := paste0 ('rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd')] # zone name field
   eccc.vat [, variable := 'dist'] # 'dist' is the distance to constraint type
@@ -762,6 +762,7 @@ dbExecute(conn, paste0("ALTER TABLE zone_scenario_central_grp_proposed_luo_matri
 dbDisconnect(conn)
 
 ```
+
 
 ## Buffered Caribou Herd and Desginatable Unit Boundaries
 Here we develop rasters of caribou evolutionary designatable units (DUs). These are used used to define the appropriate caribou reseroruce selection function model to apply to an analysis (rsfCLUS).
