@@ -59,28 +59,21 @@ fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column f
 
 # look at histogram of when fires were ignited per year
 fire_ignitions1$month<- substring(fire_ignitions1$ign_date, 5, 6)
-fire_ignitions1_new<- fire_ignitions1 %>%
-  filter(fire_cause!="Person") 
-fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
 
-fire_ignitions1_new<- fire_ignitions1_new %>%
+fire_ignitions1_new<- fire_ignitions1 %>%
   filter(fire_year >=2002)
+fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
 hist(fire_ignitions1_new$month) # most fires appear to occur between May - Sept!
 table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
 table(fire_ignitions1_new$fire_cause)
-
-
 
 fire_ignitions2 <- fire_ignitions1_new %>%
   dplyr::select(fire_no, fire_year, fire_cause) %>%
   rename(id1=fire_no,
          year=fire_year)
-fire_veg_data1<-fire_veg_data[,c(1:36)]
 
 ignition_pres_abs <- left_join(fire_veg_data, fire_ignitions2)
-# for some reason a whole lot of fire ignition locations are being lost why and where? CORRECT!!!
-
-
+table(ignition_pres_abs$year, ignition_pres_abs$pttype)
 
 ignition_pres_abs$fire_cause<- as.factor(ignition_pres_abs$fire_cause)
 dim(ignition_pres_abs)
@@ -92,16 +85,13 @@ ignition_pres_abs$firecause[which(ignition_pres_abs$fire_cause=="Lightning")]<-"
 ignition_pres_abs$firecause[which(ignition_pres_abs$fire_cause=="Unknown")]<-"Unknown"
 table(ignition_pres_abs$firecause)
 
-# pulling out locations where cause of fire is either unknown or due to lightning. If I go with only lightning the number of locations gets very small i.e. ~600
+# pulling out locations where cause of fire is due to lightning. 
 ignition_pres_abs1<- ignition_pres_abs %>%
   filter(firecause!="Person") 
+ignition_pres_abs1<- ignition_pres_abs1 %>%
+  filter(firecause!="Unknown") 
 dim(ignition_pres_abs1)
-
-# 2005 has no fire data so removing it
 table(ignition_pres_abs1$year, ignition_pres_abs1$pttype)
-ignition_pres_abs1$year<-as.factor(ignition_pres_abs1$year)
-ignition_pres_abs1 <- ignition_pres_abs1 %>%
-  filter(year!="2005")
 
 ignition_pres_abs1$allppt05<- ignition_pres_abs1$ppt05+ignition_pres_abs1$pas05/10
 ignition_pres_abs1$allppt06<- ignition_pres_abs1$ppt06+ignition_pres_abs1$pas06/10
@@ -136,7 +126,6 @@ p <- ggplot(ignition_pres_abs1, aes(mdc_08, as.numeric(pttype))) +
   xlab("August MDC") + ylab("Pr (ignition)")
 
 # Rainfall
-
 p <- ggplot(ignition_pres_abs1, aes(allppt08, as.numeric(pttype))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
@@ -200,30 +189,34 @@ dev.off()
 names(ignition_pres_abs1)
 
 # correlation between max T and MDC. Some things are a little correlated i.e. tmax08 and mdc09 are relatively correlated (0.73) which makes sense since MDC is calculated with max T.
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (12:16, 32:36)], NULL)
+dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (15:19, 35:39)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (12:16, 39:43)], NULL)
+# correlation between all precipitation and MDC. MDC is less correlated with precipitation, although MDC07 and precipitation 07 are still fairly correlated i.e. 0.69
+dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (35:39, 43:47)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between maximum temperature and all precipitation (snow + rain)")
+            title = "Correlation between all precipitation (snow + rain) and MDC")
 
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (17:21, 32:36)], NULL)
+# Correlation between Tmax and all precipitation. These are not hightly correlated at all. Highest correlation is -0.42
+dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (15:19, 43:47)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU8 Distance to Cutblock Correlation")
 
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (22:26, 32:36)], NULL)
+# Correlation between Tave and MDC. less correlated than Tmax. Most correlated is 0.65 for Tave07 and mdc_08
+dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (20:24, 35:39)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "DU8 Distance to Cutblock Correlation")
 
-dist.cut.corr <- ignition_pres_abs2 [c(20, 35)]
+# Correlation between Tave and allPrecipitation. Hardly correlated at all most correlated is tave07 wih allppt07  is -0.33
+dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (20:24, 43:47)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "correlation between average temperature and mdc in August")
+            title = "DU8 Distance to Cutblock Correlation")
 
 ignition_pres_abs2<- st_set_geometry(ignition_pres_abs1, NULL)
 
