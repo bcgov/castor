@@ -1,0 +1,41 @@
+---
+title: "Great Bear Rainforest analysis for UBC cummulative effects study"
+author: "Elizabeth Kleynhans, Kyle Lochhead and Tyler Muhly"
+date: "07/12/2020"
+output: html_document
+---
+<style> 
+p.caption {
+  font-size: 1.2em;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (kableExtra)
+require (data.table)
+require (DBI)
+require (RPostgreSQL)
+require (dplyr)
+require (ggplot2)
+```
+
+## Introduction
+GBR analysis with the harvest constraints that were supplied to me by UBC folks.
+
+With all constraints (biodiversity ecosystem options, visual quality objectives, wildlife habitat areas,ungulate winter range, no harvest constraints, fisheries sensitive watersheds, community watersheds, and average retention harvests) I found an even flow at 400 000 m3/yr when the minimum harvest volume of stands was set to 250m3 and the harvest priority was as follows: stand age descending, stand volume descending, and adjacency Constraints set to 3m. 
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
