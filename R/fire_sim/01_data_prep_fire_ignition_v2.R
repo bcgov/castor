@@ -44,9 +44,11 @@ bc.tsa <-bc.tsa %>%
   filter(administra != 'Pacific Timber Supply Area')
 bc.tsa <- st_transform (bc.tsa, 3005)
 tsa.points<- st_sample(bc.tsa, size=20000, type="regular")
+
 tsa.points.transformed <- st_transform(tsa.points, "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
 st_crs(tsa.points.transformed)
 tsa.points.transformed1<-as.data.frame(tsa.points.transformed)
+
 # Try find a way to split the data up into 3 colums and the remove the brackets. 
 tsa.points.transformed2<- tsa.points.transformed1 %>%
   separate(geometry, into = c("lon", "lat")," ")
@@ -70,9 +72,54 @@ sample.pts$el <- "."
 
 write_csv(sample.pts, path="C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\input\\sample_pts.csv")
 
+sample.pts.joined <- cbind(sample.pts,tsa.points.transformed1)
+
 
 #### GET CLIMATE DATA FOR LOCATIONs WHERE FIRES STARTED ####
-# ID1 is the fire_no and ID2 is the year the fire occured in the file bc_fire_ignition 
+# First import the fire data
+#### FIRE IGNITION DATA ####
+fire.ignit.hist<-sf::st_read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\BCGW_7113060B_1600358424324_13780\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp")
+st_crs(fire.ignit.hist)
+head(fire.ignit.hist)
+#lighting.hist<-fire.ignit.hist %>% filter(FIRE_CAUSE=="Lightning", FIRE_TYPE=="Fire")
+fire.ignit.hist <- st_transform (fire.ignit.hist, 3005)
+
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T)
+st_crs(prov.bnd)
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+bc.bnd <- st_transform (prov.bnd, 3005)
+lightning_clipped<-fire.ignit.hist[bc.bnd,]
+str(lightning_clipped)
+lightning_clipped$FIRE_YEAR <- as.character(lightning_clipped$FIRE_YEAR)
+st_write(lightning_clipped, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\bc_fire_ignition.shp")
+
+
+## Load ignigition data into postgres (either my local one or Kyles)
+host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+password=keyring::key_get('dbpass', keyring = 'postgreSQL')
+
+ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+lightning_clipped<- st_read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\bc_fire_ignition.shp")
+
+# To get climate data Im pulling out the fires that started in the years 2002 : 2019 and writing them as a csv file so that I can go and extract the relevant weather data from climateBC (https://cfcg.forestry.ubc.ca/projects/climate-data/climatebcwna/). 
+
+setwd("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\input")
+
+lightning_clipped$fire_year_new<-as.numeric(as.character(lightning_clipped$FIRE_YEAR))
+x <- lightning_clipped %>% 
+  filter(fire_year_new >= 2002) %>%
+  dplyr::select(FIRE_ID, FIRE_YEAR, LATITUDE, LONGITUDE) %>%
+  rename(ID1 = FIRE_ID, ID2 = FIRE_YEAR, lat = LATITUDE, long = LONGITUDE)
+
+x$el<-"."
+x2<-st_set_geometry(x,NULL)
+write.csv(x2, file="Fire.Ignition.points.csv", row.names = FALSE)
+
+
+# ID1 is the fire_id and ID2 is the year the fire occured in the file bc_fire_ignition 
 #I then manually extract the monthly climate data for each of the relevant years at each of the fire ignition locations from climate BC (http://climatebc.ca/) and saved the files as .csv's. Here I import them again.
 
 file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_ignition_years_csv\\output", pattern="ignition.", all.files=FALSE, full.names=FALSE)
@@ -117,7 +164,7 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    select(ID1, YEAR,Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09)
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09)
   
   for (j in 5 : 9) {
     
@@ -151,13 +198,28 @@ DC.ignitions<-mkFrameList(n)
 DC.ignitions$ID1<- as.factor(DC.ignitions$ID1)
 DC.ignitions$pttype <- 1
 
+dim(DC.ignitions) # should have 57984 rows.
+names(DC.ignitions)
+DC.ignitions1<- DC.ignitions %>% rename(FIRE_NO=ID1) 
+lightning_clipped$FIRE_NO <- as.factor(as.character(lightning_clipped$FIRE_NO))
+lightning_clipped$FIRE_YEAR <- as.numeric(as.character(lightning_clipped$FIRE_YEAR))
+lightning_clipped1<- lightning_clipped %>% 
+  #filter(FIRE_CAUSE!="Person") %>%
+  filter(FIRE_YEAR >=2002) %>%
+  rename(YEAR=FIRE_YEAR)
+
+# Now join DC.ignitions back with the original fire ignition dataset
+ignition_weather<-left_join(DC.ignitions1, lightning_clipped1)
+head(ignition_weather)
+dim(ignition_weather)
+
 
 ### Calculate the drought code for all Random point data i.e. where ignitions did not occur
 filenames2<-list()
 for (i in 1: length(y2)){
   
   x<-eval(as.name(y2[i])) %>% 
-    select(ID1, YEAR, Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09) %>%
+    dplyr::select(ID1, YEAR, Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, PAS05:PAS09) %>%
     filter(Tmax05 != -9999)
   
   for (j in 5 : 9) {
@@ -193,21 +255,50 @@ DC.sample.pts<-mkFrameList(n)
 DC.sample.pts$ID1<- as.factor(DC.sample.pts$ID1)
 DC.sample.pts$pttype <- 0
 
-DC_ignitions_and_sample_pts<- rbind(DC.ignitions, DC.sample.pts)
 
-DC_sf = st_as_sf(DC_ignitions_and_sample_pts, coords = c("Longitude", "Latitude"))
-DC_sf1 <- st_set_crs (DC_sf, 4326)
-DC_sf2<- transform_bc_albers(DC_sf1)
-DC_sf_clipped<-DC_sf2[bc.tsa,]
-DC_sf_clipped %>% group_by(YEAR) %>% count (YEAR)
+sample.pts.joined$ID1<- as.factor(as.character(sample.pts.joined$ID1))
+
+sample.pts<-left_join(sample.pts.joined, DC.sample.pts)
+sample.pts$FIRE_CAUSE<-NA
+sample.pts1<- sample.pts %>%
+  dplyr::select(ID1, YEAR, Tmax05:pttype, FIRE_CAUSE, geometry) 
+
+ignition_weather1<- ignition_weather %>%
+  dplyr::select(FIRE_NO, YEAR, Tmax05:pttype, FIRE_CAUSE, geometry)%>%
+  rename(ID1=FIRE_NO)
+
+
+
+DC_ignitions_and_sample_pts<- rbind(ignition_weather1, sample.pts1)
+head(DC_ignitions_and_sample_pts)
+
+DC_ignitions_and_sample_pts %>% group_by(YEAR, pttype) %>% count (YEAR)
+
+######################
+# This looks good but make sure the way Im changing the dataframe into a shapefile is correct and check the points are falling where I think they should!
+#######################
+
+DC_ignitions_and_sample_pts1<-st_as_sf(DC_ignitions_and_sample_pts)
+
+table(DC_ignitions_and_sample_pts1$pttype)
+
+
+
+# change dataframe into shape file
+
+DC_ignitions_and_sample_pts1 <- st_transform (DC_ignitions_and_sample_pts1, 3005)
 
 # check that it looks ok, it does.
+dat2002<-DC_ignitions_and_sample_pts1 %>% filter(YEAR=="2002") %>% filter(pttype==0)
+
+ggplot() + geom_sf(data=lightning_clipped)
+
 ggplot() +
-  geom_sf(data=bc.tsa, col='red') +
-  geom_sf(data=DC_sf2)
+  geom_sf(data=dat2002, col='black') + 
+  geom_sf(data=bc.tsa, col='red') 
   
 
-st_write(DC_sf_clipped, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\DC_data.shp", delete_layer=TRUE)
+st_write(DC_ignitions_and_sample_pts1, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_inition_hist\\DC_data.shp", delete_layer=TRUE)
 
 # commit the shape file to postgres
 # this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
