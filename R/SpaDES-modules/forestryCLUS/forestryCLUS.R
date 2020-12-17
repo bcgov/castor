@@ -44,8 +44,8 @@ defineModule(sim, list(
     expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = "A raster of the study area", sourceURL = NA),
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    expectsInput(objectName = "scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
     ),
   outputObjects = bind_rows(
@@ -85,12 +85,12 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+  #Check to see if a scenario object has been instantiated
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
-  #dbExecute(sim$clusdb, "VACUUM;") #Clean the db before starting the simulation
-  
+ 
   #Remove zones as a scenario
   dbExecute(sim$clusdb, paste0("DELETE FROM zone WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
   dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
@@ -275,13 +275,12 @@ getHarvestQueue<- function(sim) {
     if(length(harvestTarget)>0){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget))
       partition<-sim$harvestFlow[compartment==compart, "partition"][time(sim)]
-      harvestPriority<-sim$harvestFlow[compartment==compart, partition][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
       sql<-paste0("SELECT pixelid, blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h FROM pixels WHERE blockid IN 
                    (SELECT distinct(blockid) FROM pixels WHERE 
                   compartid = '", compart ,"' AND zone_const = 0 AND blockid > 0 AND ", partition, "
-                  ORDER BY ", harvestPriority, " LIMIT ", as.integer(harvestTarget/50), ") AND thlb > 0 AND zone_const = 0 AND ", partition, 
+                  ORDER BY ", P(sim, "forestryCLUS", "harvestPriority"), " LIMIT ", as.integer(harvestTarget/50), ") AND thlb > 0 AND zone_const = 0 AND ", partition, 
                   " ORDER BY blockid ")
   
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
