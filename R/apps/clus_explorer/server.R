@@ -43,13 +43,13 @@ server <- function(input, output, session) {
   statusData<-reactive({
     req(input$schema)
     data.table(getTableQuery(paste0(
-      "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, dist500, dist, tarea from (SELECT compartment, max(m_gs) as gs 
+      "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, c40r500, c40r50, total_area from (SELECT compartment, max(m_gs) as gs 
     FROM ",input$schema,".growingstock 
 where timeperiod = 0 group by compartment) a
 Left join (Select * from ",input$schema,".state ) b
 ON b.compartment = a.compartment
-left join (select sum(dist500) as dist500, sum(dist) as dist, sum(dist500/(dist500_per/100)) as tarea, compartment 
-		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from itcha_ilgachuz_plan.disturbance limit 1) group by compartment )c
+left join (select sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r500/(dist500_per/100)) as total_area, compartment 
+		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from ", input$schema, ".disturbance limit 1) group by compartment )c
 ON c.compartment = a.compartment;")))
     
   })
@@ -65,10 +65,10 @@ ON c.compartment = a.compartment;")))
       data.survival<-NULL
     }
     data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
-    sum(dist500) as dist500, sum(dist) as dist, sum(dist/((dist_per+0.000001)/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
-
+    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r50/((dist_per+0.000001)/100)) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+    # c40r50 = dist; c40r500 = dist500
     
-    data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
+    data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
     data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
  round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
@@ -224,7 +224,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Disturbed",
-      tags$p(paste0(round((sum(data$dist)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
+      tags$p(paste0(round((sum(data$c40r50)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("paw"), color = "purple"
     )
   })
@@ -233,7 +233,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Critical habitat",
-      tags$p(paste0(round((sum(data$tarea)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
+      tags$p(paste0(round((sum(data$total_area)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("exclamation-triangle"), color = "purple"
     )
   })
@@ -242,7 +242,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Disturbed 500m",
-      tags$p(paste0(round((sum(data$dist500)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
+      tags$p(paste0(round((sum(data$c40r500)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("paw"), color = "purple"
     )
   })
