@@ -72,12 +72,15 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  sim$disturbanceReport<-data.table(scenario = character(), compartment = character(), timeperiod= integer(),
-                                    critical_hab = character(), total_area = numeric(), cut20 = numeric(), cut40 = numeric(), cut80 = numeric(),
-                                    road50 = numeric(), road250 = numeric(), road500 = numeric(),road750 = numeric(),
-                                    c20r50 = numeric(), c20r250=numeric(), c20r500=numeric(),  c20r750=numeric(),
-                                    c40r50 = numeric(), c40r250=numeric(), c40r500=numeric(),  c40r750=numeric(),
-                                    c80r50 = numeric(), c80r250=numeric(), c80r500=numeric(),  c80r750=numeric(),
+  sim$disturbanceReport<-data.table(scenario = character(), compartment = character(), 
+                                    timeperiod= integer(), critical_hab = character(), 
+                                    total_area = numeric(), cut20 = numeric(), cut40 = numeric(), 
+                                    cut80 = numeric(), road50 = numeric(), road250 = numeric(), 
+                                    road500 = numeric(), road750 = numeric(), c20r50 = numeric(), 
+                                    c20r250=numeric(), c20r500=numeric(),  c20r750=numeric(),
+                                    c40r50 = numeric(), c40r250=numeric(), c40r500=numeric(), 
+                                    c40r750=numeric(), c80r50 = numeric(), c80r250=numeric(), 
+                                    c80r500=numeric(),  c80r750=numeric(),
                                     c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric() )
   sim$disturbance <- sim$pts
   message("...Get the critical habitat")
@@ -91,7 +94,7 @@ Init <- function(sim) {
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)))))
-    bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
+    bounds[,pixelid:=seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "disturbanceCalcCLUS", "criticalHabitatTable") == '99999')){
         crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "disturbanceCalcCLUS", "criticalHabitatTable"))))
