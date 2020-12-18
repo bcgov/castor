@@ -4,7 +4,8 @@ ui <- dashboardPage(skin = "black",
                     dashboardSidebar( 
                       #shinyjs::useShinyjs(),
                       sidebarMenu(
-                        menuItem("Settings", tabName = "settings", icon = icon("gears")),
+                        menuItem("Home", tabName = "home", icon = icon("home")),
+                        menuItem("Scenarios", tabName = "settings", icon = icon("gears")),
                         menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"),
                                  menuSubItem("Summary", tabName = "summary", icon = icon("balance-scale")),
                                  menuSubItem("Caribou", tabName = "caribou", icon = icon("paw")),
@@ -22,8 +23,12 @@ ui <- dashboardPage(skin = "black",
                       )
                     ),
                     dashboardBody(
-                      tags$head(tags$style(HTML('.info-box {min-height: 75px;} .info-box-icon {height: 75px; line-height: 75px;} .info-box-content {padding-top: 0px; padding-bottom: 0px; font-size: 110%;}'))),
+                      tags$head(tags$style(
+                        HTML('.small-box.bg-blue {background-color: rgba(192,192,192,0.2) !important; color: #000000 !important; } .small_icon_test { font-size: 50px; } .info-box {min-height: 75px;} .info-box-icon {height: 75px; line-height: 75px;} .info-box-content {padding-top: 0px; padding-bottom: 0px; font-size: 110%;}
+                             #fisher_map_control {background-color: rgba(192,192,192,0.2);}'))),
+
                       tabItems(
+                        tabItem(tabName = "home"),
                         tabItem(tabName = "settings",
                                 sidebarLayout(
                                   sidebarPanel( width = 6,
@@ -130,7 +135,8 @@ ui <- dashboardPage(skin = "black",
                                       actionButton("getMapLayersButton", "Load")
                                   )
                                 ),
-                                leafletOutput("resultSetRaster", height = 750, width = "83%")     
+                               leafletOutput("resultSetRaster", height = 750, width = "83%")
+      
                         ),
                         tabItem(tabName = "summary",
                                 fluidRow(#Raster query
@@ -215,6 +221,25 @@ ui <- dashboardPage(skin = "black",
                         ),
                         tabItem(tabName = "fisher",
                                 fluidRow(
+                                  box(title = "Occupancy", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "purple", width =6,
+                                      plotlyOutput(outputId = "fisherOccupancyPlot", height = "300px")
+                                  ),
+                                  box(title = "Territory", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "purple", width =6,
+                                      tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs {max-height: 50px;}, .irs-grid-pol { background:blue; border-color: blue;}"),
+                                      sliderInput("fisherTerritoryYear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
+                                      plotOutput(outputId = "fisherTerritoryPlot", height = "200px")
+                                      )
+                                ),
+                                fluidRow( 
+                                  leafletOutput("fishermapper", height = 500, width = "100%"),                          
+                                  absolutePanel(id = "fisher_map_control", class = "panel panel-default",  top = 570, left = 245, fixed = FALSE, width = "15%", height = "30%",
+                                              selectInput("fisher_scenario_selected", choices = NULL, label = 'Scenario', width = '100%', multiple = F),
+                                              bsTooltip("fisher_scenario_selected", "Select a scenario to map.", "right"),
+                                              tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs-grid-pol { background:black; border-color: black;}"),
+                                              sliderInput("fisheryear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
+                                              valueBoxOutput("numberFisherTerritory", width = 12),
+                                              bsTooltip("numberFisherTerritory", "Number of fisher territories with relative probability of occupancy > 0.2", "bottom")
+                                  )
                                 )
                         ),
                         tabItem(tabName = "insects",

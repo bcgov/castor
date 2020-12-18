@@ -18,6 +18,7 @@ require (DBI)
 require (RPostgreSQL)
 require (dplyr)
 require (ggplot2)
+require (here)
 ```
 
 ## Introduction
@@ -58,18 +59,19 @@ Potential timber volume harvested under different scenarios for each forest harv
 
 ```{r, table 1, TSA/TFL results, echo = F, error = F, eval = T, include = T, message = F}
 # data.harvest <- read.csv (here ("reports/scenarios/data", "harvest.csv"))
-# 
+# # 
 # con <- dbConnect (RPostgreSQL::PostgreSQL(),
 # 				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
 #                   user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
 #                   password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
 #                   dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
 # 				          port = "5432")
-# data.harvest <- dbGetQuery (con, "SELECT * FROM great_bear_rainforest_south_tsa.harvest") # great_bear_rainforest_north gbr_south
+# data.harvest <- dbGetQuery (con, "SELECT * FROM prince_george_tsa.harvest") # great_bear_rainforest_north gbr_south
 # dbDisconnect (con)
 # unique (data.harvest$scenario)
 # data.summ <- data.harvest %>% # get summary data
-#               filter (scenario == "gbrs_chil_ch_hele0d_m15d") %>%
+#               filter (scenario == "prince_george_bau") %>% #pg_chil_chil_notweeds_ch_hele0d_m15d, prince_george_bau
+#                 filter (compartment == "Prince_George_North_TSA") %>%
 #                   summarise (sum (volume)/40)
 
 table.volume = data.table (
@@ -85,8 +87,8 @@ table.volume = data.table (
                     "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA",  "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA",  "Mackenzie TSA",
                     "Morice TSA", "Morice TSA", "Morice TSA", "Morice TSA", "Morice TSA",
                     "Okanagan TSA", "Okanagan TSA", "Okanagan TSA", "Okanagan TSA", "Okanagan TSA", 
-                    "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA",
-                    "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA",
+                    "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA","Prince George TSA","Prince George TSA","Prince George TSA",  
+                    "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA",
                     "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA",
                     "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA",
                     "Williams Lake TSA", "Williams Lake TSA", "Williams Lake TSA", "Williams Lake TSA", "Williams Lake TSA",
@@ -103,7 +105,6 @@ table.volume = data.table (
                 "BAU", "No harvest in Central Group critical habitat", "35% disturbance in Central Group matrix critical habitat", "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35%  disturbance (15%) harvest in Central group partnership agreement areas A1, B1, B4 and B5", "No harvest in all Central group partnership agreement areas", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
                 "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in Columbia North and South", "35% disturbance in Columbia North and South matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
                 "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat",
-                
                 "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat",
                 "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat",
                 "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
@@ -111,8 +112,8 @@ table.volume = data.table (
                 "BAU", "No harvest in all central group critical habitat",  "35% disturbance in central group matrix critical habitat", "No harvest in all central group partnership agreement areas", "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance (15% harvest) in Central group partnership agreement areas A1, B1, B4 and B5", "No harvest in Wolverine, Chase and Takla herds", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in all southern mountain herds", 
                 "BAU", "No harvest in Wolverine, Chase and Takla herds", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all southern mountain herds", 
                 "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", 
-                "BAU", "No harvest in all central group critical habitat", "35% disturbance in central group matrix critical habitat", "No harvest in Hart Ranges critical habitat", "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in Chilcotin critical habitat", "No harvest in Wolverine, Chase and Takla herds", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in all Central group partnership agreement areas", "No harvest in all southern mountain herds",
-                "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in all central group critical habitat", "35% disturbance in central group matrix critical habitat", "No harvest in Hart Ranges critical habitat", "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in all critical habitat", "No harvest in all southern mountain herds","No harvest in all Central group partnership agreement areas", "No harvest in Chilcotin critical habitat (with Tweedsmuir)","No harvest in Chilcotin critical habitat (No Tweedsmuir)","35% disturbance in Chilcotin matrix critical habitat (No Tweedsmuir)",
+                "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Chilcotin critical habitat (No Tweedsmuir)", "35% disturbance in Chilcotin matrix critical habitat (No Tweedsmuir)",
                 "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
                 "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Hart Ranges critical habitat",  "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat",
                 "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
@@ -182,8 +183,7 @@ table.volume = data.table (
                      2191322, 2007158, 2063517, 2157233, 2162804, 1741221, 1735991, 2024418, 1141687,
                      1219976, 1201526, 1028529, 1098646, 777114,
                      1139968, 1081700, 1083772, 958785, 981819,
-                     6723476, 6710441, 6712037, 6518975, 6538033, 6691829, 6368568, 5464005, 6723476, 6723471, 5096621,
-                     1699982, 1461123, 1526577, 1279853, 1360364,
+                     6723476, 6710441, 6712037, 6518975, 6538033, 5464005, 5096621, 6723471, 6691829, 6720057, 6720056,                      1699982, 1461123, 1526577, 1279853, 1360364, 1470948, 1535209,
                      154964, 7664, 61869, 18, 55324,
                      194332, 193752, 193595, 108805, 155120, 189363, 190153, 185967, 191554,
                      1855974, 1569246, 1612217, 1287329, 1370006,
@@ -207,8 +207,8 @@ table.volume = data.table (
                           0, -184164, -127805, -34089, -28518, -450101, -455331, -166904, -1049635,
                           0, -18450, -191447, -121330, -442862,
                           0, -58268, -56196, -181183, -158149,
-                          0, -13035, -11439, -204501, -185443, -31647, -354908, -1259471, 0, -5, -1626855,
-                          0, -238859, -173405, -420129, -339618,
+                          0, -13035, -11439, -204501, -185443, -1259471, -1626855, -5, -31647,-3419,-3420,
+                          0, -238859, -173405, -420129, -339618, -229034, -164773,
                           0, -147300, -93095, -154946, -99640,
                           0, -580, -737, -85527, -39212, -4969, -4179, -8365, -2778,
                           0, -286728, -243757, -568645, -485968,
@@ -232,8 +232,8 @@ table.volume = data.table (
                             "0", "-8%", "-6%", "-2%", "-1%", "-21%", "-21%", "-8%", "-48%",
                             "0", "-2%", "-16%", "-10%", "-36%",
                             "0", "-5%", "-5%", "-16%", "-14%",
-                            "0", "<-1%", "<-1%", "-3%", "-3%", "<-1%", "-5%", "-19%", "0", "<-1%", "-24%",
-                            "0", "-14%", "-10%", "-25%", "-20%",
+                            "0", "<-1%", "<-1%", "-3%", "-3%", "-19%", "-24%", "0", "<-1%", "<-1%", "<-1%",
+                            "0", "-14%", "-10%", "-25%", "-20%", "-13%", "-10%",
                             "0", "-95%", "-60%", "-99%", "-65%",
                             "0", "<-1%", "<-1%", "-44%", "-20%", "-3%", "-2%", "-4%", "-1%",
                             "0", "-15%", "-13%", "-31%", "-26%",
@@ -265,6 +265,9 @@ kable (table.volume,
                  font_size = 11) %>%
   footnote (general = "BAU = business-as-usual scenario",
             fixed_small_size = T)
+
+# write.csv (table.volume, here ("/reports/scenarios/scenario_priority_herds_2020_tsa.csv")) 
+
 ```
 
 In the Central Group planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in TFL 48, and lowest relative potential impact in the Prince George TSA (Fig. 1).
@@ -502,6 +505,8 @@ kable (table.plan,
   footnote (general = "BAU = business-as-usual scenario",
             fixed_small_size = T)
 
+write.csv (table.plan, here ("/reports/scenarios/scenario_priority_herds_2020_caribou.csv")) 
+
 ```
 
 ## Conclusions
@@ -510,3 +515,175 @@ Here we provide results of a preliminary analysis of the potential impacts to ti
 We note that potential impacts to forestry vary depending on whether impacts are assessed within a caribou planning unit area or forest harvest unit (TSA or TFL). For example, maximum potential impacts in the Revelstoke caribou planning unit reached a 10%, or 338,308m^3^ reduction in timber supply compared to BAU, but they disproportionately impacted the Revelstoke TSA, which had a 95%, or 147,300m^3^ reduction in timber supply compared to BAU. Thus, it's important to consider timber supply impacts at different scales. 
 
 We compared our annual harvested volume results to results from timber supply analyses completed for previous TSA and TFL timber supply reviews. In general, our results were consistent with the results of analyses completed for TSAs. However, we consistently estimated much lower levels of timber supply in TFLs compared to estimates from models used for TFL timber supply reviews. This may be due to some fundamental differences in how we modeled timber harvest (e.g., use of optimization versus spatial timber supply models, or differences in how forest stands were prioritized for harvest). However, we did note problems with the forest inventory data we had for some of the TFLs. In particular, many stands in TFL 33 did not have site index values, meaning we were unable to estimate future stand volumes for most of the area. In addition, it was noted in the last timber supply review for TFL 48 that the forest inventory consistently underestimated volume, and thus they developed a model to adjust the volume of forest stands. We did not have access to that model, and therefore our estimates were made without this adjustment, resulting in lower timber supply estimates. Results for several of the TFL areas appeared to be unreliable and should be used with extra caution.
+
+
+
+```{r, FIG , otehr output figures - scenario compare, echo = F, error = F, eval = F, include = F, message = F, warning = F}
+
+###### Turned off for now ######
+
+### Disturbance ###
+## Quesnel ##
+data.dist.q <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_quesnel_20200909.csv")
+data.dist.q$scenario <- factor(data.dist.q$scenario, levels = c("quesnel_bau", "quesnel_chil_notweeds_nh", "quesnel_chil_notweeds_ch_hele0d_m15d"))
+# Itcha #
+data.dist.q.i <- data.dist.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (critical_hab == "Itcha_Ilgachuz HEWSR" | critical_hab == "Itcha_Ilgachuz LESR" |
+                          critical_hab == "Itcha_Ilgachuz LEWR" | critical_hab == "Itcha_Ilgachuz Matrix")
+ggplot (data.dist.q.i, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA Under the 
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# TWeeds and Wells #
+data.dist.q.t <- data.dist.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (critical_hab == "Tweedsmuir LEWR" | critical_hab == "Tweedsmuir Matrix" |
+                          critical_hab == "Wells_Gray_North HEWSR" | critical_hab == "Wells_Gray_North Matrix")
+ggplot (data.dist.q.t, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Tweedsmuir and Wells Gray North Critical Habitat in the Quesnel 
+TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.15, 0.15),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+
+## Williams Lake ##
+data.dist.w <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_williams_lake_20200909.csv")
+data.dist.w$scenario <- factor(data.dist.w$scenario, levels = c("williams_lake_bau", "willake_chil_nh", "willake_chil_ch_hle0d_m15d"))
+
+# Itcha #
+data.dist.w.i <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Itcha_Ilgachuz HEWSR" | critical_hab == "Itcha_Ilgachuz LESR" |
+                          critical_hab == "Itcha_Ilgachuz LEWR" | critical_hab == "Itcha_Ilgachuz Matrix")
+ggplot (data.dist.w.i, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat in the Williams Lake TSA Under the
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# Rainbows #
+data.dist.w.r <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Rainbows HEWSR" | critical_hab == "Rainbows LESR" |
+                          critical_hab == "Rainbows LEWR" | critical_hab == "Rainbows Matrix")
+data.dist.w$scenario <- factor(data.dist.w$scenario, levels = c("williams_lake_bau", "willake_chil_nh", "willake_chil_ch_hle0d_m15d"))
+ggplot (data.dist.w.r, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Rainbows Critical Habitat in the Williams Lake TSA Under the
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.20),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# Wells #
+data.dist.w.w <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Wells_Gray_North HEWSR" |
+                          critical_hab == "Wells_Gray_North Matrix")
+ggplot (data.dist.w.w, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Wells Gray North Critical Habitat in the Williams Lake TSA 
+Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+### Early Seral ###
+## Quesnel ##
+data.surv.q <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\survival_quesnel_20200911.csv")
+data.surv.q$scenario <- factor(data.surv.q$scenario, levels = c("quesnel_bau", "quesnel_chil_notweeds_nh", "quesnel_chil_notweeds_ch_hele0d_m15d"))
+
+# Itcha #
+data.surv.q.i <- data.surv.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (herd_bounds == "Itcha_Ilgachuz HEWSR" | herd_bounds == "Itcha_Ilgachuz LESR" |
+                          herd_bounds == "Itcha_Ilgachuz LEWR" | herd_bounds == "Itcha_Ilgachuz Matrix")
+ggplot (data.surv.q.i, aes (x = timeperiod, y = prop_age*100, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~herd_bounds) +
+  labs (title = "Percent Early Seral Forest in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA Under the 
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Young Forest",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```

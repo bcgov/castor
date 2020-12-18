@@ -75,8 +75,7 @@ willake_all_ch_hele0d_m15d = BAU + No harvest in high and low elevation critical
 
 ## 'harvestFlow'
 
-The allowable annual cut (AAC) for the Williams Lake TSA is 3 million cubic metres as of February 25, 2015. This includes a partition of a maximum of 1 500 000 cubic metres per year for live
-volume which means the remainder of the AAC is for salvaging dead trees
+The allowable annual cut (AAC) for the Williams Lake TSA is 3 million cubic metres as of February 25, 2015. This includes a partition of a maximum of 1 500 000 cubic metres per year for live volume which means the remainder of the AAC is for salvaging dead trees
 
 - I tested a harvest flow of 1.5 Mm3 (7,500,000m3/5yr) and the model was successful at meeting this demand.
 - I increased the harvest flow to 1.856 Mm3 (9,280,000m3/5yr) from an earlier analysis
@@ -115,12 +114,17 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
- "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",                                      "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
-                                          "rast.zone_cond_eccc_rainbows_crithab_or_herd",
-                                          "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
-"rast.zone_cond_eccc_barkerville_crithab_or_herd"
-                                               #"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"  # eccc harvest scenario
-                                               ),
+                            # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
+                            # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+                            # "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
+                            # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"
+                            #"rast.zone_cond_noharvest_barkerville_crithab_or_herd"
+                            # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
+                            # "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
+                            # "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+                             "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
+                            # "rast.zone_cond_eccc_barkerville_crithab_or_herd" 
+                           ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -179,8 +183,17 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS"
                 )
 
-scenario = data.table (name = "willake_all_ch_hele0d_m15d",
-                       description = "No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit (e.g., TSA or TFL)")
+# scenario = data.table (name = "williams_lake_barkerville_nh",
+#                        description = "No harvest in Barkerville critical habitat; harvest flow 1,856,000 m3/yr. Adjacency was set to 3m.")
+# scenario = data.table (name = "williams_lake_barkerville_ch_hele0d_m15d",
+#                        description = "No harvest in Barkerville high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit (e.g., TSA or TFL)")
+# scenario = data.table (name = "williams_lake_wells_gray_north_nh",
+#                        description = "No harvest in Wells Gray North critical habitat; harvest flow 1,856,000 m3/yr. Adjacency was set to 3m.")
+
+scenario = data.table (name = "williams_lake_wells_gray_north_ch_hele0d_m15d",
+                       description = "No harvest in Wells Gray North high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray North matrix critical habitat of all herds that overlap with the harvest unit (e.g., TSA or TFL). Harvest flow 1,856,000 m3/yr. Adjacency was set to 3m.")
+
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Williams_Lake_TSA",
                                      partition = ' vol > 110 ', 
@@ -188,7 +201,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Williams_Lake_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 9280000) 
+                                     flow = 9280000)  # 1,856,000m3/year
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))

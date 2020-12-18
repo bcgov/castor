@@ -75,7 +75,8 @@ defineModule(sim, list(
     expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
     ),
   outputObjects = bind_rows(
-    createsOutput("zone.length", objectClass ="numeric", desc = NA),
+    createsOutput("zone.length", objectClass ="integer", desc = NA), # the number of zones to constrain on
+    createsOutput("zone.available", objectClass ="data.table", desc = NA), # the available zones of the clusdb
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
     createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
@@ -130,6 +131,9 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
         #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
+        
+        #Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
+        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;"))
       }
       #disconnect the db once the sim is over?
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
@@ -473,27 +477,35 @@ setTablesCLUSdb <- function(sim) {
         }
       })
       #If there is a multi variable condition add them to the query
-      queryMulti<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
+      queryMulti<-dbGetQuery(sim$clusdb, "SELECT distinct(variable) FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
+
       if(nrow(queryMulti) > 0){
-        multiVars<-unlist(strsplit(paste(queryMulti$multi_condition, collapse = ', ', sep = ','), ",| > | < | = | <= | >= | and | AND | or | OR | in | IN | + "))
-        multiVars<-unique(gsub("[[:space:]]", "", multiVars[c(TRUE, FALSE)]))
-        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index')]
+        multiVars<-unlist(strsplit(paste(queryMulti$variable, collapse = ', ', sep = ','), ","))
+        multiVars<-unique(gsub("[[:space:]]", "", multiVars))
+        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure')]
         
-        multiVars1<-multiVars #used for altering pixels table in clusdb
-        #Add the multivars to the pixels data table
-        forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars)
-        
-        #format for pixels upload
-        multiVars2<-multiVars
-        multiVars2[1]<-paste0(', :',multiVars2[1])
-        multiVars[1]<-paste0(', ',multiVars[1])
-        
+        if(!identical(character(0), multiVars)){
+          multiVars1<-multiVars #used for altering pixels table in clusdb i.e., adding in the required information to run the query
+          #Add the multivars to the pixels data table
+          forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars)
+          
+          #format for pixels upload
+          multiVars2<-multiVars
+          multiVars2[1]<-paste0(', :',multiVars2[1])
+          multiVars[1]<-paste0(', ',multiVars[1])
+        }else{
+          multiVars<-''
+          multiVars2<-''
+          multiVars1<-NULL
+          }
         #Update the multi conditional constraints so the names match the dynamic variables
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_age_1', 'age') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
-      }else{
+          
+        
+        }else{
         multiVars<-''
         multiVars2<-''
         multiVars1<-NULL

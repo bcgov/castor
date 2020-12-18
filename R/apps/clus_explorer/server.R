@@ -43,13 +43,13 @@ server <- function(input, output, session) {
   statusData<-reactive({
     req(input$schema)
     data.table(getTableQuery(paste0(
-      "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, dist500, dist, tarea from (SELECT compartment, max(m_gs) as gs 
+      "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, c40r500, c40r50, total_area from (SELECT compartment, max(m_gs) as gs 
     FROM ",input$schema,".growingstock 
 where timeperiod = 0 group by compartment) a
 Left join (Select * from ",input$schema,".state ) b
 ON b.compartment = a.compartment
-left join (select sum(dist500) as dist500, sum(dist) as dist, sum(dist500/(dist500_per/100)) as tarea, compartment 
-		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from itcha_ilgachuz_plan.disturbance limit 1) group by compartment )c
+left join (select sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r500/(dist500_per/100)) as total_area, compartment 
+		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from ", input$schema, ".disturbance limit 1) group by compartment )c
 ON c.compartment = a.compartment;")))
     
   })
@@ -57,28 +57,48 @@ ON c.compartment = a.compartment;")))
   reportList<-reactive({
     req(input$schema)
     req(input$scenario)
-    data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
-    data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
-    
+    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+      data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
+      data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
+    }
+    else{
+      data.survival<-NULL
+    }
     data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
-    sum(dist500) as dist500, sum(dist) as dist, sum(dist/((dist_per+0.000001)/100)) as tarea FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r50/((dist_per+0.000001)/100)) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+    # c40r50 = dist; c40r500 = dist500
     
-    data.disturbance<-data.disturbance[, dist_per:= dist/tarea][, dist500_per:= dist500/tarea]
-    
+    data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
     data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
- round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent 
-                                    FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
+ round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     
-    
-    
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'fisher'")))> 0){
+      data.fisherOccupancy<-data.table(getTableQuery(paste0("SELECT rel_prob_occup, zone, reference_zone, timeperiod, scenario  FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, timeperiod;")))
+      data.fisher.hexa<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts "))
+      data.fisherPoints<-merge(data.fisher.hexa, data.fisherOccupancy[timeperiod == 0 & scenario == input$scenario[1], c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
+    }else{
+      data.fisherPoints<-NULL
+      data.fisherOccupancy<-NULL
+    }
+  
     list(harvest = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".harvest where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "');"))),
          growingstock = data.table(getTableQuery(paste0("SELECT scenario, timeperiod, sum(m_gs) as growingstock FROM ", input$schema, ".growingstock where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, timeperiod;"))),
          rsf = data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".rsf where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, rsf_model, timeperiod;"))),
          survival = data.survival,
          disturbance = data.disturbance,
          fire = data.fire,
-         fire2=data.fire2)
+         fire2=data.fire2,
+         fisher = data.fisherOccupancy,
+         fisherPts= data.fisherPoints)
+  })
+  
+  fisherPointsFilter<-reactive({
+    req(reportList())
+    req(input$fisheryear)
+    req(input$fisher_scenario_selected)
+    merge(reportList()$fisherPts[,c('zone', 'reference_zone', 'size', 'x', 'y')], reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected, c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
   })
   
   radarList<-reactive({
@@ -115,6 +135,16 @@ ON (foo1.scenario = foo2.scenario) )")))
       addScaleBar(position = "bottomleft") 
   })
   
+  observeEvent(input$fisheryear, {
+    pal<-colorNumeric(
+      palette = 'Blues',
+      domain = reportList()$fisherPts$rel_prob_occup
+    )
+    leafletProxy("fishermapper", data = fisherPointsFilter(), session) %>%
+      clearShapes() %>%
+      addCircles(lat = ~y, lng = ~x, fillColor = ~pal(fisherPointsFilter()$rel_prob_occup), color=~pal(fisherPointsFilter()$rel_prob_occup), radius = fisherPointsFilter()$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup))
+  })
+  
   #---Observe
   observe({
     updateSelectInput(session, "tsa_selected",
@@ -129,7 +159,6 @@ ON (foo1.scenario = foo2.scenario) )")))
                              selected = character(0)
     )
   })
-  
   
   observe({
     updateSelectInput(session, "queryColumns",
@@ -147,6 +176,11 @@ ON (foo1.scenario = foo2.scenario) )")))
                       selected = character(0))
   })
   
+  observe({
+    updateSelectInput(session, "fisher_scenario_selected",
+                      choices = input$scenario,
+                      selected = character(0))
+  })
   
   #---Outputs
   
@@ -163,6 +197,7 @@ ON (foo1.scenario = foo2.scenario) )")))
             marker = list(line = list(color = "black", width =1))) %>% add_pie(hole = 0.6)%>%
       layout(plot_bgcolor='#00000000',legend = list(orientation = 'v'),paper_bgcolor='#00000000',title = "Seral Stage", font = list(color = 'White'))
   })
+  
   output$statusTHLB<-renderInfoBox({
     data<-statusData()[compartment %in% input$tsa_selected,]
     infoBox(title = NULL, subtitle = "THLB", 
@@ -189,7 +224,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Disturbed",
-      tags$p(paste0(round((sum(data$dist)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
+      tags$p(paste0(round((sum(data$c40r50)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("paw"), color = "purple"
     )
   })
@@ -198,7 +233,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Critical habitat",
-      tags$p(paste0(round((sum(data$tarea)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
+      tags$p(paste0(round((sum(data$total_area)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("exclamation-triangle"), color = "purple"
     )
   })
@@ -207,8 +242,19 @@ ON (foo1.scenario = foo2.scenario) )")))
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Disturbed 500m",
-      tags$p(paste0(round((sum(data$dist500)/sum(data$tarea))*100, 0), '%'), style = "font-size: 110%;"),
+      tags$p(paste0(round((sum(data$c40r500)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
       icon = icon("paw"), color = "purple"
+    )
+  })
+  
+  output$numberFisherTerritory<-renderValueBox({
+    valueBoxSpark(
+      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.2, "zone"]))),
+      title = toupper("Territories"),
+      subtitle = NULL,
+      icon = icon("times-circle"),
+      width = 4,
+      color = "blue"
     )
   })
   
@@ -218,6 +264,7 @@ ON (foo1.scenario = foo2.scenario) )")))
                                     input$schema, ".", input$queryTable, " WHERE scenario IN ('",
                                     paste(input$scenario, sep =  "' '", collapse = "', '"), "') GROUP BY scenario, ", input$queryColumns, " ORDER BY ", input$queryColumns)))
   })
+  
   output$resultSetRaster <- renderLeaflet({
     leaflet(options = leafletOptions(doubleClickZoom= TRUE))%>%
       setView(-124.87, 54.29, zoom = 5) %>%
@@ -229,6 +276,24 @@ ON (foo1.scenario = foo2.scenario) )")))
       addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme"))
     
   })
+
+  output$fishermapper <- renderLeaflet({
+    pal<-colorNumeric(
+      palette = 'Blues',
+      domain = reportList()$fisherPts$rel_prob_occup
+    )
+    leaflet(reportList()$fisherPts)%>%
+      addTiles() %>% 
+      fitBounds(~min(x), ~min(y), ~max(x), ~max(y)) %>%
+      addProviderTiles("OpenStreetMap", group = "OpenStreetMap") %>%
+      addProviderTiles("Esri.WorldImagery", group ="WorldImagery" ) %>%
+      addProviderTiles("Esri.DeLorme", group ="DeLorme" ) %>%
+      addScaleBar(position = "bottomright") %>%
+      addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery", "DeLorme")) %>%
+      addCircles(lat = ~y, lng = ~x, fillColor = ~pal(reportList()$fisherPts$rel_prob_occup), color=~pal(reportList()$fisherPts$rel_prob_occup), radius = reportList()$fisherPts$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup)) %>%
+      addLegend(position = "topright",
+                    pal = pal, values = ~reportList()$fisherPts$rel_prob_occup, title = "Prob")
+  })
   
   output$climatemap <-renderPlot({
     plot.igraph(climateMap[[1]], layout=climateMap[[2]])
@@ -238,6 +303,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   
   output$harvestAreaPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
+      
       data<-reportList()$harvest[,sum(area), by=c("scenario", "timeperiod")]
       data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
       data[,timeperiod:= as.integer(timeperiod)]
@@ -469,6 +535,30 @@ ON (foo1.scenario = foo2.scenario) )")))
     })
   }) 
   
+  output$fisherOccupancyPlot<- renderPlotly({
+    data<-reportList()$fisher[,sum(rel_prob_occup), by =c('scenario', 'timeperiod')]
+    p<-ggplot(data, aes (x=timeperiod, y=V1, group = scenario, color = scenario)) +
+      geom_line() +
+      xlab ("Future year") +
+      ylab ("Sum relative probability of occupancy") +
+      theme_bw()+
+      theme (legend.title = element_blank())
+    ggplotly(p) %>%
+      layout (legend = list (orientation = "h", y = -0.1))
+  })
+  
+  output$fisherTerritoryPlot<- renderPlot({
+    data <- reportList()$fisher[timeperiod==input$fisherTerritoryYear]
+    ggplot(data, aes(rel_prob_occup, color = scenario,fill= scenario)) +
+      facet_grid(.~reference_zone)+
+      geom_density(aes(y=..scaled..),alpha = 0.1) +
+      xlab ("Relative probability of occupancy") +
+      ylab ("Frequency") +
+      theme_bw()+
+      theme (legend.title = element_blank(), legend.position = 'bottom')
+    
+  })
+  
   output$rsfPlot <- renderPlotly ({
     data<-reportList()$rsf
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
@@ -490,6 +580,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   })
   
   output$fireByYearPlot <- renderPlotly ({
+
     withProgress(message = 'Making Plot', value = 0.1,{
       data<-reportList()$fire
       # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )

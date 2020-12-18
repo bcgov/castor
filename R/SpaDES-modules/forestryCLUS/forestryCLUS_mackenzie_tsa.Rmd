@@ -181,9 +181,9 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
-                                               
-                                           # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                           
+                                          # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                                          # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_graham_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_wolverine_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_chase_crithab_or_herd"
@@ -193,6 +193,8 @@ parameters <- list(
                                            # "rast.zone_cond_eccc_gataga_crithab_or_herd"
                                           
                                            #  "rast.zone_cond_partnership_agreement"
+                                          
+                                           "rast.central_grp_proposed_luo_matrix"
                                              ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -271,8 +273,12 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit. Adjacency was set to 3m.")
 # scenario = data.table (name = "mackenzie_all_sm_herdbounds_nh",
 #                        description = "No harvest in all southern mountain herds that overlap with the harvest unit. Adjacency was set to 3m.")
-scenario = data.table (name = "mackenzie_wct_nh",
-                       description = "No harvest in Wolverine, Chase and Takla herds that overlap with the harvest unit. Adjacency was set to 3m.")
+# scenario = data.table (name = "mackenzie_wct_nh",
+#                        description = "No harvest in Wolverine, Chase and Takla herds that overlap with the harvest unit. Adjacency was set to 3m.")
+scenario = data.table (name = "mackenzie_luo_35p_25yo",
+                       description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
+
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="MacKenzie_TSA",
                                      partition = ' vol > 150 ', # from 2014 determination

@@ -30,4 +30,4 @@ mercurial.ini
 /R/credential_clusdb.R
 .Rprofile
 *.sqlite
-
+README.html

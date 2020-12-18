@@ -56,7 +56,7 @@ hab_locations <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM caribou.bc_caribou_samp_pnts_herd_boundaries")
 dbDisconnect (conn) # connKyle
 
-hab_locations2<-all.samp.points2
+hab_locations2<-all.samp.points
 hab_locations2<-st_transform(hab_locations2,3005)
 
 hab_locations2<-st_as_sf(hab_locations2)
@@ -75,7 +75,7 @@ hab_locations_sp<-as(hab_locations2,Class="Spatial")
 ## WARNING DONT RUN THIS CODE, UNLESS YOU WANT TO REBUILD THE TABLE
 setwd('C:\\Work\\caribou\\clus_data\\cutblock_tiffs\\dist_rast\\')
 
-rsf.large.scale.data<-Tyler_and_my_points
+rsf.large.scale.data<-hab_locations2
 x<-list.files(pattern=".tif", all.files=FALSE, full.names=FALSE)
 y<-gsub(".tif","",x)
 
@@ -85,11 +85,10 @@ for (i in 1:length(x)){
                            factors = T, df = T, sp = T)
   #names (rsf.large.locations) [7] <- y[i]
   
-  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (2, 7)], 
+  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (7, 8)], 
                                             by = c ("ptID" = "ptID")) 
   rm (foo)
   rm(foo2)
-  gc()
   print(i)
 }
 
@@ -123,7 +122,7 @@ for (i in 1:length(x)){
                            factors = T, df = T, sp = T)
   #names (rsf.large.locations) [7] <- y[i]
   
-  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (2, 7)], 
+  rsf.large.scale.data <- dplyr::full_join (rsf.large.scale.data, foo2@data [c (7, 8)], 
                                             by = c ("ptID" = "ptID")) 
   # rm (foo)
   # rm(foo2)
@@ -140,7 +139,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    port = "5432")
 st_write (obj = rsf.large.scale.data, 
           dsn = conn, 
-          layer = c ("caribou", "dist_to_disturbance2_all_points"),
+          layer = c ("caribou", "dist.to.disturb.all.pts.small"),
           overwrite=TRUE)
 dbDisconnect (conn)  
 
@@ -254,7 +253,30 @@ rsf.large.scale.data$distance_to_cut_50yo <- ifelse (rsf.large.scale.data$year =
 #rsf.large.scale.data$distance_to_cut_pre50yo <- ifelse (rsf.large.scale.data$year == 2018, rsf.large.scale.data$dist_rast_cutblocks_1967, ifelse (rsf.large.scale.data$year == 2017, rsf.large.scale.data$dist_rast_cutblocks_1966, ifelse (rsf.large.scale.data$year == 2016, rsf.large.scale.data$dist_rast_cutblocks_1965, ifelse (rsf.large.scale.data$year == 2015, rsf.large.scale.data$dist_rast_cutblocks_1964, ifelse (rsf.large.scale.data$year == 2014, rsf.large.scale.data$dist_rast_cutblocks_1963, ifelse (rsf.large.scale.data$year == 2013, rsf.large.scale.data$dist_rast_cutblocks_1962, ifelse (rsf.large.scale.data$year == 2012, rsf.large.scale.data$dist_rast_cutblocks_1961, ifelse (rsf.large.scale.data$year == 2011, rsf.large.scale.data$dist_rast_cutblocks_1960, ifelse (rsf.large.scale.data$year == 2010, rsf.large.scale.data$dist_rast_cutblocks_1959, ifelse (rsf.large.scale.data$year == 2009, rsf.large.scale.data$dist_rast_cutblocks_1958, rsf.large.scale.data$dist_rast_cutblocks_pre1957))))))))))
 
 
-rsf.large.scale.data.age <- rsf.large.scale.data [, c (1:6, 68:125)]
+rsf.large.scale.data.age <- rsf.large.scale.data [, c (1:7, 69:126)]
+
+#For the available sample points i need to assign an the carbou individual data to the sample points
+samp_locs_used<-st_set_geometry(samp_locations_Tyler_points_df,NULL)
+
+caribou.individs <- samp_locs_used %>%
+  dplyr::select(year, HERD_NAME, du, individual) %>%
+  group_by(year, HERD_NAME, du, individual) %>%
+  summarize(count=n())
+
+caribou.individs2<- caribou.individs %>%
+  dplyr::select(year, HERD_NAME, du, individual)
+
+ try<-rsf.large.scale.data.age %>%
+   filter(pttype==0) %>%
+   dplyr::select(-individual) %>%
+   left_join(caribou.individs2)
+
+# check
+try2<- rsf.large.scale.data.age %>%
+  filter(pttype==1)
+
+try3<- rbind(try, try2)
+
 
 # save data 
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
@@ -263,9 +285,9 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-st_write (obj = rsf.large.scale.data.age, 
+st_write (obj = try3, 
           dsn = conn, 
-          layer = c ("caribou", "dist_to_disturbance_summary"),
+          layer = c ("caribou", "try"),
           overwrite=TRUE)
 dbDisconnect (conn)  
 

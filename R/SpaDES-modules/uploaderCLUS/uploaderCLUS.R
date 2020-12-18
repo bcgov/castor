@@ -86,13 +86,11 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", sim$scenario$name, "';"))
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
     
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".harvest where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".growingstock where scenario = '", sim$scenario$name,"' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".rsf where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".survival where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".yielduncertainty where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".disturbance where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbDisconnect(connx)
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty') ;"))$table_name, function (x){
+      dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    })
+    
+   dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
     dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "uploaderCLUS", "aoiName"),";"))
@@ -104,12 +102,22 @@ Init <- function(sim) {
                     scenarios = data.table(scenario =character(), description= character()), 
                     harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), target= numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()), 
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
+
                     rsf = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric() , sum_rsf_hat_75 = numeric(), per_rsf_hat_75 = numeric(), rsf_model= character()), 
+
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
-                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character(), dist500= numeric(), dist500_per = numeric(), dist= numeric(), dist_per = numeric()),
-                    yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() )
-    )
-    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty")
+                    disturbance = data.table(scenario = character(), compartment = character(), timeperiod= integer(),
+                                             critical_hab = character(), total_area = numeric(), cut20 = numeric(), cut40 = numeric(), cut80 = numeric(), 
+                                             road50 = numeric(), road250 = numeric(), road500 = numeric(),road750 = numeric(),
+                                             c20r50 = numeric(), c20r250=numeric(), c20r500=numeric(),  c20r750=numeric(),
+                                             c40r50 = numeric(), c40r250=numeric(), c40r500=numeric(),  c40r750=numeric(),
+                                             c80r50 = numeric(), c80r250=numeric(), c80r500=numeric(),  c80r750=numeric(),
+                                             c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric()),
+                    
+                    yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() ),
+                    fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric()))
+
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
@@ -170,9 +178,9 @@ save.reports <-function (sim){
                  sim$rsf, append = T,row.names = FALSE)
   }
   #survival
-  if(!is.null(sim$tableSurvival)){
+  if(!is.null(sim$tableSurvivalReport)){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), 
-                 sim$tableSurvival, append = T,row.names = FALSE)
+                 sim$tableSurvivalReport, append = T,row.names = FALSE)
   }
   #disturbance
   if(!is.null(sim$disturbanceReport)){
@@ -188,6 +196,11 @@ save.reports <-function (sim){
   if(!is.null(sim$volumebyareaReport)){
     DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'volumebyarea'), 
                       sim$volumebyareaReport, append = T, row.names = FALSE)
+  }
+  #fisher
+  if(!is.null(sim$tableFisherOccupancy)){
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'fisher'), 
+                      sim$tableFisherOccupancy, append = T, row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 

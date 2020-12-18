@@ -121,7 +121,7 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 
 ```{r, cutblocks}
 #Harvest locations year
-layer<-getSpatialQuery("SELECT harvestyr, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 ORDER BY harvestyr")
+layer<-getSpatialQuery("SELECT harvestyr, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 0.5 ORDER BY harvestyr")
 
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "harvestyr")
 writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
@@ -129,7 +129,7 @@ writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl_year | psql -d clus")
 
 #Harvest locations id
-layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 ORDER BY cutblockid")
+layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE data_source <> 'Landsat' ORDER BY cutblockid")
 
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "cutblockid")
 writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)

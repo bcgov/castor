@@ -70,7 +70,8 @@ parameters <-  list(
                                            "rast.zone_cond_noharvest_monashee_crithab_or_herd",
                                            "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
                                            "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
-                                           "rast.zone_cond_eccc_monashee_crithab_or_herd"),
+                                           "rast.zone_cond_eccc_monashee_crithab_or_herd",
+                                           "rast.zone_cond_reve_area"),
                         
                          nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
@@ -94,11 +95,11 @@ parameters <-  list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'
                   ),
-  rsfCLUS = list(calculateInterval = 1, 
-                   criticalHabitatTable = "public.criticalhabitat_bc_vat",
-                   randomEffectsTable = "public.rsf_re_coeff",
-                   writeRSFRasters = TRUE,
-                   checkRasters= FALSE),
+  # rsfCLUS = list(calculateInterval = 1, 
+  #                  criticalHabitatTable = "public.criticalhabitat_bc_vat",
+  #                  randomEffectsTable = "public.rsf_re_coeff",
+  #                  writeRSFRasters = TRUE,
+  #                  checkRasters= FALSE),
   disturbanceCalcCLUS = list(calculateInterval = 1, 
                    criticalHabitatTable = "public.criticalhabitat_bc_vat",
                    criticalHabRaster = "rast.bc_crithab",
@@ -112,7 +113,7 @@ parameters <-  list(
                         ))
 
 
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')") )
+# rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')") )
 #rsf_model_coeff[, population:= 'Telkwa']
 
 scenario = data.table(name="load_data", 
@@ -129,10 +130,18 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
-modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "rsfCLUS", "survivalCLUS","disturbanceCalcCLUS", "uploaderCLUS")
+modules <- list("dataLoaderCLUS", 
+                "blockingCLUS", 
+                "roadCLUS", 
+                #"rsfCLUS", 
+                "survivalCLUS",
+                "disturbanceCalcCLUS", 
+                "uploaderCLUS")
 #modules <- list("dataLoaderCLUS", "roadCLUS")
 
-objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
+objects <- list(patchSizeDist=patchSizeDist, 
+                #rsf_model_coeff=rsf_model_coeff, 
+                scenario = scenario)
 #objects <- list(patchSizeDist=patchSizeDist, scenario = scenario)
 
 inputs <- list()
