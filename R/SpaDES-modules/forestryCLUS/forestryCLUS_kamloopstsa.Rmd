@@ -91,10 +91,21 @@ from 2015 analysis discussion paper:  maximum even flow harvest was 2,000,000m^3
 
 - First, I tested a harvest flow of 2,000,000m^3^/year (10,000,000m^3^/5-year); was not able to achieve this, so dropped to the harvest flow eventually settling on 1,400,000m^3/yr. This havest rate was only possible with with a minimum harvest volume > 90 and age >= 60. In the report they say that to meet mid-term harvest levels they expect a significant poriton of the harvest will come from stands less than 80yrs. they also provide a figure showing that between 1/4 and 1/3 of the volume harvested will be within the age range of 61 to 80 yrs So setting a minimum age to 60 is probably reasonable for this TSA
 
-
-
-
 For cutblock adjacency, I used 3 m adjacncey; no real mention fo this in aanylsis report; used 'green-up' targets at coarser scales
+
+## Modify Constraints
+
+```{r, zone_update}
+library (DBI)
+# STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Kamloops_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+# STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+
+dbDisconnect(clusdb)
+```
 
 
 ```{r module_usage}
@@ -127,15 +138,17 @@ parameters <- list(
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"),
-                                           # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",
-                                            # "rast.zone_cond_noharvest_groundhog_crithab_or_herd",
-                                            # "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
-                                            #"rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                            #"rast.zone_cond_eccc_groundhog_crithab_or_herd",
-                                            #"rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"),
-                                            #"rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"),
+                                           "rast.zone_cond_cw",
+                                           # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
+                                           # "rast.zone_cond_noharvest_groundhog_crithab_or_herd"
+                                           # "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd"
+                                           # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"
+                                           # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                           # "rast.zone_cond_eccc_groundhog_crithab_or_herd"
+                                           # "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
+                                           # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
+                                           "rast.zone_cond_reve_area"
+                                         ),
                                            
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -212,8 +225,27 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Wells Gray S/Groundhog critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
  # scenario = data.table (name = "kamloops_wgsgr_ch_he0d_m15d",
  #                        description = "No harvest in Wells Gray S/Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
- scenario = data.table (name = "kamloops_bau_try",
-                        description = "Testing whether changing vol >90 and age>=60 alters the flow.")
+ # scenario = data.table (name = "kamloops_bau_try",
+ #                        description = "Testing whether changing vol >90 and age>=60 alters the flow.")
+# scenario = data.table (name = "kamloops_wells_south_nh",
+#                        description = "No harvest in Wells Gray South critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+ # scenario = data.table (name = "kamloops_wells_south_ch_he0d_m15d",
+ #                        description = "No harvest in Wells Gray South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray South matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "kamloops_groundhog_nh",
+#                        description = "No harvest in Groundhog critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+# scenario = data.table (name = "kamloops_groundhog_ch_he0d_m15d",
+#                         description = "No harvest in Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Groundhog matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "kamloops_columbia_north_nh",
+#                        description = "No harvest in Columbia North critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+# scenario = data.table (name = "kamloops_columbia_north_ch_he0d_m15d",
+#                         description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "kamloops_wells_north_ch_he0d_m15d",
+#                         description = "No harvest in Wells Gray North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray North matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "kamloops_wells_north_nh",
+#                        description = "No harvest in Wells Gray North critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
+
+scenario = data.table (name = "kamloops_columbia_north_ch_he10d_m15d",
+                       description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Kamloops_TSA",
