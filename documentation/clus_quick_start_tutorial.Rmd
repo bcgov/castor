@@ -17,6 +17,10 @@ To work with our databases, you will need to download [pgAdmin](https://www.pgad
 
 To manage and work with spatial data, you will also need download [OSGeo4W](https://trac.osgeo.org/osgeo4w/). This contains QGIS, GDAL/OGR, and GRASS open source software programs
 
+You will need to download Java software to run the blockingCLUS module. The latest version can be found [here](https://jdk.java.net/). Download the zip file and install the software. Note the file path where the application is saved (e.g., "C:/Program Files/Java/jdk-14.0.1"). You will also need to set-up Java in your Windows Environment Variables. Open the "System Properties" window, click on the "Advanced" tab, click on "Environment Variables..." and create a "New" Systems variable called "JAVA_HOME" with the value as the location of the "bin" folder in your JAVA directory (e.g., C:/Program Files/Java/jdk-14.0.1/bin). Next click on "Path" in the system variables, click "Edit...", click "New" and paste in the same path to the "bin" folder. To check that things were installed properly, open a "Command Prompt" window, enter "java -version". It should return the version of tha JAVA software you just installed. 
+
+![](images/java.jpg)
+
 If you are a government employee, you may want to download these software as approved by your information technology deparment.  
 
 ## 2. Download the Model Code from GitHub
@@ -227,15 +231,22 @@ The CLUS simulator model does not run directly off of the PostgreSQL database. I
 
 In this section you will learn how to use the 'dataLoaderCLUS' module to create a SQLite databse to run in the forestry simulator model. The 'dataLoaderCLUS' module is located in the "R->SpaDES-modules" folder. Within the folder you will find a single dataLoaderCLUS.R file and several variations of a dataLoaderCLUS_xxxx.Rmd. The .R file is the script that contains the functions that consolidate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the parameters that get implemented in the .R file.  
 
-Here we have created a new scearnio to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the exsiting parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd".
+Here we have created a new scearnio to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the exsiting parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd". 
 
-Within the .Rmd you will notice features of the SpaDES module sturcture. 
-
-
+Within the .Rmd you will notice there is some text describing the module and a brief summary of the Revelstoke TSA. This is followed by a 'chunk' of R code. Within this chunk are all teh paramters needed to run the functions in the dataLoaderCLUS.R file. At the top of the chunk yuo will see a list of 'libraries'. These are the R libraries (packages) needed to run all the fucntions in the code. You will also see a 'source' command, that indicates the location of some custome R_Postgres functions. The soruce coammne will run all of the fucntions in the code so they can be used in the dataLoaderCLUS code.      
 
 
 
 
+
+
+ features of the SpaDES module structure (e.g., "setPaths", "times", "mySim" functions). 
+
+
+
+
+
+T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\sql_tsa_tfl_databases
 
 
 
