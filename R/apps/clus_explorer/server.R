@@ -42,13 +42,14 @@ server <- function(input, output, session) {
   
   statusData<-reactive({
     req(input$schema)
-    data.table(getTableQuery(paste0(
+    
+      data.table(getTableQuery(paste0(
       "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, c40r500, c40r50, total_area from (SELECT compartment, max(m_gs) as gs 
     FROM ",input$schema,".growingstock 
 where timeperiod = 0 group by compartment) a
 Left join (Select * from ",input$schema,".state ) b
 ON b.compartment = a.compartment
-left join (select sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r500/(dist500_per/100)) as total_area, compartment 
+left join (select sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area, compartment 
 		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from ", input$schema, ".disturbance limit 1) group by compartment )c
 ON c.compartment = a.compartment;")))
     
@@ -65,7 +66,7 @@ ON c.compartment = a.compartment;")))
       data.survival<-NULL
     }
     data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
-    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r50/((dist_per+0.000001)/100)) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
     # c40r50 = dist; c40r500 = dist500
     
     data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
@@ -435,7 +436,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   output$propDisturbPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = scenario)) +
+      p<-ggplot(data1, aes (x=timeperiod, y = (dist_per*100), color = scenario, linetype = scenario)) +
         facet_wrap(.~critical_hab, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
@@ -454,12 +455,13 @@ ON (foo1.scenario = foo2.scenario) )")))
   output$propDisturbBuffPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      p<-ggplot(data1, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+      p<-ggplot(data1, aes (x = timeperiod, y = (dist500_per*100), color = scenario, linetype = scenario)) +
         facet_wrap(.~critical_hab, ncol = 4)+
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10))+
         # scale_alpha_discrete(range=c(0.4,0.8))+
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
