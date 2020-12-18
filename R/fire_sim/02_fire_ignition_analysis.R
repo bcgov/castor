@@ -392,9 +392,9 @@ table.glm.climate_simplest$deltaAIC<-table.glm.climate_simplest$AIC- min(table.g
 
 ###############################################################
 
-# From the above analysis it seems the best combination of variables is the maximum temperature in August + the total precipitation in August.
+# From the above analysis it seems the best combination of variables is the maximum temperature in July * the total precipitation in July
 
-plot(ignition_pres_abs2$tmax08, ignition_pres_abs2$allppt08)
+plot(ignition_pres_abs2$tmax07, ignition_pres_abs2$allppt07)
 
 
 # assembling landscape variables 
