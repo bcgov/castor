@@ -74,6 +74,11 @@ rm(art.ras)
 gc()
 library(dplyr)
 
+##Maintain 66 percent of the area ge than 30 years. See http://www.env.gov.bc.ca/wld/documents/uwr/u-3-006_ORAM_Order.pdf
+#u3006_table[, `:=`(reference_zone = 'rast.zone_uwr', variable = 'age', type = 'ge', percentage = 66, threshold = 30, ndt =0, label = 'u-3-006')]
+
+# here we are trying to maintain some proportion of old growth forest. I assume old growth forest to be forest older than 250 years. 
+
 df<-as.data.frame(art)
 df<-df[,1:2]
 df$type<-'ge'
