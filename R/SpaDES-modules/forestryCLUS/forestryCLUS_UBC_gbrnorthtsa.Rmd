@@ -79,14 +79,14 @@ parameters <- list(
                            nameCompartmentRaster = "rast.ubc_gbr_boundaries",
                            nameCompartmentTable = "ubc_gbr_boundaries_vat",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters=c("rast.zone_cond_beo", # rasters of the zone constraints to include. Add all zone rasters that might be needed here. First 7 always stay.
+                           nameZoneRasters=c(#"rast.zone_cond_beo", # leave out beo for the UBC study because I think similar info is comming from the art
                                            "rast.zone_cond_vqo",
                                            "rast.zone_cond_wha_gbr",
                                            "rast.zone_cond_uwr_gbr",
                                            "rast.zone_cond_nharv_gbr",
                                            "rast.zone_cond_fsw_gbr",
-                                           "rast.zone_cond_cw"
-                                           #"rast.zone_cond_art"
+                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_art"
                                            ),
 
                            nameZoneTable = "zone_constraints_gbr",
@@ -153,11 +153,11 @@ modules <- list("dataLoaderCLUS",
  # scenario = data.table (name = "ubc_gbrn_art_only",
  #                         description = "removed all constraints except art (average retention targets")
 # 
-#   scenario = data.table (name = "ubc_gbrn_bau",
-#                           description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
+   scenario = data.table (name = "ubc_gbrn_bau",
+                           description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
 
-  scenario = data.table (name = "ubc_gbrn_without_art",
-                          description = "includes all constraints vqo, wha, uwr, cw, fsa,nharv, but not art (average retention targets")
+  # scenario = data.table (name = "ubc_gbrn_without_art",
+  #                         description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, but not art (average retention targets")
 
   
 harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
