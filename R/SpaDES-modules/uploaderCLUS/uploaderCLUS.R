@@ -178,9 +178,9 @@ save.reports <-function (sim){
                  sim$rsf, append = T,row.names = FALSE)
   }
   #survival
-  if(!is.null(sim$tableSurvival)){
+  if(!is.null(sim$tableSurvivalReport)){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), 
-                 sim$tableSurvival, append = T,row.names = FALSE)
+                 sim$tableSurvivalReport, append = T,row.names = FALSE)
   }
   #disturbance
   if(!is.null(sim$disturbanceReport)){
