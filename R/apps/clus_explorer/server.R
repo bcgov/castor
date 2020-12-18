@@ -419,7 +419,7 @@ ON (foo1.scenario = foo2.scenario) )")))
       data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, herd_bounds)]  # replace first() with shift() to get difference with previous year value instead of first year value
       
       p<-ggplot(data, aes (x=timeperiod, y=survival_rate_change, color = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         geom_hline(yintercept=0, linetype="dashed", color = "black")+
         xlab ("Future year") +
@@ -437,7 +437,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
       p<-ggplot(data1, aes (x=timeperiod, y = (dist_per*100), color = scenario, linetype = scenario)) +
-        facet_wrap(.~critical_hab, ncol = 4)+
+        facet_wrap (facets = vars (critical_hab)) +
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
@@ -456,7 +456,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
       p<-ggplot(data1, aes (x = timeperiod, y = (dist500_per*100), color = scenario, linetype = scenario)) +
-        facet_wrap(.~critical_hab, ncol = 4)+
+        facet_wrap (facets = vars (critical_hab)) +
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
@@ -478,7 +478,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
       p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age 0 to 40 years") +
@@ -499,7 +499,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
       p<-ggplot(data1, aes (x=timeperiod, y=prop_mature, color = scenario, type = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age 80 to 120 years") +
@@ -520,7 +520,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
       p<-ggplot(data1, aes (x=timeperiod, y=prop_old, color = scenario, type = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion > 120 years") +
@@ -566,7 +566,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
     data[ , rsf_perc_change := ((first(sum_rsf_hat) - sum_rsf_hat)/first(sum_rsf_hat) * 100), by = .(scenario, rsf_model)]  # replace first() with shift() to get difference with previous year value instead of first year value
     p<-ggplot(data, aes (x=timeperiod, y=rsf_perc_change, fill = scenario)) +
-      facet_wrap(rsf_model~., ncol = 4)+
+      facet_grid (rows = vars(rsf_model))+
       geom_bar(stat="identity",position = "dodge") +
       geom_hline(yintercept=0, linetype="dashed", color = "black")+
       xlab ("Future year") +
@@ -589,7 +589,7 @@ ON (foo1.scenario = foo2.scenario) )")))
       #print(data)
       
       p<-ggplot(data, aes (x=year, y=proportion.burn)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_bar(stat="identity",width=1) +
         #geom_line(col="grey")+
         #geom_bar(stat="identity", width=0.7) +
@@ -628,7 +628,7 @@ ON (foo1.scenario = foo2.scenario) )")))
       #print(Fire_cummulative)
       
       p<-ggplot(Fire_cummulative, aes (x=year, y=cummulative.area.burned)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         #geom_line (col="grey") +
         #geom_point()+
         geom_bar(stat="identity", width=1) +
