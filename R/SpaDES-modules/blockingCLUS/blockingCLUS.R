@@ -116,7 +116,7 @@ return(invisible(sim))
 createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, landing integer)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, dist numeric DEFAULT 0,landing integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   return(invisible(sim)) 
 }
@@ -156,9 +156,9 @@ return(invisible(sim))
 
 setBlocksTable <- function(sim) {
   message("set the blocks table")
-  #TODO: Use the RANN package to find the smallest distance to a road in a block as the landing
+  #Used the dist field to find the smallest distance to a disturbance and use as the landing
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing) 
-                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, min(pixelid) as landing
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height,AVG(vol) as vol,AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
   
@@ -219,7 +219,7 @@ preBlock <- function(sim) {
   
   #edges.w2$weight<-abs(edges.w2$w2 - edges.w2$w1) #take the absolute cost between the two pixels
   edges.w2[, weight:= (w1_cc-w2_cc)*((w1_cc-w2_cc)*covm[1,1] + (w1_ht-w2_ht)*covm[1,2]) + 
-  (w1_ht-w2_ht)*((w1_cc-w2_cc)*covm[2,1] + (w1_ht-w2_ht)*covm[2,2]) + runif(nrow(edges.w2), 0, 0.0001)] #take the mahalanobic distance between the two pixels
+  (w1_ht-w2_ht)*((w1_cc-w2_cc)*covm[2,1] + (w1_ht-w2_ht)*covm[2,2]) + runif(nrow(edges.w2), 0, 0.0001)] #take the mahalanobis distance between the two pixels
   #Note for the mahalanobis distance sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
   
   #------get the edges list
@@ -404,11 +404,12 @@ updateBlocks<-function(sim){
   #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
-  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height
+  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(dist) as dist
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
+  #Could of used a DELETE TABLE then CREATE the table but this would require the landing to be re-estimated which would not link to the roads.
   dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height WHERE blockid = :blockid", new_blocks)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, dist = :dist WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
