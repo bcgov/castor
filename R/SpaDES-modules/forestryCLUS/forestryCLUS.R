@@ -68,13 +68,13 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
-      sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCLUS", "schedule", 2)
+      sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCLUS", "schedule", 3)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
     },
     schedule = {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 2)
+      sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 3)
     },
     save = {
       sim <- saveForestry(sim)

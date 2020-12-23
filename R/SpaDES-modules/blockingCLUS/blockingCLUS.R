@@ -79,7 +79,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                }
                
                #Schedule the Update 
-                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 10)
+                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 2)
                },
              
              dynamic ={
@@ -96,7 +96,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     UpdateBlocks = {
 
       sim <- updateBlocks(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=10)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=2)
     },
     writeBlocks = {
       writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
