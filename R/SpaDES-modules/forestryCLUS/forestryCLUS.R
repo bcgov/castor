@@ -86,6 +86,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+
   #Check to see if a scenario object has been instantiated
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
@@ -106,6 +107,9 @@ Init <- function(sim) {
     dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
  
+  #Create the zoneManagement table
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneManagement (zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric)")
+  
   #For printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
   sim$harvestBlocks[]<-0
@@ -136,6 +140,7 @@ setConstraints<- function(sim) {
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
     numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
                                zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
+    
     if(nrow(numConstraints) > 0){
       for(k in 1:nrow(numConstraints)){
         query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition, 
@@ -145,7 +150,7 @@ setConstraints<- function(sim) {
                                                         FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
                                                             numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
         query_parms<-query_parms[!is.na(limits) | limits > 0, ]
-        
+    
        switch(
           as.character(query_parms[1, "type"]),
             ge = {
@@ -372,6 +377,11 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestPriority"), "
   return(invisible(sim))
 }
 
+reportConstraints<- function(sim) {
+  
+  dbGetQuery(sim$clusdb, "SELECT AVG(case when age > 140 then 1 else 0 end) as percent, zone1, 0 as timeperiod  from pixels group by zone1")
+  return(invisible(sim))
+}
 
 .inputObjects <- function(sim) {
   return(invisible(sim))
