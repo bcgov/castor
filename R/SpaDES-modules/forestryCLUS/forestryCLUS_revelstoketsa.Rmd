@@ -133,7 +133,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 4) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -185,7 +185,7 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestPriority = "dist, age DESC, vol DESC",
+  forestryCLUS = list(harvestPriority = "age DESC",
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -204,7 +204,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'revelstoke_tsa', 
+  uploaderCLUS = list(aoiName = 'test_tsa', 
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  

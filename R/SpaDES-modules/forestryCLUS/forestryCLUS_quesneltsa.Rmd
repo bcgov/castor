@@ -178,7 +178,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'quesnel_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'test_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
