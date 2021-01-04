@@ -36,7 +36,8 @@ defineModule(sim, list(
     defineParameter("adjacencyConstraint", "numeric", 9999, NA, NA, "Include Adjacency Constraint at the user specified height in metres"),
     defineParameter("growingStockConstraint", "numeric", 9999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
     defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending"),
-    defineParameter("accessPriority", "logical", FALSE, NA, NA, "This sets the order from which access zones should be prioritized.")
+    defineParameter("accessPriority", "logical", FALSE, NA, NA, "This sets the order from which access zones should be prioritized."),
+    defineParameter("reportHarvestConstraints", "logical", FALSE, NA, NA, "T/F. Should the constraints be reported")
     
     ),
   inputObjects = bind_rows(
@@ -74,7 +75,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     schedule = {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      sim <- reportConstraints(sim)
+      sim <- reportConstraints(sim) #WORKING ON THIS
       sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 3)
     },
     save = {
@@ -379,40 +380,41 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestPriority"), "
 }
 
 reportConstraints<- function(sim) {
-  message("....reporting zone constraints")
-  zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
-  for(i in 1:nrow(zones)){ #for each of the specified zone rasters
-    numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
-                               zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
-    
-    if(nrow(numConstraints) > 0){
-      for(k in 1:nrow(numConstraints)){
-        query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition
-                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
-                                                              numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-        switch(
-          as.character(query_parms[1, "type"]),
-          ge = {
-            sql<- paste0("INSERT INTO zoneManagement SELECT AVG(case when", numConstraints[[1]][k]  ," > :threshold then 1 else 0 end) as percent, zone1, ", as.integer(time(sim)) ," as timeperiod  from pixels group by zone1")
-            
-            dbBegin(sim$clusdb)
-            rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid")])
-            dbClearResult(rs)
-            dbCommit(sim$clusdb)
-          },
-          le = {
-            sql<- paste0("INSERT INTO zoneManagement SELECT AVG(case when", numConstraints[[1]][k]  ," < :threshold then 1 else 0 end) as percent, zone1, ", as.integer(time(sim)) ," as timeperiod  from pixels group by zone1")
-            
-            dbBegin(sim$clusdb)
-            rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "limits")])
-            dbClearResult(rs)
-            dbCommit(sim$clusdb)
-          }
-        )
+  if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
+    message("....reporting zone constraints")
+    zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
+    for(i in 1:nrow(zones)){ #for each of the specified zone rasters
+      numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
+                                 zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
+      
+      if(nrow(numConstraints) > 0){
+        for(k in 1:nrow(numConstraints)){
+          query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition
+                                                          FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
+                                                                numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
+          switch(
+            as.character(query_parms[1, "type"]),
+            ge = {
+              sql<- paste0("INSERT INTO zoneManagement SELECT AVG(case when", numConstraints[[1]][k]  ," > :threshold then 1 else 0 end) as percent, zone1, ", as.integer(time(sim)) ," as timeperiod  from pixels group by zone1")
+              
+              dbBegin(sim$clusdb)
+              rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid")])
+              dbClearResult(rs)
+              dbCommit(sim$clusdb)
+            },
+            le = {
+              sql<- paste0("INSERT INTO zoneManagement SELECT AVG(case when", numConstraints[[1]][k]  ," < :threshold then 1 else 0 end) as percent, zone1, ", as.integer(time(sim)) ," as timeperiod  from pixels group by zone1")
+              
+              dbBegin(sim$clusdb)
+              rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "limits")])
+              dbClearResult(rs)
+              dbCommit(sim$clusdb)
+            }
+          )
+        }
       }
     }
   }
-  
   return(invisible(sim))
 }
 
