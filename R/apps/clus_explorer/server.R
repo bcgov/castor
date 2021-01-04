@@ -42,13 +42,14 @@ server <- function(input, output, session) {
   
   statusData<-reactive({
     req(input$schema)
-    data.table(getTableQuery(paste0(
+    
+      data.table(getTableQuery(paste0(
       "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, c40r500, c40r50, total_area from (SELECT compartment, max(m_gs) as gs 
     FROM ",input$schema,".growingstock 
 where timeperiod = 0 group by compartment) a
 Left join (Select * from ",input$schema,".state ) b
 ON b.compartment = a.compartment
-left join (select sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r500/(dist500_per/100)) as total_area, compartment 
+left join (select sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area, compartment 
 		   from ",input$schema,".disturbance where timeperiod = 0 and scenario = (select scenario from ", input$schema, ".disturbance limit 1) group by compartment )c
 ON c.compartment = a.compartment;")))
     
@@ -65,7 +66,7 @@ ON c.compartment = a.compartment;")))
       data.survival<-NULL
     }
     data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
-    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(c40r50/((dist_per+0.000001)/100)) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
     # c40r50 = dist; c40r500 = dist500
     
     data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
@@ -418,7 +419,7 @@ ON (foo1.scenario = foo2.scenario) )")))
       data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, herd_bounds)]  # replace first() with shift() to get difference with previous year value instead of first year value
       
       p<-ggplot(data, aes (x=timeperiod, y=survival_rate_change, color = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         geom_hline(yintercept=0, linetype="dashed", color = "black")+
         xlab ("Future year") +
@@ -435,8 +436,8 @@ ON (foo1.scenario = foo2.scenario) )")))
   output$propDisturbPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      p<-ggplot(data1, aes (x=timeperiod, y=dist_per, color = scenario, linetype = scenario)) +
-        facet_wrap(.~critical_hab, ncol = 4)+
+      p<-ggplot(data1, aes (x=timeperiod, y = (dist_per*100), color = scenario, linetype = scenario)) +
+        facet_wrap (facets = vars (critical_hab)) +
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
@@ -454,12 +455,13 @@ ON (foo1.scenario = foo2.scenario) )")))
   output$propDisturbBuffPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$disturbance
-      p<-ggplot(data1, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
-        facet_wrap(.~critical_hab, ncol = 4)+
+      p<-ggplot(data1, aes (x = timeperiod, y = (dist500_per*100), color = scenario, linetype = scenario)) +
+        facet_wrap (facets = vars (critical_hab)) +
         geom_line() +
         xlab ("Future year") +
         ylab ("Percent Disturbed") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
+        scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10))+
         # scale_alpha_discrete(range=c(0.4,0.8))+
         # scale_color_grey(start=0.8, end=0.2) +
         theme_bw()+
@@ -476,7 +478,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
       p<-ggplot(data1, aes (x=timeperiod, y=prop_age, color = scenario, type = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age 0 to 40 years") +
@@ -497,7 +499,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
       p<-ggplot(data1, aes (x=timeperiod, y=prop_mature, color = scenario, type = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion Age 80 to 120 years") +
@@ -518,7 +520,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     withProgress(message = 'Making Plots', value = 0.1, {
       data1<-reportList()$survival
       p<-ggplot(data1, aes (x=timeperiod, y=prop_old, color = scenario, type = scenario)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_line() +
         xlab ("Future year") +
         ylab ("Proportion > 120 years") +
@@ -564,7 +566,7 @@ ON (foo1.scenario = foo2.scenario) )")))
     # data$scenario <- reorder(data$scenario, data$sum_rsf_hat, function(x) -max(x) )
     data[ , rsf_perc_change := ((first(sum_rsf_hat) - sum_rsf_hat)/first(sum_rsf_hat) * 100), by = .(scenario, rsf_model)]  # replace first() with shift() to get difference with previous year value instead of first year value
     p<-ggplot(data, aes (x=timeperiod, y=rsf_perc_change, fill = scenario)) +
-      facet_wrap(rsf_model~., ncol = 4)+
+      facet_grid (rows = vars(rsf_model))+
       geom_bar(stat="identity",position = "dodge") +
       geom_hline(yintercept=0, linetype="dashed", color = "black")+
       xlab ("Future year") +
@@ -587,7 +589,7 @@ ON (foo1.scenario = foo2.scenario) )")))
       #print(data)
       
       p<-ggplot(data, aes (x=year, y=proportion.burn)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         geom_bar(stat="identity",width=1) +
         #geom_line(col="grey")+
         #geom_bar(stat="identity", width=0.7) +
@@ -626,7 +628,7 @@ ON (foo1.scenario = foo2.scenario) )")))
       #print(Fire_cummulative)
       
       p<-ggplot(Fire_cummulative, aes (x=year, y=cummulative.area.burned)) +
-        facet_wrap(.~herd_bounds, ncol = 4)+
+        facet_grid (rows = vars(herd_bounds))+
         #geom_line (col="grey") +
         #geom_point()+
         geom_bar(stat="identity", width=1) +
