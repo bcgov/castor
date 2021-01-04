@@ -74,7 +74,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     schedule = {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
-      sim <- reportConstraints(sim)
+      #sim <- reportConstraints(sim) #WORKING ON THIS
       sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 3)
     },
     save = {
