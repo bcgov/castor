@@ -157,7 +157,7 @@ return(invisible(sim))
 setBlocksTable <- function(sim) {
   message("set the blocks table")
   #Used the dist field to find the smallest distance to a disturbance and use as the landing
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing) 
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing, vol, dist) 
                     SELECT blockid, round(AVG(age),0) as age, AVG(height) as height,AVG(vol) as vol,AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
