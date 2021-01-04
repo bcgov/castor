@@ -233,7 +233,7 @@ In this section you will learn how to use the 'dataLoaderCLUS' module to create 
 
 Here we have created a new scearnio to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the exsiting parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd". 
 
-Within the .Rmd you will notice there is some text describing the module and a brief summary of the Revelstoke TSA. This is followed by a 'chunk' of R code. Within this chunk are all teh paramters needed to run the functions in the dataLoaderCLUS.R file. At the top of the chunk yuo will see a list of 'libraries'. These are the R libraries (packages) needed to run all the fucntions in the code. You will also see a 'source' command, that indicates the location of some custome R_Postgres functions. The soruce coammne will run all of the fucntions in the code so they can be used in the dataLoaderCLUS code.      
+Within the .Rmd you will notice there is some text describing the module and a brief summary of the Revelstoke TSA. This is followed by a 'chunk' of R code. Within this chunk are all teh paramters needed to run the functions in the dataLoaderCLUS.R file. At the top of the chunk yuo will see a list of 'libraries'. These are the R libraries (packages) needed to run all the fucntions in the code. You will also see a 'source' command, that indicates the location of some custome R_Postgres functions. The source coammne will run all of the fucntions in the code so they can be used in the dataLoaderCLUS code.      
 
 
 
