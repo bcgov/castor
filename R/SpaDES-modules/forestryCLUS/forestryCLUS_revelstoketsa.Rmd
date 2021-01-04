@@ -154,7 +154,7 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw",
+                                               "rast.zone_cond_cw"
                                                #"rast.zone_cond_reve_area"
                                                # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
                                                # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
@@ -165,7 +165,7 @@ parameters <- list(
                                                # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                                                # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                                                # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
-                                                "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                                #"rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -266,16 +266,14 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Columbia South high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia South martix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 # scenario = data.table (name = "revelstoke_frisby_boulder_he10d_m15d",
 #                        description = "No harvest in Frisby Boulder high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Frisby Boulder martix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
-# scenario = data.table (name = "revelstoke_bau_v2",
-#                        description = "Business-as-usual case; sustainable flow = 155,000m^3^/year. Adjacency was set to 3m.")
+scenario = data.table (name = "revelstoke_bau_v2",
+                       description = "Business-as-usual case; sustainable flow = 200,000m^3^/year. Adjacency was set to 3m.")
 # scenario = data.table (name = "revelstoke_colnsfb_nh_v2",
 #                        description = "No harvest in all Columbia North, Columbia South and Frisby-Boulder critical habitat. Sustainable flow = 155,000m^3^/year. Adjacency was set to 3m.")
 # scenario = data.table (name = "revelstoke_columbia_north_nh_v2",
 #                        description = "No harvest in all Columbia North critical habitat. Sustainable flow = 155,000m^3^/year. Adjacency was set to 3m.")
-
-
-scenario = data.table (name = "revelstoke_columbia_north_he0d_m15d_v2",
-                       description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Sustainable flow = 155,000m^3^/year. Adjacency was set to 3m.")
+# scenario = data.table (name = "revelstoke_columbia_north_he0d_m15d_v2",
+#                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Sustainable flow = 155,000m^3^/year. Adjacency was set to 3m.")
 
 
 
@@ -286,7 +284,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
                                                          to = 2218, 
                                                          by = 5),
                                                     1), 
-                                         flow = 775000) # 155,000m^3^/year
+                                         flow = 1000000) # 155,000m^3^/year
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
