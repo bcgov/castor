@@ -155,7 +155,7 @@ distAnalysis <- function(sim) {
   if(nrow(all.dist) > 0){
     outPts<-merge(sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
     message("Get the cutblock summaries")
-    cutblock_summary<-Reduce(merge, Filter(Negate(is.null),
+    cutblock_summary<-Reduce(merge, Filter(function(x) dim(x)[1] > 0,
          list(outPts[, .(total_area = uniqueN(.I)), by = "critical_hab"],
               outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = "critical_hab"],
               outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = "critical_hab"],
