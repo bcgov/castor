@@ -155,13 +155,13 @@ distAnalysis <- function(sim) {
   if(nrow(all.dist) > 0){
     outPts<-merge(sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
     message("Get the cutblock summaries")
-    cutblock_summary<-Reduce(merge,
-    list(outPts[, .(total_area = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 0 & age <= 80 & !is.na(critical_hab), .(cut80 = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 10 & age <= 40 & !is.na(critical_hab), .(cut10_40 = uniqueN(.I)), by = "critical_hab"]
-    ))
+    cutblock_summary<-Reduce(merge, Filter(Negate(is.null),
+         list(outPts[, .(total_area = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 0 & age <= 80 & !is.na(critical_hab), .(cut80 = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 10 & age <= 40 & !is.na(critical_hab), .(cut10_40 = uniqueN(.I)), by = "critical_hab"]
+    )))
     
     message("Get the Road summaries")
     outPts[roadyear >=0, field:=0]
