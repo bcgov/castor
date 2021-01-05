@@ -114,7 +114,7 @@ Init <- function(sim) {
   if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='perm_dist';")$exists_check == 0){
     # add in the column
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
-    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN dist numeric DEFAULT 0")
+    #dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN dist numeric DEFAULT 0")
     # add in the raster
     if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")

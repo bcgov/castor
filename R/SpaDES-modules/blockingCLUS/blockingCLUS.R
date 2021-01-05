@@ -160,7 +160,7 @@ setBlocksTable <- function(sim) {
   dbExecute(sim$clusdb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
   # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel at minimum distance from disturbance
   # this query not working as of Jan 4, 2021
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing, vol, dist)  
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height,  vol, dist, landing)  
                     SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(dist) as dist, min(pixelid) as landing
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
