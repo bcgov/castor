@@ -173,7 +173,7 @@ createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
   return(invisible(sim))
 }

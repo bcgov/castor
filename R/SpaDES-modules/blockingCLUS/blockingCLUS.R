@@ -71,7 +71,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   message('Creating blocks...')
                   sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
                   sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
-                  sim <- preBlock(sim) #preforms the pre-blocking algorthium in Java
+                  sim <- preBlock(sim) #preforms the pre-blocking algorithm in Java
                   sim <- setAdjTable(sim)
                   sim <- setBlocksTable(sim) #inserts values into the blocks table
                   sim <- setHistoricalLandings(sim) #inserts values into the blocks table
@@ -116,7 +116,7 @@ return(invisible(sim))
 createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
   dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, dist numeric DEFAULT 0,landing integer)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, dist numeric DEFAULT 0, landing integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   return(invisible(sim)) 
 }
@@ -156,21 +156,25 @@ return(invisible(sim))
 
 setBlocksTable <- function(sim) {
   message("set the blocks table")
-  #Used the dist field to find the smallest distance to a disturbance and use as the landing
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing, vol, dist) 
-                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height,AVG(vol) as vol,AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+  dbExecute(sim$clusdb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+  dbExecute(sim$clusdb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
+  # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel at minimum distance from disturbance
+  # this query not working as of Jan 4, 2021
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height, landing, vol, dist)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(dist) as dist, min(pixelid) as landing
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
-  
-return(invisible(sim))
+  return(invisible(sim))
 }
 
 setHistoricalLandings <- function(sim) {
   land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid < ", sim$existBlockId)))
   
+  #print (land_pixels)
+  
   land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
   setnames(land_coord,c("x", "y"), c("X", "Y"))
-  sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  sim$landings <- sp::SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
   return(invisible(sim))
 }
 
