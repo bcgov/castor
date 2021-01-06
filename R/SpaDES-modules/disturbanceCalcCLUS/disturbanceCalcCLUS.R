@@ -163,7 +163,6 @@ distAnalysis <- function(sim) {
               outPts[blockid > 0 & age >= 0 & age <= 80 & !is.na(critical_hab), .(cut80 = uniqueN(.I)), by = "critical_hab"],
               outPts[blockid > 0 & age >= 10 & age <= 40 & !is.na(critical_hab), .(cut10_40 = uniqueN(.I)), by = "critical_hab"]
     )))
-    
     message("Get the Road summaries")
     outPts[roadyear >=0, field:=0]
     nearNeigh_rds<-RANN::nn2(outPts[field == 0 & !is.na(critical_hab), c('x', 'y')], 
@@ -257,8 +256,16 @@ distAnalysis <- function(sim) {
   #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
   #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
+  cutblock_summary<<-cutblock_summary
+  road_summary<<-road_summary
+  c80r<<-c80r
+  c40r<<-c40r
+  c20r<<-c20r
+  c10_40r<<-c10_40r
+  
+  
   tempDisturbanceReport<-Reduce(merge, Filter(function(x) dim(x)[1] > 0,
-                               list(cutblock_summary, road_summary, c80r,c40r,c20r, c10_40r)
+                               list(cutblock_summary, road_summary, c80r, c40r, c20r, c10_40r)
                                 ))
   
   tempDisturbanceReport[, c("scenario", "compartment", "timeperiod") := 
