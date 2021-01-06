@@ -154,8 +154,9 @@ distAnalysis <- function(sim) {
   #stop()
   if(nrow(all.dist) > 0){
     outPts<-merge(sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
+    outPts<<-outPts
     message("Get the cutblock summaries")
-    cutblock_summary3<-Reduce(merge, Filter(function(x) dim(x)[1] > 0,
+    cutblock_summary<-Reduce(merge, Filter(function(x) dim(x)[1] > 0,
          list(outPts[, .(total_area = uniqueN(.I)), by = "critical_hab"],
               outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = "critical_hab"],
               outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = "critical_hab"],
@@ -203,10 +204,10 @@ distAnalysis <- function(sim) {
     
     outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
     outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
-    c10_40r<-Reduce(merge,
+    c10_40r<-Reduce(merge, Filter(function(x) dim(x)[1] > 0,
                  list(outPts[dist == 0  & !is.na(critical_hab), .(c10_40r50 = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist <= 500 & !is.na(critical_hab), .(c10_40r500  = uniqueN(.I)), by = "critical_hab"]
-                 ))
+                 )))
     
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
