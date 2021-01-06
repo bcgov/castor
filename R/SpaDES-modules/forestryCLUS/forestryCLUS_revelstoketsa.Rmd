@@ -103,8 +103,15 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 # STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 
+
 # COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 11) OR (zoneid = 12) OR (zoneid = 15) OR (zoneid = 16) OR (zoneid = 17) OR (zoneid = 18) OR (zoneid = 21) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") #This will set Columbia South and Frisby Boulder as 'harvestable' areas
+#This will set Columbia North core as no harvest areas 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 1) OR (zoneid = 7) OR (zoneid = 13) OR (zoneid = 19)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 2) OR (zoneid = 8) OR (zoneid = 14) OR (zoneid = 20)") #This will set Columbia North matrix as constrained areas 
+
+#This will set Columbia South and Frisby Boulder as 'harvestable' areas
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 11) OR (zoneid = 12) OR (zoneid = 15) OR (zoneid = 16) OR (zoneid = 17) OR (zoneid = 18) OR (zoneid = 21) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") 
+
 
 # COLUMBIA SOUTH 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 3) OR (zoneid = 9) OR (zoneid = 15) OR (zoneid = 21)") #This will set Columbia South core as no harvest areas 
@@ -113,10 +120,11 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone =
 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 13) OR (zoneid = 14) OR (zoneid = 19) OR (zoneid = 20)") #This will set Columbia North and Frisby Boulder as 'harvestable' areas
 
-# Frisby-Boulder
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 5) OR (zoneid = 11) OR (zoneid = 17) OR (zoneid = 23)") #This will set Columbia South core as no harvest areas 
 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 6) OR (zoneid = 12) OR (zoneid = 18) OR (zoneid = 24)") #This will set Columbia South matrix as constrained areas 
+# Frisby-Boulder
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 5) OR (zoneid = 11) OR (zoneid = 17) OR (zoneid = 23)") #This will set Frisby-Boulder core as no harvest areas 
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 6) OR (zoneid = 12) OR (zoneid = 18) OR (zoneid = 24)") #This will set Frisby-Boulder matrix as constrained areas 
 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 15) OR (zoneid = 16) OR (zoneid = 21) OR (zoneid = 22)") #This will set Columbia North and Frisby Boulder as 'harvestable' areas
 
@@ -155,17 +163,17 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
-                                               #"rast.zone_cond_reve_area"
-                                               # "rast.zone_cond_noharvest_monashee_crithab_or_herd",
-                                               #"rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
-                                                #"rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
-                                               "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
-                                                #"rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
-                                                #"rast.zone_cond_eccc_monashee_crithab_or_herd",
-                                               #"rast.zone_cond_eccc_frisby_boulder_crithab_or_herd",
-                                               #"rast.zone_cond_eccc_columbia_south_crithab_or_herd",
-                                               #"rast.zone_cond_eccc_central_rockies_crithab_or_herd",
-                                               #"rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                               "rast.zone_cond_reve_area"
+                                #"rast.zone_cond_noharvest_monashee_crithab_or_herd",
+                                #"rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
+                                #"rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
+                                #"rast.zone_cond_noharvest_central_rockies_crithab_or_herd",
+                                #"rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
+                                # "rast.zone_cond_eccc_monashee_crithab_or_herd"
+                                #"rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
+                                #"rast.zone_cond_eccc_columbia_south_crithab_or_herd"
+                                #"rast.zone_cond_eccc_central_rockies_crithab_or_herd"
+                                #"rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -234,26 +242,20 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in all Columbia North, Columbia South and Frisby-Boulder critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_colnsfb_ch_he0d_m15d",
 #                        description = "No harvest in Columbia North, Columbia South and Frisby-Boulder high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
-
-# DO THIS ONE AFTER FIX
 # scenario = data.table (name = "revelstoke_all_nh",
 #                        description = "No harvest in all critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
-
 # scenario = data.table (name = "revelstoke_all_ch_he0d_m15d",
 #                        description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap the TSA. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_columbia_north_nh",
 #                        description = "No harvest in all Columbia North critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_columbia_north_he0d_m15d",
 #                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
-scenario = data.table (name = "revelstoke_central_rockies_nh",
-                       description = "No harvest in all Central Rockies critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
+# scenario = data.table (name = "revelstoke_central_rockies_nh",
+#                        description = "No harvest in all Central Rockies critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_central_rockies_he0d_m15d",
 #                        description = "No harvest in Central Rockies high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Rockies matrix critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_columbia_south_nh",
 #                        description = "No harvest in all Columbia South critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
-
-
-
 # scenario = data.table (name = "revelstoke_columbia_south_he0d_m15d",
 #                        description = "No harvest in Columbia South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia South matrix critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_frisby_boulder_nh",
@@ -270,8 +272,8 @@ scenario = data.table (name = "revelstoke_central_rockies_nh",
 #                        description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North martix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_columbia_south_he10d_m15d",
 #                        description = "No harvest in Columbia South high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia South martix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
-# scenario = data.table (name = "revelstoke_frisby_boulder_he10d_m15d",
-#                        description = "No harvest in Frisby Boulder high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Frisby Boulder martix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
+scenario = data.table (name = "revelstoke_frisby_boulder_he10d_m15d",
+                       description = "No harvest in Frisby Boulder high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Frisby Boulder martix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 
 
 
