@@ -138,7 +138,7 @@ parameters <- list(
                        tableCaribouHerd = "public.caribou_herd_vat"), 
   fisherCLUS = list(nameRasFisherTerritory = c('rast.zone_cond_fisher_sb_dry','rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_dry'),
                     nameRasWetlands = 'rast.wetland'),
-  disturbanceCalcCLUS = list(calculateInterval = 5, 
+  disturbanceCalcCLUS = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance) 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              recovery = 40),
