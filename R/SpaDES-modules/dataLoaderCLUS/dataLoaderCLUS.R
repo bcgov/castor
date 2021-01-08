@@ -46,6 +46,7 @@ defineModule(sim, list(
     defineParameter("save_clusdb", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
     defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., clus)."),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
+    defineParameter("nameZonePriorityRaster", "character", "99999", NA, NA, desc = "Boundary of zones where harvesting should be prioritized"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
     defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represents a compartment or supply block value attribute look up. CUrrently 'study_area_compart'?"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
@@ -294,10 +295,11 @@ setTablesCLUSdb <- function(sim) {
     }
     # zone_constraint table
     if(!P(sim)$nameZoneTable == '99999'){
-      
-      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable)) # get all zones across the province from the zone table in the pgdb
       zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") # select the name of the raster and its column name in pixels
       #Select only those constraints that pertain to the study area
+      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable, " WHERE reference_zone IN('",
+                                       paste(zone$reference_zone, sep ="", collapse ="','" ),"');")) # get all zones across the province from the zone table in the pgdb
+      
       zone_const<-merge(zone_const, zone, by = 'reference_zone') #merge the two together so that the provincial constraints include the zonecolumn from pixels
       
       #for each constraint zone estimate the total area from which to apply the constraint
@@ -326,6 +328,32 @@ setTablesCLUSdb <- function(sim) {
     pixels[, zone1:= 1]
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer")
     dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default')" ))
+  }
+  #------------
+  #Set the zonePriorityRaster
+  #------------
+  if(!P(sim)$nameZonePriorityRaster == '99999'){
+    #Check to see if the name of the zone priority raster is already in the zone table
+    if(!P(sim)$nameZonePriorityRaster %in% dbGetQuery(sim$clusdb, "SELECT reference_zone from zone")$reference_zone){
+      message(paste0('.....zone priority raster not in zones table...fetching: ',P(sim, "dataLoaderCLUS", "nameZonePriorityRaster")))
+      ras.zone.priority<- RASTER_CLIP2(tmpRast =sim$boundaryInfo[[3]], 
+                             srcRaster= P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"), 
+                             clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                             geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                             where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                             conn=NULL)
+      if(aoi == extent(ras.zone.priority)){#need to check that each of the extents are the same
+        pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.zone.priority)))))
+        zone.priority<-paste0("zone", as.character(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM zone")) + 1))
+        setnames(pixels, "V1", zone.priority)
+        #Add the zone priority column to the zone table
+        dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values (",zone.priority, ", ",P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),")"))
+        rm(ras.zone.priority)
+        gc()
+      }else{
+        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster")))
+      }
+    }
   }
   
   #------------
