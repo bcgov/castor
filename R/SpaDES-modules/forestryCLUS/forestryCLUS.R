@@ -35,7 +35,8 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("adjacencyConstraint", "numeric", 9999, NA, NA, "Include Adjacency Constraint at the user specified height in metres"),
     defineParameter("growingStockConstraint", "numeric", 9999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
-    defineParameter("harvestPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted. Greatest priority first. DESC is decending, ASC is ascending"),
+    defineParameter("harvestBlockPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted at the block level. Greatest priority first. DESC is decending, ASC is ascending"),
+    defineParameter("harvestZonePriority", "character", "99999", NA, NA, "This sets the order from which harvesting should be conducted at the zone level. Greatest priority first e.g., dist DESC. DESC is decending, ASC is ascending"),
     defineParameter("accessPriority", "logical", FALSE, NA, NA, "This sets the order from which access zones should be prioritized."),
     defineParameter("reportHarvestConstraints", "logical", FALSE, NA, NA, "T/F. Should the constraints be reported")
     
@@ -113,6 +114,14 @@ Init <- function(sim) {
   if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
     dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneManagement (zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric, percent numeric, timeperiod integer)")
   }
+  
+  #Create the zonePriority table used for spatially adjusting the harvest queue
+  if(!P(sim, "forestryCLUS", "harvestZonePriority") == '99999'){
+    name.zone.priority<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = ", P(sim, "dataloaderCLUS", "nameZonePriorityRaster")))$zone_column
+    dbExecute(sim$clusdb, paste0("CREATE TABLE zonePriority as (SELECT ",name.zone.priority,", avg(age) as age, avg(dist) as dist, avg(vol*thlb) as vol FROM pixels GROUP BY ", 
+                                 name.zone.priority))
+  }
+  
   #Needed for printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
   sim$harvestBlocks[]<-0
@@ -286,30 +295,31 @@ getHarvestQueue<- function(sim) {
       partition<-sim$harvestFlow[compartment==compart, "partition"][time(sim)]
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      if(P(sim,"forestryCLUS", "accessPriority")){
-        message("accessPriority")
+      if(!P(sim,"forestryCLUS", "harvestZonePriority")== '99999'){
+        message(paste0("Using zone priority: ",P(sim,"forestryCLUS", "harvestZonePriority") ))
+        name.zone.priority<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = ", P(sim, "dataloaderCLUS", "nameZonePriorityRaster")))$zone_column
         sql<-paste0("SELECT pixelid, p.blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestPriority"), ") as block_rank FROM blocks) b
+		ORDER BY ", P(sim, "forestryCLUS", "harvestBlockPriority"), ") as block_rank FROM blocks) b
 on p.blockid = b.blockid
 INNER JOIN 
-(SELECT zone1, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestPriority"), ") as compartment_rank FROM compartment) a
-on p.zone1 = a.zone1
+(SELECT ", name.zone.priority,", ROW_NUMBER() OVER ( 
+		ORDER BY ", P(sim, "forestryCLUS", "harvestZonePriority"), ") as zone_rank FROM zonePriority) a
+on p.",name.zone.priority," = a.",name.zone.priority,"
 WHERE compartid = '", compart ,"' AND zone_const = 0 AND p.blockid > 0 AND ", partition, "
-ORDER by compartment_rank, block_rank, ", P(sim, "forestryCLUS", "harvestPriority"), "
+ORDER by zone_rank, block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
                            LIMIT ", as.integer(harvestTarget/50))
       }else{
         sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestPriority"), ") as block_rank FROM blocks) b
+		ORDER BY ", P(sim, "forestryCLUS", "harvestBlockPriority"), ") as block_rank FROM blocks) b
 on p.blockid = b.blockid
 WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND ", partition, "
-ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestPriority"), "
+ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
                            LIMIT ", as.integer(harvestTarget/50))
         
       }
