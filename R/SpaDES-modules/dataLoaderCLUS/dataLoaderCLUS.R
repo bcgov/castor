@@ -101,7 +101,8 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         #populate clusdb tables
         sim <- setTablesCLUSdb(sim)
         sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
-        sim <- calcForestState(sim)
+        sim <- scheduleEvent(sim, eventTime = 0,  "dataLoaderCLUS", "forestStateNetdown", eventPriority=90)
+        
        }else{
          #copy existing clusdb
         sim$foreststate<-NULL
@@ -140,9 +141,11 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
       
       },
+    forestStateNetdown={
+      sim <- calcForestState(sim)
+    },
     removeDbCLUS={
-      sim<- disconnectDbCLUS(sim)
-      
+      sim <- disconnectDbCLUS(sim)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -347,8 +350,12 @@ setTablesCLUSdb <- function(sim) {
         zone.priority<-paste0("zone", as.character(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM zone")) + 1))
         setnames(pixels, "V1", zone.priority)
         #Add the zone priority column to the zone table
-        dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values (",zone.priority, ", ",P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),")"))
-        rm(ras.zone.priority)
+        dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ('",zone.priority, "', '",P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"')"))
+        #Add the column name to pixels
+        dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ",zone.priority," integer"))
+        #Add to the zone.length needed when inserting the pixels table
+        sim$zone.length<-sim$zone.length + 1
+        rm(ras.zone.priority,zone.priority)
         gc()
       }else{
         stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster")))
@@ -743,6 +750,9 @@ sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
                          group by compartid;"))
             )
+test_foreststate<<-sim$foreststate
+test_roads<<-dbGetQuery(sim$clusdb, "select sum(case when roadyear >= -1  then 1 else 0 end) as road
+           FROM pixels  where compartid is not null ")
   return(invisible(sim))
 }
 
