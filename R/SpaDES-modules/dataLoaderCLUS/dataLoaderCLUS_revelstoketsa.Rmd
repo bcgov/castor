@@ -73,7 +73,14 @@ parameters <-  list(
                             "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
                             "rast.zone_cond_eccc_central_rockies_crithab_or_herd",
                             "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                            "rast.zone_cond_reve_area"
+                            "rast.zone_cond_reve_area",
+                            
+                            # add these?
+                            "rast.zone_cond_bc_columbia_north_crithab",
+                            "rast.zone_cond_bc_columbia_south_crithab",
+                            "rast.zone_cond_bc_central_rockies_crithab",
+                            "rast.zone_cond_bc_frisby_boulder_crithab",
+                            "rast.zone_cond_bc_monashee_crithab",
                                              ), 
                          nameZoneTable = "zone_constraints", 
                          nameYieldsRaster = "rast.ycid_vdyp", 
