@@ -80,8 +80,14 @@ Below is a script to create rasters and constraint tables for BC critical habita
 ```{r, scenario: bc critical habitat, no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix}
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 #bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;") # old version
-bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # 
-# NEEDS update to bc_critical_habitat_all_herds_20200615
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # old version
+bc.crit<-getSpatialQuery("SELECT * from bc_critical_habitat_all_herds_20200615;") # current version
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(bc.crit)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
 
 #all - create the raster for each herd and critical habitat type
 all.bc<-bc.crit
@@ -100,9 +106,14 @@ writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 #c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
-herds<-c("Barkerville", "Graham", "Groundhog",  "Moberly",  "Burnt_Pine", "Monashee","Narraway", "Quintette" ,  "Rainbows", "Telkwa",  "Itcha_Ilgachuz",  "Central_Rockies", "Central_Selkirks" ,  "Charlotte_Alplands", "Columbia_North", "Columbia_South", "Frisby_Boulder","Hart_Ranges",         "Kennedy_Siding","Narrow_Lake", "North_Cariboo" , "Purcell_Central",  "Purcells_South", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek") # list of herd names in the polygon data; can customize the list to add/remove
+herds<-c("Barkerville", "Burnt_Pine", "Groundhog", "Moberly", "Monashee", "Narraway", "Central_Rockies",
+         "Quintette", "Rainbows", "Tweedsmuir", "Narrow_Lake",  "Takla",  
+         "Itcha_Ilgachuz",  "Central_Selkirks", "Charlotte_Alplands", "Columbia_North", "Columbia_South",
+         "Frisby_Boulder", "Hart_Ranges", "Kennedy_Siding", "North_Cariboo", "Purcell_Central", "Purcells_South",
+         "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek" ) # list of herd names in the polygon data; can customize the list to add/remove
+         # "Atlin", "Edziza", "Finlay", "Frog", "Gataga", "Horseranch", "Thutade", "Tsenaglode", "Carcross",  "Liard_Plateau", 
+        # "Level_Kawdy", "Little_Rancheria", "Swan_Lake", "George_Mountain", "Graham", "Telkwa", "Calendar",  "Chase", "Chinchaga", "Maxhamish", "Rabbit" , "Spatsizi", "Wolverine", "Muskwa", "Snake_Sahtaneh", "Westside_Fort_Nelson",  "Scott",  "Pink_Mountain"
 
-#herds<-c("Narrow_Lake","North_Cariboo")
 for(herd in herds){ # create a table of the constraints for each herd
   bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
                                              herd,"',]")))
@@ -123,6 +134,7 @@ for(herd in herds){ # create a table of the constraints for each herd
   eccc.vat[, type:= 'ge'] # greater than or equal to (ge), less than or equal to (le)
   eccc.vat[, ndt:= 0]
   eccc.vat[, threshold:= 500] # threshold from disturbance (500 m)
+  eccc.vat[, multi_condition:= '']
   eccc.vat[ crithab %in% c('Matrix'), percentage:= 85] # percentage of area where constraint applies, e.g., in this case, 85% ge 500m
   eccc.nh.zones<-eccc.vat[is.na(percentage), zoneid] # where there is no constaint, make it a 'no harvest' zone
   
@@ -130,8 +142,8 @@ for(herd in herds){ # create a table of the constraints for each herd
   ras.eccc[ras.eccc[] %in% eccc.nh.zones]<-0
   
   zone.eccc.crithab<-eccc.vat[!(zoneid %in% eccc.nh.zones),]
-  zone.eccc.crithab<-zone.eccc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage' )]
-  zone.eccc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+  zone.eccc.crithab<-zone.eccc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage', 'multi_condition')]
+  zone.eccc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = '')
 
   zone.eccc.crithab<-rbindlist(list(zone.eccc.crithab, zone.eccc.crithab.nh))
   writeRaster(ras.eccc, "rasecccrit.tif", overwrite = TRUE)
@@ -139,6 +151,7 @@ for(herd in herds){ # create a table of the constraints for each herd
   zone.eccc.crithab<-zone.eccc.crithab[,zoneid:=as.integer(zoneid)]
   zone.eccc.crithab<-zone.eccc.crithab[,ndt:=as.integer(ndt)]
   zone.eccc.crithab<-zone.eccc.crithab[,threshold:=as.numeric(threshold)]
+  zone.eccc.crithab<-zone.eccc.crithab[,multi_condition:=as.character(multi_condition)]
 
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -155,6 +168,7 @@ for(herd in herds){ # create a table of the constraints for each herd
   bc.vat[, variable:= 'dist']
   bc.vat[, type:= 'ge']
   bc.vat[, threshold:= 500]
+  bc.vat[, multi_condition:= '']
   bc.vat[ crithab %in% c('Matrix'), percentage:= 65]
   bc.vat[ crithab %in% c('Matrix'), threshold:= 0]
   bc.vat[ crithab %in% c('LEWR', 'LEWSR'), percentage:= 85]
@@ -165,13 +179,14 @@ for(herd in herds){ # create a table of the constraints for each herd
   writeRaster(ras.bc, "rasbccrit.tif", overwrite = TRUE)
   
   zone.bc.crithab<-bc.vat[!(zoneid %in% bc.nh.zones),]
-  zone.bc.crithab<-zone.bc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage' )]
-  zone.bc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_bc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+  zone.bc.crithab<-zone.bc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage', 'multi_condition' )]
+  zone.bc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_bc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = NA)
 
   zone.bc.crithab<-rbindlist(list(zone.bc.crithab, zone.bc.crithab.nh))
   zone.bc.crithab<-zone.bc.crithab[,zoneid:=as.integer(zoneid)]
   zone.bc.crithab<-zone.bc.crithab[,ndt:=as.integer(ndt)]
   zone.bc.crithab<-zone.bc.crithab[,threshold:=as.numeric(threshold)]
+  zone.bc.crithab<-zone.bc.crithab[,multi_condition:=as.character(multi_condition)]
   
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -181,7 +196,7 @@ for(herd in herds){ # create a table of the constraints for each herd
 
 #upload to db
   system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasbccrit.tif -t 100x100', paste0(' rast.zone_cond_bc_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
-
+  gc()
 }
 
 ```
