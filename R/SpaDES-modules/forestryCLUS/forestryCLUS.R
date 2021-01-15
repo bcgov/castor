@@ -37,6 +37,7 @@ defineModule(sim, list(
     defineParameter("growingStockConstraint", "numeric", 9999, NA, NA, "The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]"),
     defineParameter("harvestBlockPriority", "character", "age DESC", NA, NA, "This sets the order from which harvesting should be conducted at the block level. Greatest priority first. DESC is decending, ASC is ascending"),
     defineParameter("harvestZonePriority", "character", "99999", NA, NA, "This sets the order from which harvesting should be conducted at the zone level. Greatest priority first e.g., dist DESC. DESC is decending, ASC is ascending"),
+    defineParameter("harvestZonePriorityInterval", "integer", 0, NA, NA, "This sets the order from which harvesting should be conducted at the zone level. Greatest priority first e.g., dist DESC. DESC is decending, ASC is ascending"),
     defineParameter("reportHarvestConstraints", "logical", FALSE, NA, NA, "T/F. Should the constraints be reported")
     
     ),
@@ -71,12 +72,20 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
       sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCLUS", "schedule", 3)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 20)
+      
+      if(P(sim, "forestryCLUS", "harvestZonePriorityInterval") > 0){
+        sim <- scheduleEvent(sim, time(sim)+ 1 , "forestryCLUS", "updateZonePriority", 10)
+      }
     },
     schedule = {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       sim <- reportConstraints(sim) #WORKING ON THIS
       sim <- scheduleEvent(sim, time(sim) + 1, "forestryCLUS", "schedule", 3)
+    },
+    updateZonePriority={
+      sim <- updateZonePriorityTable(sim)
+      sim <- scheduleEvent(sim, time(sim)+ P(sim, "forestryCLUS", "harvestZonePriorityInterval") , "forestryCLUS", "updateZonePriority", 10)
     },
     save = {
       sim <- saveForestry(sim)
@@ -116,7 +125,7 @@ Init <- function(sim) {
   #Create the zonePriority table used for spatially adjusting the harvest queue
   if(!P(sim, "forestryCLUS", "harvestZonePriority") == '99999'){
     pzone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"'"))[[1]]
-    dbExecute(sim$clusdb, paste0("CREATE TABLE zonePriority as SELECT ",pzone,", avg(age) as age, avg(dist) as dist, avg(vol*thlb) as vol FROM pixels GROUP BY ", 
+    dbExecute(sim$clusdb, paste0("CREATE TABLE zonePriority as SELECT ", pzone,", ", pzone," as zoneid, avg(age) as age, avg(dist) as dist, avg(vol*thlb) as vol FROM pixels WHERE thlb > 0 GROUP BY ", 
                                  pzone))
   }
   
@@ -440,6 +449,14 @@ reportConstraints<- function(sim) {
       }
     }
   }
+  return(invisible(sim))
+}
+
+updateZonePriorityTable<-function(sim) {
+  dbExecute(sim$clusdb, "DROP TABLE zonePriority")
+  pzone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"'"))[[1]]
+  dbExecute(sim$clusdb, paste0("CREATE TABLE zonePriority as SELECT ", pzone,", ", pzone," as zoneid, avg(age) as age, avg(dist) as dist, avg(vol*thlb) as vol FROM pixels WHERE thlb > 0 GROUP BY ", 
+                               pzone))
   return(invisible(sim))
 }
 
