@@ -79,6 +79,7 @@ parameters <-  list(
                                            "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"),
                         
                          nameZoneTable="zone_constraints", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
+                         nameZonePriorityRaster="rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable ="yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yields
@@ -100,11 +101,6 @@ parameters <-  list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'
                   ),
-  rsfCLUS = list(calculateInterval = 1, 
-                   criticalHabitatTable = "public.criticalhabitat_bc_vat",
-                   randomEffectsTable = "public.rsf_re_coeff",
-                   writeRSFRasters = TRUE,
-                   checkRasters= FALSE),
   disturbanceCalcCLUS = list(calculateInterval = 1, 
                    criticalHabitatTable = "public.criticalhabitat_bc_vat",
                    criticalHabRaster = "rast.bc_crithab",
@@ -113,14 +109,9 @@ parameters <-  list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
-  uploaderCLUS = list(aoiName = 'quesnel_tsa',
+  uploaderCLUS = list(aoiName = 'test_tsa',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
-
-
-rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')") )
-#rsf_model_coeff[, population:= 'Telkwa']
-
 scenario = data.table(name="quesnel_dataloader", 
                       description = "dataloader")
 
@@ -135,11 +126,9 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
-modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS", "rsfCLUS", "survivalCLUS","disturbanceCalcCLUS", "uploaderCLUS")
-#modules <- list("dataLoaderCLUS", "roadCLUS")
+modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS",  "survivalCLUS","disturbanceCalcCLUS", "uploaderCLUS")
 
-objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
-#objects <- list(patchSizeDist=patchSizeDist, scenario = scenario)
+objects <- list(patchSizeDist=patchSizeDist,  scenario = scenario)
 
 inputs <- list()
 outputs <- list()
