@@ -511,19 +511,18 @@ setTablesCLUSdb <- function(sim) {
           return(paste0(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)), " as ", tolower(x)))
         }
       })
+      
       #If there is a multi variable condition add them to the query
       queryMulti<-dbGetQuery(sim$clusdb, "SELECT distinct(variable) FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
 
       if(nrow(queryMulti) > 0){
         multiVars<-unlist(strsplit(paste(queryMulti$variable, collapse = ', ', sep = ','), ","))
         multiVars<-unique(gsub("[[:space:]]", "", multiVars))
-        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure')]
-        
+        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure', 'dist')]
         if(!identical(character(0), multiVars)){
           multiVars1<-multiVars #used for altering pixels table in clusdb i.e., adding in the required information to run the query
           #Add the multivars to the pixels data table
           forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars)
-          
           #format for pixels upload
           multiVars2<-multiVars
           multiVars2[1]<-paste0(', :',multiVars2[1])
@@ -750,9 +749,8 @@ sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
                          group by compartid;"))
             )
-test_foreststate<<-sim$foreststate
-test_roads<<-dbGetQuery(sim$clusdb, "select sum(case when roadyear >= -1  then 1 else 0 end) as road
-           FROM pixels  where compartid is not null ")
+
+#test_roads<<-dbGetQuery(sim$clusdb, "select sum(case when roadyear >= -1  then 1 else 0 end) as road FROM pixels  where compartid is not null ")
   return(invisible(sim))
 }
 
