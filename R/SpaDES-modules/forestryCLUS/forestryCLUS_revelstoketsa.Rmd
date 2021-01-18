@@ -176,6 +176,7 @@ parameters <- list(
                                 "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                                ),
                            nameZoneTable = "zone_constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
@@ -194,6 +195,9 @@ parameters <- list(
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestPriority = "age DESC",
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriority = 1,
+                      reportHarvestConstraints = TRUE,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
