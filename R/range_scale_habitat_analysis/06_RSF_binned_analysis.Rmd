@@ -149,112 +149,73 @@ Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_cut_11to40yo 
 
 Range_scale_data1 <- dplyr::mutate (Range_scale_data1, distance_to_road = pmin (dist_crds_resource))
 
-Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_road = 
-                if_else(distance_to_road <= 0.25,"<0.25km",
-                if_else(distance_to_road > 0.25 & distance_to_road <=0.5, "0.25-0.5km",
-                if_else(distance_to_road > 0.5 & distance_to_road <= 1, "0.5-1km",
-                if_else(distance_to_road >1 & distance_to_road<=3, "1-3km",
-                if_else(distance_to_road >3 & distance_to_road <= 6, "3-6km",">6km"))))))
 
-Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_1to5_cut = 
-                if_else(distance_to_cut_1to5yo <= 0.25,"<0.25km",
-                if_else(distance_to_cut_1to5yo > 0.25 & distance_to_cut_1to5yo <=0.5, "0.25-0.5km",
-                if_else(distance_to_cut_1to5yo > 0.5 & distance_to_cut_1to5yo <= 1, "0.5-1km",
-                if_else(distance_to_cut_1to5yo >1 & distance_to_cut_1to5yo<=3, "1-3km",
-                if_else(distance_to_cut_1to5yo >3 & distance_to_cut_1to5yo <= 6, "3-6km",">6km"))))))
+```
 
-Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_6to10_cut = 
-                if_else(distance_to_cut_6to10yo <= 0.25,"<0.25km",
-                if_else(distance_to_cut_6to10yo > 0.25 & distance_to_cut_6to10yo <=0.5, "0.25-0.5km",
-                if_else(distance_to_cut_6to10yo > 0.5 & distance_to_cut_6to10yo <= 1, "0.5-1km",
-                if_else(distance_to_cut_6to10yo >1 & distance_to_cut_6to10yo<=3, "1-3km",
-                if_else(distance_to_cut_6to10yo >3 & distance_to_cut_6to10yo <= 6, "3-6km",">6km"))))))
 
-Range_scale_data1<- Range_scale_data1 %>% mutate(distance_category_11to40_cut = 
-                if_else(distance_to_cut_11to40yo <= 0.25,"<0.25km",
-                if_else(distance_to_cut_11to40yo > 0.25 & distance_to_cut_11to40yo <=0.5, "0.25-0.5km",
-                if_else(distance_to_cut_11to40yo > 0.5 & distance_to_cut_11to40yo <= 1, "0.5-1km",
-                if_else(distance_to_cut_11to40yo >1 & distance_to_cut_11to40yo<=3, "1-3km",
-                if_else(distance_to_cut_11to40yo >3 & distance_to_cut_11to40yo <= 6, "3-6km",">6km"))))))
-
-Range_scale_data1$distance_category_road<-factor(Range_scale_data1$distance_category_road, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
-Range_scale_data1$distance_category_1to5_cut<-factor(Range_scale_data1$distance_category_1to5_cut, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
-Range_scale_data1$distance_category_6to10_cut<-factor(Range_scale_data1$distance_category_6to10_cut, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
-Range_scale_data1$distance_category_11to40_cut<-factor(Range_scale_data1$distance_category_11to40_cut, ordered=T, levels=c("<0.25km", "0.25-0.5km", "0.5-1km", "1-3km",">6km"))
-
-#Checking correlation by du but this does not seem to work since everything is signficanct
-du6<- Range_scale_data1 %>% filter(du=="du6")
-table(du6$distance_category_road, du6$distance_category_1to5_cut)
-chisq.test(du6$distance_category_road, du6$distance_category_1to5_cut, correct=FALSE)
-
-table(du6$distance_category_road, du6$distance_category_6to10_cut)
-chisq.test(du6$distance_category_road, du6$distance_category_6to10_cut, correct=FALSE)
-
-table(du6$distance_category_road, du6$distance_category_11to40_cut)
-chisq.test(du6$distance_category_road, du6$distance_category_1to5_cut, correct=FALSE)
-
-du6<- Range_scale_data1 %>% filter(du=="du6")
-dist.cut.corr <- (du6 [c (65:68)])
+```{r}
+Snake<-Range_scale_data1 %>% filter(HERD_NAME=="Snake-Sahtaneh")
+dist.cut.corr <- (Snake [c (65:68)])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU6 Distance to Cutblock Correlation")
+            title = "Snake Distance to Cutblock Correlation")
 
+ggplot (Snake, aes (x = as.factor(pttype), y = distance_to_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Available (0) and used (1) locations",
+        y = "Distance to roads(km)") +
+  facet_grid (. ~ year, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
 
-# du7 has high correlation see below
-du7<- Range_scale_data1 %>% filter(du=="du7")
-dist.cut.corr <- (du7 [c (65:68)])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU7 Distance to Cutblock Correlation")
+ggplot (Snake, aes (x = as.factor(pttype), y = distance_to_cut_1to5yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Available (0) and used (1) locations",
+        y = "Distance to 1 to 5 yo cutblocks (km)") +
+  facet_grid (. ~ year, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
 
-# Distance to cutblock variables are highly correlated no matter how I chop it up e.g. 1-5 nd 6-40 OR 1-5 and 6-40 OR 1-10 and 11-40 OR 1-14 and 15-40 or 1-15 and 16-40. None of these options help. So Ill lump all cutblock data and have 1-40 for du7
-du7 <- dplyr::mutate (du7, distance_to_cut_1to40yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo, distance_to_cut_5yo,distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
+ggplot (Snake, aes (x = as.factor(pttype), y = distance_to_cut_6to10yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Available (0) and used (1) locations",
+        y = "Distance to 6 to 10 yo cutblocks (km)") +
+  facet_grid (. ~ year, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
 
-dist.cut.corr <- (du7 [c ("distance_to_road", "distance_to_cut_1to40yo")])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU7 Distance to Cutblock Correlation")
+ggplot (Snake, aes (x = as.factor(pttype), y = distance_to_cut_11to40yo)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (x = "Available (0) and used (1) locations",
+        y = "Distance to 11 to 40 yo cutblocks (km)") +
+  facet_grid (. ~ year, scales='free_x', space='free_x') +
+  theme (strip.text.x = element_text (size = 8),
+         plot.title = element_text (size = 12))
 
+```
 
-# du8
-du8<- Range_scale_data1 %>% filter(du=="du8")
-dist.cut.corr <- (du8 [c (65:68)])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
+```{r}
+model.snake <- glm (pttype ~ distance_to_road +
+                                         distance_to_cut_1to5yo +
+                                         distance_to_cut_6to10yo +
+                                         distance_to_cut_11to40yo,
+                                      data = Snake, 
+                                      family = binomial (link = "logit")) 
+summary(model.snake)
 
-# the above is too correlated so Ill do this below
-du8 <- dplyr::mutate (du8, distance_to_cut_1to4yo = pmin (distance_to_cut_1yo, distance_to_cut_2yo, distance_to_cut_3yo, distance_to_cut_4yo))
-                                                            
-du8 <- dplyr::mutate (du8, distance_to_cut_5to40yo = pmin (distance_to_cut_5yo,distance_to_cut_6yo, distance_to_cut_7yo,distance_to_cut_8yo, distance_to_cut_9yo, distance_to_cut_10yo,distance_to_cut_11yo, distance_to_cut_12yo, distance_to_cut_13yo, distance_to_cut_14yo, distance_to_cut_15yo, distance_to_cut_16yo, distance_to_cut_17yo, distance_to_cut_18yo, distance_to_cut_19yo,distance_to_cut_20yo,distance_to_cut_21yo, distance_to_cut_22yo, distance_to_cut_23yo, distance_to_cut_24yo, distance_to_cut_25yo, distance_to_cut_26yo, distance_to_cut_27yo, distance_to_cut_28yo, distance_to_cut_2yo, distance_to_cut_30yo,distance_to_cut_31yo, distance_to_cut_32yo, distance_to_cut_33yo, distance_to_cut_34yo, distance_to_cut_35yo, distance_to_cut_36yo, distance_to_cut_37yo,distance_to_cut_38yo, distance_to_cut_39yo, distance_to_cut_40yo))
-
-dist.cut.corr <- (du8 [c ("distance_to_road", "distance_to_cut_1to4yo","distance_to_cut_5to40yo")])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
-
-
-# in du9 roads and old cutblocks are correlated so Ill remove roads
-du9<- Range_scale_data1 %>% filter(du=="du9")
-dist.cut.corr <- (du9 [c (65:68)])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU9 Distance to Cutblock Correlation")
-
-dist.cut.corr <- (du9 [c (65:67)])
-corr <- round (cor (dist.cut.corr), 3)
-p.mat <- round (cor_pmat (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU9 Distance to Cutblock Correlation")
+binnedplot (predict (model.snake), 
+             residuals(model.snake, type = "response"), 
+             nclass = NULL, 
+             xlab = "Expected Values", 
+             ylab = "Average residual",
+             cex.pts = 0.4, 
+             col.pts = 1, 
+             col.int = "red")
 
 
 ```
+
 
 ## Results
 ### DU6
@@ -306,10 +267,10 @@ Overall there was a slight tendency for caribou in DU 6 to avoid roads but this 
 
 ```{r du6road-effect-plot, fig.cap="Distance to Resource Road at Available (0) and Used (1) Locations by Caribou Herd in DU6", echo = F, message = F, eval = T}
 
-ggplot (du6) +
-  geom_col ( aes (x = as.factor(pttype), fill= distance_category_road)) +
+ggplot (du6, aes (x = as.factor(pttype), y = distance_to_road)) +
+  geom_boxplot (outlier.colour = "red") +
   labs (x = "Available (0) and used (1) locations",
-        y = "Distance to road (km)") +
+        y = "Distance to cutblock(km)") +
   facet_grid (. ~ HERD_NAME, scales='free_x', space='free_x') +
   theme (strip.text.x = element_text (size = 8),
          plot.title = element_text (size = 12))

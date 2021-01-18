@@ -28,6 +28,8 @@
 require (dplyr)
 require (tidyr)
 require(ggplot2)
+require(sf)
+
 options(scipen=999)
 
 
@@ -49,6 +51,8 @@ BC_caribou_habitat2<-BC_caribou_habitat %>%
 # read in fire data
 fire.bound<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\fire_sum_crithab.csv",header=FALSE,col.names=c("area_m2","HERD_NAME","habitat","year"))
 head(fire.bound)
+
+# change names of herds to match that in the survival table of the app
 fire.bound$Herd_name<-fire.bound$HERD_NAME
 fire.bound$Herd_name<-sub("_", " ", fire.bound$Herd_name) # this replaces the first instance of "_" it finds with " "
 fire.bound$Herd_name<-sub("_", " ", fire.bound$Herd_name) # this replaces the 2nd instance
@@ -66,16 +70,16 @@ fire$herd_bounds=as.factor(fire$herd_bounds)
 fire$proportion.burn<-as.numeric(fire$proportion.burn)
 
 
-Itcha<-fire %>% filter(herd_bounds=="Itcha-Ilgachuz Matrix")
+Itcha<-fire %>% filter(herd_bounds=="Narrow Lake Matrix")
 
 ggplot(Itcha, aes (x=year, y=proportion.burn)) +
   facet_wrap(.~herd_bounds, ncol = 4)+
   #geom_line (col="grey") +
   #geom_point()+
-  geom_bar(stat="identity", width=2.5) +
+  geom_bar(stat="identity", width=1) +
   xlab ("Year") +
   ylab ("Proportion of area burned") +
-  scale_x_continuous(limits = c(1925, 2025), breaks = seq(1930, 2020, by = 40)) +
+  scale_x_continuous(limits = c(1919, 2025), breaks = seq(1930, 2020, by = 40)) +
   scale_y_continuous(limits =c(0,40),breaks=seq(0,70, by=40)) +
   theme_bw()+
   theme (legend.title = element_blank())
@@ -92,7 +96,7 @@ Fire_cummulative <- data.frame (matrix (ncol = 3, nrow = 0))
 colnames (Fire_cummulative) <- c ("herd_bounds","cummulative.area.burned","year")
 
 for (i in 1:(length(Years)-window_size)) {
-fire.summary<-fire %>% filter(year<=(Years[i]+window_size)) %>% 
+fire.summary<-fire %>% filter(year >= Years[i] & year<=(Years[i]+window_size)) %>% 
            group_by (herd_bounds) %>% 
              summarize(cummulative.area.burned=sum(proportion.burn))
 fire.summary$year<-Years[i]+window_size
@@ -102,7 +106,7 @@ Fire_cummulative<-rbind(Fire_cummulative,as.data.frame(fire.summary))
 
 tail(Fire_cummulative,100)
 
-Itcha<-Fire_cummulative %>% filter(herd_bounds=="Itcha-Ilgachuz Matrix")
+Itcha<-Fire_cummulative %>% filter(herd_bounds=="Itcha-Ilgachuz Matrix") # example plot for one herd.
 
 ggplot(Itcha, aes (x=year, y=cummulative.area.burned)) +
   facet_wrap(.~herd_bounds, ncol = 4)+
@@ -110,7 +114,7 @@ ggplot(Itcha, aes (x=year, y=cummulative.area.burned)) +
   #geom_point()+
   geom_bar(stat="identity", width=1) +
   xlab ("Year") +
-  ylab ("Proportion of area burned") +
+  ylab ("Cummulative proportion of area burned over 40 yrs") +
   scale_x_continuous(limits = c(1960, 2020), breaks = seq(1960, 2020, by = 30)) +
   scale_y_continuous(limits =c(0,70),breaks=seq(0,70, by=20)) +
   theme_bw()+

@@ -1,0 +1,689 @@
+---
+title: "Potential Forest Harvest Volume Impact Summary for 2020/21 Priority Caribou Herd Planning Areas"
+author: "Tyler Muhly, Kyle Lochhead and Elizabeth Kleynhans"
+date: "19/08/2020"
+output: html_document
+---
+<style> 
+p.caption {
+  font-size: 1.2em;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (kableExtra)
+require (data.table)
+require (DBI)
+require (RPostgreSQL)
+require (dplyr)
+require (ggplot2)
+require (here)
+```
+
+## Introduction
+Caribou population recovery will require recovery of caribou habitat in many parts of British Columbia. This might include additional, new constraints on forestry activity in some areas to reduce the amount of 'disturbance' in caribou critical habitat. Disturbances include forestry cutblocks and roads that generally appear to negatively influence caribou survival.
+
+Here we describe a preliminary analysis of the potential impacts of new hypothetical constraints on forest harvest in caribou critical habitat areas. We used a spatial timber harvest/supply model to test how new hypothetical constraints on forest harvest in caribou critical habitat areas influence annual timber volume harvested (m^3^) in a harvest unit. We compared forest harvest in hypothetical scenarios to a 'business-as-usual' (BAU) scenario. The BAU scenario applied existing, legal forest harvest constraints, as is typically done in timber supply reviews. The alternative scenarios (i.e., with new hypothetical constraints) to the BAU included:
+
+* no forest harvest in caribou critical habitat areas (as defined by government of British Columbia caribou biologists)
+
+* no forest harvest in high and low elevation critical habitat types, but maximum 35% disturbance area in matrix critical habitat
+
+* no forest harvest in caribou herd boundary areas, where critical habitat areas have not been defined
+
+* no forest harvest in other areas identified for caribou (i.e., areas as defined in the southern mountain caribou Section 11 Partnership Agreement)
+
+Analyses were focussed on timber supply areas (TSAs) or tree farm licence (TFL) areas that overlapped with caribou planning priority areas in 2020/21, which included:
+
+* Central Selkirks
+
+* Chilcotin  
+
+* Hart Ranges
+
+* Revelstoke (Columbia North/Columbia South/Frisby Boulder)
+
+* Wolverine/Chase/Takla 
+
+* Wells Grey South/Groundhog
+
+In addition, scenarios were completed to assess the potential impact of protecting all caribou critical habitat in a TSA or TFL, regardless of whether the habitat was within a priority area. These can be viewed as "maximum" potential impact scenarios, where forest harvest constraints are applied to all caribou critical habitat in a harvest unit.    
+
+The results of these analyses should be considered preliminary and subject to change. The parameters in the timber harvest/supply models used in this analysis were standardized across forest harvest units, but model outputs may be different if the models are parameterized differently to better fit local conditions. The annual timber volume estimates from these models should therefore be used with caution, as they may have a low degree of precision. 
+
+We also note that our BAU scenarios were not equivalent to the 'base-case' models used in previous timber supply reviews for a TSA or TFL, and thus are not directly comparable. Of key importance is that we modeled an even, maximum sustained harvest flow over a 200 year period in our BAU models, which is not typically the approach taken in timber supply reviews. However, our approach is reasonable for assessing potential long-term impacts to timber supply. 
+
+## Potential Annual Timber Volume Harvested Under Different Scenarios by Timber Supply Area or Tree Farm Licence
+Potential timber volume harvested under different scenarios for each forest harvest unit are provided in Table 1. Potential impacts of the hypothetical forest harvest scenarios compared to BAU scenarios varied significantly between harvest units, from a <1% reduction from BAU for some scenarios in the Prince George TSA, to a 100% reduction from BAU for scenarios for TFL 30. Some of the largest potential impacts compared to BAU were found in the Revelstoke TSA and TFL's 30, 33, 48 and 55. 
+
+```{r, table 1, TSA/TFL results, echo = F, error = F, eval = T, include = T, message = F}
+# data.harvest <- read.csv (here ("reports/scenarios/data", "harvest.csv"))
+# # 
+# con <- dbConnect (RPostgreSQL::PostgreSQL(),
+# 				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
+#                   user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
+#                   password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
+#                   dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
+# 				          port = "5432")
+# data.harvest <- dbGetQuery (con, "SELECT * FROM prince_george_tsa.harvest") # great_bear_rainforest_north gbr_south
+# dbDisconnect (con)
+# unique (data.harvest$scenario)
+# data.summ <- data.harvest %>% # get summary data
+#               filter (scenario == "prince_george_bau") %>% #pg_chil_chil_notweeds_ch_hele0d_m15d, prince_george_bau
+#                 filter (compartment == "Prince_George_North_TSA") %>%
+#                   summarise (sum (volume)/40)
+
+table.volume = data.table (
+  harvest_unit = c ("Arrow TSA", "Arrow TSA", "Arrow TSA", "Arrow TSA", "Arrow TSA",
+                    "Cascadia TSA - Kootenay Block", "Cascadia TSA - Kootenay Block", "Cascadia TSA - Kootenay Block",
+                    "Dawson Creek TSA", "Dawson Creek TSA", "Dawson Creek TSA", "Dawson Creek TSA", "Dawson Creek TSA", "Dawson Creek TSA", "Dawson Creek TSA",
+                    "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA", "Golden TSA",
+                    "Great Bear Rainforest North", "Great Bear Rainforest North", "Great Bear Rainforest North",
+                    "Great Bear Rainforest South", "Great Bear Rainforest South", "Great Bear Rainforest South",
+                    "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA", "Kamloops TSA",
+                    "Kootenay Lake TSA", "Kootenay Lake TSA", "Kootenay Lake TSA", "Kootenay Lake TSA", "Kootenay Lake TSA",
+                    "Lakes TSA", "Lakes TSA", "Lakes TSA", "Lakes TSA", "Lakes TSA",
+                    "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA",  "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA", "Mackenzie TSA",  "Mackenzie TSA",
+                    "Morice TSA", "Morice TSA", "Morice TSA", "Morice TSA", "Morice TSA",
+                    "Okanagan TSA", "Okanagan TSA", "Okanagan TSA", "Okanagan TSA", "Okanagan TSA", 
+                    "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA","Prince George TSA","Prince George TSA","Prince George TSA",  
+                    "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA", "Quesnel TSA",
+                    "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA", "Revelstoke TSA",
+                    "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA",
+                    "Williams Lake TSA", "Williams Lake TSA", "Williams Lake TSA", "Williams Lake TSA", "Williams Lake TSA",
+                    "TFL 14", "TFL 14", "TFL 14",
+                    "TFL 18", "TFL 18", "TFL 18",
+                    "TFL 23", "TFL 23", "TFL 23", "TFL 23", "TFL 23", "TFL 23", "TFL 23", 
+                    "TFL 30", "TFL 30", "TFL 30",
+                    "TFL 33", "TFL 33", "TFL 33",
+                    "TFL 48", "TFL 48", "TFL 48", "TFL 48", "TFL 48", "TFL 48", "TFL 48",
+                    "TFL 55", "TFL 55", "TFL 55", "TFL 55", "TFL 55",
+                    "TFL 56", "TFL 56", "TFL 56"),
+  scenario = c ("BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat",
+                "BAU", "No harvest in Central Group critical habitat", "35% disturbance in Central Group matrix critical habitat", "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35%  disturbance (15%) harvest in Central group partnership agreement areas A1, B1, B4 and B5", "No harvest in all Central group partnership agreement areas", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in Columbia North and South", "35% disturbance in Columbia North and South matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat",
+                "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat",
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Wolverine, Chase and Takla herd", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in Wolverine, Chase and Takla herd and Chilcotin critical habitat",
+                "BAU", "No harvest in all central group critical habitat",  "35% disturbance in central group matrix critical habitat", "No harvest in all central group partnership agreement areas", "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance (15% harvest) in Central group partnership agreement areas A1, B1, B4 and B5", "No harvest in Wolverine, Chase and Takla herds", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in all southern mountain herds", 
+                "BAU", "No harvest in Wolverine, Chase and Takla herds", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all southern mountain herds", 
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", 
+                "BAU", "No harvest in all central group critical habitat", "35% disturbance in central group matrix critical habitat", "No harvest in Hart Ranges critical habitat", "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in all critical habitat", "No harvest in all southern mountain herds","No harvest in all Central group partnership agreement areas", "No harvest in Chilcotin critical habitat (with Tweedsmuir)","No harvest in Chilcotin critical habitat (No Tweedsmuir)","35% disturbance in Chilcotin matrix critical habitat (No Tweedsmuir)",
+                "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Chilcotin critical habitat (No Tweedsmuir)", "35% disturbance in Chilcotin matrix critical habitat (No Tweedsmuir)",
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", "No harvest in Hart Ranges critical habitat",  "35% disturbance in Hart Ranges matrix critical habitat", "No harvest in Wells Gray South/Groundhog critical habitat", "35% disturbance in Wells Gray South/Groundhog matrix critical habitat",
+                "BAU", "No harvest in Chilcotin critical habitat", "35% disturbance in Chilcotin matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat",
+                "BAU", "No harvest in Wells Gray South/Groundhog critical habitat",  "35% disturbance in  Wells Gray South/Groundhog matrix critical habitat",
+                "BAU", "No harvest in Central Selkirks critical habitat", "35% disturbance in Central Selkirks matrix critical habitat", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Hart Ranges critical habitat", "35% disturbance in Hart Ranges matrix critical habitat",
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat",
+                "BAU", "No harvest in all central group critical habitat", "35% disturbance in central group matrix critical habitat", "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance (15% harvest) in Central group partnership agreement areas A1, B1, B4 and B5", "No harvest in all central group partnership agreement areas", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat",
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat", "No harvest in all critical habitat", "35% disturbance in all matrix critical habitat", 
+                "BAU", "No harvest in Columbia North, Columbia South and Frisby-Boulder critical habitat", "35% disturbance in Columbia North, Columbia South and Frisby-Boulder matrix critical habitat"),
+  # adjacency = c (3, 3, 3, 3, 3,
+  #                3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3,
+  #                3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3,
+  #                3, 3, 3,
+  #                3, 3, 3, 3, 3, 3, 3,
+  #                3, 3, 3, 3, 3,
+  #                3, 3, 3),
+  # recovery = c (0, 40, 40, 40, 40,
+  #               0, 40, 40, 
+  #               0, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40,
+  #               0, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40,
+  #               0, 40, 40,
+  #               0, 40, 40, 40, 40, 40, 40,
+  #               0, 40, 40, 40, 40,
+  #               0, 40, 40),
+  annual_volume = c (344356, 329267, 331990, 296705, 306363,
+                     82463, 75452, 75451,
+                     1409979, 721306, 841712, 1304409, 1293152, 704697, 827524,
+                     382453, 362213, 368439, 344500, 357945, 251325, 308320,
+                     419931, 419931, 419931,
+                     619914, 619914, 619914,
+                     1149967, 1122900, 1127105, 708923, 793637, 808049, 870651,
+                     444956, 409556, 431200, 216099, 274717,
+                     759935, 754456, 526749, 564774, 512700,
+                     2191322, 2007158, 2063517, 2157233, 2162804, 1741221, 1735991, 2024418, 1141687,
+                     1219976, 1201526, 1028529, 1098646, 777114,
+                     1139968, 1081700, 1083772, 958785, 981819,
+                     6723476, 6710441, 6712037, 6518975, 6538033, 5464005, 5096621, 6723471, 6691829, 6720057, 6720056,                      1699982, 1461123, 1526577, 1279853, 1360364, 1470948, 1535209,
+                     154964, 7664, 61869, 18, 55324,
+                     194332, 193752, 193595, 108805, 155120, 189363, 190153, 185967, 191554,
+                     1855974, 1569246, 1612217, 1287329, 1370006,
+                     125951, 87504, 112333,
+                     114969, 65855, 74131,
+                     409960, 376833, 386679, 408588, 409958, 328317, 357688,
+                     134972, 0, 0,
+                     2129, 41, 39,
+                     333816, 93500, 150468, 274222, 263835, 67776, 127813,
+                     39562, 4779, 11011, 0, 10384,
+                     30990, 2093, 7226),
+  diff_annual_volume = c (0, -15089, -12366, -47651, -37993,
+                          0, -7011, -7012,
+                          0, -688673, -568267, -105570, -116827, -705282, -582455,
+                          0, -20240, -14014, -37953, -24508, -131128, -74133,
+                          0, 0, 0,
+                          0, 0, 0,
+                          0, -27067, -22862, -441044, -356330, -341918, -279316,
+                          0, -35400, -13756, -228857, -170239,
+                          0, -5479, -233186, -195161, -247235,
+                          0, -184164, -127805, -34089, -28518, -450101, -455331, -166904, -1049635,
+                          0, -18450, -191447, -121330, -442862,
+                          0, -58268, -56196, -181183, -158149,
+                          0, -13035, -11439, -204501, -185443, -1259471, -1626855, -5, -31647,-3419,-3420,
+                          0, -238859, -173405, -420129, -339618, -229034, -164773,
+                          0, -147300, -93095, -154946, -99640,
+                          0, -580, -737, -85527, -39212, -4969, -4179, -8365, -2778,
+                          0, -286728, -243757, -568645, -485968,
+                          0, -38447, -13618,
+                          0, -49114, -40838,
+                          0, -33127, -23281, -1372, -2, -81643, -52272,
+                          0, -134972, -134972,
+                          0, -2088, -2090,
+                          0, -240316, -183348, -59594, -69981, -266040, -206003,
+                          0, -34783, -28551, -39562, -29178,
+                          0, -28897, -23764),
+  perc_diff_tot_volume = c ("0", "-4%", "-4%", "-14%", "-11%",
+                            "0", "-9%", "-9%",
+                            "0", "-49%", "-40%", "-7%", "-8%", "-50%","-41%",
+                            "0", "-5%", "-4%", "-10%", "-6%", "-34%", "-19%",
+                            "0", "0", "0",
+                            "0", "0", "0",
+                            "0", "-2%", "-2%", "-38%", "-31%", "-30%", "-24%",
+                            "0", "-8%", "-3%", "-51%", "-38%",
+                            "0", "-1%", "-31%", "-26%", "-33%",
+                            "0", "-8%", "-6%", "-2%", "-1%", "-21%", "-21%", "-8%", "-48%",
+                            "0", "-2%", "-16%", "-10%", "-36%",
+                            "0", "-5%", "-5%", "-16%", "-14%",
+                            "0", "<-1%", "<-1%", "-3%", "-3%", "-19%", "-24%", "0", "<-1%", "<-1%", "<-1%",
+                            "0", "-14%", "-10%", "-25%", "-20%", "-13%", "-10%",
+                            "0", "-95%", "-60%", "-99%", "-65%",
+                            "0", "<-1%", "<-1%", "-44%", "-20%", "-3%", "-2%", "-4%", "-1%",
+                            "0", "-15%", "-13%", "-31%", "-26%",
+                            "0", "-31%", "-11%",
+                            "0", "-43%", "-36%",
+                            "0", "-8%", "-6%", "<-1%", "<-1%", "-20%", "-13%",
+                            "0", "-100%", "-100%",
+                            "0", "-98%", "-98%",
+                            "0", "-72%", "-55%", "-18%", "-21%", "-80%", "-62%",
+                            "0", "-88%", "-72%", "-100%", "-74%",
+                            "0", "-93%", "-77%"
+                            )
+)
+kable (table.volume,
+       caption = "<b>Table 1. Annual Harvested Timber Volume Over a 200 Year Period in Timber Harvest Units Under Different  Caribou Recovery Scenarios.<b>",
+       col.names = c("Harvest Unit",
+                     "Scenario",
+                     # "Adjacency Height Requirement (m)",
+                     # "Habitat Recovery Time (Years)",
+                     "Average Annual Volume (m3)",
+                     "Difference in Annual Volume (m3)",
+                     "Percent Difference in Annual Volume"),
+       format.args = list (big.mark = ","),
+       align = rep( c('l', 'c', 'c', 'c', 'c', 'c'))) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual scenario",
+            fixed_small_size = T)
+
+# write.csv (table.volume, here ("/reports/scenarios/scenario_priority_herds_2020_tsa.csv")) 
+
+```
+
+In the Central Group planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in TFL 48, and lowest relative potential impact in the Prince George TSA (Fig. 1).
+
+```{r, fig. 1, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 1. Percent Timber Harvest Volume Impacts by Harvest Unit in the Central Group Planning Area."}
+
+fig.volume = data.table (
+  harvest_unit = c ("Arrow TSA", 
+                    "Cascadia TSA - Kootenay Block",
+                    "Dawson Creek TSA",
+                    "Golden TSA","Golden TSA",
+                    "Great Bear Rainforest North",  
+                    "Great Bear Rainforest South",
+                    "Kamloops TSA", "Kamloops TSA",
+                    "Kootenay Lake TSA",
+                    "Lakes TSA", "Lakes TSA",
+                    "Mackenzie TSA", "Mackenzie TSA",
+                    "Morice TSA", "Morice TSA",
+                    "Okanagan TSA",
+                    "Prince George TSA", "Prince George TSA", "Prince George TSA", "Prince George TSA",
+                    "Quesnel TSA",
+                    "Revelstoke TSA",
+                    "Robson Valley TSA", "Robson Valley TSA", "Robson Valley TSA",
+                    "Williams Lake TSA",
+                    "TFL 14",
+                    "TFL 18",
+                    "TFL 23", "TFL 23", 
+                    "TFL 30",
+                    "TFL 33",
+                    "TFL 48",
+                    "TFL 55",
+                    "TFL 56"),
+  herd_plan_unit = c ("Central Selkirks", 
+                      "Central Selkirks", 
+                      "Central Group", 
+                      "Central Selkirks", "Columbia North/Columbia South/Frisby-Boulder", 
+                      "Chilcotin", 
+                      "Chilcotin", 
+                      "Columbia North/Columbia South/Frisby-Boulder", "Wells Gray South/Groundhog", 
+                      "Central Selkirks", 
+                      "Wolverine/Chase/Takla", "Chilcotin", 
+                      "Central Group", "Wolverine/Chase/Takla",
+                      "Wolverine/Chase/Takla", "Chilcotin", 
+                      "Columbia North/Columbia South/Frisby-Boulder",
+                      "Central Group", "Hart Ranges", "Chilcotin", "Wolverine/Chase/Takla",
+                      "Chilcotin", 
+                      "Columbia North/Columbia South/Frisby-Boulder",
+                      "Columbia North/Columbia South/Frisby-Boulder", "Hart Ranges", "Wells Gray South/Groundhog",
+                      "Chilcotin",
+                      "Central Selkirks",
+                      "Wells Gray South/Groundhog",
+                      "Central Selkirks", "Columbia North/Columbia South/Frisby-Boulder", 
+                      "Hart Ranges",
+                      "Columbia North/Columbia South/Frisby-Boulder",
+                      "Central Group",
+                      "Columbia North/Columbia South/Frisby-Boulder",
+                      "Columbia North/Columbia South/Frisby-Boulder"
+  ),
+  no_harvest_perc_impact = c (-4, 
+                              -9, 
+                              -49, 
+                              -5, -10, 
+                              0, 
+                              0, 
+                              -2, -30, 
+                              -8,
+                              -1, -31,
+                              -8, -21,
+                              -2, -16,
+                              -5,
+                              -1, -3, -1, -5,
+                              -14,
+                              -95,
+                              -1, -3, -4,
+                              -15,
+                              -31,
+                              -43,
+                              -8, -1,
+                              -100,
+                              -98,
+                              -72,
+                              -88,
+                              -93
+                              )
+
+)
+
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Central Group"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  # facet_grid (. ~ herd_plan_unit) +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Critical Habitat: Central Group")
+
+```
+
+In the Central Selkirks planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in TFL 14, and lowest relative impact in the Arrow TSA (Fig. 2).
+
+```{r, fig. 2, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 2. Percent Timber Harvest Volume Impacts by Harvest Unit in the Central Selkirks Planning Area."}
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Central Selkirks"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Critical Habitat: Central Selkirks")
+
+
+```
+
+In the Chilcotin planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in the Lakes TSA, and lowest relative potential impact in the Prince George TSA (Fig. 3). There was no impact in either of the Great Bear Rainforest TSAs.
+
+```{r, fig. 3, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 3. Percent Timber Harvest Volume Impacts by Harvest Unit in the Chilcotin Planning Area."}
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Chilcotin"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Critical Habitat: Chilcotin")
+```
+
+In the Revelstoke planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in TFL 33, TFL 56 and the Revelstoke TSA, and lowest relative potential impact in TFL 23 and the Robson Valley TSA (Fig. 4). 
+
+```{r, fig. 4, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 4. Percent Timber Harvest Volume Impacts by Harvest Unit in the Revelstoke Planning Area."}
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Columbia North/Columbia South/Frisby-Boulder"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Critical Habitat: Revelstoke")
+```
+
+In the Hart Ranges planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in TFL 30, and lowest relative potential impact in the Prince George TSA (Fig. 5). 
+
+```{r, fig. 5, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 5. Percent Timber Harvest Volume Impacts by Harvest Unit in the Hart Ranges Planning Area."}
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Hart Ranges"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Critical Habitat: Hart Ranges")
+```
+
+In the Wells Gray South/Groundhog planning area, the no harvest in critical habitat scenario had the highest relative potential timber volume impact in TFL 18, and lowest relative potential impact in the Robson Valley TSA (Fig. 6). 
+
+```{r, fig. 6, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 6. Percent Timber Harvest Volume Impacts by Harvest Unit in the Wells Gray South/Groundhog Planning Area."}
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Wells Gray South/Groundhog"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Critical Habitat: Wells Gray South/Groundhog")
+```
+
+In the Wolverine/Chase/Takla planning area, the no harvest in herd boundaries scenario had the highest relative potential timber volume impact in the Mackenzie TSA, and lowest relative potential impact in the Lakes TSA (Fig. 7). 
+
+```{r, fig. 7, TSA/TFL risk impact, echo = F, error = F, eval = T, include = T, message = F, fig.cap = "Figure 7. Percent Timber Harvest Volume Impacts by Harvest Unit in the Wolverine/Chase/Takla Planning Area."}
+
+ggplot (fig.volume %>% filter (herd_plan_unit == "Wolverine/Chase/Takla"), aes (x = harvest_unit, y = no_harvest_perc_impact)) +
+  geom_bar (stat = "identity") +
+  theme_bw () +
+  labs (y = "Percent Impact to Annual Harvest Volume", x = "Harvest Unit") +
+  theme (axis.text.x = element_text (angle = 45)) +
+  ggtitle ("No Harvest in Herd Range: Wolverine/Chase/Takla")
+```
+
+## Potential Annual Timber Volume Harvested Under Different Scenarios by Priority Caribou Herd Planning Area
+The potential timber volume harvested under different scenarios for each priority caribou planning area are provided in Table 2. In terms of potential impact to total harvest volume, the largest potential impacts occurred in the Central Group, Chilcotin and Wolverine/Chase/Takla planning areas, i.e., -1,126,188m^3^, -938,896m^3^ and -828,938m^3^, respectively, for scenarios with no harvest compared to BAU. In terms of the potential percentage impact to harvest volume, the largest potential impacts occurred in the Wells Gray South/Groundhog, Central Group and Revelstoke planning areas, 27%, 11% and 10%, respectively, for scenarios with no harvest compared to BAU.
+
+```{r, table 2, planning unit results, echo = F, error = F, eval = T, include = T, message = F}
+
+table.plan = data.table (
+  planning_unit = c ("Central Group", "Central Group", "Central Group",
+                     "Central Selkirks", "Central Selkirks", "Central Selkirks", 
+                     "Chilcotin", "Chilcotin", "Chilcotin",
+                     "Hart Ranges", "Hart Ranges", "Hart Ranges",
+                     "Partenership Agreement", "Partenership Agreement", "Partenership Agreement",
+                     "Revelstoke", "Revelstoke", "Revelstoke",
+                     "Wells Gray South/Groundhog", "Wells Gray South/Groundhog", "Wells Gray South/Groundhog",
+                     "Wolverine/Chase/Takla", "Wolverine/Chase/Takla"),
+  scenario = c ("BAU", "No harvest in critical habitat", "35% disturbance in matrix critical habitat",
+                "BAU", "No harvest in critical habitat", "35% disturbance in matrix critical habitat", 
+                "BAU", "No harvest in critical habitat", "35% disturbance in matrix critical habitat",
+                "BAU", "No harvest in critical habitat", "35% disturbance in matrix critical habitat",
+                "BAU", "No harvest in all Partnership Agreement Areas", "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance in Central group partnership agreement areas A1, B1, B4 and B5",
+                "BAU", "No harvest in critical habitat", "35% disturbance in matrix critical habitat",
+                "BAU", "No harvest in critical habitat", "35% disturbance in matrix critical habitat",
+                "BAU", "No harvest in herd boundaries"),
+  annual_volume = c (10658593, 9532405, 9767734,
+                     1790139, 1640825, 1706092,
+                     13299188, 12360292, 12565535,
+                     7052780, 6708338, 6728186,
+                     10658593, 10437691, 10464906,
+                     3504325, 3166017, 3252520,
+                     1459268, 1059871, 1136336,
+                     10894709, 10065771),
+  diff_annual_volume = c (0, -1126188, -890859,
+                          0, -149314, -84047,
+                          0, -938896, -733653,
+                          0, -344442, -324594,
+                          0, -220902, -193687,
+                          0, -338308, -251805,
+                          0, -399397, -322932,
+                          0, -828938),
+  perc_diff_tot_volume = c ("0", "-11%", "-8%",
+                            "0", "-8%", "-5%",
+                            "0", "-7%", "-6%",
+                            "0", "-5%", "-5%",
+                            "0", "-2%", "-2%",
+                            "0", "-10%", "-7%",
+                            "0", "-27%", "-22%",
+                            "0", "-8%")
+)
+
+kable (table.plan,
+       caption = "<b>Table 2. Annual Harvested Timber Volume Over a 200 Year Period by Caribou Planning Area Under Different  Caribou Recovery Scenarios.<b>",
+       col.names = c("Caribou Planning Area",
+                     "Scenario",
+                     "Average Annual Volume (m3)",
+                     "Difference in Annual Volume (m3)",
+                     "Percent Difference in Annual Volume"),
+       format.args = list (big.mark = ","),
+       align = rep( c('l', 'c', 'c', 'c', 'c', 'c'))) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11) %>%
+  footnote (general = "BAU = business-as-usual scenario",
+            fixed_small_size = T)
+
+write.csv (table.plan, here ("/reports/scenarios/scenario_priority_herds_2020_caribou.csv")) 
+
+```
+
+## Conclusions
+Here we provide results of a preliminary analysis of the potential impacts to timber supply of reducing forest harvest in caribou critical habitat or herd ranges. The results likely indicate closer to the maximum potential impacts to timber supply. This may be a useful starting point for caribou recovery planning, as forest harvest constraints could be refined within specific planning areas, and potential impacts of constraints on timber supply may be reduced through this refinement.   
+
+We note that potential impacts to forestry vary depending on whether impacts are assessed within a caribou planning unit area or forest harvest unit (TSA or TFL). For example, maximum potential impacts in the Revelstoke caribou planning unit reached a 10%, or 338,308m^3^ reduction in timber supply compared to BAU, but they disproportionately impacted the Revelstoke TSA, which had a 95%, or 147,300m^3^ reduction in timber supply compared to BAU. Thus, it's important to consider timber supply impacts at different scales. 
+
+We compared our annual harvested volume results to results from timber supply analyses completed for previous TSA and TFL timber supply reviews. In general, our results were consistent with the results of analyses completed for TSAs. However, we consistently estimated much lower levels of timber supply in TFLs compared to estimates from models used for TFL timber supply reviews. This may be due to some fundamental differences in how we modeled timber harvest (e.g., use of optimization versus spatial timber supply models, or differences in how forest stands were prioritized for harvest). However, we did note problems with the forest inventory data we had for some of the TFLs. In particular, many stands in TFL 33 did not have site index values, meaning we were unable to estimate future stand volumes for most of the area. In addition, it was noted in the last timber supply review for TFL 48 that the forest inventory consistently underestimated volume, and thus they developed a model to adjust the volume of forest stands. We did not have access to that model, and therefore our estimates were made without this adjustment, resulting in lower timber supply estimates. Results for several of the TFL areas appeared to be unreliable and should be used with extra caution.
+
+
+
+```{r, FIG , otehr output figures - scenario compare, echo = F, error = F, eval = F, include = F, message = F, warning = F}
+
+###### Turned off for now ######
+
+### Disturbance ###
+## Quesnel ##
+data.dist.q <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_quesnel_20200909.csv")
+data.dist.q$scenario <- factor(data.dist.q$scenario, levels = c("quesnel_bau", "quesnel_chil_notweeds_nh", "quesnel_chil_notweeds_ch_hele0d_m15d"))
+# Itcha #
+data.dist.q.i <- data.dist.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (critical_hab == "Itcha_Ilgachuz HEWSR" | critical_hab == "Itcha_Ilgachuz LESR" |
+                          critical_hab == "Itcha_Ilgachuz LEWR" | critical_hab == "Itcha_Ilgachuz Matrix")
+ggplot (data.dist.q.i, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA Under the 
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# TWeeds and Wells #
+data.dist.q.t <- data.dist.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (critical_hab == "Tweedsmuir LEWR" | critical_hab == "Tweedsmuir Matrix" |
+                          critical_hab == "Wells_Gray_North HEWSR" | critical_hab == "Wells_Gray_North Matrix")
+ggplot (data.dist.q.t, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Tweedsmuir and Wells Gray North Critical Habitat in the Quesnel 
+TSA Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.15, 0.15),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+
+## Williams Lake ##
+data.dist.w <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\disturbance_williams_lake_20200909.csv")
+data.dist.w$scenario <- factor(data.dist.w$scenario, levels = c("williams_lake_bau", "willake_chil_nh", "willake_chil_ch_hle0d_m15d"))
+
+# Itcha #
+data.dist.w.i <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Itcha_Ilgachuz HEWSR" | critical_hab == "Itcha_Ilgachuz LESR" |
+                          critical_hab == "Itcha_Ilgachuz LEWR" | critical_hab == "Itcha_Ilgachuz Matrix")
+ggplot (data.dist.w.i, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Itcha-Ilgachuz Critical Habitat in the Williams Lake TSA Under the
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# Rainbows #
+data.dist.w.r <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Rainbows HEWSR" | critical_hab == "Rainbows LESR" |
+                          critical_hab == "Rainbows LEWR" | critical_hab == "Rainbows Matrix")
+data.dist.w$scenario <- factor(data.dist.w$scenario, levels = c("williams_lake_bau", "willake_chil_nh", "willake_chil_ch_hle0d_m15d"))
+ggplot (data.dist.w.r, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Rainbows Critical Habitat in the Williams Lake TSA Under the
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.20),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+# Wells #
+data.dist.w.w <- data.dist.w %>%
+                  filter (scenario == "williams_lake_bau" | scenario == "willake_chil_nh" | 
+                          scenario == "willake_chil_ch_hle0d_m15d") %>%
+                  filter (critical_hab == "Wells_Gray_North HEWSR" |
+                          critical_hab == "Wells_Gray_North Matrix")
+ggplot (data.dist.w.w, aes (x = timeperiod, y = dist500_per, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~critical_hab) +
+  labs (title = "Proportion of Area Disturbed in Wells Gray North Critical Habitat in the Williams Lake TSA 
+Under the Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Disturbed",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.80),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+
+### Early Seral ###
+## Quesnel ##
+data.surv.q <- read.csv ("C:\\Work\\caribou\\clus_data\\scenarios\\chilcotin\\survival_quesnel_20200911.csv")
+data.surv.q$scenario <- factor(data.surv.q$scenario, levels = c("quesnel_bau", "quesnel_chil_notweeds_nh", "quesnel_chil_notweeds_ch_hele0d_m15d"))
+
+# Itcha #
+data.surv.q.i <- data.surv.q %>%
+                  filter (scenario == "quesnel_bau" | scenario == "quesnel_chil_notweeds_nh" | 
+                          scenario == "quesnel_chil_notweeds_ch_hele0d_m15d") %>%
+                  filter (herd_bounds == "Itcha_Ilgachuz HEWSR" | herd_bounds == "Itcha_Ilgachuz LESR" |
+                          herd_bounds == "Itcha_Ilgachuz LEWR" | herd_bounds == "Itcha_Ilgachuz Matrix")
+ggplot (data.surv.q.i, aes (x = timeperiod, y = prop_age*100, color = scenario, linetype = scenario)) +
+  geom_line (position = position_dodge (width = 1)) + 
+  facet_grid (. ~herd_bounds) +
+  labs (title = "Percent Early Seral Forest in Itcha-Ilgachuz Critical Habitat in the Quesnel TSA Under the 
+Different Habitat Management Scenarios.", 
+        x = "Future Year", 
+        y = "Percent Young Forest",
+        caption = "BAU = business-as-usual scenario 
+HEWSR = high elevation winter and summer range
+LESR = low elevation summer range
+LEWR = low elevation winter range ") + 
+  scale_color_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                      "Matrix 35%")) +
+  scale_linetype_discrete (name = "Scenario", labels = c("BAU", "No Disturbance", 
+                                                         "Matrix 35%")) +
+  theme (legend.position = c (0.10, 0.75),
+         legend.title = element_text(size = 10),
+         legend.text = element_text( size = 8))
+```

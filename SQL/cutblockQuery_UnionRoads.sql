@@ -1,9 +1,13 @@
-﻿
+
 Create TAble cutseq as
   SELECT a.areaha, a.harvestyr, ST_X(a.point) as X ,ST_Y(a.point) as Y, point FROM (SELECT areaha, harvestyr, ST_PointN(ST_Exteriorring(wkb_geometry) , 1) as point
   FROM cns_cut_bl_polygon) a  
 
-
+Create TAble cutseq_centroid as
+  SELECT a.areaha, a.harvestyr, ST_X(a.point) as X ,ST_Y(a.point) as Y, point FROM 
+  (SELECT areaha, harvestyr, ST_Centroid(wkb_geometry) as point
+  FROM cns_cut_bl_polygon where data_source <> 'Landsat') a  
+  
  SELECT a.areaha, a.harvestyr,  ST_X(a.point) as X ,ST_Y(a.point) as Y, point, herd_name FROM sample_caribou_bound, (SELECT areaha, harvestyr, ST_PointN(ST_Exteriorring(wkb_geometry) , 1) as point
   FROM cns_cut_bl_polygon
   WHERE harvestyr ='2000') a 

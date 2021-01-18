@@ -5,7 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source(here::here("R/functions/R_Postgres.R"))
 library(data.table)
 library(sf)
 library(tidyverse)
@@ -14,7 +14,6 @@ layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
 prov.rast <- raster::raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(layeraoi)$proj4string, resolution = c(100, 100), vals = 0)
-
 ```
 # get data
 ```{r, data4}
@@ -63,16 +62,7 @@ mackenzie_sw$tsa_name<-'MacKenzie SW TSA'
 mackenzie_sw <-mackenzie_sw %>% group_by (tsa_name) %>% summarise()
 st_crs(mackenzie_sw)
 
-###TFLs
-tfl <-getSpatialQuery("SELECT for_fl_id as tsa_name, wkb_geometry FROM tfl_all_polygon")
-tfl<-tfl%>% group_by (tsa_name) %>% summarise()
-plot(tfl["tsa_name"]) 
-```
-
-#Combine them into one dataset
-```{r, mergethem}
-
-forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko, tfl) 
+forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko) 
 
 forest.tenure.vat<-unique(forest.tenure3$tsa_name)
 forest.tenure.vat2<-unlist(lapply(forest.tenure.vat, function(x){
@@ -90,8 +80,9 @@ setnames(forest.tenure4, c("tsa_name2"), c("tsa_name"))
 #Call value tsa_number
 forest.tenure5<-forest.tenure4
 setnames(forest.tenure5, c("value"), c("tsa_number"))
-st_write(forest.tenure5, "forest_tenures.shp", delete_layer=TRUE)
-#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres password=postgres" C:\Users\klochhea\clus\R\Params\forest_tenures.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+st_write(forest.tenure5, "forest_ten.shp", delete_layer=TRUE)
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=klochhea" C:\Users\klochhea\clus\R\Params\forest_ten.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
 #Alter table forest_ten rename to tsa_aac_bounds;
 #GRANT ALL ON TABLE public.tsa_aac_bounds TO postgres;
 #GRANT ALL ON TABLE public.tsa_aac_bounds TO clus_project;
