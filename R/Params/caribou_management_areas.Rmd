@@ -143,7 +143,7 @@ for(herd in herds){ # create a table of the constraints for each herd
   
   zone.eccc.crithab<-eccc.vat[!(zoneid %in% eccc.nh.zones),]
   zone.eccc.crithab<-zone.eccc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage', 'multi_condition')]
-  zone.eccc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = '')
+  zone.eccc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = as.character(NA))
 
   zone.eccc.crithab<-rbindlist(list(zone.eccc.crithab, zone.eccc.crithab.nh))
   writeRaster(ras.eccc, "rasecccrit.tif", overwrite = TRUE)
@@ -180,7 +180,7 @@ for(herd in herds){ # create a table of the constraints for each herd
   
   zone.bc.crithab<-bc.vat[!(zoneid %in% bc.nh.zones),]
   zone.bc.crithab<-zone.bc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage', 'multi_condition' )]
-  zone.bc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_bc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = NA)
+  zone.bc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_bc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = as.character(NA))
 
   zone.bc.crithab<-rbindlist(list(zone.bc.crithab, zone.bc.crithab.nh))
   zone.bc.crithab<-zone.bc.crithab[,zoneid:=as.integer(zoneid)]
@@ -261,7 +261,7 @@ writeRaster (ras.bc.bounds.selected , "ras_herd_bounds.tif", overwrite = TRUE)
 zone.bc.bounds.nh <- data.table (zoneid = 0, # zoneid of 0 makes each zone no harvest
                                  reference_zone = paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'), 
                                  ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0, 
-                                 multi_condition = NA) 
+                                 multi_condition = as.character(NA)) 
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, zoneid := as.integer (zoneid)]
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, ndt := as.integer (ndt)]
 zone.bc.bounds.nh <- zone.bc.bounds.nh [, threshold := as.numeric (threshold)]
@@ -368,7 +368,7 @@ for (herd in herds) { # create a table of the constraints for each herd; here we
                                                                tolower(herd),'_crithab_or_herd'), 
                                       ndt = 0, variable = '', threshold = 0, type = 'nh', 
                                       percentage = 0,
-                                      multi_condition = NA)
+                                     multi_condition = as.character(NA))
 
   zone.eccc.crithab <- rbindlist (list (zone.eccc.crithab, zone.eccc.crithab.nh))
   writeRaster (ras.eccc, "ras_eccc_crit_or_herd.tif", overwrite = TRUE)
@@ -410,7 +410,7 @@ zone.nh.crithab.herd <- data.table(zoneid = 0, # zone id = 0 makes it no harvest
                                    reference_zone = paste0('rast.zone_cond_noharvest_',
                                                            tolower(herd),'_crithab_or_herd'),
                                    ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0,
-                                   multi_condition = NA)
+                                   multi_condition = as.character(NA))
   
 zone.nh.crithab.herd <- zone.nh.crithab.herd[, zoneid := as.integer(zoneid)]
 zone.nh.crithab.herd <- zone.nh.crithab.herd[, ndt := as.integer (ndt)]
