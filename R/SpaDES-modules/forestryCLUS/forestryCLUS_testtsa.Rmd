@@ -80,7 +80,8 @@ parameters <- list(
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC",
-                      #harvestZonePriority = "age DESC",
+                      harvestZonePriority = "age DESC",
+                      harvestZonePriorityInterval = 2,
                       reportHarvestConstraints = TRUE,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
@@ -114,7 +115,7 @@ modules <- list("dataLoaderCLUS",
                 )
 
 
-scenario = data.table (name = "quesnel_bau_no_zone",
+scenario = data.table (name = "quesnel_bau_zone_int2_thlb",
                         description = "Business as usual (BAU). Adjacency was set to 3m.")
 
 
