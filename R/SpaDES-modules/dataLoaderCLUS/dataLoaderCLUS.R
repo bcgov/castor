@@ -66,6 +66,7 @@ defineModule(sim, list(
     defineParameter("nameForestInventoryAge", "character", "99999", NA, NA, desc = "Name of the veg comp age"),
     defineParameter("nameForestInventoryHeight", "character", "99999", NA, NA, desc = "Name of the veg comp height"),
     defineParameter("nameForestInventoryCrownClosure", "character", "99999", NA, NA, desc = "Name of the veg comp crown closure"),
+    defineParameter("nameForestInventoryTreed", "character", "99999", NA, NA, desc = "Name of the veg treed layer"),
     defineParameter("nameForestInventorySiteIndex", "character", "99999", NA, NA, desc = "Name of the veg comp site_index")
     ),
   inputObjects = bind_rows(
@@ -177,7 +178,7 @@ createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
-own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
+own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
   return(invisible(sim))
 }
@@ -322,6 +323,7 @@ setTablesCLUSdb <- function(sim) {
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones)
       dbClearResult(rs)
       dbCommit(sim$clusdb)
+      
     }else{
       stop(paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied"))
     }
@@ -506,9 +508,11 @@ setTablesCLUSdb <- function(sim) {
     
     if(!P(sim,"dataLoaderCLUS", "nameForestInventoryTable") == '99999'){
       #Get the forest inventory variables and re assign there names to be more generic than VEGCOMP
-      forest_attributes_clusdb<-sapply(c("Age","Height", "CrownClosure", "SiteIndex"), function(x){
+      forest_attributes_clusdb<-sapply(c("Treed","Age","Height", "CrownClosure", "SiteIndex"), function(x){
         if(!(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)) == '99999')){
           return(paste0(P(sim, "dataLoaderCLUS", paste0("nameForestInventory", x)), " as ", tolower(x)))
+        }else{
+          stop(paste0("ERROR: Missing parameter nameForestInventory", x))
         }
       })
       
@@ -518,7 +522,7 @@ setTablesCLUSdb <- function(sim) {
       if(nrow(queryMulti) > 0){
         multiVars<-unlist(strsplit(paste(queryMulti$variable, collapse = ', ', sep = ','), ","))
         multiVars<-unique(gsub("[[:space:]]", "", multiVars))
-        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure', 'dist')]
+        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure', 'dist', 'bclcs_level_2')]
         if(!identical(character(0), multiVars)){
           multiVars1<-multiVars #used for altering pixels table in clusdb i.e., adding in the required information to run the query
           #Add the multivars to the pixels data table
@@ -558,6 +562,9 @@ setTablesCLUSdb <- function(sim) {
         #Merge to pixels using the pixelid
         pixels<-merge(x = pixels, y =inv, by.x = "pixelid", by.y = "pixelid", all.x = TRUE)
         pixels<-pixels[, fid:=NULL]#remove the fid key
+        
+        #Change the VRI bclcs_level_2 to a binary.
+        pixels<-pixels[!treed == 'T', treed:=0][treed == 'T', treed:=1]
         
         if(!is.null(multiVars1)){
           for(var in multiVars1){
@@ -687,10 +694,10 @@ setTablesCLUSdb <- function(sim) {
   #--------------------------
   #Load the pixels in RSQLite
   #--------------------------
-  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
+  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, treed, age, crownclosure, height, siteindex, roadyear, dec_pcnt, zone',
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),
               paste(multiVars, sep="' '", collapse=", "),' ) 
-               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :age, :crownclosure, :height, :siteindex, NULL, 0, :zone', 
+               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :treed, :age, :crownclosure, :height, :siteindex, NULL, 0, :zone', 
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),
               paste(multiVars2, sep="' '", collapse=", :"),')')
   
@@ -704,6 +711,22 @@ setTablesCLUSdb <- function(sim) {
   rm(pixels)
   gc()
   
+  #Update the t_area column to be the area forested for "dist" variable constraints
+  t_area2for_area<-dbGetQuery(sim$clusdb, "SELECT  zoneid, zone_column FROM zoneConstraints WHERE variable = 'dist'")
+  for_Area<-lapply(unique(t_area2for_area$zone_column), function (x){
+    dbGetQuery(sim$clusdb, paste0("SELECT  count() as t_area, ",x," as zoneid, '",x,"' as zone_column FROM pixels WHERE treed = 1 AND ", x," is not NULL group by ",x))
+  })
+  for_Area<-rbindlist(for_Area)
+  
+  #merge
+  for_area_parms<-merge(t_area2for_area, for_Area, all.x = TRUE)
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "UPDATE zoneConstraints set t_area = :t_area WHERE zoneid = :zoneid AND zone_column =:zone_column", for_area_parms)
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
+  
+  #For NA t_Area in zoneConstraints set to 0
+  dbExecute(sim$clusdb, "Update zoneConstraints set t_area = 0 where t_area is NULL;")
   return(invisible(sim))
 }
 setIndexesCLUSdb <- function(sim) {
