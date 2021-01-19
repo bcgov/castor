@@ -52,38 +52,46 @@ parameters <-  list(
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
                          nameBoundary = "Williams_Lake_TSA", # the boudnary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
-                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
-                         nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
+                         nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         nameCompartmentTable = "tsa_aac_bounds_vat", 
                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
-                         nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
+                         nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
- "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",                                           "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+         "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",                                                    "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
                                           "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
                                           "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
 "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
 "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",                                "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",                              "rast.zone_cond_eccc_rainbows_crithab_or_herd",
 "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
-"rast.zone_cond_eccc_barkerville_crithab_or_herd"), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
-                         nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
+"rast.zone_cond_eccc_barkerville_crithab_or_herd",
+
+"rast.zone_du9_scenarios",
+"rast.zone_cond_bc_itcha_ilgachuz_crithab",
+"rast.zone_cond_bc_charlotte_alplands_crithab",
+"rast.zone_cond_bc_rainbows_crithab",
+"rast.zone_cond_bc_wells_gray_north_crithab",
+"rast.zone_cond_bc_barkerville_crithab"
+), 
+                         nameZoneTable = "zone_constraints", 
+                         nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds
-                         nameYieldTransitionTable = "yc_tipsy", # table that transitions stands onto TIPSY yield curve once they are cut
-                         nameForestInventoryRaster = "rast.vri2018_id", # raster of the forest inventory 
-                         nameForestInventoryKey = "feature_id", # unique id of each polygon (stand) in the inventory 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018", # the invenotry data
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2019_id", # raster of the forest inventory 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", # the inventory data
                          nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
-                         nameForestInventoryHeight = "proj_height_1", # name of the height column in the inventory data
-                         nameForestInventoryCrownClosure = "crown_closure", # name of the crown closure column in the inventory data
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
-  blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
-                      patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
                       useLandingsArea = FALSE),
