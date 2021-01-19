@@ -187,6 +187,7 @@ parameters <- list(
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventoryTreed = "bclcs_level_2",
                            nameForestInventorySiteIndex = "site_index"),
   blockingCLUS = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
@@ -194,7 +195,7 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestPriority = "age DESC",
+  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriority = 1,
                       reportHarvestConstraints = TRUE,
