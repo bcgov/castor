@@ -90,7 +90,7 @@ parameters <-  list(
                                     "rast.zone_cond_bc_hart_ranges_crithab",
                                     "rast.zone_cond_bc_kennedy_siding_crithab",
                                     "rast.zone_cond_bc_north_cariboo_crithab",
-                                    "rast.zone_cond_bc_redrock_prairie_creek_crithab",
+                                    "rast.zone_cond_bc_redrock_prairie_creek_crithab"
                                           ), 
                          nameZoneTable = "zone_constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -106,12 +106,12 @@ parameters <-  list(
                          nameForestInventoryCrownClosure = "crown_closure", 
                          nameForestInventorySiteIndex = "site_index" 
                     ),
-  blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
-                      patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network using a a minimum spanning tree to all potential 'ladndings (created in blockingCLUS)
+  roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'# existign road network
                   ),

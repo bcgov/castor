@@ -79,7 +79,7 @@ parameters <-  list(
                                              "rast.zone_cond_bc_wells_gray_south_crithab",
                                              "rast.zone_cond_bc_hart_ranges_crithab",
                                              "rast.zone_cond_bc_north_cariboo_crithab",
-                                             "rast.zone_cond_bc_redrock_prairie_creek_crithab",
+                                             "rast.zone_cond_bc_redrock_prairie_creek_crithab"
                                              ), 
                          nameZoneTable = "zone_constraints", 
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -89,14 +89,14 @@ parameters <-  list(
                          nameYieldTransitionTable = "yc_tipsy", 
                          nameForestInventoryRaster = "rast.vri2019_id", 
                          nameForestInventoryKey = "feature_id", 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", # the invenotry data
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", # the inventory data
                          nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
-                         nameForestInventoryHeight = "proj_height_1", # name of the height column in the inventory data
-                         nameForestInventoryCrownClosure = "crown_closure", # name of the crown closure column in the inventory data
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
-  blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
-                      patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
                       useLandingsArea = FALSE),
