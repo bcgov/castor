@@ -307,6 +307,7 @@ names(gbr_fsw1)<-c("wkb_geometry", "fsw_id")
 st_geometry(gbr_fsw1) <- "wkb_geometry"
 st_geometry(fsw) <- "wkb_geometry"
 gbr_fsw2<-st_cast(gbr_fsw1, "MULTIPOLYGON")
+fsw_orig<- st_cast(fsw, "MULTIPOLYGON")
 
 fsw.all<-rbind(fsw, gbr_fsw2)
 

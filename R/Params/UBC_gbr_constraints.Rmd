@@ -59,6 +59,11 @@ art<-getSpatialQuery("SELECT ogc_fid,
 
 art<- art %>% dplyr::rename(art_fid = ogc_fid)
 
+plot(art[,"retention"], lwd=0.01) # looks ok
+
+lu<-getSpatialQuery("SELECT wkb_geometry 
+FROM public.rmp_lu_sp_polygon limit 1")
+
 ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
@@ -92,7 +97,7 @@ df$percentage<-as.numeric(df$percentage)#assign integer
 df$label<-'art'
 df$multi_condition<-NULL
 
-df<-data.table(unique(df))# get rid of the multiple zoneid = 0 )
+#df<-data.table(unique(df))# get rid of the multiple zoneid = 0 )
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
