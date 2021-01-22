@@ -99,6 +99,7 @@ parameters <-  list(
                          nameForestInventoryAge = "proj_age_1",  
                          nameForestInventoryHeight = "proj_height_1",
                          nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
                     ),
   blockingCLUS = list(blockMethod='pre', 
