@@ -63,199 +63,147 @@ fire_ignitions1$month<- substring(fire_ignitions1$ign_date, 5, 6)
 fire_ignitions1_new<- fire_ignitions1 %>%
   filter(fire_year >=2002)
 fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
-hist(fire_ignitions1_new$month) # most fires appear to occur between May - Sept!
-table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
-table(fire_ignitions1_new$fire_cause)
+hist(fire_ignitions1_new$month) # most lightning fires appear to occur between May - Sept!
+table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
+table(fire_veg_data$fire_cs)
 
-fire_ignitions2 <- fire_ignitions1_new %>%
-  dplyr::select(fire_no, fire_year, fire_cause) %>%
-  rename(id1=fire_no,
-         year=fire_year)
-
-ignition_pres_abs <- left_join(fire_veg_data, fire_ignitions2)
-table(ignition_pres_abs$year, ignition_pres_abs$pttype)
-
-ignition_pres_abs$fire_cause<- as.factor(ignition_pres_abs$fire_cause)
-dim(ignition_pres_abs)
-
-ignition_pres_abs$firecause<-0
-ignition_pres_abs$firecause[which(is.na(ignition_pres_abs$fire_cause ))]<-"none"
-ignition_pres_abs$firecause[which(ignition_pres_abs$fire_cause=="Person")]<-"Person"
-ignition_pres_abs$firecause[which(ignition_pres_abs$fire_cause=="Lightning")]<-"Lightning"
-ignition_pres_abs$firecause[which(ignition_pres_abs$fire_cause=="Unknown")]<-"Unknown"
-table(ignition_pres_abs$firecause)
+fire_veg_data$fire_cs<- as.factor(fire_veg_data$fire_cs)
+dim(fire_veg_data)
 
 # pulling out locations where cause of fire is due to lightning. 
-ignition_pres_abs1<- ignition_pres_abs %>%
-  filter(firecause!="Person") 
-ignition_pres_abs1<- ignition_pres_abs1 %>%
-  filter(firecause!="Unknown") 
-dim(ignition_pres_abs1)
-table(ignition_pres_abs1$year, ignition_pres_abs1$pttype)
+fire_veg_data1<- fire_veg_data %>%
+  filter(fire_cs!="Person") 
+fire_veg_data1<- fire_veg_data1 %>%
+  filter(fire_cs!="Unknown") 
+table(fire_veg_data1$fire_cs)
+table(fire_veg_data1$fire_yr, fire_veg_data1$fire_pres)
 
-ignition_pres_abs1$allppt05<- ignition_pres_abs1$ppt05+ignition_pres_abs1$pas05/10
-ignition_pres_abs1$allppt06<- ignition_pres_abs1$ppt06+ignition_pres_abs1$pas06/10
-ignition_pres_abs1$allppt07<- ignition_pres_abs1$ppt07+ignition_pres_abs1$pas07/10
-ignition_pres_abs1$allppt08<- ignition_pres_abs1$ppt08+ignition_pres_abs1$pas08/10
-ignition_pres_abs1$allppt09<- ignition_pres_abs1$ppt09+ignition_pres_abs1$pas09/10
+# fire_veg_data1 is the final data set
 
-
-# ignition_pres_abs1 is the final dataset
+# Sub-boreal Spruce
+sbs<- fire_veg_data1 %>% dplyr::filter(zone =="SBS")
 ##################
 #### FIGURES ####
 ##################
 
+sbs_lightning<-sbs %>% 
+  dplyr::filter(fire_cs!="Person")
+
+table(sbs_lightning$fire_cs, sbs_lightning$fire_yr)
+  
 # Plotting Probability of ignition versus drought code. Seems like similar trends are found in each month (June to August) but trend seems to get stronger in later months i.e. July and August.
 
-p <- ggplot(ignition_pres_abs1, aes(mdc_08, as.numeric(pttype))) +
+p <- ggplot(sbs_lightning, aes(mdc_08, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("August MDC") + ylab("Pr (ignition)")
 
-p2 <- p + facet_wrap(~ year, nrow=3)
+p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
-pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\MDC08_allYears_gam.pdf")
-print(p2)
-dev.off()
 
-p <- ggplot(ignition_pres_abs1, aes(mdc_08, as.numeric(pttype))) +
-  stat_smooth(method="glm", formula=y~x,
-              alpha=0.2, size=2) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("August MDC") + ylab("Pr (ignition)")
-
-# Rainfall
-p <- ggplot(ignition_pres_abs1, aes(allppt08, as.numeric(pttype))) +
+p <- ggplot(sbs_lightning, aes(mdc_07, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("All ppt in Aug") + ylab("Pr (ignition)")
+  xlab("July MDC") + ylab("Pr (ignition)")
 
-p2 <- p + facet_wrap(~ year, nrow=3)
-
-pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\PPT08_allYears_gam.pdf")
-print(p2)
-dev.off()
-
-# Log precipitation
-p <- ggplot(ignition_pres_abs1, aes(log(allppt08 + 0.0001), as.numeric(pttype))) +
-  stat_smooth(method="glm", formula=y~x,
-              alpha=0.2, size=2) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Log of All ppt in Aug") + ylab("Pr (ignition)")
-
-p2 <- p + facet_wrap(~ year, nrow=3)
-
-pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\Log_PPT08_allYears.pdf")
-print(p2)
-dev.off()
+p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 
-# Temperature
-p <- ggplot(ignition_pres_abs1, aes(tmax08, as.numeric(pttype))) +
+# Climate moisture index
+p <- ggplot(sbs_lightning, aes(cmi08, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("tmax08") + ylab("Pr (ignition)")
+  xlab("August cmi") + ylab("Pr (ignition)")
 
-p2 <- p + facet_wrap(~ year, nrow=3)
+p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
-pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tmax08_allYears_gam.pdf")
-print(p2)
-dev.off()
-
-# Average Temperature
-p <- ggplot(ignition_pres_abs1, aes(tave08, as.numeric(pttype))) +
+# Maximum Temperature
+#July
+p <- ggplot(sbs_lightning, aes(tmax07, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("tmax08") + ylab("Pr (ignition)")
+  xlab("July tmax") + ylab("Pr (ignition)")
 
-p2 <- p + facet_wrap(~ year, nrow=3)
+p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
-pdf("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\Figures\\tave08_allYears_gam.pdf")
-print(p2)
-dev.off()
+# August
+p <- ggplot(sbs_lightning, aes(tmax08, as.numeric(fire_pres))) +
+  geom_smooth(method="gam", formula=y~s(x),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("August tmax") + ylab("Pr (ignition)")
 
+p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 
 ##################
 #### Analysis ####
 ##################
 
-# To select the best single fire weather covariate I first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then I fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six MDC’s. I also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
+# To select the best single fire weather covariate I first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then I fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). I also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
 
-names(ignition_pres_abs1)
+names(sbs_lightning)
 
-# correlation between max T and MDC. Some things are a little correlated i.e. tmax08 and mdc09 are relatively correlated (0.73) which makes sense since MDC is calculated with max T.
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (15:19, 35:39)], NULL)
+# correlation between max T and MDC. For sbs there is not high correlation between tmax and mdc, which seems odd since MDC is calculated using Tmax.
+dist.cut.corr <- st_set_geometry(sbs_lightning [c (20:24, 40:44)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
-# correlation between all precipitation and MDC. MDC is less correlated with precipitation, although MDC07 and precipitation 07 are still fairly correlated i.e. 0.69
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (35:39, 43:47)], NULL)
+# But in SBS there is high correlation between total precipitation and MDC. Interesting!
+dist.cut.corr <- st_set_geometry(sbs_lightning [c (30:34, 40:44)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between all precipitation (snow + rain) and MDC")
+            title = "Correlation between total precipitation and MDC")
 
-# Correlation between Tmax and all precipitation. These are not hightly correlated at all. Highest correlation is -0.42
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (15:19, 43:47)], NULL)
+# Correlation between Tmax and total precipitation. 
+dist.cut.corr <- st_set_geometry(sbs_lightning [c (20:24, 30:34)], NULL)
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
-
-# Correlation between Tave and MDC. less correlated than Tmax. Most correlated is 0.65 for Tave07 and mdc_08
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (20:24, 35:39)], NULL)
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
-
-# Correlation between Tave and allPrecipitation. Hardly correlated at all most correlated is tave07 wih allppt07  is -0.33
-dist.cut.corr <- st_set_geometry(ignition_pres_abs1 [c (20:24, 43:47)], NULL)
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "DU8 Distance to Cutblock Correlation")
-
-ignition_pres_abs2<- st_set_geometry(ignition_pres_abs1, NULL)
+            title = "Correlation between total precipitation and Tmax")
 
 
 ######################################################################
 #### Generation AIC tables to select best environmental predictors####
 ######################################################################
 # creating amalgamations of variables
-ignition_pres_abs2$mean_tmax06_tmax07<- (ignition_pres_abs2$tmax06+ ignition_pres_abs2$tmax07)/2
-ignition_pres_abs2$mean_tmax07_tmax08<- (ignition_pres_abs2$tmax07+ ignition_pres_abs2$tmax08)/2
-ignition_pres_abs2$mean_tmax08_tmax09<- (ignition_pres_abs2$tmax08+ ignition_pres_abs2$tmax09)/2
-ignition_pres_abs2$mean_tmax06_tmax07_tmax08<- (ignition_pres_abs2$tmax06+ ignition_pres_abs2$tmax07 + ignition_pres_abs2$tmax08)/3
-ignition_pres_abs2$mean_tmax07_tmax08_tmax09<- (ignition_pres_abs2$tmax07+ ignition_pres_abs2$tmax08 + ignition_pres_abs2$tmax09)/3
-ignition_pres_abs2$mean_tmax06_tmax07_tmax08_tmax09<- (ignition_pres_abs2$tmax06 + ignition_pres_abs2$tmax07+ ignition_pres_abs2$tmax08 + ignition_pres_abs2$tmax09)/4
+sbs_lightning2<- st_set_geometry(sbs_lightning, NULL)
 
-ignition_pres_abs2$mean_tave06_tave07<- (ignition_pres_abs2$tave06+ ignition_pres_abs2$tave07)/2
-ignition_pres_abs2$mean_tave07_tave08<- (ignition_pres_abs2$tave07+ ignition_pres_abs2$tave08)/2
-ignition_pres_abs2$mean_tave08_tave09<- (ignition_pres_abs2$tave08+ ignition_pres_abs2$tave09)/2
-ignition_pres_abs2$mean_tave06_tave07_tave08<- (ignition_pres_abs2$tave06+ ignition_pres_abs2$tave07 + ignition_pres_abs2$tave08)/3
-ignition_pres_abs2$mean_tave07_tave08_tave09<- (ignition_pres_abs2$tave07+ ignition_pres_abs2$tave08 + ignition_pres_abs2$tave09)/3
-ignition_pres_abs2$mean_tave06_tave07_tave08_tave09<- (ignition_pres_abs2$tave06 + ignition_pres_abs2$tave07+ ignition_pres_abs2$tave08 + ignition_pres_abs2$tave09)/4
+sbs_lightning2$mean_tmax06_tmax07<- (sbs_lightning2$tmax06+ sbs_lightning2$tmax07)/2
+sbs_lightning2$mean_tmax07_tmax08<- (sbs_lightning2$tmax07+ sbs_lightning2$tmax08)/2
+sbs_lightning2$mean_tmax08_tmax09<- (sbs_lightning2$tmax08+ sbs_lightning2$tmax09)/2
+sbs_lightning2$mean_tmax06_tmax07_tmax08<- (sbs_lightning2$tmax06+ sbs_lightning2$tmax07 + sbs_lightning2$tmax08)/3
+sbs_lightning2$mean_tmax07_tmax08_tmax09<- (sbs_lightning2$tmax07+ sbs_lightning2$tmax08 + sbs_lightning2$tmax09)/3
+sbs_lightning2$mean_tmax06_tmax07_tmax08_tmax09<- (sbs_lightning2$tmax06 + sbs_lightning2$tmax07+ sbs_lightning2$tmax08 + sbs_lightning2$tmax09)/4
 
-ignition_pres_abs2$mean_ppt06_ppt07<- (ignition_pres_abs2$ppt06+ ignition_pres_abs2$ppt07)/2
-ignition_pres_abs2$mean_ppt07_ppt08<- (ignition_pres_abs2$ppt07+ ignition_pres_abs2$ppt08)/2
-ignition_pres_abs2$mean_ppt08_ppt09<- (ignition_pres_abs2$ppt08+ ignition_pres_abs2$ppt09)/2
-ignition_pres_abs2$mean_ppt06_ppt07_ppt08<- (ignition_pres_abs2$ppt06+ ignition_pres_abs2$ppt07 + ignition_pres_abs2$ppt08)/3
-ignition_pres_abs2$mean_ppt07_ppt08_ppt09<- (ignition_pres_abs2$ppt07+ ignition_pres_abs2$ppt08 + ignition_pres_abs2$ppt09)/3
-ignition_pres_abs2$mean_ppt06_ppt07_ppt08_ppt09<- (ignition_pres_abs2$ppt06+ ignition_pres_abs2$ppt07 + ignition_pres_abs2$ppt08 + ignition_pres_abs2$ppt09)/4
+sbs_lightning2$mean_tave06_tave07<- (sbs_lightning2$tave06+ sbs_lightning2$tave07)/2
+sbs_lightning2$mean_tave07_tave08<- (sbs_lightning2$tave07+ sbs_lightning2$tave08)/2
+sbs_lightning2$mean_tave08_tave09<- (sbs_lightning2$tave08+ sbs_lightning2$tave09)/2
+sbs_lightning2$mean_tave06_tave07_tave08<- (sbs_lightning2$tave06+ sbs_lightning2$tave07 + sbs_lightning2$tave08)/3
+sbs_lightning2$mean_tave07_tave08_tave09<- (sbs_lightning2$tave07+ sbs_lightning2$tave08 + sbs_lightning2$tave09)/3
+sbs_lightning2$mean_tave06_tave07_tave08_tave09<- (sbs_lightning2$tave06 + sbs_lightning2$tave07+ sbs_lightning2$tave08 + sbs_lightning2$tave09)/4
 
-ignition_pres_abs2$mean_mdc06_mdc07<- (ignition_pres_abs2$mdc_06+ ignition_pres_abs2$mdc_07)/2
-ignition_pres_abs2$mean_mdc07_mdc08<- (ignition_pres_abs2$mdc_07+ ignition_pres_abs2$mdc_08)/2
-ignition_pres_abs2$mean_mdc08_mdc09<- (ignition_pres_abs2$mdc_08+ ignition_pres_abs2$mdc_09)/2
-ignition_pres_abs2$mean_mdc06_mdc07_mdc08<- (ignition_pres_abs2$mdc_06+ ignition_pres_abs2$mdc_07 + ignition_pres_abs2$mdc_08)/3
-ignition_pres_abs2$mean_mdc07_mdc08_mdc09<- (ignition_pres_abs2$mdc_07+ ignition_pres_abs2$mdc_08 + ignition_pres_abs2$mdc_09)/3
-ignition_pres_abs2$mean_mdc06_mdc07_mdc08_mdc09<- (ignition_pres_abs2$mdc_06+ ignition_pres_abs2$mdc_07 + ignition_pres_abs2$mdc_08 + ignition_pres_abs2$mdc_09)/4
+sbs_lightning2$mean_ppt06_ppt07<- (sbs_lightning2$ppt06+ sbs_lightning2$ppt07)/2
+sbs_lightning2$mean_ppt07_ppt08<- (sbs_lightning2$ppt07+ sbs_lightning2$ppt08)/2
+sbs_lightning2$mean_ppt08_ppt09<- (sbs_lightning2$ppt08+ sbs_lightning2$ppt09)/2
+sbs_lightning2$mean_ppt06_ppt07_ppt08<- (sbs_lightning2$ppt06+ sbs_lightning2$ppt07 + sbs_lightning2$ppt08)/3
+sbs_lightning2$mean_ppt07_ppt08_ppt09<- (sbs_lightning2$ppt07+ sbs_lightning2$ppt08 + sbs_lightning2$ppt09)/3
+sbs_lightning2$mean_ppt06_ppt07_ppt08_ppt09<- (sbs_lightning2$ppt06+ sbs_lightning2$ppt07 + sbs_lightning2$ppt08 + sbs_lightning2$ppt09)/4
 
-ignition_pres_abs2 <- ignition_pres_abs2 %>% 
+sbs_lightning2$mean_mdc06_mdc07<- (sbs_lightning2$mdc_06+ sbs_lightning2$mdc_07)/2
+sbs_lightning2$mean_mdc07_mdc08<- (sbs_lightning2$mdc_07+ sbs_lightning2$mdc_08)/2
+sbs_lightning2$mean_mdc08_mdc09<- (sbs_lightning2$mdc_08+ sbs_lightning2$mdc_09)/2
+sbs_lightning2$mean_mdc06_mdc07_mdc08<- (sbs_lightning2$mdc_06+ sbs_lightning2$mdc_07 + sbs_lightning2$mdc_08)/3
+sbs_lightning2$mean_mdc07_mdc08_mdc09<- (sbs_lightning2$mdc_07+ sbs_lightning2$mdc_08 + sbs_lightning2$mdc_09)/3
+sbs_lightning2$mean_mdc06_mdc07_mdc08_mdc09<- (sbs_lightning2$mdc_06+ sbs_lightning2$mdc_07 + sbs_lightning2$mdc_08 + sbs_lightning2$mdc_09)/4
+
+sbs_lightning2 <- sbs_lightning2 %>% 
   filter(firecause!="Unknown")
-dim(ignition_pres_abs2)
+dim(sbs_lightning2)
 
 variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09" , "mean_tmax06_tmax07_tmax08_tmax09", "tave06", "tave07", "tave08", "tave09", "mean_tave06_tave07", "mean_tave07_tave08", "mean_tave08_tave09", "mean_tave06_tave07_tave08", "mean_tave07_tave08_tave09", "mean_tave06_tave07_tave08_tave09","ppt06", "ppt07", "ppt08", "ppt09", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", "mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09", "mean_ppt06_ppt07_ppt08_ppt09","mdc_06", "mdc_07", "mdc_08", "mdc_09", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", "mean_mdc06_mdc07_mdc08_mdc09")
 
@@ -271,8 +219,8 @@ colnames (table.glm.climate) <- c ("Variable", "AIC")
 # Creates AIC table with a model that that allows slope and intercept to vary
 for (i in 1: length(variables)){
   print(i)
-model1 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] +
-                   ignition_pres_abs2[, variables[i]]||ignition_pres_abs2$year,
+model1 <- glmer (sbs_lightning2$pttype ~ sbs_lightning2[, variables[i]] +
+                   sbs_lightning2[, variables[i]]||sbs_lightning2$year,
                  family = binomial (link = "logit"),
                  verbose = TRUE)
 
@@ -284,8 +232,8 @@ table.glm.climate[i,2]<-extractAIC(model1)[2]
 
 for (i in 1: length(variables1)){
   print(i)
-  model2 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]] +
-                     (ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]])||ignition_pres_abs2$year,
+  model2 <- glmer (sbs_lightning2$pttype ~ sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]] +
+                     (sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]])||sbs_lightning2$year,
                    family = binomial (link = "logit"),
                    verbose = TRUE)
 
@@ -295,8 +243,8 @@ for (i in 1: length(variables1)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model2 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]] *
-                     (ignition_pres_abs2[, variables1[i]] + ignition_pres_abs2[, variables2[i]])||ignition_pres_abs2$year,
+  model2 <- glmer (sbs_lightning2$pttype ~ sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]] *
+                     (sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]])||sbs_lightning2$year,
                    family = binomial (link = "logit"),
                    verbose = TRUE)
   
@@ -311,8 +259,8 @@ table.glm.climate_simple <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate_simple) <- c ("Variable", "AIC")
 for (i in 1: length(variables)){
   print(i)
-  model3 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] +
-                     1|ignition_pres_abs2$year,
+  model3 <- glmer (sbs_lightning2$pttype ~ sbs_lightning2[, variables[i]] +
+                     1|sbs_lightning2$year,
                    family = binomial (link = "logit"), 
                    nAGQ=0,
                    control=glmerControl(optimizer = "nloptwrap"))
@@ -325,9 +273,9 @@ for (i in 1: length(variables)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model4 <- glmer (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables1[i]] +
-                     ignition_pres_abs2[, variables2[i]] + 
-                     1|ignition_pres_abs2$year,
+  model4 <- glmer (sbs_lightning2$pttype ~ sbs_lightning2[, variables1[i]] +
+                     sbs_lightning2[, variables2[i]] + 
+                     1|sbs_lightning2$year,
                    family = binomial (link = "logit"), 
                    nAGQ=0,
                    control=glmerControl(optimizer = "nloptwrap"))
@@ -345,7 +293,7 @@ table.glm.climate_simplest <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate_simplest) <- c ("Variable", "AIC")
 for (i in 1: length(variables)){
   print(i)
-  model3 <- glm (ignition_pres_abs2$pttype ~ ignition_pres_abs2[, variables[i]] + ignition_pres_abs2$year,
+  model3 <- glm (sbs_lightning2$pttype ~ sbs_lightning2[, variables[i]] + sbs_lightning2$year,
                    family = binomial (link = "logit"))
   
   table.glm.climate_simplest[i,1]<-variables[i]
@@ -356,10 +304,10 @@ for (i in 1: length(variables)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model4 <- glm (ignition_pres_abs2$pttype ~ 
-                   ignition_pres_abs2[, variables1[i]] +
-                     ignition_pres_abs2[, variables2[i]] +
-                     ignition_pres_abs2$year,
+  model4 <- glm (sbs_lightning2$pttype ~ 
+                   sbs_lightning2[, variables1[i]] +
+                     sbs_lightning2[, variables2[i]] +
+                     sbs_lightning2$year,
                    family = binomial (link = "logit"))
   
   table.glm.climate_simplest[(i + length(variables)),1]<-paste0(variables1[i], "+",variables2[i])
@@ -368,18 +316,18 @@ for (i in 1: length(variables1)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model4 <- glm (ignition_pres_abs2$pttype ~ 
-                   ignition_pres_abs2[, variables1[i]] *
-                   ignition_pres_abs2[, variables2[i]] +
-                   ignition_pres_abs2$year,
+  model4 <- glm (sbs_lightning2$pttype ~ 
+                   sbs_lightning2[, variables1[i]] *
+                   sbs_lightning2[, variables2[i]] +
+                   sbs_lightning2$year,
                  family = binomial (link = "logit"))
   
   table.glm.climate_simplest[(i + length(variables) + length(variables1)),1]<-paste0(variables1[i], "*",variables2[i])
   table.glm.climate_simplest[(i + length(variables) + length(variables1)),2]<-extractAIC(model4)[2]
 }
 
-model4 <- glm (ignition_pres_abs2$pttype ~
-                 ignition_pres_abs2$year,
+model4 <- glm (sbs_lightning2$pttype ~
+                 sbs_lightning2$year,
                family = binomial (link = "logit"))
 
 table.glm.climate_simplest[65,1]<-paste0("Year only")
@@ -394,15 +342,15 @@ table.glm.climate_simplest$deltaAIC<-table.glm.climate_simplest$AIC- min(table.g
 
 # From the above analysis it seems the best combination of variables is the maximum temperature in July * the total precipitation in July
 
-plot(ignition_pres_abs2$tmax07, ignition_pres_abs2$allppt07)
+plot(sbs_lightning2$tmax07, sbs_lightning2$allppt07)
 
 
 # assembling landscape variables 
 
-names(ignition_pres_abs2)
+names(sbs_lightning2)
 
 # remove points that landed on water (obviously ignitions will not start there)
-ignition_pres_abs3 <-ignition_pres_abs2 %>%
+ignition_pres_abs3 <-sbs_lightning2 %>%
   filter(bclcs_level_2!="W") %>%
   filter(bclcs_level_2!=" ")
 
