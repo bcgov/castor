@@ -88,7 +88,8 @@ parameters <-  list(
                          nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", # the invenotry data
                          nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
                          nameForestInventoryHeight = "proj_height_1", 
-                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', 
