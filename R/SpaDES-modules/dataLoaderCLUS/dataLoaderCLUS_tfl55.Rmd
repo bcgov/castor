@@ -63,8 +63,8 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 
-                                             "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                    "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                                             "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",                                                   "rast.zone_cond_eccc_central_rockies_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_columbia_north_crithab_or_herd",                                                                      "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_central_rockies_crithab_or_herd",                                                                     "rast.zone_cond_eccc_central_rockies_crithab_or_herd",
                                              "rast.zone_du9_scenarios",
                                              "rast.zone_cond_bc_columbia_north_crithab",
                                              "rast.zone_cond_bc_central_rockies_crithab"
@@ -80,7 +80,8 @@ parameters <-  list(
                          nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
                          nameForestInventoryAge = "proj_age_1", 
                          nameForestInventoryHeight = "proj_height_1", 
-                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', 

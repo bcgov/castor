@@ -69,7 +69,6 @@ parameters <-  list(
 "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",                                "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",                              "rast.zone_cond_eccc_rainbows_crithab_or_herd",
 "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
 "rast.zone_cond_eccc_barkerville_crithab_or_herd",
-
 "rast.zone_du9_scenarios",
 "rast.zone_cond_bc_itcha_ilgachuz_crithab",
 "rast.zone_cond_bc_charlotte_alplands_crithab",
@@ -77,7 +76,8 @@ parameters <-  list(
 "rast.zone_cond_bc_wells_gray_north_crithab",
 "rast.zone_cond_bc_barkerville_crithab"
 ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone_constraints",
+                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", 
@@ -88,6 +88,7 @@ parameters <-  list(
                          nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
                          nameForestInventoryHeight = "proj_height_1", 
                          nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', 
@@ -147,8 +148,9 @@ modules <- list("dataLoaderCLUS",
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                scenario = scenario, 
-                rsf_model_coeff = rsf_model_coeff)
+                #rsf_model_coeff = rsf_model_coeff,
+                scenario = scenario 
+                )
 
 inputs <- list()
 outputs <- list()

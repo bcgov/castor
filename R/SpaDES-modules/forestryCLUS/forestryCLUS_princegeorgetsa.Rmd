@@ -63,19 +63,21 @@ pg_centgrp_pa_nh
 BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+- used oldest first
+
+- as alternative,  could focus on minimizzing 'disturabnce; for caribou, then older, higher volume stands
   - 'dist, age DESC, vol DESC' priortize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
--Minimum harvest criteria: 182 m3/ ha
 
 ## 'harvestFlow'
-
 The current AAC (October 11, 2017) is set at 8,350,000 cubic metres per year for the first five years, and
 7,350,000 cubic metres for the following five years. Given its size the TSA is divided into [eight supply blocks](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/map_prince_george_tsa.pdf) with a maxmimum of 1.6 M m3 coming from supply blocks A&B and a maximum of 6.1 million cubic metres per year is attributed to the remaining supply
 blocks (and reduced to 5. 1 million cubic metres in October 2022), of which 62,000 cubic
 metres per year is attributed to deciduous-leading stands. A maximum of 750,000 cubic metres per year is attributed to bioenergy stands.
+
+I started with 6,100,000m3/yr; was close, so dropped to 6,000,000m3/yr; was stable there.
 
 #UPDATE SCENARIO
 ```{r, zone_update}
@@ -83,15 +85,50 @@ metres per year is attributed to deciduous-leading stands. A maximum of 750,000 
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 
-#STEP 3: Update the constraints available to a zone as specified in the scenario
-dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where (reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd') AND (variable = 'dist')") #This example will set all the zones in the partnership agreement to no harvest
 
-#dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
-#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
+# HART RANGES Update the constraints available to a zone as specified in the scenario
+#Below will set Hart Ranges old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 22) OR (zoneid = 37) OR (zoneid = 51)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 9) OR (zoneid = 10) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 70) OR (zoneid = 71)") 
+#Below will set Hart Ranges old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 22)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 9) OR (zoneid = 10) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 70) OR (zoneid = 71) OR (zoneid = 37) OR (zoneid = 51)") 
 
-#STEP 4: Remove the connection to the database
+
+# NORTH CARIBOO Update the constraints available to a zone as specified in the scenario
+#Below will set North Cariboo old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 10) OR (zoneid = 25) OR (zoneid = 40) OR (zoneid = 54)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 7) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 68) OR (zoneid = 75) OR (zoneid = 76)") 
+#Below will set North Cariboo old and recruit as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 10) OR (zoneid = 25)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 7) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 68) OR (zoneid = 75) OR (zoneid = 76) OR (zoneid = 40) OR (zoneid = 54)")
+
+
+# NARROW LAKE Update the constraints available to a zone as specified in the scenario
+#Below will set Narrow Lake old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 9) OR (zoneid = 24) OR (zoneid = 39) OR (zoneid = 53)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 70") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 70")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 10) OR (zoneid = 22) OR (zoneid = 25) OR (zoneid = 37) OR (zoneid = 40) OR (zoneid = 68) OR (zoneid = 71)") 
+#Below will set Narrow Lake old and recruit as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 9) OR (zoneid = 24)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 70") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 70")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 10) OR (zoneid = 22) OR (zoneid = 25) OR (zoneid = 37) OR (zoneid = 39) OR (zoneid = 53) OR (zoneid = 40) OR (zoneid = 68) OR (zoneid = 71)") 
+
+
+
+
 dbDisconnect(clusdb)
 ```
 
@@ -117,7 +154,7 @@ parameters <- list(
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Prince_George_TSA", # this is south part of TSA only; add Prince_George_North_TSA for all TSA
+                           nameBoundary = "Prince_George_TSA", 
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -129,26 +166,46 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
-                                               #"rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
-                                               #'rast.zone_cond_partnership_agreement'
-                                             # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
-                                             # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
-                                             # "rast.central_grp_proposed_luo_matrix"
-                                            
-                                            # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
-                                               "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
+                                    #            'rast.zone_cond_partnership_agreement',
+                                    #          "rast.zone_cond_noharvest_george_mountain_crithab_or_herd",
+                                    #         "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
+                                              # "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd"
+                                    #          "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                    #          "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
+                                    #          "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                    #          "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
+                                    #          "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
+                                    #          "rast.zone_cond_eccc_george_mountain_crithab_or_herd",   
+                                    # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
+                                    # "rast.zone_cond_eccc_hart_ranges_crithab_or_herd"
+                                    # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
+                                    # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
+                                    # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                    # "rast.zone_cond_eccc_north_cariboo_crithab_or_herd"
+                                    # "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd",
+                                    # "rast.central_grp_proposed_luo",
+                                    # "rast.central_grp_proposed_luo_buffer",
+                                    # "rast.central_grp_proposed_luo_matrix",
+                                     "rast.zone_du9_scenarios"
+                                    # "rast.zone_cond_bc_narrow_lake_crithab",
+                                    # "rast.zone_cond_bc_hart_ranges_crithab",
+                                    # "rast.zone_cond_bc_kennedy_siding_crithab",
+                                    # "rast.zone_cond_bc_north_cariboo_crithab",
+                                    # "rast.zone_cond_bc_redrock_prairie_creek_crithab"
                                                ),
                            nameZoneTable = "zone_constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventoryTreed = "bclcs_level_2",
                            nameForestInventorySiteIndex = "site_index"),
   blockingCLUS = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
@@ -156,7 +213,9 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestPriority = "dist, age DESC, vol DESC",
+  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriority = 1,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -196,6 +255,36 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS"
                 )
 
+# scenario = data.table (name = "pg_south_bau",
+#                        description = "Business-as-usual case; south PG TSA only. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+# scenario = data.table (name = "pg_hart_nh",
+#                        description = "No harvest in all Hart Ranges critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+# scenario = data.table (name = "pg_hart_ch_hele0d_m15d",
+#                        description = "No harvest in Hart Ranges high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Hart Ranges matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_hart_scen3a",
+#                        description = "No harvest in old forest, recruitment forest and buffered core critical habitat areas in Hart Ranges, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Hart Ranges matrix habitat areas. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_hart_scen3b",
+#                        description = "No harvest in old forest and recruitment forest critical habitat areas in Hart Ranges, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Hart Ranges matrix habitat areas. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_north_cariboo_nh",
+#                        description = "No harvest in North Cariboo critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_north_cariboo_ch_he0d_m15d",
+#                        description = "No harvest in North Cariboo high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in North Cariboo matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+
+# scenario = data.table (name = "pg_north_cariboo_scen3b",
+#                        description = "No harvest in old forest and recruitment forest critical habitat areas in North Cariboo, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in North Cariboo matrix habitat areas. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_narrow_lake_nh",
+#                        description = "No harvest in Narrow Lake critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_narrow_lake_hele0d_m35d",
+#                        description = "No harvest in Narrow Lake high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_narrow_lake_scen3a",
+#                        description = "No harvest in old forest, recruitment forest and buffered Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+
+scenario = data.table (name = "pg_narrow_lake_scen3b",
+                       description = "No harvest in old forest and recruitment forest in Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+
+
+
+
 # scenario = data.table (name = "pg_centgrp_pa_nh",
 #                        description = "No harvest in all central group partnership agreement areas")
 # scenario = data.table (name = "pg_chil_nh_notweeds",
@@ -204,30 +293,24 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat.")
 # scenario = data.table (name = "pg_luo_35p_25yo",
 #                        description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
-# scenario = data.table (name = "pg_north_cariboo_nh",
-#                        description = "No harvest in North Cariboo critical habitat")
-# scenario = data.table (name = "pg_narrow_lake_nh",
-#                        description = "No harvest in Narrow Lake critical habitat.")
 
-scenario = data.table (name = "pg_narrow_lake_hele0d_m35d",
-                       description = "No harvest in Narrow Lake high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat.")
+
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA",
-                                     partition = ' vol > 182 and age >= 75  ', 
-                                     year = rep( seq (from = 2018, # run the 
-                                                      to = 2022, 
-                                                      by = 5),
-                                                1), 
-                                     flow = 27800000),
-                              data.table(compartment ="Prince_George_TSA",
-                                     partition = ' vol > 182 and age >= 75  ',
-                                     year = rep( seq (from = 2022, # run the
-                                                      to = 2222,
-                                                      by = 5),
-                                                1),
-                                     flow = 27800000)
+                                         partition = ' vol > 182 and age >= 75  ', 
+                                           year = rep( seq (from = 2018, 
+                                                            to = 2218, 
+                                                            by = 5),
+                                                      1), 
+                                           flow = 30000000) #6,000,000
 ))
+
+
+
+
+
+
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
 

@@ -61,7 +61,7 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                                  "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                                                    "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
                                           "rast.zone_cond_noharvest_monashee_crithab_or_herd",
                                           "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd",
                                           "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
@@ -86,6 +86,7 @@ parameters <-  list(
                          nameForestInventoryAge = "proj_age_1", 
                          nameForestInventoryHeight = "proj_height_1", 
                          nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
@@ -145,7 +146,7 @@ modules <- list("dataLoaderCLUS",
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                rsf_model_coeff = rsf_model_coeff,
+                #rsf_model_coeff = rsf_model_coeff,
                 scenario = scenario 
                 )
 
