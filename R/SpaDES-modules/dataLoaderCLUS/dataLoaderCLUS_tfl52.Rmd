@@ -65,9 +65,9 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                 "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",                                                     "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
-                                 "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",                                                       "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
-                                 "rast.zone_cond_noharvest_barkerville_crithab_or_herd",                                                       "rast.zone_cond_eccc_barkerville_crithab_or_herd",
+                                 "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",                                                                       "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
+                                 "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",                                                                         "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
+                                 "rast.zone_cond_noharvest_barkerville_crithab_or_herd",                                                                         "rast.zone_cond_eccc_barkerville_crithab_or_herd",
                                  "rast.zone_du9_scenarios",
                                  "rast.zone_cond_bc_north_cariboo_crithab",
                                  "rast.zone_cond_bc_narrow_lake_crithab",
@@ -85,6 +85,7 @@ parameters <-  list(
                          nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
                          nameForestInventoryHeight = "proj_height_1", 
                          nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', 

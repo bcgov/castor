@@ -64,7 +64,7 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 
-                                "rast.zone_cond_noharvest_purcell_central_crithab_or_herd",                                                   "rast.zone_cond_eccc_purcell_central_crithab_or_herd",
+                                "rast.zone_cond_noharvest_purcell_central_crithab_or_herd",                                                                     "rast.zone_cond_eccc_purcell_central_crithab_or_herd",
                                 "rast.zone_du9_scenarios",
                                 "rast.zone_cond_bc_purcell_central_crithab"
                                           ), 
@@ -80,6 +80,7 @@ parameters <-  list(
                          nameForestInventoryAge = "proj_age_1", 
                          nameForestInventoryHeight = "proj_height_1", 
                          nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', 
