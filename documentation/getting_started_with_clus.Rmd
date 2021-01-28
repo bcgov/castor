@@ -62,6 +62,7 @@ We use the provincial forest inventory to obtain forest stand characteristics. O
 Forest inventory data is organized for CLUS via the "raster_data.Rmd". The input is the VRI [layer 1 polygon data](https://catalogue.data.gov.bc.ca/dataset/vri-2019-forest-vegetation-composite-rank-1-layer-r1-), from which a raster of each polygon identifier (feature_id) is created for the province. The specifics of which data from the inventory get incorporated into CLUS are documented in the dataLoaderCLUS. A raster of the timber harvest land base (THLB) is also created in the "raster_data.Rmd".
 
 #### Wildlife Habitat Models
+
 The "rsf_model_coeff.Rmd" can be used to create habitat models for various wildlife species, using the resource selection function (RSF) approach. The .Rmd creates a coefficient table for estimating habitat selection. The table includes the coeffcient values and spatial data, if required to apply coefficents.   
 
 ### SpaDES Modules
