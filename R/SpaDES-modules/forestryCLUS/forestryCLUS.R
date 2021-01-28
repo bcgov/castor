@@ -345,7 +345,6 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
           print(paste0("Adjust harvest flow | gs constraint: ", harvestTarget))
         }
         
-        test_queue<<-queue
         queue<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]
         
         sim$harvestPixelList<-queue
@@ -367,7 +366,6 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         
         land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
         setnames(land_coord,c("x", "y"), c("X", "Y"))
-        test98<<-land_coord
         
         #Create proj_vol for uncertainty in yields
         temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
@@ -391,7 +389,6 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
  
   #convert to class SpatialPoints needed for roadsCLUS
   if(!is.null(land_coord)){
-    test99<<-land_coord
     sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
   }else{
     message("no landings")
