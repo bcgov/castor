@@ -55,7 +55,9 @@ No harvest in Central Selkirks = rast.zone_cond_noharvest_central_selkirks_crith
 ECCC Central Selkirks = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+- used oldest first
+
+- as alternative,  could focus on minimizzing 'disturabnce; for caribou, then older, higher volume stands
   - 'dist, age DESC, vol DESC' priortize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
@@ -64,16 +66,40 @@ ECCC Central Selkirks = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
 - tsr used a highest volume first rule
 
 ## 'harvestFlow'
-from 2020 determination: maximum non-decliningevem-flow was 76,000m^3^/year for 20 years
+from 2020 determination: maximum non-declining even-flow was 76,000m^3^/year for 20 years
 
-- First, I tested a harvest flow of 76,000m^3^/year (380,000m^3^/5-year); increased to 100,000 m^3^/year, 90,000, 85,000, 80,000, 82,500
+- First, I tested a harvest flow of 76,000m^3^/year (380,000m^3^/5-year); 100,000, 95,000
 
+- stable flow at 95,000m^3^/year 
 
-From 2020 analysis report, used minimum volume of 150 cubic metres for 'gounrd-based' operations and 200 cubic metres for cable operations; stands must achieve age where MAI is 95% of max, but when removed this, only lowered AAC by 3.8%
+From 2020 analysis report, used minimum volume of 150 cubic metres for 'ground-based' operations and 200 cubic metres for cable operations; stands must achieve age where MAI is 95% of max, but when removed this, only lowered AAC by 3.8%
 
 - I used 150 m3/ha as minimum harvest volume
 
 For cutblock adjacency, in analysis report, allowed maximum 25% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; thus is a bit conservative; varying this form 20% to 33% had minimal imapct on timber supply
+
+```{r, zone_update}
+library (DBI)
+# STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Cascadia_TKO_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+# STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+
+# CENTRAL SELKIRKS
+#Below will set Central Selkirks old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 8) OR (zoneid = 19) OR (zoneid = 23) OR (zoneid = 34) OR (zoneid = 8) OR (zoneid = 38) OR (zoneid = 64) OR (zoneid = 67) OR (zoneid = 69)")
+#Below will set Central Selkirks old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 33")
+
+dbDisconnect(clusdb)
+```
+
 
 
 ```{r module_usage}
@@ -106,8 +132,9 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               #"rast.zone_cond_noharvest_central_selkirks_crithab_or_herd" 
-                                               "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
+                                               # "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd" 
+                                               # "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
+                                               "rast.zone_du9_scenarios"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -115,9 +142,9 @@ parameters <- list(
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
@@ -176,13 +203,20 @@ modules <- list("dataLoaderCLUS",
 
 
 # scenario = data.table (name = "cascadiakb_bau",
-#                        description = "Business-as-usual (BAU). Adjacency was set to 3m.")
-# 
+#                        description = "Business-as-usual (BAU). Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
 # scenario = data.table (name = "cascadiakb_centselk_nh",
-#                        description = "No harvest in all Central Selkirks critical habitat. Adjacency was set to 3m.")
-# 
-scenario = data.table (name = "cascadiakb_centselk_ch_he0d_m15d",
-                       description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
+#                        description = "No harvest in all Central Selkirks critical habitat. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
+# scenario = data.table (name = "cascadiakb_centselk_ch_he0d_m15d",
+#                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
+# scenario = data.table (name = "cascadiakb_centselk_scen3a",
+#                        description = "NNo harvest in old forest, recruitment forest and buffered Central Selkirks core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Central Selkirks matrix habitat areas. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
+
+scenario = data.table (name = "cascadiakb_centselk_scen3b",
+                       description = "No harvest in old forest and recruitment forest Central Selkirks core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Central Selkirks matrix habitat areas. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
+
+
+
+
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Cascadia_TKO_TSA",
@@ -191,7 +225,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Cascadia_TKO_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 412500) #82,500m3/yr 
+                                     flow = 475000) #95,000m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
