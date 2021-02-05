@@ -878,8 +878,8 @@ dbDisconnect(conn)
 
 ```
 
-### All DU( (Except Groundhog)
-The following creates zones for DU9 caribou. Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different contraints on different herds and different habtait types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area).  
+### All DU9 (Except Groundhog)
+The following creates zones for DU9 caribou. Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different constraints on different herds and different habitat types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area).  
 
 Here we start with consistent constraints across herds and scenarios, but vary constraints across habitat types, where no harvest is applied to core habitat and maximum 35% disturbance is applied to matrix. Note that for 35% disturbance I used a 15% threshold to account for edge effects of buffered areas that are difficult to account for in the model, but this can be varied as needed.
 
@@ -890,9 +890,7 @@ Here we start with consistent constraints across herds and scenarios, but vary c
 #                         port = '5432',
 #                         user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
 #                         password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-# reve_area <- getSpatialQuery("SELECT * from public.old_recruit_buff_matrix_fin;")
-
-# NEEDS TO BE ADDED TO PGDB; COULD NOT CONNECT TO DB, SO LAODED FROAM LOCAL FILE 
+# du9_scenarios <- getSpatialQuery("SELECT * from public.old_recruit_buff_matrix_fin;")
 
 require (sf)
 require (data.table)
@@ -942,9 +940,58 @@ dbDisconnect(conn)
 ```
 
 
+### DU9 - Groundhog only
+The following creates zones for groundhog caribou. Same as DU9 above.
 
+```{r, proposed DU9 areas}
 
+# NOT ADDED TO PGDB; LOADED FROAM LOCAL FILE; LOCATEDC IN CLUS folder database on psatialfiles
 
+require (sf)
+require (data.table)
+
+gh_scenarios <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\scenarios\\southern_mtn\\Groundhog_George.gdb",
+                              layer="GH_OLD_RECRUIT_BUFFER_CORE_MATRIX")
+gh_scenarios <- st_zm (gh_scenarios, drop = TRUE, what = "ZM")
+gh_scenarios$zone <- paste (gh_scenarios$Herd_Name, # create concatenated var to id each zone
+                             gh_scenarios$BC_Habitat, 
+                             gh_scenarios$Scenario_Name,
+                             sep="_")
+
+# zone integer  
+gh_scenarios_vat <- data.table (st_drop_geometry (gh_scenarios [, c ('zone')]))  
+gh_scenarios_vat [, value := seq_len(.N)]  
+all_gh_scenarios <- merge (gh_scenarios, gh_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(gh_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_gh_scenarios <- fasterize::fasterize (all_gh_scenarios, prov.rast, field = "value")
+writeRaster (ras_gh_scenarios, "ras_gh_scenarios.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_gh_scenarios.tif -t 100x100 rast.zone_gh_scenarios | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:4)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_gh_scenarios', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(5)), 
+                           type = 'ge', variable = 'dist', threshold = 500, 
+                           reference_zone = 'rast.zone_gh_scenarios', 
+                           percentage = 65, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_gh_scenarios <- rbindlist(list(zone_core, zone_matrix))
+
+DBI::dbWriteTable(conn, c("public", "zone_gh_scenarios_vat"), value = gh_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "zone_gh_scenarios"), value = zone_gh_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_gh_scenarios INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
 
 
 

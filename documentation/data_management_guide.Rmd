@@ -231,6 +231,38 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
 
+## For Groundhog
+du9_data <- data.table (computer = 'DC052586', 
+                         database = 'clus', 
+                         schema = 'public', 
+                         table_name = 'gh_old_recruit_buff_matrix_fin', 
+                         type = 'polygon', 
+                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                         source = 'Bevan Ernst, FLNRORD; du9 scenario for groundhog only', 
+                         public = 'No', 
+                         last_updated = '2020', 
+                         next_update = 'as needed', 
+                         where_used = 'dataLoaderCLUS' 
+                         )
+pgdbs_data_list <- getTableQuery ("SELECT * from public.pgdbs_data_list;")
+pgdbs_data_list_new <- merge (pgdbs_data_list, du9_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+
+gh_raster_data <- data.table (computer = 'DC052586', database = 'clus', schema = 'rast', table_name = 'rast.zone_gh_scenarios', type = 'raster', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD; du9 scenario for groundhog only', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+pgdbs_data_list_new2 <- merge (pgdbs_data_list, gh_raster_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new2, 
+                  row.names = FALSE, overwrite = TRUE)
+
+gh_data2 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_gh_scenarios_vat', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+gh_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_gh_scenarios', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+pgdbs_data_list <- merge (pgdbs_data_list, gh_data2, all = T)
+pgdbs_data_list <- merge (pgdbs_data_list, gh_data3, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
 
 ```
 
