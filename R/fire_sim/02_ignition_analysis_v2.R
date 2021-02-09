@@ -30,6 +30,9 @@ library (arm)
 library(ggpubr)
 library(mgcv)
 library(nlme)
+library(purrr)
+library(tidyr)
+
 
 source(here::here("R/functions/R_Postgres.R"))
 
@@ -61,10 +64,14 @@ fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column f
 fire_ignitions1$month<- substring(fire_ignitions1$ign_date, 5, 6)
 
 fire_ignitions1_new<- fire_ignitions1 %>%
-  filter(fire_year >=2002)
+  filter(fire_year >=2002) %>%
+  filter(fire_cause=="Lightning")
 fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
-hist(fire_ignitions1_new$month) # most lightning fires appear to occur between May - Sept!
+hist(fire_ignitions1_new$month, xlab="Month", main="Histogram of lightning caused fires") # most lightning fires appear to occur between May - Sept!
+
+
 table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
+table(fire_veg_data$fire_yr, fire_veg_data$fire_pres)
 table(fire_veg_data$fire_cs)
 
 fire_veg_data$fire_cs<- as.factor(fire_veg_data$fire_cs)
@@ -74,14 +81,208 @@ dim(fire_veg_data)
 fire_veg_data1<- fire_veg_data %>%
   filter(fire_cs!="Person") 
 fire_veg_data1<- fire_veg_data1 %>%
-  filter(fire_cs!="Unknown") 
+  filter(fire_cs!="Unknown")
+fire_veg_data1<- fire_veg_data1 %>%
+  filter(fire_cs!="Nuisance Fire") 
+table(fire_veg_data1$fire_yr, fire_veg_data1$fire_cs)
+
 table(fire_veg_data1$fire_cs)
-table(fire_veg_data1$fire_yr, fire_veg_data1$fire_pres)
+table(fire_veg_data1$fire_yr, fire_veg_data1$fire_pres )
 
-# fire_veg_data1 is the final data set
+fire_veg_data2<- st_set_geometry(fire_veg_data1, NULL)
+# remove points that landed on water (obviously ignitions will not start there)
+ignition_pres_abs3 <-fire_veg_data2 %>%
+  filter(bclcs_level_2!="W") %>%
+  filter(bclcs_level_2!=" ")
+table(ignition_pres_abs3$bclcs_level_2) # T=treed, N =  non-treed and L = land.
 
-# Sub-boreal Spruce
-sbs<- fire_veg_data1 %>% dplyr::filter(zone =="SBS")
+
+#Creating new variable of vegetation type and a description of how open the vegetation is
+# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open
+ignition_pres_abs3$bclcs_level_4<- as.factor(ignition_pres_abs3$bclcs_level_4)
+ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclcs_level_4)
+unique(ignition_pres_abs4$bclcs_level_4)
+ignition_pres_abs4$proj_age_1<- as.numeric(ignition_pres_abs4$proj_age_1)
+
+ignition_pres_abs4$vegtype<-"OP" # open
+ignition_pres_abs4 <- ignition_pres_abs4 %>%
+  mutate(vegtype = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
+                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
+                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
+                                           if_else(bclcs_level_4=="SL", "S", # shrub
+                                                   if_else(bclcs_level_4=="ST", "S", vegtype))))))
+ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # disturbed
+
+ignition_pres_abs4<- ignition_pres_abs4 %>%
+  filter(fir_typ!="Nuisance Fire") 
+table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
+
+
+# subsample the data since my sample sizes for the zeros are too large
+# steps
+# first get sample sizes per habitat type and year for the 1's. Then sample 10x or some amount more than that value in each of those vegetation, year categories. 
+# see https://jennybc.github.io/purrr-tutorial/ls12_different-sized-samples.html for an idea on how to do this.
+
+pre<- ignition_pres_abs4 %>%
+  filter(fire_pres==1) %>%
+  dplyr::select(fire_yr, fire_pres,zone, subzone) %>%
+  group_by(fire_yr, zone,subzone) %>%
+  summarize(fire_n=n())
+
+pre_checkpre<- ignition_pres_abs4 %>%
+  filter(fire_pres==0) %>%
+  dplyr::select(fire_yr, fire_pres,zone, subzone) %>%
+  group_by(fire_yr, zone, subzone) %>%
+  summarize(abs_n=n())
+
+check<-left_join(pre, pre_checkpre)
+
+abs_match <- ignition_pres_abs4 %>%
+  filter(fire_pres == 0) %>%
+  group_by(fire_yr, zone, subzone) %>%   # prep for work by yr and veg type
+  nest() %>%              # --> one row per yr and vegtype
+  ungroup()
+
+df<-left_join(check, abs_match) # make sure there are not veg year combinations taht are not also in the fire_pres==1 file
+
+
+# there are 3 year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values them but Im still having issues. WHY?
+df2 <- df %>% 
+  filter(lengths(data)>0)
+
+# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now Ill leave it like this.
+  sampled_df<- df2 %>% 
+    mutate(samp = map2(data, ceiling(fire_n*1.5), sample_n, replace=TRUE)) %>%
+    dplyr::select(-data) %>%
+    unnest(samp) %>%
+    dplyr::select(fire_yr, zone, subzone, feature_id:vegtype)
+ 
+
+pre1<- ignition_pres_abs4 %>%
+  filter(fire_pres==1)
+
+dat<- rbind(pre1, as.data.frame(sampled_df))
+
+# creating amalgamations of variables
+
+dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
+dat$mean_tmax07_tmax08<- (dat$tmax07+ dat$tmax08)/2
+dat$mean_tmax08_tmax09<- (dat$tmax08+ dat$tmax09)/2
+dat$mean_tmax06_tmax07_tmax08<- (dat$tmax06+ dat$tmax07 + dat$tmax08)/3
+dat$mean_tmax07_tmax08_tmax09<- (dat$tmax07+ dat$tmax08 + dat$tmax09)/3
+dat$mean_tmax06_tmax07_tmax08_tmax09<- (dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/4
+
+dat$mean_cmi06_cmi07<- (dat$cmi06+ dat$cmi07)/2
+dat$mean_cmi07_cmi08<- (dat$cmi07+ dat$cmi08)/2
+dat$mean_cmi08_cmi09<- (dat$cmi08+ dat$cmi09)/2
+dat$mean_cmi06_cmi07_cmi08<- (dat$cmi06+ dat$cmi07 + dat$cmi08)/3
+dat$mean_cmi07_cmi08_cmi09<- (dat$cmi07+ dat$cmi08 + dat$cmi09)/3
+dat$mean_cmi06_cmi07_cmi08_cmi09<- (dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/4
+
+dat$mean_ppt06_ppt07<- (dat$ppt06+ dat$ppt07)/2
+dat$mean_ppt07_ppt08<- (dat$ppt07+ dat$ppt08)/2
+dat$mean_ppt08_ppt09<- (dat$ppt08+ dat$ppt09)/2
+dat$mean_ppt06_ppt07_ppt08<- (dat$ppt06+ dat$ppt07 + dat$ppt08)/3
+dat$mean_ppt07_ppt08_ppt09<- (dat$ppt07+ dat$ppt08 + dat$ppt09)/3
+dat$mean_ppt06_ppt07_ppt08_ppt09<- (dat$ppt06+ dat$ppt07 + dat$ppt08 + dat$ppt09)/4
+
+dat$mean_mdc06_mdc07<- (dat$mdc_06+ dat$mdc_07)/2
+dat$mean_mdc07_mdc08<- (dat$mdc_07+ dat$mdc_08)/2
+dat$mean_mdc08_mdc09<- (dat$mdc_08+ dat$mdc_09)/2
+dat$mean_mdc06_mdc07_mdc08<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08)/3
+dat$mean_mdc07_mdc08_mdc09<- (dat$mdc_07+ dat$mdc_08 + dat$mdc_09)/3
+dat$mean_mdc06_mdc07_mdc08_mdc09<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08 + dat$mdc_09)/4
+
+
+variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09" , "mean_tmax06_tmax07_tmax08_tmax09", "cmi06", "cmi07", "cmi08", "cmi09", "mean_cmi06_cmi07", "mean_cmi07_cmi08", "mean_cmi08_cmi09", "mean_cmi06_cmi07_cmi08", "mean_cmi07_cmi08_cmi09", "mean_cmi06_cmi07_cmi08_cmi09","ppt06", "ppt07", "ppt08", "ppt09", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", "mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09", "mean_ppt06_ppt07_ppt08_ppt09","mdc_06", "mdc_07", "mdc_08", "mdc_09", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", "mean_mdc06_mdc07_mdc08_mdc09")
+
+variables1<-c("tmax06", "tmax07", "tmax08", "tmax09",
+              "tmax06", "tmax07", "tmax08", "tmax09",
+              "tmax06", "tmax07", "tmax08", "tmax09",
+              "cmi06", "cmi07", "cmi08", "cmi09",
+              "cmi06", "cmi07", "cmi08", "cmi09"
+)
+variables2<-c("ppt06", "ppt07", "ppt08", "ppt09",
+              "mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              "cmi06", "cmi07", "cmi08", "cmi09",
+              "ppt06", "ppt07", "ppt08", "ppt09",
+              "mdc_06", "mdc_07", "mdc_08", "mdc_09"
+)
+
+dat$fire_pres<-as.numeric(dat$fire_pres)              
+
+
+# create loop to do variable selection of climate data
+unique(dat$zone)
+zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "CDF", "BWBS", "BG", "SBS", "SWB", "BAFA")
+filenames<-list()
+
+for (h in 1:length(zones)) {
+dat1<- dat %>% dplyr::filter(zone ==zones[h])
+
+
+######################################################################
+#### Generation AIC tables to select best environmental predictors####
+######################################################################
+
+
+#Create frame of AIC table
+# summary table
+table.glm.climate <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (table.glm.climate) <- c ("Zone", "Variable", "AIC")
+
+# Creates AIC table with a model that that allows slope and intercept to vary
+for (i in 1: length(variables)){
+  print(i)
+  model1 <- glmer (dat1$fire_pres ~ dat1[, variables[i]] +
+                     dat1[, variables[i]]||dat1$fire_yr,
+                   family = binomial (link = "logit"),
+                   verbose = TRUE)
+  
+  table.glm.climate[h,1]<-zones[h]
+  table.glm.climate[i,2]<-variables[i]
+  table.glm.climate[i,3]<-extractAIC(model1)[2]
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(i)
+  model2 <- glmer (dat1$fire_pres ~ dat1[, variables1[i]] + dat1[, variables2[i]] +
+                     (dat1[, variables1[i]] + dat1[, variables2[i]])||dat1$fire_yr,
+                   family = binomial (link = "logit"),
+                   verbose = TRUE)
+  
+  table.glm.climate[h,1]<-zones[h]
+  table.glm.climate[(i+length(variables)),2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate[(i+length(variables)),3]<-extractAIC(model2)[2]
+}
+
+for (i in 1: length(variables1)){
+  print(i)
+  model2 <- glmer (dat1$fire_pres ~ dat1[, variables1[i]] * dat1[, variables2[i]] +
+                     (dat1[, variables1[i]] + dat1[, variables2[i]])||dat1$fire_yr,
+                   family = binomial (link = "logit"),
+                   verbose = TRUE)
+  
+  table.glm.climate[h,1]<-zones[h]
+  table.glm.climate[(i+length(variables) +length(variables1)),2]<-paste0(variables1[i],"X", variables2[i])
+  table.glm.climate[(i+length(variables) +length(variables1)),3]<-extractAIC(model2)[2]
+}
+table.glm.climate1<-table.glm.climate %>% drop_na(AIC)
+
+table.glm.climate1$deltaAIC<-table.glm.climate1$AIC- min(table.glm.climate1$AIC)
+
+#assign file names to the work
+nam1<-paste("AIC",zones[i],sep="_") #defining the name
+assign(nam1,table.glm.climate1)
+filenames<-append(filenames,nam1)
+}
+
+write.csv(table.glm.climate1, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results.csv")
+
+
+
 
 ##################
 #### FIGURES ####
@@ -91,7 +292,7 @@ sbs<- fire_veg_data1 %>% dplyr::filter(zone =="SBS")
   
 # Plotting Probability of ignition versus drought code. Seems like similar trends are found in each month (June to August) but trend seems to get stronger in later months i.e. July and August.
 
-p <- ggplot(sbs, aes(mdc_08, as.numeric(fire_pres))) +
+p <- ggplot(dat, aes(mdc_08, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -100,7 +301,7 @@ p <- ggplot(sbs, aes(mdc_08, as.numeric(fire_pres))) +
 p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 
-p <- ggplot(sbs, aes(mdc_07, as.numeric(fire_pres))) +
+p <- ggplot(dat, aes(mdc_07, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -110,7 +311,7 @@ p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 
 # Climate moisture index
-p <- ggplot(sbs, aes(cmi08, as.numeric(fire_pres))) +
+p <- ggplot(dat, aes(cmi08, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -129,7 +330,7 @@ p <- ggplot(sbs, aes(tmax07, as.numeric(fire_pres))) +
 p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 # August
-p <- ggplot(sbs, aes(tmax08, as.numeric(fire_pres))) +
+p <- ggplot(dat, aes(tmax08, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -144,60 +345,66 @@ p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 # To select the best single fire weather covariate I first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then I fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). I also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
 
-names(sbs)
+names(dat)
 
-# correlation between max T and MDC. For sbs there is not high correlation between tmax and mdc, which seems odd since MDC is calculated using Tmax.
-dist.cut.corr <- st_set_geometry(sbs [c (20:24, 40:44)], NULL)
+
+# correlation between max T and MDC. For sbs there is not high correlation between tmax and mdc, which seems odd since MDC is calculated using Tmax and precipitation
+dist.cut.corr <- dat [c (20:24, 40:44)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
-# But in SBS there is high correlation between total precipitation and MDC. Interesting!
-dist.cut.corr <- st_set_geometry(sbs [c (30:34, 40:44)], NULL)
+# But in dat there is high correlation between total precipitation and MDC. Interesting!
+dist.cut.corr <- dat [c (30:34, 40:44)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and MDC")
 
-# Correlation between Tmax and total precipitation. 
-dist.cut.corr <- st_set_geometry(sbs [c (20:24, 30:34)], NULL)
+# Correlation between Tmax and total precipitation. There is basically none 
+dist.cut.corr <- dat [c (20:24, 30:34)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tmax")
+
+# Correlation between Tmax and climate moisture index. Not too much correlation, the highest is between tmax09 and cmi09 (-0.52)
+dist.cut.corr <- dat [c (20:24, 35:39)]
+corr <- round (cor (dist.cut.corr), 3)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between Tmax and CMI")
 
 
 ######################################################################
 #### Generation AIC tables to select best environmental predictors####
 ######################################################################
 # creating amalgamations of variables
-sbs_lightning2<- st_set_geometry(sbs, NULL)
 
-sbs_lightning2$mean_tmax06_tmax07<- (sbs_lightning2$tmax06+ sbs_lightning2$tmax07)/2
-sbs_lightning2$mean_tmax07_tmax08<- (sbs_lightning2$tmax07+ sbs_lightning2$tmax08)/2
-sbs_lightning2$mean_tmax08_tmax09<- (sbs_lightning2$tmax08+ sbs_lightning2$tmax09)/2
-sbs_lightning2$mean_tmax06_tmax07_tmax08<- (sbs_lightning2$tmax06+ sbs_lightning2$tmax07 + sbs_lightning2$tmax08)/3
-sbs_lightning2$mean_tmax07_tmax08_tmax09<- (sbs_lightning2$tmax07+ sbs_lightning2$tmax08 + sbs_lightning2$tmax09)/3
-sbs_lightning2$mean_tmax06_tmax07_tmax08_tmax09<- (sbs_lightning2$tmax06 + sbs_lightning2$tmax07+ sbs_lightning2$tmax08 + sbs_lightning2$tmax09)/4
+dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
+dat$mean_tmax07_tmax08<- (dat$tmax07+ dat$tmax08)/2
+dat$mean_tmax08_tmax09<- (dat$tmax08+ dat$tmax09)/2
+dat$mean_tmax06_tmax07_tmax08<- (dat$tmax06+ dat$tmax07 + dat$tmax08)/3
+dat$mean_tmax07_tmax08_tmax09<- (dat$tmax07+ dat$tmax08 + dat$tmax09)/3
+dat$mean_tmax06_tmax07_tmax08_tmax09<- (dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/4
 
-sbs_lightning2$mean_cmi06_cmi07<- (sbs_lightning2$cmi06+ sbs_lightning2$cmi07)/2
-sbs_lightning2$mean_cmi07_cmi08<- (sbs_lightning2$cmi07+ sbs_lightning2$cmi08)/2
-sbs_lightning2$mean_cmi08_cmi09<- (sbs_lightning2$cmi08+ sbs_lightning2$cmi09)/2
-sbs_lightning2$mean_cmi06_cmi07_cmi08<- (sbs_lightning2$cmi06+ sbs_lightning2$cmi07 + sbs_lightning2$cmi08)/3
-sbs_lightning2$mean_cmi07_cmi08_cmi09<- (sbs_lightning2$cmi07+ sbs_lightning2$cmi08 + sbs_lightning2$cmi09)/3
-sbs_lightning2$mean_cmi06_cmi07_cmi08_cmi09<- (sbs_lightning2$cmi06 + sbs_lightning2$cmi07+ sbs_lightning2$cmi08 + sbs_lightning2$cmi09)/4
+dat$mean_cmi06_cmi07<- (dat$cmi06+ dat$cmi07)/2
+dat$mean_cmi07_cmi08<- (dat$cmi07+ dat$cmi08)/2
+dat$mean_cmi08_cmi09<- (dat$cmi08+ dat$cmi09)/2
+dat$mean_cmi06_cmi07_cmi08<- (dat$cmi06+ dat$cmi07 + dat$cmi08)/3
+dat$mean_cmi07_cmi08_cmi09<- (dat$cmi07+ dat$cmi08 + dat$cmi09)/3
+dat$mean_cmi06_cmi07_cmi08_cmi09<- (dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/4
 
-sbs_lightning2$mean_ppt06_ppt07<- (sbs_lightning2$ppt06+ sbs_lightning2$ppt07)/2
-sbs_lightning2$mean_ppt07_ppt08<- (sbs_lightning2$ppt07+ sbs_lightning2$ppt08)/2
-sbs_lightning2$mean_ppt08_ppt09<- (sbs_lightning2$ppt08+ sbs_lightning2$ppt09)/2
-sbs_lightning2$mean_ppt06_ppt07_ppt08<- (sbs_lightning2$ppt06+ sbs_lightning2$ppt07 + sbs_lightning2$ppt08)/3
-sbs_lightning2$mean_ppt07_ppt08_ppt09<- (sbs_lightning2$ppt07+ sbs_lightning2$ppt08 + sbs_lightning2$ppt09)/3
-sbs_lightning2$mean_ppt06_ppt07_ppt08_ppt09<- (sbs_lightning2$ppt06+ sbs_lightning2$ppt07 + sbs_lightning2$ppt08 + sbs_lightning2$ppt09)/4
+dat$mean_ppt06_ppt07<- (dat$ppt06+ dat$ppt07)/2
+dat$mean_ppt07_ppt08<- (dat$ppt07+ dat$ppt08)/2
+dat$mean_ppt08_ppt09<- (dat$ppt08+ dat$ppt09)/2
+dat$mean_ppt06_ppt07_ppt08<- (dat$ppt06+ dat$ppt07 + dat$ppt08)/3
+dat$mean_ppt07_ppt08_ppt09<- (dat$ppt07+ dat$ppt08 + dat$ppt09)/3
+dat$mean_ppt06_ppt07_ppt08_ppt09<- (dat$ppt06+ dat$ppt07 + dat$ppt08 + dat$ppt09)/4
 
-sbs_lightning2$mean_mdc06_mdc07<- (sbs_lightning2$mdc_06+ sbs_lightning2$mdc_07)/2
-sbs_lightning2$mean_mdc07_mdc08<- (sbs_lightning2$mdc_07+ sbs_lightning2$mdc_08)/2
-sbs_lightning2$mean_mdc08_mdc09<- (sbs_lightning2$mdc_08+ sbs_lightning2$mdc_09)/2
-sbs_lightning2$mean_mdc06_mdc07_mdc08<- (sbs_lightning2$mdc_06+ sbs_lightning2$mdc_07 + sbs_lightning2$mdc_08)/3
-sbs_lightning2$mean_mdc07_mdc08_mdc09<- (sbs_lightning2$mdc_07+ sbs_lightning2$mdc_08 + sbs_lightning2$mdc_09)/3
-sbs_lightning2$mean_mdc06_mdc07_mdc08_mdc09<- (sbs_lightning2$mdc_06+ sbs_lightning2$mdc_07 + sbs_lightning2$mdc_08 + sbs_lightning2$mdc_09)/4
+dat$mean_mdc06_mdc07<- (dat$mdc_06+ dat$mdc_07)/2
+dat$mean_mdc07_mdc08<- (dat$mdc_07+ dat$mdc_08)/2
+dat$mean_mdc08_mdc09<- (dat$mdc_08+ dat$mdc_09)/2
+dat$mean_mdc06_mdc07_mdc08<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08)/3
+dat$mean_mdc07_mdc08_mdc09<- (dat$mdc_07+ dat$mdc_08 + dat$mdc_09)/3
+dat$mean_mdc06_mdc07_mdc08_mdc09<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08 + dat$mdc_09)/4
 
 
 variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09" , "mean_tmax06_tmax07_tmax08_tmax09", "cmi06", "cmi07", "cmi08", "cmi09", "mean_cmi06_cmi07", "mean_cmi07_cmi08", "mean_cmi08_cmi09", "mean_cmi06_cmi07_cmi08", "mean_cmi07_cmi08_cmi09", "mean_cmi06_cmi07_cmi08_cmi09","ppt06", "ppt07", "ppt08", "ppt09", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", "mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09", "mean_ppt06_ppt07_ppt08_ppt09","mdc_06", "mdc_07", "mdc_08", "mdc_09", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", "mean_mdc06_mdc07_mdc08_mdc09")
@@ -215,7 +422,7 @@ variables2<-c("ppt06", "ppt07", "ppt08", "ppt09",
               "mdc_06", "mdc_07", "mdc_08", "mdc_09"
               )
 
-sbs_lightning2$fire_pres<-as.numeric(sbs_lightning2$fire_pres)              
+dat$fire_pres<-as.numeric(dat$fire_pres)              
               
 #Create frame of AIC table
 # summary table
@@ -225,8 +432,8 @@ colnames (table.glm.climate) <- c ("Variable", "AIC")
 # Creates AIC table with a model that that allows slope and intercept to vary
 for (i in 1: length(variables)){
   print(i)
-model1 <- glmer (sbs_lightning2$fire_pres ~ sbs_lightning2[, variables[i]] +
-                   sbs_lightning2[, variables[i]]||sbs_lightning2$fire_yr,
+model1 <- glmer (dat$fire_pres ~ dat[, variables[i]] +
+                   dat[, variables[i]]||dat$fire_yr,
                  family = binomial (link = "logit"),
                  verbose = TRUE)
 
@@ -238,8 +445,8 @@ table.glm.climate[i,2]<-extractAIC(model1)[2]
 
 for (i in 1: length(variables1)){
   print(i)
-  model2 <- glmer (sbs_lightning2$fire_pres ~ sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]] +
-                     (sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]])||sbs_lightning2$fire_yr,
+  model2 <- glmer (dat$fire_pres ~ dat[, variables1[i]] + dat[, variables2[i]] +
+                     (dat[, variables1[i]] + dat[, variables2[i]])||dat$fire_yr,
                    family = binomial (link = "logit"),
                    verbose = TRUE)
 
@@ -249,8 +456,8 @@ for (i in 1: length(variables1)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model2 <- glmer (sbs_lightning2$fire_pres ~ sbs_lightning2[, variables1[i]] * sbs_lightning2[, variables2[i]] +
-                     (sbs_lightning2[, variables1[i]] + sbs_lightning2[, variables2[i]])||sbs_lightning2$fire_yr,
+  model2 <- glmer (dat$fire_pres ~ dat[, variables1[i]] * dat[, variables2[i]] +
+                     (dat[, variables1[i]] + dat[, variables2[i]])||dat$fire_yr,
                    family = binomial (link = "logit"),
                    verbose = TRUE)
   
@@ -271,7 +478,7 @@ table.glm.climate_simplest <- data.frame (matrix (ncol = 2, nrow = 0))
 colnames (table.glm.climate_simplest) <- c ("Variable", "AIC")
 for (i in 1: length(variables)){
   print(i)
-  model3 <- glm (sbs_lightning2$fire_pres ~ sbs_lightning2[, variables[i]] + sbs_lightning2$fire_yr,
+  model3 <- glm (dat$fire_pres ~ dat[, variables[i]] + dat$fire_yr,
                    family = binomial (link = "logit"))
   
   table.glm.climate_simplest[i,1]<-variables[i]
@@ -282,10 +489,10 @@ for (i in 1: length(variables)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model4 <- glm (sbs_lightning2$fire_pres ~ 
-                   sbs_lightning2[, variables1[i]] +
-                     sbs_lightning2[, variables2[i]] +
-                     sbs_lightning2$fire_yr,
+  model4 <- glm (dat$fire_pres ~ 
+                   dat[, variables1[i]] +
+                     dat[, variables2[i]] +
+                     dat$fire_yr,
                    family = binomial (link = "logit"))
   
   table.glm.climate_simplest[(i + length(variables)),1]<-paste0(variables1[i], "+",variables2[i])
@@ -294,18 +501,18 @@ for (i in 1: length(variables1)){
 
 for (i in 1: length(variables1)){
   print(i)
-  model4 <- glm (sbs_lightning2$fire_pres ~ 
-                   sbs_lightning2[, variables1[i]] *
-                   sbs_lightning2[, variables2[i]] +
-                   sbs_lightning2$fire_yr,
+  model4 <- glm (dat$fire_pres ~ 
+                   dat[, variables1[i]] *
+                   dat[, variables2[i]] +
+                   dat$fire_yr,
                  family = binomial (link = "logit"))
   
   table.glm.climate_simplest[(i + length(variables) + length(variables1)),1]<-paste0(variables1[i], "*",variables2[i])
   table.glm.climate_simplest[(i + length(variables) + length(variables1)),2]<-extractAIC(model4)[2]
 }
 
-model4 <- glm (sbs_lightning2$fire_pres ~
-                 sbs_lightning2$fire_yr,
+model4 <- glm (dat$fire_pres ~
+                 dat$fire_yr,
                family = binomial (link = "logit"))
 
 table.glm.climate_simplest[81,1]<-paste0("Year only")
@@ -318,20 +525,21 @@ table.glm.climate_simplest$deltaAIC<-table.glm.climate_simplest$AIC- min(table.g
 
 ###############################################################
 
-# From the above analysis it seems the best combination of variables is the maximum temperature in July * the total precipitation in July
+# From the above analysis it seems the best combination of variables is the maximum temperature in August + the climate moisture index in August
 
-plot(sbs_lightning2$tmax08, sbs_lightning2$ppt08)
+plot(dat$tmax08, dat$cmi08)
+plot(dat$ppt08, dat$cmi08)
 
 
 # assembling landscape variables 
 
-names(sbs_lightning2)
+names(dat)
 
 # remove points that landed on water (obviously ignitions will not start there)
-table(ignition_pres_abs3$bclcs_level_2) # T=treed, N =  non-treed and L = land.
-ignition_pres_abs3 <-sbs_lightning2 %>%
+ignition_pres_abs3 <-dat %>%
   filter(bclcs_level_2!="W") %>%
   filter(bclcs_level_2!=" ")
+table(ignition_pres_abs3$bclcs_level_2) # T=treed, N =  non-treed and L = land.
 
 #Creating new variable of vegetation type and a description of how open the vegetation is
 # TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open
@@ -351,7 +559,7 @@ ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # dist
 
 table(ignition_pres_abs4$vegtype)
 
-# whats the relationship between vegetation type and probabilty of ignition
+# whats the relationship between vegetation type and probability of ignition
 
 # plot lines of probability of ignition versus maximum temperature in August with different colours for each year, according to each vegetation type.
 
@@ -369,7 +577,6 @@ p <- ggplot(ignition_pres_abs4, aes(ppt08, as.numeric(fire_pres), color=fire_yr)
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.01, width=0)) +
-  scale_x_continuous(limits = c(0,500)) +
   xlab("Total precipitation in August") + ylab("Pr (ignition)")
 
 p2 <- p + facet_wrap(~ vegtype, nrow=3)
@@ -383,19 +590,20 @@ p <- ggplot(ignition_pres_abs4, aes(cmi08, as.numeric(fire_pres), color=fire_yr)
 
 p2 <- p + facet_wrap(~ vegtype, nrow=3)
 
-# now run the model on this dataset
-Zeros<- ignition_pres_abs3 %>% filter(pttype==0)
-Ones<- ignition_pres_abs3 %>% filter(pttype==1)
-Zeros<-Zeros[sample(nrow(Zeros), size = 10000, replace= FALSE), ]
-dat<- rbind(Zeros, Ones)
 
-
-library(mgcv)
+library(caret)
+set.seed(3456)
+ignition_pres_abs4$fire_pres<-as.factor(ignition_pres_abs4$fire_pres)
+trainIndex <- createDataPartition(ignition_pres_abs4$fire_pres, p = .7,
+                                  list = FALSE,
+                                  times = 1)
+Train <- ignition_pres_abs4[ trainIndex,]
+Valid <- ignition_pres_abs4[-trainIndex,]
 
 # start simple
 glm1<- glm(fire_pres ~tmax08 +
-             ppt08, 
-           data= ignition_pres_abs4,
+             cmi08, 
+           data= Train,
            family = binomial,
            na.action=na.omit)
 summary(glm1)
@@ -403,7 +611,7 @@ summary(glm1)
 table.glm <- data.frame (matrix (ncol = 4, nrow = 0))
 colnames (table.glm) <- c ("Model", "Variable", "AIC","adjusted R sqr")
 table.glm[1,1]<-"glm1"
-table.glm[1,2]<-"tmax08 + ppt08"
+table.glm[1,2]<-"tmax08 + cmi08"
 table.glm[1,3]<-AIC(glm1)
 table.glm[1,4]<-summary(glm1)$adj.r.squared
 binnedplot (fitted(glm1), 
@@ -411,45 +619,39 @@ binnedplot (fitted(glm1),
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm1", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
-
-
+            main = "Binned Residual Plot - glm1")
 
 glm2<- glm(fire_pres ~tmax08 +
-             ppt08 +
+             cmi08 +
              vegtype, 
-           data= ignition_pres_abs4,
+           data= Train,
            family = binomial,
            na.action=na.omit)
 summary(glm2)
-table.glm[2,1]<-"glm2"
-table.glm[2,2]<-"tmax08 + allppt08 + vegtype"
-table.glm[2,3]<-AIC(glm2)
-table.glm[2,4]<-summary(glm2)$adj.r.squared
+i=2
+table.glm[i,1]<-"glm2"
+table.glm[i,2]<-"tmax08 + cmi08 + vegtype"
+table.glm[i,3]<-AIC(glm2)
+table.glm[i,4]<-summary(glm2)$adj.r.squared
 binnedplot (fitted(glm2), 
             residuals(glm2), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm2", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm1")
+
+
 
 glm3<- glm(fire_pres ~tmax08 +
-             ppt08 +
-             vegtype + 
+             cmi08 + 
              fire_yr, 
-           data= ignition_pres_abs4,
+           data= Train,
            family = binomial,
            na.action=na.omit)
 summary(glm3)
 i=3
 table.glm[i,1]<-"glm3"
-table.glm[i,2]<-"tmax08 + ppt08 + vegtype + year"
+table.glm[i,2]<-"tmax08 + cmi08 + year"
 table.glm[i,3]<-AIC(glm3)
 table.glm[i,4]<-summary(glm3)$adj.r.squared
 binnedplot (fitted(glm3), 
@@ -457,23 +659,19 @@ binnedplot (fitted(glm3),
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm2", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm3")
 
 glm4<- glm(fire_pres ~tmax08 +
-             ppt08 +
+             cmi08 +
              vegtype +
-             subzone +
              fire_yr, 
-           data= ignition_pres_abs4,
+           data= Train,
            family = binomial,
            na.action=na.omit)
 summary(glm4)
 i=4
 table.glm[i,1]<-"glm4"
-table.glm[i,2]<-"tmax08 + ppt08 + vegtype + year + subzone"
+table.glm[i,2]<-"tmax08 + cmi08 + vegtype + year"
 table.glm[i,3]<-AIC(glm4)
 table.glm[i,4]<-summary(glm4)$adj.r.squared
 binnedplot (fitted(glm4), 
@@ -481,124 +679,281 @@ binnedplot (fitted(glm4),
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm2", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm4")
 
-glmer5<- glmer(fire_pres ~ tmax08 +
-                 ppt08 +
-                 vegtype +
-                 subzone +
-                 (1|fire_yr), 
-           data= ignition_pres_abs4,
+glm5<- glm(fire_pres ~tmax08 +
+             cmi08 +
+             vegtype +
+             fire_yr + 
+             subzone, 
+           data= Train,
            family = binomial,
            na.action=na.omit)
-summary(glmer5)
+summary(glm5)
 i=5
-table.glm[i,1]<-"glmer5"
-table.glm[i,2]<-"tmax08 + ppt08 + vegtype + subzone + 1|yr"
-table.glm[i,3]<-AIC(glmer5)
-table.glm[i,4]<-summary(glmer5)$adj.r.squared
-binnedplot (fitted(glmer5), 
-            residuals(glmer5), 
+table.glm[i,1]<-"glm5"
+table.glm[i,2]<-"tmax08 + cmi08 + vegtype + year + subzone"
+table.glm[i,3]<-AIC(glm5)
+table.glm[i,4]<-summary(glm5)$adj.r.squared
+binnedplot (fitted(glm5), 
+            residuals(glm5), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm2", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm5")
 
-glmer6<- glmer(fire_pres ~ scale(tmax08) + 
-                 scale(ppt08) + 
-                 vegtype + 
-                 (1|fire_yr), 
-               data= ignition_pres_abs4,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer6)
+glm6<- glm(fire_pres ~tmax08 +
+             cmi08 +
+             fire_yr + 
+             subzone, 
+           data= Train,
+           family = binomial,
+           na.action=na.omit)
+summary(glm6)
 i=6
-table.glm[i,1]<-"glmer6"
-table.glm[i,2]<-"tmax08 + ppt08 + vegtype + 1|yr"
-table.glm[i,3]<-AIC(glmer6)
-table.glm[i,4]<-summary(glmer6)$adj.r.squared
-binnedplot (fitted(glmer6), 
-            residuals(glmer6), 
+table.glm[i,1]<-"glm6"
+table.glm[i,2]<-"tmax08 + cmi08 + year + subzone"
+table.glm[i,3]<-AIC(glm6)
+table.glm[i,4]<-summary(glm6)$adj.r.squared
+binnedplot (fitted(glm6), 
+            residuals(glm6), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm6")
 
-glmer7<- glmer(fire_pres ~ scale(tmax08) + 
-                 vegtype + 
+Train$tmax08c<-Train$tmax08-mean(Train$tmax08)
+Train$cmi08c<-Train$cmi08-mean(Train$cmi08)
+
+
+glmer7<- glmer(fire_pres ~ tmax08 +
+                 cmi08 +
                  (1|fire_yr), 
-               data= ignition_pres_abs4,
-               family = binomial,
-               na.action=na.omit)
+           data= Train,
+           family = binomial,
+           na.action=na.omit)
 summary(glmer7)
 i=7
 table.glm[i,1]<-"glmer7"
-table.glm[i,2]<-"scale(tmax08) + vegtype + (1|fire_yr)"
+table.glm[i,2]<-"tmax08 + ppt08 + 1|yr"
 table.glm[i,3]<-AIC(glmer7)
 table.glm[i,4]<-summary(glmer7)$adj.r.squared
-binnedplot (fitted(glmer7), 
-            residuals(glmer7), 
+binnedplot (predict(glmer7), 
+            resid(glmer7), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm7", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm2")
 
-glmer8<- glmer(pttype ~(tmax08) * (allppt08) + vegtype2 + (1|year) + (vegtype2|year), 
-               data= dat,
+glmer8<- glmer(fire_pres ~ tmax08 +
+                 cmi08 +
+                 subzone +
+                 (1|fire_yr), 
+               data= Train,
                family = binomial,
-               na.action=na.omit,
-               verbose=TRUE)
+               na.action=na.omit)
 summary(glmer8)
 i=8
 table.glm[i,1]<-"glmer8"
-table.glm[i,2]<-"scale(tmax08) * scale(allppt08) + vegtype+1|year + vegtype|year"
+table.glm[i,2]<-"tmax08 + ppt08 + subzone + 1|yr"
 table.glm[i,3]<-AIC(glmer8)
 table.glm[i,4]<-summary(glmer8)$adj.r.squared
-binnedplot (fitted(glmer8), 
+binnedplot (invlogit(predict(glmer8)), 
             residuals(glmer8), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glmer8", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm6"
+            )
 
-glmer9<- glmer(pttype ~scale(tmax08) * scale(allppt08) + vegtype2 + (1|year) + (tmax08|year), 
-               data= dat,
+glmer8<- glmer(fire_pres ~ tmax08c +
+                 cmi08c +
+                 subzone +
+                 (1|fire_yr), 
+               data= Train,
                family = binomial,
-               na.action=na.omit,
-               verbose=TRUE)
+               na.action=na.omit)
+summary(glmer8)
+i=8
+table.glm[i,1]<-"glmer8"
+table.glm[i,2]<-"tmax08 + ppt08 + subzone + 1|yr"
+table.glm[i,3]<-AIC(glmer8)
+table.glm[i,4]<-summary(glmer8)$adj.r.squared
+binnedplot (invlogit(predict(glmer8)), 
+            residuals(glmer8), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glmer8"
+)
+
+glmer9<- glmer(fire_pres ~ tmax08c +
+                 cmi08c +
+                 subzone +
+                 vegtype +
+                 (1|fire_yr), 
+               data= Train,
+               family = binomial,
+               na.action=na.omit)
 summary(glmer9)
 i=9
 table.glm[i,1]<-"glmer9"
-table.glm[i,2]<-"scale(tmax08) * scale(allppt08) + vegtype2 + (1|year) + (tmax08|year)"
+table.glm[i,2]<-"tmax08 + ppt08 + subzone + vegtype + 1|yr"
 table.glm[i,3]<-AIC(glmer9)
 table.glm[i,4]<-summary(glmer9)$adj.r.squared
-binnedplot (fitted(glmer9), 
+binnedplot (invlogit(predict(glmer9)), 
             residuals(glmer9), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glmer9", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
+            main = "Binned Residual Plot - glm6"
+)
+
+glmer10<- glmer(fire_pres ~ tmax08 +
+                 cmi08 +
+                 subzone +
+                 (subzone||fire_yr), 
+               data= Train,
+               family = binomial,
+               na.action=na.omit)
+summary(glmer10)
+i=10
+table.glm[i,1]<-"glmer10"
+table.glm[i,2]<-"tmax08 + ppt08 + subzone + subzone||yr"
+table.glm[i,3]<-AIC(glmer10)
+table.glm[i,4]<-summary(glmer10)$adj.r.squared
+binnedplot (invlogit(predict(glmer10)), 
+            residuals(glmer9), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glm6"
+)
+
+glmer11<- glmer(fire_pres ~ tmax08c +
+                 cmi08c +
+                 vegtype +
+                 (1|fire_yr), 
+               data= Train,
+               family = binomial,
+               na.action=na.omit)
+summary(glmer11)
+i=11
+table.glm[i,1]<-"glmer11"
+table.glm[i,2]<-"tmax08 + ppt08 + vegtype + 1|yr"
+table.glm[i,3]<-AIC(glmer11)
+table.glm[i,4]<-summary(glmer1)$adj.r.squared
+binnedplot (invlogit(predict(glmer11)), 
+            residuals(glmer11), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glmer11"
+)
+
+
+# best model seems to be glmer8 or glmer9 they both have the same AIC values but glmer8 is simpler so Ill stick with that one.
+
+
+glmer8<- glmer(fire_pres ~ tmax08c +
+                 cmi08c +
+                 vegtype +
+                 (1|fire_yr), 
+               data= Train,
+               family = binomial,
+               na.action=na.omit)
+summary(glmer8)
+binnedplot (invlogit(predict(glmer8)), 
+            residuals(glmer8), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glmer8"
+)
+
+binnedplot (Train$tmax08c, 
+            resid(glmer8), 
+            nclass = NULL, 
+            xlab = "centered cmi08", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glm6"
+)
+
+binnedplot (Train$cmi08c, 
+            resid(glmer8), 
+            nclass = NULL, 
+            xlab = "centered cmi08", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glm6"
+) # it mostly looks pretty good!
 
 
 
+# lets look at fit of the Valid (validation) dataset
+#MUST STILL DO THIS
+Valid$GLMER_predict8 <- predict(glmer8,newdata = Valid,type="response")
+Valid$GLMER_predict9 <- predict(glmer9,newdata = Valid,type="response")
+valid_dat<-Valid %>% 
+  dplyr::select(idno, fire_pres, GLMER_predict8,GLMER_predict9 ) %>%
+  rename(ID=idno,
+         Observed=fire_pres)
+valid_dat$Observed<-as.numeric(as.character(valid_dat$Observed))
+library(PresenceAbsence)
+auc (as.data.frame(valid_dat)) # Get the AUC value. You can specify the sd. 
+auc.roc.plot (valid_dat) # Plot the ROC
+
+
+LR_predict_bin <- ifelse(LR_predict > 0.6,1,0)
+cm_lr <- table(Valid,LR_predict_bin) #Accuracy 
+accuracy <- (sum(diag(cm_lr))/sum(cm_lr)) 
+accuracy
+
+
+
+hist(ignition_pres_abs4$cmi08) #the data is right skewed. Possible transformations include sqrt, log or cuberoot, but because cmi has negative values Ill try cuberoot
+
+ignition_pres_abs4$cmi08c<-as.numeric(ignition_pres_abs4$cmi08c)
+ignition_pres_abs4$cmi08_cr<-kader:::cuberoot(x = ignition_pres_abs4$cmi08c)
+hist((ignition_pres_abs4$cmi08_cr)) # this did not help.
+
+# ok maybe shift the distribution so that no values are negative .
+ignition_pres_abs4$cmi08_shifted<-ignition_pres_abs4$cmi08+10
+hist(ignition_pres_abs4$cmi08_shifted)
+hist(log(ignition_pres_abs4$cmi08_shifted))
+
+glmer_final<- glmer(fire_pres ~ tmax08c +
+                 cmi08_shifted +
+                 subzone +
+                 (1|fire_yr), 
+               data= ignition_pres_abs4,
+               family = binomial,
+               na.action=na.omit)
+summary(glmer8)
+binnedplot (invlogit(predict(glmer8)), 
+            residuals(glmer8), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glm6"
+)
+
+binnedplot (ignition_pres_abs4$cmi08_shifted, 
+            resid(glmer8), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = "Binned Residual Plot - glm6"
+)
+
+# obtain predictive equation from the final model
+
+# I should probably run an AUC on a portion of the data that I hold back from the analysis.
+
+
+
+
+
+# could try bam, but I think Ill leave it because the glmer seems to work pretty well.
 bam2<- bam(pttype ~tmax08 +
              allppt08 +
              tmax08:allppt08, 
