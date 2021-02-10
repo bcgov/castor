@@ -102,6 +102,19 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd'")
+
+
+# WELLS GRAY NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd' AND zoneid = 2") 
+
+
+# BARKERVILLE Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
+
 
 
 # NARROW LAKE Update the constraints available to a zone as specified in the scenario
@@ -185,13 +198,13 @@ parameters <- list(
                                            # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"
-                                           # "rast.zone_cond_eccc_barkerville_crithab_or_herd"
+                                            "rast.zone_cond_eccc_barkerville_crithab_or_herd"
                                            # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd"
                                            # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
                                            # "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
                                            # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
                                            # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
-                                            "rast.zone_du9_scenarios"
+                                           # "rast.zone_du9_scenarios"
                                            ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -215,7 +228,7 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,,
+                      #harvestZonePriority = 1,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -282,13 +295,16 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Wells Gray North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Wells Gray North matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
 # scenario = data.table (name = "quesnel_wells_north_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray North matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+# scenario = data.table (name = "quesnel_wells_north_scen3b",
+#                        description = "No harvest in old forest and recruitment forest in Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray North matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+# scenario = data.table (name = "quesnel_wells_gray_north_he0d",
+#                        description = "No harvest in Wells Gray North high elevation critical habitat; harvest allowed in matrix critical habitat.  Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
 
-scenario = data.table (name = "quesnel_wells_north_scen3b",
-                       description = "No harvest in old forest and recruitment forest in Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray North matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+scenario = data.table (name = "quesnel_barkerville_north_he0d",
+                       description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat.  Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
 
 
-
-
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "quesnel_chil_nh",
 #                        description = "No harvest in Chilcotin herds and habitat that overlap with the harvest unit (e.g., TSA or TFL). Adjacency was set to 3m.")
 # scenario = data.table (name = "quesnel_chil_ch_hele0d_m15d",

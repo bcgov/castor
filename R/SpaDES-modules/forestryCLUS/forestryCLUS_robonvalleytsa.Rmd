@@ -114,6 +114,19 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 # STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_south_crithab_or_herd'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd'") 
+
+
+# WELLS GRAY SOUTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_wells_gray_south_crithab_or_herd' AND zoneid = 2") 
+
+
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
+
 
 
 # HART RANGES Update the constraints available to a zone as specified in the scenario
@@ -210,12 +223,12 @@ parameters <- list(
                                           #  "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
                                           # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
                                           # "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
-                                          # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                           "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                           #  "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
                                           #  "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
                                           #  "rast.zone_cond_eccc_north_cariboo_crithab_or_herd"
                                           #  "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd",
-                                             "rast.zone_du9_scenarios"
+                                          #   "rast.zone_du9_scenarios"
                                           #   "rast.zone_cond_bc_columbia_north_crithab",
                                           #  "rast.zone_cond_bc_wells_gray_south_crithab",
                                           #  "rast.zone_cond_bc_hart_ranges_crithab",
@@ -321,13 +334,17 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "robson_columbia_north_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered core critical habitat areas in Columbia North, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_columbia_north_scen3b",
+#                        description = "No harvest in old forest and recruitment forest core critical habitat areas in Columbia North, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_wells_gray_south_he0d",
+#                        description = "No harvest in Wells Gray South high elevation critical habitat; harvest allowed in matrix critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
-scenario = data.table (name = "robson_columbia_north_scen3b",
-                       description = "No harvest in old forest and recruitment forest core critical habitat areas in Columbia North, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+scenario = data.table (name = "robson_columbia_north_he0d",
+                       description = "No harvest in Columbia North high elevation critical habitat; harvest allowed in matrix critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
 
 
-
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN WITH NEW MODEL PARAMS
 # scenario = data.table (name = "robson_colnsfb_nh",
 #                        description = "No harvest in all Columbia North, Columbia South and Frisby-Boulder critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "robson_colnsfb_ch_he0d_m15d",

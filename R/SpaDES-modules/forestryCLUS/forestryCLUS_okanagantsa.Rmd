@@ -97,6 +97,12 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 # STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd'")
+
+
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
 
 
 # COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
@@ -175,10 +181,10 @@ parameters <- list(
                                            # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
-                                           # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                            "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                            # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                                            # "rast.zone_cond_eccc_monashee_crithab_or_herd"
-                                            "rast.zone_du9_scenarios"
+                                           # "rast.zone_du9_scenarios"
                                            ),
                                             
                            nameZoneTable = "zone_constraints",
@@ -270,13 +276,15 @@ modules <- list("dataLoaderCLUS",
 #                         description = "No harvest in Frisby Boulder high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Frisby Boulder matrix critical habitat. Harvest flow = 1,400,000m^3^/year. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "okanagan_frisby_boulder_scen3a",
 #                         description = "No harvest in old forest, recruitment forest and buffered Frisby Boulder core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Frisby Boulder matrix habitat areas. Harvest flow = 1,400,000m^3^/year.  Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "okanagan_frisby_boulder_scen3b",
+#                        description = "No harvest in old forest and recruitment forest Frisby Boulder core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Frisby Boulder matrix habitat areas. Harvest flow = 1,400,000m^3^/year. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "okanagan_frisby_boulder_scen3b",
-                       description = "No harvest in old forest and recruitment forest Frisby Boulder core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Frisby Boulder matrix habitat areas. Harvest flow = 1,400,000m^3^/year. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "okanagan_columbia_north_he0d",
+                       description = "No harvest in Columbia North high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow = 1,400,000m^3^/year. Adjacency = 3m. Oldest first.")
 
 
 
-
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN WITH NEW MODEL PARAMS
  # scenario = data.table (name = "okanagan_colnsfb_nh",
  #                        description = "No harvest in all CN, CS and FB critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "okanagan_colnsfb_ch_he0d_m15d",
@@ -285,11 +293,6 @@ scenario = data.table (name = "okanagan_frisby_boulder_scen3b",
 #                         description = "No harvest in all critical habitat of all herds that overlap with the harvest unit.")
 # scenario = data.table (name = "okanagan_all_ch_he0d_m15d",
 #                         description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit.")
-
-
-
-
-
 # scenario = data.table (name = "okanagan_columbia_north_ch_he10d_m15d",
 #                        description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 # scenario = data.table (name = "okanagan_frisby_boulder_ch_he10d_m15d",
