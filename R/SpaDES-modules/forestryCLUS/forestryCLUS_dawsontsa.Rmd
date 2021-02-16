@@ -88,12 +88,15 @@ ECCC in all herds = rast.zone_cond_eccc_central_rockies_crithab_or_herd,
                     "rast.zone_cond_eccc_graham_crithab_or_herd"
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
-  - 'dist, age DESC, vol DESC' priortize based on:
+- used oldest first
+
+- as alternative,  could focus on minimizing 'disturbance' for caribou, then older, higher volume stands
+  - 'dist, age DESC, vol DESC' prioritize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
--Minimum harvest criteria: 120 m3/ ha 
+      
+- Minimum harvest criteria: 120 m3/ ha 
 "For the base case minimum harvestable ages were defined using height, diameter and volume
 criteria. While the height and diameter minima varied according to stand quality and species, all
 stands, including small pine stands (see “small pine stands” above) had to exceed a minimum
@@ -106,6 +109,8 @@ The AAC for the Dawson Creek TSA was initially set at
 deciduous stands and coniferous stands, respectively. Dawson Creek TSA’s allowable annual cut (AAC) is 1,860,000 cubic metres, as of October 30, 2014. 978 000 cubic metres attributable to coniferous-leading stands of which at least 100 000 cubic
 metres annually must be taken from stands classified as small pine; and 882 000 cubic metres
 attributable to deciduous-leading stands.
+
+- havrest flow: first tried 2,000,000 m^3^/yr
 
 ## Partnership agreement
 There is a Partnership Agreement for these caribou herds that has designated zones and constraints for those zones. These can be modified using the code below.
@@ -159,7 +164,7 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw",
+                                               "rast.zone_cond_cw"
                                                
                                                # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
@@ -179,7 +184,7 @@ parameters <- list(
                                                
                                                # "rast.central_grp_proposed_luo"
                                                # "rast.central_grp_proposed_luo_buffer"
-                                               "rast.central_grp_proposed_luo_matrix"
+                                               #"rast.central_grp_proposed_luo_matrix"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -243,8 +248,10 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS"
                 )
 
-# scenario = data.table (name = "dawson_creek_bau",
-#                        description = "Business-as-usual case; sustainable flow = m3/yr .Adjacency was set to 3m.")
+scenario = data.table (name = "dawson_creek_bau",
+                       description = "Business-as-usual case. Harvest flow = 2,000,000m3/yr .Adjacency = 3m. Oldest first.")
+
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "dawson_centgrp_nh",
 #                        description = "No harvest in all central group critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "dawson_centgrp_ch_hele0d_m15d",
@@ -257,8 +264,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in all critical habitat of all herds that overlap with the harvest unit. Adjacency was set to 3m.")
 # scenario = data.table (name = "dawson_all_ch_hele0d_m15d",
 #                        description = "No harvest in high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit↨. Adjacency was set to 3m.")
-scenario = data.table (name = "dawson_luo_35p_25yo",
-                       description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
+# scenario = data.table (name = "dawson_luo_35p_25yo",
+#                        description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                      partition = ' vol > 120 ', 
@@ -266,7 +273,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 2222, 
                                                       by = 5),
                                                 1), 
-                                     flow = 7050000)
+                                     flow = 10000000) #2,000,000m3/yr
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
