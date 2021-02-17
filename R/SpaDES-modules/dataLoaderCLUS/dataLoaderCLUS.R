@@ -51,6 +51,7 @@ defineModule(sim, list(
     defineParameter("nameCompartmentTable", "character", "99999", NA, NA, desc = "Name of the table in a pg db that represents a compartment or supply block value attribute look up. CUrrently 'study_area_compart'?"),
     defineParameter("nameMaskHarvestLandbaseRaster", "character", "99999", NA, NA, desc = "Administrative boundary related to operability of the the timber harvesting landbase. This mask is between 0 and 1, representing where its feasible to harvest"),
     defineParameter("nameAgeRaster", "character", "99999", NA, NA, desc = "Raster containing pixel age. Note this references the yield table. Thus, could be initially 0 if the yield curves reflect the age at 0 on the curve"),
+    defineParameter("nameTreedRaster", "character", "99999", NA, NA, desc = "Raster containing pixel classified as treed"),
     defineParameter("nameSiteIndexRaster", "character", "99999", NA, NA, desc = "Raster containing site index used in uncertainty model of yields"),
     defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
     defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
@@ -587,6 +588,32 @@ setTablesCLUSdb <- function(sim) {
     multiVars2<-''
     multiVars1<-NULL
   }
+  #-----------
+  #Set the Treed 
+  #----------- 
+  
+  if(!(P(sim, "dataLoaderCLUS", "nameTreedRaster") == "99999") & P(sim, "dataLoaderCLUS", "nameForestInventoryTreed") == "99999"){
+    message(paste0('.....treed: ',P(sim, "dataLoaderCLUS", "nameTreedRaster")))
+    ras.treed<-RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+                          srcRaster= P(sim, "dataLoaderCLUS", "nameTreedRaster"), 
+                          clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
+                          geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                          where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                          conn=NULL)
+    if(aoi == extent(ras.treed)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.treed)))))
+      setnames(pixels, "V1", "treed")
+      rm(ras.treed)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameTreedRaster")))
+    }
+  }
+  
+  if(P(sim, "dataLoaderCLUS", "nameTreedRaster") == "99999" & P(sim, "dataLoaderCLUS", "nameForestInventoryTreed") == "99999"){
+    message('.....treed: default 1')
+    pixels[, treed := 1]
+  }
   
   #-----------
   #Set the Age 
@@ -713,20 +740,22 @@ setTablesCLUSdb <- function(sim) {
   
   #Update the t_area column to be the area forested for "dist" variable constraints
   t_area2for_area<-dbGetQuery(sim$clusdb, "SELECT  zoneid, zone_column FROM zoneConstraints WHERE variable = 'dist'")
-  for_Area<-lapply(unique(t_area2for_area$zone_column), function (x){
-    dbGetQuery(sim$clusdb, paste0("SELECT  count() as t_area, ",x," as zoneid, '",x,"' as zone_column FROM pixels WHERE treed = 1 AND ", x," is not NULL group by ",x))
-  })
-  for_Area<-rbindlist(for_Area)
-  
-  #merge
-  for_area_parms<-merge(t_area2for_area, for_Area, all.x = TRUE)
-  dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "UPDATE zoneConstraints set t_area = :t_area WHERE zoneid = :zoneid AND zone_column =:zone_column", for_area_parms)
-  dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  
-  #For NA t_Area in zoneConstraints set to 0
-  dbExecute(sim$clusdb, "Update zoneConstraints set t_area = 0 where t_area is NULL;")
+  if(nrow(t_area2for_area) > 0){
+    for_Area<-lapply(unique(t_area2for_area$zone_column), function (x){
+      dbGetQuery(sim$clusdb, paste0("SELECT  count() as t_area, ",x," as zoneid, '",x,"' as zone_column FROM pixels WHERE treed = 1 AND ", x," is not NULL group by ",x))
+    })
+    for_Area<-rbindlist(for_Area)
+    
+    #merge
+    for_area_parms<-merge(t_area2for_area, for_Area, all.x = TRUE)
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE zoneConstraints set t_area = :t_area WHERE zoneid = :zoneid AND zone_column =:zone_column", for_area_parms)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+    #For NA t_Area in zoneConstraints set to 0
+    dbExecute(sim$clusdb, "Update zoneConstraints set t_area = 0 where t_area is NULL;")
+  }
   return(invisible(sim))
 }
 setIndexesCLUSdb <- function(sim) {
