@@ -33,6 +33,7 @@ library(nlme)
 library(purrr)
 library(tidyr)
 library(caret)
+library(pROC)
 
 
 source(here::here("R/functions/R_Postgres.R"))
@@ -165,6 +166,13 @@ pre1<- ignition_pres_abs4 %>%
 
 dat<- rbind(pre1, as.data.frame(sampled_df))
 
+##################
+#### Analysis ####
+##################
+
+# To select the best single fire weather covariate I first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then I fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). I also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
+
+
 #### looking at correlations between variables####
 
 # correlation between max T and MDC. Across all the data MDC and Tmax are somewhat correlated with values ranging between 0.43 and 0.71
@@ -197,8 +205,7 @@ corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between PPT and CMI")
 
-# I will leave climate moisture index out of my models and only examine precipitation because this data for future time periods is easy to get.
-
+# I will leave climate moisture index out of my models and only examine precipitation because climate moisture index and precipitation are highly correlated.
 ### creating amalgamations of variables to test different combinations of variables.##
 dat$mean_tmax05_tmax06<- (dat$tmax05+ dat$tmax06)/2
 dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
@@ -210,19 +217,6 @@ dat$mean_tmax07_tmax08_tmax09<- (dat$tmax07+ dat$tmax08 + dat$tmax09)/3
 dat$mean_tmax05_tmax06_tmax07_tmax08<- (dat$tmax05 + dat$tmax06+ dat$tmax07 + dat$tmax08)/4
 dat$mean_tmax06_tmax07_tmax08_tmax09<- (dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/4
 dat$mean_tmax05_tmax06_tmax07_tmax08_tmax09<- (dat$tmax05 + dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/5
-
-# 
-# dat$mean_cmi05_cmi06<- (dat$cmi05+ dat$cmi06)/2
-# dat$mean_cmi06_cmi07<- (dat$cmi06+ dat$cmi07)/2
-# dat$mean_cmi07_cmi08<- (dat$cmi07+ dat$cmi08)/2
-# dat$mean_cmi08_cmi09<- (dat$cmi08+ dat$cmi09)/2
-# dat$mean_cmi05_cmi06_cmi07<- (dat$cmi05+ dat$cmi06 + dat$cmi07)/3
-# dat$mean_cmi06_cmi07_cmi08<- (dat$cmi06+ dat$cmi07 + dat$cmi08)/3
-# dat$mean_cmi07_cmi08_cmi09<- (dat$cmi07+ dat$cmi08 + dat$cmi09)/3
-# dat$mean_cmi05_cmi06_cmi07_cmi08<- (dat$cmi05 + dat$cmi06+ dat$cmi07 + dat$cmi08)/4
-# dat$mean_cmi06_cmi07_cmi08_cmi09<- (dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/4
-# dat$mean_cmi05_cmi06_cmi07_cmi08_cmi09<- (dat$cmi05 + dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/5
-
 
 dat$mean_ppt05_ppt06<- (dat$ppt05+ dat$ppt06)/2
 dat$mean_ppt06_ppt07<- (dat$ppt06+ dat$ppt07)/2
@@ -253,12 +247,6 @@ variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09",
               "mean_tmax05_tmax06_tmax07", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09", 
               "mean_tmax05_tmax06_tmax07_tmax08", "mean_tmax06_tmax07_tmax08_tmax09", "mean_tmax05_tmax06_tmax07_tmax08_tmax09",
               
-              # "cmi05","cmi06", "cmi07", "cmi08", "cmi09", 
-              # "mean_cmi05_cmi06","mean_cmi06_cmi07", "mean_cmi07_cmi08", "mean_cmi08_cmi09", 
-              # "mean_cmi05_cmi06_cmi07", "mean_cmi06_cmi07_cmi08", "mean_cmi07_cmi08_cmi09", 
-              # "mean_cmi05_cmi06_cmi07_cmi08", "mean_cmi06_cmi07_cmi08_cmi09",
-              # "mean_cmi05_cmi06_cmi07_cmi08_cmi09",
-              
               "ppt05","ppt06", "ppt07", "ppt08", "ppt09",
               "mean_ppt05_ppt06", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", 
               "mean_ppt05_ppt06_ppt07","mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09",
@@ -272,13 +260,14 @@ variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09",
               "mean_mdc05_mdc06_mdc07_mdc08_mdc09")
 
 variables1<-c("tmax05", "tmax06", "tmax07", "tmax08", "tmax09",
+              "tmax05","tmax06", "tmax07", "tmax08", "tmax09",
               "tmax05","tmax06", "tmax07", "tmax08", "tmax09"
-              #"ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
 )
 variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
-              "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-              #"mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-) # precipitation and MDC are quite correlated so Im leaving this combination of variables out too. 
+              "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              "ppt05", "ppt05", "ppt06", "ppt07", "ppt08"
+) 
+# precipitation and MDC are quite correlated so Im leaving this combination of variables out too. 
 
 dat$fire_pres<-as.numeric(dat$fire_pres) 
 table(dat$fire_yr, dat$ fire_pres) 
@@ -286,40 +275,79 @@ table(dat$fire_yr, dat$ fire_pres)
 #TO DO!! interesting, there were very few fires in 2008 and I have none for 2007...seems odd. # go back to original data set and check that everything went in ok.  
 
 
-
+#################################
+#### Creating AIC with simpler model. Im doing this because many of the more complex models above had singular fits so Im a little concerned this is not great.
+#################################
 # create loop to do variable selection of climate data
 unique(dat$zone)
-zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "CDF", "BWBS", "BG", "SBS", "SWB", "BAFA")
+zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "BWBS", "BG", "SBS", "SWB") #"CDF", "BAFA"
+
+# CDF and BAFA have few fire ignitions (CHECK!), Im going to leave them out for the moment
+
+
 filenames<-list()
 
 for (h in 1:length(zones)) {
-dat1<- dat %>% dplyr::filter(zone ==zones[h])
-
-# For the AUC analysis I need to keep out some proportion of the data to test the fit of the model. I split the data here.
-dat1$fire_pres<-as.numeric(as.character(dat1$fire_pres))
-
-######################################################################
-#### Generation AIC tables to select best environmental predictors####
-######################################################################
-
-
+  dat2<- dat %>% dplyr::filter(zone ==zones[h])
+  
 #Create frame of AIC table
 # summary table
-table.glm.climate <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.climate) <- c ("Zone", "Variable", "AIC", "Singular")
+table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
+
+model_dat<- dat2 %>% dplyr::select(fire_pres)
+trainIndex <- createDataPartition(model_dat$fire_pres, p = .8,
+                                  list = FALSE,
+                                  times = 1)
+dat1 <- as.data.frame(model_dat[ trainIndex,])
+names(dat1)[1] <- "fire_pres"
+Valid <- as.data.frame(model_dat[-trainIndex,])
+names(Valid)[1] <- "fire_pres"
+
+
+model1 <- glm (fire_pres ~ 1 ,
+               data=dat1,
+               family = binomial (link = "logit"))
+
+table.glm.climate.simple[1,1]<-zones[h]
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+# lets look at fit of the Valid (validation) dataset
+#MUST STILL DO THIS
+Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
+roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
+auc(roc_obj)
+table.glm.climate.simple[i,4]<-auc(roc_obj)
+
+rm(model_dat,dat1,Valid)
 
 # Creates AIC table with a model that that allows slope and intercept to vary
 for (i in 1: length(variables)){
   print(paste((variables[i]), (zones[h]), sep=" "))
-  model1 <- glmer (dat1$fire_pres ~ dat1[, variables[i]] +
-                     1|dat1$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
   
-  table.glm.climate[h,1]<-zones[h]
-  table.glm.climate[i,2]<-variables[i]
-  table.glm.climate[i,3]<-extractAIC(model1)[2]
-  table.glm.climate[i,4]<-isSingular(model1)
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variables[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = .8,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model1 <- glm (fire_pres ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[i+1,1]<-zones[h]
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+  # lets look at fit of the Valid (validation) dataset
+  #MUST STILL DO THIS
+  Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[i+1,4]<-auc(roc_obj)
   
 }
 
@@ -327,40 +355,75 @@ for (i in 1: length(variables)){
 
 for (i in 1: length(variables1)){
   print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
-  model2 <- glmer (dat1$fire_pres ~ dat1[, variables1[i]] + dat1[, variables2[i]] +
-                     1|dat1$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variables1[i], variables2[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = .8,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
   
-  table.glm.climate[(i+length(variables)),1]<-zones[h]
-  table.glm.climate[(i+length(variables)),2]<-paste0(variables1[i],"+", variables2[i])
-  table.glm.climate[(i+length(variables)),3]<-extractAIC(model2)[2]
-  table.glm.climate[(i+length(variables)),4]<-isSingular(model2)
+  model2 <- glm (fire_pres ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
+  
 }
 
 for (i in 1: length(variables1)){
-  print(paste((variables1[i]), "X",variables2[i], (zones[h]), sep=" "))
-  model2 <- glmer (dat1$fire_pres ~ dat1[, variables1[i]] * dat1[, variables2[i]] +
-                     1|dat1$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
+  print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
   
-  table.glm.climate[(i+length(variables) +length(variables1)),1]<-zones[h]
-  table.glm.climate[(i+length(variables) +length(variables1)),2]<-paste0(variables1[i],"X", variables2[i])
-  table.glm.climate[(i+length(variables) +length(variables1)),3]<-extractAIC(model2)[2]
-  table.glm.climate[(i+length(variables) +length(variables1)),4]<-isSingular(model2)
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variables1[i], variables2[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = .8,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model2 <- glm (fire_pres ~ (.)^2,
+                 data=dat1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+  
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
+  
 }
-table.glm.climate1<-table.glm.climate %>% drop_na(AIC)
+#table.glm.climate1<-table.glm.climate %>% drop_na(AIC)
 
-table.glm.climate1$deltaAIC<-table.glm.climate1$AIC- min(table.glm.climate1$AIC)
+table.glm.climate.simple$deltaAIC<-table.glm.climate.simple$AIC- min(table.glm.climate.simple$AIC)
 
 #assign file names to the work
 nam1<-paste("AIC",zones[h],sep="_") #defining the name
-assign(nam1,table.glm.climate1)
+assign(nam1,table.glm.climate.simple)
 filenames<-append(filenames,nam1)
 }
 
-write.csv(table.glm.climate1, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results.csv")
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec<-mkFrameList(n) 
+
+write.csv(aic_bec, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
 
 
 
@@ -418,198 +481,6 @@ p <- ggplot(dat2, aes(tmax08, as.numeric(fire_pres))) +
   xlab("August tmax") + ylab("Pr (ignition)")
 
 p2 <- p + facet_wrap(~ fire_yr, nrow=3)
-
-
-##################
-#### Analysis ####
-##################
-
-# To select the best single fire weather covariate I first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then I fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). I also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
-
-names(dat)
-
-
-# correlation between max T and MDC. For sbs there is not high correlation between tmax and mdc, which seems odd since MDC is calculated using Tmax and precipitation
-dist.cut.corr <- dat [c (20:24, 40:44)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between maximum temperature and MDC")
-
-# But in dat there is high correlation between total precipitation and MDC. Interesting!
-dist.cut.corr <- dat [c (30:34, 40:44)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between total precipitation and MDC")
-
-# Correlation between Tmax and total precipitation. There is basically none 
-dist.cut.corr <- dat [c (20:24, 30:34)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between total precipitation and Tmax")
-
-# Correlation between Tmax and climate moisture index. Not too much correlation, the highest is between tmax09 and cmi09 (-0.52)
-dist.cut.corr <- dat [c (20:24, 35:39)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between Tmax and CMI")
-
-
-######################################################################
-#### Generation AIC tables to select best environmental predictors####
-######################################################################
-# creating amalgamations of variables
-
-dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
-dat$mean_tmax07_tmax08<- (dat$tmax07+ dat$tmax08)/2
-dat$mean_tmax08_tmax09<- (dat$tmax08+ dat$tmax09)/2
-dat$mean_tmax06_tmax07_tmax08<- (dat$tmax06+ dat$tmax07 + dat$tmax08)/3
-dat$mean_tmax07_tmax08_tmax09<- (dat$tmax07+ dat$tmax08 + dat$tmax09)/3
-dat$mean_tmax06_tmax07_tmax08_tmax09<- (dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/4
-
-dat$mean_cmi06_cmi07<- (dat$cmi06+ dat$cmi07)/2
-dat$mean_cmi07_cmi08<- (dat$cmi07+ dat$cmi08)/2
-dat$mean_cmi08_cmi09<- (dat$cmi08+ dat$cmi09)/2
-dat$mean_cmi06_cmi07_cmi08<- (dat$cmi06+ dat$cmi07 + dat$cmi08)/3
-dat$mean_cmi07_cmi08_cmi09<- (dat$cmi07+ dat$cmi08 + dat$cmi09)/3
-dat$mean_cmi06_cmi07_cmi08_cmi09<- (dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/4
-
-dat$mean_ppt06_ppt07<- (dat$ppt06+ dat$ppt07)/2
-dat$mean_ppt07_ppt08<- (dat$ppt07+ dat$ppt08)/2
-dat$mean_ppt08_ppt09<- (dat$ppt08+ dat$ppt09)/2
-dat$mean_ppt06_ppt07_ppt08<- (dat$ppt06+ dat$ppt07 + dat$ppt08)/3
-dat$mean_ppt07_ppt08_ppt09<- (dat$ppt07+ dat$ppt08 + dat$ppt09)/3
-dat$mean_ppt06_ppt07_ppt08_ppt09<- (dat$ppt06+ dat$ppt07 + dat$ppt08 + dat$ppt09)/4
-
-dat$mean_mdc06_mdc07<- (dat$mdc_06+ dat$mdc_07)/2
-dat$mean_mdc07_mdc08<- (dat$mdc_07+ dat$mdc_08)/2
-dat$mean_mdc08_mdc09<- (dat$mdc_08+ dat$mdc_09)/2
-dat$mean_mdc06_mdc07_mdc08<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08)/3
-dat$mean_mdc07_mdc08_mdc09<- (dat$mdc_07+ dat$mdc_08 + dat$mdc_09)/3
-dat$mean_mdc06_mdc07_mdc08_mdc09<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08 + dat$mdc_09)/4
-
-
-variables<- c("tmax06", "tmax07", "tmax08", "tmax09", "mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09" , "mean_tmax06_tmax07_tmax08_tmax09", "cmi06", "cmi07", "cmi08", "cmi09", "mean_cmi06_cmi07", "mean_cmi07_cmi08", "mean_cmi08_cmi09", "mean_cmi06_cmi07_cmi08", "mean_cmi07_cmi08_cmi09", "mean_cmi06_cmi07_cmi08_cmi09","ppt06", "ppt07", "ppt08", "ppt09", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", "mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09", "mean_ppt06_ppt07_ppt08_ppt09","mdc_06", "mdc_07", "mdc_08", "mdc_09", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", "mean_mdc06_mdc07_mdc08_mdc09")
-
-variables1<-c("tmax06", "tmax07", "tmax08", "tmax09",
-              "tmax06", "tmax07", "tmax08", "tmax09",
-              "tmax06", "tmax07", "tmax08", "tmax09",
-              "cmi06", "cmi07", "cmi08", "cmi09",
-              "cmi06", "cmi07", "cmi08", "cmi09"
-              )
-variables2<-c("ppt06", "ppt07", "ppt08", "ppt09",
-              "mdc_06", "mdc_07", "mdc_08", "mdc_09",
-              "cmi06", "cmi07", "cmi08", "cmi09",
-              "ppt06", "ppt07", "ppt08", "ppt09",
-              "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-              )
-
-dat$fire_pres<-as.numeric(dat$fire_pres)              
-              
-#Create frame of AIC table
-# summary table
-table.glm.climate <- data.frame (matrix (ncol = 2, nrow = 0))
-colnames (table.glm.climate) <- c ("Variable", "AIC")
-
-# Creates AIC table with a model that that allows slope and intercept to vary
-for (i in 1: length(variables)){
-  print(i)
-model1 <- glmer (dat$fire_pres ~ dat[, variables[i]] +
-                   dat[, variables[i]]||dat$fire_yr,
-                 family = binomial (link = "logit"),
-                 verbose = TRUE)
-
-table.glm.climate[i,1]<-variables[i]
-table.glm.climate[i,2]<-extractAIC(model1)[2]
-}
-
-# This is an addition to the table above allowing combinations of temperature and precipitation
-
-for (i in 1: length(variables1)){
-  print(i)
-  model2 <- glmer (dat$fire_pres ~ dat[, variables1[i]] + dat[, variables2[i]] +
-                     (dat[, variables1[i]] + dat[, variables2[i]])||dat$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
-
-  table.glm.climate[(i+length(variables)),1]<-paste0(variables1[i],"+", variables2[i])
-  table.glm.climate[(i+length(variables)),2]<-extractAIC(model2)[2]
-}
-
-for (i in 1: length(variables1)){
-  print(i)
-  model2 <- glmer (dat$fire_pres ~ dat[, variables1[i]] * dat[, variables2[i]] +
-                     (dat[, variables1[i]] + dat[, variables2[i]])||dat$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
-  
-  table.glm.climate[(i+length(variables) +length(variables1)),1]<-paste0(variables1[i],"X", variables2[i])
-  table.glm.climate[(i+length(variables) +length(variables1)),2]<-extractAIC(model2)[2]
-}
-table.glm.climate1<-table.glm.climate %>% drop_na(AIC)
-
-table.glm.climate1$deltaAIC<-table.glm.climate1$AIC- min(table.glm.climate1$AIC)
-
-write.csv(table.glm.climate1, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results.csv")
-
-
-##############################################################
-# Trying with simplest model of no random effects only fixed effects. 
-
-table.glm.climate_simplest <- data.frame (matrix (ncol = 2, nrow = 0))
-colnames (table.glm.climate_simplest) <- c ("Variable", "AIC")
-for (i in 1: length(variables)){
-  print(i)
-  model3 <- glm (dat$fire_pres ~ dat[, variables[i]] + dat$fire_yr,
-                   family = binomial (link = "logit"))
-  
-  table.glm.climate_simplest[i,1]<-variables[i]
-  table.glm.climate_simplest[i,2]<-extractAIC(model3)[2]
-}
-
-
-
-for (i in 1: length(variables1)){
-  print(i)
-  model4 <- glm (dat$fire_pres ~ 
-                   dat[, variables1[i]] +
-                     dat[, variables2[i]] +
-                     dat$fire_yr,
-                   family = binomial (link = "logit"))
-  
-  table.glm.climate_simplest[(i + length(variables)),1]<-paste0(variables1[i], "+",variables2[i])
-  table.glm.climate_simplest[(i + length(variables)),2]<-extractAIC(model4)[2]
-}
-
-for (i in 1: length(variables1)){
-  print(i)
-  model4 <- glm (dat$fire_pres ~ 
-                   dat[, variables1[i]] *
-                   dat[, variables2[i]] +
-                   dat$fire_yr,
-                 family = binomial (link = "logit"))
-  
-  table.glm.climate_simplest[(i + length(variables) + length(variables1)),1]<-paste0(variables1[i], "*",variables2[i])
-  table.glm.climate_simplest[(i + length(variables) + length(variables1)),2]<-extractAIC(model4)[2]
-}
-
-model4 <- glm (dat$fire_pres ~
-                 dat$fire_yr,
-               family = binomial (link = "logit"))
-
-table.glm.climate_simplest[81,1]<-paste0("Year only")
-table.glm.climate_simplest[81,2]<-extractAIC(model4)[2]
-
-table.glm.climate_simplest$deltaAIC<-table.glm.climate_simplest$AIC- min(table.glm.climate_simplest$AIC)
-
-# Model with lowest AIC was tmax08 x cmi08 deltaAIC=0, then with deltaAIC=2.8 points more was tmax08 + ppt08, followed by tmax08 x ppt08 with deltaAIC=4.1 points.
-
-
-###############################################################
-
-# From the above analysis it seems the best combination of variables is the maximum temperature in August + the climate moisture index in August
-
-plot(dat$tmax08, dat$cmi08)
-plot(dat$ppt08, dat$cmi08)
 
 
 # assembling landscape variables 

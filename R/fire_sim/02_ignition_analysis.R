@@ -32,7 +32,6 @@ library(mgcv)
 library(nlme)
 library(purrr)
 library(tidyr)
-library(caret)
 
 
 source(here::here("R/functions/R_Postgres.R"))
@@ -69,11 +68,9 @@ fire_ignitions1_new<- fire_ignitions1 %>%
   filter(fire_cause=="Lightning")
 fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
 hist(fire_ignitions1_new$month, xlab="Month", main="Histogram of lightning caused fires") # most lightning fires appear to occur between May - Sept!
-table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
 
 
 table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
-table(fire_veg_data$fire_yr, fire_veg_data$fire_pres)
 table(fire_veg_data$fire_cs)
 
 fire_veg_data$fire_cs<- as.factor(fire_veg_data$fire_cs)
@@ -86,14 +83,21 @@ fire_veg_data1<- fire_veg_data1 %>%
   filter(fire_cs!="Unknown")
 fire_veg_data1<- fire_veg_data1 %>%
   filter(fire_cs!="Nuisance Fire") 
-table(fire_veg_data1$fire_yr, fire_veg_data1$fire_cs)
 
 table(fire_veg_data1$fire_cs)
 table(fire_veg_data1$fire_yr, fire_veg_data1$fire_pres )
 
-fire_veg_data2<- st_set_geometry(fire_veg_data1, NULL)
+# fire_veg_data1 is the final data set
+# Sub-boreal Spruce
+sbs<- fire_veg_data1 %>% dplyr::filter(zone =="SBS")
+sbs_lightning2<- st_set_geometry(sbs, NULL)
+
+# assembling landscape variables 
+
+names(sbs_lightning2)
+
 # remove points that landed on water (obviously ignitions will not start there)
-ignition_pres_abs3 <-fire_veg_data2 %>%
+ignition_pres_abs3 <-sbs_lightning2 %>%
   filter(bclcs_level_2!="W") %>%
   filter(bclcs_level_2!=" ")
 table(ignition_pres_abs3$bclcs_level_2) # T=treed, N =  non-treed and L = land.
@@ -117,7 +121,7 @@ ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # dist
 
 ignition_pres_abs4<- ignition_pres_abs4 %>%
   filter(fir_typ!="Nuisance Fire") 
-table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
+table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fir_typ)
 
 
 # subsample the data since my sample sizes for the zeros are too large
@@ -127,242 +131,29 @@ table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
 
 pre<- ignition_pres_abs4 %>%
   filter(fire_pres==1) %>%
-  dplyr::select(fire_yr, fire_pres,zone, subzone) %>%
-  group_by(fire_yr, zone,subzone) %>%
+  dplyr::select(fire_yr, fire_pres, vegtype) %>%
+  group_by(fire_yr, vegtype) %>%
   summarize(fire_n=n())
-
-pre_checkpre<- ignition_pres_abs4 %>%
-  filter(fire_pres==0) %>%
-  dplyr::select(fire_yr, fire_pres,zone, subzone) %>%
-  group_by(fire_yr, zone, subzone) %>%
-  summarize(abs_n=n())
-
-check<-left_join(pre, pre_checkpre)
 
 abs_match <- ignition_pres_abs4 %>%
   filter(fire_pres == 0) %>%
-  group_by(fire_yr, zone, subzone) %>%   # prep for work by yr and veg type
+  group_by(fire_yr, vegtype) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
   ungroup()
 
-df<-left_join(check, abs_match) # make sure there are not veg year combinations taht are not also in the fire_pres==1 file
+df<-left_join(pre, abs_match) # make sure there are not veg year combinations taht are not also in the fire_pres==1 file
 
-
-# there are 3 year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values them but Im still having issues. WHY?
-df2 <- df %>% 
-  filter(lengths(data)>0)
-
-# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now Ill leave it like this.
-  sampled_df<- df2 %>% 
-    mutate(samp = map2(data, ceiling(fire_n*1.5), sample_n, replace=TRUE)) %>%
-    dplyr::select(-data) %>%
-    unnest(samp) %>%
-    dplyr::select(fire_yr, zone, subzone, feature_id:vegtype)
- 
+sampled_df <- df %>%
+  mutate(samp = map2(data, (fire_n*1.5), sample_n)) %>%
+  dplyr::select(-data) %>%
+  unnest(samp) %>%
+  dplyr::select(fire_yr, vegtype, feature_id:mdc_09)
+dim(sampled_df)  
 
 pre1<- ignition_pres_abs4 %>%
   filter(fire_pres==1)
 
 dat<- rbind(pre1, as.data.frame(sampled_df))
-
-#### looking at correlations between variables####
-
-# correlation between max T and MDC. Across all the data MDC and Tmax are somewhat correlated with values ranging between 0.43 and 0.71
-dist.cut.corr <- dat [c (20:24, 40:44)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between maximum temperature and MDC")
-
-# Correlation between total precipitation and MDC. This is more correlated than temperature with values between -0.4 and -0.78. Probably not a good idea to include these two variables in the same model
-dist.cut.corr <- dat [c (30:34, 40:44)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between total precipitation and MDC")
-
-# Correlation between Tmax and total precipitation. The correlation is very low, as would be expected (-0.1 to -0.46) 
-dist.cut.corr <- dat [c (20:24, 30:34)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between total precipitation and Tmax")
-
-# Correlation between Tmax and climate moisture index. Not too much correlation, values range between -0.22 to -0.57
-dist.cut.corr <- dat [c (20:24, 35:39)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between Tmax and CMI")
-
-# Correlation between total precipitation and climate moisture index. These are highly highly correlated. 
-dist.cut.corr <- dat [c (30:34, 35:39)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between PPT and CMI")
-
-# I will leave climate moisture index out of my models and only examine precipitation because this data for future time periods is easy to get.
-
-### creating amalgamations of variables to test different combinations of variables.##
-dat$mean_tmax05_tmax06<- (dat$tmax05+ dat$tmax06)/2
-dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
-dat$mean_tmax07_tmax08<- (dat$tmax07+ dat$tmax08)/2
-dat$mean_tmax08_tmax09<- (dat$tmax08+ dat$tmax09)/2
-dat$mean_tmax05_tmax06_tmax07<- (dat$tmax05+ dat$tmax06 + dat$tmax07)/3
-dat$mean_tmax06_tmax07_tmax08<- (dat$tmax06+ dat$tmax07 + dat$tmax08)/3
-dat$mean_tmax07_tmax08_tmax09<- (dat$tmax07+ dat$tmax08 + dat$tmax09)/3
-dat$mean_tmax05_tmax06_tmax07_tmax08<- (dat$tmax05 + dat$tmax06+ dat$tmax07 + dat$tmax08)/4
-dat$mean_tmax06_tmax07_tmax08_tmax09<- (dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/4
-dat$mean_tmax05_tmax06_tmax07_tmax08_tmax09<- (dat$tmax05 + dat$tmax06 + dat$tmax07+ dat$tmax08 + dat$tmax09)/5
-
-# 
-# dat$mean_cmi05_cmi06<- (dat$cmi05+ dat$cmi06)/2
-# dat$mean_cmi06_cmi07<- (dat$cmi06+ dat$cmi07)/2
-# dat$mean_cmi07_cmi08<- (dat$cmi07+ dat$cmi08)/2
-# dat$mean_cmi08_cmi09<- (dat$cmi08+ dat$cmi09)/2
-# dat$mean_cmi05_cmi06_cmi07<- (dat$cmi05+ dat$cmi06 + dat$cmi07)/3
-# dat$mean_cmi06_cmi07_cmi08<- (dat$cmi06+ dat$cmi07 + dat$cmi08)/3
-# dat$mean_cmi07_cmi08_cmi09<- (dat$cmi07+ dat$cmi08 + dat$cmi09)/3
-# dat$mean_cmi05_cmi06_cmi07_cmi08<- (dat$cmi05 + dat$cmi06+ dat$cmi07 + dat$cmi08)/4
-# dat$mean_cmi06_cmi07_cmi08_cmi09<- (dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/4
-# dat$mean_cmi05_cmi06_cmi07_cmi08_cmi09<- (dat$cmi05 + dat$cmi06 + dat$cmi07+ dat$cmi08 + dat$cmi09)/5
-
-
-dat$mean_ppt05_ppt06<- (dat$ppt05+ dat$ppt06)/2
-dat$mean_ppt06_ppt07<- (dat$ppt06+ dat$ppt07)/2
-dat$mean_ppt07_ppt08<- (dat$ppt07+ dat$ppt08)/2
-dat$mean_ppt08_ppt09<- (dat$ppt08+ dat$ppt09)/2
-dat$mean_ppt05_ppt06_ppt07<- (dat$ppt05+ dat$ppt06 + dat$ppt07)/3
-dat$mean_ppt06_ppt07_ppt08<- (dat$ppt06+ dat$ppt07 + dat$ppt08)/3
-dat$mean_ppt07_ppt08_ppt09<- (dat$ppt07+ dat$ppt08 + dat$ppt09)/3
-dat$mean_ppt05_ppt06_ppt07_ppt08<- (dat$ppt05+ dat$ppt06 + dat$ppt07 + dat$ppt08)/4
-dat$mean_ppt06_ppt07_ppt08_ppt09<- (dat$ppt06+ dat$ppt07 + dat$ppt08 + dat$ppt09)/4
-dat$mean_ppt05_ppt06_ppt07_ppt08_ppt09<- (dat$ppt05 + dat$ppt06 + dat$ppt07 + dat$ppt08 + dat$ppt09)/5
-
-dat$mean_mdc05_mdc06<- (dat$mdc_05+ dat$mdc_06)/2
-dat$mean_mdc06_mdc07<- (dat$mdc_06+ dat$mdc_07)/2
-dat$mean_mdc07_mdc08<- (dat$mdc_07+ dat$mdc_08)/2
-dat$mean_mdc08_mdc09<- (dat$mdc_08+ dat$mdc_09)/2
-dat$mean_mdc05_mdc06_mdc07<- (dat$mdc_05+ dat$mdc_06 + dat$mdc_07)/3
-dat$mean_mdc06_mdc07_mdc08<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08)/3
-dat$mean_mdc07_mdc08_mdc09<- (dat$mdc_07+ dat$mdc_08 + dat$mdc_09)/3
-dat$mean_mdc05_mdc06_mdc07_mdc08<- (dat$mdc_05+ dat$mdc_06 + dat$mdc_07 + dat$mdc_08)/4
-dat$mean_mdc06_mdc07_mdc08_mdc09<- (dat$mdc_06+ dat$mdc_07 + dat$mdc_08 + dat$mdc_09)/4
-dat$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat$mdc_05 + dat$mdc_06+ dat$mdc_07 + dat$mdc_08 + dat$mdc_09)/5
-
-
-
-variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09", 
-              "mean_tmax05_tmax06","mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", 
-              "mean_tmax05_tmax06_tmax07", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09", 
-              "mean_tmax05_tmax06_tmax07_tmax08", "mean_tmax06_tmax07_tmax08_tmax09", "mean_tmax05_tmax06_tmax07_tmax08_tmax09",
-              
-              # "cmi05","cmi06", "cmi07", "cmi08", "cmi09", 
-              # "mean_cmi05_cmi06","mean_cmi06_cmi07", "mean_cmi07_cmi08", "mean_cmi08_cmi09", 
-              # "mean_cmi05_cmi06_cmi07", "mean_cmi06_cmi07_cmi08", "mean_cmi07_cmi08_cmi09", 
-              # "mean_cmi05_cmi06_cmi07_cmi08", "mean_cmi06_cmi07_cmi08_cmi09",
-              # "mean_cmi05_cmi06_cmi07_cmi08_cmi09",
-              
-              "ppt05","ppt06", "ppt07", "ppt08", "ppt09",
-              "mean_ppt05_ppt06", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", 
-              "mean_ppt05_ppt06_ppt07","mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09",
-              "mean_ppt05_ppt06_ppt07_ppt08", "mean_ppt06_ppt07_ppt08_ppt09",
-              "mean_ppt05_ppt06_ppt07_ppt08_ppt09",
-              
-              "mdc_05","mdc_06", "mdc_07", "mdc_08", "mdc_09",
-              "mean_mdc05_mdc06", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", 
-              "mean_mdc05_mdc06_mdc07", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", 
-              "mean_mdc05_mdc06_mdc07_mdc08", "mean_mdc06_mdc07_mdc08_mdc09",
-              "mean_mdc05_mdc06_mdc07_mdc08_mdc09")
-
-variables1<-c("tmax05", "tmax06", "tmax07", "tmax08", "tmax09",
-              "tmax05","tmax06", "tmax07", "tmax08", "tmax09"
-              #"ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
-)
-variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
-              "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-              #"mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-) # precipitation and MDC are quite correlated so Im leaving this combination of variables out too. 
-
-dat$fire_pres<-as.numeric(dat$fire_pres) 
-table(dat$fire_yr, dat$ fire_pres) 
-
-#TO DO!! interesting, there were very few fires in 2008 and I have none for 2007...seems odd. # go back to original data set and check that everything went in ok.  
-
-
-
-# create loop to do variable selection of climate data
-unique(dat$zone)
-zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "CDF", "BWBS", "BG", "SBS", "SWB", "BAFA")
-filenames<-list()
-
-for (h in 1:length(zones)) {
-dat1<- dat %>% dplyr::filter(zone ==zones[h])
-
-# For the AUC analysis I need to keep out some proportion of the data to test the fit of the model. I split the data here.
-dat1$fire_pres<-as.numeric(as.character(dat1$fire_pres))
-
-######################################################################
-#### Generation AIC tables to select best environmental predictors####
-######################################################################
-
-
-#Create frame of AIC table
-# summary table
-table.glm.climate <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.climate) <- c ("Zone", "Variable", "AIC", "Singular")
-
-# Creates AIC table with a model that that allows slope and intercept to vary
-for (i in 1: length(variables)){
-  print(paste((variables[i]), (zones[h]), sep=" "))
-  model1 <- glmer (dat1$fire_pres ~ dat1[, variables[i]] +
-                     1|dat1$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
-  
-  table.glm.climate[h,1]<-zones[h]
-  table.glm.climate[i,2]<-variables[i]
-  table.glm.climate[i,3]<-extractAIC(model1)[2]
-  table.glm.climate[i,4]<-isSingular(model1)
-  
-}
-
-# This is an addition to the table above allowing combinations of temperature and precipitation
-
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
-  model2 <- glmer (dat1$fire_pres ~ dat1[, variables1[i]] + dat1[, variables2[i]] +
-                     1|dat1$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
-  
-  table.glm.climate[(i+length(variables)),1]<-zones[h]
-  table.glm.climate[(i+length(variables)),2]<-paste0(variables1[i],"+", variables2[i])
-  table.glm.climate[(i+length(variables)),3]<-extractAIC(model2)[2]
-  table.glm.climate[(i+length(variables)),4]<-isSingular(model2)
-}
-
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), "X",variables2[i], (zones[h]), sep=" "))
-  model2 <- glmer (dat1$fire_pres ~ dat1[, variables1[i]] * dat1[, variables2[i]] +
-                     1|dat1$fire_yr,
-                   family = binomial (link = "logit"),
-                   verbose = TRUE)
-  
-  table.glm.climate[(i+length(variables) +length(variables1)),1]<-zones[h]
-  table.glm.climate[(i+length(variables) +length(variables1)),2]<-paste0(variables1[i],"X", variables2[i])
-  table.glm.climate[(i+length(variables) +length(variables1)),3]<-extractAIC(model2)[2]
-  table.glm.climate[(i+length(variables) +length(variables1)),4]<-isSingular(model2)
-}
-table.glm.climate1<-table.glm.climate %>% drop_na(AIC)
-
-table.glm.climate1$deltaAIC<-table.glm.climate1$AIC- min(table.glm.climate1$AIC)
-
-#assign file names to the work
-nam1<-paste("AIC",zones[h],sep="_") #defining the name
-assign(nam1,table.glm.climate1)
-filenames<-append(filenames,nam1)
-}
-
-write.csv(table.glm.climate1, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results.csv")
-
-
 
 
 ##################
@@ -402,7 +193,7 @@ p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 # Maximum Temperature
 #July
-p <- ggplot(dat2, aes(tmax07, as.numeric(fire_pres))) +
+p <- ggplot(sbs, aes(tmax07, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -411,7 +202,7 @@ p <- ggplot(dat2, aes(tmax07, as.numeric(fire_pres))) +
 p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 # August
-p <- ggplot(dat2, aes(tmax08, as.numeric(fire_pres))) +
+p <- ggplot(dat, aes(tmax08, as.numeric(fire_pres))) +
   geom_smooth(method="gam", formula=y~s(x),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
@@ -868,8 +659,8 @@ binnedplot (invlogit(predict(glmer8)),
             main = "Binned Residual Plot - glmer8"
 )
 
-glmer9<- glmer(fire_pres ~ tmax08c +
-                 cmi08c +
+glmer9<- glmer(fire_pres ~ tmax08 +
+                 cmi08 +
                  subzone +
                  vegtype +
                  (1|fire_yr), 
@@ -936,13 +727,11 @@ binnedplot (invlogit(predict(glmer11)),
 # best model seems to be glmer8 or glmer9 they both have the same AIC values but glmer8 is simpler so Ill stick with that one.
 
 
-dat1$tmax08c<-dat1$tmax08-mean(dat1$tmax08)
-dat1$cmi08c<-dat1$cmi08-mean(dat1$cmi08)
-glmer8<- glmer(fire_pres ~ tmax08 +
-                 cmi08 +
+glmer8<- glmer(fire_pres ~ tmax08c +
+                 cmi08c +
                  vegtype +
                  (1|fire_yr), 
-               data= dat1,
+               data= Train,
                family = binomial,
                na.action=na.omit)
 summary(glmer8)
@@ -972,20 +761,9 @@ binnedplot (Train$cmi08c,
 
 
 
-# lets look at fit of the Valid (validation) dataset
+# lets look at fit of the Valid dataset
 #MUST STILL DO THIS
-Valid$GLMER_predict8 <- predict(glmer8,newdata = Valid,type="response")
-Valid$GLMER_predict9 <- predict(glmer9,newdata = Valid,type="response")
-valid_dat<-Valid %>% 
-  dplyr::select(idno, fire_pres, GLMER_predict8 ) %>%
-  rename(ID=idno,
-         Observed=fire_pres)
-valid_dat$Observed<-as.numeric(as.character(valid_dat$Observed))
-library(PresenceAbsence)
-auc (as.data.frame(valid_dat)) # Get the AUC value. You can specify the sd. 
-auc.roc.plot (valid_dat) # Plot the ROC
-
-
+LR_predict <- predict(glmer8,newdata = Valid,type="response")
 LR_predict_bin <- ifelse(LR_predict > 0.6,1,0)
 cm_lr <- table(Valid,LR_predict_bin) #Accuracy 
 accuracy <- (sum(diag(cm_lr))/sum(cm_lr)) 
