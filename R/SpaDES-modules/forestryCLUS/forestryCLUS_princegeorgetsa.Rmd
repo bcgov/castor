@@ -86,6 +86,7 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo_feb2021'")
 
 
 # HART RANGES Update the constraints available to a zone as specified in the scenario
@@ -127,7 +128,10 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zo
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 10) OR (zoneid = 22) OR (zoneid = 25) OR (zoneid = 37) OR (zoneid = 39) OR (zoneid = 53) OR (zoneid = 40) OR (zoneid = 68) OR (zoneid = 71)") 
 
 
-
+# LUO constraints
+dbExecute(clusdb, "UPDATE zoneconstraints set multi_condition = NULL where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # age < 12 OR height < 2.5
+dbExecute(clusdb, "UPDATE zoneconstraints set variable = 'height' where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # height, age
+dbExecute(clusdb, "UPDATE zoneconstraints set threshold = '2.5' where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # 2.5, 25
 
 dbDisconnect(clusdb)
 ```
@@ -186,12 +190,13 @@ parameters <- list(
                                     # "rast.central_grp_proposed_luo",
                                     # "rast.central_grp_proposed_luo_buffer",
                                     # "rast.central_grp_proposed_luo_matrix",
-                                     "rast.zone_du9_scenarios"
+                                    # "rast.zone_du9_scenarios"
                                     # "rast.zone_cond_bc_narrow_lake_crithab",
                                     # "rast.zone_cond_bc_hart_ranges_crithab",
                                     # "rast.zone_cond_bc_kennedy_siding_crithab",
                                     # "rast.zone_cond_bc_north_cariboo_crithab",
                                     # "rast.zone_cond_bc_redrock_prairie_creek_crithab"
+                                    "rast.central_grp_proposed_luo_feb2021"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -269,7 +274,6 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in North Cariboo critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "pg_north_cariboo_ch_he0d_m15d",
 #                        description = "No harvest in North Cariboo high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in North Cariboo matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
-
 # scenario = data.table (name = "pg_north_cariboo_scen3b",
 #                        description = "No harvest in old forest and recruitment forest critical habitat areas in North Cariboo, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in North Cariboo matrix habitat areas. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "pg_narrow_lake_nh",
@@ -278,13 +282,19 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Narrow Lake high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "pg_narrow_lake_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+# scenario = data.table (name = "pg_narrow_lake_scen3b",
+#                        description = "No harvest in old forest and recruitment forest in Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+# scenario = data.table (name = "pg_luo_35p_25yo_250cm",
+#                        description = "Central group proposed land use order; area less than 35% less than 25 years old or less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow = 6,000,000m3/year. South Prince George only.")
+# scenario = data.table (name = "pg_luo_35p_25yo",
+#                        description = "Central group proposed land use order; area less than 35% less than 25 years old. Oldest first. Adjacency = 3. Harvest flow = 6,000,000m3/year. South Prince George only.")
 
-scenario = data.table (name = "pg_narrow_lake_scen3b",
-                       description = "No harvest in old forest and recruitment forest in Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+scenario = data.table (name = "pg_luo_35p_250cm",
+                       description = "Central group proposed land use order; area less than 35% less than 2.5 meter height. Oldest first. Adjacency = 3. Harvest flow = 6,000,000m3/year. South Prince George only.")
 
 
 
-
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "pg_centgrp_pa_nh",
 #                        description = "No harvest in all central group partnership agreement areas")
 # scenario = data.table (name = "pg_chil_nh_notweeds",
