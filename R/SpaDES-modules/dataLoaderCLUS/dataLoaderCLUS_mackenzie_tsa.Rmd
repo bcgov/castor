@@ -24,7 +24,7 @@ The dataloaderCLUS preps the database and other objects required to run CLUS. A 
 
 Here I set the parameters to create a database for the [Mackenzie timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/mackenzie-tsa). The TSA is British Columbia’s fourth largest, covering 6.41 million hectares in B.C.’s northeast. The Mackenzie TSA’s allowable annual cut (AAC) is 4.5 million cubic metres as of November 14, 2014. A maximum of 2 M m3 is attributable to live uninfested timber and of this 500 000 can be taken from the south west portion of the TSA. Below the databases are divided into the main portion of the TSA (MacKenzie_TSA) adn teh southwest portion (MacKenzie_SW_TSA)
 
-The TSA (excluding the SW portion) overlaps with the Gataga, Rabbit, Frog, Chase, Wolverine, Finlay, Graham, Moberly, Kennedy Siding, and Thutade caribou herds. This artnership also overlaps with soem fo teh Section 11 Parntership Agreement areas, which are included here.
+The TSA (excluding the SW portion) overlaps with the Gataga, Rabbit, Frog, Chase, Wolverine, Finlay, Graham, Moberly, Kennedy Siding, and Thutade caribou herds. This partnership also overlaps with some fo the Section 11 Partnership Agreement areas, which are included here.
 
 The SW portion of the TSA overlaps with the Scott and Wolverine herds.
 
@@ -53,7 +53,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
-                         nameBoundary = "MacKenzie_TSA", # "MacKenzie_SW_TSA"
+                         nameBoundary = "MacKenzie_TSA", # MacKenzie_SW_TSA MacKenzie_TSA
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -88,29 +88,32 @@ parameters <-  list(
                                               "rast.zone_cond_eccc_thutade_crithab_or_herd",
                                               "rast.central_grp_proposed_luo",
                                               "rast.central_grp_proposed_luo_buffer",
-                                              "rast.central_grp_proposed_luo_matrix"
+                                              "rast.central_grp_proposed_luo_matrix",
+                                              "rast.central_grp_proposed_luo_feb2021"
                                           ), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
-                         nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
-                         nameYieldTable = "yc_vdyp", # VDYP yield  table
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds
-                         nameYieldTransitionTable = "yc_tipsy", # table that transitions stands onto TIPSY yield curve once they are cut
-                         nameForestInventoryRaster = "rast.vri2018_id", # raster of the forest inventory 
-                         nameForestInventoryKey = "feature_id", # unique id of each polygon (stand) in the inventory 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018", # the invenotry data
-                         nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
-                         nameForestInventoryHeight = "proj_height_1", # name of the height column in the inventory data
-                         nameForestInventoryCrownClosure = "crown_closure", # name of the crown closure column in the inventory data
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameZoneTable = "zone_constraints",
+                        # nameZonePriorityRaster = "rast.zone_cond_beo",
+                         nameYieldsRaster = "rast.ycid_vdyp", 
+                         nameYieldTable = "yc_vdyp", 
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2019_id", 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
+                         nameForestInventoryAge = "proj_age_1", 
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
-  blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
-                      patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo',
                       patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
+                      nameCutblockRaster ="rast.cns_cut_bl", 
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network using a a minimum spanning tree to all potential 'ladndings (created in blockingCLUS)
+  roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_all'# existign road network
+                  nameRoads =  'rast.crds_all'
                   ),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
   #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
@@ -159,9 +162,8 @@ modules <- list("dataLoaderCLUS",
                 "uploaderCLUS" 
                 )
 
-#objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                rsf_model_coeff = rsf_model_coeff,
+                #rsf_model_coeff = rsf_model_coeff,
                 scenario = scenario)
 
 inputs <- list()
