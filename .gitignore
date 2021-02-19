@@ -32,3 +32,4 @@ mercurial.ini
 *.sqlite
 README.html
 /.Require
+/reports/linkpop
