@@ -7,41 +7,63 @@ output:
     keep_md: true
 ---
 
-## Caribou and Land Use Simulator (CLUS) Quick Start Tutorial
+# Caribou and Land Use Simulator (CLUS) Quick Start Tutorial
 The CLUS quick-start tutorial provides step-by-step instructions on how to use CLUS. It is designed to familiarize you with creating and running a simple forest harvest scenario analysis with CLUS. It takes you through all the steps needed to set-up and run CLUS from scratch.
 
+For an overview of how the CLUS model works, we recommend reading our [wiki](https://github.com/bcgov/clus/wiki). This provides an introduction to the framework and components of CLUS that may facilitate understanding this tutorial. 
+
 ## 1. Download Software
-CLUS is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). Thus, we also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
+CLUS is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
 
-To work with our databases, you will need to download [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with postgreSQL databases, which are the key data structure used by CLUS. 
+To work with our databases, you will also need to download [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with PostgreSQL databases, which are the key data structure used by CLUS. 
 
-To manage and work with spatial data, you will also need download [OSGeo4W](https://trac.osgeo.org/osgeo4w/). This contains QGIS, GDAL/OGR, and GRASS open source software programs
+To manage and work with spatial data, you will also need to download [OSGeo4W](https://trac.osgeo.org/osgeo4w/). This contains QGIS, GDAL/OGR, and GRASS open source software programs that are needed to do some spatial data manipulation.
 
-If you are a government employee, you may want to download these software as approved by your information technology deparment.  
+If you are a government employee, you may want to download these software as approved by your information technology department.
+
+In summary, the first step of working with CLUS is to download the following software
+
+* [program R](https://cran.r-project.org/bin/windows/base/)
+* [RStudio](https://rstudio.com/products/rstudio/download/)
+* [git](https://gitforwindows.org/)
+* [pgAdmin](https://www.pgadmin.org/)
+* [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
+
+### 1.1 R Packages
+When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packagaes must meet certain QA/QC
+standards, and are typically reliable and stable. 
+
+Here we do not list all of the R Packages needed to use the CLUS model. There are many packages, they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here I provide a brief description of how to download R packages from RStudio.
+
+Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a pacakge is downloaded, you don't need to download it again (unless an update is required).  
+
+![](images/rstudio_pakages.jpg)
+
+Packages that you will need to run CLUS are typically listed within specific CLUS model scripts, so you can download them as you need them. Packages you need are called using the *library()* or *require()* commands in the script. You'll also find that you will get an error if you are missing a package needed to run a specific R function. In this case, check which function is getting the error and download the necessary package. 
 
 ## 2. Download the Model Code from GitHub
-Once you are up and running with R Studio you can 'clone' the model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. 
+Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. 
 
-The CLUS repository is located at https://github.com/bcgov/clus.git. You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will desribe more how to use Git and GitHub.
+The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
 
 To clone the CLUS repository, open RStudio, click on the "File" tab in the top left and then click "New Project". This will open a new window:
 
 ![](images/git.jpg)
 
-In this window, select "Version Control" and then select "Git". This will open a window where you enter the Repository URL (https://github.com/bcgov/clus.git), the name of the direcxotry (clus) and then location where you want to save a copy of the repository. We recommend copying hte code to a local folder.
+In this window, select "Version Control" and then select "Git". This will open a window where you enter the Repository URL (https://github.com/bcgov/clus.git), the name of the directory (clus) and then location where you want to save a copy of the repository. We recommend copying the code to a local folder (not a network folder).
 
 ![](images/git_repo.jpg)
 
-Once you create the repository, it will copy the code to the folder directory you created. You will notice it has the same folder stucture as the website. 
+Once you create the repository, it will copy the code to the folder directory you created. You will notice it has the same folder structure as the website. 
 
 In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. 
 
-### 3. Version Control and Working with GitHub
-In the top-right window you will see a "Git" tab. If you click on that you will see a series of buttons: "Diff", "Commit", "Pull", "Push", "History" and "More". The text beside the top-right "R-box" symbol indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository you are working in.
+## 3. Version Control and Working with GitHub
+In the top-right window or RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
 
 ![](images/git_rstudio.jpg)
 
-GitHub branches can be considered as 'working copies' of code (see image below). Conceptually, they are used to 'split off' working code from the master branch. This work flow is designed to minimize changes to the 'master' copy of the code. However, this also requires you to re-intergrate your branch with the main branch (called a "Pull Request") when you want to incorporate your changes to the code into the master branch. This work flow allows you to   
+GitHub branches can be considered as 'working copies' of code (see image below). Conceptually, they are used to 'split off' working code from the master branch. This work flow is designed to minimize frequent small changes to the 'master' copy of the code. However, this also requires you to re-integrate your branch with the main branch (called a "Pull Request") when you want to incorporate your changes to the code into the master branch. Typically you do this after you have made significant changes to the code, have tested the code to make sure it functions properly, and are reasonably confident that it will not conflict with the master code.  
 
 ![](images/github_branch.png)
 
@@ -49,9 +71,9 @@ For now, we will create a new branch of the master code for you to work in. This
 
 ![](images/git_branch2.jpg)
 
-You will notice the name of the new branch appears in the text drop-down. Now you are workign in a seperate branch of the code. Any changes you make to the code will only occur in the branch you created, as long as it is the selected branch in the drop-down text box. 
+You will now notice that the name of the new branch appears in the text drop-down. Now you are working in a separate branch of the code. Any changes you make to the code will only occur in the branch you created, as long as it is the selected branch in the drop-down text box. 
 
-Now, in the "File" tab of the bottom-right window of RStudio, click on the "README.md" file. This should open document in the top-left window of RStudio, and you should see some text describing CLUS. The README.md file is a 'front page' for the CLUS GitHub repository, providing users some basic inforamtion abotu what CLUS is and how to learn more. 
+Now, in the "File" tab of the bottom-right window of RStudio, click on the "README.md" file. This should open a script document in the top-left window of RStudio, and you should see some text describing CLUS. The README.md file is a 'front page' for the CLUS GitHub repository, providing users some basic information about what CLUS is, and how to learn more. 
 
 Scroll down to the "Contributors" section of the README.md file and add your name and contact details to the list of contributors. Save the edits (you can click the floppy disk symbol in the top left of the window), and then click on the "Git" tab in the top-right window of RStudio. You should see the README.md file show up in the window under "Path". 
 
@@ -59,37 +81,31 @@ Click on the "Commit" button and it opens a new window with three windows in it.
 
 ![](images/git_commit.jpg)
 
-In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result fo the commit (e.g., "1 file changed, 1 insertion(+)"). Close that box, then click the "Push" button. Anotehr window will open, again with command line git code that was run to push the comit to the GitHub repository. This 'saves' the changes to the file to the GitHub repository. Congratulations, you are now a contributor to CLUS!
+In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result fo the commit (e.g., "1 file changed, 1 insertion(+)"). Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
 
-If other people are working in the same branch of the repository, it is good to get in the habit of clickng the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
-
-Since you are working in an independent branch, you will mostly be commiting changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or intgrate changes to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". 
-
-Pull Requests are managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labelled "New pull request". 
+Since you are working in an independent branch, you will be committing changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or integrate changes made to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". Pull Requests are managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labeled "New pull request". 
 
 ![](images/github_pull1.jpg)
 
-Click on the "New pull request" button. This will open a new page with "Comparing changes" at the top. Underneath that you will see two buttons "base:master" and "compare:master" with an error between them pointing right to left. Click on the "base" button and yuo will get a drop-down menu with the name of teh different branches. Select your branch and then click the green "Create pull request" button. This will open a new page where you can add a messaeg to describe the pull request (e.g., "added my name to the conributors list"). Click again on the the green "Create pull request" button. This will send a request to the CLUS team to integrate chanegs to the code to the master. They will review and approve those changes. 
+Click on the "New pull request" button. This will open a new page with "Comparing changes" at the top. Underneath that you will see two buttons "base:master" and "compare:master" with an arrow between them pointing right to left. Click on the "base" button and you will get a drop-down menu with the name of the different branches. Select your branch and then click the green "Create pull request" button. This will open a new page where you can add a message to describe the pull request (e.g., "added my name to the contributors list"). Click again on the the green "Create pull request" button. This will send a request to the CLUS team to integrate changes to the code to the master. They will review and approve those changes. Congratulations, you are now a contributor to CLUS! You now have a working understanding of how to use Git and GitHub to manage edits to your CLUS code.
 
 ![](images/github_pull2.jpg)
 
-Now you have a working understanding of how to use Git and GitHub to manage edits to your CLUS code.
-
 ## 4. Set-up a Keyring
-CLUS uses networked PostgreSQL databases. To keep these databases and the netwrok secure, we do not post the database access credentials (e.g., password) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally and use the "keyring" function to call those credentials from R scripts. 
+CLUS uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., password) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally and use the "keyring" function to call those credentials from R scripts. 
 
-We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> fucntions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain the credentials for the PostgreSQL databases. 
+We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> functions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain the credentials for the PostgreSQL databases. 
 
-Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to conenct to teh databases adn examine some of the data to familiarize yourself with the data structure. In the 'clus' database on our local network computer, within teh "public" schema, there is a trable called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. Within the 'documentation'  folder of CLUS, there is also a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table, and in the event that you need to add or update data at some point, instructions on how to update the table. 
+Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In the 'clus' database on our local network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
 
 ## 5. Create a Shapefile for a Hypothetical Forest Harvest Scenario
-At this point you're probably itching to do some modeling. However, before we do that, we want to introduce you to the process of developing a model to address alternate, hypothetical forest management scenarios. To do that, you will use one of CLUS' web applications to create a shapefile, then develop a land use constraint parameter from this shapefile that you will use in the hypothetical model you are going to buidl and run.
+Now that you are familiar with the software, some of the model code and some of the CLUS data, we want to introduce you to the process of developing a model to address a hypothetical forest management scenarios. To do that, you will use one of CLUS' web applications to create a shapefile, then develop a hypothetical land use constraint parameter from this shapefile that you will use in the model you are going to build and run.
 
-To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you have that login, and click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. However, you will note that the app was designed for caribou recovery planning, dn thus much of the inforamtion is tailored to support that. Neverthless, conceptually the app can apply to any forest managrment planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and an order (i.e., the constraint to apply within the defined location).
+To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you log in, click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. Note that the app was designed for caribou recovery planning, and thus much of the information within it is tailored to support that. Nevertheless, the app can be used to support any spatial forest management planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and a land use order (i.e., the constraint to apply within the defined location).
 
 ![](images/scen_tool.jpg)
 
-Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North cariobu herd and the Revlstoke timebr supply area (TSA) as our 'example'. Click on the "Columbia North' herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habtiat areas (WHAs). 
+Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North caribou herd and the Revelstoke timebr supply area (TSA) as our 'example'. Click on the "Columbia North" herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habitat areas (WHAs). 
 
 ![](images/scen_tool_cn.jpg)
 
@@ -97,17 +113,17 @@ Now 'zoom in' to a portion of the map where you can see cutblocks around the UWR
 
 ![](images/scen_tool_cn2.jpg)
 
-Once you have a reasonable polygon that covers a large area, click the "Download Crawn/Edited Shapefile". This will save a shapefile in a zipped folder of your downloads folder. Unzip the folder and copy the shapefile to your working folder.  
+Once you have a reasonable polygon that covers a large area, click the "Download Drawn/Edited Shapefile" button. This will save a shapefile in a zipped folder of your downloads folder. Unzip the folder and copy the shapefile to your working folder.  
 
-To create a spatial parameter for the CLUS model, you will need to upload this polygon data to the PostgreSQL database. This needs to be run from the OSGeo4W shell via QGIS (unfortunately, there does not appear to be a way to run the shell directly through R). To use OSGeo4W, search for it in your Windows search bar. Open the app and you will get a simple command line prompt with 'C:\>' 
+To create a spatial parameter for the CLUS model, you will need to upload this polygon data to the PostgreSQL database. This needs to be run from the OSGeo4W shell via QGIS (unfortunately, there does not appear to be a way to run the shell directly through R). To use OSGeo4W, search for it in your Windows search bar. Open the app and you will get a simple command line prompt with *C:\>* 
 
 ![](images/osgeo.jpg)
 
-Below we provide a chunk of code to upload a shapefile to the PostgreSQL database using gdal functionality (ogr2ogr command) through the OSGeo4W command line interface. Here you will also need to contact the CLUS core team to get database credentials. Within the line of code, *-f* declares the output file format (here we use PostgreSQL); *PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx"*  are the credentials needed to access the database; you need to provide the location of the shapefile; *-overwrite* allows you to delete and recreate any existing data; *-a_srs* referes to the spatial reference system, and here we use *EPSG:3500*, which is NAD83/BC Albers, the provincial standard for spatial data); *-progress* displays a progress bar in the command line terminal; *--config* is a configuration command, and here we use it to apply the *PG_USE_COPY* command, which uses the PostgreSQL COPY command for inserting data to PostgreSQL that is faster than the default INSERT.COPY command; *-nlt* is used to define the geometry of spatial data (e.g., point, line, polygon), and here we use the *PROMOTE_TO_MULTI* which promotes spatial data that mix polygon or multipolygons (which is the case for many polygonal datasets) to the multipolygons type. For more on gdal and ogr2ogr command fucntionalisty see [here](https://gdal.org/programs/ogr2ogr.html) and [here](https://gdal.org/drivers/vector/pg.html).
+Below we provide a chunk of code to upload a shapefile to the PostgreSQL database using gdal functionality (ogr2ogr command) through the OSGeo4W command line interface. Here, if you have not already done so, you will also need to contact the CLUS core team to get database credentials. Within the line of code, *-f* declares the output file format (here we use PostgreSQL); *PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx"*  are the credentials needed to access the database; you need to provide the location of the shapefile on your hard drive; *-overwrite* allows you to delete and recreate any existing data; *-a_srs* refers to the spatial reference system, and here we use *EPSG:3500* (which is NAD83/BC Albers, the provincial standard for spatial data); *-progress* displays a progress bar in the command line terminal; *--config* is a configuration command, and here we use it to apply the *PG_USE_COPY* command, which uses the PostgreSQL COPY command for inserting data to PostgreSQL that is faster than the default INSERT.COPY command; *-nlt* is used to define the geometry of spatial data (e.g., point, line, polygon), and here we use the *PROMOTE_TO_MULTI* which promotes spatial data that mix polygon or multipolygons (which is the case for many polygonal datasets) to the multipolygons type. Copy and paste the code below into the OSGeo4W command line and hit enter. 
 
-Copy and paste the code below into the OSGeo4W command line and hit enter. 
+For more on gdal and ogr2ogr command functionality see [here](https://gdal.org/programs/ogr2ogr.html) and [here](https://gdal.org/drivers/vector/pg.html).
 
-```{r, eval = F, message = F}
+```{r, echo = T, eval = F, message = F}
 ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx" C:\\Work\\shapefile_name.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ```
 
@@ -115,9 +131,9 @@ Once the command has finished running, open the pgAdmin application. You will ne
 
 ![](images/pgadmin.jpg)
 
-Click on the "clus" server and it opens up a series of drop down menus. Click on "Schemas", then "Public" and "Tables". This is where much of the CLUS data is stored, and you should be able to naviagte to and view the data you just created. 
+Click on the "clus" server and it opens up a series of drop down menus. Click on "Schemas", then "Public" and "Tables". This is where much of the CLUS data is stored, and you should be able to navigate to and view the data table you just created. 
 
-You will note that the "clus" database is organized into schemas: "archive", "caribou", "public", and "rast".  The "archive" schema is where we keep data that were previously used in analysis and are no longer used regularly, but may need to be used in the future. The "caribou" schema contains several caribou-specific datasets, including resource selection function (RSF) habitat models. 
+You will note that the "clus" database is organized into schemas: "archive", "caribou", "public", and "rast".  The "archive" schema is where we keep data that were previously used in analysis and are no longer used regularly, but may need to be re-used in the future. The "caribou" schema contains several caribou-specific datasets, including resource selection function (RSF) habitat models. 
 
 ![](images/pgadmin2.jpg)
 
@@ -129,32 +145,18 @@ You can open and view a spatial dataset by clicking the "Database" tab at the to
 
 ![](images/qgis2.jpg)
 
-The above provide a set of tools to check and visualize data in the CLUS database. In the next steps you will create a spatial parameter for a CLUS model 
+The above provide a set of tools to create, check and visualize spatial data in the CLUS PostgreSQL database. In the next steps you will create a spatial parameter for a CLUS model. 
 
 ## 6. Create a Spatial Model Parameter for CLUS Using the Shapefile
-Here we use the shapefile you created to create a spatial model parameter in CLUS. This spatial parameter will be a new spatial constraint on forest harvest activity. We will make it fairly constraining to show it's effect. We'll apply the constraint to the Revelstoke TSA, which overlaps the Columbia North cariobu herd, where you drew your polygon.
+Here we take the shapefile you created and make it a spatial parameter for a CLUS model scenario. This parameter will be a new spatial constraint on forest harvest activity. We'll apply the constraint to the Revelstoke TSA, which overlaps the Columbia North caribou herd, where you drew your polygon.
 
-Many of the model parameters in CLUS are created in the "R->Params" folder. In this folder there are a bunch of .Rmd's with scripts and text describing how to create those parameters. You can look in this folder to see how we defined various parameters. Below we describe a similar script as an example that you can use to learn the process. 
+Many of the model parameters in CLUS are created in the "R->Params" folder. In this folder there are several .Rmd files with scripts and text describing how to create those parameters. You can look in this folder to see how we defined various parameters used in CLUS. The spatial parameter scripts convert spatial polygons to raster data with an associated table that defines the constraint to be applied to the spatial area.
 
-The spatial parameter scripts convert spatial polygons to raster data with an assoicated table that defines the constraint to be applied to the spatial area. To create the raster adn table, you will need the "raster", "fasterize", "sf", "here", "data.table" and "DBI" packages (these can be downlaoded via RStudio if you do not already have them). You will also need to load our R_Postgres functions, using the "source" command. These are specific functions created for accessing PostgreSQL data from R (located in the "R->functions" folder).
+In the code chunk below we provide a similar script as an example that you can use to learn the process. 
 
-First, you will connect to the database (using the "dbConnect" function, and the keyring for credentials). You will then use the "getSpatialQuery" function (one of our custom functions) to SELECT your shapefile table from the database as an SQL query (enter the name of your table in place of "name_of_your_poly_table").  
+```{r, echo = T, eval = F, message = F}
 
-Second, you create an 'empty' raster object (all pixels will have a 0 value) configured to the provincial standard. We use this for all rasters to ensure that all of our data aligns. Make sure not to change the parameters of the raster (e.g., nrows, xmn, etc.).
-
-Third, you create an integer value for each unique type or 'zone' within the polygon data. Here, we are using a single polygon with a single 'zone', and therefore we create a 'zone' field where zone = 1. In the Params folder you will find examples of spatial polygons with unique 'zones', for example, caribou herd boundary polygons, where each herd is a unique zone. Essentially we are creating an integer value for each unique zone that will be the value attributed to the raster. Thus, the raster represents the spatial location of each zone. 
-
-Fourth, you will convert the polygon to a raster across the extent of BC, using the provincial standard as a template. This is done to ensure that each unique raster in the data is aligned with each other, and raster data can then be 'stacked' to measure multiple raster values at the same location. In this step, the raster is saved to a local drive, and then a command line is called from R to upload the data to the PostgreSQL using the *raster2pgsql* function. Within this function, *-s* assigns the spatial reference system, which is *3005* (BC Albers); *-d* drops (deletes) any existing raster in teh database with the same name and creates a new one; *-I* creates an index for the raster data; *-C* applies constraints to the raster to ensure it is registered properly (e.g., correct pixel size); *-M* 'vacuums' the data, which reclaims any obsolute or deleted data; *-N* applies a "NODATA" value to where there is no data; *2147483648* defines the raster as a 32-bit integer; *-t* defines the number of 'tiles' or rows in the database, and here we use 100x100 to create a tile for each pixel; *rast.raster_test* defines the schema and table name to save in the PostgreSQL database; the *psql* statement defines the credentials for the database (fill in the appropriate credentials). 
-
-Fifth, you create a 'look-up table' that links each raster integer zone to a zone name. In the example here, we create a name for the 'zone'. In the Params folder you will find examples with polygonal data that have multiple exsiting zones and zone names (e.g., caribou herds). Once the table is created, you upload it to the PostgreSQL datbase.
-
-In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% of the forest within the zone to be greater than or equal to 80 years old. Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the schema is also included); *zoneid*, which is the integer id for the zone in the raster that want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value variable at which to apply the threshold; *type* defines whether the threshold is greater than or equal (i.e., 'ge') or less than or equal (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to teh zone (typically 0); *multi_condition* is a field that can be used to develop more complicated criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply the constraint where crown closure and basal area of the forest stand meet the defined, specific characteristics.    
-
-Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constaints for multiple rows (i.e., unique zoneid's) may need to be created.
-
-Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" fucntion. The command will incorporate the new table into the a 'zone_constraints' table in the database. The 'zone_constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorproated into this table. 
-
-```{r, eval = F, message = F}
+# Load packages and source scripts
 library (raster)
 library (fasterize)
 library (sf)
@@ -162,7 +164,7 @@ library (DBI)
 library (here)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
-# 1. Connect to db and get polygon data
+# 1. Connect to database and get polygon data
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
@@ -180,10 +182,10 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
                               resolution = c(100, 100), 
                               vals = 0)
 
-# 3. Create an integer value attributed to each unique zone
+# 3. Create an integer value attributed to each unique zone in the polygon
 poly.data$zone <- as.integer (1) # create a zone field with integer value of 1
 # OR 
-poly.data$zone <- as.integer (as.factor (poly.data$zone)) # if there is an exsiting zone create an integer to define each zone (factor)
+poly.data$zone <- as.integer (as.factor (poly.data$zone)) # if there is an existing zone field, create an integer to define each zone (factor)
 
 # 4. Create a raster and upload to the postgres database
 ras.data <-fasterize::fasterize (poly.data, prov.rast, field = "zone") # converts polygon to raster
@@ -222,32 +224,229 @@ dbExecute (conn, paste0("ALTER TABLE zone_test INHERIT zone_constraints"))
 dbDisconnect (conn)
 ```
 
-## 7. Create a CLUS SQLite Database
-The CLUS simulator model does not run directly off of the PostgreSQL database. Instead CLUS has a module called 'dataLoaderCLUS' that consolidates data from the PostgreSQL database into a portable SQLite database. This data contains all the data need to run the simulator modules for the area and constraints of itnerest. This approach has a great degree of flexibility, as it creates a self-contained, low memory database that can thus be easily shared amongst users. One way to think about the CLUS data structure, is that the PostgreSQL database servers as the repository for provincial-scale, 'stable' and comprehensive datasets, such as for example, the forest inventory. The SQLite database typically applies to a subset of the province and is designed to compile data for a specific simulation scenario or group of scenarios.  
+To run the script, you will need the [raster](https://cran.r-project.org/web/packages/raster/raster.pdf), [fasterize](https://cran.r-project.org/web/packages/fasterize/fasterize.pdf), [sf](https://cran.r-project.org/web/packages/sf/sf.pdf), [here](https://cran.r-project.org/web/packages/here/here.pdf), [data.table](https://cran.r-project.org/web/packages/data.table/data.table.pdf) and [DBI](https://cran.r-project.org/web/packages/DBI/DBI.pdf) packages; these can be downloaded via RStudio if you do not already have them. You will also need to load our R_Postgres.R script, using the *source ()* command. This script contains specific functions created for querying PostgreSQL data from R (located in the "R->functions" folder).
 
-In this section you will learn how to use the 'dataLoaderCLUS' module to create a SQLite databse to run in the forestry simulator model. The 'dataLoaderCLUS' module is located in the "R->SpaDES-modules" folder. Within the folder you will find a single dataLoaderCLUS.R file and several variations of a dataLoaderCLUS_xxxx.Rmd. The .R file is the script that contains the functions that consolidate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the parameters that get implemented in the .R file.  
+First, you will connect to the PostgreSQL database (using the *dbConnect()* function, and the keyring for credentials). You will then use the *getSpatialQuery()* function (one of our custom functions) to SELECT the table that you created in the previous step from the database as an SQL query (enter the name of the table you created in place of "name_of_your_poly_table").  
 
-Here we have created a new scearnio to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the exsiting parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd".
+Second, you create an 'empty' raster object (all pixels will have a 0 value) configured to the provincial standard. We use this for all rasters to ensure that all of our data aligns. Make sure yuo do not to change the parameters of the raster (e.g., nrows, xmn, etc.).
 
-Within the .Rmd you will notice features of the SpaDES module sturcture. 
+Third, you create an integer value for each unique type or 'zone' within the polygon data. Here, we are using a single polygon with a single 'zone', and therefore we create a 'zone' field where zone = 1. In the Params folder you will find examples of spatial polygons with unique 'zones', for example, caribou herd boundary polygons, where each herd is a unique zone. Essentially we are creating an integer value for each unique zone that will be the value attributed to the raster. Thus, the raster represents the spatial location of each zone. 
+
+Fourth, you will convert the polygon to a raster across the extent of BC, using the provincial standard as a template. This is done to ensure that each unique raster in the data is aligned with each other, and raster data can then be 'stacked' to measure multiple raster values at the same location. In this step, the raster is saved to a local drive, and then a command line is called from R to upload the data to the PostgreSQL using the *raster2pgsql* function. Within this function, *-s* assigns the spatial reference system, which is *3005* (BC Albers); *-d* drops (deletes) any existing raster in the database with the same name and creates a new one; *-I* creates an index for the raster data; *-C* applies constraints to the raster to ensure it is registered properly (e.g., correct pixel size); *-M* 'vacuums' the data, which reclaims any obsolete or deleted data; *-N* applies a "NODATA" value to where there is no data; *2147483648* defines the raster as a 32-bit integer; *-t* defines the number of 'tiles' or rows in the database, and here we use 100x100 to create a tile for each pixel; *rast.raster_test* defines the schema and table name to save in the PostgreSQL database; the *psql* statement defines the credentials for the database (fill in the appropriate credentials). 
+
+Fifth, you create a 'look-up table' that links each raster integer zone to a zone name. In the example here, we create a name for the 'zone'. In the Params folder you will find examples with polygonal data that have multiple zones and zone names (e.g., caribou herds). Once the table is created, you upload it to the PostgreSQL database.
+
+In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% of the forest within the zone to be greater than or equal to 80 years old. Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the schema is also included); *zoneid*, which is the integer id for the zone in the raster that you want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value variable at which to apply the threshold; *type* defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to the zone (typically 0); *multi_condition* is a field that can be used to develop more complicated criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply the constraint where crown closure and basal area of the forest stand meet the defined, specific characteristics. Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constraints for multiple rows (i.e., unique zoneid's) may need to be created.
+
+Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the a 'zone_constraints' table in the database. The 'zone_constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table. 
+
+## 7. Use dataLoaderCLUS to Create a CLUS SQLite Database
+The CLUS simulator model does not run directly off of the PostgreSQL database. Instead CLUS has a module called *dataLoaderCLUS* that consolidates data from the PostgreSQL database into a portable SQLite database. The SQLite database contains all the data needed to run the simulator modules for the area and constraints of interest. This approach has a great degree of flexibility, as it creates a self-contained, realtively low memory database that can be easily shared among users. One way to think about the CLUS data structure, is that the PostgreSQL database serves as the repository for provincial-scale and comprehensive datasets, such as for example, the forest inventory. The SQLite database typically applies to a subset of the province and is designed to compile data for a specific group of similar scenarios.  
+
+In this section you will learn how to use the *dataLoaderCLUS* module to create a SQLite database to run in the forestry simulator model. The *dataLoaderCLUS* module is located in the "R->SpaDES-modules" folder. Within the folder you will find a single dataLoaderCLUS.R file and several variations of a dataLoaderCLUS_xxxx.Rmd. The .R file is the script that contains the functions that consolidate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the scenario specific parameters that get implemented in the .R file, thus it is more flexible and can be copied and modified as needed.  
+
+Previously you created a spatial parameter to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the existing parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd".
+
+Within the .Rmd you will notice features of the SpaDES module structure. It starts with a bit of a text overview of the .Rmd. Beneath that is a code "chunk". Within this chunk are listed the modules, parameters and objects needed to run the .R code. 
+
+![](images/dataloader1.jpg)
+
+You will notice some buttons on the right-hand side of the chunk for running or modifying the chunks. At the top of he code chunk  you will see the packages and source code needed to run the script, some commands for setting the environment for using JAVA and the directory paths for the module inputs and outputs. 
+
+Next you will see a list object called *times*. Since *dataLoaderCLUS* is not a dynamic simulation, and is a single event process to create a database, you will see that the *start* and end *times* are equal to 0.  
+
+Beneath that you will a list object called *parameters*. This is a relatively large list of parameters needed to run the *dataLoaderCLUS* module. Importantly, you will notice that there is a unique list for each module (i.e., a list within the list). Thus, the list contains a list of modules needed to run the analysis (in this case create the database), that each have a list of the parameters needed to run the module. This approach provides flexibility and structure in that modules can be added or removed from the list, as needed, rather than needing to keep track of all of the parameters.
+
+Here you will see that we include parameters for the *dataLoaderCLUS*, *blockingCLUS*, *roadCLUS*, *rsfCLUS*, *survivalCLUS*, *uploaderCLUS*, *yieldUncertaintyCLUS*, and *disturbanceCalcCLUS*. We will only be using *dataLoaderCLUS*, *blockingCLUS*, *roadCLUS* and *uploaderCLUS* for the purposes of this tutorial, so you can either delete these modules or use the # symbol to 'comment out' those modules (the # symbol is used in R to indicate to the program to not run the code contained on the same line; is is often used to annotate comments to the code, but can be used to turn unused pieces of code 'off'; see example below). 
+
+![](images/code_comment.jpg)
+
+Beneath the list object of module parameters, you will notice some additional data.table objects, including *rsf_model_coeff*, *scenario*, and *patchSizeDist*. The  *rsf_model_coeff* is specific to *rsfCLUS*, and can be deleted or commented out. The *scenario* object provides the name and a text description of the scenario and associated outputs that will be uploaded to a PostgreSQL database. Since this is the data creation step, the scenario name and description is not that important. However, you can label it using something similar to the example below.
+
+```{r, scenario example, message = F, echo = T, eval = F}
+scenario = data.table (name = "tutorial", 
+                       description = "Using dataloaderCLUS for tutorial.")
+```
+
+The *patchSizeDist* object describes the size and frequency of harvest block sizes for natural disturbance types (NDTs) in British Columbia, following the [biodiversity guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf). The object gets used within the *blockingCLUS* to create a range of pre-defined harvest block sizes that follow the NDT distribution. We recommend leaving these as-is unless there is an alternative distribution that is more appropriate for your area of interest. 
+
+You will then notice some more list objects, including *modules* and *objects* (see example below). The *modules* list object simply lists the modules that you want to run as part of the code chunk. Here you will want to include *dataLoaderCLUS*, *blockingCLUS*, *roadCLUS* and *uploaderCLUS* in the list, and comment out or delete other modules. The *objects* list includes any other objects outside of the modules that are created within the code chunk. Here we include the *patchSizeDist* and *scenario* objects.
+
+```{r, object list examples, message = F, echo = T, eval = F}
+
+modules <- list("dataLoaderCLUS", 
+                "blockingCLUS",
+                "roadCLUS",
+                "uploaderCLUS")
+
+objects <- list(patchSizeDist = patchSizeDist, 
+                scenario = scenario)
+
+```
+
+Finally, you will see a *simInit* object called *mySim*. This object contains the names of all the objects needed to run the module "simulation". The *simInit* object is what gets used by the SpaDES framework to organize the simulation analysis. These must be populated for the code chunk to function (see example below). 
+
+```{r, simInit object example, message = F, echo = T, eval = F}
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects)
+```
+
+Now that you've familiarized yourself with *dataLoaderCLUS* we will use it to create an SQLite database for a harvest simulation. Below we provide an example of the code chunk you can use to run the script, with annotations that describe each parameter. Here we will highlight the key parameters need to run *dataLoaderCLUS* successfully. 
+
+Within the parameters list, the *dataLoaderCLUS* list are a set of parameters for defining the analysis area of interest (i.e., spatial area where you want to run simulations).  These include *dbName*, *nameBoundaryFile*, *nameBoundaryColumn*, *nameBoundary*, *nameBoundaryGeom*, *nameCompartmentRaster*, *nameCompartmentTable* and *nameMaskHarvestLandbaseRaster*. In combination, these parameters tell *dataLoaderCLUS* the area of the province where you want to complete your simulation analysis. The module takes this information and proceeds to 'clip' the datasets needed for the simulation accordingly. 
+
+The next set of important parameters are the *nameZoneRasters* and *nameZoneTable*. In the CLUS vernacular, 'zones' refer to areas where a constraint is applied to a land use activity (e.g., a forest cover constraint on harvest). Here you will see a concatenation (the [c()](https://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html) function in R) of several raster datasets. For forestry simulations, there are some key zones that should be included in the database, these include: 
+
+* rast.zone_cond_beo 
+* rast.zone_cond_vqo
+* rast.zone_cond_wha 
+* rast.zone_cond_uwr
+* rast.zone_cond_fsw 
+* rast.zone_cond_nharv 
+* rast.zone_cond_cw
+
+You will notice each of these are in the "rast" schema of the database and have the "zone_cond" naming. These rasters were all created using scripts within the [Params](https://github.com/bcgov/clus/tree/master/R/Params) folder of the repository. Several of the parameters were created in the [prov_manage_objs.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/prov_manage_objs.Rmd). Biodiversity emphasis option (BEO) zones (i.e., landscape units) are defined in *rast.zone_cond_beo*, using the [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid). Visual quality constraints are defined in *rast.zone_cond_vqo*.  
 
 
 
 
 
 
+Fisheries Sensitive Areas and Equivalent Clearcut Area
+
+
+
+In those scripts you will see they take psaital polygonal data, interpret a forest harvest constraint 
 
 
 
 
-"Quick Start" Steps
-1.  Download R and R Studio
-2. clone the repository https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository)
-3. Set-up keyring
-4. Create a shapefile in sceanrio tool
-5. create a parameter
-- osgeo?
-6. create a sql lite db
+used in business-as-usual or base case sceanrio
+
+
+
+
+
+ rast.raster_test
+
+
+
+                         
+
+
+```{r module_usage, message = F, echo = T, eval = F}
+# R Packages need to run the script
+library (SpaDES) 
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+
+source (here::here("R/functions/R_Postgres.R")) # R functions needed to run the script
+
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') # Location of JAVA program; make sure the version is correct
+
+setPaths(modulePath = here::here("R/SpaDES-modules")) # location of the SpaDES modules; uses here() function to use relative file paths
+
+getPaths () # shows the module paths
+
+times <- list (start = 0, end = 0) # sets start and end time parameters; here both = 0 since this is a data creation step
+
+parameters <-  list( # list of all parameters in the model, by module
+  .progress = list(type = NA, interval = NA), # whether to include a progress meter; not needed
+  .globals = list(), # any global parameters; not needed
+  dataLoaderCLUS = list (dbName = 'clus', # name of the PostgreSQL database
+                         save_clusdb = TRUE, # save the SQLite database; make sure = T
+                         nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
+                         nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
+                         nameBoundary = "Revelstoke_TSA", # name of the analysis area within the column and polygon table 
+                         nameBoundaryGeom = 'wkb_geometry', # name of the spatial geometry column of the polygon table 
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster table in the Postgres database you want to use to define the analysis area; note the inclusion of "rast.", which indicates the data is in the rast schema of the database
+                         nameCompartmentTable = "tsa_aac_bounds_vat", # name of the value attribute table for identifying the associated names of the integer values in the raster table
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # name of the raster table that contains the timber harvest land base area 
+                         nameZoneRasters = c("rast.zone_cond_beo", 
+                                             "rast.zone_cond_vqo", 
+                                             "rast.zone_cond_wha", 
+                                             "rast.zone_cond_uwr",
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_nharv", 
+                                             "rast.zone_cond_cw",
+                                             "rast.raster_test" # the raster you created and uploaded to the Postgres database
+                          ), 
+                         nameZoneTable = "zone_constraints", 
+                        # nameZonePriorityRaster = "rast.zone_cond_beo",
+                         nameYieldsRaster = "rast.ycid_vdyp", 
+                         nameYieldTable = "yc_vdyp", 
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2019_id", 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
+                         nameForestInventoryAge = "proj_age_1", 
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index" 
+                    ),
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl", 
+                      useLandingsArea = FALSE),
+  roadCLUS = list(roadMethod = 'pre',
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.crds_all'
+                  ),
+  uploaderCLUS = list(aoiName = 'revelstoke_tsa',
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL")))
+  )
+
+
+scenario = data.table (name = "tutorial", 
+                       description = "Using dataloaderCLUS for tutorial.")
+
+patchSizeDist <- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+modules <- list("dataLoaderCLUS", 
+                "blockingCLUS",
+                "roadCLUS",
+                "uploaderCLUS")
+
+objects <- list(patchSizeDist = patchSizeDist, 
+                scenario = scenario
+                )
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects)
+
+system.time({
+mysimout<-spades(mySim)
+})
+```
+
+
+
+
+
+
  
 
 ##  Creating a Business-as-Usual Harvest Flow
