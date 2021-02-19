@@ -656,12 +656,16 @@ The proposed areas were defined as:
  - buffer areas within 40km of protected caribou habitat, including A2, B2, B3; and
  - areas that are within 40km of defined core caribou range (summer and winter) in the Narraway LPU.
 
-As an alterantive scenario, it was proposed to use central group martix habitat instead of a 40 km buffer. 
+As an alternative scenario, it was proposed to use central group matrix habitat instead of a 40 km buffer. 
 
-In a GIS, we took the A2, B2 and B3 partnership agreement areas and buffered them by 40km. We then buffered the core Narraway critical habitat areas by 40km. We merged the partnership agreement areas, core critical habitat, matrix habitat and buffered area into a single spatial dataset, where partnership agreement areas superseded core habtiat, which superseded matrix habtiat, which superseded the buffered area. Each of these 'zones' was maintained in the spatial data to allow for some flexibility in future analyses. 
+More recently (Feb. 2021) a contiguous area that included the core caribou range and matrix habitat was used.
+
+In a GIS, we took the A2, B2 and B3 partnership agreement areas and buffered them by 40km. We then buffered the core Narraway critical habitat areas by 40km. We merged the partnership agreement areas, core critical habitat, matrix habitat and buffered area into a single spatial dataset, where partnership agreement areas superseded core habtiat, which superseded matrix habitat, which superseded the buffered area. Each of these 'zones' was maintained in the spatial data to allow for some flexibility in future analyses. 
 
 ### Proposed Land Use Order Constraints
 The initial proposed constraint for all of these areas together was maximum 35% forest age less than 25 years old. As indicated above, we maintained seperate zones in case there becomes a desire to apply different consrtaints to each zone. Below are scripts to create spatial rasters that keep different configurations of these zones (i.e., all independent, all within the buffered area together, all within teh matrix area together). 
+
+A more recent proposed order included maximum 35% forest age less than 25 years old or height less than 2.5 meters applied to teh extent of the LUO boundary area (Feb. 2021). 
 
 ```{r, proposed LUO area, all areas}
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -784,6 +788,58 @@ dbDisconnect(conn)
 ```
 
 
+The following creates the LUO boundary as of February 2021.
+```{r, proposed LUO areas, all in matrix}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+luo_area <- getSpatialQuery("SELECT * from scenario_luo_outer_20210216;")
+  
+# zone integer
+luo_area$zone <- 1
+luo.vat <- data.table (st_drop_geometry (luo_area))
+
+# raster
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(luo_area)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
+ras.scenario_central_grp_luo_outer_feb2021 <-fasterize::fasterize (luo_area, prov.rast, field = "zone") 
+writeRaster(ras.scenario_central_grp_luo_outer_feb2021, "central_grp_proposed_luo_feb2021.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/central_grp_proposed_luo_feb2021.tif -t 100x100 rast.central_grp_proposed_luo_feb2021 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table
+zone_luo <- data.table (zoneid = as.integer(1), 
+                        type = 'le', 
+                        variable = 'age', 
+                        threshold = 25, 
+                        reference_zone = 'rast.central_grp_proposed_luo_feb2021', 
+                        percentage = 35, 
+                        ndt = as.integer(0), 
+                        multi_condition = 'age < 12 OR height < 2.5')
+# commit tables to pg
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "scenario_central_grp_proposed_luo_feb2021_vat"), value = luo.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "zone_scenario_central_grp_proposed_luo_feb2021"), value = zone_luo, 
+                          row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_scenario_central_grp_proposed_luo_feb2021 INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
+
+
+
+
+
+
+
+
+
 ## Buffered Caribou Herd and Desginatable Unit Boundaries
 Here we develop rasters of caribou evolutionary designatable units (DUs). These are used used to define the appropriate caribou reseroruce selection function model to apply to an analysis (rsfCLUS).
 
@@ -878,8 +934,8 @@ dbDisconnect(conn)
 
 ```
 
-### All DU( (Except Groundhog)
-The following creates zones for DU9 caribou. Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different contraints on different herds and different habtait types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area).  
+### All DU9 (Except Groundhog)
+The following creates zones for DU9 caribou. Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different constraints on different herds and different habitat types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area).  
 
 Here we start with consistent constraints across herds and scenarios, but vary constraints across habitat types, where no harvest is applied to core habitat and maximum 35% disturbance is applied to matrix. Note that for 35% disturbance I used a 15% threshold to account for edge effects of buffered areas that are difficult to account for in the model, but this can be varied as needed.
 
@@ -890,9 +946,7 @@ Here we start with consistent constraints across herds and scenarios, but vary c
 #                         port = '5432',
 #                         user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
 #                         password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-# reve_area <- getSpatialQuery("SELECT * from public.old_recruit_buff_matrix_fin;")
-
-# NEEDS TO BE ADDED TO PGDB; COULD NOT CONNECT TO DB, SO LAODED FROAM LOCAL FILE 
+# du9_scenarios <- getSpatialQuery("SELECT * from public.old_recruit_buff_matrix_fin;")
 
 require (sf)
 require (data.table)
@@ -942,9 +996,58 @@ dbDisconnect(conn)
 ```
 
 
+### DU9 - Groundhog only
+The following creates zones for groundhog caribou. Same as DU9 above.
 
+```{r, proposed DU9 areas}
 
+# NOT ADDED TO PGDB; LOADED FROAM LOCAL FILE; LOCATEDC IN CLUS folder database on psatialfiles
 
+require (sf)
+require (data.table)
+
+gh_scenarios <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\scenarios\\southern_mtn\\Groundhog_George.gdb",
+                              layer="GH_OLD_RECRUIT_BUFFER_CORE_MATRIX")
+gh_scenarios <- st_zm (gh_scenarios, drop = TRUE, what = "ZM")
+gh_scenarios$zone <- paste (gh_scenarios$Herd_Name, # create concatenated var to id each zone
+                             gh_scenarios$BC_Habitat, 
+                             gh_scenarios$Scenario_Name,
+                             sep="_")
+
+# zone integer  
+gh_scenarios_vat <- data.table (st_drop_geometry (gh_scenarios [, c ('zone')]))  
+gh_scenarios_vat [, value := seq_len(.N)]  
+all_gh_scenarios <- merge (gh_scenarios, gh_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(gh_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_gh_scenarios <- fasterize::fasterize (all_gh_scenarios, prov.rast, field = "value")
+writeRaster (ras_gh_scenarios, "ras_gh_scenarios.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_gh_scenarios.tif -t 100x100 rast.zone_gh_scenarios | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:4)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_gh_scenarios', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(5)), 
+                           type = 'ge', variable = 'dist', threshold = 500, 
+                           reference_zone = 'rast.zone_gh_scenarios', 
+                           percentage = 65, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_gh_scenarios <- rbindlist(list(zone_core, zone_matrix))
+
+DBI::dbWriteTable(conn, c("public", "zone_gh_scenarios_vat"), value = gh_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "zone_gh_scenarios"), value = zone_gh_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_gh_scenarios INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
 
 
 

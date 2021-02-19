@@ -104,6 +104,30 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 # STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_south_crithab_or_herd'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_groundhog_crithab_or_herd'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd'")
+
+
+
+# WELLS GRAY SOUTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_wells_gray_south_crithab_or_herd' AND zoneid = 2") 
+
+
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
+
+# GROUNDHOG Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_groundhog_crithab_or_herd' AND zoneid = 2") 
+
+# WELLS GRAY NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd' AND zoneid = 2") 
+
 
 
 # WELLS GRAY SOUTH Update the constraints available to a zone as specified in the scenario
@@ -130,6 +154,13 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 14) OR  (zoneid = 15) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 48) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 67) OR (zoneid = 76) OR (zoneid = 75)") 
+
+# GROUNDHOG
+# View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_gh_scenarios'") 
+
+#Below will set Grounhog old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_gh_scenarios' AND (zoneid = 3) OR  (zoneid = 4)") 
 
 dbDisconnect(clusdb)
 ```
@@ -173,8 +204,9 @@ parameters <- list(
                                            # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                            # "rast.zone_cond_eccc_groundhog_crithab_or_herd"
                                            # "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
-                                           # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
-                                            "rast.zone_du9_scenarios"
+                                            "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
+                                           # "rast.zone_du9_scenarios"
+                                           # "rast.zone_gh_scenarios"
                                          ),
                                            
                            nameZoneTable = "zone_constraints",
@@ -253,24 +285,39 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "kamloops_groundhog_nh",
 #                        description = "No harvest in Groundhog critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Oldest first. Adjacency = 3m. Harvest flow 1,500,000 m3/yr.")
 # scenario = data.table (name = "kamloops_well_south_scen3a",
-#                        description = "No harvest in old forest, recruitment forest and buffered Wells Gray South core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray South matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                        description = "No harvest in old forest, recruitment forest and buffered Wells Gray South core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray South matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_well_south_scen3b",
-#                        description = "No harvest in old forest and recruitment forest Wells Gray South core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray South matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                        description = "No harvest in old forest and recruitment forest Wells Gray South core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Wells Gray South matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_groundhog_ch_he0d_m15d",
-#                         description = "No harvest in Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Groundhog matrix critical habitat. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                         description = "No harvest in Groundhog high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Groundhog matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_columbia_north_nh",
-#                        description = "No harvest in Columbia North critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                        description = "No harvest in Columbia North critical habitat that overlap with the harvest unit (e.g., TSA or TFL). Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_columbia_north_ch_he0d_m15d",
-#                         description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                         description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_columbia_north_scen3a",
-#                        description = "No harvest in old forest, recruitment forest and buffered Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                        description = "No harvest in old forest, recruitment forest and buffered Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_columbia_north_scen3b",
+#                        description = "No harvest in old forest and recruitment forest Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_groundhog_scen3a",
+#                        description = "No harvest in old forest, recruitment forest and buffered Groundhog core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Groundhog matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "kamloops_columbia_north_scen3b",
-                       description = "No harvest in old forest and recruitment forest Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_groundhog_scen3b",
+#                        description = "No harvest in old forest and recruitment forest Groundhog core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Groundhog matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_columbia_north_scen3b",
+#                        description = "No harvest in old forest and recruitment forest Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Groundhog matrix habitat areas. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_wells_gray_south_he0d",
+#                        description = "No harvest in Wells Gray South high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_columbia_north_he0d",
+#                        description = "No harvest in Columbia North high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_groundhog_he0d",
+#                        description = "No harvest in Groundhog high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 
- 
+scenario = data.table (name = "kamloops_wells_gray_north_he0d",
+                       description = "No harvest in Wells Gray North high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 
+
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "kamloops_colnsfb_nh",
 #                        description = "No harvest in all CN, CS and FB critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "kamloops_colnsfb_ch_he0d_m15d",

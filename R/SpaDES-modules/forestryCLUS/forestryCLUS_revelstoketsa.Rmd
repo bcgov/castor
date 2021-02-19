@@ -98,10 +98,16 @@ For cutblock adjacency, I used 3 m adjacency; in analysis report: 25% of the THL
 ```{r, zone_update}
 library (DBI)
 # STEP 1: Connect to the clusdb.sqlite database for the AOI
-#clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 # STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd'")
+
+
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
 
 
 # COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
@@ -195,8 +201,8 @@ parameters <- list(
                             # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                             # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                             # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
-                            # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
-                            #"rast.zone_du9_scenarios"
+                             "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                            # "rast.zone_du9_scenarios"
                             # "rast.zone_cond_bc_columbia_north_crithab",
                             # "rast.zone_cond_bc_columbia_south_crithab",
                             # "rast.zone_cond_bc_central_rockies_crithab",
@@ -289,8 +295,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year. Oldest first.")
 # scenario = data.table (name = "revelstoke_central_rockies_nh",
 #                        description = "No harvest in all Central Rockies critical habitat. Oldest first. Adjacency = 3m. Flow = 210,000m^3^/year.")
-scenario = data.table (name = "revelstoke_central_rockies_he0d_m15d",
-                       description = "No harvest in Central Rockies high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Rockies matrix critical habitat. Oldest first. Adjacency = 3m. Flow = 210,000m^3^/year.")
+# scenario = data.table (name = "revelstoke_central_rockies_he0d_m15d",
+#                        description = "No harvest in Central Rockies high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Rockies matrix critical habitat. Oldest first. Adjacency = 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_columbia_south_nh",
 #                        description = "No harvest in all Columbia South critical habitat. Adjacency was set to 3m. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_columbia_south_he0d_m15d",
@@ -333,6 +339,10 @@ scenario = data.table (name = "revelstoke_central_rockies_he0d_m15d",
 #                        description = "No harvest in old forest and recruitment forest core critical habitat areas in Frisby Boulder, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Frisby Boulder matrix habitat areas. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
 # scenario = data.table (name = "revelstoke_monashee_scen3a3b",
 #                        description = "Maximum 35% buffered disturbance (unbuffered) in Monashee matrix habitat areas (No Monashee core habitat, as defined by Ernst, in TSA). Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
+
+scenario = data.table (name = "revelstoke_columbia_north_he0d",
+                       description = "No harvest in Columbia North high elevation critical habitat; harvest allowed in matrix critical habitat. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
+
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
