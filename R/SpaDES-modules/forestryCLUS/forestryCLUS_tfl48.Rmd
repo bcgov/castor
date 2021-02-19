@@ -88,15 +88,19 @@ ECCC in all herds = rast.zone_cond_eccc_quintette_crithab_or_herd,
                      rast.zone_cond_eccc_graham_crithab_or_herd
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
-  - 'dist, age DESC, vol DESC' priortize based on:
+- used oldest first
+
+- as alternative,  could focus on minimizing 'disturbance' for caribou, then older, higher volume stands
+  - 'dist, age DESC, vol DESC' prioritize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
       
 ## 'harvestFlow'
 from 2015 determination: base case started at 1,731,000m^3^/year for 5 years, followed by 838,000m^3^/year for 5 years, followed by 779,000m^3^/year for the next ten years 763,000m^3^/year for the next 30 years and 808,000m^3^/year in the long term; AAC was set at 1,550,000m^3^/year for the first five years and 871,000m^3^/year for the second five years  
-- First, I tested a harvest flow of 1,000,000m^3^/year (5,000,000m^3^/5-year); way too high, dropped to 500,000m^3^/year, 400,000, 300,000, 350,000, 325,000, 335,000; drop off at the last interval, but used 335,000 
+
+- First, I tested a harvest flow of 1,000,000m^3^/year (5,000,000m^3^/5-year); then 750,000, 600,000, 500,000, 450,000, 400,000, 350,000, 345,000
+
 
 
 - I used 150 m3/ha as minimum harvest volume; nothing in determination on this
@@ -113,12 +117,16 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_partnership_agreement'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo_feb2021'")
 
 #STEP 3: Update the constraints available to a zone as specified in the scenario
-dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #This example will set all the zones in the partnership agreement to no harvest
-
+dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #
 dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
-#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
+
+dbExecute(clusdb, "UPDATE zoneconstraints set multi_condition = NULL where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # age < 12 OR height < 2.5
+dbExecute(clusdb, "UPDATE zoneconstraints set variable = 'age' where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # height
+dbExecute(clusdb, "UPDATE zoneconstraints set threshold = '25' where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # 2.5
+
 
 #STEP 4: Remove the connection to the database
 dbDisconnect(clusdb)
@@ -158,11 +166,10 @@ parameters <- list(
                                                "rast.zone_cond_cw", 
                                                
                                                # 'rast.zone_cond_partnership_agreement'
-                                               
                                                # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
+                                               # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                          # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                               # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
                                                # "rast.zone_cond_noharvest_graham_crithab_or_herd"
                                                 
                                                # "rast.zone_cond_eccc_quintette_crithab_or_herd",
@@ -171,7 +178,9 @@ parameters <- list(
                                                # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                                # "rast.zone_cond_eccc_graham_crithab_or_herd",
                                                
-                                               "rast.central_grp_proposed_luo_matrix"
+                                               #"rast.central_grp_proposed_luo_matrix"
+                                               #"rast.central_grp_proposed_luo_matrix"
+                                               "rast.central_grp_proposed_luo_feb2021"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -179,9 +188,9 @@ parameters <- list(
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
@@ -239,7 +248,16 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
 # scenario = data.table (name = "tfl48_bau",
-#                        description = "Business-as-usual (BAU); harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
+#                        description = "Business-as-usual (BAU). Harvest flow 345,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl48_luo_35p_25yo_250cm",
+#                        description = "Central group proposed land use order; area less than 35% less than 25 years old or less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
+scenario = data.table (name = "tfl48_luo_35p_25yo",
+                       description = "Central group proposed land use order; area less than 35% less than 25 years old. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
+# scenario = data.table (name = "tfl48_luo_35p_250cm",
+#                        description = "Central group proposed land use order; area less than 35% less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
+
+
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "tfl48_centgrp_nh",
 #                        description = "No harvest in Central group critical habitat; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl48_centgrp_ch_he0d_m15d",
@@ -252,8 +270,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in all critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl48_all_ch_he0d_m15d",
 #                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-scenario = data.table (name = "tfl48_luo_35p_25yo",
-                       description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
+# scenario = data.table (name = "tfl48_luo_35p_25yo",
+#                        description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL48",
                                          partition = ' vol > 150 ', 
@@ -261,7 +279,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="TFL48",
                                                           to = 2218, 
                                                           by = 5),
                                                     1), 
-                                         flow = 1675000) # 335,000m3/yr 
+                                         flow = 1725000) # 345,000m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
