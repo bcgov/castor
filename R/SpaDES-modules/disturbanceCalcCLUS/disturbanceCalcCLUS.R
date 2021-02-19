@@ -114,7 +114,6 @@ Init <- function(sim) {
   if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='perm_dist';")$exists_check == 0){
     # add in the column
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
-    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN dist numeric DEFAULT 0")
     # add in the raster
     if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
@@ -149,21 +148,21 @@ Init <- function(sim) {
 distAnalysis <- function(sim) {
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or (roadyear >= ", max(0,as.integer(time(sim) - P(sim, "disturbanceCalcCLUS", "recovery"))),")  or (blockid > 0 and age BETWEEN 0 AND ",P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear >= 0 or (blockid > 0 and age BETWEEN 0 AND ", P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
-  all.dist<-data.table(dbGetQuery(sim$clusdb, "SELECT age, blockid, roadyear, pixelid FROM pixels WHERE (blockid > 0 and age >= 0) or roadyear >=0;"))
+  all.dist<-data.table(dbGetQuery(sim$clusdb, "SELECT treed, age, blockid, roadyear, pixelid FROM pixels WHERE (blockid > 0 and age >= 0) or roadyear >=0;"))
   #sim.disturbance<<-sim$disturbance
   #sim.ras<<-sim$ras
   #stop()
   if(nrow(all.dist) > 0){
     outPts<-merge(sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
     message("Get the cutblock summaries")
-    cutblock_summary<-Reduce(merge,
-    list(outPts[, .(total_area = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 0 & age <= 80 & !is.na(critical_hab), .(cut80 = uniqueN(.I)), by = "critical_hab"],
-         outPts[blockid > 0 & age >= 10 & age <= 40 & !is.na(critical_hab), .(cut10_40 = uniqueN(.I)), by = "critical_hab"]
-    ))
-    
+    cutblock_summary<-Filter(function(x) dim(x)[1] > 0,
+         list(outPts[treed == 1, .(total_area = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 0 & age <= 80 & !is.na(critical_hab), .(cut80 = uniqueN(.I)), by = "critical_hab"],
+              outPts[blockid > 0 & age >= 10 & age <= 40 & !is.na(critical_hab), .(cut10_40 = uniqueN(.I)), by = "critical_hab"]
+    ))  %>%
+      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .)
     message("Get the Road summaries")
     outPts[roadyear >=0, field:=0]
     nearNeigh_rds<-RANN::nn2(outPts[field == 0 & !is.na(critical_hab), c('x', 'y')], 
@@ -172,12 +171,13 @@ distAnalysis <- function(sim) {
   
     outPts<-outPts[is.na(field)  & !is.na(critical_hab), rds_dist:=nearNeigh_rds$nn.dists] # assign the distances
     outPts[is.na(rds_dist) & !is.na(critical_hab), rds_dist:=0] # those that are the distance to pixels, assign 
-    road_summary<-Reduce(merge,
+    road_summary<-Filter(function(x) dim(x)[1] > 0,
                              list(outPts[rds_dist == 0  & !is.na(critical_hab), .(road50 = uniqueN(.I)), by = "critical_hab"],
                                   outPts[rds_dist <= 250 & !is.na(critical_hab), .(road250 = uniqueN(.I)), by = "critical_hab"],
                                   outPts[rds_dist <= 500 & !is.na(critical_hab), .(road500  = uniqueN(.I)), by = "critical_hab"],
                                   outPts[rds_dist <= 750 & !is.na(critical_hab), .(road750  = uniqueN(.I)), by = "critical_hab"]
-                             ))
+                             )) %>%
+      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .)
     outPts<-outPts[,c("rds_dist","field") := list(NULL, NA)]
     
     message("Cutblocks and roads combined")
@@ -188,12 +188,13 @@ distAnalysis <- function(sim) {
     
     outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
     outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
-    c40r<-Reduce(merge,
+    c40r<-Filter(function(x) dim(x)[1] > 0,
                          list(outPts[dist == 0  & !is.na(critical_hab), .(c40r50 = uniqueN(.I)), by = "critical_hab"],
                               outPts[dist <= 250 & !is.na(critical_hab), .(c40r250 = uniqueN(.I)), by = "critical_hab"],
                               outPts[dist <= 500 & !is.na(critical_hab), .(c40r500  = uniqueN(.I)), by = "critical_hab"],
                               outPts[dist <= 750 & !is.na(critical_hab), .(c40r750  = uniqueN(.I)), by = "critical_hab"]
-                         ))
+                         )) %>%
+      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .)
     
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
@@ -204,10 +205,11 @@ distAnalysis <- function(sim) {
     
     outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
     outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
-    c10_40r<-Reduce(merge,
+    c10_40r<-Filter(function(x) dim(x)[1] > 0,
                  list(outPts[dist == 0  & !is.na(critical_hab), .(c10_40r50 = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist <= 500 & !is.na(critical_hab), .(c10_40r500  = uniqueN(.I)), by = "critical_hab"]
-                 ))
+                 )) %>%
+      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .)
     
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
@@ -218,12 +220,13 @@ distAnalysis <- function(sim) {
     
     outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
     outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
-    c20r<-Reduce(merge,
+    c20r<-Filter(function(x) dim(x)[1] > 0,
                  list(outPts[dist == 0  & !is.na(critical_hab), .(c20r50 = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist < 250 & !is.na(critical_hab), .(c20r250 = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist < 500 & !is.na(critical_hab), .(c20r500  = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist < 750 & !is.na(critical_hab), .(c20r750  = uniqueN(.I)), by = "critical_hab"]
-                 ))
+                 )) %>%
+      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .)
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
     outPts[roadyear >=0 | (blockid > 0 & age >=0 & age <= 80), field:=0]
@@ -234,12 +237,13 @@ distAnalysis <- function(sim) {
     outPts<-outPts[is.na(field) & !is.na(critical_hab), dist:=nearNeigh$nn.dists] # assign the distances
     outPts[is.na(dist) & !is.na(critical_hab), dist:=0] # those that are the distance to pixels, assign 
     
-    c80r<-Reduce(merge,
+    c80r<-Filter(function(x) dim(x)[1] > 0,
                  list(outPts[dist == 0  & !is.na(critical_hab), .(c80r50 = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist <= 250 & !is.na(critical_hab), .(c80r250 = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist <= 500 & !is.na(critical_hab), .(c80r500  = uniqueN(.I)), by = "critical_hab"],
                       outPts[dist <= 750 & !is.na(critical_hab), .(c80r750  = uniqueN(.I)), by = "critical_hab"]
-                 ))
+                 )) %>%
+      Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .)
     sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
     
     #update the pixels table
@@ -257,13 +261,16 @@ distAnalysis <- function(sim) {
   #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
   #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
-  tempDisturbanceReport<-Reduce(merge,list(cutblock_summary, road_summary, c80r,c40r,c20r, c10_40r)
-  )
+  tempDisturbanceReport<-data.table(Filter(function(x) dim(x)[1] > 0,
+                                list (cutblock_summary, road_summary, c80r, c40r, c20r, c10_40r)) %>%
+                                  Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by="critical_hab"), .))
+  
   
   tempDisturbanceReport[, c("scenario", "compartment", "timeperiod") := 
                           list(scenario$name,sim$boundaryInfo[[3]],time(sim)*sim$updateInterval)]
   
-  sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE )
+  sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE, 
+                                   fill = TRUE )
   sim$disturbance[, dist:=NULL]
   
   return(invisible(sim))

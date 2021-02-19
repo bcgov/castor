@@ -44,7 +44,6 @@ library (keyring)
 source (here::here("R/functions/R_Postgres.R"))
 
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
-#Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
 
 setPaths(modulePath = here::here("R/SpaDES-modules"))
 
@@ -58,7 +57,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile="ubc_gbr_boundaries",
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "UBC_study_boundary", #Great_Bear_Rainforest_North_TSA # change this name
+                         nameBoundary = "UBC_study_boundary",
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.ubc_gbr_boundaries",
                          nameCompartmentTable = "ubc_gbr_boundaries_vat",
@@ -72,8 +71,7 @@ parameters <-  list(
                                            "rast.zone_cond_cw",
                                            "rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
-                        
-                         nameZoneTable="zone_constraints_gbr", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
+                         nameZoneTable = "zone_constraints", # wonder if this should be zone_constraints_gbr? table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
@@ -85,7 +83,7 @@ parameters <-  list(
                          nameForestInventoryAge = "proj_age_1", 
                          nameForestInventoryHeight = "proj_height_1", 
                          nameForestInventoryCrownClosure = "crown_closure", 
-                        nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventoryTreed = "bclcs_level_2",
                          nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', 
@@ -102,9 +100,9 @@ parameters <-  list(
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
-  # survivalCLUS = list (caribou_herd_density = 0.05,
-  #                      nameRasCaribouHerd = "rast.caribou_herd",
-  #                      tableCaribouHerd = "public.caribou_herd_vat"),
+  survivalCLUS = list (caribou_herd_density = 0.05, 
+                       nameRasCaribouHerd = "rast.caribou_herd", 
+                       tableCaribouHerd = "public.caribou_herd_vat"),
   uploaderCLUS = list(aoiName = 'ubc_gbr_study',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 

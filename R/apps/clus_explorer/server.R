@@ -44,7 +44,7 @@ server <- function(input, output, session) {
     req(input$schema)
     
       data.table(getTableQuery(paste0(
-      "select a.compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, c40r500, c40r50, total_area from (SELECT compartment, max(m_gs) as gs 
+      "select a.compartment as compartment, gs, (gs/thlb) as avg_m3_ha, aoi, total, thlb, early, mature, old, road, c40r500, c40r50, total_area from (SELECT compartment, max(m_gs) as gs 
     FROM ",input$schema,".growingstock 
 where timeperiod = 0 group by compartment) a
 Left join (Select * from ",input$schema,".state ) b
@@ -240,6 +240,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   })
   
   output$statusDist500<-renderValueBox({
+    test67<<-statusData()
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Disturbed 500m",

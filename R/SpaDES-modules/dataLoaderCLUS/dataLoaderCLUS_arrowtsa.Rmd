@@ -61,27 +61,33 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
-                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                                           "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
+                                          "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",                                                                    "rast.zone_cond_noharvest_columbia_south_crithab_or_herd",
                                           "rast.zone_cond_noharvest_monashee_crithab_or_herd",
                                           "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd",
                                           "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
                                           "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
                                           "rast.zone_cond_eccc_monashee_crithab_or_herd",
                                           "rast.zone_cond_eccc_south_selkirks_crithab_or_herd",
-                                          "rast.zone_cond_reve_area"
+                                          "rast.zone_du9_scenarios",
+                                          "rast.zone_cond_bc_central_selkirks_crithab",
+                                          "rast.zone_cond_bc_columbia_south_crithab",
+                                          "rast.zone_cond_bc_monashee_crithab",
+                                          "rast.zone_cond_bc_south_selkirks_crithab"
                                           ), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
-                         nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
-                         nameYieldTable = "yc_vdyp", # VDYP yield  table
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds
-                         nameYieldTransitionTable = "yc_tipsy", # table that transitions stands onto TIPSY yield curve once they are cut
-                         nameForestInventoryRaster = "rast.vri2018_id", # raster of the forest inventory 
-                         nameForestInventoryKey = "feature_id", # unique id of each polygon (stand) in the inventory 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018", # the invenotry data
-                         nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
-                         nameForestInventoryHeight = "proj_height_1", # name of the height column in the inventory data
-                         nameForestInventoryCrownClosure = "crown_closure", # name of the crown closure column in the inventory data
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameZoneTable = "zone_constraints", 
+                         # nameZonePriorityRaster = "rast.zone_cond_beo",
+                         nameYieldsRaster = "rast.ycid_vdyp", 
+                         nameYieldTable = "yc_vdyp", 
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2019_id", 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
+                         nameForestInventoryAge = "proj_age_1", 
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
                       patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
@@ -140,7 +146,7 @@ modules <- list("dataLoaderCLUS",
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                rsf_model_coeff = rsf_model_coeff,
+                #rsf_model_coeff = rsf_model_coeff,
                 scenario = scenario 
                 )
 

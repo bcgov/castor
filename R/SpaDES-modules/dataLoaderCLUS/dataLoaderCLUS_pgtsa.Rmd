@@ -53,66 +53,75 @@ parameters <-  list(
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
-                         nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
-                         nameBoundary = "Prince_George_TSA", # the boudnary (TSA) name
-                         nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
-                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
-                         nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
+                         nameBoundaryColumn = "tsa_name", 
+                         nameBoundary = "Prince_George_TSA", 
+                         nameBoundaryGeom = 'wkb_geometry', 
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", 
+                         nameCompartmentTable = "tsa_aac_bounds_vat", 
                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
-                         nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
+                         nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
                                              "rast.zone_cond_uwr",
-                                             "rast.zone_cond_fsw", # there are no FSWs, but this includes ECA
-                                             "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 
                                              'rast.zone_cond_partnership_agreement',
-               "rast.zone_cond_noharvest_george_mountain_crithab_or_herd",                              "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
-               "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
-               "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-               "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
-               "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-               "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
-               "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
-                      "rast.zone_cond_eccc_george_mountain_crithab_or_herd",   
+                                             "rast.zone_cond_noharvest_george_mountain_crithab_or_herd",                                                                      "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
+                                             "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
+                                             "rast.zone_cond_eccc_george_mountain_crithab_or_herd",   
                                     "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
                                     "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
                                     "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
                                     "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
                                     "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                     "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
-                            "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd",
+                                    "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd",
                                     "rast.central_grp_proposed_luo",
                                     "rast.central_grp_proposed_luo_buffer",
-                                    "rast.central_grp_proposed_luo_matrix"
+                                    "rast.central_grp_proposed_luo_matrix",
+                                    "rast.zone_du9_scenarios",
+                                    "rast.zone_cond_bc_narrow_lake_crithab",
+                                    "rast.zone_cond_bc_hart_ranges_crithab",
+                                    "rast.zone_cond_bc_kennedy_siding_crithab",
+                                    "rast.zone_cond_bc_north_cariboo_crithab",
+                                    "rast.zone_cond_bc_redrock_prairie_creek_crithab",
+                                    "rast.central_grp_proposed_luo_feb2021"
                                           ), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
-                         nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
+                         nameZoneTable = "zone_constraints",
+                         # nameZonePriorityRaster = "rast.zone_cond_beo",
+                         nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds
-                         nameYieldTransitionTable = "yc_tipsy", # table that transitions stands onto TIPSY yield curve once they are cut
-                         nameForestInventoryRaster = "rast.vri2018_id", # raster of the forest inventory 
-                         nameForestInventoryKey = "feature_id", # unique id of each polygon (stand) in the inventory 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018", # the invenotry data
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2019_id", # raster of the forest inventory 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
                          nameForestInventoryAge = "proj_age_1", # name of the age column in the inventory data
-                         nameForestInventoryHeight = "proj_height_1", # name of the height column in the inventory data
-                         nameForestInventoryCrownClosure = "crown_closure", # name of the crown closure column in the inventory data
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
-  blockingCLUS = list(blockMethod = 'pre', # 'pre' sets the model to identify homegenuous forest stands for cutting 
-                      patchZone = 'rast.zone_cond_beo', # patch sizes to meet biodiversity emphasiss option standards
+  blockingCLUS = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network using a a minimum spanning tree to all potential 'ladndings (created in blockingCLUS)
+  roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'# existign road network
                   ),
-  rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
-                  criticalHabitatTable = "public.vat_bc_crithab_and_herd",
-                  randomEffectsTable = "public.rsf_re_coeff",
-                  writeRSFRasters = TRUE,
-                  checkRasters = FALSE),
+  # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
+  #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
+  #                 randomEffectsTable = "public.rsf_re_coeff",
+  #                 writeRSFRasters = TRUE,
+  #                 checkRasters = FALSE),
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
@@ -129,7 +138,7 @@ parameters <-  list(
                              recovery = 40) # time for roads adn cutblocks to 'recover' from disturbance
   )
 
-rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
+# rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 #rsf_model_coeff[, population := 'Tweedsmuir'] 
 
 scenario = data.table(name="load_data", 
@@ -156,8 +165,9 @@ modules <- list("dataLoaderCLUS",
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 objects <- list(patchSizeDist = patchSizeDist, 
-                scenario = scenario, 
-                rsf_model_coeff = rsf_model_coeff)
+                #rsf_model_coeff = rsf_model_coeff,
+                scenario = scenario 
+                )
 
 inputs <- list()
 outputs <- list()

@@ -67,7 +67,9 @@ ECCC  in all critical habitat = rast.zone_cond_eccc_columbia_north_crithab_or_he
 
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+- used oldest first
+
+- as alternative,  could focus on minimizzing 'disturabnce; for caribou, then older, higher volume stands
   - 'dist, age DESC, vol DESC' priortize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
@@ -75,10 +77,8 @@ ECCC  in all critical habitat = rast.zone_cond_eccc_columbia_north_crithab_or_he
       
 ## 'harvestFlow'
 from 2017 determination: base case satrted at 90,000m^3^/year for 10 years, followed by 84,000m^3^/year for 10 years, followed by 73,000m^3^/year for the mid-term and 87,000m^3^/year in the long term; AAC was set at 83,000m^3^/year
-- First, I tested a harvest flow of 80,000m^3^/year (400,000m^3^/5-year); too high, dropped to 50,000m^3^/year, 45,000, 40,000; used 40,000; slight drop in final two intervals
 
-- the lower AAC in oru mode comarped to detemrination model may be ude to lower THLB in our model; not sure why the discrepency
-
+- First, I tested a harvest flow of 80,000m^3^/year (400,000m^3^/5-year); 60,000, 70,000, 65,000; back to 60,000
 
 - I used 150 m3/ha as minimum harvest volume; nothing in determination on this
 
@@ -92,9 +92,27 @@ library (DBI)
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL55_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 # STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd'")
 
 
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
+
+
+
+# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
+#Below will set Wells Gray North old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 2) OR (zoneid = 17) OR (zoneid = 32) OR (zoneid = 61) OR (zoneid = 65)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 19) OR (zoneid = 34) OR (zoneid = 48)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)")
+#Below will set Wells Gray North old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 2) OR (zoneid = 17) OR (zoneid = 32) OR (zoneid = 61) OR (zoneid = 65) OR (zoneid = 34) OR (zoneid = 48)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 19)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)")
 
 dbDisconnect(clusdb)
 ```
@@ -130,23 +148,25 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
-                              #  "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"                                               # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
-                              # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
+                                               "rast.zone_cond_cw",
+                              # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"                                                   # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
+                               "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                               # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
-                              "rast.zone_cond_reve_area"
+                              # "rast.zone_du9_scenarios"
                                                ),
                            nameZoneTable = "zone_constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventoryTreed = "bclcs_level_2",
                            nameForestInventorySiteIndex = "site_index"),
   blockingCLUS = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
@@ -154,7 +174,9 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestPriority = "dist, age DESC, vol DESC",
+  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriority = 1,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -168,7 +190,7 @@ parameters <- list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
-  disturbanceCalcCLUS = list(calculateInterval = 5, 
+  disturbanceCalcCLUS = list(calculateInterval = 1, # should be 1 if using constraints on 'dist' (disturbance) 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
@@ -198,7 +220,21 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
 # scenario = data.table (name = "tfl55_bau",
-#                        description = "Business-as-usual (BAU); harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
+#                        description = "Business-as-usual (BAU). Harvest flow 60,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl55_columbia_north_nh",
+#                        description = "No harvest in Columbia North critical habitat. Harvest flow 60,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl55_columbia_north_ch_he0d_m15d",
+#                        description = "No harvest in Columbia North HEWSR, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat that overlap with the harvest unit. Harvest flow 60,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl55_columbia_north_scen3a",
+#                        description = "No harvest in old forest, recruitment forest and buffered Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Harvest flow 60,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl55_columbia_north_scen3b",
+#                        description = "No harvest in old forest and recruitment forest  Columbia North core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Harvest flow 60,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+scenario = data.table (name = "tfl55_columbia_north_he0d",
+                       description = "No harvest in Columbia North high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 60,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN WITH NEW MODEL PARAMS
 # scenario = data.table (name = "tfl55_colnsfb_nh",
 #                        description = "No harvest in Columbia North critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl55_colnsfb_ch_he0d_m15d",
@@ -207,13 +243,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.") # NOTE: THIS SCENARIO = 0 m3 harvest
 # scenario = data.table (name = "tfl55_all_ch_he0d_m15d",
 #                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.") 
-# scenario = data.table (name = "tfl55_columbia_north_nh",
-#                        description = "No harvest in Columbia North critical habitat; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl55_columbia_north_ch_he0d_m15d",
-#                        description = "No harvest in Columbia North HEWSR, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat that overlap with the harvest unit; harvest flow 40,000 m3/yr. Adjacency was set to 3m.")
-
-scenario = data.table (name = "tfl55_columbia_north_ch_he10d_m15d",
-                       description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
+# scenario = data.table (name = "tfl55_columbia_north_ch_he10d_m15d",
+#                        description = "No harvest in Columbia North high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL55",
@@ -222,7 +253,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="TFL55",
                                                           to = 2218, 
                                                           by = 5),
                                                     1), 
-                                         flow = 200000) #40,000m3/yr 
+                                         flow = 300000) #60,000m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
