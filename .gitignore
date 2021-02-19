@@ -31,3 +31,4 @@ mercurial.ini
 .Rprofile
 *.sqlite
 README.html
+/.Require
