@@ -497,7 +497,8 @@ select * from vdyp_test3 where yc_grp like 'BWBS_At(Ac)%';
 
 Create table yc_vdyp as
 SELECT ycid, yc_vdyp_vat.yc_grp, prj_total_age as age,
-prj_vol_dwb as tvol, prj_dom_ht as height , prj_decper as dec_pcnt, (0) as eca FROM yc_vdyp_vat
+prj_vol_dwb as tvol, prj_dom_ht as height , prj_decper as dec_pcnt, (0) as eca 
+FROM yc_vdyp_vat
 JOIN vdyp_test3 ON
 yc_vdyp_vat.yc_grp = vdyp_test3.yc_grp;
 
@@ -521,3 +522,33 @@ ALTER COLUMN eca TYPE double precision;
 ALTER TABLE yc_vdyp
 ALTER COLUMN ycid TYPE integer;
 
+
+/*Step 8. build the yieldcurve table with all output */
+
+Create table yc_vdyp_all as
+SELECT ycid, yc_vdyp_vat.yc_grp, prj_total_age as age,
+prj_vol_dwb as tvol, prj_dom_ht as height , prj_diameter as qmd, prj_ba as baha, prj_tph as tph,
+prj_decper as dec_pcnt, (0) as eca 
+FROM yc_vdyp_vat
+JOIN vdyp_test3 ON
+yc_vdyp_vat.yc_grp = vdyp_test3.yc_grp;
+
+Update yc_vdyp_all set tvol = 0 where tvol is NULL;
+
+--add the lower limit of the yield curve
+insert into yc_vdyp_all (ycid, yc_grp, age, tvol, height, dec_pcnt, eca)
+select distinct(ycid),  yc_grp, (0) as age, (0.0) as tvol, (0.0) as height, (0.0) as dec_pcnt, (0) as eca
+from yc_vdyp_all;
+
+/*STEP 9. Formatting */
+
+--select * from yc_vdyp order by yc_grp, age limit 1000;
+update yc_vdyp_all set dec_pcnt = ROUND(CAST(dec_pcnt as numeric), 2);
+update yc_vdyp_all set height = ROUND(CAST(height as numeric), 2);
+update yc_vdyp_all set tvol = ROUND(CAST(tvol as numeric), 2);
+
+ALTER TABLE yc_vdyp_all
+ALTER COLUMN eca TYPE double precision;
+
+ALTER TABLE yc_vdyp_all
+ALTER COLUMN ycid TYPE integer;
