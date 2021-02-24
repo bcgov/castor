@@ -1,0 +1,45 @@
+---
+title: "Imputing crown closure"
+author: "Kyle"
+date: "17/02/2021"
+output: html_document
+---
+
+## Purpose
+
+Natural orgin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding TIPSY curve.
+
+## Data
+Here I make a dummy data set that would indicative of the entire provincial data
+
+```{r, dummy_data}
+library(data.table)
+yc_vdyp<-data.table(ycid = c(1,1,1,1,2,2,2,2), basal_area =c(5,8,10,16, 0,0,3,4), tph = c(600,700,500,890, 1000,1000,900,890))
+
+yc_tipsy<-data.table(ycid = c(1,1,1,1,2,2,2,2), basal_area =c(5,8,9,13, 0,3,5,16), tph = c(600,700,900,660, 1400,1200,1000,890), crown_closure = c(41,51,60,70,20,30,40,53))
+```
+
+TODO: Get actual yield curves
+```{r, ycs}
+source(paste0(here::here(), "/R/functions/R_Postgres.R"))
+yc_vdyp<-getTableQuery("SELECT * FROM yc_vdyp_all WHERE ycid = -105439 order by age ")
+yc_tipsy<-getTableQuery("SELECT * FROM yc_tipsy WHERE ycid = 9717282 order by age")
+
+```
+## Impute
+
+```{r, imput_cc}
+require (yaImpute)
+
+mal <- yai(x=yc_tipsy[,c("basal_area", "tph")], y=yc_tipsy$crown_closure, method="mahalanobis", noRefs = TRUE)
+
+rownames(yc_vdyp) <- paste0("test.",rownames(yc_vdyp))
+m3 <- newtargets(mal,newdata=yc_vdyp,k=3)
+yc_vdyp$pred_cc_ng<-impute(m3,k=1, vars=yvars(mal))$y
+
+m3_group<-applyMask(m3,refGroups=yc_tipsy$ycid,trgGroups=yc_vdyp$ycid,
+method="keepWhenCommon",k=1)
+yc_vdyp$pred_cc_g<-impute(m3_group,k=1,vars=yvars(mal))$y
+
+
+```
