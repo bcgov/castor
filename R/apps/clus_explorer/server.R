@@ -61,24 +61,34 @@ ON c.compartment = a.compartment;")))
     if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
       data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
-    }
-    else{
+    }else{
       data.survival<-NULL
     }
-    data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
-    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
-    # c40r50 = dist; c40r500 = dist500
     
-    data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
+    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+      data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
+    sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
+      # c40r50 = dist; c40r500 = dist500 }
+      data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
+    }else{
+      data.disturbance<-NULL
+    }
+
+    
     data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
  round(cast(max_ha2 as numeric),1) as max,  round(cast(min_ha2 as numeric),1) as min, round(cast(cummulative_area_ha2 as numeric),1) as cummulative, round(cast(cummulative_area_percent as numeric),1) as cummul_percent FROM firesummary where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     
     if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
        WHERE table_schema = '",input$schema ,"' and table_name = 'fisher'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.fisherOccupancy<-data.table(getTableQuery(paste0("SELECT rel_prob_occup, zone, reference_zone, timeperiod, scenario  FROM ", input$schema, ".fisher where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, timeperiod;")))
       data.fisher.hexa<-data.table(getTableQuery("SELECT x,y, size, ogc_fid as zone, reference_zone FROM public.fisher_territory_pts "))
       data.fisherPoints<-merge(data.fisher.hexa, data.fisherOccupancy[timeperiod == 0 & scenario == input$scenario[1], c('zone', 'reference_zone', 'rel_prob_occup')], by.x =c('zone', 'reference_zone'), by.y = c('zone', 'reference_zone'), all.y=TRUE )
+      }else{
+        data.fisherPoints<-NULL
+        data.fisherOccupancy<-NULL 
+      }
     }else{
       data.fisherPoints<-NULL
       data.fisherOccupancy<-NULL
@@ -240,7 +250,6 @@ ON (foo1.scenario = foo2.scenario) )")))
   })
   
   output$statusDist500<-renderValueBox({
-    test67<<-statusData()
     data<-statusData()[compartment %in% input$tsa_selected,]
     valueBox(
       subtitle = "Disturbed 500m",
@@ -305,7 +314,6 @@ ON (foo1.scenario = foo2.scenario) )")))
   
   output$harvestAreaPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
-      
       data<-reportList()$harvest[,sum(area), by=c("scenario", "timeperiod")]
       data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
       data[,timeperiod:= as.integer(timeperiod)]

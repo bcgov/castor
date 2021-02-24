@@ -329,18 +329,21 @@ getGraph<- function(sim){
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
   
-  #bound.line<<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
-  #",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
+  bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
+  ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
  
-  bound.line<-getSpatialQuery(paste0( "SELECT st_buffer(ST_Collect(ST_ExteriorRing(the_geom)), 50) AS erings
-  FROM (SELECT ",sim$boundaryInfo[[2]],", (ST_Dump(",sim$boundaryInfo[[4]],")).geom As the_geom
-        FROM ",sim$boundaryInfo[[1]]," where 
-        ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')) As foo
-  GROUP BY ",sim$boundaryInfo[[2]],";"))
-
-  step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
   
-  #step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+  #bound.line_new<<-getSpatialQuery(paste0( "SELECT st_buffer(ST_Collect(ST_ExteriorRing(the_geom)), 10) AS erings
+  #FROM (SELECT ",sim$boundaryInfo[[2]],", (ST_Dump(",sim$boundaryInfo[[4]],")).geom As the_geom
+  #      FROM ",sim$boundaryInfo[[1]]," where 
+  #      ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')) As foo
+   #GROUP BY ",sim$boundaryInfo[[2]],";"))
+  
+  #ras<<-sim$ras
+  #stop()
+  #step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
+  step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+  
   step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear = -1 and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")"))
   
@@ -352,7 +355,7 @@ getGraph<- function(sim){
   
   # Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
   edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
-    if(nrow(step.two.xy) == i ){
+    if(nrow(step.two.xy) == i ){ #The last pixel needed to make the loop
       data.table(from = nrow(step.two.xy), to = 1, weight.V1 = 1)
     }else{
       nn.edges<-RANN::nn2(step.two.xy[id > i, c("x", "y")], step.two.xy[id == i, c("x", "y")], k=1)

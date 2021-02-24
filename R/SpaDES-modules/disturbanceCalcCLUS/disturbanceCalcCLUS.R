@@ -108,6 +108,7 @@ Init <- function(sim) {
     setorder(bounds, pixelid) #sort the bounds
     sim$disturbance[, critical_hab:= bounds$crithab]
     sim$disturbance[, compartment:= dbGetQuery(sim$clusdb, "SELECT compartid FROM pixels order by pixelid")$compartid]
+    sim$disturbance[, treed:= dbGetQuery(sim$clusdb, "SELECT treed FROM pixels order by pixelid")$treed]
   }
   
   #get the permanent disturbance raster
@@ -149,7 +150,7 @@ Init <- function(sim) {
 distAnalysis <- function(sim) {
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or (roadyear >= ", max(0,as.integer(time(sim) - P(sim, "disturbanceCalcCLUS", "recovery"))),")  or (blockid > 0 and age BETWEEN 0 AND ",P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear >= 0 or (blockid > 0 and age BETWEEN 0 AND ", P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
-  all.dist<-data.table(dbGetQuery(sim$clusdb, "SELECT treed, age, blockid, roadyear, pixelid FROM pixels WHERE (blockid > 0 and age >= 0) or roadyear >=0;"))
+  all.dist<-data.table(dbGetQuery(sim$clusdb, "SELECT age, blockid, roadyear, pixelid FROM pixels WHERE (blockid > 0 and age >= 0) or roadyear >=0;"))
   #sim.disturbance<<-sim$disturbance
   #sim.ras<<-sim$ras
   #stop()
@@ -157,7 +158,7 @@ distAnalysis <- function(sim) {
     outPts<-merge(sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
     message("Get the cutblock summaries")
     cutblock_summary<-Filter(function(x) dim(x)[1] > 0,
-         list(outPts[treed == 1, .(total_area = uniqueN(.I)), by = c("compartment","critical_hab")],
+         list(outPts[treed == 1 & !is.na(critical_hab), .(total_area = uniqueN(.I)), by = c("compartment","critical_hab")],
               outPts[blockid > 0 & age >= 0 & age <= 20 & !is.na(critical_hab), .(cut20 = uniqueN(.I)), by = c("compartment","critical_hab")],
               outPts[blockid > 0 & age >= 0 & age <= 40 & !is.na(critical_hab), .(cut40 = uniqueN(.I)), by = c("compartment","critical_hab")],
               outPts[blockid > 0 & age >= 0 & age <= 80 & !is.na(critical_hab), .(cut80 = uniqueN(.I)), by = c("compartment","critical_hab")],
