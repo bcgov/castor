@@ -295,47 +295,6 @@ mySim <- simInit(times = times,
 
 Now that you've familiarized yourself with *dataLoaderCLUS* we will use it to create an SQLite database for a harvest simulation. Below we provide an example of the code chunk you can use to run the script, with annotations that describe each parameter. Here we will highlight the key parameters need to run *dataLoaderCLUS* successfully. 
 
-Within the parameters list, the *dataLoaderCLUS* list are a set of parameters for defining the analysis area of interest (i.e., spatial area where you want to run simulations).  These include *dbName*, *nameBoundaryFile*, *nameBoundaryColumn*, *nameBoundary*, *nameBoundaryGeom*, *nameCompartmentRaster*, *nameCompartmentTable* and *nameMaskHarvestLandbaseRaster*. In combination, these parameters tell *dataLoaderCLUS* the area of the province where you want to complete your simulation analysis. The module takes this information and proceeds to 'clip' the datasets needed for the simulation accordingly. 
-
-The next set of important parameters are the *nameZoneRasters* and *nameZoneTable*. In the CLUS vernacular, 'zones' refer to areas where a constraint is applied to a land use activity (e.g., a forest cover constraint on harvest). Here you will see a concatenation (the [c()](https://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html) function in R) of several raster datasets. For forestry simulations, there are some key zones that should be included in the database, these include: 
-
-* rast.zone_cond_beo 
-* rast.zone_cond_vqo
-* rast.zone_cond_wha 
-* rast.zone_cond_uwr
-* rast.zone_cond_fsw 
-* rast.zone_cond_nharv 
-* rast.zone_cond_cw
-
-You will notice each of these are in the "rast" schema of the database and have the "zone_cond" naming. These rasters were all created using scripts within the [Params](https://github.com/bcgov/clus/tree/master/R/Params) folder of the repository. Several of the parameters were created in the [prov_manage_objs.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/prov_manage_objs.Rmd). Biodiversity emphasis option (BEO) zones (i.e., landscape units) are defined in *rast.zone_cond_beo*, using the [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid). Visual quality constraints are defined in *rast.zone_cond_vqo*.  
-
-
-
-
-
-
-Fisheries Sensitive Areas and Equivalent Clearcut Area
-
-
-
-In those scripts you will see they take psaital polygonal data, interpret a forest harvest constraint 
-
-
-
-
-used in business-as-usual or base case sceanrio
-
-
-
-
-
- rast.raster_test
-
-
-
-                         
-
-
 ```{r module_usage, message = F, echo = T, eval = F}
 # R Packages need to run the script
 library (SpaDES) 
@@ -398,7 +357,7 @@ parameters <-  list( # list of all parameters in the model, by module
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'
                   ),
-  uploaderCLUS = list(aoiName = 'revelstoke_tsa',
+  uploaderCLUS = list(aoiName = 'tutorial',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -441,6 +400,66 @@ system.time({
 mysimout<-spades(mySim)
 })
 ```
+
+Within the parameters list, the *dataLoaderCLUS* list are a set of parameters for defining the analysis area of interest (i.e., spatial area where you want to run simulations).  These include *dbName*, *nameBoundaryFile*, *nameBoundaryColumn*, *nameBoundary*, *nameBoundaryGeom*, *nameCompartmentRaster*, *nameCompartmentTable* and *nameMaskHarvestLandbaseRaster*. In combination, these parameters tell *dataLoaderCLUS* the area of the province where you want to complete your simulation analysis. The module takes this information and proceeds to 'clip' the datasets needed for the simulation accordingly. 
+
+Note that you can include multiple areas of interest (i.e., *nameBoundary*) together within the same by using the concatenation ([c()](https://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html)) function in R, e.g., c ("Revelstoke_TSA", "Golden_TSA"). 
+
+The next set of important parameters are the *nameZoneRasters* and *nameZoneTable*. In the CLUS vernacular, 'zones' refer to areas where a constraint is applied to a land use activity (e.g., a forest cover constraint on harvest). Here you will see a concatenation of several raster datasets. For forestry simulations, there are some key zones that should be included in the database, these include: 
+
+* rast.zone_cond_beo 
+* rast.zone_cond_vqo
+* rast.zone_cond_wha 
+* rast.zone_cond_uwr
+* rast.zone_cond_fsw 
+* rast.zone_cond_nharv 
+* rast.zone_cond_cw
+
+You will notice each of these are in the "rast" schema of the database and have the "zone_cond" naming. These rasters were all created using scripts within the [Params](https://github.com/bcgov/clus/tree/master/R/Params) folder of the repository. These scripts are intended to provide documentation of how these constraints were created, and can be updated or modified as needed. In these scripts you will see they take spatial polygonal data, interpret a forest harvest constraint for that polygon, create a raster integer identifier for unique 'zones' within the polygon, and create an associated table that defines a constraint for each identifier.  
+
+Several of the parameters were created in the [prov_manage_objs.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/prov_manage_objs.Rmd). Specifically, biodiversity emphasis option (BEO) zones (i.e., landscape units) are spatially defined as *rast.zone_cond_beo*, using the [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid), visual quality constraints are spatially defined as *rast.zone_cond_vqo*, fisheries sensitive watersheds and equivalent clearcut area are spatially defined as *rast.zone_cond_fsw*, spatial "no harvest" areas, including spatial old growth management areas (OGMAs) and parks and protected areas, are spatially defined as *rast.zone_cond_nharv* and community watershed areas are spatially defined as *rast.zone_cond_cw*. 
+
+Wildlife-specific parameters, including wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are defined in separate scripts. WHAs are spatially defined as *rast.zone_cond_wha* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/wha_cond_harvest.Rmd). UWRs are spatially defined as *rast.zone_cond_uwr* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/uwr_cond_harvest.Rmd). 
+
+As standard practice we recommend including all of these in the "business-as-usual" or "base case" scenarios. These are existing land use orders that should be incorporated in scenarios that are meant to represent current management. Here you will also want to include the hypothetical constraint you created (i.e., *rast.raster_test*) 
+
+The *nameZoneTable* is the table that defines all of the constraints for the rasters included in *nameZoneRasters*. You will notice this is a single table called *zone_constraints*, rather than a unique table for each raster. This is because the *zone_constraints* table is an amalgamation of tables created for each raster. You may remember this step from when you created *rast.raster_test*. 
+
+The next set of *dataLoaderCLUS* parameters are related to forest inventory and growth and yield data. The *nameForestInventoryRaster* parameter is a raster with an integer identifier created from the *feature_id* field, for each unique polygon in the forest inventory. The raster is created in the [raster_data.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/raster_data.Rmd) in the "Params" folder, and you will notice it has the year of the inventory in the raster name. Related, the *nameForestInventoryTable* is the polygonal forest inventory data from which you will draw the forest inventory data. Notably, the *nameForestInventoryKey* is the *feature_id* that is used to link the raster to forest attributes, i.e., the integer identifier is consistent between the raster and polygonal data. The *nameForestInventoryAge*, *nameForestInventoryHeight*, *nameForestInventoryCrownClosure*, *nameForestInventoryTreed* and *nameForestInventorySiteIndex* parameters are all related to information that is extracted from the polygonal forest inventory data, including age, height, crown closure, treed and site index, respectively. These are extracted for each hectare of the rates by each feature_id. Growth and yield data is obtained from [variable density yield projection (VDYP)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) and [table interpolation program for stand yields (TIPSY)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/table-interpolation-program-for-stand-yields-tipsy) stand development models.
+
+VDYP stand development curves are created in the [vdyp_curves.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/vdyp_curves.Rmd) and consist of a *nameYieldTable* parameter that contains the yield model outputs and a *nameYieldsRaster* parameter, which is a raster identifier indicating the location where each unique stand model output is applied. TIPSY stand development curves are created in the [tipsy_curves.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/tipsy_curves.Rmd) and consist of a *nameYieldTransitionTable* parameter that contains the yield model outputs and a *nameYieldsTransitionRaster* parameter, which is a raster identifier indicating the location where each unique stand model output is applied.
+
+The *dataLoaderCLUS* module can be run with the parameters described above. However, here we want to include the *blockingCLUS*, *roadCLUS* and *uploaderCLUS* so we can pre-define harvest blocks and roads, and upload data to PostgreSQL database hosted on our remote server.  
+                  
+We will use the *blockingCLUS* module to pre-define homogenous forest harvest blocks based on similarity metrics of forest inventory stands (see documentation [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md)). Set the *blockMethod* to 'pre' to use this method. The *patchZone* parameter is a raster that defines areas or zones with unique patch size distributions Here we use *rast.zone_cond_beo*, which represent unique landscape units that have defined patch sizes based on natural disturbance types (more on this below). The *patchVariation* parameter defines a  cut-off for aggregating neighbouring pixels. We recommend setting this to 6, as it roughly corresponds to a statistical significance p-value of 0.05 (i.e., probability that the neighbouring pixels are similar by random chance). The *nameCutblockRaster* parameter identifies existing cutblock locations by their integer identifier (created in the [raster_data.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/raster_data.Rmd)). The *useLandingsArea* parameter can be used to pre-define the location of forest harvest landings, when known. Otherwise, it will use the centroid of each pre-defined block.
+
+We will use the *roadCLUS* module to define a road network to the pre-defined harvest blocks. Set the *roadMethod* to 'pre' to create a road network that links each harvest landing (here it is pre-defined by *blockingCLUS*) to the existing road network following a least-cost path (see documentation [here](https://github.com/bcgov/clus/blob/master/reports/roads/draft-CLUS-roads.md)). The *rast.rd_cost_surface* defines the least-cost path raster that the module will use, and the *nameRoads* raster defines the raster of the existing road network. 
+ 
+Finally, we will use the *uploaderCLUS* module to upload some of the summary data to a PostgreSQL database. Here set the *aoiName* to 'tutorial'; this sets the name of the schema that gets created in the PostgreSQL database where the data gets stored. The *dbInfo* parameter is a list of keyring parameters that you set-up in step 4. 
+
+The remaining parameters include other objects within the code chunk that are not directly related to a specific module, but are important components of the SpaDES software. The *scenario* object is a data.table that contains the name and description of a simulation scenario. This information gets loaded to the PostgreSQL database, and is useful for tracking alternative scenarios. As this is a data creation step, the *scenario* object is not that important here, but here we recommend calling the name "tutorial" and the description as "Using dataloaderCLUS for tutorial." 
+
+The *patchSizeDist* is also a data.table object and it contains information on the frequency (*freq*) and size (*sizeClass*) of forest harvest blocks by natural disturbance type (*ndt*). These are from the [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid), and we recommend keeping them as-is, unless there is good justification for changing them.
+
+The *objects* object is simply a list of the data.table objects contained in the code chunk (i.e., *scenario* and *patchSizeDist*).
+
+The *modules* object includes the list of modules used in the code chunk. Here we use *dataLoaderCLUS*, *blockingCLUS*, *roadCLUS* and *uploaderCLUS*.
+
+The *inputs* and *outputs* list objects are empty, as there are no additional inputs or outputs to the module outside of the paramters described above.  
+
+The *mySim* object is a SpaDES object that contains the names of the *times*, *params*, *modules* and *objects* objects for it to reference during the simulation. These shoudl be consistent with the naming within the code chunk. 
+
+Finally, you will see a [system.time()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/system.time) function that us used to output the time it too to run the SpaDES "simulation" object (mySim). 
+
+Now that you've parameterized the module, you can run it! Click on the green "Play" symbol on the top-right of the code chunk. The script should start to run, and you will see messages as some parts of the script are run. The Revelstoke TSA is realtively small, and it should take less than an hour to complete the script.  
+
+![](images/dataloader_run.jpg)
+
+At the end of the analysis, you should see a .sqlite databse object created in the dataLoaderCLUS folder of your local copy of the CLUS code. 
+
+
+
+as well as some raster
 
 
 
