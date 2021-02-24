@@ -72,7 +72,7 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
   
     herdbounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
-                                    RASTER_CLIP2 (tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+                                    RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                       srcRaster = P (sim, "survivalCLUS", "nameRasCaribouHerd") , # clip the herd boundary raster; defined in parameters, above
                                                   clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # by the study area; defined in parameters of dataLoaderCLUS
                                                   geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 

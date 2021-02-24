@@ -83,7 +83,7 @@ Init <- function(sim) {
     sim$vol[, aoi := 1]
     } else {
     aoi_bounds <- data.table (c (t (raster::as.matrix( 
-    RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+    RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                  srcRaster = P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster"), 
                  clipper = sim$boundaryInfo[[1]],  
                  geom = sim$boundaryInfo[[4]], 
