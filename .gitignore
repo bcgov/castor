@@ -31,3 +31,5 @@ mercurial.ini
 .Rprofile
 *.sqlite
 README.html
+/.Require
+/reports/linkpop

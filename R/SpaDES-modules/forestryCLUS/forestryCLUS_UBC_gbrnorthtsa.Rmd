@@ -81,11 +81,11 @@ parameters <- list(
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                          nameZoneRasters=c(#"rast.zone_cond_beo", 
                                            #"rast.zone_cond_vqo", 
-                                           #"rast.zone_cond_wha_gbr", 
-                                           #"rast.zone_cond_uwr_gbr", 
-                                           #"rast.zone_cond_nharv_gbr", 
-                                           #"rast.zone_cond_fsw_gbr", 
-                                           #"rast.zone_cond_cw",
+                                           "rast.zone_cond_wha_gbr", 
+                                           "rast.zone_cond_uwr_gbr", 
+                                           "rast.zone_cond_nharv_gbr", 
+                                           "rast.zone_cond_fsw_gbr", 
+                                           "rast.zone_cond_cw",
                                            "rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
                         
@@ -152,11 +152,11 @@ modules <- list("dataLoaderCLUS",
                 )
 
 
- scenario = data.table (name = "ubc_gbrn_art_only",
-                         description = "removed all constraints except art (average retention targets")
-# 
-    # scenario = data.table (name = "ubc_gbrn_bau",
-    #                         description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
+#  scenario = data.table (name = "ubc_gbrn_art_only",
+#                          description = "removed all constraints except art (average retention targets")
+#  
+    scenario = data.table (name = "ubc_gbrn_bau",
+                            description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
 
   # scenario = data.table (name = "ubc_gbrn_without_art",
   #                         description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, but not art (average retention targets")
@@ -170,8 +170,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
                                                       by = 5), # was 5
                                                 1), 
 
-                                     flow = 2100000))) #2500000, 2400000, 2300000, 2200000 dont work. # 1780000 works  with vol >150
-
+                                     flow = 2300000))) #2500000, 2400000, 2300000 dont work. 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 
