@@ -75,7 +75,7 @@ Init <- function(sim) {
   #Get any covariates in the calibration model. Need an indicator if this has already been run and in the database
   if(!(dbGetQuery(sim$clusdb, "SELECT count(*) from pixels where elv > 0") > 0)){
     elevation<- data.table (c (t (raster::as.matrix( 
-    RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+    RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                  srcRaster = P(sim, "yieldUncertaintyCLUS", "elevationRaster"), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
                  clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                  geom = sim$boundaryInfo[[4]], 

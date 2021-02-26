@@ -1,0 +1,147 @@
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "dataLoaderCLUS"
+author: ""
+date: "04 September 2018"
+output: pdf_document
+---
+
+# Overview
+
+The dataloaderCLUS preps the database connectivitiy and other objects required to run CLUS. A SQLite database is stored in memory called clusdb. This database can be saved to file using `save_clusdb = TRUE` or an existing clusdb can be used by specifying the path with `useCLUSdb = ".../clusdb.sqlite"`
+
+
+# Usage
+
+```{r module_usage}
+library(SpaDES)
+library(velox)
+library(SpaDES.core)
+library(data.table)
+source(paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+aoi_herds<-c("Barkerville", "Central_Selkirks", "Columbia_North", "Columbia_South", "Groundhog", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcell_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South","Frisby_Boulder") #DU9
+#aoi_herds<-c("Kennedy_Siding", "Moberly", "Narraway") #DU8
+#aoi_herds<-c("Graham") #DU7
+#aoi_herds<-c("Hart_Ranges")
+
+#Standard values for scaling rsf
+# scale_rsf<-data.table(herd_name = c("Graham",
+# "Purcells_South","Barkerville","Central_Selkirks","Central_Rockies","Columbia_North","Columbia_South","Frisby_Boulder","Groundhog","Hart_Ranges","Narrow_Lake","North_Cariboo","South_Selkirks","Wells_Gray_North","Wells_Gray_South","Kennedy_Siding","Moberly","Narraway", "Purcell_Central"),
+# minv=c(0.02661948,0.06266979,0.05392171,0.03799885,0.03801286,0.0487691,0.04730855,0.06147054,0.05599202,0.03572763,0.05730409,0.03987817,0.03995903, 0.0238606, 0.034116,0.02274269,0.02198394,0.01151656,0.05296088), maxv =c(0.8703865, 0.2027866,0.1510717,0.5228453,0.296431,0.7164107,0.4480757,0.3119703,0.4411238,0.1800473,0.1180433,0.495245,0.5252465,0.4278086,0.9800901,0.2208816,0.1985523,0.9751709,0.6806737))
+
+for(herd in aoi_herds){
+setPaths(modulePath = here::here("R/SpaDES-modules"))
+getPaths() # shows where the 4 relevant paths are
+setPaths(outputPath  = here::here("R/SpaDES-modules/dataLoaderCLUS/"))  
+times <- list(start = 0, end = 40)
+
+parameters <-  list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list(dbName='clus',
+                         save_clusdb = FALSE,
+                    nameBoundaryFile="bc_caribou_herd_boundary_v20200507",
+                         nameBoundaryColumn="herd_name",
+                         nameBoundary = herd,
+                         nameBoundaryGeom='shape'
+
+                    ),
+    roadCLUS = list(roadMethod = 'pre', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.crds_all'
+                  ),
+
+    cutblockSeqPrepCLUS = list( startHarvestYear = 1980,
+                                nameCutblockRaster= 'rast.cns_cut_bl',
+                                nameCutblockTable= 'cns_cut_bl_polygon',
+                                queryCutblocks = 'cutseq_centroid'
+                              ),
+    # rsfCLUS = list(calculateInterval = 1, 
+    #                criticalHabitatTable = "public.criticalhabitat_gen_bc_vat",
+    #                randomEffectsTable = "public.rsf_re_coeff",
+    #                writeRSFRasters = TRUE,
+    #                checkRasters= FALSE),
+     disturbanceCalcCLUS = list(calculateInterval = 1, 
+                    criticalHabitatTable = "public.criticalhabitat_gen_bc_vat",
+                    criticalHabRaster = "rast.bc_gen_crithab",
+                    recovery = 40),
+    # survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+    #                    nameRasCaribouHerd = "rast.bc_gen_crithab", # raster of herd boundaries
+    #                    tableCaribouHerd = "public.criticalhabitat_gen_bc_vat"),
+     uploaderCLUS = list(aoiName = 'disturbance_measures2',
+                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
+                     )
+  )
+
+
+# rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')"))
+# 
+# rsf_model_coeff[, population:= herd]
+# rsf_model_coeff[, bounds:= 'rast.bc_gen_crithab']
+# rsf_model_coeff[, minv:= scale_rsf[herd_name == herd, "minv"]]
+# rsf_model_coeff[, maxv:=scale_rsf[herd_name == herd, "maxv"]]
+# 
+# 
+scenario = data.table(name="disturbance_measures2", description = "historical disturbances")
+modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS", "uploaderCLUS", "disturbanceCalcCLUS")
+
+#objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
+# objects <- list(scenario = scenario, rsf_model_coeff=rsf_model_coeff)
+
+objects <- list(scenario = scenario)
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules
+                 #objects = objects
+                 )
+
+mysimout<-spades(mySim)
+}
+```
+
+# Dependendices
+
+First need an area of interest.
++nameBoundaryFile <- the vector data of the areas to consider. Defaults to caribou herd boundaries.
++nameBoundary<-The specific area of interest
++nameBoundaryColumn<-The column in the nameBoundaryFile that support the query for the area of interest
++nameBoundaryGeom<-the geometry column from which to run the spatial query containing the area of interest
+
+The remaining files are:
++nameCompartmentRaster<- a provincial raster of compartments -- also known as supply blocks. Defaults to 1 compartment
++nameZoneRaster<-a provincial raster of management zones. Defaluts to 1 zone
++nameYieldRaster<-a provincial raster of id's that support a look up to yield tables. Defaults to 1 yield table
++nameAgeRaster<- a provincial raster of age. This can be set to zero, if correctly used to look up yields and constraints. Defaults to an age of 120
++nameCrownClosureRaster<- a provincial raster of crown closure. Used for management constraints. Defaults to 0 crown closure
++nameMaskHarvestLandbaseRaster<- a provincial raster of the timber harvesting landbase (THLB) that delinates area feasible to harvest timber. Defaults to all of the area of interest being eligible for harvesting.
+
+# Events
+
+The module only has an inititialization event for connecting to a database and establishing database objects
+
+
+## Output data
+
+The outputs contain the database connection object, functions needed to generate queries and the boundary and bounding box of the boundary needed for other queries
+
+# Links to other modules
+
+Links to every module required by CLUS
+

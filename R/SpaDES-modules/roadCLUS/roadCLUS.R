@@ -45,16 +45,16 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName ="roadMethod", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameRoads", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "roadMethod", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "nameRoads", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "rasVelo", objectClass = "VeloxRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "roadSourceID", objectClass = "integer", desc = "The source used in Dijkstra's pre-solving approach", sourceURL = NA),
-    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
      ),
   outputObjects = bind_rows(
@@ -180,11 +180,12 @@ getExistingRoads <- function(sim) {
       message("using already loaded roads")
       sim$roads<-sim$ras
     }else{
-      sim$roads<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), 
+      sim$roads<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                             srcRaster= P(sim, "roadCLUS", "nameRoads"), 
-                            clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), 
-                            geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                            where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL)
+                            clipper=sim$boundaryInfo[[1]], 
+                            geom= sim$boundaryInfo[[4]], 
+                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                            conn = NULL)
     
       #Update the pixels table to set the roaded pixels
       roadUpdate<-data.table(c(t(raster::as.matrix(sim$roads)))) #transpose then vectorize which matches the same order as adj
@@ -216,8 +217,13 @@ getCostSurface<- function(sim){
   rds[is.na(rds[])] <- 1
   rds[rds[] < 0] <-0 #convert the roads that are not 'pre' start time roads back to zero
   
-  conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
-  costSurf<-RASTER_CLIP2(tmpRast = P (sim, "dataLoaderCLUS", "nameBoundary"), srcRaster= P(sim, "roadCLUS", "nameCostSurfaceRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=conn) 
+  #conn=GetPostgresConn(dbName = "clus", dbUser = "postgres", dbPass = "postgres", dbHost = 'DC052586', dbPort = 5432) 
+  costSurf<-RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
+                         srcRaster=P(sim, "roadCLUS", "nameCostSurfaceRas"), 
+                         clipper=sim$boundaryInfo[[1]], 
+                         geom=sim$boundaryInfo[[4]], 
+                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                         conn = NULL) 
   sim$costSurface<-rds*(resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) #multiply the cost surface by the existing roads
   sim$costSurface[sim$costSurface[] == 0]<- 0.00000000001 #giving some weight to roaded areas
   
@@ -323,10 +329,21 @@ getGraph<- function(sim){
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
   
-  bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[4],") as geom from ",sim$boundaryInfo[1]," where 
- ",sim$boundaryInfo[2]," in ('",paste(sim$boundaryInfo[3], collapse = "', '") ,"')"))
+  bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
+  ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
+ 
   
+  #bound.line_new<<-getSpatialQuery(paste0( "SELECT st_buffer(ST_Collect(ST_ExteriorRing(the_geom)), 10) AS erings
+  #FROM (SELECT ",sim$boundaryInfo[[2]],", (ST_Dump(",sim$boundaryInfo[[4]],")).geom As the_geom
+  #      FROM ",sim$boundaryInfo[[1]]," where 
+  #      ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')) As foo
+   #GROUP BY ",sim$boundaryInfo[[2]],";"))
+  
+  #ras<<-sim$ras
+  #stop()
+  #step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
   step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+  
   step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear = -1 and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")"))
   
@@ -338,7 +355,7 @@ getGraph<- function(sim){
   
   # Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
   edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
-    if(nrow(step.two.xy) == i ){
+    if(nrow(step.two.xy) == i ){ #The last pixel needed to make the loop
       data.table(from = nrow(step.two.xy), to = 1, weight.V1 = 1)
     }else{
       nn.edges<-RANN::nn2(step.two.xy[id > i, c("x", "y")], step.two.xy[id == i, c("x", "y")], k=1)
