@@ -16,15 +16,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Conditional harvesting means that there is some level of retention required during harvest operations. In terms of landcover constraints - this may require a percentage of the management unit being retained according to a descriptive class - this can be age, crown closure, height and even species specific. The table below provides a list of Wildlife habitat Area conditional harvesting constraints and the corresponding coarse assumption for achieving these constraints. The focus here is on conditional harvesting constraints at a landscape unit scale - not a cutblock level - that would impact caribou.
 
+
 ###Grizzly Bear Habitat in GBR North and South
 See legal direction and orders (Schedule D). In GBR, 100% of class 1 grizzly bear habitat and 50% of class 2 habitat needs to be protected but these class 1 and class 2 habitats are contained in the WHA's. So Im adding it in manually. This is where I found the information about these habitat types and spatial layers. See: https://www2.gov.bc.ca/gov/content/industry/crown-land-water/land-use-planning/regions/west-coast/great-bear-rainforest/great-bear-rainforest-legal-direction-agreements
 
 https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf
 
 ```{r}
+library(data.table)
+library(sf)
+library(here)
+library(dplyr)
+source (paste0(here(),"/R/functions/R_Postgres.R"))
+
 gbr_bear<-sf::st_read("//spatialfiles2.bcgov/work/FOR/VIC/HTS/ANA/Workarea/ekleynhans/GBRO_ScheduleShapefiles_20160120/GBRSchD_GB_20151105.shp")
 gbr_bear_1 <- gbr_bear %>% filter(GB_CLASS==1)
 gbr_bear_1$feat_notes<-"Class 1 grizzly bear habitat"
+
+wha_poly<-getSpatialQuery("SELECT ogc_fid, wha_tag, feat_notes, aprv_date, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN 
+(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.tsa_aac_bounds_gbr b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
+
 gbr_bear_1$ogc_fid<-max(wha_poly$ogc_fid)+1
 gbr_bear_1$wha_tag<-"5-800"
 gbr_bear_1$aprv_date<-"20160101"
@@ -39,12 +50,13 @@ gbr_bear_all<- gbr_bear_12 %>%
   dplyr::select(feat_notes, ogc_fid, wha_tag, aprv_date) %>% 
   group_by (feat_notes, ogc_fid, wha_tag, aprv_date) %>% summarise()
 
+lu<-getSpatialQuery("SELECT *
+FROM public.rmp_lu_sp_polygon LIMIT 1") #just a dummy query to get the projection
+
 st_crs(gbr_bear_all)<-st_crs(lu)
 setnames(gbr_bear_all, c("geometry"), c("wkb_geometry"))
 st_geometry(gbr_bear_all) <- "wkb_geometry"
 
-table.glm.summary <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.summary) <- c ("Years_Old", "Coefficient", "AIC", "p-values")
 wha_cond_gbr<-data.table(ogc_fid=character(), harvest=character(), wha_tag=character(), feat_notes=character(), aprv_date=integer())
 
 wha_cond_gbr <- data.frame (matrix (ncol = 5, nrow = 0))
@@ -61,19 +73,10 @@ wha_cond_gbr[1,5]<-"20160101"
 wha_cond_gbr[2,5]<-"20160101"
 ```
 
+
 ## WHA
 
 ```{r, WHA_cond_harv}
-library(data.table)
-library(sf)
-library(here)
-source (paste0(here(),"/R/functions/R_Postgres.R"))
-
-wha_poly<-getSpatialQuery("SELECT ogc_fid, wha_tag, feat_notes, aprv_date, wkb_geometry FROM public.wcp_whaply_polygon WHERE wha_tag IN 
-(SELECT a.wha_tag  FROM public.wcp_whaply_polygon  a , public.tsa_aac_bounds_gbr b WHERE  ST_INTERSECTS (a.wkb_geometry, b.wkb_geometry)) ORDER BY aprv_date ASC")
-
-lu<-getSpatialQuery("SELECT *
-FROM public.rmp_lu_sp_polygon LIMIT 1") #just a dummy query to get the projection
 
 #Get the raster and projection
 ProvRast <- raster(
@@ -102,9 +105,9 @@ wha_cond<-rbind(wha_cond, wha_cond_gbr)
 
 #assign all no harvest as 0 -- pertains to 3-030 -- this can be any number that has no harvest
 ogc_fids_noharv<-wha_cond[wha_cond$harvest == 'NO HARVEST ZONE', "ogc_fid"]
-zone_wha<-data.table(zoneid = 0, type = 'nh', variable = '', threshold = 0, reference_zone='rast.zone_wha', percentage =0, ndt =0, label = 'wha_no_harv')
+zone_wha<-data.table(zoneid = 0, type = 'nh', variable = '', threshold = 0, reference_zone='rast.zone_cond_wha_gbr', percentage =0, ndt =0, label = 'wha_no_harv')
 #set all to 0 in the raster as no harvest
-wha.ras[wha.ras[] %in% ogc_fids_noharv] <- 0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_noharv] <- 0
 
 wha_cond<-wha_cond[!(wha_cond$harvest == 'NO HARVEST ZONE'), ] #get only the conditional harvesting ones now.
 
@@ -117,7 +120,7 @@ Do not harvest or salvage mature timber. When harvest is approved: Protect or re
 #get the ogc_fids that belong to these.
 wha_tags<-c('3-071', '3-072', '3-073', '3-074', '3-075', '3-076','3-077','3-078','3-079','3-080','3-081', '3-082', '3-083', '3-084', '3-085', '3-086', '3-087','3-088')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0 #reassign in the raster
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -129,7 +132,7 @@ see http://www.env.gov.bc.ca/wld/documents/wha/TATA_3_117to120_122_ord.pdf
 #get the ogc_fids that belong to these.
 wha_tags<-c('3-117', '3-118', '3-119', '3-120', '3-122')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0 #reassign in the raster
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -140,7 +143,7 @@ Do not construct roads. Do not use pesticides. Do not conduct timber harvesting,
 #get the ogc_fids that belong to these.
 wha_tags<-c('3-147')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0 #reassign in the raster
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -152,7 +155,7 @@ Data sensitive? Thompson Rivers
 #get the ogc_fids that belong to these.
 wha_tags<-c('3-171', '3-172', '3-173', '3-174', '3-175', '3-176','3-177','3-178','3-179','3-180','3-181')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -164,7 +167,7 @@ Data sensitive? Kootenay Lake
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-011','4-012','4-013','4-014','4-015','4-016','4-017','4-018','4-019','4-020','4-021','4-022','4-023','4-024','4-025','4-026','4-027','4-028','4-029','4-030','4-031','4-032','4-033','4-034','4-035','4-036','4-037','4-038','4-039','4-040','4-041','4-042','4-043','4-044','4-045')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -175,7 +178,7 @@ Do not harvest in the core area (these are defined as 'no harvest' in the data, 
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-046','4-047','4-048','4-049','4-050','4-051','4-052','4-053','4-054','4-055')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_cond_wha_gbr', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -184,7 +187,7 @@ Do not harvest in the core area (these are defined as 'no harvest' in the data, 
 ```{r, w4056}
 wha_tags<-c('4-056','4-057','4-058','4-059','4-060','4-061','4-062','4-063','4-064')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_cond_wha_gbr', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -197,7 +200,7 @@ Do not salvage or harvest in the core area except partial harvesting systems. Do
 
 wha_tags<-c('4-077','4-078','4-079','4-080','4-081','4-082','4-083','4-084','4-085')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_cond_wha_gbr', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -209,7 +212,7 @@ see http://www.env.gov.bc.ca/wld/documents/wha/TATA_4-088-092,102,103_ord.pdf
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-088', '4-089', '4-090', '4-091', '4-092','4-092','4-102', '4-103')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0 #reassign in the raster
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -222,7 +225,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # could use age thrshold again here?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -235,7 +238,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # could use height threshold as above (or age) instead?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 1, reference_zone='rast.zone_cond_wha_gbr', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -245,7 +248,7 @@ Data sensitive Kootenay Lake
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-105')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -255,7 +258,7 @@ Do not use pesticide. Do nto constrruct roads. Do not harvest except as required
 # set as no harvest
 wha_tags<-c('4-107')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #reassign in the raster
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0 #reassign in the raster
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -265,7 +268,7 @@ Data sensitive Rocky Mountain
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-109')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -275,7 +278,7 @@ Data sensitive Rocky Mountain
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-112')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -288,7 +291,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # age threshold?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -298,7 +301,7 @@ Do not construct roads. Do not use pesticides. Do not harvest unless to address 
 #No harvest in these areas
 wha_tags<-c('4-121', '4-122', '4-123', '4-124', '4-125', '4-126','4-130','4-131','4-132','4-134','4-135')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0 #remove from the raster
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0 #remove from the raster
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -308,7 +311,7 @@ Do not construct roads except in 4-160, 4-162, 4-166 and 4-169. Do not use pesti
 #Prefer open canopies
 wha_tags<-c('4-151',	'4-152',	'4-153',	'4-154',	'4-155',	'4-156',	'4-157',	'4-158',	'4-159',	'4-160',	'4-161',	'4-162',	'4-163',	'4-164',	'4-165',	'4-166',	'4-167',	'4-168',	'4-169',	'4-170', '4-177')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -321,7 +324,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # age threshold?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -332,7 +335,7 @@ S--Assume the model does this at an operational scale.
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-180')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -345,7 +348,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # age threshold?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -355,7 +358,7 @@ Do not construct roads. Avoid closed canopies. see http://www.env.gov.bc.ca/wld/
 #get the ogc_fids that belong to these.
 wha_tags<-c('4-217',	'4-218',	'4-219',	'4-220',	'4-221',	'4-222',	'4-223',	'4-224',	'4-225',	'4-226',	'4-227',	'4-228',	'4-229',	'4-230',	'4-231',	'4-232','4-234',	'4-235',	'4-236',	'4-237',	'4-238',	'4-239',	'4-240',	'4-241',	'4-242')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
  
@@ -368,7 +371,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # age threshold?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -378,7 +381,7 @@ Data Sensitive? Chilcotin
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-003','5-004','5-005','5-006')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -388,7 +391,7 @@ Do Not harvest from April 1 to August 31 -- model harvests at annual scale, thus
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-007','5-008','5-009','5-010','5-011','5-012','5-013','5-014','5-015','5-016','5-017','5-018','5-019','5-020','5-021','5-022','5-023','5-024','5-025','5-026','5-027','5-028','5-029','5-030','5-031','5-032','5-033','5-034','5-035')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -398,7 +401,7 @@ Do not use pesticides. Protect forest cover and plant communities. No road, trai
 #No Harvest
 wha_tags<-c('5-037','5-038','5-039','5-040','5-041','5-042','5-043')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -409,7 +412,7 @@ Data Sensitve Central Cariboo
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-062', '5-072', '5-073')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -419,7 +422,7 @@ Do not construct new roads. Forestry must result in ecological restoration with 
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-074', '5-075', '5-076', '5-077', '5-078', '5-079', '5-080', '5-081', '5-082', '5-084', '5-085')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -431,20 +434,20 @@ Retain all forest in 5-118. In caribou modified harvest zone (table 1) - Age >80
 #5-086 Age >80 for 45%. Age > 100 for 37%. Age 120 for 30%. Age 140 for 25%. 
 wha_tags<-c('5-087') #25% is left unlogged with an age > 100 years. See Table 1
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid","wha_tag")]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =45, ndt =0, label = ogc_fids_rm$wha_tag))
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_wha', percentage =37, ndt =0, label = ogc_fids_rm$wha_tag))
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 120, reference_zone='rast.zone_wha', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 140, reference_zone='rast.zone_wha', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_cond_wha_gbr', percentage =45, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_cond_wha_gbr', percentage =37, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 120, reference_zone='rast.zone_cond_wha_gbr', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 140, reference_zone='rast.zone_cond_wha_gbr', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 
 wha_tags<-c('5-086') #40% > 70 and 20% > 80
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid","wha_tag")]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 70, reference_zone='rast.zone_wha', percentage =40, ndt =0, label = ogc_fids_rm$wha_tag))
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =20, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 70, reference_zone='rast.zone_cond_wha_gbr', percentage =40, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_cond_wha_gbr', percentage =20, ndt =0, label = ogc_fids_rm$wha_tag))
 
 wha_tags<-c('5-872','5-873') #25% is left unlogged with an age > 100 years
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_wha', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 100, reference_zone='rast.zone_cond_wha_gbr', percentage =25, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -454,7 +457,7 @@ Do not harvest in the caribou No-harvest. Caribou modified harvest in wha 5-088,
 #For the wha's that have modfied harvesting --consider 66% of the area > 80 years
 wha_tags<-c('5-088',	'5-089',	'5-090',	'5-091',	'5-092',	'5-093',	'5-094',	'5-095',	'5-096',	'5-097',	'5-098',	'5-099',	'5-100',	'5-101',	'5-102',	'5-103',	'5-104',	'5-105',	'5-106',	'5-107',	'5-108',	'5-109',	'5-110',	'5-111',	'5-112',	'5-113',	'5-114',	'5-115',	'5-116',	'5-117') #25% is left unlogged with an age > 100 years
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =66, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_cond_wha_gbr', percentage =66, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -464,7 +467,7 @@ Primary forestry activites will result in protections of the forest cover and pl
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-120','5-121','5-122','5-123','5-126','5-127','5-128','5-131','5-133','5-136','5-137','5-138','5-139','5-140','5-141','5-142','5-143','5-144','5-145','5-146','5-147','5-148','5-149','5-150','5-168','5-169','5-170','5-171','5-172','5-173','5-174','5-175','5-176','5-177','5-178','5-179','5-180','5-181','5-182','5-183','5-184','5-185','5-186','5-187','5-188','5-190',	'5-191',	'5-192',	'5-193',	'5-194',	'5-195',	'5-196',	'5-197',	'5-198',	'5-199',	'5-200',	'5-201',	'5-202',	'5-203',	'5-204',	'5-205',	'5-206',	'5-207',	'5-208',	'5-209',	'5-210',	'5-211',	'5-212',	'5-213',	'5-214',	'5-215',	'5-216',	'5-217',	'5-218',  '5-224',	'5-225',	'5-226',	'5-227',	'5-228',	'5-229',	'5-230',	'5-231',	'5-232',	'5-233',	'5-234',	'5-235',	'5-236',	'5-237',	'5-238',	'5-239',	'5-240',	'5-241',	'5-242',	'5-243',	'5-244',	'5-245',	'5-246',	'5-247',	'5-248',	'5-249',	'5-250',	'5-251',	'5-252',	'5-253',	'5-254',	'5-255',	'5-256',	'5-257',	'5-258',	'5-259',	'5-260',	'5-261',	'5-262',	'5-263',	'5-264',	'5-265',	'5-266',	'5-267',	'5-268',	'5-269',	'5-270',	'5-271',	'5-272',	'5-273',	'5-274',	'5-275',	'5-276',	'5-277','5-279', '5-280', '5-281', '5-282', '5-283', '5-285',	'5-286',	'5-287',	'5-288',	'5-289',	'5-290',	'5-291',	'5-292',	'5-293',	'5-294',	'5-295',	'5-296',	'5-297',	'5-298',	'5-299',	'5-300',	'5-301',	'5-302',	'5-303',	'5-304',	'5-305', '5-307',	'5-308',	'5-309',	'5-310',	'5-311',	'5-312',	'5-313',	'5-314',	'5-315',	'5-316',	'5-317',	'5-318',	'5-319',	'5-320',	'5-321',	'5-322',	'5-323',	'5-324',	'5-325',	'5-326',	'5-327',	'5-328',	'5-329','5-331',	'5-332',	'5-333',	'5-334',	'5-335',	'5-336',	'5-337',	'5-338',	'5-339',	'5-340',	'5-341',	'5-342',	'5-343',	'5-344',	'5-345',	'5-346',	'5-347',	'5-348',	'5-349',	'5-350',	'5-351','5-354',	'5-355',	'5-356',	'5-357',	'5-358','5-361',	'5-362',	'5-363',	'5-364',	'5-365',	'5-366',	'5-367',	'5-368',	'5-369',	'5-370',	'5-371',	'5-372',	'5-373',	'5-374',	'5-375',	'5-376',	'5-377',	'5-378',	'5-379',	'5-380',	'5-381',	'5-382',	'5-383',	'5-384',	'5-385',	'5-386',	'5-387',	'5-388',	'5-389',	'5-390',	'5-391',	'5-392',	'5-393',	'5-394',	'5-395',	'5-396',	'5-397',	'5-398',	'5-399',	'5-400',	'5-401',	'5-402',	'5-403',	'5-404',	'5-405',	'5-406',	'5-407',	'5-408',	'5-409',	'5-410',	'5-411',	'5-412',	'5-413',	'5-414',	'5-415',	'5-416',	'5-417',	'5-418',	'5-419',	'5-420',	'5-421',	'5-422',	'5-423',	'5-424',	'5-425',	'5-426',	'5-427',	'5-428',	'5-429',	'5-430',	'5-431',	'5-432',	'5-433',	'5-434',	'5-435',	'5-436',	'5-437',	'5-438',	'5-439',	'5-440',	'5-441',	'5-442', '5-456','5-457','5-458','5-459','5-499',	'5-500',	'5-501',	'5-502',	'5-503',	'5-504',	'5-505',	'5-506',	'5-507',	'5-508',	'5-509',	'5-510',	'5-511',	'5-512',	'5-513','5-515',	'5-516',	'5-517',	'5-518',	'5-519',	'5-520',	'5-521',	'5-522',	'5-523',	'5-524',	'5-525', '5-527',	'5-528',	'5-529',	'5-530',	'5-531',	'5-532',	'5-533',	'5-534',	'5-535',	'5-536',	'5-537',	'5-538',	'5-539',	'5-540',	'5-541')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -474,7 +477,7 @@ Data Sensitive Quesnel
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-730')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -484,7 +487,7 @@ Data Sensitive Central Cariboo
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-752')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -494,7 +497,7 @@ Do not construct roads. Do not harvest timber. Do not use pesticides. See http:/
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-753', '5-754', '5-755', '5-756', '5-757', '5-758', '5-760', '5-761', '5-762', '5-763', '5-764')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -504,7 +507,7 @@ Do not construct roads. Do not harvest timber. Do not use pesticides. See http:/
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-753', '5-754', '5-755', '5-756', '5-757', '5-758', '5-760', '5-761', '5-762', '5-763', '5-764')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -514,7 +517,7 @@ Do not construct roads or landings. Harvest must result in stocking densities of
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-874', '5-876', '5-877', '5-878', '5-879', '5-880', '5-881', '5-882', '5-883')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -524,7 +527,7 @@ No primary forest activities allowed. Do not use pesticides. Do not construct ra
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-875')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -534,7 +537,7 @@ No roads of landings. Stocking densities of <75 stems/ha and a target of 20 stem
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-884', '5-885', '5-886', '5-887', '5-888', '5-889', '5-890', '5-891', '5-892', '5-893', '5-894', '5-895', '5-896', '5-897')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -544,7 +547,7 @@ Data sensitive
 #get the ogc_fids that belong to these.
 wha_tags<-c('5-905', '5-905', '5-911', '5-912', '5-913', '5-914', '5-915', '5-916')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -556,7 +559,7 @@ No timber harvest or forest health sanitation allowed to occur.
 #get the ogc_fids that belong to these.
 wha_tags<-'6-055'
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -566,12 +569,12 @@ For wha 6-056: do not harvest within the core area of special management zone.Fo
 ```{r, w6056}
 wha_tags<-c('6-056') # I broke these two out
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 #for 6-057 maintain 70% 
 wha_tags<-c('6-057')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_cond_wha_gbr', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -580,7 +583,7 @@ No harvest within the core area of special management zone also no road construc
 ```{r, w6058}
 wha_tags<-c('6-058', '6-059') # I broke these two out
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -590,7 +593,7 @@ No roads or harvest in core area. In management zone, use a silvicutlural system
 #maintain 70% 
 wha_tags<-c('6-060','6-061','6-062','6-063','6-064','6-065','6-066','6-067')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, c("ogc_fid", "wha_tag")]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_wha', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 5, reference_zone='rast.zone_cond_wha_gbr', percentage =70, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -601,7 +604,7 @@ Do not construct  or widen roads. Do not harvest timber. Do not use pesticides. 
 #get the ogc_fids that belong to these.
 wha_tags<-c('6-153','6-154', '6-155', '6-156', '6-158', '6-160', '6-161', '6-164', '6-166', '6-170', '6-171', '6-174', '6-177', '6-179', '6-180', '6-181', '6-182', '6-183', '6-184', '6-185', '6-186', '6-187', '6-188', '6-280', '6-281')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -611,7 +614,7 @@ Data Sensitive
 #get the ogc_fids that belong to these.
 wha_tags<-c('6-283','6-284','6-285','6-286')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -621,7 +624,7 @@ To provide functional thermal or security cover to grizzly bears 100% of the for
 #get the ogc_fids that belong to these.
 wha_tags<-c('6-287')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -631,7 +634,7 @@ To provide functional thermal or security cover to grizzly bears 100% of the for
 #get the ogc_fids that belong to these.
 wha_tags<-c('6-288')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -642,7 +645,7 @@ wha_tags<-c('6-333')
 #Bulkley TSA: >60% of the SBSmc > 80 years,  < 28% of SBSmc < 40 year, > 45 % of SBSdk > 80 years, < 39% of SBSdk < 40 years. 
 #Morice TSA: > 17% of SBSmc > 140 years, < 48 SBSmc < 40 years, > 8 % of SBSdk > 140 years, < 64% of SBSdk < 40 years
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_wha', percentage =66, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 80, reference_zone='rast.zone_cond_wha_gbr', percentage =66, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -653,7 +656,7 @@ Do not construct roads. Do not use pesticides.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-003','8-004')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -663,7 +666,7 @@ Follow a guide : https://www.for.gov.bc.ca/tasb/legsregs/fpc/fpcguide/other/wild
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-006','8-007','8-008','8-009','8-010')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -677,7 +680,7 @@ see http://www.env.gov.bc.ca/wld/documents/wha/WHWO-8-017_ord.pdf
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-014','8-015','8-016','8-017','8-020','8-022')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -689,7 +692,7 @@ see http://www.env.gov.bc.ca/wld/documents/wha/BRSP_8-051_8-319_to_8-324_ord.pdf
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-047','8-051','8-319','8-320','8-321','8-322','8-323','8-324')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -699,7 +702,7 @@ Data Sensitive
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-053',	'8-054',	'8-055',	'8-056',	'8-057',	'8-058',	'8-059',	'8-060',	'8-061',	'8-062',	'8-063',	'8-064')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -710,9 +713,11 @@ see http://www.env.gov.bc.ca/wld/documents/wha/AMTI_8-090_to_8-094_ord.pdf.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-090',	'8-091',	'8-092',	'8-093',	'8-094')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
+
+# CHECK
 
 ### 8-124 to 8-126 Western Screech Owl
 Do not use pesticides. Do not salvage or harvest in core area. Do not construct roads or crossings in the core area. Use selective harvesting <= 20% basal area removal. Do not remove deciduous trees. Retain > 60% of trees in riparian areas. see http://www.env.gov.bc.ca/wld/documents/wha/WSOW_8-124_ord.pdf
@@ -721,9 +726,10 @@ Do not use pesticides. Do not salvage or harvest in core area. Do not construct 
 wha_tags<-c('8-124',	'8-125',	'8-126')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
+
 # Use age threshold?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -733,17 +739,18 @@ Forest practices will result in at least 10% of each management unit containing 
 #10% of the area > 19.5 m height. 
 wha_tags<-c('8-232')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 19.5, reference_zone='rast.zone_wha', percentage =10, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 19.5, reference_zone='rast.zone_cond_wha_gbr', percentage =10, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
 ### 8-233 Caribou 
 GWM 1: Forest practises will result in a minimum of 30% of the timber exhibiting heights of at least 14 m, or have undergone self-pruning of the lower branches to allow for suitable security and movement between winter ranges. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_8-233_ord.pdf
 ```{r, w8233}
-# > 30 % having height > 14 m
+# > 30 % having height > 14 m 
+# This section of code gives errors related to the wha_tag number. I think this tag number does not exist???  
 wha_tags<-c('8-233')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 14, reference_zone='rast.zone_wha', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'height', threshold = 14, reference_zone='rast.zone_cond_wha_gbr', percentage =30, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -756,7 +763,7 @@ ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
 # use age?
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_wha', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 20, reference_zone='rast.zone_cond_wha_gbr', percentage =80, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -766,7 +773,7 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-325')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -776,7 +783,7 @@ Do not construct roads, Do not harvest unless required to support ecological res
 # do not harvest
 wha_tags<-c('8-328','8-329','8-330','8-331')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -786,7 +793,7 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-332',	'8-333',	'8-357',	'8-358',	'8-359',	'8-360',	'8-361')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -796,7 +803,7 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-335',	'8-336')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -806,7 +813,7 @@ Data Sensitive
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-368',	'8-369',	'8-370',	'8-371',	'8-372')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -817,7 +824,7 @@ S-- Assuming these are operational ground rules.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-373')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -827,7 +834,7 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-416',	'8-417',	'8-418',	'8-419',	'8-420')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -837,7 +844,7 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-424')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -847,7 +854,7 @@ Do not construct roads or trails; Do not use pesticides. see http://www.env.gov.
 #get the ogc_fids that belong to these.
 wha_tags<-c('8-426',	'8-427',	'8-428',	'8-429',	'8-430',	'8-431',	'8-432', '8-433')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -857,7 +864,7 @@ Refer to a guidebook: https://www.for.gov.bc.ca/tasb/legsregs/fpc/fpcguide/other
 #get the ogc_fids that belong to these.
 wha_tags<-c('9-003',	'9-004',	'9-005',	'9-006',	'9-007',	'9-008',	'9-009', '9-010', '9-011', '9-012', '9-013', '9-014', '9-015', '9-016', '9-017')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -867,7 +874,7 @@ Data Sensitive
 #get the ogc_fids that belong to these.
 wha_tags<-c('9-025',	'9-026',	'9-027',	'9-028',	'9-029',	'9-030',	'9-031')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-NA
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-NA
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -880,7 +887,7 @@ wha_tags<-c('9-032',	'9-033',	'9-034',	'9-041',	'9-042',	'9-043',	'9-044',	'9-04
 #9-049, 9-104 to 9-105 Reduce early seral foreage. >40 years for 50% of the area
 wha_tags<-c('9-049',	'9-104',	'9-105')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 40, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 40, reference_zone='rast.zone_cond_wha_gbr', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 
 # I would keep these two as the same for now; both require connected forest cover adn lichen
@@ -888,7 +895,7 @@ wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 #9-073, 9-144 and 9-145; Reduce early seral foreage. >40 years for 50% of the area
 wha_tags<-c('9-073',	'9-144',	'9-145')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 40, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'age', threshold = 40, reference_zone='rast.zone_cond_wha_gbr', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -898,7 +905,7 @@ No Harvest. No roads. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-035_
 # no harvest
 wha_tags<-c('9-035',	'9-036',	'9-037',	'9-038',	'9-039', '9-040',	'9-102',	'9-103')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags, "ogc_fid"]
-wha.ras[wha.ras[] %in% ogc_fids_rm]<-0
+wha.ras.gbr[wha.ras.gbr[] %in% ogc_fids_rm]<-0
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
@@ -911,13 +918,13 @@ https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestr
 wha_tags<-c('5-801')
 ogc_fids_rm<-wha_cond[wha_cond$wha_tag %in% wha_tags,c("ogc_fid", "wha_tag") ]
 
-zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 50, reference_zone='rast.zone_wha', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', variable = 'crownclosure', threshold = 50, reference_zone='rast.zone_cond_wha_gbr', percentage =50, ndt =0, label = ogc_fids_rm$wha_tag))
 wha_cond<-wha_cond[!(wha_cond$wha_tag %in% wha_tags), ] #remove from table
 ```
 
 ### Clean up and Commit data
 ```{r, clean_commit}
-writeRaster(wha.ras, file=paste0(here(), "/wha_gbr.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(wha.ras.gbr, file=paste0(here(), "/wha_gbr.tif"), format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha_gbr.tif -t 100x100 rast.zone_cond_wha_gbr |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 

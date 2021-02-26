@@ -61,6 +61,7 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
+    createsOutput(objectName = "zoneManagement", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
   )
 ))
@@ -440,7 +441,8 @@ reportConstraints<- function(sim) {
           dbClearResult(rs)
           dbCommit(sim$clusdb)
           
-          zoneManagement<<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement")
+          sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
+          #zoneManagement<<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement")
           
         }
       }

@@ -21,21 +21,53 @@ require (ggplot2)
 ```
 
 ## Introduction
-GBR analysis with the harvest constraints that were supplied to me by UBC folks.
 
-With all constraints (biodiversity ecosystem options, visual quality objectives, wildlife habitat areas,ungulate winter range, no harvest constraints, fisheries sensitive watersheds, community watersheds, and average retention harvests) I found an even flow at 400 000 m3/yr when the minimum harvest volume of stands was set to 250m3 and the harvest priority was as follows: stand age descending, stand volume descending, and adjacency Constraints set to 3m. 
+Here we describe a preliminary analysis that looks at the impacts of maintaining landscape level biodiversity within the Great Bear Rainforest. The 2016 GBR order says that landscape level biodiversity must be achieved by maintaining a distribution of forest stand ages  (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf). 
+
+These retention targets differ by BEC zone and landscape unit and site series group. See:
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/gbr_old_forest_targets_landscape_unit.pdf
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/gbr_schedule_f_site_series_group_minimum_old_forest_retention_levels_less_than_twenty_percent_by_landscape_unit.pdf
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/gbr_schedule_g_old_forest_targets_order_area.pdf
+
+For ease, the UBC team decided to aggregate the average retention targets in 10% increments (.25,.35,.45 etc.) for each dominant site series group (ssg). Then they clipped those to the THLB polygons and dissolved them by retention target across the study area. This hopefully avoids the need to include data on LU and BEC variants. I incorporated these average retention targets in our model as a harvest constraint. I also included other constraints that were relevant to GBR. These include:
+
+* Important fisheries watersheds: For identified Important fisheries watershed I included these with the constraint of an Equivalent Clearcut Area of less than 20% allowed (Schedule E). 
+There is also high value fish habitat where 100% of the forest needs to be preserved. These areas include the Kimsquit River, Klinaklini River, and Viner Creek Reserve Zones . See Part 3 of (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/northislandcentralcoast-lu/coast_lud_centralandnorth_luor_13jun2013consolidated.pdf); and schedule P of 2016 Great Bear Rainforest (GBR) Order.
+
+* Wildlife habitat areas: 100% of class 1 and 50% of class 2 grizzly bear habitat needs to be maintained (Schedule D). Kermode habitat was not included but I should possibly add this.
+
+* Biodiversity, mining and tourism Areas in GBR. I included these as a no harvest constraint. See https://www.bclaws.gov.bc.ca/civix/document/id/oic/arc_oic/0002_2009 and https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/bmtas/north_coast_bmtas_overview_map.pdf
+
+Other constraints such as Aquatic habitat Type I and II, and Red and Blue listed plant communities were not included in the harvest constraints because they are difficult to implement e.g. the orders say things such as preventing forestry some number of tree lengths away from a stream etc.
+
+My business as usual scenario included all of the above layers (i.e. Average Retention Targets, Important Fisheries watersheds, Wildlife habitat areas and biodiversity, mining and tourism areas). Then I ran our spatial timber harvest/supply model for 200 years and tried to find an even harvest flow across this time period. This was achieved at an average yearly harvest volume of 802 000 m3 for the study area when the minimum harvest volume of stands was set to 250m3 and the order in which stands were harvested were prioritized as follows: stand age descending, stand volume descending, and the adjacency Constraints were set to 3m. 
+
+## Figures
+
+```{r pressure, echo=FALSE, fig.cap = "Figure 1. Harvest volume simulated over the next 200 years. BAU = all constraints (fisheries sensitive watersheds, wildlife habitat areas, and biodiversity, mining and tourism areas) except average retention targets (ART). ART = all constraints and  "}
+connvm<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                     host='206.12.91.188', 
+                     dbname = 'clus', 
+                     port='5432', 
+                     user='appuser', 
+                     password='sHcL5w9RTn8ZN3kc')
+harvest<- dbGetQuery(connvm, 'SELECT * FROM ubc_gbr_study.harvest') 
+dbDisconnect (connvm) # connKyle
+
+harvest_bau<- harvest %>% filter(scenario=="ubc_gbrn_bau")
+harvest1<- harvest %>% filter(scenario!="ubc_gbrn_art_only")
+#harvest_no_art<- harvest %>% filter(scenario=="ubc_gbrn_without_art")
 
 
-```{r cars}
-summary(cars)
+# Volume harvested
+p1 = ggplot(harvest1, aes(x=timeperiod, y=volume, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1) +
+  ylim(0, 1000000) +
+  labs(x="Future year", y= "Volume harvested (m3)")
+p1
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

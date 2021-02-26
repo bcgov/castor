@@ -89,13 +89,13 @@ df<-df[,1:2]
 df$type<-'ge'
 df$variable<-'age'
 df$threshold<-250
-df$reference_zone<-'rast.zone_art'
+df$reference_zone<-'rast.zone_cond_art'
 df$ndt<-as.integer(0)
 colnames(df) <- c( "zoneid","percentage", "type", "variable", "threshold", "reference_zone", "ndt") # the vqo column gets labeled as percentage
 df$zoneid<-as.integer(df$zoneid)#assign integer
 df$percentage<-as.numeric(df$percentage)#assign integer
 df$label<-'art'
-df$multi_condition<-NULL
+#df$multi_condition<-NULL
 
 #df<-data.table(unique(df))# get rid of the multiple zoneid = 0 )
 
@@ -117,13 +117,13 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints_gbr (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
 
-dbExecute(conn, "ALTER TABLE zone_nharv INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE public.zone_nharv_gbr INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr") # defined in wha_cond_harvest_GBR.RMD
 dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_fsw_gbr INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_art INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
+dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr") # defined in uwr_cond_harvest_GBR.RMD
+dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
+dbExecute(conn, "ALTER TABLE zone_cond_art INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
 dbDisconnect(conn)
 ```
