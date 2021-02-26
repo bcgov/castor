@@ -451,27 +451,254 @@ The *mySim* object is a SpaDES object that contains the names of the *times*, *p
 
 Finally, you will see a [system.time()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/system.time) function that us used to output the time it too to run the SpaDES "simulation" object (mySim). 
 
-Now that you've parameterized the module, you can run it! Click on the green "Play" symbol on the top-right of the code chunk. The script should start to run, and you will see messages as some parts of the script are run. The Revelstoke TSA is realtively small, and it should take less than an hour to complete the script.  
+Now that you've parameterized the module, you can run it! Click on the green "Play" symbol on the top-right of the code chunk. The script should start to run, and you will see messages as some parts of the script are run. The Revelstoke TSA is relatively small, and it should take less than an hour to complete the script.  
 
 ![](images/dataloader_run.jpg)
 
-At the end of the analysis, you should see a .sqlite databse object created in the dataLoaderCLUS folder of your local copy of the CLUS code. 
+At the end of the analysis, you should see a .sqlite database object created in the dataLoaderCLUS folder of your local copy of the CLUS code. The database will have the name of the *nameBoundary* parameter, in this case, *Revelstoke_TSA_clusdb.sqlite*. You will also notice some raster files, including *hu.tif*, *Revelstoke_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors or deleted. The *hu.tif* is the harvest units output from *blockingCLUS*, and  *Revelstoke_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCLUS*. 
+
+Below are some scripts to query the .sqlite database. First, connect to the database using the *dbConnect* function in the DBI package. You can then list the tables using the *dbListTables*. You will notice there are seven tables in the database including: 
+
+* adjacentBlocks  
+* blocks          
+* pixels         
+* roadslist       
+* yields          
+* zone           
+* zoneConstraints
+
+Below we will explore each of these a little bit to help with understanding the data structure that you will use in the forestry simulation. You can load each of these tables into your computer memory as an R object using the *dbGetQuery* function. 
+
+The *adjacentBlocks* table is a table of each harvest block in the area of interest (*blockid*) and the neighbouring blocks (*adjblockid*). This gets used if you use the adjacency constraint in *forestryCLUS*. 
+
+The *blocks* table is a table that contains age, height, volume and distance to 'disturbance' (only if using *disturbanceCalcCLUS*) and landing pixel location of each harvest block in the area of interest. This table gets used and updated during the forestry simulation to assess characteristics of harvest blocks for adjacency, to establish the forest harvest queue, and to identify landing locations. 
+
+The *pixels* table is the largest table in the database and contains a lot of information. Specifically, it contains data on each pixel (*pixelid*) in the province, although much of this data is NULL, as it is outside of the study area. For pixels within the study area, the *pixels* table identifies the harvest compartments (*compartid*), the ownership (*own*), the growth and yield curve identifiers (*yieldid* and *yieldid_trans*), zone constraint identifier (*zone_const*), forest stand characteristics, where relevant, including whether it is forested (*treed*), within the timber harvest land base (*thlb*), it's elevation (*elv*, but only if using *yieldUncertaintyCLUS*), age (*age*), volume (*vol*), it's distance to 'disturbance' (*dist*, but only if using *disturbanceCalcCLUS*), crown closure (*corwnclosure*), height (*height*), site index (*siteindex*), percent deciduous (*dec_pcnt*), equivalent clearcut area (*eca*), road year (*roadyear*, all roaded areas are 0 since we don't have road year data), a column (*zone1*, *zone2*, *zone3*... etc.) for each zone constraint area (i.e., one for each *nameZoneRasters*; see the *zone* table below) that provides the unique constraint identifier integer within that zone constraint area that applies to that pixel, and the harvest block identifier (*blockid*) that identifies which block the pixel belongs to. This table gets queried and updated to report on or change the state of the landscape. For example, *age* can be queried to report on current age of the forest, and gets updated as forest harvest occurs.    
+
+The *roadslist* table provides a table of each pixel with a forest harvest block landing (*landing*), and a list of pixels that would need to be converted to roads to 'attach' it to the existing road network. These are pre-populated if you run the *roadCLUS* module, and when a block gets harvested during a time setp of the simulation, the landing and roads linking the landing to the existing road network gets 'built'. Those road pixels associated with the landing get converted to a road type.
+
+The *yields* table provides a table of the information associated with each yield curve. They provide the volume and height of yield curve (*yeildid*) at 10 year intervals. 
+
+The *zone* table provides a table of the name of each raster associated with each zone constraint column (*zone1*, *zone2*, *zone3*... etc.)  in the *pixels* table. This gets used to associate *nameZoneRasters* with their constraints.  
+
+The *zoneConstraints* table provides a table of all of the specific zone constraint definitions that apply to the zone constraint rasters.The *zoneid* column is the specific integer value within each *nameZoneRasters* (i.e., the *reference_zone* and *zone* columns) where a constraint is applied. The constraint consists of a natural disturbance type class (*ndt*), the variable type that is being constrained (*variable*), for example, age or height, the threshold of the variable at which the constraint is applied (*threshold*), for example, 150 years old, the type of threshold (*type*), i.e., greater than or equal to (*ge*) or less than or equal to (*le*), the percentage of the area for which the constraint needs to apply (*percentage*), the SQL script for areas with multiple constraints (*multi_condition*) and the total area (*t_area*) of the zone. Note that we do not use multiple constraints here, but they could be used, for example, if you want to constrain on the age and height of forest stands in the same area.  
+
+You can view constraints for a specific zone (e.g., the raster zone you created, *rast.raster_test*), by using the WHERE clause in the SQL script. 
+
+```{r, example connect to .sqlite database, message = F, echo = T, eval = F}
+
+library (DBI)
+
+# Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect (RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) 
+
+# List tables in the 
+dbListTables (clusdb)
+
+# Load a table as an R object
+adjacentBlocks <- dbGetQuery (clusdb, "SELECT * from adjacentBlocks")
+blocks <- dbGetQuery (clusdb, "SELECT * from blocks")
+pixels <- dbGetQuery (clusdb, "SELECT * from pixels")
+roadslist <- dbGetQuery (clusdb, "SELECT * from roadslist")
+yields <- dbGetQuery (clusdb, "SELECT * from yields")
+zone <- dbGetQuery (clusdb, "SELECT * from zone")
+zoneConstraints <- dbGetQuery (clusdb, "SELECT * from zoneConstraints")
+
+# To remove R objects from memory
+rm (adjacentBlocks)
+gc () # 'garbage collection' command; useful command for freeing computer memory after removing an R object
+
+#  To view the constraints of a specific zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.raster_test'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+```
+
+The forestry simulation essentially queries and updates the tables within the sqlite database, which simplifies the data management process. If you want to take a deep dive into how these data are used and modified by the forestry simulation model, you can open up the [forestryCLUS](https://github.com/bcgov/clus/blob/master/R/SpaDES-modules/forestryCLUS/forestryCLUS.R) module and look at the queries of the sqlite database. 
+
+In the next step we will begin to use the forestry simulator, first, by creating a sustained yield forest harvest flow.
+
+## 8. Creating a Sustained Yield Forest Harvest Flow Using forestryCLUS
+In the following steps we will learn to use *forestryCLUS* to run forest harvest simulations. First, we will provide an overview of the *forestryCLUS*. Then we will use the module to create a sustained yield forest harvest flow under current management practice. Finally, we will then add the new constraint you created to the simulation to see if and how the new constraint could impact the harvest flow. 
+
+### Overview of the forestryCLUS Module
+We will start by opening a version of the forestryCLUS.Rmd file. Specifically, open the [forestryCLUS_tutorial.Rmd](https://github.com/bcgov/clus/blob/master/R/SpaDES-modules/forestryCLUS/forestryCLUS_tutorial.Rmd). Save a working copy with your name in the file, as *forestryCLUS_tutorial_yourname.Rmd*. 
+
+Similar to *dataLoaderCLUS*, you will see a header, followed by some text, which describes details of the module. Below that you will see a description specific to the Revelstoke TSA, the area of interest. As standard practice we provide a brief description of the TSA, the simulation scenarios that were run, and some details on the key parameters used in the simulations.  
+
+You will note that we describe two scenarios, a 'business-as-usual' (BAU) scenario and then an alternate scenario that will include your hypothetical management zone. Both scenarios will include 'existing management' practice on the land base. You will see we use an 'oldest first' harvest priority queue, which is comparable to the timber supply model used in the allowable annual cut (AAC). You will also see that we simulate over a 200 year period at 5 year intervals. 
+
+In the description we describe some 'standard' parameters we use in forest harvest simulation models. For example, our current practice for assessing impacts of hypothetical management zone is to create a BAU scenario that has a long-term sustained yield harvest flow (i.e., non-declining even flow), where the harvest target remains flat. This simplifies comparing harvest volume across scenarios, however, alternative types of harvest flows could be created and compared by partitioning the *harvestFlow* parameters by time periods (more on that below). Similarly, the harvest priority queue, minimum harvest and adjacency constraints can be adjusted as you see fit, and should be noted in the text.      
+
+#### ForestryCLUS Parameters
+Below is a copy of the code chunk in the *forestryCLUS_tutorial.Rmd*. Here we will review each parameter in some detail. 
+
+First you will notice some [library()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/library) and [source()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/source) function calls. These load the R packages and functions needed to run the simulation. 
+
+Next you will see a bunch of file paths for indicating where the modules (*moduleDir*), inputs (*inputDir*), outputs (*outputDir*) and cache (*cacheDir*) are located. Again, we use the [here()](https://www.rdocumentation.org/packages/here/versions/0.1) function to set relative paths. Be sure you have the correct directory for the SpaDES modules. You can change the location of the other objects if you like, but we recommend using them as-is. 
+
+You will likely recognize the *times* parameter from *dataLoaderCLUS*. It is a  more important in the *forestryCLUS* module since we are simulating forest harvest over time. Provide the start time as 0 and end time as 40. We will simulate forest harvest at 5 years intervals, so 40 intervals are needed to achieve a 200 year simulation. Feel free to change the number of intervals, but make sure is in consistent with the *periodLength* parameter in *growingStockCLUS* (we will provide some more explanation on that below).
+
+Next, again you will recognize the *parameters* list, that consists of a list of all the modules and parameters within them. The *dataLoaderCLUS* parameters should be consistent what you used when running that module previously. However, the *forestryCLUS* module only uses a handful of these directly. In particular, the path to the sqlite database needs to be set (*useCLUSdb*). In addition, you can modify the *nameZoneRasters* you want to include in a given scenario (which we will do below). Otherwise, the parameters can generally be ignored, as they will not impact the *forestryCLUS* simulation analysis.   
+
+Since we used the *blockingCLUS* module as part of *dataLoaderCLUS* to pre-define the harvest blocks, the most important parameter to set for *forestryCLUS* is to set *blockMethod* to 'pre'. This lets *forestryCLUS* know that the blocks were pre-defined in the database. The other parameters are not important in this case. However, if you did not use the pre-blocking method in *dataLoaderCLUS*, you can use the 'dynamic' method in *forestryCLUS*. This creates harvest blocks 'on-the-fly' by randomly spreading, following the size distribution from natural disturbance types (i.e. the *patchZone* parameter and *patchSizeDist* object). Using the 'dynamic' method requires the other parameters to be set. The *useSpreadProbRas* needs to be set to TRUE, so that the model will restrict the location of cutblocks (i.e., allow them to "spread") to within the THLB.   
+The *forestryCLUS* module conisists of 
 
 
 
-as well as some raster
+
+harvestBlockPriority = "age DESC", 
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriority = 1,
+                      reportHarvestConstraints = TRUE,
+                      adjacencyConstraint = 3),
+
+
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
+cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
+
+times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list (  dbName='clus',
+                           save_clusdb = FALSE,
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
+                           nameBoundaryFile = "tsa_aac_bounds",
+                           nameBoundaryColumn = "tsa_name",
+                           nameBoundary = "Revelstoke_TSA",
+                           nameBoundaryGeom = 'wkb_geometry',
+                           nameCompartmentRaster = "rast.tsa_aac_boundary",
+                           nameCompartmentTable = "tsa_aac_bounds_vat",
+                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameZoneRasters = c("rast.zone_cond_beo", 
+                                             "rast.zone_cond_vqo", 
+                                             "rast.zone_cond_wha", 
+                                             "rast.zone_cond_uwr",
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_nharv", 
+                                             "rast.zone_cond_cw"
+                                             # "rast.raster_test"
+                                               ),
+                           nameZoneTable = "zone_constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
+                           nameYieldsRaster = "rast.ycid_vdyp",
+                           nameYieldTable = "yc_vdyp",
+                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                           nameYieldTransitionTable = "yc_tipsy",
+                           nameForestInventoryRaster = "rast.vri2019_id",
+                           nameForestInventoryKey = "feature_id",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
+                           nameForestInventoryAge = "proj_age_1",
+                           nameForestInventoryHeight = "proj_height_1",
+                           nameForestInventoryTreed = "bclcs_level_2",
+                           nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventoryTreed = "bclcs_level_2",
+                           nameForestInventorySiteIndex = "site_index"),
+  blockingCLUS = list(blockMethod ='pre', 
+                      patchZone = 'rast.zone_cond_beo',
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl",
+                      useLandingsArea = FALSE, 
+                      useSpreadProbRas = FALSE),
+  forestryCLUS = list(harvestBlockPriority = "age DESC", 
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriority = 1,
+                      reportHarvestConstraints = TRUE,
+                      adjacencyConstraint = 3),
+  growingStockCLUS = list (periodLength = 5),
+  roadCLUS = list(roadMethod = 'pre', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.crds_all'),
+  uploaderCLUS = list(aoiName = 'tutorial', 
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL"))
+                  )
+)
+
+modules <- list("dataLoaderCLUS", 
+                "growingStockCLUS", 
+                "blockingCLUS", 
+                "forestryCLUS", 
+                "roadCLUS",  
+                "uploaderCLUS"
+                )
+
+
+### SCENARIOS ###
+scenario = data.table (name = "revelstoke_bau", 
+                       description = "Business-as-usual case; sustainable flow = 210,000m^3^/year. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
+
+
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
+                                         partition = ' vol > 150 ', 
+                                         year = rep(seq (from = 2019, 
+                                                         to = 2219, 
+                                                         by = 5),
+                                                    1), 
+                                         flow = 1050000) # 210,000m^3^/year
+))
+
+#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
+
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+
+objects <- list(harvestFlow = harvestFlow, 
+                patchSizeDist = patchSizeDist, 
+                scenario = scenario)
+
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects, 
+                 paths = paths)
+
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport",
+                                             "tableSurvivalReport",
+                                             "disturbanceReport"))
+
+#Run the model 1 time
+system.time({mysimout<-spades(mySim)})
+
+```
 
 
 
 
 
 
- 
 
-##  Creating a Business-as-Usual Harvest Flow
-Now you should have all of the software and code you need to run CLUS models. Here we descirbe how to get a 
 
-## Alterante harvest flow
+
+
+
 
 
 
@@ -505,7 +732,7 @@ Now you should have all of the software and code you need to run CLUS models. He
 - there is a parameter ('scenario') to name the scenario and provide a brief description of it
   - this can be used to track scenarios and will be uploaded to the server with the app for interfacing with results  
   - for BAU scenario, may need to do several 'test' runs to identify the appropriate harvest flow
-  - keep all scenarios and variations in aprametrs as you run them (comment them out) so there is a record
+  - keep all scenarios and variations in parameters as you run them (comment them out) so there is a record
 
 #### harvestFlow
 - harvestFlow parameter is where the annual cut level is set
