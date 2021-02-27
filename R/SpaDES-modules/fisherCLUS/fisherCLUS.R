@@ -70,7 +70,7 @@ Init <- function(sim) {
       dbExecute (sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", getFisherTerritory$zone[i], " integer")) # add a column to the pixel table that will define the fisher territory  
       
       ras.territory <- data.table (c (t (raster::as.matrix ( # 
-      RASTER_CLIP2 (tmpRast = sim$boundaryInfo[[3]], 
+      RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                     srcRaster = getFisherTerritory$reference_zone[i] , # 
                     clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
                     geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
@@ -95,7 +95,7 @@ Init <- function(sim) {
   if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'wetland',])== 0){
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN wetland integer") # add a column to the pixel table that will define the wetland area   
     ras.wetland <- data.table (c (t (raster::as.matrix ( # 
-      RASTER_CLIP2 (tmpRast = sim$boundaryInfo[[3]], 
+      RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                     srcRaster = P(sim, "fisherCLUS", "nameRasWetlands") , # 
                     clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
                     geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 

@@ -61,7 +61,8 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
-    createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
+    createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.'),
+    createsOutput(objectName = "zoneManagement", objectClass ="data.table", desc = '.')
   )
 ))
 
@@ -120,7 +121,8 @@ Init <- function(sim) {
   #Create the zoneManagement table used for reporting the harvesting constraints throughout the simulation
   if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
     dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneManagement (zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric, percent numeric, timeperiod integer)")
-  }
+    sim$zoneManagement<-data.table()
+    }
   
   #Create the zonePriority table used for spatially adjusting the harvest queue
   if(!P(sim, "forestryCLUS", "harvestZonePriority") == '99999'){
@@ -440,7 +442,7 @@ reportConstraints<- function(sim) {
           dbClearResult(rs)
           dbCommit(sim$clusdb)
           
-          zoneManagement<<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement")
+          sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
           
         }
       }
