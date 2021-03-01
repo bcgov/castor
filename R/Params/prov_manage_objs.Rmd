@@ -363,7 +363,7 @@ The steps involved in the harvesting constraints:
 2. Get Parks and Protected Areas (parks)
 
 ```{r hc_step1, echo=FALSE}
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source (paste0(here(),"/R/functions/R_Postgres.R"))
 library(here)
 lu<-getSpatialQuery("SELECT wkb_geometry 
 FROM public.rmp_lu_sp_polygon limit 1")
