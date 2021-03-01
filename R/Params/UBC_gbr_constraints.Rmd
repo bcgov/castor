@@ -117,7 +117,7 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints_gbr (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
 
-dbExecute(conn, "ALTER TABLE public.zone_nharv_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE public.zone_nharv_grb INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr") # defined in wha_cond_harvest_GBR.RMD
 dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints_gbr")
