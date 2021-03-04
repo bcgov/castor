@@ -55,7 +55,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", 
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = "Cascadia_TKO_TSA", # "Cascadia_TKO_TSA" = Cascadia Kootenay area
+                         nameBoundary = "Cascadia_TCC_TSA", # "Cascadia_TKO_TSA" = Cascadia Kootenay area
                                                             # "Cascadia_TCC_TSA" = Cariboo-Chilcotin area
                                                             # "Cascadia_TOC_TSA" = Okanagan-Columbia area
                          nameBoundaryGeom = 'wkb_geometry', 
@@ -70,21 +70,20 @@ parameters <-  list(
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 
                                              "rast.zone_du9_scenarios",
-
-                                              "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
-                                              "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
-                                              "rast.zone_cond_bc_central_selkirks_crithab"
-
-                                              # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
-                                              # "rast.zone_cond_eccc_barkerville_crithab_or_herd",
-                                              # "rast.zone_cond_bc_narrow_lake_crithab",
-                                              # "rast.zone_cond_bc_barkerville_crithab"
-
-                                             # "rast.zone_cond_noharvest_monashee_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_monashee_crithab_or_herd",
-                                             # "rast.zone_cond_bc_monashee_crithab"
+                                              # "rast.zone_cond_noharvest_central_selkirks_crithab_or_herd",
+                                              # "rast.zone_cond_eccc_central_selkirks_crithab_or_herd",
+                                              # "rast.zone_cond_bc_central_selkirks_crithab",
+                                              "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
+                                              "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
+                                              "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
+                                              "rast.zone_cond_eccc_barkerville_crithab_or_herd",
+                                              "rast.zone_cond_bc_narrow_lake_crithab",
+                                              "rast.zone_cond_bc_barkerville_crithab",
+                                              # "rast.zone_cond_noharvest_monashee_crithab_or_herd",
+                                              # "rast.zone_cond_eccc_monashee_crithab_or_herd",
+                                              # "rast.zone_cond_bc_monashee_crithab",
+                                              "rast.zone_barkerville_groundhog_zones_20210303"
+                                             
                                           ), 
                          nameZoneTable = "zone_constraints", 
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -137,17 +136,17 @@ parameters <-  list(
 scenario = data.table(name="load_data_kootenay", 
                       description = "dataloader Kootenay Block area")
 
-patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+patchSizeDist <- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
                                   3,3,3,3,3,3,
                                   4,4,4,4,4,4,
                                   5,5,5,5,5,5), 
-                           sizeClass = c(40,80,120,160,200,240), 
-                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                    0.1,0.02,0.02,0.02,0.02,0.8,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+                            sizeClass = c(40,80,120,160,200,240), 
+                            freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                     0.3,0.3,0.1,0.1,0.1, 0.1,
+                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                     0.1,0.02,0.02,0.02,0.02,0.8,
+                                     0.3,0.3,0.1,0.1,0.1, 0.1))
 modules <- list("dataLoaderCLUS", 
                 "blockingCLUS",
                 "roadCLUS",

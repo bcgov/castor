@@ -331,7 +331,7 @@ scenario = data.table (name = "quesnel_chil_nh",
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
-                                     partition = ' vol > 150 ', # yes this is the true value that was used in Morice for modelling AAC
+                                     partition = ' vol > 150 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
