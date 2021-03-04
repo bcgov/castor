@@ -85,9 +85,9 @@ parameters <- list(
                                            "rast.zone_cond_wha_gbr", 
                                            #"rast.zone_cond_uwr_gbr", 
                                            "rast.zone_cond_nharv_gbr", 
-                                           "rast.zone_cond_fsw_gbr",
+                                           "rast.zone_cond_fsw_gbr"
                                            #"rast.zone_cond_cw"
-                                           "rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
+                                           #"rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
                         
                          nameZoneTable = "zone_constraints_gbr", 
@@ -160,11 +160,11 @@ modules <- list("dataLoaderCLUS",
 #  scenario = data.table (name = "ubc_gbrn_art_only",
 #                          description = "removed all constraints except art (average retention targets")
 #  
-    # scenario = data.table (name = "ubc_gbrn_bau",
-    #                         description = "includes all constraints (wha, fsa, and nharv) except art (average retention targets")
+    scenario = data.table (name = "ubc_gbrn_bau",
+                            description = "includes all constraints (wha, fsa, and nharv) except art (average retention targets")
 
-  scenario = data.table (name = "ubc_gbrn_with_art",
-                          description = "includes constraints wha, fsa, nharv, and art")
+  # scenario = data.table (name = "ubc_gbrn_with_art",
+  #                         description = "includes constraints wha, fsa, nharv, and art")
 
   
 harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
