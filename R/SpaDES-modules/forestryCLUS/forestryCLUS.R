@@ -179,8 +179,8 @@ setConstraints<- function(sim) {
               if(as.character(query_parms[1, "variable"]) == 'dist' ){
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 AND treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
-                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
+                        SELECT pixelid FROM pixels WHERE own = 1 and treed=1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),">= :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)
                 rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
@@ -211,7 +211,6 @@ setConstraints<- function(sim) {
             },
             le = {
               if(as.character(query_parms[1, "variable"]) == 'eca' ){
-                
                 #get the correct limits -- currently assuming the entire area is at the threshold
                 eca_current<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT ",as.character(query_parms[1, "zone_column"]),", sum(eca*thlb) as eca FROM pixels WHERE ",
                                                          as.character(query_parms[1, "zone_column"]), " IN (",
@@ -235,6 +234,16 @@ setConstraints<- function(sim) {
                 dbClearResult(rs)
                 dbCommit(sim$clusdb)
                 
+              }else if(as.character(query_parms[1, "variable"]) == 'dist' ){
+                sql<-paste0("UPDATE pixels SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                            " ORDER BY CASE WHEN dist <= :threshold then 1 else 0 end, thlb, zone_const DESC, dist DESC
+                        LIMIT :limits);")
+                dbBegin(sim$clusdb)
+                rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+                dbClearResult(rs)
+                dbCommit(sim$clusdb)
               }else if(!is.na(query_parms[1, "multi_condition"])){ #Allow user to write own constraints according to many fields - right now only one variable
                   sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
