@@ -405,6 +405,7 @@ reportConstraints<- function(sim) {
   if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
     message("....reporting harvesting constraints")
     zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
+    
     for(i in 1:nrow(zones)){ #for each of the specified zone rasters
       numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
                                  zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
@@ -432,7 +433,7 @@ reportConstraints<- function(sim) {
                            avg(case when ", as.character(query_parms[1, "multi_condition"])  ," then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i], " = :zoneid")
               }else{
                 sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-                           avg(case when ", numConstraints[[1]][k]  ," < :threshold then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
+                           avg(case when ", numConstraints[[1]][k]  ," <= :threshold then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
               }
             }
           )
@@ -441,6 +442,8 @@ reportConstraints<- function(sim) {
           rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "reference_zone", "zone_column", "variable", "threshold", "type", "percentage", "multi_condition", "t_area")])
           dbClearResult(rs)
           dbCommit(sim$clusdb)
+          #test<<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
+          #stop()
           
           sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
           
