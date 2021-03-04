@@ -65,11 +65,21 @@ fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column f
 # look at histogram of when fires were ignited per year
 fire_ignitions1$month<- substring(fire_ignitions1$ign_date, 5, 6)
 
+# Histogram of lightning caused fires
 fire_ignitions1_new<- fire_ignitions1 %>%
   filter(fire_year >=2002) %>%
   filter(fire_cause=="Lightning")
 fire_ignitions1_new$month<- as.numeric(fire_ignitions1_new$month)
-hist(fire_ignitions1_new$month, xlab="Month", main="Histogram of lightning caused fires") # most lightning fires appear to occur between May - Sept!
+hist(fire_ignitions1_new$month, xlab="Month", main="Histogram of lightning caused fires") # most lightning fires appear to occur between May - Sept, with a peak in July and August!
+
+#Histogram of human caused fires
+fire_ignitions1_person<- fire_ignitions1 %>%
+  filter(fire_year >=2002) %>%
+  filter(fire_cause=="Person")
+fire_ignitions1_person$month<- as.numeric(fire_ignitions1_person$month)
+hist(fire_ignitions1_person$month, xlab="Month", main="Histogram of person caused fires") # Person caused fires occur throughout the year but also peak in July and August!
+
+
 table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
 
 
@@ -116,8 +126,7 @@ ignition_pres_abs4 <- ignition_pres_abs4 %>%
                                                    if_else(bclcs_level_4=="ST", "S", vegtype))))))
 ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # disturbed
 
-ignition_pres_abs4<- ignition_pres_abs4 %>%
-  filter(fir_typ!="Nuisance Fire") 
+#ignition_pres_abs4<- ignition_pres_abs4 %>% filter(fir_typ!="Nuisance Fire") 
 table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
 
 
@@ -205,7 +214,7 @@ corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between PPT and CMI")
 
-# I will leave climate moisture index out of my models and only examine precipitation because climate moisture index and precipitation are highly correlated.
+# I will leave climate moisture index out of my models and only examine precipitation because climate moisture index and precipitation are highly highly correlated.
 ### creating amalgamations of variables to test different combinations of variables.##
 dat$mean_tmax05_tmax06<- (dat$tmax05+ dat$tmax06)/2
 dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
@@ -272,7 +281,7 @@ variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
 dat$fire_pres<-as.numeric(dat$fire_pres) 
 table(dat$fire_yr, dat$ fire_pres) 
 
-#TO DO!! interesting, there were very few fires in 2008 and I have none for 2007...seems odd. # go back to original data set and check that everything went in ok.  
+#TO DO!! interesting, there were very few fires in 2007 and 2008 ...seems odd. # go back to original data set and check that everything went in ok.  
 
 
 #################################
@@ -283,9 +292,8 @@ unique(dat$zone)
 zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "BWBS", "BG", "SBS", "SWB") #"CDF", "BAFA"
 
 # CDF and BAFA have few fire ignitions (CHECK!), Im going to leave them out for the moment
-
-
 filenames<-list()
+for (g in 1:100){
 
 for (h in 1:length(zones)) {
   dat2<- dat %>% dplyr::filter(zone ==zones[h])
@@ -322,7 +330,6 @@ table.glm.climate.simple[i,4]<-auc(roc_obj)
 
 rm(model_dat,dat1,Valid)
 
-# Creates AIC table with a model that that allows slope and intercept to vary
 for (i in 1: length(variables)){
   print(paste((variables[i]), (zones[h]), sep=" "))
   
@@ -343,7 +350,6 @@ for (i in 1: length(variables)){
   table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
   
   # lets look at fit of the Valid (validation) dataset
-  #MUST STILL DO THIS
   Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
   roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
   auc(roc_obj)
@@ -405,12 +411,12 @@ for (i in 1: length(variables1)){
 }
 #table.glm.climate1<-table.glm.climate %>% drop_na(AIC)
 
-table.glm.climate.simple$deltaAIC<-table.glm.climate.simple$AIC- min(table.glm.climate.simple$AIC)
 
 #assign file names to the work
-nam1<-paste("AIC",zones[h],sep="_") #defining the name
+nam1<-paste("AIC",zones[h],"run",g,sep="_") #defining the name
 assign(nam1,table.glm.climate.simple)
 filenames<-append(filenames,nam1)
+}
 }
 
 mkFrameList <- function(nfiles) {
@@ -423,7 +429,18 @@ mkFrameList <- function(nfiles) {
 n<-length(filenames)
 aic_bec<-mkFrameList(n) 
 
-write.csv(aic_bec, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
+aic_bec_summary<- aic_bec %>%
+  group_by(Zone, Variable) %>%
+  summarise(meanAIC=mean(AIC),
+            meanAUC=mean(AUC),
+            sdAUC=sd(AUC),
+            )
+
+aic_bec_summary2<- aic_bec_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
 
 
 
@@ -432,126 +449,63 @@ write.csv(aic_bec, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_
 #### FIGURES ####
 ##################
 
-
-  
-# Plotting Probability of ignition versus drought code. Seems like similar trends are found in each month (June to August) but trend seems to get stronger in later months i.e. July and August.
-
-p <- ggplot(dat, aes(mdc_08, as.numeric(fire_pres))) +
-  geom_smooth(method="gam", formula=y~s(x),
+# Plotting Probability of ignition versus temp and precipitation.
+p <- ggplot(dat, aes(tmax08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("August MDC") + ylab("Pr (ignition)")
+  xlab("Tmax_08") + ylab("Pr (ignition)")
+p
 
-p2 <- p + facet_wrap(~ fire_yr, nrow=3)
+
+p2 <- p + facet_wrap(~ zone, nrow=3)
+p2
 
 
-p <- ggplot(dat, aes(mdc_07, as.numeric(fire_pres))) +
-  geom_smooth(method="gam", formula=y~s(x),
+p <- ggplot(dat, aes(ppt07, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("July MDC") + ylab("Pr (ignition)")
+  xlab("July precipitation") + ylab("Pr (ignition)")
 
-p2 <- p + facet_wrap(~ fire_yr, nrow=3)
+p2 <- p + facet_wrap(~ zone, nrow=3)
+p2
 
-
-# Climate moisture index
-p <- ggplot(dat, aes(cmi08, as.numeric(fire_pres))) +
-  geom_smooth(method="gam", formula=y~s(x),
+p <- ggplot(dat, aes(ppt08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("August cmi") + ylab("Pr (ignition)")
+  xlab("Aug precipitation") + ylab("Pr (ignition)")
 
-p2 <- p + facet_wrap(~ fire_yr, nrow=3)
-
-# Maximum Temperature
-#July
-p <- ggplot(dat2, aes(tmax07, as.numeric(fire_pres))) +
-  geom_smooth(method="gam", formula=y~s(x),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("July tmax") + ylab("Pr (ignition)")
-
-p2 <- p + facet_wrap(~ fire_yr, nrow=3)
-
-# August
-p <- ggplot(dat2, aes(tmax08, as.numeric(fire_pres))) +
-  geom_smooth(method="gam", formula=y~s(x),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("August tmax") + ylab("Pr (ignition)")
-
-p2 <- p + facet_wrap(~ fire_yr, nrow=3)
+p2 <- p + facet_wrap(~ zone, nrow=3)
+p2
 
 
-# assembling landscape variables 
-
-names(dat)
-
-# remove points that landed on water (obviously ignitions will not start there)
-ignition_pres_abs3 <-dat %>%
-  filter(bclcs_level_2!="W") %>%
-  filter(bclcs_level_2!=" ")
-table(ignition_pres_abs3$bclcs_level_2) # T=treed, N =  non-treed and L = land.
-
-#Creating new variable of vegetation type and a description of how open the vegetation is
-# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open
-ignition_pres_abs3$bclcs_level_4<- as.factor(ignition_pres_abs3$bclcs_level_4)
-ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclcs_level_4)
-unique(ignition_pres_abs4$bclcs_level_4)
-ignition_pres_abs4$proj_age_1<- as.numeric(ignition_pres_abs4$proj_age_1)
-
-ignition_pres_abs4$vegtype<-"OP" # open
-ignition_pres_abs4 <- ignition_pres_abs4 %>%
-  mutate(vegtype = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
-                       if_else(bclcs_level_4=="TM", "TM", # Treed mixed
-                               if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
-                                       if_else(bclcs_level_4=="SL", "S", # shrub
-                                               if_else(bclcs_level_4=="ST", "S", vegtype))))))
-ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # disturbed
-
-table(ignition_pres_abs4$vegtype)
-
-# whats the relationship between vegetation type and probability of ignition
-
-# plot lines of probability of ignition versus maximum temperature in August with different colours for each year, according to each vegetation type.
-
-p <- ggplot(ignition_pres_abs4, aes(tmax08, as.numeric(fire_pres), color=fire_yr)) +
-  geom_smooth(method="gam", formula=y~s(x),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  scale_x_continuous(limits = c(10,32)) +
-  xlab("Maximum Temperature in August") + ylab("Pr (ignition)")
-
-p2 <- p + facet_wrap(~ vegtype, nrow=3)
-
-# same plot as above but for precipitation
-p <- ggplot(ignition_pres_abs4, aes(ppt08, as.numeric(fire_pres), color=fire_yr)) +
-  geom_smooth(method="gam", formula=y~s(x),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.01, width=0)) +
-  xlab("Total precipitation in August") + ylab("Pr (ignition)")
-
-p2 <- p + facet_wrap(~ vegtype, nrow=3)
-
-# same plot as above but for climate moisture index
-p <- ggplot(ignition_pres_abs4, aes(cmi08, as.numeric(fire_pres), color=fire_yr)) +
-  geom_smooth(method="gam", formula=y~s(x),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.01, width=0)) +
-  xlab("Climate moisture index in August") + ylab("Pr (ignition)")
-
-p2 <- p + facet_wrap(~ vegtype, nrow=3)
+# # Maximum Temperature
+# #July
+# p <- ggplot(dat2, aes(tmax07, as.numeric(fire_pres))) +
+#   geom_smooth(method="gam", formula=y~s(x),
+#               alpha=0.3, size=1) +
+#   geom_point(position=position_jitter(height=0.03, width=0)) +
+#   xlab("July tmax") + ylab("Pr (ignition)")
+# 
+# p2 <- p + facet_wrap(~ fire_yr, nrow=3)
 
 
-library(caret)
-set.seed(3456)
-ignition_pres_abs4$fire_pres<-as.factor(ignition_pres_abs4$fire_pres)
-trainIndex <- createDataPartition(ignition_pres_abs4$fire_pres, p = .7,
-                                  list = FALSE,
-                                  times = 1)
-Train <- ignition_pres_abs4[ trainIndex,]
-Valid <- ignition_pres_abs4[-trainIndex,]
 
+
+
+# 
+# library(caret)
+# set.seed(3456)
+# ignition_pres_abs4$fire_pres<-as.factor(ignition_pres_abs4$fire_pres)
+# trainIndex <- createDataPartition(ignition_pres_abs4$fire_pres, p = .7,
+#                                   list = FALSE,
+#                                   times = 1)
+# Train <- ignition_pres_abs4[ trainIndex,]
+# Valid <- ignition_pres_abs4[-trainIndex,]
+# 
 # start simple
 glm1<- glm(fire_pres ~tmax08 +
              cmi08, 
