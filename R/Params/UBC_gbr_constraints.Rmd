@@ -124,6 +124,6 @@ dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_fsw_gbr INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr") # defined in uwr_cond_harvest_GBR.RMD
 dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
-dbExecute(conn, "ALTER TABLE zone_cond_art INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
+dbExecute(conn, "ALTER TABLE zone_art INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
 dbDisconnect(conn)
 ```
