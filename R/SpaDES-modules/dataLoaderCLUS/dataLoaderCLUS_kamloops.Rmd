@@ -77,7 +77,8 @@ parameters <-  list(
                                            "rast.zone_cond_bc_groundhog_crithab",
                                            "rast.zone_cond_bc_wells_gray_south_crithab",
                                            "rast.zone_cond_bc_wells_gray_north_crithab",
-                                           "rast.zone_gh_scenarios"
+                                           "rast.zone_gh_scenarios",
+                                           "rast.zone_barkerville_groundhog_zones_20210303"
                                            ),
                         
                          nameZoneTable="zone_constraints", 

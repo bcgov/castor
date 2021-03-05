@@ -996,7 +996,7 @@ dbDisconnect(conn)
 ```
 
 
-### DU9 - Groundhog only
+### DU9 - Groundhog only Feb 2021
 The following creates zones for groundhog caribou. Same as DU9 above.
 
 ```{r, proposed DU9 areas}
@@ -1049,14 +1049,56 @@ dbDisconnect(conn)
 
 ```
 
+### DU9 - Barkerville and Groundhog only; updated zones, March 2021
+The following creates zones for Barkerville and Groundhog caribou. Zones were defined in ArcGIS.
+
+```{r, proposed DU9 areas}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+du9_scenarios <- getSpatialQuery("SELECT * from public.zones_barkerville_groundhog_20210303;")
+
+# zone integer  
+du9_scenarios_vat <- data.table (st_drop_geometry (du9_scenarios [, c ('zone')]))  
+du9_scenarios_vat [, value := seq_len(.N)]  
+all_du9_scenarios <- merge (du9_scenarios, du9_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du9_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du9_scenarios <- fasterize::fasterize (all_du9_scenarios, prov.rast, field = "value")
+writeRaster (ras_du9_scenarios, "ras_du9_scenarios.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du9_scenarios.tif -t 100x100 rast.zone_barkerville_groundhog_zones_20210303 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
-
-
-
-
-
-
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:6, 10:15)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(7:9, 16:18)), 
+                           type = 'ge', variable = 'dist', threshold = 500, 
+                           reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303', 
+                           percentage = 88, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du9_scenarios <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_barkerville_groundhog_scenarios_vat"), value = du9_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "zone_barkerville_groundhog_scenario"), value = zone_du9_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_barkerville_groundhog_scenario INHERIT zone_constraints"))
+dbDisconnect(conn)
+```
 
 
 
