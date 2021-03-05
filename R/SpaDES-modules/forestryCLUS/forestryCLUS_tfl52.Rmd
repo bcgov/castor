@@ -78,6 +78,10 @@ No harvest in Narrow Lake high elevation critical habitat, maximum 35% buffered 
 
 No harvest in Barkerville high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_barkerville_crithab_or_herd
 
+DU 9 scenarios version 1 = rast.zone_du9_scenarios
+
+DU 9 Barkerville scenarios version 2 = rast.zone_barkerville_groundhog_zones_20210303
+
 ## 'harvestPriority' parameter 
 - used oldest first
 
@@ -104,6 +108,7 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303'")
 
 
 
@@ -128,6 +133,24 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = '
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
+# Below makes priority stands in all priority zones no harvest, core outside of priority stands available, and all the matrix priority zones max 15% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 2) OR (zoneid = 4) OR (zoneid = 6)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9)") 
+# Below makes priority stands in high and medium priority zones no harvest; core outside of priority stands available, and high and medium the matrix priority zones max 15% disturbance; low priority zones in core and matrix available
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 2) OR (zoneid = 6)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 9)") 
+# Below makes priority stands in high  priority zones no harvest; core outside of priority stands available, and high matrix priority zones max 15% disturbance; medium and low priority zones in core and matrix available
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 2") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 8) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 7") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 7") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 7") 
 
 
 
@@ -199,9 +222,10 @@ parameters <- list(
                                  # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd" 
                                  # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
                                  # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
-                                  "rast.zone_cond_eccc_barkerville_crithab_or_herd"
+                                 # "rast.zone_cond_eccc_barkerville_crithab_or_herd"
                                  #  "rast.zone_du9_scenarios"
-                                               ),
+                                   "rast.zone_barkerville_groundhog_zones_20210303"
+                           ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -244,6 +268,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'tfl52', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -261,6 +288,7 @@ modules <- list("dataLoaderCLUS",
                 #"yieldUncertaintyCLUS", 
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
+                "volumebyareaReportCLUS",
                 # "rsfCLUS", # error line 453 - need to debug
                 "uploaderCLUS"
                 )
@@ -296,11 +324,15 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in old forest and recruitment forest Barkerville core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Barkerville matrix habitat areas. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "tfl52_barkerville_he0d",
 #                        description = "No harvest in Barkerville high elevation critical habitat. Harvest permitted in Barkerville matrix critical habitat. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl52_barkerville_he0d_m12d",
+#                        description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl52_barkerville_high_med_low_priority",
+#                        description = "No harvest in Barkerville high priority stands in all high elevation critical habitat; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl52_barkerville_high_med_priority",
+#                        description = "No harvest in Barkerville high priority stands in high and medium priority areas in high elevation critical habitat; harvest allowed in high and medium priority matrix critical habitat up to 15% disturbance (no buffer) in forested area; no constraint in low priority high elevation and matrix zones. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "tfl52_barkerville_he0d_m12d",
-                       description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer). OHarvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first..")
-
-
+scenario = data.table (name = "tfl52_barkerville_high_priority",
+                       description = "No harvest in Barkerville high priority stands in high priority areas in high elevation critical habitat; harvest allowed in high priority matrix critical habitat up to 15% disturbance (no buffer) in forested area; no constraint in medium and low priority high elevation and matrix zones. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL52",

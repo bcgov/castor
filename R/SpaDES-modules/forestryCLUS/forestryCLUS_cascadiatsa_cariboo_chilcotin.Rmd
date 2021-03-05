@@ -74,6 +74,9 @@ No harvest in Barkerville  = rast.zone_cond_noharvest_barkerville_crithab_or_her
 
 ECCC Barkerville  = rast.zone_cond_eccc_barkerville_crithab_or_herd
 
+DU 9 scenarios version 1 = rast.zone_du9_scenarios
+
+DU 9 Barkerville scenarios version 2 = rast.zone_barkerville_groundhog_zones_20210303
 
 ## 'harvestPriority' parameter 
 - used oldest first
@@ -195,7 +198,7 @@ parameters <- list(
                                              # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
                                              # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
                                              # "rast.zone_cond_eccc_barkerville_crithab_or_herd"
-                                             #  "rast.zone_du9_scenarios"
+                                             # "rast.zone_du9_scenarios"
                                               "rast.zone_barkerville_groundhog_zones_20210303"
 
                                               ),
@@ -288,13 +291,13 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in old forest and recruitment forest Barkerville core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Barkerville matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 # scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_he0d",
 #                        description = "No harvest in Barkerville high elevation critical habitat. Harvest permitted in Barkerville matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
-# scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_he0d_m12d",
-#                        description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer). Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
-# scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_high_med_low_priority",
-#                        description = "No harvest in Barkerville high priority stands in all high elevation critical habitat; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer). Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+# scenario = data.table (name = "cascadia_cc_barkerville_he0d_m12d",
+#                        description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) of forested area. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+# scenario = data.table (name = "cascadia_cc_barkerville_high_med_low_priority",
+#                        description = "No harvest in Barkerville high priority stands in all high elevation critical habitat; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) of forested area. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 
-scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_high_priority",
-                       description = "No harvest in Barkerville high priority stands in high priority high elevation critical habitat; no constraint in low and medium priority high elevation or matrix critical habitat; up to 15% disturbance (no buffer) allowed in high priority matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+scenario = data.table (name = "cascadia_cc_barkerville_high_priority",
+                       description = "No harvest in Barkerville high priority stands in high priority high elevation critical habitat; no constraint in low and medium priority high elevation or matrix critical habitat; up to 15% disturbance (no buffer) allowed in high priority matrix critical habitat forested area. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 
 
 
