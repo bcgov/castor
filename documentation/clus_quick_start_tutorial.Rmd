@@ -261,7 +261,7 @@ Here you will see that we include parameters for the *dataLoaderCLUS*, *blocking
 
 ![](images/code_comment.jpg)
 
-Beneath the list object of module parameters, you will notice some additional data.table objects, including *rsf_model_coeff*, *scenario*, and *patchSizeDist*. The  *rsf_model_coeff* is specific to *rsfCLUS*, and can be deleted or commented out. The *scenario* object provides the name and a text description of the scenario and associated outputs that will be uploaded to a PostgreSQL database. Since this is the data creation step, the scenario name and description is not that important. However, you can label it using something similar to the example below.
+Beneath the list object of module parameters, you will notice some additional data.table objects, including *rsf_model_coeff*, *scenario*, and *patchSizeDist*. The  *rsf_model_coeff* is specific to *rsfCLUS*, and can be deleted or commented out. The *scenario* object provides the name and a text description of the scenario and associated outputs that will be uploaded to a PostgreSQL database. Since this is the data creation step, the scenario name and description is not that important. However, you can label it using something similar to the example below. In addition, it is important to note that there is a 63 character limit for tables in PostgreSQL, so you need to be careful with keeping the name relatively succinct. Consider that some of the raster outputs (we will discuss these later) have up to 11 characters as part of their name (i.e., "_contraints"), therefore we recommend a maximum length of 50 characters. 
 
 ```{r, scenario example, message = F, echo = T, eval = F}
 scenario = data.table (name = "tutorial", 

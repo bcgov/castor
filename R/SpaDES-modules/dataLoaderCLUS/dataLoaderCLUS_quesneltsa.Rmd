@@ -83,7 +83,8 @@ parameters <-  list(
                                            "rast.zone_cond_bc_narrow_lake_crithab",
                                            "rast.zone_cond_bc_north_cariboo_crithab",
                                            "rast.zone_cond_bc_tweedsmuir_crithab",
-                                           "rast.zone_cond_bc_wells_gray_north_crithab"
+                                           "rast.zone_cond_bc_wells_gray_north_crithab", 
+                                           "rast.zone_barkerville_groundhog_zones_20210303"
                                            ),
                         
                          nameZoneTable="zone_constraints", 
@@ -136,6 +137,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
+
 modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS",  "survivalCLUS","disturbanceCalcCLUS", "uploaderCLUS")
 
 objects <- list(patchSizeDist=patchSizeDist,  scenario = scenario)
