@@ -443,8 +443,6 @@ aic_bec_summary2<- aic_bec_summary %>%
 write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
 
 
-
-
 ##################
 #### FIGURES ####
 ##################
@@ -456,6 +454,18 @@ p <- ggplot(dat, aes(tmax08, as.numeric(fire_pres))) +
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("Tmax_08") + ylab("Pr (ignition)")
+p
+
+
+p2 <- p + facet_wrap(~ zone, nrow=3)
+p2
+
+p <- ggplot(dat, aes(mean_tmax07_tmax08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_tmax07_tmax08") + ylab("Pr (ignition)")
 p
 
 
@@ -482,19 +492,28 @@ p2 <- p + facet_wrap(~ zone, nrow=3)
 p2
 
 
-# # Maximum Temperature
-# #July
-# p <- ggplot(dat2, aes(tmax07, as.numeric(fire_pres))) +
-#   geom_smooth(method="gam", formula=y~s(x),
-#               alpha=0.3, size=1) +
-#   geom_point(position=position_jitter(height=0.03, width=0)) +
-#   xlab("July tmax") + ylab("Pr (ignition)")
-# 
-# p2 <- p + facet_wrap(~ fire_yr, nrow=3)
+###############################################
+#### Run model for Sub-Boreal Spruce (SBS)
+###############################################
 
+sbs<- dat %>%
+  filter(zone=="SBS")
 
+# top climate variable for sbs was mean_tmax07_tmax08
+p <- ggplot(sbs, aes(mean_tmax07_tmax08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Mean tmax07 and tmax08") + ylab("Pr (ignition)")
 
+p2 <- p + facet_wrap(~ subzone, nrow=3)
+p2
 
+p3 <- p + facet_wrap(~ fire_yr, nrow=3)
+p3
+
+p4 <- p + facet_wrap(~ vegtype, nrow=3)
+p4
 
 # 
 # library(caret)
@@ -507,9 +526,9 @@ p2
 # Valid <- ignition_pres_abs4[-trainIndex,]
 # 
 # start simple
-glm1<- glm(fire_pres ~tmax08 +
-             cmi08, 
-           data= Train,
+glm1<- glm(fire_pres ~ mean_tmax07_tmax08 +
+             vegtype, 
+           data= sbs,
            family = binomial,
            na.action=na.omit)
 summary(glm1)
