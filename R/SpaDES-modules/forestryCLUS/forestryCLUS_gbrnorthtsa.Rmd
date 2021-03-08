@@ -92,13 +92,14 @@ parameters <- list(
                            nameCompartmentRaster = "rast.tsa_aac_boundary_gbr",
                            nameCompartmentTable = "tsa_aac_bounds_vat_gbr",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters=c("rast.zone_cond_beo", # beo might not be correct for GBR. Should probably include harvest constraints
+                           nameZoneRasters=c(#"rast.zone_cond_beo", # beo might not be correct for GBR. Should probably include harvest constraints
                                            "rast.zone_cond_vqo", 
                                            "rast.zone_cond_wha_gbr", 
                                            "rast.zone_cond_uwr_gbr", 
                                            "rast.zone_cond_nharv_gbr", 
                                            "rast.zone_cond_fsw_gbr", 
-                                           "rast.zone_cond_cw"
+                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_mofrl_gbr" # for gbr include this layer instead of beo
 #                                         "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
 # "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
 # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"),
@@ -191,7 +192,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_Nor
                                                       by = 5),
                                                 1), 
 
-                                     flow = 5000000))) # try 1 2500000 worked, 2.) 4,000,000 worked, 3.) 4,500,000 worked, 4.) 5,000,000
+                                     flow = 4900000))) # 1.) try 5000000 worked, 2.) 4500 000 worked, 3.) 4 600 000 worked, 4 700 000 worked, 
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
@@ -230,7 +231,8 @@ mySim <- simInit(times = times,
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "tableSurvival",
-                                             "disturbanceReport"))
+                                             "disturbanceReport",
+                                             "zoneManagement"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})
