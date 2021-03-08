@@ -267,9 +267,9 @@ gc()
 
 ```
 
-# GBR Minimum Old Forest Retention Levels
+# GBR Minimum Old Forest Retention Levels (mofrl)
 
-To maintain ecological representation the GBR landuse order (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf) pg 7 requires that a distribution of forest stand ages need to be maintained. To achieve this the order specifies that for each BEC zone and Site Series Group a minimum level of Old Forest needs to be maintained as listed in Schedule G. For ease, I will obtain the minimum required  amount of old growth forest in each BEC zone and subzone averageing across site series groups. More specifically, I did this by weighting 
+To maintain ecological representation the GBR landuse order (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf) pg 7 requires that a distribution of forest stand ages need to be maintained. To achieve this the order specifies that for each BEC zone and Site Series Group (ssg) a minimum level of Old Forest needs to be maintained as listed in Schedule G. For ease, I will obtain the average minimum required  amount of old growth forest in each BEC zone and subzone combination. The UBC crowd provided me with a spreadsheet detailing for the whole of GBR, the minimum old forest retention target  per bec zone and ssg with a column detailing the total area forested in each landscape type. Thus to get average mofrl per bec zone and subzone I weighted each of these mofrl across ssg's weighted by forested area. These averages are what I included in the layer created below.  
 ```{r, mofrl}
 library(dplyr)
 library(tidyr)
