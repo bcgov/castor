@@ -39,6 +39,9 @@ This module could be a parent module?? It relies on:
 
 
 # Great Bear Rainforest South TSA Scenarios
+
+*** Note: No THLB overlaps with any of the caribou herd ranges in GBR South. Also, there are no roads in the caribou herd ranges so the disturbanceCalCLUS does not work. As a result, we did not run a simulation for GBR South.
+
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
 no harvest in caribou critical habtait areas; where there is critical habitat, no harvest in any types (includign matrix); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in GRB South this includes Charlotte Alplands
@@ -50,7 +53,7 @@ no harvest in caribou critical habtait areas; where there is critical habitat, n
 
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds.
-Note: for GBR I created new spatial layers for wha, uwr, fsw, and parks and protected areas. This is because the original layers were missing some details relevant for GBR.
+Note: for GBR I created new spatial layers for wha, uwr, fsw, parks and protected areas, and beo (where I rather implemented minimum old forest retention levels). This is because the original layers were missing some details relevant for GBR.
 
 No harvest in all herds = rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd
 
@@ -66,11 +69,9 @@ ECCC in all herds = rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd
 
 ## 'harvestFlow'
 
-No information on the even flow harvest could be found for GBR south, except in the data packages for Kingcome and Strathcona TSA's. However, since GBR south is only a portion of these old TSA's it difficult to work out how to add the harvest flows and so I started with the value for the ACC as the even flow value i.e. 830,500 m^3/year. This value was too high so I dropped it to 700,000m^3/yr but this too was still to high. I then tried 600,000, this worked so I tried 615,000 and 610,000. 615,000 was too high and 610,000 resulted in an even harvest flow so this is the value I settled on.
+No information on the even flow harvest could be found for GBR south, except in the data packages for Kingcome and Strathcona TSA's. However, since GBR south is only a portion of these old TSA's it difficult to work out how to add the harvest flows. One possible starting value would be 830,500 m^3/year which is the sum of Kingcome and Strathcona.
 
-Interestingly, I found by adjusting the volume to 90 cubic meteres per hectare and stand age to 60 I could incease the harvest flow from 610,000m^3/year to 620,000m^3/year, but for the final run and scenarios I decided to use 150 m3/ha as minimum harvest volume as this is what was done in most of the other TSA's. We could discuss this...
-
-For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; this is a bit conservative
+For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; we have been using 3 m adjacncey; this is a bit conservative.
 
 
 ```{r module_usage}
