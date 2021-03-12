@@ -22,7 +22,7 @@ The analyses can be broadly described with the following steps:
 3. Calculate the length of roads in core critical habitat within the THLB, by licensee operating area and TSA or TFL. Road length was adjusted by multiplying road length by the THLB factor.
 
 ## Results
-The table below summarizes the length and proportion of roads in core caribou critical habitat within the THLB, by licensee operating area and TSA or TFL. Note that the "Area" column is a concatenation of timber supply unit (TSA or TFL), and operating area licensee, oper_nm and genus_nm from the operating areas data set.
+The table below summarizes the length and proportion of roads in core caribou critical habitat within the THLB, by licensee operating area and TSA or TFL. Note that the "Licensee" column is a concatenation of operating area licensee, oper_nm and genus_nm from the operating areas data set.
 
 ```{r table roads, warning = F, message = F, echo = F}
 library (dplyr)
@@ -37,32 +37,33 @@ options (scipen = 999)
 data <- read.dbf ("C:\\Work\\caribou\\clus_data\\caribou\\roads_thlb_areas.dbf")
 
 data$road_length_thlb <- data$thlb_fact * data$length_km
-data$type <- paste(data$manage_uni, "_", data$LICENSEE, "_", data$OPER_NM, "_", data$GENUS_NM)
+#data$type <- paste(data$manage_uni, "_", data$LICENSEE, "_", data$OPER_NM, "_", data$GENUS_NM)
+data$licensee <- paste(data$LICENSEE, "_", data$OPER_NM, "_", data$GENUS_NM)
 
 road.prop.table <- data %>%
-                      group_by(type, BCHab_code) %>%
+                      group_by(manage_uni, licensee, BCHab_code) %>%
                       summarise (road_length_type = sum (road_length_thlb)) %>%
                       mutate (road_prop = road_length_type / sum (road_length_type))
-names (road.prop.table) [1] <- "Area"
-names (road.prop.table) [2] <- "Caribou Core Habitat"
-names (road.prop.table) [3] <- "Road Length (km)"
-names (road.prop.table) [4] <- "Road Proportion"
+names (road.prop.table) [1] <- "TSA/TFL"
+names (road.prop.table) [2] <- "Licensee"
+names (road.prop.table) [3] <- "Caribou Core Habitat"
+names (road.prop.table) [4] <- "Road Length (km)"
+names (road.prop.table) [5] <- "Road Proportion"
 
-road.prop.table[,3] <-round(road.prop.table[,3],0) 
-road.prop.table[,4] <-round(road.prop.table[,4],2) 
+road.prop.table[,4] <-round(road.prop.table[,4],0) 
+road.prop.table[,5] <-round(road.prop.table[,5],2) 
 
  knitr::kable (road.prop.table,  
                caption = "Length and Proportion of Roads Inside and Outside of Core Caribou Habitat by Management Unit and Operating Area",
                align = 'lccc',
                format.args = list(big.mark = ",", scientific = FALSE)) %>%
                  kableExtra::kable_material(c("striped", "hover")) %>%
-                 kableExtra::footnote (general = "HEWSR = High elevation winter and summer range; HESR = High elevation summer range; HEWR = High elevation winter range; LESR = Low elevation summer range; LEWR = Low elevation winter range.")
+                 kableExtra::footnote (general = "HEWSR = High elevation winter and summer range; HESR = High elevation summer range; HEWR = High elevation winter range; LESR = Low elevation summer range; LEWR = Low elevation winter range.") 
 ```
 
-THLB in and out of core, by area
+The table below summarizes the area and proportion of THLB in core caribou critical habitat within the THLB, by licensee operating area and TSA or TFL. Note that the "Licensee" column is a concatenation of operating area licensee, oper_nm and genus_nm from the operating areas data set.
 
-
-```{r table roads, warning = F, message = F, echo = F}
+```{r table thlb, warning = F, message = F, echo = F}
 library (dplyr)
 library (tidyr)
 library (kableExtra)
@@ -74,27 +75,26 @@ options (scipen = 999)
 
 data.thlb <- read.dbf ("C:\\Work\\caribou\\clus_data\\caribou\\thlb_tsa_oparea_core.dbf")
 
-data$road_length_thlb <- data.thlb$thlb_fact * data.thlb$length_km
+data.thlb$area_thlb_ha <- data.thlb$thlb_fact * data.thlb$area_ha
+data.thlb$licensee <- paste(data.thlb$LICENSEE, "_", data.thlb$OPER_NM, "_", data.thlb$GENUS_NM)
 
+thlb.prop.table <- data.thlb %>%
+                      group_by(manage_uni, licensee, BCHab_code) %>%
+                      summarise (thlb_area_type = sum (area_thlb_ha)) %>%
+                      mutate (thlb_prop = thlb_area_type / sum (thlb_area_type))
+names (road.prop.table) [1] <- "TSA/TFL"
+names (road.prop.table) [2] <- "Licensee"
+names (road.prop.table) [3] <- "Caribou Core Habitat"
+names (road.prop.table) [4] <- "THLB Area (ha)"
+names (road.prop.table) [5] <- "THLB Proportion"
 
-data$type <- paste(data$manage_uni, "_", data$LICENSEE, "_", data$OPER_NM, "_", data$GENUS_NM)
-
-road.prop.table <- data %>%
-                      group_by(type, BCHab_code) %>%
-                      summarise (road_length_type = sum (road_length_thlb)) %>%
-                      mutate (road_prop = road_length_type / sum (road_length_type))
-names (road.prop.table) [1] <- "Area"
-names (road.prop.table) [2] <- "Caribou Core Habitat"
-names (road.prop.table) [3] <- "Road Length (km)"
-names (road.prop.table) [4] <- "Road Proportion"
-
-road.prop.table[,3] <-round(road.prop.table[,3],0) 
-road.prop.table[,4] <-round(road.prop.table[,4],2) 
+road.prop.table[,4] <-round(road.prop.table[,4],0) 
+road.prop.table[,5] <-round(road.prop.table[,5],2) 
 
  knitr::kable (road.prop.table,  
-               caption = "Length and Proportion of Roads Inside and Outside of Core Caribou Habitat by Management Unit and Operating Area",
+               caption = "Area and Proportion of THLB Inside and Outside of Core Caribou Habitat by Management Unit and Operating Area",
                align = 'lccc',
                format.args = list(big.mark = ",", scientific = FALSE)) %>%
                  kableExtra::kable_material(c("striped", "hover")) %>%
-                 kableExtra::footnote (general = "HEWSR = High elevation winter and summer range; HESR = High elevation summer range; HEWR = High elevation winter range; LESR = Low elevation summer range; LEWR = Low elevation winter range.")
-
+                 kableExtra::footnote (general = "HEWSR = High elevation winter and summer range; HESR = High elevation summer range; HEWR = High elevation winter range; LESR = Low elevation summer range; LEWR = Low elevation winter range.") 
+```
