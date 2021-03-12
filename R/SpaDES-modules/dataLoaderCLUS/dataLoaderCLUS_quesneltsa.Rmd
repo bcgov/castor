@@ -66,25 +66,26 @@ parameters <-  list(
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
                                            "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-                                           "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
-                                           "rast.zone_cond_eccc_barkerville_crithab_or_herd",
-                                           "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
-                                           "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
-                                           "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
-                                           "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
-                                           "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
-                                           "rast.zone_du9_scenarios",
-                                           "rast.zone_cond_bc_barkerville_crithab",
-                                           "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                                           "rast.zone_cond_bc_narrow_lake_crithab",
-                                           "rast.zone_cond_bc_north_cariboo_crithab",
-                                           "rast.zone_cond_bc_tweedsmuir_crithab",
-                                           "rast.zone_cond_bc_wells_gray_north_crithab", 
-                                           "rast.zone_barkerville_groundhog_zones_20210303"
+                                      "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
+                                      "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
+                                      "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
+                                      "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                      "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
+                                      "rast.zone_cond_eccc_barkerville_crithab_or_herd",
+                                      "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
+                                      "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
+                                      "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
+                                      "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
+                                      "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
+                                      "rast.zone_du9_scenarios",
+                                      "rast.zone_cond_bc_barkerville_crithab",
+                                      "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                      "rast.zone_cond_bc_narrow_lake_crithab",
+                                      "rast.zone_cond_bc_north_cariboo_crithab",
+                                      "rast.zone_cond_bc_tweedsmuir_crithab",
+                                      "rast.zone_cond_bc_wells_gray_north_crithab", 
+                                      "rast.zone_barkerville_groundhog_zones_20210303",
+                                      "rast.zone_du7_scenario_20210305"
                                            ),
                         
                          nameZoneTable="zone_constraints", 
@@ -94,14 +95,14 @@ parameters <-  list(
                          nameYieldTable ="yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", 
                          nameYieldTransitionTable ="yc_tipsy", 
-                         nameForestInventoryRaster ="rast.vri2019_id", # raster of the forest inventory 
+                         nameForestInventoryRaster ="rast.vri2019_id", 
                          nameForestInventoryKey = "feature_id", # unique id of each polygon 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",# the inventory data
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                          nameForestInventoryAge = "proj_age_1",  
                          nameForestInventoryHeight = "proj_height_1",
                          nameForestInventoryCrownClosure = "crown_closure",
                          nameForestInventoryTreed = "bclcs_level_2",
-                         nameForestInventorySiteIndex = "site_index" # name of the site index column in the inventory data
+                         nameForestInventorySiteIndex = "site_index" 
                     ),
   blockingCLUS = list(blockMethod='pre', 
                       patchZone = 'rast.zone_cond_beo',
@@ -113,16 +114,17 @@ parameters <-  list(
                   nameRoads =  'rast.crds_all'
                   ),
   disturbanceCalcCLUS = list(calculateInterval = 1, 
-                   criticalHabitatTable = "public.criticalhabitat_bc_vat",
-                   criticalHabRaster = "rast.bc_crithab",
-                   permDisturbanceRaster = "rast.perm_dist_rds",
-                   recovery = 40), # might be 30 or 40 years
+                             criticalHabitatTable = "public.criticalhabitat_bc_vat",
+                             criticalHabRaster = "rast.bc_crithab",
+                             permDisturbanceRaster = "rast.perm_dist_rds",
+                             recovery = 40), # might be 30 or 40 years
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.bc_crithab", # raster of herd boundaries
                        tableCaribouHerd = "public.criticalhabitat_bc_vat"),
   uploaderCLUS = list(aoiName = 'test_tsa',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
+
 scenario = data.table(name="quesnel_dataloader", 
                       description = "dataloader")
 
@@ -140,7 +142,8 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
 
 modules <- list("dataLoaderCLUS", "blockingCLUS", "roadCLUS",  "survivalCLUS","disturbanceCalcCLUS", "uploaderCLUS")
 
-objects <- list(patchSizeDist=patchSizeDist,  scenario = scenario)
+objects <- list(patchSizeDist = patchSizeDist, 
+                scenario = scenario)
 
 inputs <- list()
 outputs <- list()

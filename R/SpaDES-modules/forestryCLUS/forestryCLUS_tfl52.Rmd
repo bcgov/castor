@@ -129,10 +129,11 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 60") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 60")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 9) OR (zoneid = 10) OR (zoneid = 31) OR (zoneid = 45) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 70) OR (zoneid = 71)") 
-# Below makes the matrix habitat max 12% disturbance
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2") 
+# Below makes the all of core no harvest and matrix habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9)") 
 # Below makes priority stands in all priority zones no harvest, core outside of priority stands available, and all the matrix priority zones max 15% disturbance
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 2) OR (zoneid = 4) OR (zoneid = 6)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 5)") 
@@ -326,11 +327,10 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Barkerville high elevation critical habitat. Harvest permitted in Barkerville matrix critical habitat. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "tfl52_barkerville_he0d_m12d",
 #                        description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "tfl52_barkerville_high_med_low_priority",
-#                        description = "No harvest in Barkerville high priority stands in all high elevation critical habitat; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl52_barkerville_hi_med_lo_priority",
+#                        description = "No harvest in Barkerville high priority stands in all high elevation critical habitat; harvest allowed in non-priority stands; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "tfl52_barkerville_high_med_priority",
 #                        description = "No harvest in Barkerville high priority stands in high and medium priority areas in high elevation critical habitat; harvest allowed in high and medium priority matrix critical habitat up to 15% disturbance (no buffer) in forested area; no constraint in low priority high elevation and matrix zones. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
-
 scenario = data.table (name = "tfl52_barkerville_high_priority",
                        description = "No harvest in Barkerville high priority stands in high priority areas in high elevation critical habitat; harvest allowed in high priority matrix critical habitat up to 15% disturbance (no buffer) in forested area; no constraint in medium and low priority high elevation and matrix zones. Harvest flow = 595,000 m3/yr. Adjacency = 3m. Oldest first.")
 
