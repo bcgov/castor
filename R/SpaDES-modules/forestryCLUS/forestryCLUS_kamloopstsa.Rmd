@@ -123,6 +123,9 @@ zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE referen
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_groundhog_crithab_or_herd'")
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd'")
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303'")
+
+
+ zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_vqo'")                                  
                                            
 
 
@@ -135,10 +138,6 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = '
 # COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
 # Below makes the matrix habitat available to harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
-
-# GROUNDHOG Update the constraints available to a zone as specified in the scenario
-# Below makes the matrix habitat available to harvest
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_groundhog_crithab_or_herd' AND zoneid = 2") 
 
 # WELLS GRAY NORTH Update the constraints available to a zone as specified in the scenario
 # Below makes the matrix habitat available to harvest
@@ -172,6 +171,8 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zo
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 14) OR  (zoneid = 15) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 48) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 67) OR (zoneid = 76) OR (zoneid = 75)") 
 
 # GROUNDHOG Alternative Scenarios
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_groundhog_crithab_or_herd' AND zoneid = 2")
 #Below will set Groundhog old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_gh_scenarios' AND (zoneid = 3) OR  (zoneid = 4)") 
 # Below makes the matrix habitat max 12% disturbance
@@ -232,12 +233,12 @@ parameters <- list(
                                            # "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd"
                                            # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"
                                            # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
-                                           # "rast.zone_cond_eccc_groundhog_crithab_or_herd"
+                                            "rast.zone_cond_eccc_groundhog_crithab_or_herd"
                                            # "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
                                            # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
                                            # "rast.zone_du9_scenarios"
                                            # "rast.zone_gh_scenarios"
-                                            "rast.zone_barkerville_groundhog_zones_20210303"
+                                           # "rast.zone_barkerville_groundhog_zones_20210303"
                                             ),
                                            
                            nameZoneTable = "zone_constraints",
@@ -349,13 +350,12 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Groundhog high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_wells_gray_north_he0d",
 #                        description = "No harvest in Wells Gray North high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "kamloops_groundhog_he0d_m12d",
-#                        description = "No harvest in Groundhog high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% forest disturbance (no buffer) in forested area. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "kamloops_groundhog_he0d_m12d",
+                       description = "No harvest in Groundhog high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% forest disturbance (no buffer) in forested area. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "kamloops_groundhog_high_med_low_priority",
 #                        description = "No harvest in Groundhog high priority stands in all high elevation critical habitat; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
-
-scenario = data.table (name = "kamloops_groundhog_high_med_priority",
-                       description = "No harvest in Groundhog high priority stands in high and medium priority high elevation critical habitat; harvest allowed in high and medium matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest permitted in low priority core and matrix. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "kamloops_groundhog_high_med_priority",
+#                        description = "No harvest in Groundhog high priority stands in high and medium priority high elevation critical habitat; harvest allowed in high and medium matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest permitted in low priority core and matrix. Harvest flow 1,500,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 
 

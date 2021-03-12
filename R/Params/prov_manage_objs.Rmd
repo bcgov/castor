@@ -401,7 +401,7 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/
 
 
 
-df<-data.frame(type='nh', variable= '', threshold=0, reference_zone='rast.zone_nharv',
+df<-data.frame(type='nh', variable= '', threshold=0, reference_zone='rast.zone_cond_nharv',
 ndt=0,percentage = 0, zoneid =0)
 df$zoneid<-as.integer(df$zoneid)#assign integer
 df$percentage<-as.numeric(df$percentage)#assign integer
