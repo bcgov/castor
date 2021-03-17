@@ -72,7 +72,7 @@ parameters <-  list(
                                            "rast.zone_cond_eccc_groundhog_crithab_or_herd",
                                            "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd",
                                            "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
-                                           "rast.zone_du9_scenarios",
+                                           "rast.zone_smc_zones_20210315",
                                            "rast.zone_cond_bc_columbia_north_crithab",
                                            "rast.zone_cond_bc_groundhog_crithab",
                                            "rast.zone_cond_bc_wells_gray_south_crithab",
