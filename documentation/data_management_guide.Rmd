@@ -200,7 +200,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
 
-# Create new data entry for DU9 Scenarios
+# New zone data for DU9 Scenarios 2021-01
 du9_data <- data.table (computer = 'DC052586', 
                          database = 'clus', 
                          schema = 'public', 
@@ -231,7 +231,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
 
-## For Groundhog
+## New zone data for Groundhog 2021-01
 du9_data <- data.table (computer = 'DC052586', 
                          database = 'clus', 
                          schema = 'public', 
@@ -264,7 +264,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
 
-# NEW Central Group LUO boundary (Feb. 2021)
+# New Central Group LUO boundary (Feb. 2021)
 luo_data <- data.table (computer = 'DC052586', 
                          database = 'clus', 
                          schema = 'public', 
@@ -294,6 +294,130 @@ data2 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public'
 data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_scenario_central_grp_proposed_luo_feb2021', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Russ Laroche; Draft Partnership Land Use Orders', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
 pgdbs_data_list <- merge (pgdbs_data_list, data2, all = T)
 pgdbs_data_list <- merge (pgdbs_data_list, data3, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
+
+# New Barkerville and Groundhog Zones March 3, 2021
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zones_barkerville_groundhog_20210303', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Bevan Ernst, FLNRORD', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS; for TSAs where these herds overlap' 
+                        )
+# merge tables
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'zone_barkerville_groundhog_zones_20210303', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zone_barkerville_groundhog_scenarios_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
+
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zone_barkerville_groundhog_scenario', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data4, all = T)
+
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
+
+
+
+# New DU7 Zones March 5, 2021
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'northern_group_scenario_20210305', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'zone_du7_scenario_20210305', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data1, all = T)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zone_du7_scenarios_20210305_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zone_du7_scenarios_20210305', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)

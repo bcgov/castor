@@ -49,11 +49,20 @@ ECCC in Narrow Lake caribou critical habtiat; an alterantive to a no harvest sce
 no harvest in Barkerville caribou critical habtiat; to support Barkerville herd planning, we run a sceanrio with no harvest in the Barkerville HEWSR and Matrix; assesses the potential maximum impact
 NOTE: this scenario results in 0 harvest, since the area is ciompeltely within Barkerville critical habitat
 
-ECCC in Barkervillecaribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Barkerville only
+ECCC in Barkerville caribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Barkerville only
 
+DU9 specific scenarios developed by caribou recovery science team. These were doen for each herd indivudalls that overlaps the TSA:
+First set of scenarios uses rast.zone_du9_scenarios; this raster defines priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. Scenarios:
+* 3a = No harvest in old forest, recruitment forest and buffered Barkerville core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Barkerville matrix habitat areas
+* 3b = No harvest in old forest and recruitment forest Barkerville core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Barkerville matrix habitat areas.
+
+Second set of scenarios uses rast.zone_barkerville_groundhog_zones_20210303; this raster defines some priority matrix and core areas, and priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. scenarios:
+* he0d_m12d (new 2); sets no harvest in all core priority zones and 12% max disturbance in all matrix priority zones
+* high_med_low_priority (new 3a): sets no harvest in priority stands in all core priority zones and 15% max disturbance in all matrix priority zones
+* high_med_priority (new 3b); sets no harvest in priority stands in high and medium core priority zones and 15% max disturbance in high and medium matrix priority zones (NOTE: there are no medium and low core or medium priority matrix overlapping the TSA, so this scenario was not run)
+* high_priority (new 3c); sets no harvest in priority stands in high core priority zones and 15% max disturbance in high and medium matrix priority zones
 
 # Cascadia TSA Cariboo-Chilcotin Area Parameters 
-
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
@@ -65,6 +74,9 @@ No harvest in Barkerville  = rast.zone_cond_noharvest_barkerville_crithab_or_her
 
 ECCC Barkerville  = rast.zone_cond_eccc_barkerville_crithab_or_herd
 
+DU 9 scenarios version 1 = rast.zone_du9_scenarios
+
+DU 9 Barkerville scenarios version 2 = rast.zone_barkerville_groundhog_zones_20210303
 
 ## 'harvestPriority' parameter 
 - used oldest first
@@ -97,13 +109,32 @@ For cutblock adjacency, in analysis report, allowed maximum 25% height ≤ 2.5 m
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Cascadia_TCC_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") 
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303'")
 
 
 # BARKERVILLE Update the constraints available to a zone as specified in the scenario
 # Below makes the matrix habitat available to harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd' AND zoneid = 2")
+# Below makes core no harvest and the matrix habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 2)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8)") 
+# Below makes priority stands in all priority zones no harvest, core outside of priority stands available, and all the matrix priority zones max 15% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 2") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 7) OR (zoneid = 8)") 
+# Below makes priority stands in high and medium priority zones no harvest, core outside of priority stands and zones available, and  matrix high and medium priority zones max 15% disturbance (note there are no medium and low core or medium priority matrix overlapping the TSA)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 2") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND (zoneid = 1) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 7") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 7") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303' AND zoneid = 7") 
+
 
 
 
@@ -146,7 +177,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = FALSE,
+                           save_clusdb = TRUE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Cascadia_TCC_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -167,8 +198,10 @@ parameters <- list(
                                              # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
                                              # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
                                              # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
-                                              "rast.zone_cond_eccc_barkerville_crithab_or_herd"
-                                             #  "rast.zone_du9_scenarios"
+                                             # "rast.zone_cond_eccc_barkerville_crithab_or_herd"
+                                             # "rast.zone_du9_scenarios"
+                                              "rast.zone_barkerville_groundhog_zones_20210303"
+
                                               ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -193,7 +226,7 @@ parameters <- list(
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriority = 1,
-                      # reportHarvestConstraints = T
+                      reportHarvestConstraints = T,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -212,6 +245,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'cascadia_cariboo_chilcotin', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -230,6 +266,7 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
@@ -245,17 +282,26 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Narrow Lake high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 # scenario = data.table (name = "cascadia_cariboo_chilcotin_narrow_lake_scen3a_or_scen3b",
 #                        description = "No Narrow Lake old forest, recruitment forest and buffered core critical habitat areas in the TSA, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
-# scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_noharvest",
+# scenario = data.table (name = "cascadia_cc_barkerville_nh",
 #                        description = "No harvest in all Barkerville critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
-# scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_ch_he0d_m15d",
-#                        description = "No harvest in Barkerville high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Barkerville matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+# scenario = data.table (name = "cascadia_cc_barkerville_he0d_m15d",
+#                        description = "No harvest in Barkerville high elevation critical habitat, maximum 15% disturbance in Barkerville matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 # scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered Barkerville core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Barkerville matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 # scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_scen3b",
 #                        description = "No harvest in old forest and recruitment forest Barkerville core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Barkerville matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+# scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_he0d",
+#                        description = "No harvest in Barkerville high elevation critical habitat. Harvest permitted in Barkerville matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+# scenario = data.table (name = "cascadia_cc_barkerville_he0d_m12d",
+#                        description = "No harvest in Barkerville high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) of forested area. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+# scenario = data.table (name = "cascadia_cc_barkerville_hi_m_lo_priority",
+#                        description = "No harvest in Barkerville high priority stands in all high elevation critical habitat; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) of forested area. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+scenario = data.table (name = "cascadia_cc_barkerville_high_priority",
+                       description = "No harvest in Barkerville high priority stands in high priority high elevation critical habitat; no constraint in low and medium priority high elevation or matrix critical habitat; up to 15% disturbance (no buffer) allowed in high priority matrix critical habitat forested area. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
 
-scenario = data.table (name = "cascadia_cariboo_chilcotin_barkerville_he0d",
-                       description = "No harvest in Barkerville high elevation critical habitat. Harvest permitted in Barkerville matrix critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 55,000m3/year.")
+
+
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Cascadia_TCC_TSA",
                                      partition = ' vol > 150 ', 
