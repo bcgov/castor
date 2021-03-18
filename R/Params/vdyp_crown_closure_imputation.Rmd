@@ -13,7 +13,7 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 ## Purpose
 
-Natural orgin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding TIPSY curve. To do this, a strata based imputation will be used, where only observations with the same leading species group will be used.
+Natural orgin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding VRI crown closure estimate within 10 year of the reference time stamp. To do this, a strata based imputation will be used, where only observations with the same leading species group will be used.
 
 ## Imputation parameter selection
 
@@ -107,3 +107,32 @@ dbDisconnect(conn)
 
 ## Validation
 
+Compare the predicted curves to the 2008-2018 VRI.
+
+```{r, validation}
+
+comp_vdyp_vri<-data.table(getTableQuery(paste0("
+SELECT t.yc_grp, t.crown_closure,
+    (((k.cc - y.cc*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.cc as cc
+    FROM (SELECT crown_closure, yc_grp, proj_age_1 as age FROM vdyp_vri2018 
+		  where reference_year >= 2008) as t
+    LEFT JOIN yc_vdyp_all y 
+    ON t.yc_grp = y.yc_grp AND CAST(t.age/10 AS INT)*10 = y.age
+    LEFT JOIN yc_vdyp_all k 
+    ON t.yc_grp = k.yc_grp AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0;")))
+
+library(RColorBrewer)
+buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
+           "#FEE090", "#FDAE61", "#F46D43", "#D73027", "#A50026") 
+myColRamp = colorRampPalette(c(buylrd))
+
+# smoothed scatterplot
+smoothScatter(x=comp_vdyp_vri$cc, y=comp_vdyp_vri$crown_closure,
+              colramp=myColRamp,
+              main="Plot of predicted and observed crown closure",
+              xlab="Predicted",
+              ylab="Observed")
+abline(0,1, lty = 2, lwd = 5, col = "black")
+comp_vdyp_vri[, diff:=(cc-crown_closure)**2]
+sqrt(sum(na.omit(comp_vdyp_vri$diff))/nrow(na.omit(comp_vdyp_vri)))
+```
