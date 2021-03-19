@@ -243,7 +243,7 @@ parameters <- list(
                             # "rast.zone_cond_eccc_rainbows_crithab_or_herd",
                             # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
                             # "rast.zone_cond_eccc_barkerville_crithab_or_herd" 
-                            #  "rast.zone_du9_scenarios"
+                            #  "rast.zone_smc_zones_20210315"
                             #" rast.zone_barkerville_groundhog_zones_20210303"
                             # "rast.zone_du7_scenario_20210305"
                            ),
