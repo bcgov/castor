@@ -422,5 +422,71 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
 
+
+# New DU9 Zones March 15, 2021
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'smc_scenarios_20210315', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat in DU9 caribou.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                         database = 'clus',
+                         schema = 'rast', 
+                         table_name = 'zone_smc_zones_20210315', 
+                         type = 'raster', 
+                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                         source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat in DU9 caribou.', 
+                         public = 'No', 
+                         last_updated = '2021',
+                         next_update = 'as needed', 
+                         where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+
+new_data3 <- data.table (computer = 'DC052586', 
+                         database = 'clus',
+                         schema = 'public', 
+                         table_name = 'zone_cond_du9_scenarios_vat', 
+                         type = 'raster', 
+                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                         source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat in DU9 caribou.', 
+                         public = 'No', 
+                         last_updated = '2021',
+                         next_update = 'as needed', 
+                         where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
+
+new_data4 <- data.table (computer = 'DC052586', 
+                         database = 'clus',
+                         schema = 'public', 
+                         table_name = 'zone_cond_du9_scenarios', 
+                         type = 'raster', 
+                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                         source = 'Bevan Ernst, FLNRORD; priority stands and critical habitat in DU9 caribou.', 
+                         public = 'No', 
+                         last_updated = '2021',
+                         next_update = 'as needed', 
+                         where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data4, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du9_scenarios';")
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du9_scenarios_vat';")
+#select<-dbGetQuery(conn, "SELECT * from public.pgdbs_data_list WHERE table_name = 'zone_du9_scenarios_vat'") 
+
+
+
 ```
 
