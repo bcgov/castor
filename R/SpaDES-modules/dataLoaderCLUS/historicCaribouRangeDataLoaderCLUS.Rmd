@@ -53,12 +53,12 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
-                         nameBoundaryFile="bc_caribou_herd_boundary_v20200507",
-                       #nameBoundaryFile=" hart_ranges_south_bnds",
+                         #nameBoundaryFile="bc_caribou_herd_boundary_v20200507",
+                       nameBoundaryFile=" hart_ranges_south_bnds",
                          nameBoundaryColumn="herd_name",
-                         nameBoundary = "Monashee",
-                         nameBoundaryGeom='shape'
-                      # nameBoundaryGeom='wkb_geometry'
+                         nameBoundary = "Hart_Ranges",
+                         #nameBoundaryGeom='shape'
+                       nameBoundaryGeom='wkb_geometry'
                     ),
     roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
