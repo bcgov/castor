@@ -120,6 +120,13 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 73")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 11) OR (zoneid = 26) OR (zoneid = 41) OR (zoneid = 72) OR (zoneid = 42) OR (zoneid = 56)") 
 
+dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_purcell_central_crithab_or_herd'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_eccc_purcell_central_crithab_or_herd' AND zoneid = 2") 
+
+dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_purcells_south_crithab_or_herd'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_purcells_south_crithab_or_herd' AND zoneid = 2") 
+
+
 dbDisconnect(clusdb)
 ```
 
@@ -156,11 +163,12 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                           # "rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
-                                           # "rast.zone_cond_eccc_purcell_central_crithab_or_herd"
-                                           # "rast.zone_cond_noharvest_purcells_south_crithab_or_herd" 
-                                           # "rast.zone_cond_eccc_purcells_south_crithab_or_herd"
-                                            "rast.zone_du9_scenarios"
+                                               "rast.zone_cond_cw",
+                                            #"rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
+                                            #"rast.zone_cond_eccc_purcell_central_crithab_or_herd"
+                                            #"rast.zone_cond_noharvest_purcells_south_crithab_or_herd" 
+                                            "rast.zone_cond_eccc_purcells_south_crithab_or_herd"
+                                            #"rast.zone_du9_scenarios"
                                               ),
                            nameZoneTable = "zone_constraints",
                           # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -204,6 +212,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+   volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'cranbrook_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -222,6 +233,7 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
@@ -229,33 +241,31 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
 
-# scenario = data.table (name = "cranbrook_bau",
-#                        description = "Business-as-usual case. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "cranbrook_bau", description = "Business-as-usual case. Harvest flow = 758,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "cranbrook_purcell_central_nh",
-# description = "No harvest in Purcell Central critical habitat. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
+# description = "No harvest in Purcell Central critical habitat. Harvest flow = 758,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "cranbrook_purcell_central_ch_he0d_m15d",
 #                        description = "No harvest in Purcell Central high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcell Central matrix critical habitat. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "cranbrook_purcell_central_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered core critical habitat areas in Purcell Central, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell Central matrix habitat areas. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "cranbrook_purcell_central_scen3b",
 #                        description = "No harvest in old forest and recruitment forest core critical habitat areas in Purcell Central, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell Central matrix habitat areas. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "cranbrook_purcells_south_nh",
-# description = "No harvest in Purcells South critical habitat. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "cranbrook_purcells_south_ch_he0d_m15d",
-#                        description = "No harvest in Purcells South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcells South matrix critical habitat. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "cranbrook_purcells_south_nh",description = "No harvest in Purcells South critical habitat. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
+ scenario = data.table (name = "cranbrook_purcells_south_ch_he0d_m12d",
+                        description = "No harvest in Purcells South high elevation critical habitat, maximum 12% disturbance in Purcells South matrix critical habitat. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "cranbrook_purcells_south_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered core critical habitat areas in Purcell South, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell South matrix habitat areas. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "cranbrook_purcells_south_scen3b",
-                       description = "No harvest in old forest and recruitment forest core critical habitat areas in Purcell South, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell South matrix habitat areas. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
+#scenario = data.table (name = "cranbrook_purcells_south_scen3b",
+#                       description = "No harvest in old forest and recruitment forest core critical habitat areas in Purcell South, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell South matrix habitat areas. Harvest flow = 780,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
 
 
 # scenario = data.table (name = "cranbrook_purcell_central_nh",
                        # description = "No harvest in Purcell Central critical habitat. Adjacency was set to 3m. Harvest flow = 340,000m3/yr.")
-# scenario = data.table (name = "cranbrook_purcell_central_ch_he0d_m15d",
-#                        description = "No harvest in Purcell Central high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcell Central matrix critical habitat. Adjacency was set to 3m.")
+# scenario = data.table (name = "cranbrook_purcell_central_ch_he0d_m12d",
+ #                       description = "No harvest in Purcell Central high elevation critical habitat, maximum 12% disturbance in Purcell Central matrix critical habitat. Adjacency was set to 3m.")
 
 
 
@@ -265,7 +275,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Cranbrook_TSA",
                                                           to = 2218, 
                                                           by = 5),
                                                     1), 
-                                         flow = 3900000) #780,000m3/yr 
+                                         flow = 3790000) #760,000m3/yr 
                             )
                         )
                         

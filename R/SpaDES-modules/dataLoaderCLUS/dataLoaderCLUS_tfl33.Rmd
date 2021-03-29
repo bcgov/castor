@@ -64,7 +64,7 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
-                                             "rast.zone_cond_cw", 
+                                             "rast.zone_cond_cw" ,
                                              "rast.zone_smc_zones_20210315",
                                              "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
                                              "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
