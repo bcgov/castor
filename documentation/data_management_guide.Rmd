@@ -486,7 +486,133 @@ dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' wh
 dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du9_scenarios_vat';")
 #select<-dbGetQuery(conn, "SELECT * from public.pgdbs_data_list WHERE table_name = 'zone_du9_scenarios_vat'") 
 
+# ECCC study area for Southern Mountain Caribou; for historic road analysis
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'eccc_smc_aoi_20210329', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Robin Steenweg/Emily Sunter, Environment and Climate Change Canada', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'historicdataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
 
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
+
+# New DU7/northern group Zones March 30, 2021
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'northern_group_scenario_20210330', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and zonesin DU7/northern group caribou.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'zone_du7_scenario_20210330', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and zones in DU7/northern group caribou.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data1, all = T)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zone_cond_du7_scenarios_20210330_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and zones in DU7/northern group caribou.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'zone_cond_du7_scenarios_20210330', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Bevan Ernst, FLNRORD; priority stands and zones in DU7/northern group caribou.', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
+
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
+
+## Archive the previous DU7 scenario
+dbExecute (conn, 
+           "SELECT * INTO archive.northern_group_scenario_20210305 FROM public.northern_group_scenario_20210305;")
+dbExecute (conn, 
+           "DROP TABLE public.northern_group_scenario_20210305;")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'northern_group_scenario_20210305';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'northern_group_scenario_20210305';") 
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'northern_group_scenario_20210305';")
+
+dbExecute (conn, 
+           "SELECT * INTO archive.zone_du7_scenario_20210305 FROM rast.zone_du7_scenario_20210305;")
+dbExecute (conn, 
+           "DROP TABLE rast.zone_du7_scenario_20210305;")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'zone_du7_scenario_20210305';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'zone_du7_scenario_20210305';") 
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du7_scenario_20210305';")
+
+dbExecute (conn, 
+           "SELECT * INTO archive.zone_du7_scenarios_202103055 FROM public.zone_du7_scenarios_20210305;")
+dbExecute (conn, 
+           "DROP TABLE public.zone_du7_scenarios_20210305;")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'zone_du7_scenarios_20210305';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'zone_du7_scenarios_20210305';") 
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du7_scenarios_20210305';")
+
+dbExecute (conn, 
+           "SELECT * INTO archive.zone_du7_scenarios_20210305_vat FROM public.zone_du7_scenarios_20210305_vat;")
+dbExecute (conn, 
+           "DROP TABLE public.zone_du7_scenarios_20210305_vat;")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'zone_du7_scenarios_20210305_vat';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'zone_du7_scenarios_20210305_vat';") 
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du7_scenarios_20210305_vat';")
+
+
+
+
+dbDisconnect(conn)
 
 ```
 

@@ -92,7 +92,7 @@ parameters <-  list(
                                     "rast.zone_cond_bc_north_cariboo_crithab",
                                     "rast.zone_cond_bc_redrock_prairie_creek_crithab",
                                     "rast.central_grp_proposed_luo_feb2021",
-                                    "rast.zone_du7_scenario_20210305"
+                                    "rast.zone_du7_scenario_20210330"
                                           ), 
                          nameZoneTable = "zone_constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",

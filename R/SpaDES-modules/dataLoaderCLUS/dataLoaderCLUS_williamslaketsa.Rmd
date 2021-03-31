@@ -76,7 +76,7 @@ parameters <-  list(
                                            "rast.zone_cond_bc_wells_gray_north_crithab",
                                            "rast.zone_cond_bc_barkerville_crithab",
                                            "rast.zone_barkerville_groundhog_zones_20210303",
-                                           "rast.zone_du7_scenario_20210305"
+                                           "rast.zone_du7_scenario_20210330"
                         ), 
                          nameZoneTable = "zone_constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
