@@ -104,6 +104,14 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = '
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_eccc_north_cariboo_crithab_or_herd' AND zoneid = 2 ")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_north_cariboo_crithab_or_herd' AND zoneid = 2 ")
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_north_cariboo_crithab_or_herd' AND zoneid = 2 ")
+
+
+dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd' AND zoneid = 2 ")
+
+dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_smc_zones_20210315'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' ") 
+
 # Below makes priority stands in all priority zones no harvest, core outside of priority stands available, and all the matrix priority zones max 15% disturbance; NOTE Only low priority HEWSR and high and low priority matrix
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 82) OR (zoneid = 97)") 
@@ -205,7 +213,7 @@ parameters <- list(
                                                "rast.zone_cond_cw",
                                     #            'rast.zone_cond_partnership_agreement',
                                 # "rast.zone_cond_noharvest_george_mountain_crithab_or_herd",
-                                # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
+                                 #"rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
                                     # "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd"
                                     # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
                                     # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
@@ -213,7 +221,7 @@ parameters <- list(
                                     #  "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
                             #  "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
                             #    "rast.zone_cond_eccc_george_mountain_crithab_or_herd",   
-                                    # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
+                                     "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
                                     # "rast.zone_cond_eccc_hart_ranges_crithab_or_herd"
                                     # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
                                     # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
@@ -223,7 +231,7 @@ parameters <- list(
                                     # "rast.central_grp_proposed_luo",
                                     # "rast.central_grp_proposed_luo_buffer",
                                     # "rast.central_grp_proposed_luo_matrix",
-                                     "rast.zone_smc_zones_20210315"
+                                    # "rast.zone_smc_zones_20210315"
                                     # "rast.zone_cond_bc_narrow_lake_crithab",
                                     # "rast.zone_cond_bc_hart_ranges_crithab"
                                     # "rast.zone_cond_bc_kennedy_siding_crithab",
@@ -315,12 +323,10 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in North Cariboo high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in North Cariboo matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "pg_north_cariboo_scen3b",
 #                        description = "No harvest in old forest and recruitment forest critical habitat areas in North Cariboo, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in North Cariboo matrix habitat areas. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
-# scenario = data.table (name = "pg_narrow_lake_nh",
-#                        description = "No harvest in Narrow Lake critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
-# scenario = data.table (name = "pg_narrow_lake_hele0d_m35d",
-#                        description = "No harvest in Narrow Lake high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
-# scenario = data.table (name = "pg_narrow_lake_scen3a",
-#                        description = "No harvest in old forest, recruitment forest and buffered Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
+# scenario = data.table (name = "pg_narrow_lake_nh",description = "No harvest in Narrow Lake critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_narrow_lake_hele0d_m12d",description = "No harvest in Narrow Lake high and low elevation critical habitat, maximum 12% disturbance in Narrow Lake matrix critical habitat. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+ scenario = data.table (name = "pg_narrow_lake_scen3a",
+                        description = "No harvest in old forest, recruitment forest and buffered Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
 # scenario = data.table (name = "pg_narrow_lake_scen3b",
 #                        description = "No harvest in old forest and recruitment forest in Narrow Lake core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 1,950,000m3/year.")
 # scenario = data.table (name = "pg_luo_35p_25yo_250cm",
@@ -344,8 +350,7 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "pg_north_cariboo_hi_med_lo",
 #                        description = "No harvest in North Cariboo high priority stands in all priority high elevation critical habitat; harvest allowed in all prioritymatrix critical habitat up to 15% disturbance (no buffer) in forested area. Non-priority areas available for harvest. Note: only low priority HEWSR and high and low priority matrix zones here. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
-scenario = data.table (name = "pg_north_cariboo_hi_priority",
-                       description = "No harvest in North Cariboo high priority stands in high priority high elevation critical habitat; harvest allowed in high priority matrix critical habitat up to 15% disturbance (no buffer) in forested area. Low and Non-priority areas available for harvest. Note: only low priority HEWSR and high and low priority matrix zones here. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+#scenario = data.table (name = "pg_north_cariboo_hi_priority",description = "No harvest in North Cariboo high priority stands in high priority high elevation critical habitat; harvest allowed in high priority matrix critical habitat up to 15% disturbance (no buffer) in forested area. Low and Non-priority areas available for harvest. Note: only low priority HEWSR and high and low priority matrix zones here. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
 
 
