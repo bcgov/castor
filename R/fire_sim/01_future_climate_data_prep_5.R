@@ -103,12 +103,12 @@ dim(tmax_ref_pts_df)
 ####CALCULATE GRAND-MEAN REFERENCE PERIOD DATA (19710101-20001231) ####
 # 2a. Each GCM has several historical runs from 1850 to 2014. For each month of each element (e.g., January Tmin), calculate the mean of each of these runs for the reference period (1971-2000). Then calculate the mean of these reference period means; that’s the grand mean. for each grid cell of each gcm, you will have one raster for jan Tmin, one for feb Tmin, etc. 
 
-ncpath <- "D:\\Fire\\fire_data\\raw_data\\Future_climate\\MPI-ESM1-2-HR\\"
-ncname <- c("tasmax_Amon_MPI-ESM1-2-HR_historical_r1i1p1f1_gn_200001-200412", "tasmax_Amon_MPI-ESM1-2-HR_historical_r1i1p1f1_gn_200501-200912","tasmax_Amon_MPI-ESM1-2-HR_historical_r1i1p1f1_gn_201001-201412")  
-dname <- "tasmax"  # These temperature readings are in Kelvin (C = Kelvin - 273.15)
-tmax_fc_pts_df<- as.data.frame(sppts)[2:3]
-tmax_fc_pts_df <- tmax_fc_pts_df %>% dplyr::rename(lon=x, lat=y)
-
+# ncpath <- "D:\\Fire\\fire_data\\raw_data\\Future_climate\\MPI-ESM1-2-HR\\"
+# ncname <- c("tasmax_Amon_MPI-ESM1-2-HR_historical_r1i1p1f1_gn_200001-200412", "tasmax_Amon_MPI-ESM1-2-HR_historical_r1i1p1f1_gn_200501-200912","tasmax_Amon_MPI-ESM1-2-HR_historical_r1i1p1f1_gn_201001-201412")  
+# dname <- "tasmax"  # These temperature readings are in Kelvin (C = Kelvin - 273.15)
+# tmax_fc_pts_df<- as.data.frame(sppts)[2:3]
+# tmax_fc_pts_df <- tmax_fc_pts_df %>% dplyr::rename(lon=x, lat=y)
+# 
 monthdays <- c(31, 28.25, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 monthcodes <- c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
 
@@ -131,7 +131,8 @@ for(i in select[1:length(select)]){
   ripf.list <- sapply(strsplit(files, "_"), "[", 5)
   run.list <- paste(scenario.list, ripf.list, sep="_")
   elements <- unique(element.list)[c(3,4,1)]
-  runs <- unique(run.list)
+  runs2 <- unique(run.list)
+  runs<-runs2[grep("historical", runs2)]
   years<- c("197001", "197501", "198001", "198501", "199001", "199501", "200001")
   
   # units of pr are in mm/s
@@ -140,11 +141,11 @@ for(i in select[1:length(select)]){
   # data <- nc_open(paste(dir, files.run[grep(element, files.run)], sep="\\"))
   # print(data)
   
-  run=runs[2]
+  #run=runs[2]
   for(run in runs){
     files.run <- files[grep(run, files)] # get all files from a specific GCM run e.g. historical_r1i1p1f1
     
-    element=elements[1]
+    #element=elements[3]
     for(element in elements){
       files.element <- files.run[grep(element, files.run)] # get all tasmax/tasmin/pr files from the specific GCM run
       
@@ -153,27 +154,69 @@ for(i in select[1:length(select)]){
        #did this rather than stack import becuase it preserves the variable (month) names
         temp2 <- brick(paste(dir, files.years, sep="\\"))
         temp <- if(year==1) temp2 else brick(c(temp, temp2))
-        print(year)
+        #print(year)
       }
       
-      m=1
+      #m=1
       for(m in 1:12){
         r <- temp[[which(substr(names(temp),7,8)==monthcodes[m])]] # get all Januaries or Februaries etc
         if(element=="pr") r <- r*86400*monthdays[m] else r <- r-273.15  #convert units to /month (86400 seconds / day) and to degrees C
         
         r1<- r[[1:31]] # select columns 1970 - 2000
         r.mean<- mean(r1)
-        plot(r.mean)
-            }
-      
-     
+        #plot(r.mean) # looks like its working
+        
+        temp.rast <- if(m==1) r.mean else brick(c(temp.rast, r.mean))
+      }
+      names(temp.rast) <- c(paste0(element,"_01"), paste0(element,"_02"), paste0(element,"_03"), paste0(element,"_04"), paste0(element,"_05"), paste0(element,"_06"), paste0(element,"_07"), paste0(element,"_08"), paste0(element,"_09"), paste0(element,"_10"), paste0(element,"_11"), paste0(element,"_12"))
+      writeRaster(temp.rast, paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\", element,"_", gcm, "_", run, "_", "ref_1971_2000_", ".nc", sep=""), format="CDF", overwrite=TRUE)
+      print(element)
       }
     }
-    names(gcm.ts) <- names(obs.ts)
-    write.csv(gcm.ts,paste("outputs\\ts.", gcm, ".", run, ".csv", sep=""), row.names=FALSE)
-    print(run)
+  print(run)}
+  
+#get average of climate in each month across all runs.
+dir <- paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs", gcm, sep="\\")
+files <- list.files(dir)
+element.list <- sapply(strsplit(files, "_"), "[", 1)
+ripf.list <- sapply(strsplit(files, "_"), "[", 4)
+run.list <- ripf.list
+elements <- unique(element.list)
+runs2 <- unique(run.list)
+runs<-runs2[grep("historical", runs2)]
+years<- c("197001", "197501", "198001", "198501", "199001", "199501", "200001")
+
+for(element in elements){
+  files.element <- files[grep(element, files)] # get all tasmax/tasmin/pr files from the specific GCM run
+  for (i in 1: length(files.element)) {
+  temp2 <- brick(paste(dir, files.element[i], sep="\\"))
+  temp <- if(i==1) temp2 else brick(c(temp, temp2))
+  
+  
   }
   
+  
+  
+  for(year in 1:length(years)){
+    files.years<-files.element[grep(years[year], files.element)] # get the 
+    #did this rather than stack import becuase it preserves the variable (month) names
+        #print(year)
+  }
+  
+  #m=1
+  for(m in 1:12){
+    r <- temp[[which(substr(names(temp),7,8)==monthcodes[m])]] # get all Januaries or Februaries etc
+    if(element=="pr") r <- r*86400*monthdays[m] else r <- r-273.15  #convert units to /month (86400 seconds / day) and to degrees C
+    
+    r1<- r[[1:31]] # select columns 1970 - 2000
+    r.mean<- mean(r1)
+    #plot(r.mean) # looks like its working
+    
+    temp.rast <- if(m==1) r.mean else brick(c(temp.rast, r.mean))
+  }
+  names(temp.rast) <- c(paste0(element,"_01"), paste0(element,"_02"), paste0(element,"_03"), paste0(element,"_04"), paste0(element,"_05"), paste0(element,"_06"), paste0(element,"_07"), paste0(element,"_08"), paste0(element,"_09"), paste0(element,"_10"), paste0(element,"_11"), paste0(element,"_12"))
+  writeRaster(temp.rast, paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\", element,"_", gcm, "_", run, "_", "ref_1971_2000_", ".nc", sep=""), format="CDF", overwrite=TRUE)
+  print(element)
 }
 
 
