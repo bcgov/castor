@@ -76,10 +76,12 @@ parameters <-  list(
                                              "rast.zone_cond_eccc_moberly_crithab_or_herd",
                                              "rast.zone_cond_eccc_graham_crithab_or_herd",
                                              "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                             "rast.zone_cond_bc_graham_crithab",
                                              "rast.central_grp_proposed_luo",
                                              "rast.central_grp_proposed_luo_buffer",
                                              "rast.central_grp_proposed_luo_matrix",
-                                             "rast.central_grp_proposed_luo_feb2021"
+                                             "rast.central_grp_proposed_luo_feb2021",
+                                             "rast.zone_du7_scenario_20210330"
                                             ), 
                          nameZoneTable = "zone_constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",

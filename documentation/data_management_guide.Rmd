@@ -609,9 +609,54 @@ dbExecute (conn,
            "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'zone_du7_scenarios_20210305_vat';") 
 dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du7_scenarios_20210305_vat';")
 
+# Added some NW coastal TSAs needed for DU7 caribou analysis
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'tsa_nw_coast_no_tfl', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Includes Kalum, Pacific and Cascadia TSA Block 10, with TFLs clipped out; sourced from WHSE_ADMIN_BOUNDARIES.FADM_TSA', 
+                        public = 'Yes', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
 
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'tsa_aac_bounds_nw_coast_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\study_area_boundaries.Rmd', 
+                        source = 'TSA boundary VAT; exclusively includes Kalum, Pacific and Cascadia TSA Block 10, with TFLs clipped out; sourced from WHSE_ADMIN_BOUNDARIES.FADM_TSA', 
+                        public = 'Yes', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data1, all = T)
 
-
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'tsa_aac_bound_nw_coast', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\study_area_boundaries.Rmd', 
+                        source = 'TSA boundary raster; exclusively includes Kalum, Pacific and Cascadia TSA Block 10, with TFLs clipped out; sourced from WHSE_ADMIN_BOUNDARIES.FADM_TSA', 
+                        public = 'Yes', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
 ```
