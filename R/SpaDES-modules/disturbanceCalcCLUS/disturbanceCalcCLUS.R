@@ -265,7 +265,8 @@ distAnalysis <- function(sim) {
   #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
   #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
-  tempDisturbanceReport<-data.table(Filter(function(x) dim(x)[1] > 0,
+  # 
+  tempDisturbanceReport<-data.table(Filter(function(x) !is.null(x),
                                 list (cutblock_summary, road_summary, c80r, c40r, c20r, c10_40r)) %>%
                                   Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .))
   
