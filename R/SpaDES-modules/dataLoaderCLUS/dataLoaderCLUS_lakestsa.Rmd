@@ -66,7 +66,9 @@ parameters <-  list(
                                              "rast.zone_cond_noharvest_takla_crithab_or_herd", 
                                              "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd", 
                                              "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
-                                             "rast.zone_du7_scenario_20210305"
+                                             "rast.zone_cond_bc_takla_crithab",
+                                             "rast.zone_cond_bc_tweedsmuir_crithab",
+                                             "rast.zone_du7_scenario_20210330"
                                              ), 
                          nameZoneTable = "zone_constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
