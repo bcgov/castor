@@ -1,7 +1,7 @@
 ---
-title: "forestryCLUS"
+title: "forestryCLUS_pacificTSA"
 author: ""
-date: "08 April 2019"
+date: "06 April 2021"
 output:
   html_document: 
     keep_md: yes
@@ -38,32 +38,21 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# Lakes TSA Scenarios
+# Pacific TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in caribou herd or critical habtait areas; where there is cirtical habtait, no harvest in any types (includign matrix), and where therre is no critical habtiat, no harvest anywhere in the herd boudanries (assumes all critical hbaitat); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in Lakes we have Takla herd boundaries, Tweedsmuir HEWSR, Tweedsmuir LESR, Tweedsmuir LEWR, and Tweedsmuir Matrix  
+DU7 (Northern group) specific scenarios developed by caribou recovery science team. These were done for each groups of herds that overlaps the TSA.
 
-no harvest in Chilcotin caribou critical habtiat; to support Chilcotin herd planning, we run a sceanrio with no harvest in the  Tweedsmuir HEWSR, Tweedsmuir LESR, Tweedsmuir LEWR, and Tweedsmuir Matrix; harvest is BAU in Takla; asses teh potential maximum impact of protecting Chilcotin only, assumign Takla unprotected
-
-ECCC in Chilcotin caribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the feederal recovery strategy that stipulates no harvest in high adn low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes Takla unprotected
-
-DU7 (Northern group) specific scenarios developed by caribou recovery science team. These were done for each groups of herds that overlaps the TSA. For Lakes TSA, this included Tweedsmuir (group 1).
-
-First set of scenarios uses rast.zone_du7_scenario_20210305; this raster defines priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. Scenarios:
+First set of scenarios uses rast.zone_du7_scenario_20210330; this raster defines priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. Scenarios:
 * 3a = No harvest in old forest, recruitment forest and buffered high elevation core and low elevation summer critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in low elevation winter and matrix habitat areas
 
-# Lakes TSA Parameters 
+# Pacific TSA Parameters 
+The TSA consists of 30 timber supply blocks (‘supply blocks’) on Vancouver Island, the Sunshine Coast, the Mainland Coast and Douglas Channel, each ranging in size from 76 hectares to over 400 000 hectares. Here we only simualte within supply blocks that overlap caribou range in northwest BC. 
 
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw,parks and protected areas 
 
-No harvest anywhere = zone_cond_noharvest_takla_crithab_or_herd, zone_cond_noharvest_tweedsmuir_crithab_or_herd
-
-No harvest TWeedsmuir = zone_cond_noharvest_tweedsmuir_crithab_or_herd
-
-ECCC TWeedsmuir = zone_cond_eccc_tweedsmuir_crithab_or_herd
-
-DU7 - Northern group priority forest stand areas = "rast.zone_du7_scenario_20210305"
+DU7 - Northern group priority forest stand areas = "rast.zone_du7_scenario_20210330"
 
 
 ## 'harvestPriority' parameter 
@@ -77,17 +66,15 @@ DU7 - Northern group priority forest stand areas = "rast.zone_du7_scenario_20210
 
 
 ## 'harvestFlow'
-from Lakes 2019 determination: "The live volume harvest level of 400 000 cubic metres per year indicated in the base case can only be realized if licensees immediately focus their performance in low live volume stands.  Specifically: stands with less than 170 cubic metres per hectare; and, beetle-affected stands where the minimum live volume is 125 cubic metres per hectare for balsam-leading stands, 80 cubic metres per hectare for pine-leading stands, and 82 cubic metres per hectare for spruce-leading stands
-- average of this is 96m3/ha, so i used 100m3/ha as my min harvest volume
+Effective August 10, 2017, the AAC for the  Pacific TSA was set at 803,300 cubic metres.
 
-from Lakes 2019 determination: "In the base case, an initial harvest level of 400 000 cubic metres of live volume was possible for the first 60 years." and "The managed stands are projected to provide almost the entire harvest after 60 years from now and are able to support a stable long-term harvest level of 900 000 cubic metres per year. "
 
--  a harvest flow of 950,000m^3^/year was sustainable, 
+
 
 #UPDATE SCENARIO
 ```{r, zone_update}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Lakes_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Pacific_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'") 
@@ -128,36 +115,26 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = TRUE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Lakes_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Pacific_TSA_clusdb.sqlite"),
                            #Study Area
-                           nameBoundaryFile = "tsa_aac_bounds",
+                           nameBoundaryFile = "tsa_nw_coast_no_tfl",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Lakes_TSA",
+                           nameBoundary = "Pacific TSA",
                            nameBoundaryGeom = 'wkb_geometry',
-                           nameCompartmentRaster = "rast.tsa_aac_boundary",
-                           nameCompartmentTable = "tsa_aac_bounds_vat",
+                           nameCompartmentRaster = "rast.tsa_aac_bound_nw_coast",
+                           nameCompartmentTable = "tsa_aac_bounds_nw_coast_vat",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                                "rast.zone_cond_vqo", 
                                                "rast.zone_cond_wha", 
-                                               "rast.zone_cond_uwr",
-                                               "rast.zone_cond_fsw",
-                                               "rast.zone_cond_nharv",
-                                               
-                                               #"rast.zone_cond_noharvest_takla_crithab_or_herd"
-                                               #"rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"
-                                             
-                                               #"rast.zone_bc_bounds_takla_noharvest",
-                                               #"rast.zone_bc_bounds_tweedsmuir_noharvest",
-                                             
-                                               #"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd", 
-                                               #"rast.zone_bc_takla_crithab",
-                                               #"rast.zone_bc_tweedsmuir_crithab"
-                                               
-                                               #"rast.zone_cond_bc_takla_crithab",  
-                                               #"rast.zone_cond_bc_tweedsmuir_crithab"
-                                             
-                                                "rast.zone_du7_scenario_20210330"
+                                               "rast.zone_cond_uwr", 
+                                               "rast.zone_cond_nharv", 
+                                               "rast.zone_cond_fsw", 
+                                               "rast.zone_cond_cw"
+                                               # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                               # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
+                                               # "rast.zone_cond_bc_tweedsmuir_crithab",
+                                               # "rast.zone_du7_scenario_20210330"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -201,10 +178,10 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
- volumebyareaReportCLUS = list (calculateInterval = 1,
+  volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.bc_crithab_and_herd",
                                  AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
-  uploaderCLUS = list(aoiName = 'lakes_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'pacific_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -229,33 +206,21 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "lakes_bau",
-#                        description = "Business-as-usual case. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "lakes_du7_grp1_nh",
+scenario = data.table (name = "pacific_bau",
+                       description = "Business-as-usual case. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "pacific_du7_grp1_nh",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "lakes_du7_grp1_he0d_mlewr12d",
+# scenario = data.table (name = "pacific_du7_grp1_he0d_mlewr12d",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "lakes_du7_grp1_hi_med_lo_priority",
+# scenario = data.table (name = "pacific_du7_grp1_hi_med_lo_priority",
 #                        description = "No harvest priority stands in all priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "pacific_du7_grp1_hi_med_priority",
+#                        description = "No harvest priority stands in high and medium priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high and medium priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "lakes_du7_grp1_hi_med_priority",
-                       description = "No harvest priority stands in high and medium priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high and medium priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
-# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
-# scenario = data.table (name = "lakes_northgrp_nh",
-#                        description = "No harvest in Northern Group, group 1 (Tweedsmuir) critical habitat types. Even harvest flow = 1,150,000m3/year. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "lakes_northgrp_scen2",
-#                        description = "No harvest in Northern Group high elevation (HEWSR) and low elevation summer (LESR) critical habitat; harvest allowed in low elevation winter (LEWR) and matrix critical habitat up to 12% forest disturbance (no buffer) in forested area. Even harvest flow = 1,150,000m3/year. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "lakes_northgrp_high_med_low_priority",
-#                        description = "No harvest in Northern Group high elevation (HEWSR) and low elevation summer (LESR) critical habitat; harvest allowed in low elevation winter and matrix critical habitat up to 15% forest disturbance (no buffer) in forested area. Even harvest flow = 1,150,000m3/year. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "lakes_all_herdbounds_nh",
-#                        description = "No harvest in all caribou ciritical habitat (Tweesmuir) or herd boundaries (Takla). Adjacency was set to 3m. ")
-# scenario = data.table (name = "lakes_chil_hele0d_m15d",
-#                        description = "No harvest in TWeedsmuir high adn low elevation, and 35% disturbance in matrix critical habitat boundaries. Adjacency was set to 3m.")
-
-harvestFlow <- rbindlist(list(data.table(compartment ="Lakes_TSA",
-                                     partition = ' vol > 100 ', # from Lakes 2019 determination
+harvestFlow <- rbindlist(list(data.table(compartment ="Pacific TSA",
+                                     partition = ' vol > 100 ', 
                                      year = rep( seq (from = 2018, # run the 
                                                       to = 2218, 
                                                       by = 5),
