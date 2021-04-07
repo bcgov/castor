@@ -333,7 +333,7 @@ gcms[select]
 ## 3.	Bilinearly interpolate these anomaly rasters to the grid scale of the observational climate normals.
 
 ```{r Step3, echo=FALSE}
-rm(dirs, gcms, dir, files, element.list, scenario.list, ripf.list, run.list, elements, runs2, runs, years, temp, ref.rast, r, delta.r, delta.r.hist, temp.delta.rast, temp.delta.rast.hist, temp2, temp3, x)
+rm(dirs, gcms, dir, files, element.list, scenario.list, ripf.list, run.list, elements, runs2, runs, years, temp, ref.rast, r, delta.r, delta.r.hist, temp.delta.rast, temp.delta.rast.hist, temp2, temp3)
 gc()
 
 # Get the file path of the PRISM data so that I can import this data and interpolate my runs to the same scale

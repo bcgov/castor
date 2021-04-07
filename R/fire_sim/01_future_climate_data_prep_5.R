@@ -23,7 +23,7 @@
 
 #### Introduction
 
-# Here I am trying to downscale global climate change models to a 800 x 800m scale (or finer) so that they can be used to predict fire occurence in the future. ClimateBC has a little program that you can use to extract future climate values for any number of locations within BC, but manually extracting millions of locations for each year (2019 - 2100) and for multiple difference gcm's is time consuming and repetitive. Also, CMIP 5 is shortly going to be replaced with CMIP 6 but this data has not come out on climateBC yet. I chatted to Colin Mahony and he suggested I do the downscaling myself. He outlined the steps I should take and its pretty straight forward so thats the path Im following. 
+# Here I am trying to downscale global climate change models to a 800 x 800m scale (or finer) so that they can be used to predict fire occurence in the future. ClimateBC has a little program that you can use to extract future climate values for any number of locations within BC, but manually extracting millions of locations for each year (2019 - 2100) and for multiple difference gcm's is time consuming and repetitive. Also, CMIP 5 is shortly going to be replaced with CMIP 6 but this data has not come out on climateBC yet. I chatted to Colin Mahony and he suggested I do the downscaling myself. He outlined the steps I should take and its pretty straight forward so thats the path Im following here. 
 
 #### Methods
 
@@ -36,7 +36,9 @@
 # 
 # 3.	Bilinearly interpolate these anomaly rasters to the grid scale of the observational climate normals.
 # 
-# 4.	Add (or multiply for precipitation) these anomalies to the observational climate normals (PRISM data). 
+# 4.	Add (or multiply for precipitation) these anomalies to the observational climate normals (PRISM data).
+
+# Colin suggested I start with MPI-ESM1-2-HR as my first GCM run because its at a 60x60km resolution. 
 
 #### Information about MPI-ESM1-2-HR from http://www.glisaclimate.org/model-inventory/max-planck-institute-for-meteorology-earth-system-model-mr
 
@@ -169,54 +171,42 @@ for(i in select[1:length(select)]){
         temp.rast <- if(m==1) r.mean else brick(c(temp.rast, r.mean))
       }
       names(temp.rast) <- c(paste0(element,"_01"), paste0(element,"_02"), paste0(element,"_03"), paste0(element,"_04"), paste0(element,"_05"), paste0(element,"_06"), paste0(element,"_07"), paste0(element,"_08"), paste0(element,"_09"), paste0(element,"_10"), paste0(element,"_11"), paste0(element,"_12"))
-      writeRaster(temp.rast, paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\", element,"_", gcm, "_", run, "_", "ref_1971_2000_", ".nc", sep=""), format="CDF", overwrite=TRUE)
+      writeRaster(temp.rast, paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\", element,"_", gcm, "_", run, "_", "ref_1971_2000", ".nc", sep=""), format="CDF", overwrite=TRUE)
       print(element)
       }
     }
   print(run)}
-  
+
+#############################################
+# calculate grand mean of reference period
+#############################################
+
 #get average of climate in each month across all runs.
 dir <- paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs", gcm, sep="\\")
 files <- list.files(dir)
 element.list <- sapply(strsplit(files, "_"), "[", 1)
-ripf.list <- sapply(strsplit(files, "_"), "[", 4)
-run.list <- ripf.list
 elements <- unique(element.list)
-runs2 <- unique(run.list)
-runs<-runs2[grep("historical", runs2)]
-years<- c("197001", "197501", "198001", "198501", "199001", "199501", "200001")
+monthcodes <- c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
+
+rm(temp2, temp, files.element)
+
 
 for(element in elements){
   files.element <- files[grep(element, files)] # get all tasmax/tasmin/pr files from the specific GCM run
   for (i in 1: length(files.element)) {
-  temp2 <- brick(paste(dir, files.element[i], sep="\\"))
+  temp2 <- stack(paste(dir, files.element[i], sep="\\"))
+  names(temp2) <- c(paste0(element,"_01"), paste0(element,"_02"), paste0(element,"_03"), paste0(element,"_04"), paste0(element,"_05"), paste0(element,"_06"), paste0(element,"_07"), paste0(element,"_08"), paste0(element,"_09"), paste0(element,"_10"), paste0(element,"_11"), paste0(element,"_12"))
   temp <- if(i==1) temp2 else brick(c(temp, temp2))
-  
-  
   }
-  
-  
-  
-  for(year in 1:length(years)){
-    files.years<-files.element[grep(years[year], files.element)] # get the 
-    #did this rather than stack import becuase it preserves the variable (month) names
-        #print(year)
-  }
-  
+
   #m=1
   for(m in 1:12){
-    r <- temp[[which(substr(names(temp),7,8)==monthcodes[m])]] # get all Januaries or Februaries etc
-    if(element=="pr") r <- r*86400*monthdays[m] else r <- r-273.15  #convert units to /month (86400 seconds / day) and to degrees C
-    
-    r1<- r[[1:31]] # select columns 1970 - 2000
-    r.mean<- mean(r1)
+    r <- temp[[which(substr(names(temp),4,5)==monthcodes[m])]] # get all Januaries or Februaries etc
+    r.mean<- mean(r)
     #plot(r.mean) # looks like its working
-    
-    temp.rast <- if(m==1) r.mean else brick(c(temp.rast, r.mean))
-  }
-  names(temp.rast) <- c(paste0(element,"_01"), paste0(element,"_02"), paste0(element,"_03"), paste0(element,"_04"), paste0(element,"_05"), paste0(element,"_06"), paste0(element,"_07"), paste0(element,"_08"), paste0(element,"_09"), paste0(element,"_10"), paste0(element,"_11"), paste0(element,"_12"))
-  writeRaster(temp.rast, paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\", element,"_", gcm, "_", run, "_", "ref_1971_2000_", ".nc", sep=""), format="CDF", overwrite=TRUE)
-  print(element)
+    rf <- writeRaster(r.mean, filename=paste("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\grand_mean_ref_period_1971_2000\\", element,"_", gcm, "_", "ref_1971_2000_mnth_",m, ".nc", sep=""), format="GTiff", overwrite=TRUE)
+    }
+   print(element)
 }
 
 
