@@ -43,6 +43,8 @@ st_crs(prov.bnd)
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 bc.bnd <- st_transform (prov.bnd, 3005)
 fire.ignition.clipped<-fire.ignition[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
+# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
+
 
 bec_sf<-st_as_sf(bec)
 bec_sf_buf<- st_buffer(bec_sf, 0)
@@ -50,7 +52,7 @@ fire.ignition_sf<-st_as_sf(fire.ignition.clipped)
 
 #doing st_intersection with the whole bec and fire ignition files is very very slow! 
 
-fire.igni.bec<- st_intersection(fire.ignition, bec_sf_buf)
+fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf)
 
 #write samp_locations_df to file because it takes so long to make
 # save data 
@@ -75,6 +77,8 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
 fire_igni_bec<- st_read (dsn = conn, 
           layer = c ("public", "fire_ignit_by_bec"))
 dbDisconnect (conn)
+
+#fire_igni_bec<-fire_igni_bec[bc.bnd,]
 
 #getting long lat info
 #geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
@@ -107,8 +111,11 @@ filenames<-list()
 
 for (i in 1:length(years)) {
   print(years[i])
-  foo<- fire_igni_bec_new %>% filter(fire_year==years[i])
+  foo<- fire_igni_bec_new %>% filter(fire_year==years[i], fire_cause=="Lightning")
   foo_ignit_sf<- st_as_sf(foo)
+  
+  all_sample_points <- data.frame (matrix (ncol = 18, nrow = 0)) # add 'data' to the points
+  colnames (all_sample_points) <- c ("ogc_fid", "fire_no", "fire_year", "ign_date", "fire_cause", "fire_id", "fire_type", "latitude", "longitude", "size_ha", "objectid", "feature_class_skey", "zone", "subzone", "natural_disturbance", "zone_name", "fire", "wkb_geometry")
   
   for (j in 1:length(beczone)) {
     print(beczone[j])
@@ -119,14 +126,14 @@ for (i in 1:length(years)) {
     foo_ignit_small$fire<-1
     foo.ignit.buffered<- st_buffer(foo_ignit_small, dist=500) # buffering fire ignition locations by 500m. I decided to do this because I dont think the recorded locations are likely very accurate so I hope this helps
     foo.ignit.buffered<-foo.ignit.buffered %>% 
-      dplyr::select(fire_no, zone, subzone, wkb_geometry)
+      dplyr::select(ogc_fid, fire_no, fire_id, zone, subzone, wkb_geometry)
     foo.ignit.buf.union<-st_union(foo.ignit.buffered)
     
     bec_foo<- bec_sf_buf %>% filter(zone==beczone[j])
     clipped<-st_difference(bec_foo, foo.ignit.buf.union)
     #clipped<-rmapshaper::ms_erase(target=bec_foo, erase=foo.ignit.buffered) # clips out buffered areas I think.But it crashes a lot!
     
-    sample_size<-dim(foo_ignit_small)[1]*10
+    sample_size<-dim(foo_ignit_small)[1]*2
     samp_points <- st_sample(clipped, size=sample_size)
     samp_points_sf = st_sf(samp_points)
     samp_joined = st_join(samp_points_sf, clipped) # joining attributes back to the sample points
@@ -165,11 +172,8 @@ for (i in 1:length(years)) {
     
     pnts<- rbind(samp_joined_new, foo_ignit_small)
     
-      if (j<2) {
-      all_sample_points<-pnts
-      } else {
-      all_sample_points<-rbind(all_sample_points, pnts)
-      }
+    all_sample_points<- rbind(all_sample_points, pnts)
+    
     
     } 
     
@@ -263,7 +267,7 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09, CMI05:CMI09)
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax05:Tmax09, Tave05:Tave09, PPT05:PPT09)
   
   x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
   
@@ -311,7 +315,7 @@ samp_locations_sf$fire_year <- as.numeric(as.character(samp_locations_sf$fire_ye
 # Now join DC.ignitions back with the original fire ignition dataset
 ignition_weather<-left_join(DC.ignitions1, samp_locations_sf)
 head(ignition_weather)
-dim(ignition_weather) # should have 57984 rows
+dim(ignition_weather) 
 st_crs(ignition_weather)
 ignition_weather_crs <- st_as_sf(ignition_weather)
 crs(ignition_weather_crs)
@@ -322,7 +326,11 @@ ggplot() +
   geom_sf(data=bc.bnd, col='red') +
   geom_sf(data=ignition_weather_crs, col='black') # looks good!
 
+# A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good. 
+
 st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp", delete_layer=TRUE)
+
+
 
 # commit the shape file to postgres
 # this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
@@ -338,7 +346,7 @@ st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_D
 
 # OR my local machine
 
-# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\dc_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 #########################################
 #### FINISHED NOW GO TO 01_vri_data_prep####
