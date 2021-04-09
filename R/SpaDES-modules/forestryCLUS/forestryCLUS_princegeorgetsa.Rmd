@@ -77,12 +77,14 @@ The current AAC (October 11, 2017) is set at 8,350,000 cubic metres per year for
 blocks (and reduced to 5. 1 million cubic metres in October 2022), of which 62,000 cubic
 metres per year is attributed to deciduous-leading stands. A maximum of 750,000 cubic metres per year is attributed to bioenergy stands.
 
-I started with 6,100,000m3/yr; was close, so dropped to 6,000,000m3/yr; was stable there.
+For south blocks, I started with 6,100,000m3/yr; was close, so dropped to 6,000,000m3/yr; was stable there.
+
+For north blocks, I started with 1.6M m3/yr; 1.5M; 1.25; 1.15; 1.2 - final
 
 #UPDATE SCENARIO
 ```{r, zone_update}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite")) # Prince_George_North_TSA_clusdb.sqlite
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones; rast.zone_cond_bc_itcha_ilgachuz_crithab rast.zone_cond_bc_tweedsmuir_crithab
@@ -212,11 +214,10 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite"),
-                           #Study Area
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_North_TSA_clusdb.sqlite"),  # Prince_George_North_TSA_clusdb.sqlite  Prince_George_TSA_clusdb.sqlite
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Prince_George_TSA", 
+                           nameBoundary = "Prince_George_North_TSA", # Prince_George_North_TSA   Prince_George_TSA
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -227,7 +228,7 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw",
+                                               "rast.zone_cond_cw"
                                     #            'rast.zone_cond_partnership_agreement',
                                     # "rast.zone_cond_noharvest_george_mountain_crithab_or_herd",
                                     # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
@@ -257,7 +258,7 @@ parameters <- list(
                                      # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
                                      # "rast.zone_cond_bc_tweedsmuir_crithab"
                                     # "rast.central_grp_proposed_luo_feb2021"
-                                     "rast.zone_du7_scenario_20210330"
+                                    # "rast.zone_du7_scenario_20210330"
                                     ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -375,11 +376,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "pg_south_du7_grp1_hi_med_lo_priority",
 #                        description = "No harvest in priority stands in high, medium and low priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high, medium and low priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "pg_south_du7_grp1_hi_priority",
+#                        description = "No harvest in priority stands in high priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Low priority zones availble to harvest. NTOE: no and medium zones in this unit. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
-scenario = data.table (name = "pg_south_du7_grp1_hi_priority",
-                       description = "No harvest in priority stands in high priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Low priority zones availble to harvest. NTOE: no and medium zones in this unit. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency = 3m.")
-
-
+scenario = data.table (name = "pg_north_bau",
+                       description = "Business-as-usual case; north PG TSA only. Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
@@ -393,13 +394,13 @@ scenario = data.table (name = "pg_south_du7_grp1_hi_priority",
 
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA",
+harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_North_TSA", # Prince_George_North_TSA   Prince_George_TSA
                                          partition = ' vol > 182 and age >= 75  ', 
                                            year = rep( seq (from = 2018, 
                                                             to = 2218, 
                                                             by = 5),
                                                       1), 
-                                           flow = 30000000) #6,000,000
+                                           flow = 6000000) #6,000,000 / 30000000 //  1,200,000 / 
 ))
 
 
