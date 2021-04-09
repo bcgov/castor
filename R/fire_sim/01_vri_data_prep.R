@@ -35,11 +35,21 @@
 
 #### Join ignition data to VRI data ####
 # Run following query in postgres. This is fast
-#CREATE TABLE fire_veg_2002 AS
-#(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, harvest_date, proj_age_1, 
-#  proj_age_2, proj_height_1, proj_height_2, fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha,
-#  fire.fire_pres, fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire#.ppt08, fire.ppt09, fire.cmi05, fire.cmi06, fire.cmi07, fire.cmi08, fire.cmi09, fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, 
-#  veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002, (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire_pres, zone, subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, cmi05, cmi06, cmi07, cmi08, cmi09, mdc_05, mdc_06, mdc_07, mdc_08, mdc_09 from dc_data where fire_yr = '2002') as fire where st_contains (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
+#CREATE TABLE fire_veg_2007 AS
+# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
+#  harvest_date, proj_age_1, proj_age_2, proj_height_1, proj_height_2, 
+#  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire, 
+#  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07, 
+#  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, 
+#  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, 
+#  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, 
+#  veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007, 
+#  (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone, 
+#   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, 
+#   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08, 
+#   mdc_09 from dc_data where fire_yr = '2007') as fire where st_contains 
+#  (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
+
 
 # One problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
 # ALTER TABLE fire_veg_2011  
@@ -97,12 +107,15 @@ fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
 dbDisconnect (conn) # connKyle
 
 # the VRI for 2007 did not have a column for harvest_date and some columns needed to be renamed
-fire_veg_2007$harvest_date <- NA
+#fire_veg_2007$harvest_date <- NA
+names(fire_veg_2007)
 fire_veg_2007<- fire_veg_2007 %>% rename(proj_height_1=proj_ht_1, 
-                                         proj_height_2=proj_ht_2)
+                                         proj_height_2=proj_ht_2, 
+                                         harvest_date=upd_htdate)
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
 filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019")
+
 
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
@@ -113,6 +126,13 @@ mkFrameList <- function(nfiles) {
 
 n<-length(filenames3)
 fire_veg_data<-mkFrameList(n)
+
+table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
+# hmmmm, a few fire ignition locations seem to have been thrown out when I joined the VRI data to the climate and fire ignition data. WHY?
+# e.g. numbers to check 2002 -> 876 lightning strikes
+#                       2007 -> 22
+#                       2008 -> 29
+
 
 # write final fire ignitions, weather and vegetation types to postgres
 
