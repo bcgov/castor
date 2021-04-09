@@ -126,6 +126,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_
 
 
 
+# NORTHERN GROUP - GROUP 3 (Wolverine, Chase, Takla)
+# Below makes priority forest stands, all priority zones no harvest and all priority zones of the matrix and LEWR habitat areas max 15% disturbance; NOTE: all zones high priority
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 71) OR (zoneid = 72) OR (zoneid = 73) OR (zoneid = 74) OR (zoneid = 77) OR (zoneid = 78) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 86)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+
 ```
 
 
@@ -255,9 +264,12 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "morice_du7_grp1_he0d_mlewr12d",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "morice_du7_grp1_hi_priority",
+#                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) priority stands and all priority zones HEWSR and LESR critical habitat; harvest allowed in all priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "morice_du7_grp1_hi_priority",
-                       description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) priority stands and all priority zones HEWSR and LESR critical habitat; harvest allowed in all priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "morice_du7_grp3_hi_priority",
+                       description = "No harvest in group 3 (Wolverine, Chase, Takla) priority stands and high priority zones HEWSR and LESR critical habitat; harvest allowed in high priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high prioirty in this unit. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
+
 
 
 

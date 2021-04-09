@@ -38,57 +38,24 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# TFL 48 Scenarios
+# Dawson Creek TSA Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Central Group critical habtiat; to support Central Group herd planning, we run a scenario with no harvest in the Central Group HEWSR and Matrix; assesses the potential maximum impact of protecting Central Group only, assuming other herds unprotected
+DU7 (Northern group) specific scenarios developed by caribou recovery science team. These were done for each groups of herds that overlaps the TSA. For Morice TSA, this included Tweedsmuir (group 1).
 
-ECCC in Central Group caribou critical habitat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central Group only
+First set of scenarios uses rast.zone_du7_scenario_20210305; this raster defines priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. Scenarios:
+* 3a = No harvest in old forest, recruitment forest and buffered high elevation core and low elevation summer critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in low elevation winter and matrix habitat areas
 
-Partnership Agreement Scenario; BC, West Moberly First Nation, Saulteau First Nation and Canada have an agreement to protect certain areas in the central group; No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35%  disturbance (15%) harvest in  Central group partnership agreement areas A1, B1, B4 and B5.
-
-No harvest in all Partnership Agreement areas; this scenario assesses the potential maximum impact of protecting all the partnership agreement areas, assuming other herds unprotected
-
-No harvest in all caribou critical habitat areas (Quintette, Burnt Pine, Moberly, Graham)
-
-ECCC in all caribou critical habitat area (Quintette, Burnt Pine, Moberly, Graham); no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat;
-
-
-# TFL 48 Parameters 
+# Fort St John TSA Parameters 
 
 ## New Caribou Constraints
-BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
-
-No harvest in Central Group = rast.zone_cond_noharvest_quintette_crithab_or_herd,
-                              rast.zone_cond_noharvest_burnt_pine_crithab_or_herd,
-                              rast.zone_cond_noharvest_moberly_crithab_or_herd,
-                              rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd
-
-ECCC - No harvest in Central Group high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) matrix critical habitat = rast.zone_cond_eccc_quintette_crithab_or_herd,
-                           rast.zone_cond_eccc_burnt_pine_crithab_or_herd,
-                           rast.zone_cond_eccc_moberly_crithab_or_herd,
-                           rast.zone_cond_eccc_kennedy_siding_crithab_or_herd
+BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
 
 
-Parntership Agreement = rast.zone_cond_partnership_agreement
-
-Parntership Agreement - ho harvest = rast.zone_cond_partnership_agreement (but change constraint to no harvest 'nh')
-
-
-No harvest in all herds = rast.zone_cond_noharvest_quintette_crithab_or_herd,
-                          rast.zone_cond_noharvest_burnt_pine_crithab_or_herd,
-                          rast.zone_cond_noharvest_moberly_crithab_or_herd,
-                          rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd,
-                          rast.zone_cond_noharvest_graham_crithab_or_herd
-
-ECCC in all herds = rast.zone_cond_eccc_quintette_crithab_or_herd,
-                     rast.zone_cond_eccc_burnt_pine_crithab_or_herd,
-                     rast.zone_cond_eccc_moberly_crithab_or_herd,
-                     rast.zone_cond_eccc_kennedy_siding_crithab_or_herd,
-                     rast.zone_cond_eccc_graham_crithab_or_herd
+DU7 - Northern group priority forest stand areas = "rast.zone_du7_scenario_20210305"
 
 ## 'harvestPriority' parameter 
-- used oldest first
+- used oldest first; in TSR model base case used highest volume first, but they also tested oldest first, which harvested more of the THLB adn achieved higher harvest levels
 
 - as alternative,  could focus on minimizing 'disturbance' for caribou, then older, higher volume stands
   - 'dist, age DESC, vol DESC' prioritize based on:
@@ -96,26 +63,23 @@ ECCC in all herds = rast.zone_cond_eccc_quintette_crithab_or_herd,
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
       
+- Minimum harvest criteria: 140 m3/ha (same as TSR base case) 
+
+
 ## 'harvestFlow'
-from 2015 determination: base case started at 1,731,000m^3^/year for 5 years, followed by 838,000m^3^/year for 5 years, followed by 779,000m^3^/year for the next ten years 763,000m^3^/year for the next 30 years and 808,000m^3^/year in the long term; AAC was set at 1,550,000m^3^/year for the first five years and 871,000m^3^/year for the second five years  
+The allowable annual cut (AAC) is 2,115,000 cubic metres, as of May 10, 2018. The TSA is partitioned with 1,200,000 cubic metres attributable to coniferous-leading stands of which at 672,000 cubic metres annually may be taken from the 'core' area. Deciduous species may be harvested up to 915,000 cubic metres, of which 512,000 cubic metres  may be taken from the 'core'.
 
-- First, I tested a harvest flow of 1,000,000m^3^/year (5,000,000m^3^/5-year); then 750,000, 600,000, 500,000, 450,000, 400,000, 350,000, 345,000
+- harvest flow for core: 750,000; 850,000; 1,000,000; 1,250,000; 1.5M; 2.0M; 1.65; 1.85; 1.75; 1.7M - final
 
-- I used 150 m3/ha as minimum harvest volume; nothing in determination on this
+## Modify Zones
 
-- I used 3 m adjacency; nothing in determination on this
-
-
-## Partnership agreement
-There is a Partnership Agreement for these caribou herds that has designated zones and constraints for those zones. These can be modified using the code below.
 
 ```{r, zone_update}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL48_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Fort_St_John_TSA_clusdb.sqlite")) #  Fort_St_John_Core_TSA_clusdb.sqlite  Fort_St_John_TSA_clusdb.sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'") 
 
 # NORTHERN GROUP - GROUP 2 (Graham)
 # Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
@@ -123,11 +87,21 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_graham_crithab' AND (zoneid = 3)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_graham_crithab' AND (zoneid = 3)") 
 # Below makes priority forest stands no harvest and all of the matrix and LEWR habitat areas max 15% disturbance; NOTE all zones high priority
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 13) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 13) OR (zoneid = 14) OR (zoneid = 16) OR (zoneid = 17) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
+# Below makes priority forest stands in high and medium priority zones no harvest and high and medium matrix and LEWR habitat areas max 15% disturbance; Low priority zones available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 14) OR (zoneid = 17) OR (zoneid = 20) OR (zoneid = 26)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 13) OR (zoneid = 16) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+
+
+
 
 #STEP 4: Remove the connection to the database
 dbDisconnect(clusdb)
@@ -147,13 +121,14 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(   dbName='clus',
+  dataLoaderCLUS = list( 
+                           dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL48_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Fort_St_John_Core_TSA_clusdb.sqlite"), # Fort_St_John_Core_TSA_clusdb.sqlite  Fort_St_John_TSA_clusdb.sqlite
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "TFL48",
+                           nameBoundary = "Fort_St_John_Core_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -164,24 +139,21 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
+                                               "rast.zone_cond_cw",
                                                
-                                             #   'rast.zone_cond_partnership_agreement',
-                                             # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                                             # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
-                                             # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                             # "rast.zone_cond_noharvest_graham_crithab_or_herd" 
-                                             # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_quintette_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_graham_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_graham_crithab_or_herd"  
+                                             # "rast.zone_cond_noharvest_pink_mountain_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_chinchaga_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_snake_sahtaneh_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_westside_fort_nelson_crithab_or_herd",
+                                             # 
+                                             # "rast.zone_cond_eccc_graham_crithab_or_herd",                                                                             "rast.zone_cond_eccc_chinchaga_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_pink_mountain_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_snake_sahtaneh_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_westside_fort_nelson_crithab_or_herd",
+                                             # 
                                              # "rast.zone_cond_bc_graham_crithab"
-                                             # "rast.central_grp_proposed_luo",
-                                             # "rast.central_grp_proposed_luo_buffer",
-                                             # "rast.central_grp_proposed_luo_matrix",
-                                             # "rast.central_grp_proposed_luo_feb2021",
+                                             # 
                                               "rast.zone_du7_scenario_20210330"
                                                ),
                            nameZoneTable = "zone_constraints",
@@ -229,7 +201,7 @@ parameters <- list(
   volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.bc_crithab_and_herd",
                                  AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
-  uploaderCLUS = list(aoiName = 'tfl48', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'fort_st_john_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -245,61 +217,38 @@ modules <- list("dataLoaderCLUS",
                 "roadCLUS",  
                 #"yieldUncertaintyCLUS", 
                 "survivalCLUS", 
-                "disturbanceCalcCLUS",
+                "disturbanceCalcCLUS", 
                 "volumebyareaReportCLUS",
                 # "rsfCLUS", # error line 453 - need to debug
                 "uploaderCLUS"
                 )
 
-# rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
-# rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
+# scenario = data.table (name = "fsj_core_bau",
+#                        description = "Business-as-usual case. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_core_graham_nh",
+#                        description = "No harvest in Graham critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_core_graham_he0d_mlewr12d",
+#                        description = "No harvest in Graham HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_core_graham_hi_med_lo_priority",
+#                        description = "No harvest priority stands in all priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
 
-# scenario = data.table (name = "tfl48_bau",
-#                        description = "Business-as-usual (BAU). Harvest flow = 345,000 m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "tfl48_du7_grp2_nh",
-#                        description = "No harvest in group 2 (Graham) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 345,000 m3/yr.  Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "tfl48_du7_grp2_he0d_mlewr12d",
-#                        description = "No harvest in group 2 (Graham)  HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 345,000 m3/yr. Adjacency = 3m. Oldest first.")
-
-scenario = data.table (name = "tfl48_du7_grp2_hi_priority",
-                       description = "No harvest priority stands in high priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority. Harvest flow = 345,000 m3/yr. Adjacency = 3m. Oldest first.")
-
-
-# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
-# scenario = data.table (name = "tfl48_luo_35p_25yo_250cm",
-#                        description = "Central group proposed land use order; area less than 35% less than 25 years old or less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
-# scenario = data.table (name = "tfl48_luo_35p_25yo",
-#                        description = "Central group proposed land use order; area less than 35% less than 25 years old. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
-# scenario = data.table (name = "tfl48_luo_35p_250cm",
-#                        description = "Central group proposed land use order; area less than 35% less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
+scenario = data.table (name = "fsj_core_graham_hi_priority",
+                       description = "No harvest in priority stands in high priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. There are no medium zone sin this unit. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
-# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
-# scenario = data.table (name = "tfl48_centgrp_nh",
-#                        description = "No harvest in Central group critical habitat; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl48_centgrp_ch_he0d_m15d",
-#                        description = "No harvest in Central group HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl48_centgrp_pa_ch_a2b2b3_0d_a1b1b4b5_15d",
-#                        description = "No harvest in Central group partnership agreement areas A2, B2, and B3, maximum 35% buffered disturbance (15% havrest) in  Central group partnership agreement areas A1, B1, B4 and B5; harvest flow 335,000 m3/yr. Adjacency was set to 3m.") 
-# scenario = data.table (name = "tfl48_centgrp_pa_nh",
-#                        description = "No harvest in Central group partnership agreement areas; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl48_all_nh",
-#                        description = "No harvest in all critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl48_all_ch_he0d_m15d",
-#                        description = "No harvest in HEWSR, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the harvest unit; harvest flow 335,000 m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "tfl48_luo_35p_25yo",
-#                        description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
 
-harvestFlow <- rbindlist(list(data.table(compartment ="TFL48",
-                                         partition = ' vol > 150 ', 
-                                         year = rep( seq (from = 2018, 
-                                                          to = 2218, 
-                                                          by = 5),
-                                                    1), 
-                                         flow = 1725000) # 345,000m3/yr 
+
+
+harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_Core_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
+                                     partition = ' vol > 139 ', 
+                                     year = rep( seq (from = 2018, 
+                                                      to = 2222, 
+                                                      by = 5),
+                                                1), 
+                                     flow = 8500000) #1,700,000m3/yr
 ))
 
-#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
+#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
