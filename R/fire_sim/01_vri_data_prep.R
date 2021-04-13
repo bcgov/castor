@@ -35,19 +35,19 @@
 
 #### Join ignition data to VRI data ####
 # Run following query in postgres. This is fast
-#CREATE TABLE fire_veg_2007 AS
-# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, 
-#  harvest_date, proj_age_1, proj_age_2, proj_height_1, proj_height_2, 
-#  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire, 
-#  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07, 
-#  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08, 
-#  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, 
-#  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, 
-#  veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007, 
-#  (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone, 
-#   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07, 
-#   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08, 
-#   mdc_09 from dc_data where fire_yr = '2007') as fire where st_contains 
+# CREATE TABLE fire_veg_2007 AS
+# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
+#  harvest_date, proj_age_1, proj_age_2, proj_height_1, proj_height_2,
+#  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
+#  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+#  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+#  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
+#  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09,
+#  veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007,
+#  (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
+#   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+#   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
+#   mdc_09 from dc_data where fire_yr = '2007') as fire where st_contains
 #  (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
 
 
@@ -106,7 +106,7 @@ fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
 
 dbDisconnect (conn) # connKyle
 
-# the VRI for 2007 did not have a column for harvest_date and some columns needed to be renamed
+# the VRI for 2007 had harvest_date named upd_htdate and proj_height_1, proj_height_2 as proj_ht_1, proj_ht_2. So I need to be renamed these columns
 #fire_veg_2007$harvest_date <- NA
 names(fire_veg_2007)
 fire_veg_2007<- fire_veg_2007 %>% rename(proj_height_1=proj_ht_1, 
