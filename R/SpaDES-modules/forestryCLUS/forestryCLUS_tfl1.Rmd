@@ -87,7 +87,8 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 
-# NORTHERN GROUP - GROUP 1 (Itcha, Rainbows, Charlotte, Tweeds, Telkwa)
+
+# NORTHERN GROUP - Telkwa
 # Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_telkwa_crithab' AND (zoneid = 2)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_telkwa_crithab' AND (zoneid = 2)") 
@@ -98,6 +99,17 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 74)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 74)") 
 
+
+# NORTHERN GROUP - GROUP 1 (Itcha, Rainbows, Charlotte, Tweeds, Telkwa)
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_telkwa_crithab' AND (zoneid = 2)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_telkwa_crithab' AND (zoneid = 2)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_telkwa_crithab' AND (zoneid = 2)") 
+# Below makes priority forest stands no harvest and all of the matrix and LEWR habitat areas max 15% disturbance; NOTE all zones high priority
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 74)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 74)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 74)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 74)") 
 
 #STEP 4: Remove the connection to the database
 dbDisconnect(clusdb)
@@ -217,9 +229,17 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "tfl1_du7_grp1_he0d_mlewr12d",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl1_du7_grp1_hi_priority",
+#                        description = "No harvest priority stands in high priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority matrix. Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl1_telkwa_nh",
+#                        description = "No harvest in Telkwa critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl1_telkwa_he0d_mlewr12d",
+#                        description = "No harvest in Telkwa HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "tfl1_du7_grp1_hi_priority",
-                       description = "No harvest priority stands in high priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority matrix. Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "tfl1_telkwa_hi_priority",
+                       description = "No harvest priority stands in high priority zones in Telkwa HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority matrix. Harvest flow 220,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+
 
 
 

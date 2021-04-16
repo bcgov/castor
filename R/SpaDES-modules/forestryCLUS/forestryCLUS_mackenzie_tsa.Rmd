@@ -118,11 +118,37 @@ No harvest in southern mountain herds =  "rast.zone_cond_noharvest_wolverine_cri
 
 ```{r, zone_update}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Mackenzie_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
-
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/MacKenzie_SW_TSA_clusdb.sqlite")) # MacKenzie_SW_TSA_clusdb.sqlite   Mackenzie_TSA_clusdb.sqlite
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zone;") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'")
+
+
+# NORTHERN GROUP - Wolverine
+# Below makes priority forest stands no harvest in Core and all of the matrix habitat areas max 15% disturbance; N
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 12) OR (zoneid = 13) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 16) OR (zoneid = 17) OR (zoneid = 18) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 21) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 26) OR (zoneid = 27) OR  (zoneid = 9) OR (zoneid = 10) OR (zoneid = 11)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 88) OR (zoneid = 89) OR (zoneid = 90)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 91)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 91)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 91)") 
+
+
+
+
+
+
+
+
+# NORTHERN GROUP - Chase
+# Below makes priority forest stands no harvest in Core and all of the matrix habitat areas max 15% disturbance; N
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 13) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 16) OR (zoneid = 17) OR (zoneid = 18) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 21) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 26) OR (zoneid = 27) OR (zoneid = 88) OR (zoneid = 89) OR (zoneid = 90) OR (zoneid = 91)") 
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 9) OR (zoneid = 10) OR (zoneid = 11)") 
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 12)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 12)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 12)") 
+
 
 # NORTHERN GROUP - GROUP 2 (Graham)
 # Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
@@ -148,9 +174,6 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
 
-
-
-
 #STEP 4: Remove the connection to the database
 dbDisconnect(clusdb)
 ```
@@ -170,6 +193,7 @@ dbDisconnect(clusdb)
 The Mackenzie TSA’s allowable annual cut (AAC) was set at 4.5 million cubic metres as of November 14, 2014. A maximum of 2 M m3 is attributable to live uninfested timber and of this 500 000 m3 can be taken from the south west portion of the TSA (see [Rationale for Allowable Annual Cut (AAC) Partition Amendment](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/16tsra_2019_partition_amendment.pdf)). 
 
 - In the main portion of the TSA, first, I tested a harvest flow of 1,750,000m^3^/year (7,500,000m^3^/5-year), 2M, 1.95M
+- in the SW of the TSA, first, I tested a harvest flow of 500,000, 750,000, 1M, 1.5M, 1.25M, 1.35M; 1.3 - final
 
 
 From 2014 determination: "...current policy already allows stands with less than 150 cubic metres per hectare to be harvested at the licensees’ discretion.  Given the results of the sensitivity analysis in which a decrease in the minimum average volume limit eliminates the projected decline in the base case mid-term timber supply, I strongly encourage Mackenzie Fibre to work with licensees to explore opportunities to harvest lower volume stands in the Mackenzie TSA. With regard to Canfor’s ’ recommendation that an average stand volume limit of 200 cubic metres not be applied in the base case, I note that removal of this limit in a sensitivity analysis resulted in a much higher contribution of low-volume stands than is currently supported by demonstrated harvest performance in the Mackenzie TSA. After careful consideration of all the information available to me, I conclude that the minimum harvest criteria used in the base case reasonably reflect demonstrated harvest performance in the Mackenzie TSA and I will make no adjustments to the base case on this account."
@@ -195,11 +219,11 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/MacKenzie_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/MacKenzie_SW_TSA_clusdb.sqlite"), # MacKenzie_TSA_clusdb.sqlite  MacKenzie_SW_TSA_clusdb.sqlite  
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "MacKenzie_TSA",
+                           nameBoundary = "MacKenzie_SW_TSA", # MacKenzie_TSA   MacKenzie_SW_TSA
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -215,14 +239,15 @@ parameters <- list(
                                               # "rast.zone_cond_partnership_agreement",
                                               # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
                                               # "rast.zone_cond_noharvest_gataga_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_wolverine_crithab_or_herd",
-                                              # "rast.zone_cond_noharvest_chase_crithab_or_herd",
+                                              # "rast.zone_cond_noharvest_wolverine_crithab_or_herd"
+                                              # "rast.zone_cond_noharvest_chase_crithab_or_herd"
                                               # "rast.zone_cond_noharvest_finlay_crithab_or_herd",
                                               # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
                                               # "rast.zone_cond_noharvest_graham_crithab_or_herd"
                                               # "rast.zone_cond_noharvest_rabbit_crithab_or_herd",
                                               # "rast.zone_cond_noharvest_frog_crithab_or_herd",
                                               # "rast.zone_cond_noharvest_thutade_crithab_or_herd",
+                                              # "rast.zone_cond_noharvest_wolverine_crithab_or_herd"
                                               # "rast.zone_cond_eccc_moberly_crithab_or_herd",
                                               # "rast.zone_cond_eccc_gataga_crithab_or_herd",
                                               # "rast.zone_cond_eccc_wolverine_crithab_or_herd",
@@ -248,9 +273,9 @@ parameters <- list(
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2012_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2012",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
@@ -287,7 +312,7 @@ parameters <- list(
   volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.bc_crithab_and_herd",
                                  AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
-  uploaderCLUS = list(aoiName = 'mackenzie_tsa', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'mackenzie_sw_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -328,9 +353,23 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest priority stands in high, medium and low priority zones in group 2 (Graham) HEWSR and LESR critical habitat; harvest allowed in high, medium and low priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "mackenzie_du7_grp2_hi_med",
 #                        description = "No harvest priority stands in high and medium  priority zones in group 2 (Graham) HEWSR and LESR critical habitat; harvest allowed in high and medium priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. All low priority zoens available to harvest. Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "mackenzie_du7_grp2_hi",
+#                        description = "No harvest priority stands in high priority zones in group 2 (Graham) HEWSR and LESR critical habitat; harvest allowed in high  priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. All low and medium priority zones available to harvest. Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "mackenzie_chase_nh",
+#                        description = "No harvest in Chase critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "mackenzie_chase_hi_med_lo",
+#                        description = "No harvest priority stands in high priority zones in Chase core critical habitat; harvest allowed in high priority zones in Chase matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones in this unit high priority. Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "mackenzie_wolverine_nh",
+#                        description = "No harvest in Wolverine herd that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "mackenzie_wolverine_hi_priority",
+#                        description = "No harvest priority stands in high priority zones in Wolverine core critical habitat; harvest allowed in high priority zones in Wolverine matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones in this unit high priority. Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "mackenzie_sw_bau",
+#                        description = "Business-as-usual case; southwest block only. Oldest first. Harvest flow = 1,300,000 m3/yr. Adjacency = 3m.")
+# scenario = data.table (name = "mackenzie_sw_wolverine_nh",
+#                        description = "No harvest in Wolverine herd that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,300,000 m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "mackenzie_du7_grp2_hi",
-                       description = "No harvest priority stands in high priority zones in group 2 (Graham) HEWSR and LESR critical habitat; harvest allowed in high  priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. All low and medium priority zones available to harvest. Harvest flow = 1.95 M m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "mackenzie_sw_wolverine_hi_priority",
+                       description = "No harvest priority stands in high priority zones in Wolverine core critical habitat; harvest allowed in high priority zones in Wolverine matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones in this unit high priority. Harvest flow = 1,300,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 
 
@@ -358,13 +397,13 @@ scenario = data.table (name = "mackenzie_du7_grp2_hi",
 
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="MacKenzie_TSA",
+harvestFlow <- rbindlist(list(data.table(compartment ="MacKenzie_SW_TSA",
                                      partition = ' vol > 150 ', # from 2014 determination
                                      year = rep( seq (from = 2019, # run the 
                                                       to = 2219, 
                                                       by = 5),
                                                 1), 
-                                     flow = 9750000) #1,950,000m3/yr
+                                     flow = 6500000) # 1,300,000m3/yr
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))

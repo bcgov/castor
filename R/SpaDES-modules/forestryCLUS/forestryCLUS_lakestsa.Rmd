@@ -93,6 +93,33 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'") 
 # rast.zone_cond_bc_takla_crithab  rast.zone_cond_bc_tweedsmuir_crithab
 
+# NORTHERN GROUP - Takla
+# Below makes priority forest stands in high priority zones in HEWSR and LESR; and high priority zones of the matrix and LEWR habitat areas max 15% disturbance; NOTE all zones high priority
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 77) OR (zoneid = 78) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 70)") 
+
+
+
+
+
+# NORTHERN GROUP - Tweedsmuir
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 5) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 5) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 5) OR (zoneid = 4)") 
+# Below makes priority forest stands in high priority zones in HEWSR and LESR; and high priority zones of the matrix and LEWR habitat areas max 15% disturbance; NOTE all zones high priority
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 77) OR (zoneid = 78) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
+
+
 # NORTHERN GROUP - GROUP 1 (Itcha, Rainbows, Charlotte, Tweeds, Telkwa)
 # Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 5) OR (zoneid = 4)") 
@@ -159,11 +186,9 @@ parameters <- list(
                                                #"rast.zone_bc_bounds_tweedsmuir_noharvest",
                                              
                                                #"rast.zone_cond_eccc_tweedsmuir_crithab_or_herd", 
-                                               #"rast.zone_bc_takla_crithab",
-                                               #"rast.zone_bc_tweedsmuir_crithab"
-                                               
+                                              
                                                #"rast.zone_cond_bc_takla_crithab",  
-                                               #"rast.zone_cond_bc_tweedsmuir_crithab"
+                                               # "rast.zone_cond_bc_tweedsmuir_crithab"
                                              
                                                 "rast.zone_du7_scenario_20210330"
                                                ),
@@ -247,11 +272,19 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest priority stands in all priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "lakes_du7_grp1_hi_med_priority",
 #                        description = "No harvest priority stands in high and medium priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high and medium priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "lakes_du7_grp3_hi_priority",
+#                        description = "No harvest in group 3 (Wolverine, Chase, Takla) priority stands and high priority zones HEWSR and LESR critical habitat; harvest allowed in high priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "lakes_tweeds_nh",
+#                        description = "No harvest in Tweedsmuir critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "lakes_tweeds_he0d_mlewr12d",
+#                        description = "No harvest in Tweedsmuir HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "lakes_tweeds_hi_priority",
+#                        description = "No harvest priority stands in high priority zones in Tweedsmuir HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: only high priority zones in this unit. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "lakes_takla_nh",
+#                        description = "No harvest in Takla critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "lakes_du7_grp3_hi_priority",
-                       description = "No harvest in group 3 (Wolverine, Chase, Takla) priority stands and high priority zones HEWSR and LESR critical habitat; harvest allowed in high priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
-
-
+scenario = data.table (name = "lakes_takla_hi_priority",
+                       description = "No harvest priority stands in high priority zones in Takla critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: no low and medium priority zones in this unit. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
 

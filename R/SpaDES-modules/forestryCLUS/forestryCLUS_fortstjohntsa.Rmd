@@ -92,6 +92,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25) OR (zoneid = 26)") 
+# Below makes priority forest stands in high  priority zones no harvest and high  priority zones of the matrix and LEWR habitat areas max 15% disturbance; low priority zones available to harvest; no medium priority zones in this unit
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 14) OR (zoneid = 17) OR (zoneid = 20) OR (zoneid = 26)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 13) OR (zoneid = 16)  OR (zoneid = 19)  OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+
+
 
 #STEP 4: Remove the connection to the database
 dbDisconnect(clusdb)
@@ -219,11 +228,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Graham critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "fsj_nocore_graham_he0d_mlewr12d",
 #                        description = "No harvest in Graham HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
-scenario = data.table (name = "fsj_nocore_graham_hi_med_lo_priority",
-                       description = "No harvest priority stands in all priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
-
 # scenario = data.table (name = "fsj_nocore_graham_hi_med_lo_priority",
-#                        description = "No harvest priority stands in high priority zones in group 2 Graham) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
+#                        description = "No harvest priority stands in all priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
+
+scenario = data.table (name = "fsj_nocore_graham_hi_priority",
+                       description = "No harvest priority stands in high priority zones in group 2 Graham) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. No medium priority zones in this unit. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
