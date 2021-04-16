@@ -20,8 +20,9 @@
 
 #### VEGETATION DATA #### 
 #downloaded for years 2002 to 2019. These are the only years that VRI data exists, there is no earlier data.
-#from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2018-
-# I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. 
+#from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2019-
+# I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. If running it in the R terminal does not work try run it in here: 
+#C:\data\localApps\QGIS10.16\OSGeo4W (the terminal window)
 
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VEG_COMP_LYR_R1_POLY.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
@@ -34,10 +35,34 @@
 #ALTER TABLE veg_comp_lyr_r1_poly2019 RENAME COLUMN shape TO geometry;
 
 #### Join ignition data to VRI data ####
-# Run following query in postgres. This is fast
-# CREATE TABLE fire_veg_2007 AS
+# Run following query in postgres for all years except 2007 and 2008. This is fast
+# CREATE TABLE fire_veg_2002 AS
 # (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-#  harvest_date, proj_age_1, proj_age_2, proj_height_1, proj_height_2,
+#  harvest_date, proj_age_1, proj_ht_1, price*quantity  AS live_stand_volume_125,
+#  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
+#  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+#  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+#  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
+#  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09,
+#  veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
+#  (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
+#   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+#   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
+#   mdc_09 from dc_data where fire_yr = '2002') as fire where st_contains
+#  (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
+
+###################
+##FOR 2007 run this because some of the names for the VRI_2007 file are different to what they are in other years. In particular:
+###################
+
+# bclcs_level_2 = bclcs_lv_2 same for the other bclcs layers
+#proj_height_1 = proj_ht_1
+#harvest_date = upd_htdate
+# live_stand_volume_125 does not exist
+
+# CREATE TABLE fire_veg_2007 AS
+# (SELECT feature_id, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5,
+#  upd_htdate, proj_age_1, proj_ht_1, COALESCE(volsp1_125,0)+COALESCE(volsp2_125,0)+COALESCE(volsp3_125,0)+COALESCE(volsp4_125,0)+COALESCE(volsp5_125,0) AS live_stand_volume_125,
 #  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
 #  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
 #  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
@@ -50,8 +75,39 @@
 #   mdc_09 from dc_data where fire_yr = '2007') as fire where st_contains
 #  (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
 
+##############################
+# FOR 2008 Run this code:
+##############################
+# CREATE TABLE fire_veg_2008 AS
+# (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
+#   harvest_date, proj_age_1, proj_height_1, COALESCE(vol_per_ha_spp1_125,0)+
+#     COALESCE(vol_per_ha_spp2_125,0)+COALESCE(vol_per_ha_spp3_125,0)+COALESCE(vol_per_ha_spp4_125,0)
+#   +COALESCE(vol_per_ha_spp5_125,0)+COALESCE(vol_per_ha_spp6_125,0) AS live_stand_volume_125,
+#   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
+#   fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+#   fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+#   fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
+#   fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09,
+#   veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
+#   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
+#    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+#    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
+#    mdc_09 from dc_data where fire_yr = '2008') as fire where st_contains
+#   (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
 
-# One problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
+# note that the VRI for 2008 does not have live_stand_volume so I also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
+
+#ALTER TABLE fire_veg_2008
+#ADD COLUMN live_stand_volume_125 double precision;
+
+# INSERT INTO fire_veg_2008
+# SELECT live_stand_volume_125
+# FROM veg_comp_lyr_r1_poly2009,
+# (SELECT wkb_geometry from dc_data where fire_yr = '2008') as fire where st_contains
+# (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
+
+
+# Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
 # ALTER TABLE fire_veg_2011  
 # ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 3005) 
 # USING ST_Force_2D(geometry);
@@ -83,6 +139,10 @@ fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2008")
 fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2009")
+fire_veg_2009_test <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2009_test")
+fire_veg_2010_test <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2010_test")
 fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2010")
 fire_veg_2011 <- sf::st_read  (dsn = conn, # connKyle
@@ -106,12 +166,36 @@ fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
 
 dbDisconnect (conn) # connKyle
 
+# REMEMBER TO CHANGE THE 0 values in the 2007 and 2008 fire_veg datasets for volume to NULL.
+
 # the VRI for 2007 had harvest_date named upd_htdate and proj_height_1, proj_height_2 as proj_ht_1, proj_ht_2. So I need to be renamed these columns
 #fire_veg_2007$harvest_date <- NA
 names(fire_veg_2007)
-fire_veg_2007<- fire_veg_2007 %>% rename(proj_height_1=proj_ht_1, 
-                                         proj_height_2=proj_ht_2, 
-                                         harvest_date=upd_htdate)
+fire_veg_2007<- fire_veg_2007 %>% rename(
+  bclcs_level_2=bclcs_lv_2,
+  bclcs_level_3=bclcs_lv_3,
+  bclcs_level_4=bclcs_lv_4,
+  bclcs_level_5=bclcs_lv_5,
+  proj_height_1=proj_ht_1, 
+  harvest_date=upd_htdate)
+
+# change the 0 values in live_stand_volume_125 to NULL for both 2007 and 2008 data
+
+fire_veg_2007$live_stand_volume_125[fire_veg_2007$live_stand_volume_125 == 0] <- NA
+fire_veg_2008$live_stand_volume_125[fire_veg_2008$live_stand_volume_125 == 0] <- NA
+
+###################################
+#### Check that my solution to calculating volume for 2007 and 2008 is ligitimate. Ill do this by comparing the sum of vol_per_ha_spp1_125 + vol_per_ha_spp2_125 + vol_per_ha_spp3_125 + vol_per_ha_spp4_125 + vol_per_ha_spp5_125 + vol_per_ha_spp6_125 is similar to the values in the column live_stand_volume_125
+###################################
+
+names(fire_veg_2009_test)
+plot(fire_veg_2009_test$live_stand_volume_125, fire_veg_2009_test$live_stand_volume_125_try)
+names(fire_veg_2010_test)
+plot(fire_veg_2010_test$live_stand_volume_125, fire_veg_2010_test$live_stand_volume_125_try)
+
+# Excellent! Looks like a perfect correlation! YIPEEE
+
+
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
 filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019")
@@ -133,9 +217,7 @@ table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
 #                       2007 -> 22
 #                       2008 -> 29
 
-
 # write final fire ignitions, weather and vegetation types to postgres
-
 # save data 
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
                       host = key_get('dbhost', keyring = 'postgreSQL'),
