@@ -557,85 +557,27 @@ We also use the *roadCLUS* module in this example to show how CLUS simulates roa
 
 Finally, we use the *uploaderCLUS* module to output the results of the simulation to a PostgreSQL database on a cloud server. Here you need to define the connection to the cloud server (*dbInfo*), which consists of a list of the database host amd name, and the username and password. Again we use the ["keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) package to maintain database security. You also need to set the *aoiName* parameter. This parameter is the name of the schema (i.e., a namespace for containing a group of data) within the PostgreSQL database where the results of the simulation will be saved. This can be a new schema or a previously created one. Here we will use the 'tutorial' schema. 
 
-In addtion to teh list of parameters, there are several objects that need to be created to run forestry. This includes 
+In addition to the list of parameters, there are several objects that need to be created to run the *forestryCLUS* simulation. This includes the list of *modules* used in the analysis, a data.table that describes the simulation *scenario*, a list of data.table's that define the harvest flow (*harvestFlow*), a data.table that defines the patch size distribution for cutblocks (*patchSizeDist*), a list of the *objects*, a list of the simulation file paths (*paths*), and the simInit object (*mySim*) that defines all of these things for the SpaDES package to run the simulation. You  can define a data.frame object that identifies all of the output 'reports' to save from the simulation analysis (*outputs()*). 
+In the *modules* object, here we list all of the modules described above, including *dataLoaderCLUS*, *growingStockCLUS*, *blockingCLUS*, *forestryCLUS*, *roadCLUS*, and *uploaderCLUS.*
+
+In the *scenario* object, we provide two parameters, a *name* and a *description* of the scenario being simulated in a given run of the model. These should be unique to each set of parameters input into the model. For example, if you are testing the effect of changing the harvest priority parameter from oldest first to highest volume first, these scenarios should have a different name and description. A scenario with the same name will get copied over the previous scenario. For the *name*, we suggest including the harvest unit name (e.g., TSA or TFL) and some acronyms describing the scenario. We again note that there is a 63 character limit for tables in PostgreSQL, and some of the table outputs from the scenario incorporate the scenario name, thus we recommended keeping the name as short as possible. For each harvest unit we typically simulate a business-as-usual scenario, which is characterized in the *name* with the acronym 'bau'. The 'bau' is intended to represent a baseline scenario for the harvest unit, essentially including all of the existing legal constraints, forest inventory and growth and yield models as-is, and harvest rules that are sensible for the harvest unit (i.e., uses parameters similar to what were used in the recent timber supply review analysis for the harvest unit). The BAU scenario also has even harvest volume flow, i.e., harvested flow is set at the maximum volume that can be harvested without causing a decline in harvest volume during the 200 year simulation period. An alternative scenario might include a hypothetical constraint, and therefore it would be useful to incorporate the constraint name and perhaps some of the parameters into the scenario *name*, e.g., 'revelstoke_newzone_25p_agele15' might describe a new zone with a constraint threshold of maximum 25 percent of the area of forest stands with an age less than or equal to 15 years old. The *description* parameter can be used to provide much more detail on the scenario. Here you can describe specifics of the parameters used in the analysis. As standard practice we describe the constraints (e.g., business as usual, or including a hypothetical constraint), the target harvest flow (typically the even-flow harvest rate from the bau scenario), adjacency constraints, the harvest priority criteria, and any other relevant information to the scenario.    
+
+The *harvestFlow* is a list of parameters describing the volume target for the harvest unit. It can be used to set targets within multiple compartments in a harvest unit by creating a data.table for each unique compartment. Note that if you are simulating multiple compartments these will need to have been defined in *dataLoaderCLUS* and thus align with the compartments as defined in the SQLite database. The *compartment* parameter is the name of each harvest unit in the analysis, as defined in the SQLite database, as taken from the spatial harvest unit boundaries defined in *dataLoaderCLUS*. Here we use "Revelstoke_TSA", as that is the name of the TSA in the *nameBoundaryFile* we use to define harvest units. The *partition* parameter is an SQL query that may be used to further limit where forest can be harvested within the simulation. Here we use ' vol > 150 ' to limit harvest to stands that achieve a miniumum volume of 150 m^3^. This parameter could also be used to partition harvest according to other inforamtion itn he 'pixels', for example, to target deciduous stands (' dec_pcnt > 50 '). The *year* parameter is used to define the time period and steps of the simulation. You will remember that we set the *times* parameter as 40 intervals, and with the intent of simulating a 200 year period, that is equivalent to a 5 year interval. The *year* parameter specifies the sequence of years (the *seq()* function) of the analysis, including the calendar year start (the *from* parameter, which is typically the year of the forest inventory data used in the analysis, which in thsi case is 2019), the end year (the *to* parameter; add the number of desired simulation years, which in this case is 200, and thus the value is 2219), the interval in years (the *to* parameter, which in this case is 5, since there are 5 years in each interval, or 200/5). The *flow* parameter sets the harvest target for each time interval. The model will harvest up to that amount at each interval. Thus, if the interval is 5 years, it is the 5 year target. You will likely want to consider harvest targets on an annual basis, so make sure you convert the annual target to the appropriate interval (e.g., if the annual target is 200,000m^3^/year, and the interval is 5 years, the *flow* is 1,000,000m^3^)
+
+The *patchSizeDist* parameter provides the frequency distribution for cutblock sizes, by natural disturbance type, following the [biodiversity guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf). You likely recall that the same parameter was used in *dataLoaderCLUS* within the *blockingCLUS* module to create a range of pre-defined harvest block sizes that follow the NDT distribution. Here it can be ignored, but is included in case you want to create cutblocks on-the-fly using the 'dynamic' method. Under thsi method, cutblocks will be simulated with a spread algorithm, limited by the *patchSizeDist* frequency distribution.
+
+The *objects* parameter is necessary for SpaDES to function properly by declaring the objects it needs to track. If you do not list the object, then it will be ignored in the simulation and result in a model error. Here we list the *harvestFlow*, *patchSizeDist* and *scenario* objects we described above. 
+
+Similarly, the *paths* parameter is necessary for SpaDES to know where the model input data are located and where outputs should be stored. Failure to incldue these may also result in an error.
+
+The *mySim* object is another SpaDES object where various parameters and components of the model must be decalred for the SpaDES simulation to function. Here you declare the name of the *times*, *params*, *objects* and *paths* objects for the model. 
+
+The *outputs()* function is a SpaDES function for declaring the objects within the simulation that get output to the *outputDir*. These are created in the module .R scripts, for example, the "harvestReport" is created in the forestryCLUS.R script and the "growingStockReport" is created in the growingStockCLUS.R script. You will need to familiarize yourself with the module scripts to understand what reports can be output but for now you can use "harvestReport" and "growingStockReport". The "harvestReport" outputs things like the amount of volume harvested at each time interval in a scenario and compartment, and the "growingStockReport" outputs the amount of grwoing stock at each time interval in a scenario and compartment. 
+
+Finally, you can save the SpaDES simulation (in this case the *mySim* object) run with the *spades()* function. Note that here we embed that function in the *system.time()* function to obtain the total time the model took to finish the simulation. 
 
 
-
-
-
-
-
-
-
-
-
-modules <- list("dataLoaderCLUS", 
-                "growingStockCLUS", 
-                "blockingCLUS", 
-                "forestryCLUS", 
-                "roadCLUS",  
-                "uploaderCLUS"
-                )
-
-
-### SCENARIOS ###
-scenario = data.table (name = "revelstoke_bau", 
-                       description = "Business-as-usual case; sustainable flow = 210,000m^3^/year. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
-
-
-
-harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
-                                         partition = ' vol > 150 ', 
-                                         year = rep(seq (from = 2019, 
-                                                         to = 2219, 
-                                                         by = 5),
-                                                    1), 
-                                         flow = 1050000) # 210,000m^3^/year
-))
-
-#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
-
-patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
-                                  2,2,2,2,2,2,
-                                  3,3,3,3,3,3,
-                                  4,4,4,4,4,4,
-                                  5,5,5,5,5,5), 
-                           sizeClass = c(40,80,120,160,200,240), 
-                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                    0.1,0.02,0.02,0.02,0.02,0.8,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1))
-
-objects <- list(harvestFlow = harvestFlow, 
-                patchSizeDist = patchSizeDist, 
-                scenario = scenario)
-
-paths <- list(cachePath = cacheDir,
-              modulePath = moduleDir,
-              inputPath = inputDir,
-              outputPath = outputDir)
-
-mySim <- simInit(times = times, 
-                 params = parameters, 
-                 modules = modules,
-                 objects = objects, 
-                 paths = paths)
-
-# outputs to keep; these are tables that get used in the uploader
-outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport"))
-
-#Run the model 1 time
-system.time({mysimout<-spades(mySim)})
-
-
-
-
-
-```{r module_usage}
+```{r, forestryCLUS module example code, message = F, echo = T, eval = F}
 library (SpaDES.core)
 library (data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
@@ -762,19 +704,25 @@ mySim <- simInit(times = times,
 
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport"))
+                                             "growingStockReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})
 
 ```
 
+Now that your familiar with the elements of the *forestryCLUS* module, we will run some simulation scenarios so you can get familiar with its functionality and in particular, the model outputs. Open the *forestryCLUS_tutorial.Rmd*. You will see the file has a [yaml header](https://monashdatafluency.github.io/r-rep-res/yaml-header.html), bounded by three dashes (---) at the top and the bottom. This header contains commands related to how the .Rmd is formatted in an output document (typically a html, pdf or Word file). We won't get into detail on yaml header options here, but you will note this one contains commands for a *title*, *author* and *date*; feel free to modify these as you like. The *output* command specifies that the output is a html file (*html_document*), adn that a markdown (.md) document of the file will be created for web viewing on github (*keep_md: yes*).  
 
-
-
-
+``` {r, example yaml header from .Rmd file, message = F, echo = T, eval = F}
+---
+title: "forestryCLUS_tutorial.RmD"
+author: "Tyler Muhly"
+date: "23 April 2021"
+output:
+  html_document: 
+    keep_md: yes
+---
+```
 
 
 
