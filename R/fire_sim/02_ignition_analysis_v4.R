@@ -546,17 +546,15 @@ binnedplot (fitted(glm2),
             ylab = "Average residual", 
             main = "Binned Residual Plot - glm2")
 
-# proj_age_1 is left skewed so Ill try transform it since the model fit is not great with proj_age_1 un transformed.
-hist(sqrt(sbs$proj_age_1))
 glm3<- glm(fire_pres ~ mean_tmax07_tmax08 +
-             sqrt(proj_age_1), 
+             subzone, 
            data= sbs,
            family = binomial,
            na.action=na.omit)
 summary(glm3)
 i=3
 table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"mean_tmax07_tmax08 + sqrt(proj_age_1)"
+table.glm[i,2]<-"mean_tmax07_tmax08 + subzone"
 table.glm[i,3]<-AIC(glm3)
 binnedplot (fitted(glm3), 
             residuals(glm3), 
@@ -565,18 +563,18 @@ binnedplot (fitted(glm3),
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
-hist(sbs$proj_height_1)
-hist(sqrt(sbs$proj_height_1))
-hist(log(sbs$proj_height_1 +0.001), breaks=20)
+
+# proj_age_1 is left skewed so Ill try transform it since the model fit is not great with proj_age_1 un transformed.
+hist(sqrt(sbs$proj_age_1))
 glm4<- glm(fire_pres ~ mean_tmax07_tmax08 +
-             log(proj_height_1+0.001), 
+             sqrt(proj_age_1), 
            data= sbs,
            family = binomial,
            na.action=na.omit)
 summary(glm4)
 i=4
 table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"mean_tmax07_tmax08 + log(proj_height_1+0.001)"
+table.glm[i,2]<-"mean_tmax07_tmax08 + sqrt(proj_age_1)"
 table.glm[i,3]<-AIC(glm4)
 binnedplot (fitted(glm4), 
             residuals(glm4), 
@@ -585,17 +583,18 @@ binnedplot (fitted(glm4),
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
-
-hist(sqrt(sbs$live_stand_volume_125), breaks=20)
+hist(sbs$proj_height_1)
+hist(sqrt(sbs$proj_height_1))
+hist(log(sbs$proj_height_1 +0.001), breaks=20)
 glm5<- glm(fire_pres ~ mean_tmax07_tmax08 +
-             sqrt(live_stand_volume_125), 
+             log(proj_height_1+0.001), 
            data= sbs,
            family = binomial,
            na.action=na.omit)
 summary(glm5)
 i=5
 table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"mean_tmax07_tmax08 + sqrt(live_stand_volume_125)"
+table.glm[i,2]<-"mean_tmax07_tmax08 + log(proj_height_1+0.001)"
 table.glm[i,3]<-AIC(glm5)
 binnedplot (fitted(glm5), 
             residuals(glm5), 
@@ -604,15 +603,17 @@ binnedplot (fitted(glm5),
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
+
+hist(sqrt(sbs$live_stand_volume_125), breaks=20)
 glm6<- glm(fire_pres ~ mean_tmax07_tmax08 +
-             subzone, 
+             sqrt(live_stand_volume_125), 
            data= sbs,
            family = binomial,
            na.action=na.omit)
 summary(glm6)
 i=6
 table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"mean_tmax07_tmax08 + subzone"
+table.glm[i,2]<-"mean_tmax07_tmax08 + sqrt(live_stand_volume_125)"
 table.glm[i,3]<-AIC(glm6)
 binnedplot (fitted(glm6), 
             residuals(glm6), 
@@ -622,553 +623,99 @@ binnedplot (fitted(glm6),
             main = paste("Binned Residual Plot - glm", i))
 
 
-
-
-
-
-
-
-
-
-
-
-
-glmer7<- glmer(fire_pres ~ tmax08 +
-                 cmi08 +
-                 (1|fire_yr), 
-           data= Train,
+glm7<- glm(fire_pres ~ mean_tmax07_tmax08 +
+             sqrt(live_stand_volume_125) +
+             sqrt(proj_age_1),
+           data= sbs,
            family = binomial,
            na.action=na.omit)
-summary(glmer7)
+summary(glm7)
 i=7
-table.glm[i,1]<-"glmer7"
-table.glm[i,2]<-"tmax08 + ppt08 + 1|yr"
-table.glm[i,3]<-AIC(glmer7)
-table.glm[i,4]<-summary(glmer7)$adj.r.squared
-binnedplot (predict(glmer7), 
-            resid(glmer7), 
+table.glm[i,1]<-paste0("glm",i)
+table.glm[i,2]<-"mean_tmax07_tmax08 + sqrt(live_stand_volume_125) + sqrt(proj_age_1)"
+table.glm[i,3]<-AIC(glm7)
+binnedplot (fitted(glm7), 
+            residuals(glm7), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm2")
+            main = paste("Binned Residual Plot - glm", i))
 
-glmer8<- glmer(fire_pres ~ tmax08 +
-                 cmi08 +
-                 subzone +
-                 (1|fire_yr), 
-               data= Train,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer8)
+glm8<- glm(fire_pres ~ mean_tmax07_tmax08 +
+             vegtype +
+             sqrt(live_stand_volume_125),
+           data= sbs,
+           family = binomial,
+           na.action=na.omit)
+summary(glm8)
 i=8
-table.glm[i,1]<-"glmer8"
-table.glm[i,2]<-"tmax08 + ppt08 + subzone + 1|yr"
-table.glm[i,3]<-AIC(glmer8)
-table.glm[i,4]<-summary(glmer8)$adj.r.squared
-binnedplot (invlogit(predict(glmer8)), 
-            residuals(glmer8), 
+table.glm[i,1]<-paste0("glm",i)
+table.glm[i,2]<-"mean_tmax07_tmax08 + vegtype + sqrt(live_stand_volume_125)"
+table.glm[i,3]<-AIC(glm8)
+binnedplot (fitted(glm8), 
+            residuals(glm8), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-            )
+            main = paste("Binned Residual Plot - glm", i))
 
-glmer8<- glmer(fire_pres ~ tmax08c +
-                 cmi08c +
-                 subzone +
-                 (1|fire_yr), 
-               data= Train,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer8)
-i=8
-table.glm[i,1]<-"glmer8"
-table.glm[i,2]<-"tmax08 + ppt08 + subzone + 1|yr"
-table.glm[i,3]<-AIC(glmer8)
-table.glm[i,4]<-summary(glmer8)$adj.r.squared
-binnedplot (invlogit(predict(glmer8)), 
-            residuals(glmer8), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glmer8"
-)
-
-glmer9<- glmer(fire_pres ~ tmax08c +
-                 cmi08c +
-                 subzone +
-                 vegtype +
-                 (1|fire_yr), 
-               data= Train,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer9)
+glm9<- glm(fire_pres ~ mean_tmax07_tmax08 +
+             vegtype +
+             sqrt(proj_age_1),
+           data= sbs,
+           family = binomial,
+           na.action=na.omit)
+summary(glm9)
 i=9
-table.glm[i,1]<-"glmer9"
-table.glm[i,2]<-"tmax08 + ppt08 + subzone + vegtype + 1|yr"
-table.glm[i,3]<-AIC(glmer9)
-table.glm[i,4]<-summary(glmer9)$adj.r.squared
-binnedplot (invlogit(predict(glmer9)), 
-            residuals(glmer9), 
+table.glm[i,1]<-paste0("glm",i)
+table.glm[i,2]<-"mean_tmax07_tmax08 + vegtype + sqrt(proj_age_1)"
+table.glm[i,3]<-AIC(glm9)
+binnedplot (fitted(glm9), 
+            residuals(glm9), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-)
+            main = paste("Binned Residual Plot - glm", i))
 
-glmer10<- glmer(fire_pres ~ tmax08 +
-                 cmi08 +
-                 subzone +
-                 (subzone||fire_yr), 
-               data= Train,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer10)
+glm10<- glm(fire_pres ~ mean_tmax07_tmax08 +
+              vegtype + 
+              log(proj_height_1+0.001),
+           data= sbs,
+           family = binomial,
+           na.action=na.omit)
+summary(glm10)
 i=10
-table.glm[i,1]<-"glmer10"
-table.glm[i,2]<-"tmax08 + ppt08 + subzone + subzone||yr"
-table.glm[i,3]<-AIC(glmer10)
-table.glm[i,4]<-summary(glmer10)$adj.r.squared
-binnedplot (invlogit(predict(glmer10)), 
-            residuals(glmer9), 
+table.glm[i,1]<-paste0("glm",i)
+table.glm[i,2]<-"mean_tmax07_tmax08 + vegtype + log(proj_height_1+0.001)"
+table.glm[i,3]<-AIC(glm10)
+binnedplot (fitted(glm10), 
+            residuals(glm10), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-)
+            main = paste("Binned Residual Plot - glm", i))
 
-glmer11<- glmer(fire_pres ~ tmax08c +
-                 cmi08c +
-                 vegtype +
-                 (1|fire_yr), 
-               data= Train,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer11)
+
+
+glm11<- glm(fire_pres ~ mean_tmax07_tmax08 +
+             vegtype +
+             sqrt(live_stand_volume_125) +
+             sqrt(proj_age_1),
+           data= sbs,
+           family = binomial,
+           na.action=na.omit)
+summary(glm11)
 i=11
-table.glm[i,1]<-"glmer11"
-table.glm[i,2]<-"tmax08 + ppt08 + vegtype + 1|yr"
-table.glm[i,3]<-AIC(glmer11)
-table.glm[i,4]<-summary(glmer1)$adj.r.squared
-binnedplot (invlogit(predict(glmer11)), 
-            residuals(glmer11), 
+table.glm[i,1]<-paste0("glm",i)
+table.glm[i,2]<-"mean_tmax07_tmax08 + vegtype + sqrt(live_stand_volume_125) + sqrt(proj_age_1)"
+table.glm[i,3]<-AIC(glm11)
+binnedplot (fitted(glm11), 
+            residuals(glm11), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = "Binned Residual Plot - glmer11"
-)
+            main = paste("Binned Residual Plot - glm", i))
 
-
-# best model seems to be glmer8 or glmer9 they both have the same AIC values but glmer8 is simpler so Ill stick with that one.
-
-
-dat1$tmax08c<-dat1$tmax08-mean(dat1$tmax08)
-dat1$cmi08c<-dat1$cmi08-mean(dat1$cmi08)
-glmer8<- glmer(fire_pres ~ tmax08 +
-                 cmi08 +
-                 vegtype +
-                 (1|fire_yr), 
-               data= dat1,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer8)
-binnedplot (invlogit(predict(glmer8)), 
-            residuals(glmer8), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glmer8"
-)
-
-binnedplot (Train$tmax08c, 
-            resid(glmer8), 
-            nclass = NULL, 
-            xlab = "centered cmi08", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-)
-
-binnedplot (Train$cmi08c, 
-            resid(glmer8), 
-            nclass = NULL, 
-            xlab = "centered cmi08", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-) # it mostly looks pretty good!
-
-
-
-# lets look at fit of the Valid (validation) dataset
-#MUST STILL DO THIS
-Valid$GLMER_predict8 <- predict(glmer8,newdata = Valid,type="response")
-Valid$GLMER_predict9 <- predict(glmer9,newdata = Valid,type="response")
-valid_dat<-Valid %>% 
-  dplyr::select(idno, fire_pres, GLMER_predict8 ) %>%
-  rename(ID=idno,
-         Observed=fire_pres)
-valid_dat$Observed<-as.numeric(as.character(valid_dat$Observed))
-library(PresenceAbsence)
-auc (as.data.frame(valid_dat)) # Get the AUC value. You can specify the sd. 
-auc.roc.plot (valid_dat) # Plot the ROC
-
-
-LR_predict_bin <- ifelse(LR_predict > 0.6,1,0)
-cm_lr <- table(Valid,LR_predict_bin) #Accuracy 
-accuracy <- (sum(diag(cm_lr))/sum(cm_lr)) 
-accuracy
-
-
-
-hist(ignition_pres_abs4$cmi08) #the data is right skewed. Possible transformations include sqrt, log or cuberoot, but because cmi has negative values Ill try cuberoot
-
-ignition_pres_abs4$cmi08c<-as.numeric(ignition_pres_abs4$cmi08c)
-ignition_pres_abs4$cmi08_cr<-kader:::cuberoot(x = ignition_pres_abs4$cmi08c)
-hist((ignition_pres_abs4$cmi08_cr)) # this did not help.
-
-# ok maybe shift the distribution so that no values are negative .
-ignition_pres_abs4$cmi08_shifted<-ignition_pres_abs4$cmi08+10
-hist(ignition_pres_abs4$cmi08_shifted)
-hist(log(ignition_pres_abs4$cmi08_shifted))
-
-glmer_final<- glmer(fire_pres ~ tmax08c +
-                 cmi08_shifted +
-                 subzone +
-                 (1|fire_yr), 
-               data= ignition_pres_abs4,
-               family = binomial,
-               na.action=na.omit)
-summary(glmer8)
-binnedplot (invlogit(predict(glmer8)), 
-            residuals(glmer8), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-)
-
-binnedplot (ignition_pres_abs4$cmi08_shifted, 
-            resid(glmer8), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glm6"
-)
-
-# obtain predictive equation from the final model
-
-# I should probably run an AUC on a portion of the data that I hold back from the analysis.
-
-
-
-
-
-# could try bam, but I think Ill leave it because the glmer seems to work pretty well.
-bam2<- bam(pttype ~tmax08 +
-             allppt08 +
-             tmax08:allppt08, 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam2)
-
-table.bam[2,1]<-"tmax08 : allppt08"
-table.bam[2,2]<-AIC(bam2)
-table.bam[2,3]<-summary(bam2)$sp.criterion
-table.bam[2,4]<-summary(bam2)$r.sq
-
-bam3<- bam(pttype ~tmax08 +
-             allppt08 +
-             vegtype2, 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam3)
-
-table.bam[3,1]<-"tmax08+allppt08+vegtype"
-table.bam[3,2]<-AIC(bam3)
-table.bam[3,3]<-summary(bam3)$sp.criterion
-table.bam[3,4]<-summary(bam3)$r.sq
-
-bam4<- bam(pttype ~tmax08:allppt08 +
-             vegtype2, 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam4)
-
-table.bam[4,1]<-"tmax08:allppt08+vegtype"
-table.bam[4,2]<-AIC(bam4)
-table.bam[4,3]<-summary(bam4)$sp.criterion
-table.bam[4,4]<-summary(bam4)$r.sq
-
-bam5<- bam(pttype ~tmax08:allppt08 +
-             veg_openess, 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam5)
-
-table.bam[5,1]<-"tmax08:allppt08+vegopeness"
-table.bam[5,2]<-AIC(bam5)
-table.bam[5,3]<-summary(v)$sp.criterion
-table.bam[5,4]<-summary(bam5)$r.sq
-
-bam6<- bam(pttype ~tmax08:allppt08 +
-             s(year, bs="re"), 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam6)
-
-table.bam[6,1]<-"tmax08:allppt08+s(year, bs=re)"
-table.bam[6,2]<-AIC(bam6)
-table.bam[6,3]<-summary(bam6)$sp.criterion
-table.bam[6,4]<-summary(bam6)$r.sq
-
-bam7<- bam(pttype ~tmax08:allppt08 +
-             s(vegtype2, bs="re"), 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam7)
-
-table.bam[7,1]<-"tmax08:allppt08+s(vegtype, bs=re)"
-table.bam[7,2]<-AIC(bam7)
-table.bam[7,3]<-summary(bam7)$sp.criterion
-table.bam[7,4]<-summary(bam7)$r.sq
-
-bam8<- bam(pttype ~te(tmax08, allppt08), 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam8)
-
-table.bam[8,1]<-"te(tmax08, allppt08)"
-table.bam[8,2]<-AIC(bam8)
-table.bam[8,3]<-summary(bam8)$sp.criterion
-table.bam[8,4]<-summary(bam8)$r.sq
-
-bam9<- bam(pttype ~te(tmax08, allppt08) + vegtype2, 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam9)
-
-table.bam[9,1]<-"te(tmax08, allppt08) + vegtype2"
-table.bam[9,2]<-AIC(bam9)
-table.bam[9,3]<-summary(bam9)$sp.criterion
-table.bam[9,4]<-summary(bam9)$r.sq
-
-bam10<- bam(pttype ~te(tmax08, allppt08) +
-              vegtype2 + 
-              s(year, bs="re"), 
-           data= ignition_pres_abs3,
-           family = binomial,
-           na.action=na.omit,
-           discrete = TRUE)
-summary(bam10)
-
-table.bam[10,1]<-"te(tmax08, allppt08)+vegtype2+s(year,bs=re)"
-table.bam[10,2]<-AIC(bam10)
-table.bam[10,3]<-summary(bam10)$sp.criterion
-table.bam[10,4]<-summary(bam10)$r.sq
-
-bam11<- bam(pttype ~te(tmax08, allppt08) +
-              vegtype2 + 
-              s(year, bs="re") +
-              s(vegtype2, year, bs="re"), 
-            data= ignition_pres_abs3,
-            family = binomial,
-            na.action=na.omit,
-            discrete = TRUE)
-summary(bam11)
-
-table.bam[11,1]<-"te(tmax08, allppt08)+vegtype2+s(year,bs=re)+s(vegtype2,year,bs=re)"
-table.bam[11,2]<-AIC(bam1)
-table.bam[11,3]<-summary(bam11)$sp.criterion
-table.bam[11,4]<-summary(bam11)$r.sq
-
-
-bam12<- bam(pttype ~tmax08 + 
-              allppt08 +
-              tmax08:allppt08 +
-              vegtype2 + 
-              s(year, bs="re"), 
-            data= ignition_pres_abs3,
-            family = binomial,
-            na.action=na.omit,
-            discrete = TRUE)
-summary(bam12)
-
-table.bam[12,1]<-"tmax08:allppt08+vegtype2+s(year,bs=re)"
-table.bam[12,2]<-AIC(bam12)
-table.bam[12,3]<-summary(bam12)$sp.criterion
-table.bam[12,4]<-summary(bam12)$r.sq
-
-bam13<- bam(pttype ~tmax08 + 
-              allppt08 +
-              tmax08:allppt08 +
-              vegtype2 + 
-              s(year, bs="re",k=20) +
-              s(vegtype2, year, bs="re"), 
-            data= ignition_pres_abs3,
-            family = binomial,
-            na.action=na.omit,
-            discrete = TRUE)
-summary(bam13)
-
-table.bam[13,1]<-"tmax08:allppt08+vegtype2+s(year,bs=re)+s(vegtype2,year,bs=re)"
-table.bam[13,2]<-AIC(bam13)
-table.bam[13,3]<-summary(bam13)$sp.criterion
-table.bam[13,4]<-summary(bam13)$r.sq
-
-par(mfrow=c(2,2))
-gam.check(bam13)
-residuals(bam13)
-concurvity(bam13)
-
-binnedplot (fitted(bam12), 
-            residuals(bam12), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - bam11", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
-library(ResourceSelection)
-hoslem.test(ignition_pres_abs3$pttype, fitted(bam11))
-
-m1<-glm(pttype ~tmax08 + log(allppt08+0.001),binomial, data=ignition_pres_abs3)
-binnedplot (fitted(m1), 
-            residuals(m1), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - m1", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
-
-
-
-
-
-
-
-
-glmer13<- glmer(pttype ~tmax08 + 
-              allppt08 +
-              tmax08:allppt08 +
-              vegtype2 + 
-              (1|year), 
-            data= ignition_pres_abs3,
-            family = binomial,
-            na.action=na.omit,
-            verbose=TRUE)
-summary(glmer13)
-binnedplot (fitted(glmer13), 
-            residuals(glmer13), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = "Binned Residual Plot - glmer", 
-            cex.pts = 0.4, 
-            col.pts = 1, 
-            col.int = "red")
-
-lightning<-ignition_pres_abs3 %>% 
-  filter(fire_cause=="Lightning")
-
-
-
-
-
-
-bam1 <- bam (pttype ~ s(tmax08) + 
-                              allppt08 +
-                              tmax08:allppt08 +
-                              vegtype2 +
-                              s(year, bs="re") +
-                              s(vegtype2, year, bs="re"),
-                            data= ignition_pres_abs3,
-                            family = binomial,
-                            na.action=na.omit,
-                            discrete = TRUE)
-summary(bam1)
-AIC(bam1)
-
-bam2 <- bam (pttype ~ tmax08 + 
-                            allppt08 +
-                            tmax08:allppt08 +
-                            vegtype2 +
-                            s(year, bs="re"),
-                            #s(vegtype2, year, bs="re"),
-                          data= ignition_pres_abs3,
-                          family = binomial,
-                          na.action=na.omit,
-                          discrete = TRUE)
-summary(bam2)
-AIC(bam2)
-
-anova(bam1, bam2, test="Chisq")
-par(mfrow=c(2,2))
-gam.check(bam1) # plots diagnostic plots, although not that useful for a binomial thing
-model_matrix<- predict(bam1, type)
-
-
-
-
-system.time({model5 <- bam (pttype ~ tmax08 + 
-                 allppt08 +
-                 tmax08:allppt08 +
-                 vegtype +
-                 veg_openess +
-                 vegtype:veg_openess +
-                 tmax08:vegtype +
-                 allppt08:vegtype +
-                 s(year, bs="re") + 
-                 s(tmax08, year, bs="re"),
-                 data= ignition_pres_abs3,
-                 family = binomial,
-                 na.action=na.omit,
-               discrete = TRUE)
-})
-
-summary(model5)
-
-model6 <- bam (pttype ~ te(tmax08, allppt08),
-               data= ignition_pres_abs3,
-               family = binomial,
-               na.action=na.omit,
-               discrete = TRUE)
-summary(model6)
-vis.gam(model6, type="response", plot.type='persp', phi=30,theta=30, n.grid=500, border=NA)
-library(visreg)
-visreg2d(model6, xvar="tmax08", yvar="allppt08", scale="response")
-
-
-fire.hist<-sf::st_read(dsn="C:\\Users\\ekleynha\\Downloads\\PROT_HISTORICAL_FIRE_POLYS_SP\\H_FIRE_PLY_polygon.shp")
-fire.hist2 <- st_transform (fire.hist, 3005)
-st_crs(fire.hist2)
-plot(fire.hist2$FIRE_YEAR,fire.hist2$AREA_SQM)
-
-fire.hist2<- fire.hist %>%
-  filter(FIRE_YEAR>=2002)
-
-table(fire.hist2$FIRE_CAUSE)
-
-p <- ggplot(fire.hist2, aes(x=log(AREA_SQM))) + 
-  geom_histogram(aes(y=..density..), colour="black", fill="white")+
-  geom_density(fill="lightblue", alpha=0.3) +
-  xlim(0,21)
-p
+table.glm$delta.aic<- table.glm$AIC - min(table.glm$AIC)
+table.glm(sort(table.glm$delta.aic))
 

@@ -1,0 +1,28 @@
+---
+title: "Fire ignition - description of methods"
+author: "Elizabeth Kleynhans"
+date: "25/04/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+The goal of this project is to simulate wildfire into the future so that we can predict how much forest and in particular harvestable forest will be burned in any one year. Predicting fire is useful for timber supply analysis and for wildlife
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
