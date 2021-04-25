@@ -101,8 +101,6 @@ from 2015 determination: base case started at 1,731,000m^3^/year for 5 years, fo
 
 - First, I tested a harvest flow of 1,000,000m^3^/year (5,000,000m^3^/5-year); then 750,000, 600,000, 500,000, 450,000, 400,000, 350,000, 345,000
 
-
-
 - I used 150 m3/ha as minimum harvest volume; nothing in determination on this
 
 - I used 3 m adjacency; nothing in determination on this
@@ -116,17 +114,20 @@ There is a Partnership Agreement for these caribou herds that has designated zon
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL48_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_partnership_agreement'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo_feb2021'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 
-#STEP 3: Update the constraints available to a zone as specified in the scenario
-dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #
-dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
 
-dbExecute(clusdb, "UPDATE zoneconstraints set multi_condition = NULL where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # age < 12 OR height < 2.5
-dbExecute(clusdb, "UPDATE zoneconstraints set variable = 'age' where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # height
-dbExecute(clusdb, "UPDATE zoneconstraints set threshold = '25' where reference_zone = 'rast.central_grp_proposed_luo_feb2021'") # 2.5
-
+# NORTHERN GROUP - GROUP 2 (Graham)
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_graham_crithab' AND (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_graham_crithab' AND (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_graham_crithab' AND (zoneid = 3)") 
+# Below makes priority forest stands no harvest and all of the matrix and LEWR habitat areas max 15% disturbance; NOTE all zones high priority
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 13) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 23) OR (zoneid = 24)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 25)") 
 
 #STEP 4: Remove the connection to the database
 dbDisconnect(clusdb)
@@ -165,22 +166,23 @@ parameters <- list(
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
                                                
-                                               # 'rast.zone_cond_partnership_agreement'
-                                               # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
-                                               # "rast.zone_cond_noharvest_graham_crithab_or_herd"
-                                                
-                                               # "rast.zone_cond_eccc_quintette_crithab_or_herd",
-                                               # "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
-                                               # "rast.zone_cond_eccc_moberly_crithab_or_herd",
-                                               # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
-                                               # "rast.zone_cond_eccc_graham_crithab_or_herd",
-                                               
-                                               #"rast.central_grp_proposed_luo_matrix"
-                                               #"rast.central_grp_proposed_luo_matrix"
-                                               "rast.central_grp_proposed_luo_feb2021"
+                                             #   'rast.zone_cond_partnership_agreement',
+                                             # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                                             # "rast.zone_cond_noharvest_graham_crithab_or_herd" 
+                                             # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_quintette_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_moberly_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_graham_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
+                                             # "rast.zone_cond_bc_graham_crithab"
+                                             # "rast.central_grp_proposed_luo",
+                                             # "rast.central_grp_proposed_luo_buffer",
+                                             # "rast.central_grp_proposed_luo_matrix",
+                                             # "rast.central_grp_proposed_luo_feb2021",
+                                              "rast.zone_du7_scenario_20210330"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -224,6 +226,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'tfl48', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -240,7 +245,8 @@ modules <- list("dataLoaderCLUS",
                 "roadCLUS",  
                 #"yieldUncertaintyCLUS", 
                 "survivalCLUS", 
-                "disturbanceCalcCLUS", 
+                "disturbanceCalcCLUS",
+                "volumebyareaReportCLUS",
                 # "rsfCLUS", # error line 453 - need to debug
                 "uploaderCLUS"
                 )
@@ -249,11 +255,21 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
 # scenario = data.table (name = "tfl48_bau",
-#                        description = "Business-as-usual (BAU). Harvest flow 345,000 m3/yr. Adjacency = 3m. Oldest first.")
+#                        description = "Business-as-usual (BAU). Harvest flow = 345,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl48_du7_grp2_nh",
+#                        description = "No harvest in group 2 (Graham) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 345,000 m3/yr.  Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "tfl48_du7_grp2_he0d_mlewr12d",
+#                        description = "No harvest in group 2 (Graham)  HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 345,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+scenario = data.table (name = "tfl48_du7_grp2_hi_priority",
+                       description = "No harvest priority stands in high priority zones in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority. Harvest flow = 345,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "tfl48_luo_35p_25yo_250cm",
 #                        description = "Central group proposed land use order; area less than 35% less than 25 years old or less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
-scenario = data.table (name = "tfl48_luo_35p_25yo",
-                       description = "Central group proposed land use order; area less than 35% less than 25 years old. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
+# scenario = data.table (name = "tfl48_luo_35p_25yo",
+#                        description = "Central group proposed land use order; area less than 35% less than 25 years old. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
 # scenario = data.table (name = "tfl48_luo_35p_250cm",
 #                        description = "Central group proposed land use order; area less than 35% less than 2.5 m tall. Oldest first. Adjacency = 3. Harvest flow 345,000 m3/yr.")
 

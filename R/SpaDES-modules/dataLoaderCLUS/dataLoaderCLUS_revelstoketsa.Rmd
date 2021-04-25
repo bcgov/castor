@@ -73,7 +73,7 @@ parameters <-  list(
                             "rast.zone_cond_eccc_columbia_south_crithab_or_herd",
                             "rast.zone_cond_eccc_central_rockies_crithab_or_herd",
                             "rast.zone_cond_eccc_columbia_north_crithab_or_herd",
-                            "rast.zone_du9_scenarios",
+                            "rast.zone_smc_zones_20210315",
                             "rast.zone_cond_bc_columbia_north_crithab",
                             "rast.zone_cond_bc_columbia_south_crithab",
                             "rast.zone_cond_bc_central_rockies_crithab",

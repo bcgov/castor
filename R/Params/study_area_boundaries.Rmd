@@ -19,6 +19,8 @@ prov.rast <- raster::raster(
 ```{r, data4}
 forest.tenure<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Lakes TSA', 'Morice TSA', 'Bulkley TSA', 'Williams Lake TSA', 'Kamloops TSA', '100 Mile House TSA', 'Golden TSA', 'Revelstoke TSA', 'Okanagan TSA', 'Kootenay Lake TSA', 'Invermere TSA', 'Cranbrook TSA', 'Arrow TSA', 'Dawson Creek TSA', 'Robson Valley TSA') or tsb_number in ('24C', '24D','24E','24F','24G','24H','24I', '16A', '16B', '16C', '16D', '16E', '16F', '16G', '16H', '16I', '16J', '16K', '16P')")
 
+#forest.tenure<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM public.tsa_nw_coast_no_tfl")
+
 forest.tenure2<-forest.tenure %>% group_by ( tsa_name) %>% summarise()
 st_crs(forest.tenure2)
 plot(forest.tenure2["tsa_name"]) #check 
@@ -65,6 +67,8 @@ st_crs(mackenzie_sw)
 forest.tenure3<-rbind(forest.tenure2, pg_north, mackenzie_sw, fort_st_john, fort_st_john_core, cascadia_tcc, cascadia_toc, cascadia_tko) 
 
 forest.tenure.vat<-unique(forest.tenure3$tsa_name)
+#forest.tenure.vat<-unique(forest.tenure$tsa_name)
+
 forest.tenure.vat2<-unlist(lapply(forest.tenure.vat, function(x){
   gsub( " ", "_", x)
 }), use.names = FALSE)
