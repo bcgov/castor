@@ -11,9 +11,9 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 #=================================
-#  Script Name: 02_fire_ignition_analysis.R
+#  Script Name: 02_ignition_climate_variable_selection.R
 #  Script Version: 1.0
-#  Script Purpose: Prepare data for provincial analysis of fire ignitions. This includes obtaining weather data from climate BC, vegetation data from the Vegetation Resource inventory, and fire ignitions from Fire Incident Locations hosted on the Data Catalogue
+#  Script Purpose: This script runs logistic regression models examining the relationship between the presence and abscence of fire ignitions in relation to a variety of climate variables. For each BEC zone I want to determine the single best climate variable (or combination of two variables) that has the best predictive power for fire ignitions. I do this through an AIC analysis where the model with the lowest AIC is used as my climate variable. This climate variable will then be included in the final model with vegetation data to create the predictive map of ignition locations. 
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
