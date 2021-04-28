@@ -651,7 +651,7 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 ```
 
 
-### Proposed Land Use Order Areas
+### Central Group Proposed Land Use Order Areas
 The proposed areas were defined as: 
  - buffer areas within 40km of protected caribou habitat, including A2, B2, B3; and
  - areas that are within 40km of defined core caribou range (summer and winter) in the Narraway LPU.
@@ -665,7 +665,7 @@ In a GIS, we took the A2, B2 and B3 partnership agreement areas and buffered the
 ### Proposed Land Use Order Constraints
 The initial proposed constraint for all of these areas together was maximum 35% forest age less than 25 years old. As indicated above, we maintained seperate zones in case there becomes a desire to apply different consrtaints to each zone. Below are scripts to create spatial rasters that keep different configurations of these zones (i.e., all independent, all within the buffered area together, all within teh matrix area together). 
 
-A more recent proposed order included maximum 35% forest age less than 25 years old or height less than 2.5 meters applied to teh extent of the LUO boundary area (Feb. 2021). 
+A more recent proposed order included maximum 35% forest age less than 25 years old or height less than 2.5 meters applied to the extent of the LUO boundary area (Feb. 2021). 
 
 ```{r, proposed LUO area, all areas}
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))

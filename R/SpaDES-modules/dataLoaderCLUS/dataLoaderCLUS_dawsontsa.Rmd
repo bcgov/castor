@@ -76,7 +76,6 @@ parameters <-  list(
                                              "rast.zone_cond_eccc_narraway_crithab_or_herd",
                                              "rast.zone_cond_bc_graham_crithab",
                                               "rast.zone_cond_bc_moberly_crithab",
-                                              "rast.zone_cond_bc_kennedy_siding_crithab",
                                              "rast.zone_cond_bc_burnt_pine_crithab",
                                              "rast.zone_cond_bc_quintette_crithab",
                                              "rast.zone_cond_bc_kennedy_siding_crithab",

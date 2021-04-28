@@ -1,7 +1,7 @@
 ---
-title: "forestryCLUS"
-author: ""
-date: "24 February 2021"
+title: "forestryCLUS_tutorial.RmD"
+author: "Tyler Muhly"
+date: "23 April 2021"
 output:
   html_document: 
     keep_md: yes
@@ -21,16 +21,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 # Overview
+This module is designed to spatially simulate forestry activity on a landscape. It is a 'tutorial' version of the module, designed to simplify the process for new model users. The module is used to specify harvest flow and specifications (e.g., zonal constraints, adjacency rules, etc.) for the area of interest. The data to run the simulator are specified and created in a previous step, using the *dataLoaderCLUS* module. The general overview of forestryCLUS follows:
 
-This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distributions, road densitites, conservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+At each time step, harvest units (pixels or blocks) are ranked according to a priority of forest stand (e.g., oldest first) or zone characteristics, which constructs a harvest 'queue'. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. The harvest units are 'harvested' (i.e., converted to a 'new' stand, and the volume from the stand is tallied) until either a constraint is binding, the queue is exhausted or the harvest flow target is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
 
-At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+During the simulation, various reports and information surrounding each pixel can be saved/recorded or summarized. Note these outputs are considered expected future outcomes given the inputs developed by the analyst. 
 
-During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the analyst. For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+Here you can specify an overview of the simulation analyses completed using this particular .Rmd file.
 
-
-# Revelstoke TSA 
-The [Revelstoke timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/revelstoke-tsa) is located in south-eastern British Columbia, and encompasses approximately 527,000 hectares of land. On July 28, 2011, the allowable annual cut was set at 225,000 cubic metres.
+## Revelstoke TSA 
+In this tutorial we use the the [Revelstoke timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/revelstoke-tsa) as an example. The Revelstoke TSA 
+is located in south-eastern British Columbia, and encompasses approximately 527,000 hectares of land. On July 28, 2011, the allowable annual cut was set at 225,000 cubic metres. The TSA is somewhat unique in that it has a steep elevational gradient. It is characterized by lakes and rivers surrounded by relatively steep valleys up to the peaks of the Selkirk mountains. Thus forest harvest is constrained by topography.
 
 ## Scenarios
 The following scenarios were run:
@@ -133,7 +134,7 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", 
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
+                      #harvestZonePriorityInterval = 1,
                       reportHarvestConstraints = TRUE,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
@@ -203,9 +204,7 @@ mySim <- simInit(times = times,
 
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport"))
+                                             "growingStockReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

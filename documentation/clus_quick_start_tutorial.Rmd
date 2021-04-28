@@ -245,7 +245,7 @@ The CLUS simulator model does not run directly off of the PostgreSQL database. I
 
 In this section you will learn how to use the *dataLoaderCLUS* module to create a SQLite database to run in the forestry simulator model. The *dataLoaderCLUS* module is located in the "R->SpaDES-modules" folder. Within the folder you will find a single dataLoaderCLUS.R file and several variations of a dataLoaderCLUS_xxxx.Rmd. The .R file is the script that contains the functions that consolidate the data. This script should only be changed if there is a need to modify or add to the fundamental process of creating the SQLite database. The .Rmd file is used to define the scenario specific parameters that get implemented in the .R file, thus it is more flexible and can be copied and modified as needed.  
 
-Previously you created a spatial parameter to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the existing parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_test.Rmd".
+Previously you created a spatial parameter to run for the Revelstoke TSA, therefore, you can open the "dataLoaderCLUS_revelstoketsa.Rmd" to get started with many of the existing parameters needed to create a database of the TSA. Save a copy of the .Rmd as "dataLoaderCLUS_tutorial.Rmd".
 
 Within the .Rmd you will notice features of the SpaDES module structure. It starts with a bit of a text overview of the .Rmd. Beneath that is a code "chunk". Within this chunk are listed the modules, parameters and objects needed to run the .R code. 
 
@@ -533,27 +533,51 @@ Below is a copy of the code chunk in the *forestryCLUS_tutorial.Rmd*. Here we wi
 
 First you will notice some [library()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/library) and [source()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/source) function calls. These load the R packages and functions needed to run the simulation. 
 
-Next you will see a bunch of file paths for indicating where the modules (*moduleDir*), inputs (*inputDir*), outputs (*outputDir*) and cache (*cacheDir*) are located. Again, we use the [here()](https://www.rdocumentation.org/packages/here/versions/0.1) function to set relative paths. Be sure you have the correct directory for the SpaDES modules. You can change the location of the other objects if you like, but we recommend using them as-is. 
+Next you will see some file paths for indicating where the modules (*moduleDir*), inputs (*inputDir*), outputs (*outputDir*) and cache (*cacheDir*) are located. Again, we use the [here()](https://www.rdocumentation.org/packages/here/versions/0.1) function to set relative paths. Be sure you have the correct directory for the SpaDES modules. You can change the location of the other objects if you like, but we recommend using them as-is. 
 
-You will likely recognize the *times* parameter from *dataLoaderCLUS*. It is a  more important in the *forestryCLUS* module since we are simulating forest harvest over time. Provide the start time as 0 and end time as 40. We will simulate forest harvest at 5 years intervals, so 40 intervals are needed to achieve a 200 year simulation. Feel free to change the number of intervals, but make sure is in consistent with the *periodLength* parameter in *growingStockCLUS* (we will provide some more explanation on that below).
+You will likely recognize the *times* parameter from *dataLoaderCLUS*. It is an important parameter in the *forestryCLUS* module since we are simulating forest harvest over time. Here you need to provide the start time as 0 and end time as 40, as we typically simulate forest harvest at 5 years intervals for 200 years; i.e., 40 intervals are needed to achieve a 200 year simulation. However, feel free to change the number of intervals, but make sure it is in consistent with the *harvestFlow* parameter in  *forestryCLUS* and the *periodLength* parameter in *growingStockCLUS* (we will provide more explanation on that below).
 
-Next, again you will recognize the *parameters* list, that consists of a list of all the modules and parameters within them. The *dataLoaderCLUS* parameters should be consistent what you used when running that module previously. However, the *forestryCLUS* module only uses a handful of these directly. In particular, the path to the sqlite database needs to be set (*useCLUSdb*). In addition, you can modify the *nameZoneRasters* you want to include in a given scenario (which we will do below). Otherwise, the parameters can generally be ignored, as they will not impact the *forestryCLUS* simulation analysis.   
+Next, again you will recognize the *parameters* list, that consists of all the modules and the lists of parameters within them. The *dataLoaderCLUS* parameters should be consistent with what you used when running that module previously. However, the *forestryCLUS* module only uses a some of these directly. In particular, the path to the SQLite database needs to be set (*useCLUSdb*). In addition, you can modify the *nameZoneRasters* you want to include in a given scenario (which we will do below). Otherwise, the parameters can generally be ignored, as they will not impact the *forestryCLUS* simulation analysis.   
 
-Since we used the *blockingCLUS* module as part of *dataLoaderCLUS* to pre-define the harvest blocks, the most important parameter to set for *forestryCLUS* is to set *blockMethod* to 'pre'. This lets *forestryCLUS* know that the blocks were pre-defined in the database. The other parameters are not important in this case. However, if you did not use the pre-blocking method in *dataLoaderCLUS*, you can use the 'dynamic' method in *forestryCLUS*. This creates harvest blocks 'on-the-fly' by randomly spreading, following the size distribution from natural disturbance types (i.e. the *patchZone* parameter and *patchSizeDist* object). Using the 'dynamic' method requires the other parameters to be set. The *useSpreadProbRas* needs to be set to TRUE, so that the model will restrict the location of cutblocks (i.e., allow them to "spread") to within the THLB.   
-The *forestryCLUS* module conisists of 
+Since we used the *blockingCLUS* module as part of *dataLoaderCLUS* to pre-define the harvest blocks, we use the *blockingCLUS* module within *forestryCLUS*. In this case, it is important to set the *blockMethod* parameter to 'pre'. This tells the *forestryCLUS* module that the blocks were pre-defined in the SQLite database. The other parameters are either used within the *dataLoaderCLUS* step, and are thus not important within *forestryCLUS*, or if you did not use the pre-blocking method in *dataLoaderCLUS*, you can use the 'dynamic' *blockMethod* in *forestryCLUS*. This creates harvest blocks 'on-the-fly' by randomly spreading from selected pixels, following the size distribution from natural disturbance types. Using the 'dynamic' method requires these other parameters (i.e., the *patchZone* parameter and *patchSizeDist* object) to be set. The *useSpreadProbRas* also needs to be set to TRUE, so that the model will restrict the location of cutblocks (i.e., only allow them to "spread") to within the THLB.   
+
+The *forestryCLUS* module itself consists of parameters for establishing the priority for harvesting forest stands and zones in the model, reporting of forest harvest constraints and an adjacency constraint setting. We describe these in mroe detail below. 
+
+You can set the forest stand harvest priority criteria using the *harvestBlockPriority* parameter. The parameter is a SQL query of the 'pixels' table within the SQLite database. It selects each unique 'block' (predefined using *blockingCLUS*, or else it prioritizes at the pixel scale) and orders them, according to the SQL query criteria. Here we use 'oldest first' as the priority criteria using the "age DESC" query (i.e., order blocks by descending age). You can use any data incorporated in the 'pixels' table to establish the priority queue (e.g., volume, height or distance to disturbance). You can also prioritize using multiple criteria, e.g., "age DESC, vol DESC" will order the blocks by age and then volume, and thus prioritize the oldest blocks with the highest volume in the priority queue. The model then essentially 'harvests' (sets the stand as a cutblock, by setting age, height and volume to 0) and calculates volume from that stand according to the estimate from the appropriate growth and yield model. 
+
+You also have the option to set a harvest priority criteria within pre-defined management zones within the area of interest. Thus, you can set harvest priority at two scales, at the scale of a single stand and at the scale of groups of stands within some pre-defined areas. To do this you will have needed to define these priority areas when running the *dataLoaderCLUS* by setting the *nameZonePriorityRaster* parameter. The *nameZonePriorityRaster* is a raster that must have a zone priority identifier for each pixel in the area of interest (otherwise that pixel will never be harvested in the simulator). When creating the *nameZonePriorityRaster* you can specify that the unique identifier for the priority zones is equivalent to the order you want them harvested. For example, if you have two zones called 'east' and west' and want to prioritize harvest in the 'west' zone, then make the integer identifier for 'west' = 1 and 'east' = 2. This way, you can establish the harvest priority criteria with an SQL query of the integer identifier (e.g., "zone_column ASC"). Alternatively, you can prioritize based on forest stand characteristics within the *nameZonePriorityRaster*. To use the zone harvest priority criteria you need to set the *harvestZonePriority* parameter as a SQL query with the criteria you want to prioritize by, including age, volume and distance to disturbance (similar to the stand-level query). For example, if you want to prioritize harvest to the region with the oldest stands, then use "age DESC". You will also need to set the *harvestZonePriorityInterval* parameter, which defines how frequently the model re-calculates the harvest. For example, *harvestZonePriorityInterval* = 1 will re-calculate the zone priority at each interval, in this case every 5 years. If using the zone harvest priority parameters you also need to define the *nameZonePriorityRaster* parameter in the *dataLoaderCLUS* parameter list. Here we do not prioritize harvest by zone, and thus you will notice these parameters are "commented out". 
+
+The *reportHarvestConstraints* parameter in the *forestryCLUS* module can be used to output a table from the simulation that reports the constraint values for each zone constraint area. For example, if a zone has a constraint threshold on the proportion of the area of the zone that can be less then a specified stand age, it will report out the proportion of the zone that meets that threshold. This can be useful for double-checking whether a constraints is being modeled properly, or to assess when a constraint is or is not being met during a simulation. Here we set the parameter to TRUE so we can use that functionality. We will show you how to use this information in more detail later. 
+
+The *adjacencyConstraint* parameter in the *forestryCLUS* module can be used to simulate a 'green-up' requirement for adjacent harvest blocks. The parameter is the minimum threshold of the height of the stand in the adjacent blocks before a block is allowed to be harvested. Here we set it to '3', which is to say that the adjacent blocks must be minimum 3 m in height before a block is harvested. 
+
+Here we use the *growingStockCLUS* module to calculate and update the stand characteristics from the appropriate growth and yield curves. You only need to set one parameter within the module, *periodLength*, which is the lenght of time, in years, that a time interval is in the simulation. Here we set it to '5', as we are simulating 40 intervals over a 200 year period, which is equivalent to a five year interval. If we changed this to 20 intervals over a 100 year period, for example, it would also be 5. Or, for example, if we changed it to 20 intervals over a 200 year period the *periodLength* should be set to '10'. 
+
+We also use the *roadCLUS* module in this example to show how CLUS simulates roads. The module consists of three parameters: *roadMethod*, *nameCostSurfaceRas* and *nameRoads*. You will notice that these are the same parameter settings used in the *dataLoaderCLUS_tutorial.Rmd.* Since we used the 'pre' *roadMethod* in *dataLoaderCLUS*, the road network to all possible cublock landings has already been solved in the SQLite database. Therefore, when running the *forestryCLUS* simulation, the *roadCLUS* module takes the pre-solved network and 'converts' a pixel to a road along the pre-defined network when a block is harvested between that blocks landing and the existing road network. It also sets the 'roadyear' value to the period in the simulation when the road was created. If using other methods (i.e., 'snap', 'lcp', or 'mst') then the network gets created during the simulation. Here we will continue to use the 'pre' method, and we set the parameters the same as was used in the *dataLoaderCLUS*.  
+
+Finally, we use the *uploaderCLUS* module to output the results of the simulation to a PostgreSQL database on a cloud server. Here you need to define the connection to the cloud server (*dbInfo*), which consists of a list of the database host amd name, and the username and password. Again we use the ["keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) package to maintain database security. You also need to set the *aoiName* parameter. This parameter is the name of the schema (i.e., a namespace for containing a group of data) within the PostgreSQL database where the results of the simulation will be saved. This can be a new schema or a previously created one. Here we will use the 'tutorial' schema. 
+
+In addition to the list of parameters, there are several objects that need to be created to run the *forestryCLUS* simulation. This includes the list of *modules* used in the analysis, a data.table that describes the simulation *scenario*, a list of data.table's that define the harvest flow (*harvestFlow*), a data.table that defines the patch size distribution for cutblocks (*patchSizeDist*), a list of the *objects*, a list of the simulation file paths (*paths*), and the simInit object (*mySim*) that defines all of these things for the SpaDES package to run the simulation. You  can define a data.frame object that identifies all of the output 'reports' to save from the simulation analysis (*outputs()*). 
+In the *modules* object, here we list all of the modules described above, including *dataLoaderCLUS*, *growingStockCLUS*, *blockingCLUS*, *forestryCLUS*, *roadCLUS*, and *uploaderCLUS.*
+
+In the *scenario* object, we provide two parameters, a *name* and a *description* of the scenario being simulated in a given run of the model. These should be unique to each set of parameters input into the model. For example, if you are testing the effect of changing the harvest priority parameter from oldest first to highest volume first, these scenarios should have a different name and description. A scenario with the same name will get copied over the previous scenario. For the *name*, we suggest including the harvest unit name (e.g., TSA or TFL) and some acronyms describing the scenario. We again note that there is a 63 character limit for tables in PostgreSQL, and some of the table outputs from the scenario incorporate the scenario name, thus we recommended keeping the name as short as possible. For each harvest unit we typically simulate a business-as-usual scenario, which is characterized in the *name* with the acronym 'bau'. The 'bau' is intended to represent a baseline scenario for the harvest unit, essentially including all of the existing legal constraints, forest inventory and growth and yield models as-is, and harvest rules that are sensible for the harvest unit (i.e., uses parameters similar to what were used in the recent timber supply review analysis for the harvest unit). The BAU scenario also has even harvest volume flow, i.e., harvested flow is set at the maximum volume that can be harvested without causing a decline in harvest volume during the 200 year simulation period. An alternative scenario might include a hypothetical constraint, and therefore it would be useful to incorporate the constraint name and perhaps some of the parameters into the scenario *name*, e.g., 'revelstoke_newzone_25p_agele15' might describe a new zone with a constraint threshold of maximum 25 percent of the area of forest stands with an age less than or equal to 15 years old. The *description* parameter can be used to provide much more detail on the scenario. Here you can describe specifics of the parameters used in the analysis. As standard practice we describe the constraints (e.g., business as usual, or including a hypothetical constraint), the target harvest flow (typically the even-flow harvest rate from the bau scenario), adjacency constraints, the harvest priority criteria, and any other relevant information to the scenario.    
+
+The *harvestFlow* is a list of parameters describing the volume target for the harvest unit. It can be used to set targets within multiple compartments in a harvest unit by creating a data.table for each unique compartment. Note that if you are simulating multiple compartments these will need to have been defined in *dataLoaderCLUS* and thus align with the compartments as defined in the SQLite database. The *compartment* parameter is the name of each harvest unit in the analysis, as defined in the SQLite database, as taken from the spatial harvest unit boundaries defined in *dataLoaderCLUS*. Here we use "Revelstoke_TSA", as that is the name of the TSA in the *nameBoundaryFile* we use to define harvest units. The *partition* parameter is an SQL query that may be used to further limit where forest can be harvested within the simulation. Here we use ' vol > 150 ' to limit harvest to stands that achieve a miniumum volume of 150 m^3^. This parameter could also be used to partition harvest according to other inforamtion itn he 'pixels', for example, to target deciduous stands (' dec_pcnt > 50 '). The *year* parameter is used to define the time period and steps of the simulation. You will remember that we set the *times* parameter as 40 intervals, and with the intent of simulating a 200 year period, that is equivalent to a 5 year interval. The *year* parameter specifies the sequence of years (the *seq()* function) of the analysis, including the calendar year start (the *from* parameter, which is typically the year of the forest inventory data used in the analysis, which in thsi case is 2019), the end year (the *to* parameter; add the number of desired simulation years, which in this case is 200, and thus the value is 2219), the interval in years (the *to* parameter, which in this case is 5, since there are 5 years in each interval, or 200/5). The *flow* parameter sets the harvest target for each time interval. The model will harvest up to that amount at each interval. Thus, if the interval is 5 years, it is the 5 year target. You will likely want to consider harvest targets on an annual basis, so make sure you convert the annual target to the appropriate interval (e.g., if the annual target is 200,000m^3^/year, and the interval is 5 years, the *flow* is 1,000,000m^3^)
+
+The *patchSizeDist* parameter provides the frequency distribution for cutblock sizes, by natural disturbance type, following the [biodiversity guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf). You likely recall that the same parameter was used in *dataLoaderCLUS* within the *blockingCLUS* module to create a range of pre-defined harvest block sizes that follow the NDT distribution. Here it can be ignored, but is included in case you want to create cutblocks on-the-fly using the 'dynamic' method. Under thsi method, cutblocks will be simulated with a spread algorithm, limited by the *patchSizeDist* frequency distribution.
+
+The *objects* parameter is necessary for SpaDES to function properly by declaring the objects it needs to track. If you do not list the object, then it will be ignored in the simulation and result in a model error. Here we list the *harvestFlow*, *patchSizeDist* and *scenario* objects we described above. 
+
+Similarly, the *paths* parameter is necessary for SpaDES to know where the model input data are located and where outputs should be stored. Failure to incldue these may also result in an error.
+
+The *mySim* object is another SpaDES object where various parameters and components of the model must be decalred for the SpaDES simulation to function. Here you declare the name of the *times*, *params*, *objects* and *paths* objects for the model. 
+
+The *outputs()* function is a SpaDES function for declaring the objects within the simulation that get output to the *outputDir*. These are created in the module .R scripts, for example, the "harvestReport" is created in the forestryCLUS.R script and the "growingStockReport" is created in the growingStockCLUS.R script. You will need to familiarize yourself with the module scripts to understand what reports can be output but for now you can use "harvestReport" and "growingStockReport". The "harvestReport" outputs things like the amount of volume harvested at each time interval in a scenario and compartment, and the "growingStockReport" outputs the amount of grwoing stock at each time interval in a scenario and compartment. 
+
+Finally, you can save the SpaDES simulation (in this case the *mySim* object) run with the *spades()* function. Note that here we embed that function in the *system.time()* function to obtain the total time the model took to finish the simulation. 
 
 
-
-
-harvestBlockPriority = "age DESC", 
-                      #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
-                      reportHarvestConstraints = TRUE,
-                      adjacencyConstraint = 3),
-
-
-
-```{r module_usage}
+```{r, forestryCLUS module example code, message = F, echo = T, eval = F}
 library (SpaDES.core)
 library (data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
@@ -680,21 +704,30 @@ mySim <- simInit(times = times,
 
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport"))
+                                             "growingStockReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})
 
 ```
 
+Now that your familiar with the elements of the *forestryCLUS* module, we will run some simulation scenarios so you can get familiar with its functionality and in particular, the model outputs. Open the *forestryCLUS_tutorial.Rmd*. You will see the file has a [yaml header](https://monashdatafluency.github.io/r-rep-res/yaml-header.html), bounded by three dashes (---) at the top and the bottom. This header contains commands related to how the .Rmd is formatted in an output document (typically a html, pdf or Word file). We won't get into detail on yaml header options here, but you will note this one contains commands for a *title*, *author* and *date*; feel free to modify these as you like. The *output* command specifies that the output is a html file (*html_document*), adn that a markdown (.md) document of the file will be created for web viewing on github (*keep_md: yes*).  
+
+``` {r, example yaml header from .Rmd file, message = F, echo = T, eval = F}
+---
+title: "forestryCLUS_tutorial.RmD"
+author: "Tyler Muhly"
+date: "23 April 2021"
+output:
+  html_document: 
+    keep_md: yes
+---
+```
+
+Below the yaml header you will see some text. Here you can describe the spefici modeul beign developed
 
 
-
-
-
-
+our convention has been to save unique .Rmd files for the hartvest unit being analyzed
 
 
 
@@ -708,45 +741,7 @@ system.time({mysimout<-spades(mySim)})
   - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
   is simulated
 
-#### Time Intervals
-- specify in times 
-  - start = 0
-  - end = number of intervals, e.g., if using a 5 year interval and want to sim over a 200 year period, end = 40
 
-  
-#### harvestPriority
-- The harvest queue is established using the 'harvestPriority' parameter
-  - the paramter is an SQL query for how to prioritize stand characteristics 
-  - it queires the pixels table (i.e., you can prirotize based on any values in teh pixels table)
-  - for example 'dist, age DESC, vol DESC' says to priortize based on:
-      - 'dist', i.e., distance to disturbed pixel (closest first), then
-      - 'age DESC', i.e., descending age (oldest first), then
-      - 'vol DESC', i.e., descending volume (highest volume first)
-- also need to set the adjacency height constraint (adjacencyConstraint)
-
-#### growingStockCLUS
-- you  set the time interval between simulating forest stand characteristics within the growingStockCLUS parameters 
-  - growingStockCLUS = list (periodLength = 5); here we simulate teh parameters every 5 years   
-
-#### scenario 
-- there is a parameter ('scenario') to name the scenario and provide a brief description of it
-  - this can be used to track scenarios and will be uploaded to the server with the app for interfacing with results  
-  - for BAU scenario, may need to do several 'test' runs to identify the appropriate harvest flow
-  - keep all scenarios and variations in parameters as you run them (comment them out) so there is a record
-
-#### harvestFlow
-- harvestFlow parameter is where the annual cut level is set
-  - will likely need to do multiple test runs to identify an appropriate BAU sceanrio
-  - can use AAC dtermination or base-case models form last TSR for analysis unti workign in, but as our model may output differ then these, will likely nee dto test and adjust different leveles.
-  - goal for BAU is to get a susitaned flow over 200 year period 
-  - creates a list of data.tables where you can set the harvest level by TSA or TFL and for specific time periods 
-  - can also set a 'partition' to identify other criteria for allocatign harvest
-    - for example, a minimum volume havest criteria of 110m^3^/ha (' vol > 110 ')
-  - remeber that if simualting with time intervals >1 year to multiply annual harvest flwo target by the interval
-
-#### patchSizeDist
-  - establsihes the size of cutblocks to be harvested adn the frequency to haveset them by natural disturabcen type (ndt), as defined in the Forest Practices Code [Biodiversity Guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf); NDT's are associated with biogeolcimatic units
-  
 #### Outputs
 - define where table ouputs get uploaded (via 'uploaderCLUS')
 - currently we upload to a postgres on a VM server; 

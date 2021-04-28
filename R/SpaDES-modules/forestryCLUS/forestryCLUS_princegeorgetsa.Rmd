@@ -62,6 +62,10 @@ pg_centgrp_pa_nh
 ## New Caribou Constraints
 BAU = beo, vqo, wha, uwr, fsw (fisheries senstive watersheds),parks and protected areas (nharv) and cw (community watersheds) 
 
+BAU plus the new B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the caribou partnership agreement areas as protected areas (rast.central_grp_proposed_luo zones 1 and 2 = no harvest); NOTE; these areas no in the TSA
+
+added proposed LUO's for herds
+
 ## 'harvestPriority' parameter 
 - used oldest first
 
@@ -84,10 +88,22 @@ For north blocks, I started with 1.6M m3/yr; 1.5M; 1.25; 1.15; 1.2 - final
 #UPDATE SCENARIO
 ```{r, zone_update}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_North_TSA_clusdb.sqlite")) # Prince_George_North_TSA_clusdb.sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite")) # Prince_George_North_TSA_clusdb.sqlite  Prince_George_TSA_clusdb.sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones; rast.zone_cond_bc_itcha_ilgachuz_crithab rast.zone_cond_bc_tweedsmuir_crithab
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones; rast.zone_cond_bc_itcha_ilgachuz_crithab rast.zone_cond_bc_tweedsmuir_crithab
+
+
+# Central Group - Draft Land Use Orders - April 23, 2021
+# Early seral constraints in critical habtiat areas
+## Kennedy Siding
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 3 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 3 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 10 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 7 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)") 
 
 
 # NORTHERN GROUP - Wolverine
@@ -282,11 +298,11 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list( 
                            dbName='clus',
-                           save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_North_TSA_clusdb.sqlite"),  # Prince_George_North_TSA_clusdb.sqlite  Prince_George_TSA_clusdb.sqlite
+                           save_clusdb = TRUE,
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite"),  # Prince_George_North_TSA_clusdb.sqlite  Prince_George_TSA_clusdb.sqlite
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Prince_George_North_TSA", # Prince_George_North_TSA   Prince_George_TSA
+                           nameBoundary = "Prince_George_TSA", # Prince_George_North_TSA   Prince_George_TSA
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -318,19 +334,19 @@ parameters <- list(
                                     # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                     # "rast.zone_cond_eccc_north_cariboo_crithab_or_herd"
                                     # "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd",
-                                    # "rast.central_grp_proposed_luo",
+                                    # "rast.central_grp_proposed_luo"
                                     # "rast.central_grp_proposed_luo_buffer",
                                     # "rast.central_grp_proposed_luo_matrix",
                                     # "rast.zone_smc_zones_20210315"
                                     # "rast.zone_cond_bc_narrow_lake_crithab",
                                     # "rast.zone_cond_bc_hart_ranges_crithab"
-                                    # "rast.zone_cond_bc_kennedy_siding_crithab",
+                                    "rast.zone_cond_bc_kennedy_siding_crithab"
                                     # "rast.zone_cond_bc_north_cariboo_crithab",
                                     # "rast.zone_cond_bc_redrock_prairie_creek_crithab"
                                     #  "rast.zone_cond_bc_itcha_ilgachuz_crithab"
                                     #  "rast.zone_cond_bc_tweedsmuir_crithab"
                                     # "rast.central_grp_proposed_luo_feb2021"
-                                     "rast.zone_du7_scenario_20210330"
+                                    # "rast.zone_du7_scenario_20210330"
                                     ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -354,8 +370,8 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
-                      # reportHarvestConstraints = T
+                      #harvestZonePriorityInterval = 1,
+                      reportHarvestConstraints = T,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -476,9 +492,14 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in priority stands in high priority zones in Chase core critical habitat; harvest allowed in high priority zones in matrix critical habitat up to 15% disturbance (no buffer) in forested area.  NOTE: no medium or low priority zones in this unit. Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "pg_north_wolverine_nh",
 #                        description = "No harvest in Wolverine critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+# scenario = data.table (name = "pg_north_wolverine_hi_priority",
+#                        description = "No harvest in priority stands in high priority zones in Wolverine core critical habitat; harvest allowed in high priority zones in matrix critical habitat up to 15% disturbance (no buffer) in forested area.  NOTE: no medium or low priority zones in this unit. Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
-scenario = data.table (name = "pg_north_wolverine_hi_priority",
-                       description = "No harvest in priority stands in high priority zones in Wolverine core critical habitat; harvest allowed in high priority zones in matrix critical habitat up to 15% disturbance (no buffer) in forested area.  NOTE: no medium or low priority zones in this unit. Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+scenario = data.table (name = "pg_south_centgrp_luo_age_le40",
+                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+
+
+
 
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
@@ -492,13 +513,13 @@ scenario = data.table (name = "pg_north_wolverine_hi_priority",
 
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_North_TSA", # Prince_George_North_TSA   Prince_George_TSA
+harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA", # Prince_George_North_TSA   Prince_George_TSA
                                          partition = ' vol > 182 and age >= 75  ', 
                                            year = rep( seq (from = 2018, 
                                                             to = 2218, 
                                                             by = 5),
                                                       1), 
-                                           flow = 6000000) #6,000,000 / 30000000 //  1,200,000 / 6000000 
+                                           flow = 30000000) #6,000,000 / 30000000 //  1,200,000 / 6000000 
 ))
 
 
