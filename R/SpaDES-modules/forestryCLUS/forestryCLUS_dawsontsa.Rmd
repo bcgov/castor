@@ -86,6 +86,8 @@ ECCC in all herds = rast.zone_cond_eccc_central_rockies_crithab_or_herd,
                     rast.zone_cond_eccc_columbia_south_crithab_or_herd,
                     rast.zone_cond_eccc_central_selkirks_crithab_or_herd
                     "rast.zone_cond_eccc_graham_crithab_or_herd"
+                    
+BAU plus the new B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the caribou partnership agreement areas as protected areas (rast.central_grp_proposed_luo zones 1 and 2 = no harvest)
 
 ## 'harvestPriority' parameter 
 - used oldest first
@@ -112,6 +114,7 @@ attributable to deciduous-leading stands.
 
 - harvest flow: first tried 2M m^3^/yr, 1.75M, 1.85M, 1.8M; 
 - stable harvest flow at 1.8M m^3^/yr
+  - also identified non-declining harvest flow for BAU plus the B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the        partnership agreement areas as protected areas; at 1.75M m^3^/yr
 
 ## Partnership agreement
 There is a Partnership Agreement for these caribou herds that has designated zones and constraints for those zones. These can be modified using the code below.
@@ -121,8 +124,47 @@ There is a Partnership Agreement for these caribou herds that has designated zon
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_partnership_agreement'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")
+
+
+# Central Group - Draft Land Use Orders - April 23, 2021
+# Below makes the B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the partnership agreement areas as protected areas; everything else as available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.central_grp_proposed_luo' AND (zoneid = 1) OR (zoneid = 2)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.central_grp_proposed_luo' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)") 
+# Below sets proposed LUO for critical habitat overlappign this unit 
+## Kennedy Siding
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 3 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 7 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)") 
+## Moberly / Klinse-Za
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 6 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 13 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 4)") 
+## Burnt Pine
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3) OR (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3) OR (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3) OR (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 17 where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3)") 
+## Qunitette
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 18 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 5)") 
+## Narraway
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 14 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 23 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 16 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 5)") 
+
 
 # NORTHERN GROUP - GROUP 2 (Graham)
 # Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
@@ -162,7 +204,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list( 
                            dbName='clus',
-                           save_clusdb = FALSE,
+                           save_clusdb = TRUE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -180,34 +222,32 @@ parameters <- list(
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
                                                
-                                             # "rast.zone_cond_partnership_agreement",
-                                             # "rast.zone_cond_noharvest_graham_crithab_or_herd" 
-                                             # "rast.zone_cond_noharvest_moberly_crithab_or_herd",
+                                             # 'rast.zone_cond_partnership_agreement',
+                                             # 'rast.zone_cond_partnership_agreement',
+                                             # "rast.zone_cond_noharvest_graham_crithab_or_herd",                                                                        "rast.zone_cond_noharvest_moberly_crithab_or_herd",
                                              # "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
                                              # "rast.zone_cond_noharvest_burnt_pine_crithab_or_herd",
                                              # "rast.zone_cond_noharvest_quintette_crithab_or_herd",
                                              # "rast.zone_cond_noharvest_kennedy_siding_crithab_or_herd",
                                              # "rast.zone_cond_noharvest_narraway_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_graham_crithab_or_herd",
-                                             # "rast.zone_cond_eccc_moberly_crithab_or_herd",
+                                             # "rast.zone_cond_eccc_graham_crithab_or_herd",                                                                             "rast.zone_cond_eccc_moberly_crithab_or_herd",
                                              # "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
                                              # "rast.zone_cond_eccc_burnt_pine_crithab_or_herd",
                                              # "rast.zone_cond_eccc_quintette_crithab_or_herd",
                                              # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                              # "rast.zone_cond_eccc_narraway_crithab_or_herd",
-                                             # "rast.zone_cond_bc_graham_crithab"
-                                             #  "rast.zone_cond_bc_moberly_crithab",
-                                             #  "rast.zone_cond_bc_kennedy_siding_crithab",
-                                             # "rast.zone_cond_bc_burnt_pine_crithab",
-                                             # "rast.zone_cond_bc_quintette_crithab",
-                                             # "rast.zone_cond_bc_kennedy_siding_crithab",
-                                             # "rast.zone_cond_bc_narraway_crithab",
+                                             # "rast.zone_cond_bc_graham_crithab",
+                                               "rast.zone_cond_bc_moberly_crithab",
+                                              "rast.zone_cond_bc_burnt_pine_crithab",
+                                              "rast.zone_cond_bc_quintette_crithab",
+                                              "rast.zone_cond_bc_kennedy_siding_crithab",
+                                              "rast.zone_cond_bc_narraway_crithab",
                                              # "rast.zone_cond_bc_hart_ranges_crithab",
-                                             # "rast.central_grp_proposed_luo",
+                                              "rast.central_grp_proposed_luo"
                                              # "rast.central_grp_proposed_luo_buffer",
                                              # "rast.central_grp_proposed_luo_matrix",
-                                             # "rast.central_grp_proposed_luo_feb2021",
-                                              "rast.zone_du7_scenario_20210330"
+                                             # "rast.central_grp_proposed_luo_feb2021"
+                                             # "rast.zone_du7_scenario_20210330"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -232,7 +272,7 @@ parameters <- list(
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
-                      # reportHarvestConstraints = T
+                      reportHarvestConstraints = T,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -288,10 +328,15 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in group 2 (Graham) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,800,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "dawson_ck_du7_grp2_he0d_mlewr12d",
 #                        description = "No harvest in group 2 (Graham)  HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 1,800,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "dawson_ck_du7_grp2_hi_priority",
+#                        description = "No harvest priority stands in high priority zones in group 2 Graham) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority. Harvest flow = 1,800,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "dawson_creek_bau_newpark",
+#                        description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement  added as no harvest. Harvest flow = 1,750,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "dawson_creek_centgrp_luo_age_le40",
+#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021.  Harvest flow = 1,750,000m3/yr. Adjacency = 3m. Oldest first.")
 
-
-scenario = data.table (name = "dawson_ck_du7_grp2_hi_priority",
-                       description = "No harvest priority stands in high priority zones in group 2 Graham) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority zones. NOTE: all zones in this unit are high priority. Harvest flow = 1,800,000m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "dawson_creek_bau_newpark_conif",
+                       description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Conifer leading stands (deciduous percentage < 50) only. Harvest flow = 1,000,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
 
@@ -313,14 +358,36 @@ scenario = data.table (name = "dawson_ck_du7_grp2_hi_priority",
 # scenario = data.table (name = "dawson_luo_35p_25yo",
 #                        description = "Central group proposed land use order. Maximum 35% less than 25 years old.")
 
+
+
+
+# harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
+#                                      partition = ' vol > 120 ', 
+#                                      year = rep( seq (from = 2018, 
+#                                                       to = 2222, 
+#                                                       by = 5),
+#                                                 1), 
+#                                      flow = 9000000) # 1,800,000m3/yr / BAU, no new protected area
+# ))
+
+# harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
+#                                      partition = ' vol > 120 ', # 
+#                                      year = rep( seq (from = 2018, 
+#                                                       to = 2222, 
+#                                                       by = 5),
+#                                                 1), 
+#                                      flow = 8750000) #1,750,000m3/yr / BAU with new protected area
+# ))
+
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 ', 
+                                     partition = ' vol > 120 AND dec_pcnt < 50 ', # 
                                      year = rep( seq (from = 2018, 
                                                       to = 2222, 
                                                       by = 5),
                                                 1), 
-                                     flow = 9000000) #1,800,000m3/yr
-))
+                                     flow = 5000000) #1,000,000m3/yr / conifer leading part only / BAU with new protected area
+                        ))
+
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
 
