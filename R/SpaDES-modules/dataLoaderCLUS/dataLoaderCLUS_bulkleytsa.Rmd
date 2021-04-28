@@ -65,7 +65,7 @@ parameters <-  list(
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 
-                                             "rast.zone_du7_scenario_20210305",
+                                             "rast.zone_du7_scenario_20210330",
                                              "rast.zone_cond_noharvest_telkwa_crithab_or_herd",
                                              "rast.zone_cond_eccc_telkwa_crithab_or_herd",
                                              "rast.zone_cond_bc_telkwa_crithab"

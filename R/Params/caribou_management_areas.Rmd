@@ -1200,6 +1200,63 @@ dbDisconnect(conn)
 ```
 
 
+### DU7 - Updated scenario zones, DU7/Northern Group March, 30 2021
+The following creates zones for DU7/Northern Group caribou. This is a combination of priority zones and forest stand types for protection. These consist of priority forest stands identified 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; and a both of those buffered by 500m ("scenario buffer"). Priority stands were only identified in high and low elevation winter and summer critical habitat. The priority zones include 'low', 'medium' and 'high' areas, as defined by caribou biologists. Critical habitat is also included in this data.
+
+```{r, proposed D7 zones, March 30, 2021 version}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+du7_scenarios <- getSpatialQuery("SELECT * from public.northern_group_scenario_20210330;")
+
+# zone integer  
+du7_scenarios_vat <- data.table (st_drop_geometry (du7_scenarios [, c ('zone')]))  
+du7_scenarios_vat [, value := seq_len(.N)]  
+all_du7_scenarios <- merge (du7_scenarios, du7_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du7_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du7_scenarios <- fasterize::fasterize (all_du7_scenarios, prov.rast, field = "value")
+writeRaster (ras_du7_scenarios, "ras_du7_scenarios_20210330.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du7_scenarios_20210330.tif -t 100x100 rast.zone_du7_scenario_20210330 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:3, 9:11, 13:24, 28:44, 56:61, 67:69, 71:73, 75:82, 88:90)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_du7_scenario_20210330', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(4:8, 12, 25:27, 45:55, 62:66, 70, 74, 83:87, 91)), 
+                           type = 'le', variable = 'dist', threshold = 0, 
+                           reference_zone = 'rast.zone_du7_scenario_20210330', 
+                           percentage = 12, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du7_scenarios <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_cond_du7_scenarios_20210330_vat"), value = du7_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("public", "zone_cond_du7_scenarios_20210330"), value = zone_du7_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone_cond_du7_scenarios_20210330 INHERIT zone_constraints"))
+dbDisconnect(conn)
+
+```
+
+
+
+
 
 
 

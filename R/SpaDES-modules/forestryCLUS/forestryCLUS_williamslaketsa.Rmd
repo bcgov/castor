@@ -109,33 +109,117 @@ The allowable annual cut (AAC) for the Williams Lake TSA is 3 million cubic metr
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Williams_Lake_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd'")
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_barkerville_crithab_or_herd'")
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303'")
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab'") # "rast.zone_cond_bc_itcha_ilgachuz_crithab", "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab",
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210305'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'") 
+# rast.zone_cond_bc_itcha_ilgachuz_crithab",  "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab", "rast.zone_cond_bc_tweedsmuir_crithab"  rast.zone_du7_scenario_20210330
+
+
+# Charlotte
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 3) OR (zoneid = 2)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 3) OR (zoneid = 2)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 3) OR (zoneid = 2)") 
+# Below makes HEWSR and LESR high and low priority areas no harvest and high and low priority matrix and LEWR habitat areas max 15% disturbance; NOTE: only high and low priority zones in this unit
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND      (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR
+(zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61) OR
+(zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)")
+# Below makes HEWSR and LESR high priority areas no harvest and high priority matrix and LEWR habitat areas max 15% disturbance; low priority zones available to forest harvest; NOTE: only high and low priority zones in this unit
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND      (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR
+(zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61) OR
+(zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7)")
+
+
+
+
+
+ 
+
+# Rainbows
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+# Below makes HEWSR and LESR high priority areas no harvest and high priority matrix and LEWR habitat areas max 15% disturbance; NOTE: only high priority zones in this unit
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND      (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65)")
+
+
+# ITCHA-ILGACHUZ
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+# Below makes HEWSR and LESR priority areas no harvest and all priority matrix and LEWR habitat areas max 15% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND      (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 43) OR (zoneid = 44) ") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR  (zoneid = 55)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR  (zoneid = 55)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR  (zoneid = 55)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55)") 
+# Below makes HEWSR and LESR high and medium priority areas no harvest and high and medium priority matrix and LEWR habitat areas max 15% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND      (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 29) OR (zoneid = 32) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 40)  OR (zoneid = 43) OR (zoneid = 46) OR (zoneid = 49) OR (zoneid = 52) OR  (zoneid = 55)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 28)OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 33)  OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 44)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51)  OR (zoneid = 54)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51)  OR (zoneid = 54)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51)  OR (zoneid = 54)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51) OR (zoneid = 54)") 
+# Below makes HEWSR and LESR high priority areas no harvest and high priority matrix and LEWR habitat areas max 15% disturbance; medium an low priority zones available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND      (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 29) OR (zoneid = 32) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 40)  OR (zoneid = 43) OR (zoneid = 46) OR (zoneid = 49) OR (zoneid = 52) OR  (zoneid = 55) OR (zoneid = 30) OR (zoneid = 35) OR (zoneid = 38) OR (zoneid = 41) OR (zoneid = 44)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 28) OR (zoneid = 31) OR (zoneid = 33)  OR (zoneid = 36) OR (zoneid = 39) OR (zoneid = 42)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND  (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51)  OR (zoneid = 54)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51)  OR (zoneid = 54)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51)  OR (zoneid = 54)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51) OR (zoneid = 54)") 
 
 
 # NORTHERN GROUP - GROUP 1 (Itcha, Rainbows, Charlotte, Tweeds, Telkwa)
-# Below makes the matrix and LEWR habitat unavailable to harvest
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 2) OR (zoneid = 3)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
-# Below makes HEWSR adn LESR no harvest and all of the matrix and LEWR habitat areas max 15% disturbance
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 21) OR (zoneid = 23) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 27) OR (zoneid = 28) OR (zoneid = 35) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 2) OR (zoneid = 22) OR (zoneid = 26) OR (zoneid = 36) OR (zoneid = 40)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 21) OR (zoneid = 23) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 27) OR (zoneid = 28) OR (zoneid = 35) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 2) OR (zoneid = 22) OR (zoneid = 26) OR (zoneid = 36) OR (zoneid = 40) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
+# Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 3) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 2) OR (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 2) OR (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 2) OR (zoneid = 3)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 4) OR (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 4) OR (zoneid = 3)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 4) OR (zoneid = 3)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_tweedsmuir_crithab' AND (zoneid = 4)")
+# Below makes HEWSR and LESR priority areas no harvest and all priority matrix and LEWR habitat areas max 15% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 51) OR (zoneid = 52) OR (zoneid = 54) OR (zoneid = 55) OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+# Below makes priority forest stands in high and medium priority HEWSR and LESR no harvest and  high and medium priority  matrix and LEWR habitat areas max 15% disturbance; low priority available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 29) OR (zoneid = 32) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 40) OR (zoneid = 43) OR (zoneid = 46) OR (zoneid = 49) OR (zoneid = 52) OR (zoneid = 55) OR (zoneid = 8)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 28) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 33)  OR (zoneid = 35) OR (zoneid = 36)  OR (zoneid = 38) OR (zoneid = 39)  OR (zoneid = 41) OR (zoneid = 42)  OR (zoneid = 44) OR (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7)  OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+# Below makes priority forest stands in high priority HEWSR and LESR no harvest and  high priority  matrix and LEWR habitat areas max 15% disturbance; low and medium priority available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 29) OR (zoneid = 32) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 40) OR (zoneid = 43) OR (zoneid = 46) OR (zoneid = 49) OR (zoneid = 52) OR (zoneid = 55) OR (zoneid = 8) OR (zoneid = 30) OR (zoneid = 35) OR (zoneid = 38) OR (zoneid = 41) OR (zoneid = 44)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 28) OR (zoneid = 31) OR (zoneid = 33) OR (zoneid = 36) OR (zoneid = 39) OR (zoneid = 42) OR (zoneid = 56) OR (zoneid = 57) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 60) OR (zoneid = 61)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 45)  OR (zoneid = 48)  OR (zoneid = 51)  OR (zoneid = 54)  OR (zoneid = 62) OR (zoneid = 63) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85)") 
 
-# Below makes priority forest stands no harvest and all of the matrix and LEWR habitat areas max 15% disturbance
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 21) OR (zoneid = 23) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 27) OR (zoneid = 28) OR (zoneid = 35) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 41) OR (zoneid = 42)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 2) OR (zoneid = 22) OR (zoneid = 26) OR (zoneid = 36) OR (zoneid = 40)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210305' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 21) OR (zoneid = 23) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 27) OR (zoneid = 28) OR (zoneid = 35) OR (zoneid = 37) OR (zoneid = 38) OR (zoneid = 38) OR (zoneid = 39) OR (zoneid = 41) OR (zoneid = 42) OR (zoneid = 2) OR (zoneid = 22) OR (zoneid = 26) OR (zoneid = 36) OR (zoneid = 40) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8) OR (zoneid = 9) OR (zoneid = 10) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 66) OR (zoneid = 68) OR (zoneid = 69)") 
 
 # WELLS GRAY NORTH Update the constraints available to a zone as specified in the scenario
 # Below makes the matrix habitat available to harvest
@@ -200,6 +284,9 @@ dbDisconnect(clusdb)
 ```
 
 
+
+
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
@@ -232,25 +319,29 @@ parameters <- list(
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
-                              # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
-                              # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
-                              # "rast.zone_cond_noharvest_rainbows_crithab_or_herd"
-                              #
-                              # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                              # "rast.zone_cond_bc_charlotte_alplands_crithab",
-                              # "rast.zone_cond_bc_rainbows_crithab"
-                              # "rast.zone_cond_bc_wells_gray_north_crithab",
-                             #"rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd"
-                            # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
-                            # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
-                            # "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
-                            # "rast.zone_cond_eccc_rainbows_crithab_or_herd",
-                             #"rast.zone_cond_eccc_wells_gray_north_crithab_or_herd"
-                             #"rast.zone_cond_eccc_barkerville_crithab_or_herd" 
-                            #  "rast.zone_smc_zones_20210315"
-                            #" rast.zone_barkerville_groundhog_zones_20210303"
-                            # "rast.zone_du7_scenario_20210305"
-                           "rast.zone_smc_zones_20210315"
+                                               
+                                               # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
+                                              # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd"
+                                             # "rast.zone_cond_noharvest_rainbows_crithab_or_herd"
+                                             # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"
+                             #               "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
+                             #               "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
+                                            
+                             #               "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",                                                                     "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",                                                                 "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+                             #               "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
+                             #               "rast.zone_cond_eccc_barkerville_crithab_or_herd",
+                             #               "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
+                             #               "rast.zone_smc_zones_20210315",
+                             
+                                            # "rast.zone_cond_bc_itcha_ilgachuz_crithab"
+                                            # "rast.zone_cond_bc_charlotte_alplands_crithab"
+                                           # "rast.zone_cond_bc_rainbows_crithab"
+                                           # "rast.zone_cond_bc_tweedsmuir_crithab"
+
+                             #               "rast.zone_cond_bc_wells_gray_north_crithab",
+                             #               "rast.zone_cond_bc_barkerville_crithab",
+                             #               "rast.zone_barkerville_groundhog_zones_20210303",
+                                            "rast.zone_du7_scenario_20210330"
                            ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -329,8 +420,7 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "williams_lake_wells_gray_north_ch_hele0d_m12d", description = "No harvest in Wells Gray North high and low elevation critical habitat, maximum 12% disturbance in Wells Gray North matrix critical habitat of all herds that overlap with the harvest unit (e.g., TSA or TFL). Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "williams_lake_wells_gray_north_scen3a", description = "No harvest in old forest, recruitment forest and buffered Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 15%  disturbance in Wells Gray North matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "williams_lake_wells_gray_north_scen3b", description = "No harvest in old forest and recruitment forest in Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance in Wells Gray North matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
-
-scenario = data.table (name = "williams_lake_wells_gray_north_scen3c", description = "No harvest in old forest and recruitment forest in Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance in Wells Gray North matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_lake_wells_gray_north_scen3c", description = "No harvest in old forest and recruitment forest in Wells Gray North core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance in Wells Gray North matrix habitat areas. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "williams_lake_wells_gray_north_he0d",
 #                        description = "No harvest in Wells Gray North high elevation critical habitat; harvest allowed in matrix critical habitat. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "williams_lake_barkerville_he0d",
@@ -351,6 +441,43 @@ scenario = data.table (name = "williams_lake_wells_gray_north_scen3c", descripti
 #                        description = "No harvest in Northern Group (Itcha, Charlotte, Rainbows) high elevation and low elevation summer critical habitat; harvest allowed in low elevation winter and matrix critical habitat up to 12% forest disturbance (no buffer) in forested area. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "williams_northgrp_high_med_low_priority",
 #                        description = "No harvest in Northern Group high elevation (HEWSR) and low elevation summer (LESR) critical habitat; harvest allowed in low elevation winter and matrix critical habitat up to 15% forest disturbance (no buffer) in forested area.  Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_du7_grp1_nh",
+#                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_du7_grp1_he0d_mlewr12d",
+#                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_du7_grp1_hi_med_lo_priority",
+#                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_du7_grp1_hi_med_priority",
+#                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) high and medium priority HEWSR and LESR critical habitat; harvest allowed in high and medium priority LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority areas. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_du7_grp1_hi_priority",
+#                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) high priority HEWSR and LESR critical habitat; harvest allowed in high priority LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low and medium priority areas. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_itcha_nh",
+#                        description = "No harvest in Itcha-Ilgachuz critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_itcha_he0d_mlewr12d",
+#                        description = "No harvest in Itcha-Ilgachuz  HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_itcha_hi_med_lo_priority",
+#                        description = "No harvest in Itcha-Ilgachuz HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_itcha_hi_med_priority",
+#                        description = "No harvest in priority stands in high and medium priority zones in Itcha-Ilgachuz HEWSR and LESR critical habitat; harvest allowed in  high and medium priority LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in all low priority zones. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_itcha_hi_priority",
+#                        description = "No harvest in priority stands in high priority zones in Itcha-Ilgachuz HEWSR and LESR critical habitat; harvest allowed in high priority LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in all low and medium priority zones. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_rainbows_nh",
+#                        description = "No harvest in Rainbows critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_rainbows_he0d_mlewr12d",
+#                        description = "No harvest in Rainbows HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_rainbows_hi_priority",
+#                        description = "No harvest in priority forest stands in high priority zones of Rainbows HEWSR and LESR critical habitat; harvest allowed in high priority zones LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NTOE: no medium and low priority in this unit. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_charlotte_nh",
+#                        description = "No harvest in Charlotte-Alplands critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_charlotte_he0d_mlewr12d",
+#                        description = "No harvest in Charlotte-Alplands HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "williams_charlotte_hi_lo_priority",
+#                        description = "No harvest in priority forest stands in high and low priority zones of Rainbows HEWSR and LESR critical habitat; harvest allowed in high and low  priority zones LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: no medium priority in this unit. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+scenario = data.table (name = "williams_charlotte_hi_priority",
+                       description = "No harvest in priority forest stands in high  priority zones of Rainbows HEWSR and LESR critical habitat; harvest allowed in high priority zones LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Low priority zones available to forest harvest. NOTE: no medium priority in this unit. Harvest flow = 2,350,000 m3/yr. Adjacency = 3m. Oldest first.")
+
+
 
 
 
