@@ -124,14 +124,49 @@ There is a Partnership Agreement for these caribou herds that has designated zon
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo'")
 
 
 # Central Group - Draft Land Use Orders - April 23, 2021
 # Below makes the B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the partnership agreement areas as protected areas; everything else as available to harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.central_grp_proposed_luo' AND (zoneid = 1) OR (zoneid = 2)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.central_grp_proposed_luo' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)") 
-# Below sets proposed LUO for critical habitat overlappign this unit 
+
+# Below sets proposed median NRV age targets for LUO for critical habitat overlapping this unit 
+## Kennedy Siding
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 5 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)") 
+## Moberly / Klinse-Za
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 9 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 21 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 4)") 
+## Burnt Pine
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3) OR (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3) OR (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3) OR (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 18 where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 27 where reference_zone = 'rast.zone_cond_bc_burnt_pine_crithab' AND (zoneid = 3)") 
+## Quintette
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 18 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 38 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 28 where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 5)") 
+## Narraway
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 20 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 34 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 24 where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 5)") 
+
+# Below sets proposed minimum NRV age targets for LUO for critical habitat overlapping this unit 
 ## Kennedy Siding
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 5)") 
@@ -188,6 +223,35 @@ dbExecute(clusdb, "UPDATE zoneconstraints set threshold = '2.5' where reference_
 dbDisconnect(clusdb)
 ```
 
+## Below is a code for switching from a disturbance ('dist') to forest attribute ('age', height') constraint type
+Disturbance constraint types calculates the percent area disturbed over forested area, whereas forest stand attributes constraint types are calculated over total area of the zone. Thus, if you have a zone initially parameterized with a disturbance constraint and want to use the same zone with a forest stand attributes constraint, you need to change the total area (t_area) from forested area to total zone area (or vice-versa). The code chunk below demonstrates how to do that,
+
+```{r, change dist to forest attribute constraint type}
+
+# connect to the db
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite"))
+
+# identify zone column names of the zones of interest
+dbGetQuery(clusdb, "SELECT reference_zone, zone_column, zoneid from zoneConstraints where 
+reference_zone = 'rast.zone_cond_bc_narraway_crithab'") 
+# rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_burnt_pine_crithab, rast.zone_cond_bc_quintette_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_narraway_crithab
+ 
+ 
+# for each zone that you want to change:
+## calc the total area of the zone 
+count <- dbGetQuery(clusdb, "SELECT count() from pixels where zone28 = 5") # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_burnt_pine_crithab, rast.zone_cond_bc_quintette_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_narraway_crithab
+
+## update to the total area in the constraint table for the zone
+dbExecute(clusdb, paste0("UPDATE zoneConstraints SET t_area = ", count, " where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 5)")) # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_burnt_pine_crithab, rast.zone_cond_bc_quintette_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_narraway_crithab
+
+# to check it
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")                  
+ 
+
+```
+
+
+## Below is the code chunk for running the sim
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -335,9 +399,11 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "dawson_creek_centgrp_luo_age_le40",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021.  Harvest flow = 1,750,000m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "dawson_creek_bau_newpark_conif",
-                       description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Conifer leading stands (deciduous percentage < 50) only. Harvest flow = 1,000,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "dawson_creek_centgrp_luo_age_le40_modNRV",
+#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Moderate natural range of variability (NRV) early seral targets. Harvest flow = 1,750,000m3/yr. Adjacency = 3m. Oldest first.")
 
+scenario = data.table (name = "dawson_creek_bau_newpark_conif",
+                       description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Conifer leading stands (deciduous percentage < 20) only. Harvest flow = 1,500,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
 
@@ -371,21 +437,21 @@ scenario = data.table (name = "dawson_creek_bau_newpark_conif",
 # ))
 
 # harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-#                                      partition = ' vol > 120 ', # 
-#                                      year = rep( seq (from = 2018, 
-#                                                       to = 2222, 
+#                                      partition = ' vol > 120 ', #
+#                                      year = rep( seq (from = 2018,
+#                                                       to = 2222,
 #                                                       by = 5),
-#                                                 1), 
+#                                                 1),
 #                                      flow = 8750000) #1,750,000m3/yr / BAU with new protected area
 # ))
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 AND dec_pcnt < 50 ', # 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2222, 
+                                     partition = ' vol > 120 AND dec_pcnt < 20 ', #
+                                     year = rep( seq (from = 2018,
+                                                      to = 2222,
                                                       by = 5),
-                                                1), 
-                                     flow = 5000000) #1,000,000m3/yr / conifer leading part only / BAU with new protected area
+                                                1),
+                                     flow = 5000000) #1,000,000m3/yr / conifer leading stands only / BAU with new protected area
                         ))
 
 
