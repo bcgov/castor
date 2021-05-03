@@ -122,14 +122,29 @@ No harvest in southern mountain herds =  "rast.zone_cond_noharvest_wolverine_cri
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/MacKenzie_TSA_clusdb.sqlite")) # MacKenzie_SW_TSA_clusdb.sqlite     Mackenzie_TSA_clusdb.sqlite
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_moberly_crithab'")
 
 
 # Central Group - Draft Land Use Orders - April 23, 2021
 ## Below makes the B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the partnership agreement areas as protected areas; everything else as available to harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.central_grp_proposed_luo' AND (zoneid = 1) OR (zoneid = 2)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.central_grp_proposed_luo' AND (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 7) OR (zoneid = 8)") 
-# Below makes the Moberly(Klinse-za) and Kennedy Siding critical habitat with early seral constraints
+# Below sets proposed median NRV age targets for LUO for critical habitat overlapping this unit 
+## Kennedy Siding
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 5 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 17 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)") 
+## Moberly
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 9 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 21 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 4)") 
+
+# Below sets proposed minimum NRV age targets for LUO for critical habitat overlapping this unit 
 ## Kennedy Siding
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
@@ -221,7 +236,36 @@ From 2014 determination: "...current policy already allows stands with less than
 
 For cutblock adjacency, I used 3 m adjacency; no real mention fo this in report
 
-# Scenarios for Main Portion of TSA 
+## Below is a code for switching from a disturbance ('dist') to forest attribute ('age', height') constraint type
+Disturbance constraint types calculates the percent area disturbed over forested area, whereas forest stand attributes constraint types are calculated over total area of the zone. Thus, if you have a zone initially parameterized with a disturbance constraint and want to use the same zone with a forest stand attributes constraint, you need to change the total area (t_area) from forested area to total zone area (or vice-versa). The code chunk below demonstrates how to do that,
+
+```{r, change dist to forest attribute constraint type}
+
+# connect to the db
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/MacKenzie_TSA_clusdb.sqlite"))
+
+# identify zone column names of the zones of interest
+dbGetQuery(clusdb, "SELECT reference_zone, zone_column, zoneid from zoneConstraints where 
+reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab'") 
+#  rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_kennedy_siding_crithab
+ 
+ 
+# for each zone that you want to change:
+## calc the total area of the zone 
+count <- dbGetQuery(clusdb, "SELECT count() from pixels where zone31 = 5") # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_kennedy_siding_crithab // 0, 4, 5
+
+## update to the total area in the constraint table for the zone
+dbExecute(clusdb, paste0("UPDATE zoneConstraints SET t_area = ", count, " where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)")) # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_kennedy_siding_crithab  // 0, 4, 5 
+
+# to check it
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab'")                  
+ 
+
+```
+
+
+## Below is the code chunk for running the sim
+
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
@@ -392,11 +436,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest priority stands in high priority zones in Wolverine core critical habitat; harvest allowed in high priority zones in Wolverine matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones in this unit high priority. Harvest flow = 1,300,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "mackenzie_bau_newpark",
 #                        description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Oldest first. Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
+# scenario = data.table (name = "mackenzie_centgrp_luo_age_le40",
+#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
 
-
-scenario = data.table (name = "mackenzie_centgrp_luo_age_le40",
-                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
-
+scenario = data.table (name = "mackenzie_centgrp_luo_age_le40_modNRV",
+                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Moderate natural range of variability (NRV) early seral targets.  Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
 
 
 # BELOW SCENARIOS HAVE NOT BEEN RUN WITH UPDATED MODEL
