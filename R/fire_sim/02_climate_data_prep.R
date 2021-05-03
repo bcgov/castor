@@ -133,7 +133,7 @@ for (i in 1:length(years)) {
     clipped<-st_difference(bec_foo, foo.ignit.buf.union)
     #clipped<-rmapshaper::ms_erase(target=bec_foo, erase=foo.ignit.buffered) # clips out buffered areas I think.But it crashes a lot!
     
-    sample_size<-dim(foo_ignit_small)[1]*5 # here 5 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
+    sample_size<-dim(foo_ignit_small)[1]*10 # here 10 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
     samp_points <- st_sample(clipped, size=sample_size)
     samp_points_sf = st_sf(samp_points)
     samp_joined = st_join(samp_points_sf, clipped) # joining attributes back to the sample points

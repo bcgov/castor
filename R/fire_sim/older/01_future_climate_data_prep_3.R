@@ -37,7 +37,7 @@ prov.bnd <- as(st_geometry(prov.bnd), Class="Spatial")
 
 
 #### REFERENCE DATA ####
-ncrefpath <- "D:\\Fire\\fire_data\\raw_data\\Future_climate\\"
+ncrefpath <- "D:\\Fire\\fire_data\\raw_data\\Future_climate\\PRISM_historical_19710101-20001231\\"
 ncrefname <- "tasmax_mClimMean_PRISM_historical_19710101-20001231.nc"  
 ncfrefname <- paste(ncrefpath, ncrefname, ".nc", sep="")
 dname <- "tmax"    

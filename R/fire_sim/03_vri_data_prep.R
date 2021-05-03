@@ -24,7 +24,7 @@
 # I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. If running it in the R terminal does not work try run it in here: 
 #C:\data\localApps\QGIS10.16\OSGeo4W (the terminal window)
 
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VEG_COMP_LYR_R1_POLY.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VEG_COMP_POLY_AND_LAYER_2020.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 # rename the table in postgres if need be
 #ALTER TABLE veg_comp_lyr_r1_poly RENAME TO veg_comp_lyr_r1_poly2017
@@ -38,7 +38,7 @@
 # Run following query in postgres for all years except 2007 and 2008. This is fast
 # CREATE TABLE fire_veg_2002 AS
 # (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-#  harvest_date, proj_age_1, proj_ht_1, price*quantity  AS live_stand_volume_125,
+#  harvest_date, proj_age_1, proj_ht_1, live_stand_volume_125,
 #  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
 #  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
 #  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
@@ -139,10 +139,6 @@ fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2008")
 fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2009")
-fire_veg_2009_test <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2009_test")
-fire_veg_2010_test <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2010_test")
 fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2010")
 fire_veg_2011 <- sf::st_read  (dsn = conn, # connKyle
@@ -163,6 +159,9 @@ fire_veg_2018 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2018")
 fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2019")
+fire_veg_2020 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2020")
+
 
 dbDisconnect (conn) # connKyle
 
@@ -184,6 +183,10 @@ fire_veg_2007<- fire_veg_2007 %>% rename(
 fire_veg_2007$live_stand_volume_125[fire_veg_2007$live_stand_volume_125 == 0] <- NA
 fire_veg_2008$live_stand_volume_125[fire_veg_2008$live_stand_volume_125 == 0] <- NA
 
+fire_veg_2020$proj_height_1<-NA
+fire_veg_2020$proj_age_1<-NA
+fire_veg_2020$live_stand_volume_125<-NA
+
 ###################################
 #### Check that my solution to calculating volume for 2007 and 2008 is ligitimate. Ill do this by comparing the sum of vol_per_ha_spp1_125 + vol_per_ha_spp2_125 + vol_per_ha_spp3_125 + vol_per_ha_spp4_125 + vol_per_ha_spp5_125 + vol_per_ha_spp6_125 is similar to the values in the column live_stand_volume_125
 ###################################
@@ -198,7 +201,7 @@ plot(fire_veg_2010_test$live_stand_volume_125, fire_veg_2010_test$live_stand_vol
 
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
-filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019")
+filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020")
 
 
 mkFrameList <- function(nfiles) {
