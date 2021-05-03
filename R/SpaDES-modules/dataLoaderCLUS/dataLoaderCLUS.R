@@ -319,8 +319,7 @@ setTablesCLUSdb <- function(sim) {
       
       zones<-zones[!is.na(zoneid),] #remove the NA (border pixels)
       zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
-      test<<-zones
-      stop()
+
       dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area ) 
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones)
