@@ -297,7 +297,7 @@ CREATE TABLE vdyp_vri2018 AS SELECT feature_id, reference_year, bec_zone_code, b
 basal_area, crown_closure, crown_closure_class_cd, proj_age_1, age_class, proj_height_1, proj_height_class_cd_1, 
 site_index, line_3_tree_species, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3,
 species_pct_3, species_cd_4,species_pct_4, polygon_area, geometry  
-FROM public.veg_comp_lyr_r1_poly
+FROM public.veg_comp_lyr_r1_poly2018
 WHERE bclcs_level_2 = 'T' AND species_pct_1 > 0 and opening_id IS NULL AND for_cover_rank_cd = '1';
 
 delete from vdyp_vri2018 where UPPER(species_cd_1) IN ('G','GP','GR','J','JD','JH','JR','K','KC','OA','OB','OC','OD','OE','OF','OG','OH','OI','Q','QE','QG','QW','R','RA','T','TW','U','UA','UP',
@@ -441,7 +441,7 @@ ON vdyp_output.feature_id = b.feature_id) as foo);
 DELETE from vdyp_test where opening_id is NOT NULL OR yc_grp Is NULL;
 DELETE from vdyp_test where feature_id IN (select feature_id from vdyp_test where prj_total_age is NULL);
 
-alter table vdyp_test add column perdec1 double precision; 
+alter table vdyp_test add column perdec1 double precision default 0.0; 
 update vdyp_test set perdec1 = case when species_1_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp1_vol_dwb end;
 
 alter table vdyp_test add column perdec2 double precision; 
@@ -459,9 +459,9 @@ update vdyp_test set perdec5 = case when species_5_code IN ('AC','ACB','ACT','AT
 alter table vdyp_test add column perdec6 double precision; 
 update vdyp_test set perdec6 = case when species_6_code IN ('AC','ACB','ACT','AT','AX','D','DR','E','EA','EP','ES','EW','M','MB','MV') then prj_sp6_vol_dwb end;
 
-alter table vdyp_test add column decper double precision; 
-update vdyp_test set decper = ((coalesce(perdec1,0) + coalesce(perdec2,0) + coalesce(perdec3,0)+coalesce(perdec4,0) +coalesce(perdec5,0) + coalesce(perdec6,0)) / prj_vol_dwb)
-where prj_vol_dwb > 0;
+alter table vdyp_test add column decper double precision default 0.0; 
+update vdyp_test set decper = ((coalesce(perdec1,0.0) + coalesce(perdec2,0.0) + coalesce(perdec3,0.0)+coalesce(perdec4,0.0) + coalesce(perdec5,0.0) + coalesce(perdec6,0.0)) / prj_vol_dwb)
+where prj_vol_dwb > 0.0;
 update vdyp_test set decper = ROUND(CAST(decper as numeric), 2);
 
 

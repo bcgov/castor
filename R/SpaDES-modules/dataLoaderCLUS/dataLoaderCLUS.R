@@ -103,6 +103,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         #populate clusdb tables
         sim <- setTablesCLUSdb(sim)
         sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
+        sim <- updateGS(sim) # update the forest attributes
         sim <- scheduleEvent(sim, eventTime = 0,  "dataLoaderCLUS", "forestStateNetdown", eventPriority=90)
         
        }else{
@@ -318,7 +319,8 @@ setTablesCLUSdb <- function(sim) {
       
       zones<-zones[!is.na(zoneid),] #remove the NA (border pixels)
       zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
-      
+      test<<-zones
+      stop()
       dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area ) 
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones)
@@ -762,7 +764,6 @@ setIndexesCLUSdb <- function(sim) {
   
   dbExecute(sim$clusdb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid)")
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
-  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
   
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){
@@ -806,6 +807,52 @@ sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as 
   return(invisible(sim))
 }
 
+updateGS<- function(sim) {
+  #Note: See the SQLite approach to updating. The Update statement does not support JOIN
+  #update the yields being tracked
+  message("...update yields")
+  if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
+    #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
+    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    FROM pixels t
+    LEFT JOIN yields y 
+    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+    LEFT JOIN yields k 
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+  }else{
+    
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
+    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    FROM pixels t
+    LEFT JOIN yields y 
+    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+    LEFT JOIN yields k 
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)  
+  }
+  
+  message("...create indexes")
+  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
+  rm(tab1)
+  gc()
+  return(invisible(sim))
+}
 
 .inputObjects <- function(sim) {
 
