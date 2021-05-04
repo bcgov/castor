@@ -89,6 +89,9 @@ ECCC in all herds = rast.zone_cond_eccc_central_rockies_crithab_or_herd,
                     
 BAU plus the new B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the caribou partnership agreement areas as protected areas (rast.central_grp_proposed_luo zones 1 and 2 = no harvest)
 
+Also included a scenario with a harvest flow of conifer leading stands only. AAC was partitioned into confier stadns, adn there was interest in exploring that impact specifically. I included the caribou partnership agreement areas as protected areas (rast.central_grp_proposed_luo zones 1 and 2 = no harvest) in this one too. 
+
+
 ## 'harvestPriority' parameter 
 - used oldest first
 
@@ -108,13 +111,16 @@ stand volume of 120 cubic metres per hectare in order to be eligible for harvest
 
 The AAC for the Dawson Creek TSA was initially set at
 1 250 000 cubic metres, of which 570 00 cubic metres and 680 000 cubic metres were for
-deciduous stands and coniferous stands, respectively. Dawson Creek TSA’s allowable annual cut (AAC) is 1,860,000 cubic metres, as of October 30, 2014. 978 000 cubic metres attributable to coniferous-leading stands of which at least 100 000 cubic
-metres annually must be taken from stands classified as small pine; and 882 000 cubic metres
-attributable to deciduous-leading stands.
+deciduous stands and coniferous stands, respectively. Dawson Creek TSA’s allowable annual cut (AAC) is 1,860,000 cubic metres, as of October 30, 2014. 978 000 cubic metres attributable to coniferous-leading stands of which at least 100 000 cubic metres annually must be taken from stands classified as small pine; and 882 000 cubic metres attributable to deciduous-leading stands.
 
+Harvest flow with 
 - harvest flow: first tried 2M m^3^/yr, 1.75M, 1.85M, 1.8M; 
 - stable harvest flow at 1.8M m^3^/yr
   - also identified non-declining harvest flow for BAU plus the B2 and B3 areas (new Klinse-za/Twin Sisters Park) of the        partnership agreement areas as protected areas; at 1.75M m^3^/yr
+  
+Conifer only harvest flow with (AND dec_pcnt < 0.26)
+- partition to deciduous percentage (dec_pcnt) < 0.26 (26%), as per AAC determination, which defined mixedwood as anything less than 75% either conifer or deciduous.
+- harvest flow: first tried 500,000m^3^/yr; 400k, 375k, 350k, 345k, 340k final
 
 ## Partnership agreement
 There is a Partnership Agreement for these caribou herds that has designated zones and constraints for those zones. These can be modified using the code below.
@@ -124,7 +130,7 @@ There is a Partnership Agreement for these caribou herds that has designated zon
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")
 
 
 # Central Group - Draft Land Use Orders - April 23, 2021
@@ -239,10 +245,10 @@ reference_zone = 'rast.zone_cond_bc_narraway_crithab'")
  
 # for each zone that you want to change:
 ## calc the total area of the zone 
-count <- dbGetQuery(clusdb, "SELECT count() from pixels where zone28 = 5") # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_burnt_pine_crithab, rast.zone_cond_bc_quintette_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_narraway_crithab
+count <- dbGetQuery(clusdb, "SELECT count() from pixels where zone28 = 5") 
 
 ## update to the total area in the constraint table for the zone
-dbExecute(clusdb, paste0("UPDATE zoneConstraints SET t_area = ", count, " where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 5)")) # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_burnt_pine_crithab, rast.zone_cond_bc_quintette_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_narraway_crithab
+dbExecute(clusdb, paste0("UPDATE zoneConstraints SET t_area = ", count, " where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 5)")) 
 
 # to check it
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")                  
@@ -401,11 +407,13 @@ modules <- list("dataLoaderCLUS",
 
 # scenario = data.table (name = "dawson_creek_centgrp_luo_age_le40_modNRV",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Moderate natural range of variability (NRV) early seral targets. Harvest flow = 1,750,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "dawson_creek_bau_newpark_conif",
+#                        description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Conifer leading stands (deciduous percentage < 26%) only. Harvest flow = 340,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "dawson_creek_bau_newpark_conif_age_le40_minNRV",
+#                        description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Minimum natural range of variability (NRV) early seral targets in caribou critical habitat.  Conifer leading stands (deciduous percentage < 26%) only. Harvest flow = 340,000m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "dawson_creek_bau_newpark_conif",
-                       description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Conifer leading stands (deciduous percentage < 20) only. Harvest flow = 1,500,000m3/yr. Adjacency = 3m. Oldest first.")
-
-
+scenario = data.table (name = "dawson_creek_bau_newpark_conif_age_le40_modNRV",
+                       description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Moderate natural range of variability (NRV) early seral targets in caribou critical habitat.  Conifer leading stands (deciduous percentage < 26%) only. Harvest flow = 340,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
@@ -446,12 +454,12 @@ scenario = data.table (name = "dawson_creek_bau_newpark_conif",
 # ))
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 AND dec_pcnt < 20 ', #
+                                     partition = ' vol > 120 AND dec_pcnt < 0.26 ', #
                                      year = rep( seq (from = 2018,
                                                       to = 2222,
                                                       by = 5),
                                                 1),
-                                     flow = 5000000) #1,000,000m3/yr / conifer leading stands only / BAU with new protected area
+                                     flow = 1700000) #340,000m3/yr / conifer leading stands only / BAU with new protected area
                         ))
 
 
