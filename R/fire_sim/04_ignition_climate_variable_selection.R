@@ -134,14 +134,14 @@ hist(log(ignition_pres_abs4$live_stand_volume_125))
 
 pre<- ignition_pres_abs4 %>%
   filter(fire==1) %>%
-  dplyr::select(fire_yr, fire, zone, subzone) %>%
-  group_by(fire_yr, zone, subzone) %>%
+  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(fire_n=n())
 
 pre_checkpre<- ignition_pres_abs4 %>%
   filter(fire==0) %>%
-  dplyr::select(fire_yr, fire, zone, subzone) %>%
-  group_by(fire_yr, zone, subzone) %>%
+  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(abs_n=n())
 
 check<-left_join(pre, pre_checkpre)
@@ -149,7 +149,7 @@ check %>% print(n=100) # hmm there are some NA's in the 0 column. I should proba
 
 abs_match <- ignition_pres_abs4 %>%
   filter(fire == 0) %>%
-  group_by(fire_yr, zone, subzone) %>%   # prep for work by yr and veg type
+  group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
   ungroup()
 
@@ -163,10 +163,10 @@ df2 <- df %>%
 # here I sample from the tibble the number of data points I want for the abscences
 # I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now Ill leave it like this.
   sampled_df<- df2 %>% 
-    mutate(samp = map2(data, ceiling(fire_n*1.5), sample_n, replace=TRUE)) %>%
+    mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
     dplyr::select(-data) %>%
     unnest(samp) %>%
-    dplyr::select(fire_yr, zone, subzone, feature_id:vegtype)
+    dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
  
 # joining my subsampled absence data back to the fire ignition presence data
 pre1<- ignition_pres_abs4 %>%

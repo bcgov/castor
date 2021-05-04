@@ -34,6 +34,8 @@ library(purrr)
 library(tidyr)
 library(caret)
 library(pROC)
+library(AICcmodavg)
+
 
 
 source(here::here("R/functions/R_Postgres.R"))
@@ -192,10 +194,10 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 #and extract the AIC as a means for comparison. I also calculate the AUC by splitting the data into a training and validation data set. Finally I repeat the analysis calculating the AIC and AUC using traing and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each BEC zone. 
 
 ### creating amalgamations of variables to test different combinations of variables.##
-dat$mean_tmax05_tmax06<- (dat$tmax05+ dat$tmax06)/2
-dat$mean_tmax06_tmax07<- (dat$tmax06+ dat$tmax07)/2
-dat$mean_tmax07_tmax08<- (dat$tmax07+ dat$tmax08)/2
-dat$mean_tmax08_tmax09<- (dat$tmax08+ dat$tmax09)/2
+dat$mean_tmax05_tmax06<- (dat$tmax05+dat$tmax06)/2
+dat$mean_tmax06_tmax07<- (dat$tmax06+dat$tmax07)/2
+dat$mean_tmax07_tmax08<- (dat$tmax07+dat$tmax08)/2
+dat$mean_tmax08_tmax09<- (dat$tmax08+dat$tmax09)/2
 dat$mean_tmax05_tmax06_tmax07<- (dat$tmax05+ dat$tmax06 + dat$tmax07)/3
 dat$mean_tmax06_tmax07_tmax08<- (dat$tmax06+ dat$tmax07 + dat$tmax08)/3
 dat$mean_tmax07_tmax08_tmax09<- (dat$tmax07+ dat$tmax08 + dat$tmax09)/3
@@ -287,7 +289,7 @@ zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "
 filenames<-list()
 prop<-0.75
 
-for (g in 1:100){
+for (g in 1:50){
 
 for (h in 1:length(zones)) {
   dat2<- dat %>% dplyr::filter(zone ==zones[h])
@@ -313,7 +315,7 @@ model1 <- glm (fire_pres ~ 1 ,
 
 table.glm.climate.simple[1,1]<-zones[h]
 table.glm.climate.simple[1,2]<-"intercept"
-table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+table.glm.climate.simple[1,3]<-AICc(model1)
 
 # lets look at fit of the Valid (validation) dataset
 Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
@@ -340,7 +342,7 @@ for (i in 1: length(variables)){
   
   table.glm.climate.simple[i+1,1]<-zones[h]
   table.glm.climate.simple[i+1,2]<-variables[i]
-  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  table.glm.climate.simple[i+1,3]<-AICc(model1)
   
   # lets look at fit of the Valid (validation) dataset
   Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
@@ -368,7 +370,7 @@ for (i in 1: length(variables1)){
   
   table.glm.climate.simple[(i+length(variables))+1,1]<-zones[h]
   table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
-  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  table.glm.climate.simple[(i+length(variables))+1,3]<-AICc(model2)
   
   Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
   roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)
@@ -394,7 +396,7 @@ for (i in 1: length(variables1)){
 
   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-AICc(model2)
 
   Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
   roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)

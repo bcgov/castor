@@ -13,7 +13,7 @@
 #=================================
 #  Script Name: 05_veg_model_fits_by_BEC.R
 #  Script Version: 1.0
-#  Script Purpose: HEre I run logistic regression models with both climate and vegetation information in each BEC zone. Run logistic regression models to determine the top candidate climate variable to use in the final analysis of fire ignitions.
+#  Script Purpose: HEre I run logistic regression models with both climate and vegetation information in each BEC zone. .
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
