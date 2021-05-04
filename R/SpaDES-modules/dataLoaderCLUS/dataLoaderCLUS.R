@@ -76,7 +76,7 @@ defineModule(sim, list(
     expectsInput("nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "updateZoneConstraints", objectClass = "data.table", desc = "Table of query parameters for updating the constraints", sourceURL = NA),
+    expectsInput(objectName = "updateZoneConstraints", objectClass = "data.table", desc = "Table of query parameters for updating the constraints", sourceURL = NA)
     
     ),
   outputObjects = bind_rows(
