@@ -103,6 +103,7 @@ Init <- function(sim) {
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
  
   #Remove zones as a scenario
@@ -304,7 +305,8 @@ setConstraints<- function(sim) {
 
 getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
-  for(compart in sim$compartment_list){
+  
+  for(compart in sim$compartment_list){#TODO: Add in looping by compartment and partition
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting? --Not important for 1 year time steps
     harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
