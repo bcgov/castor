@@ -204,7 +204,7 @@ getExistingRoads <- function(sim) {
     
     sim$roads[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
     sim$paths.v<-NULL #set the placeholder for simulated paths
-    writeRaster(sim$roads, file="roads_0.tif", format="GTiff", overwrite=TRUE)
+    #writeRaster(sim$roads, file="roads_0.tif", format="GTiff", overwrite=TRUE)
     
     #print(dbGetQuery(sim$clusdb, "SELECT * FROM pixels WHERE roadyear >=0 limit 1"))
     return(invisible(sim))
