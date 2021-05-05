@@ -332,17 +332,18 @@ getGraph<- function(sim){
   bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
   ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
  
-  
-  #bound.line_new<<-getSpatialQuery(paste0( "SELECT st_buffer(ST_Collect(ST_ExteriorRing(the_geom)), 10) AS erings
-  #FROM (SELECT ",sim$boundaryInfo[[2]],", (ST_Dump(",sim$boundaryInfo[[4]],")).geom As the_geom
-  #      FROM ",sim$boundaryInfo[[1]]," where 
-  #      ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')) As foo
-   #GROUP BY ",sim$boundaryInfo[[2]],";"))
-  
+ 
+ # bound.line_new<<-getSpatialQuery(paste0( "SELECT st_buffer(ST_Collect(ST_ExteriorRing(the_geom)), 10) AS erings
+ # FROM (SELECT ",sim$boundaryInfo[[2]],", (ST_Dump(",sim$boundaryInfo[[4]],")).geom As the_geom
+ #       FROM ",sim$boundaryInfo[[1]]," where 
+ #       ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')) As foo
+  # GROUP BY ",sim$boundaryInfo[[2]],";"))
   #ras<<-sim$ras
+  #rasVelo<<-sim$rasVelo
   #stop()
   #step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
   step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+  
   
   step.two<-dbGetQuery(sim$clusdb, paste0("select pixelid from pixels where roadyear = -1 and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")"))
