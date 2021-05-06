@@ -170,7 +170,7 @@ plotRoads<-function(sim){
 }
 
 saveRoads<-function(sim){
-  writeRaster(sim$roads, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_",P(sim)$roadMethod,"_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
+  writeRaster(sim$roads, file=paste0(P(sim)$outputPath, sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 
