@@ -20,8 +20,8 @@ list_input_data<-lapply(excel_sheets(path = xl_data), function(x){
 
 #Set up workstations
 library(doParallel)
-nCores<-2 # set this to the number of cores you want to use.
-cl <- makeCluster(nCores, type="SOCK") # type SOCK is a socket connection.
+nCores<-4 # set this to the number of cores you want to use.
+cl <- makeCluster(nCores, type="SOCK", outfile = 'C:/Users/KLOCHHEA/clus/err.txt') # type SOCK is a socket connection.
 worker.init <- function(packages) {
   for (p in packages) {
     library(p, character.only=TRUE) #need character.only=TRUE to evaluate p as a character
