@@ -146,7 +146,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
           message("updating zoneConstraints")
           sql<- paste0("UPDATE zoneconstraints SET type = :type, variable = :variable, percentage = :percentage where reference_zone = :reference_zone AND zoneid = :zoneid")  
           dbBegin(sim$clusdb)
-          rs<-dbSendQuery(sim$clusdb, sql, updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
+          rs<-dbSendQuery(sim$clusdb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
           dbClearResult(rs)
           dbCommit(sim$clusdb)
         }
