@@ -824,7 +824,8 @@ updateGS<- function(sim) {
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "dec_pcnt", "pixelid")])
+
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid", "dec_pcnt")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -841,7 +842,7 @@ updateGS<- function(sim) {
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid", "dec_pcnt")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)  
   }
