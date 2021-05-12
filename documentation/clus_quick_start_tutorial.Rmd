@@ -128,7 +128,6 @@ ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxx
 ```
 
 Once the command has finished running, open the pgAdmin application. You will need to use the same credentials to connect to the database using pgAdmin. To do this, right click on "Servers", select "Create", "Server" and then enter the credentials in the "Connection" tab of the window that opens. You will then see the "clus" server in the list of servers.     
-
 ![](images/pgadmin.jpg)
 
 Click on the "clus" server and it opens up a series of drop down menus. Click on "Schemas", then "Public" and "Tables". This is where much of the CLUS data is stored, and you should be able to navigate to and view the data table you just created. 
@@ -421,7 +420,9 @@ Several of the parameters were created in the [prov_manage_objs.Rmd](https://git
 
 Wildlife-specific parameters, including wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are defined in separate scripts. WHAs are spatially defined as *rast.zone_cond_wha* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/wha_cond_harvest.Rmd). UWRs are spatially defined as *rast.zone_cond_uwr* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/uwr_cond_harvest.Rmd). 
 
-As standard practice we recommend including all of these in the "business-as-usual" or "base case" scenarios. These are existing land use orders that should be incorporated in scenarios that are meant to represent current management. Here you will also want to include the hypothetical constraint you created (i.e., *rast.raster_test*) 
+As standard practice we recommend including all of these in the "business-as-usual" or "base case" scenarios. These are existing land use orders that should be incorporated in scenarios that are meant to represent current management. 
+
+In teh *nameZoneRasters* list you will also want to include the hypothetical constraint you created (i.e., *rast.raster_test*, or however you named it, with the *rast.* prefix to indicate the schema of the postgreSQL data it is stored). 
 
 The *nameZoneTable* is the table that defines all of the constraints for the rasters included in *nameZoneRasters*. You will notice this is a single table called *zone_constraints*, rather than a unique table for each raster. This is because the *zone_constraints* table is an amalgamation of tables created for each raster. You may remember this step from when you created *rast.raster_test*. 
 
@@ -576,7 +577,6 @@ The *outputs()* function is a SpaDES function for declaring the objects within t
 
 Finally, you can save the SpaDES simulation (in this case the *mySim* object) run with the *spades()* function. Note that here we embed that function in the *system.time()* function to obtain the total time the model took to finish the simulation. 
 
-
 ```{r, forestryCLUS module example code, message = F, echo = T, eval = F}
 library (SpaDES.core)
 library (data.table)
@@ -724,10 +724,62 @@ output:
 ---
 ```
 
-Below the yaml header you will see some text. Here you can describe the spefici modeul beign developed
+Below the yaml header you will see some text. Here you can describe the specific module being developed. Our general approach has been to save unique .Rmd files for each unique harvest unit (e.g., TSA or TFL) being analyzed, but there may be other reasons for creating a unique file. Typically in this text portion of the file we provide an overview of the *foretryCLUS* module, followed by details on the harvest unit being simulated. For example, in the *forestryCLUS_tutorial.Rmd* we describe the Revelstoke TSA, including referencing the webpage where additional information can be obtained. 
+
+We also describe each scenario simulated within the harvest unit (i.e., in a *Scenarios* section). This will typically consist of a description of the BAU scenario and alternative scenarios to the BAU. These should generally describe the modification to the BAU, for example, any additional constraints or changes to harvest flow. We also describe the *Key Parameters* used in the scenarios, including BAU and the alternatives. These include description of the zone constraints, details on the harvest priority queue and harvest flow, minimum harvest criteria and adjacency constraints. It is good practice to include as much detail as possible here. 
+
+Below the text is the 'code chunk' to 'run' or initiate the simulation, and you can 'run' it by pressing the green 'Play' button at the top-right of the chunk. This will read and action the code in the chunk, which will action all of the code in the .R modules referenced in the chunk. 
+
+To run the BAU, make sure to have all of the *nameZoneRasters* listed except *rast.raster_test*, which can be 'commented out' with a # symbol (note: make sure there is no comma at the end of the list).  You can leave all of the remaining parameters as they are, but confirm that the harvest flow is described as above, to ensure a maximum non-declining harvest yield. For the BAU scenario, we recommend using "revelstoke_bau" as the *name*. The description should provide a little bit of information about the scenario, including constraints, harvest flow and queue, adjacency and minimum harvest criteria.
+
+Also confirm that in the *uploaderCLUS* module parameters that *aoiName* = 'tutorial'. This will be the name of the schema in the PostgreSQL database where the scenario outputs will be uploaded and saved (more on that below).  
+
+Run the scenario and you will see a green 'line' down the side of the code chunk, and in the console window you will see outputs messages from the modules. You will notice that model progress output is provided, including time elapsed, the time interval of the model (in this case between 0 and 40), and the module currently being run by the model. 
+
+![](images/scen_run.jpg) 
+
+At the end of the run the progress meter will stop and you will see some white text with the time elapsed to complete the simulation run. 
+
+![](images/scen_end.jpg) 
+
+## 9. Running Alternative Scenarios in forestryCLUS
+Next, you can run the alternative scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
+
+Also, copy the *scenario* object and paste it below the existing object. 'Comment out' the previously used BAU scenario object and edit the scenario you copied. It is good practice to keep the previously used *scenario* objects so you can see which scenarios were completed, and re-use them, if corrections or changes are necessary later. 
+
+Change the name of the copied *scenario* object to identify your alternative scenario. You may want to include details of the constraint, for example, "revelstoke_alt_agelt40_t30p", could indicate that for the alternate constraint area had an age less than 40 (agelt40) at a threshold of 30 percent of the area (t30p) constraint. You can use the *description* parameter to describe the scenario in more detail. 
+
+Once, that is done, click the 'Play' arrow again in the code chunk and let the simulation complete. 
+
+You are welcome to try additional scenarios here if you like, for example, adjusting the harvest queue, but remember to use unique *scenario* parameters for each, or else you will copy over previous results. 
+
+## 10. Checking Scenario Outputs
+As described above, the *uploaderCLUS* module is where you define the parameters for where simulation outputs are stored. We currently store this output data in a PostgreSQL database deployed on a virtual machine under a Compute Canada account. You can use the PGAdmin software to connect to the database and navigate to the outputs. You will need to obtain the credentials from the CLUS team to make the connection. 
+
+If you can make the connection to the database, navigate to the "tutorial" schema, and open it, then click and open the "Tables". This will open a directory list of the outputs saved by *uploaderCLUS*. You will see several tables, including  "growing stock", "harvest", "scenarios", and "state", which are all data tables, and some tables that end with "_constraint", "_cutblocks", and "_roads", which are raster outputs from each scenario, and thus have the scenario name and harvest unit as their prefix (we won't discuss the other tables here).
+
+![](images/pgadmin_output.jpg) 
+
+Navigate to the "growing stock" table, right click on it, click on "View/Edit Data", then "All Rows". This will open the table in the lower right of the PGAdmin viewer. This table provides information on how much volume is available (gs), including within the timber harvest land base (m_gs), and percentage that is deciduous (m_dec_gs) for each time interval (timeperiod), timber harvest unit (compartment) and scenario (scenario). This can be used to track the 'stock' of volume available to be harvested at each time interval.   
+
+![](images/pgadmin_table.jpg) 
+
+Similarly, open the "harvest" table and explore the data. For each scenario (scenario), time interval (timeperiod), and harvest unit (compartment), this table provides the amount of volume (volume) of timber harvested in m^3^. It also provides the area harvested (area), and the area (transition_area) and volume (transition_volume) harvested from 'managed stands', i.e., stands that have been previously harvested and replanted. In addition, it provides the area-weighted age of the harvested stands (age), and the area of THLB that is unconstrained, available to harvest. 
+
+Finally, the "scenarios" table documents the scenario name and description parameters for each simulated scenario, and the "state" table describes the initial state of the simulated landscape, including the area of road (i.e., pixels with a road), old (>139 year old), mature (41 to 139 year old) and early (< 41 year old) seral forest and THLB, by harvest unit (compartment). 
+
+Alternatively, much of this information can be accessed in summary form using the "CLUS Explorer" web application. Similar to the "CLUS Scenario" app, you can access it by going to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note if you haven't already done so, you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you log in, click on the "CLUS Explorer Tool" link. This will take you to a simple webpage with a list of tabs on the left side of the page. Click on the "Dashboard" tab, and it will open a list tabs specific to indicators tracked by the model (e.g., "Forestry" and "Caribou"). Click on the "Scenario" tab, and it will open two boxes in the main window: "Area of interest" and "Scenarios".
+
+![](images/clus_explorer_home.jpg) 
+In the "Area of interest" box you can click the arrow on the right side to select from a drop down list of the harvest units (e.g., TSAs and TFLs) where simulations were run. These consist of the names of the 'schemas' in the PostgreSQL database, and you should see the "tutorial" area of interest/schema. Select it, and you will see some check boxes appear in the "Scenarios" box, and a "Current State" display will appear on the right side of the main window. 
+
+The check boxes correspond to the scenario names that were simulated for the harvest unit, by reading the "scenarios" table in the PostgreSQL database. The "Current State" display shows the characteristics of the landscape of the harvest unit, at the start of the simulation. It reads the "state" table in the PostgreSQL database and provides information on things such as the age structure of the forest, the amount THLB and roaded area and the average volume/ha of available stands. Click on the "tutorial" text box to mark it with a check, and then click the "forestry" tab on the left side.  
+
+![](images/clus_explorer_aoi.jpg) 
+
+Here you will see a stack of green boxes with a title on teh left side and plus sign non the right side.
 
 
-our convention has been to save unique .Rmd files for the hartvest unit being analyzed
 
 
 
@@ -735,17 +787,9 @@ our convention has been to save unique .Rmd files for the hartvest unit being an
 
 
 
-
-### Running Scenarios (forestryCLUS)
-- to run sceanrios, satrt with teh forestryCLUS module
-  - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
-  is simulated
-
-
-#### Outputs
 - define where table ouputs get uploaded (via 'uploaderCLUS')
 - currently we upload to a postgres on a VM server; 
-  -  define the area of interest name that (aoiName); this sets the name of the schema wehre tables get uploaded to postgres
+  -  define the area of interest name that (aoiName); this sets the name of the schema where tables get uploaded to postgres
 
 - decalre in outputs(mySim) which 'reports', i.e., tables to save and uplaod to the vritual machine
   - "harvestReport" = reports inforamtion on harvest volume and area harvested, age of harvested stand, by time interval and comaprtment
@@ -759,4 +803,7 @@ our convention has been to save unique .Rmd files for the hartvest unit being an
     - then, need to identify the report in the parameter list, modules list and outputs within the forestryCLUS.Rmd    
       (can see 'forestryCLUS_tfl48_volumebyarea_example.Rmd' for an example)
       
+Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In the 'clus' database on our local network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
+
+
   
