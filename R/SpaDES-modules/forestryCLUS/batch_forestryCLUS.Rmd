@@ -20,16 +20,42 @@ list_input_data<-lapply(excel_sheets(path = xl_data), function(x){
 
 #Set up workstations
 library(doParallel)
-nCores<-4 # set this to the number of cores you want to use.
-cl <- makeCluster(nCores, type="SOCK", outfile = 'C:/Users/KLOCHHEA/clus/err.txt') # type SOCK is a socket connection.
+
+if(FALSE){
+machineAddresses <-list(
+   list(host='DC052586',
+       user='klochhea',
+       rscript="C:/Data/localApps/R/R-4.0.0/bin/Rscript.exe",
+       rshcmd="plink -pw [pass]")
+   )
+
+machineAddresses <-list(
+   list(host='142.36.122.82',
+       user='klochhea',
+       rscript="C:/PROGRA~1/R/R-4.0.3/bin/Rscript.exe",
+       rshcmd="plink -pw [pass]")
+   )
+
+cl <- makePSOCKcluster(machineAddresses, manual = F)
+#clusterApplyLB(cl, 1:100, rnorm)
+#stopCluster(cl)
+}
+
+if(TRUE){
+  nCores<-4 # set this to the number of cores you want to use.
+  cl <- makeCluster(nCores, type="SOCK", outfile = 'C:/Users/KLOCHHEA/clus/err.txt') # type SOCK is a socket connection.
+}
+
 worker.init <- function(packages) {
   for (p in packages) {
     library(p, character.only=TRUE) #need character.only=TRUE to evaluate p as a character
   }
   NULL #return NULL to avoid sending unnecessary data back to the master process
 }
-clusterCall(cl, worker.init, c('SpaDES.core','data.table','gamlss','velox', 'splitstackshape', 'readxl', 'raster', 'DBI', 'RSQLite', 'keyring', 'rpostgis', 'sf', 'igraph', 'dplyr', 'RANN'))
-clusterEvalQ(cl, {source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R"); NULL})
+#clusterCall(cl, worker.init, c('SpaDES.core','data.table','gamlss','velox', 'readxl','splitstackshape', 'readxl', 'raster', 'DBI', 'RSQLite', 'keyring', 'rpostgis', 'sf', 'igraph', 'dplyr', 'RANN'))
+#clusterEvalQ(cl, {source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R"); NULL})
+
+#clusterEvalQ(cl, { xl_data <- paste0("C:/Users/klochhea/clus/test_batch.xlsx") list_input_data<-lapply(excel_sheets(path = xl_data), function(x){ data.table(read_excel(path = xl_data, sheet = x)) }); NULL})
 registerDoParallel(cl)#requires this
 
 #Batch process
