@@ -272,7 +272,7 @@ distAnalysis <- function(sim) {
   
   
   tempDisturbanceReport[, c("scenario", "timeperiod") := 
-                          list(scenario$name,time(sim)*sim$updateInterval)]
+                          list(sim$scenario$name,time(sim)*sim$updateInterval)]
   
   sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE, 
                                    fill = TRUE )

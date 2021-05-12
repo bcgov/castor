@@ -111,7 +111,7 @@ volAnalysis <- function(sim) {
   tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE))
   tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = "aoi"]
   
-  tempVolumeReport [, scenario := scenario$name]
+  tempVolumeReport [, scenario := sim$scenario$name]
   tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
   tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
   aoi_tab <- data.table (getTableQuery (paste0 ("SELECT * FROM ", P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))

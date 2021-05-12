@@ -75,7 +75,9 @@ defineModule(sim, list(
     expectsInput("nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
+    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "updateZoneConstraints", objectClass = "data.table", desc = "Table of query parameters for updating the constraints", sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     createsOutput("zone.length", objectClass ="integer", desc = NA), # the number of zones to constrain on
@@ -135,10 +137,20 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim$ras[] <- pixels$pixelid
         sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
-        #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
+       
+        #TODO: REMOVE THIS OBJECT??? Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
+        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;")) 
         
-        #Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
-        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;"))
+        #Alter the ZoneConstraints table with a data.table object?
+        if(!is.null(sim$updateZoneConstraints)){
+          message("updating zoneConstraints")
+          sql<- paste0("UPDATE zoneconstraints SET type = :type, variable = :variable, percentage = :percentage where reference_zone = :reference_zone AND zoneid = :zoneid")  
+          dbBegin(sim$clusdb)
+          rs<-dbSendQuery(sim$clusdb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
+          dbClearResult(rs)
+          dbCommit(sim$clusdb)
+        }
+        #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
       }
       #disconnect the db once the sim is over?
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
@@ -855,7 +867,9 @@ updateGS<- function(sim) {
 }
 
 .inputObjects <- function(sim) {
-
+  if(!suppliedElsewhere("updateZoneConstraints", sim)){
+    sim$updateZoneConstraints<-NULL
+  }
   return(invisible(sim))
 }
 
