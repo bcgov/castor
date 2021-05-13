@@ -130,7 +130,7 @@ There is a Partnership Agreement for these caribou herds that has designated zon
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Dawson_Creek_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.central_grp_proposed_luo'")
 
 
 # Central Group - Draft Land Use Orders - April 23, 2021
