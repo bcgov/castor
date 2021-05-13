@@ -777,33 +777,26 @@ The check boxes correspond to the scenario names that were simulated for the har
 
 ![](images/clus_explorer_aoi.jpg) 
 
-Here you will see a stack of green boxes with a title on teh left side and plus sign non the right side.
+Here you will see a stack of green boxes with a title on the left side and plus sign non the right side. Each of these boxes can be opened to obtain a figure of a forest harvest characteristics of the simulation. Click on the plus sign on the "Harvest Flow" box and you will get a figure showing the area (top) and volume (bottom) of forest harvested at each time interval. You will notice the BAU scenario harvest volume is a flat line, indicating the maximum non-declining harvest yield.
+
+![](images/clus_explorer_harvestflow.jpg) 
+
+Click on the various boxes to explore the outputs. The "Transition Harvest" box illustrates the amount of volume harvested from managed stands at each time interval. The "Available THLB" box illustrates how much area of THLB is available and the "Growing Stock" illustrates how much volume is available at each time interval. You can also explore some of the other tabs, but note that some of these may not function, as he information may not be output for the scenario. Also note that the web application should be considered as a 'beta version', and requires some improvements.
+
+Also note that you can visualize some spatial outputs (i.e., rasters of cutblocks, roads and constraint areas) from each scenario. To do this, click on "Map Viewer" tab on the left hand side of the page. This will open a "Map Query" box in the middle of the page with a drop down box. From the drop down box you can select the raster outputs specific to the scenarios you checked. These raster names correspond to the rasters output from the simulation. Click on the raster ending with "_cutblocks" and click on "Load" and you will see a raster layer colour-coded to the year that a blockwas last harvested.
+
+![](images/clus_explorer_map.jpg) 
+
+Also note that there is a "Query Builder" tab on the left side of the page, that you can use to build SQL queries of data in the PostgeSQL database, by selecting the Table, Tables and Columns, and data summary type. 
+
+The above provides you with some tools and examples of how to download and illustrate the data to explore simulation scenarios. There is a high degree of flexibility in that you can use the tools provided in the web app, download the data yourself and create your own figures and tables, modify the web app to include different ouptuts and even design your own output "reports" in the CLUS modules.
+
+## 11. Conclusion
+Congratulations! You have completed the tutorial and are well on your way to becoming an expert in the CLUS model. Feel free to contact the CLUS team with questions or comments. 
+
+We are always looking for ways to improve the CLUS framework, so please contact us via our GitHub page with any issues or requests, or go ahead and start a new branch and make some suggestions by editing the code directly. Happy modeling!
 
 
-
-
-
-
-
-
-
-- define where table ouputs get uploaded (via 'uploaderCLUS')
-- currently we upload to a postgres on a VM server; 
-  -  define the area of interest name that (aoiName); this sets the name of the schema where tables get uploaded to postgres
-
-- decalre in outputs(mySim) which 'reports', i.e., tables to save and uplaod to the vritual machine
-  - "harvestReport" = reports inforamtion on harvest volume and area harvested, age of harvested stand, by time interval and comaprtment
-  - "growingStockReport" = reports on growing stock (forest stand ????) by time interval adn compartment
-  - "tableSurvival" = 
-  - "disturbanceReport"
-  - "volumebyareaReport" = reports volume harvested by the model within a specified area 
-    - the 'specified area(s)' can be defined using the Params -> areaofinterestRaster.Rmd
-        - this create a raster and vat table for the area(s) of interest based 
-    - does nto need to be implemented as part of teh sql lite db; can be included after the fact, because it referes to       the data in the CLUS db
-    - then, need to identify the report in the parameter list, modules list and outputs within the forestryCLUS.Rmd    
-      (can see 'forestryCLUS_tfl48_volumebyarea_example.Rmd' for an example)
-      
-Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In the 'clus' database on our local network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
 
 
   
