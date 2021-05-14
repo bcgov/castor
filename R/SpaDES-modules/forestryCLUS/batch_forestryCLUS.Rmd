@@ -52,8 +52,8 @@ worker.init <- function(packages) {
   }
   NULL #return NULL to avoid sending unnecessary data back to the master process
 }
-#clusterCall(cl, worker.init, c('SpaDES.core','data.table','gamlss','velox', 'readxl','splitstackshape', 'readxl', 'raster', 'DBI', 'RSQLite', 'keyring', 'rpostgis', 'sf', 'igraph', 'dplyr', 'RANN'))
-#clusterEvalQ(cl, {source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R"); NULL})
+clusterCall(cl, worker.init, c('SpaDES.core','data.table','gamlss','velox', 'readxl','splitstackshape', 'readxl', 'raster', 'DBI', 'RSQLite', 'keyring', 'rpostgis', 'sf', 'igraph', 'dplyr', 'RANN'))
+clusterEvalQ(cl, {source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R"); NULL})
 
 #clusterEvalQ(cl, { xl_data <- paste0("C:/Users/klochhea/clus/test_batch.xlsx") list_input_data<-lapply(excel_sheets(path = xl_data), function(x){ data.table(read_excel(path = xl_data, sheet = x)) }); NULL})
 registerDoParallel(cl)#requires this
@@ -110,18 +110,8 @@ foreach(i=1:length(list_input_data)) %dopar% {
       nameForestInventoryCrownClosure = "crown_closure",
       nameForestInventoryTreed = "bclcs_level_2",
       nameForestInventorySiteIndex = "site_index"),
-    blockingCLUS = list(blockMethod='pre', 
-      patchZone = 'rast.zone_cond_beo',
-      patchVariation = 6,
-      nameCutblockRaster ="rast.cns_cut_bl",
-      useLandingsArea=FALSE, 
-      useSpreadProbRas=FALSE),
     forestryCLUS = list(harvestBlockPriority = input_data[Parameters == 'harvestBlockPriority', ]$Values,
       adjacencyConstraint = as.integer(input_data[Parameters == 'adjacencyConstraint', ]$Values)),
-    growingStockCLUS = list (periodLength = 5),
-    roadCLUS = list(roadMethod = 'pre', 
-      nameCostSurfaceRas = 'rast.rd_cost_surface', 
-      nameRoads =  'rast.crds_all'),
     disturbanceCalcCLUS = list(calculateInterval =  1,  
       criticalHabitatTable = "public.vat_bc_crithab_and_herd",
       criticalHabRaster = "rast.bc_crithab_and_herd",
@@ -130,9 +120,7 @@ foreach(i=1:length(list_input_data)) %dopar% {
     volumebyareaReportCLUS = list (calculateInterval = 1,
       AreaofInterestRaster = "rast.bc_crithab_and_herd",
       AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
-    survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
-                         nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
-                         tableCaribouHerd = "public.caribou_herd"), # look-up table of herd names
+    survivalCLUS = list (), # look-up table of herd names
     uploaderCLUS = list(aoiName = tolower(input_data[Parameters == 'Boundary', ]$Value),
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
     )
@@ -153,17 +141,6 @@ foreach(i=1:length(list_input_data)) %dopar% {
   objects <- list(
     updateZoneConstraints = updateZoneConstraints, 
     harvestFlow = harvestFlow, 
-    patchSizeDist= data.table(ndt= c(1,1,1,1,1,1,
-                                                 2,2,2,2,2,2,
-                                                 3,3,3,3,3,3,
-                                                 4,4,4,4,4,4,
-                                                 5,5,5,5,5,5), 
-                                          sizeClass = c(40,80,120,160,200,240), 
-                                          freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                                   0.3,0.3,0.1,0.1,0.1, 0.1,
-                                                   0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                                   0.1,0.02,0.02,0.02,0.02,0.8,
-                                                   0.3,0.3,0.1,0.1,0.1, 0.1)), 
     scenario = scenario
   )
 
