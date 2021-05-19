@@ -193,7 +193,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new2, 
                   row.names = FALSE, overwrite = TRUE)
 reve_data2 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_reve_vat', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
-reve_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_reve_area', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+reve_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'zone', table_name = 'zone_reve_area', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
 pgdbs_data_list <- merge (pgdbs_data_list, reve_data2, all = T)
 pgdbs_data_list <- merge (pgdbs_data_list, reve_data3, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
@@ -224,7 +224,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new2, 
                   row.names = FALSE, overwrite = TRUE)
 du9_data2 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_du9_scenarios_vat', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
-du9_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_du9_scenarios', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+du9_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'zone', table_name = 'zone_du9_scenarios', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
 pgdbs_data_list <- merge (pgdbs_data_list, du9_data2, all = T)
 pgdbs_data_list <- merge (pgdbs_data_list, du9_data3, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
@@ -257,7 +257,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 
 gh_data2 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_gh_scenarios_vat', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
-gh_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_gh_scenarios', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+gh_data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'zone', table_name = 'zone_gh_scenarios', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Bevan Ernst, FLNRORD', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
 pgdbs_data_list <- merge (pgdbs_data_list, gh_data2, all = T)
 pgdbs_data_list <- merge (pgdbs_data_list, gh_data3, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
@@ -291,7 +291,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
 
 
 data2 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'scenario_central_grp_proposed_luo_feb2021_vat', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Russ Laroche; Draft Partnership Land Use Orders', public = 'No', last_updated = '2021', next_update = 'as needed', where_used = 'dataLoaderCLUS')
-data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'public', table_name = 'zone_scenario_central_grp_proposed_luo_feb2021', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Russ Laroche; Draft Partnership Land Use Orders', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+data3 <- data.table (computer = 'DC052586', database = 'clus', schema = 'zone', table_name = 'zone_scenario_central_grp_proposed_luo_feb2021', type = 'table', script = 'clus\\R\\Params\\caribou_management_areas.Rmd', source = 'Russ Laroche; Draft Partnership Land Use Orders', public = 'No', last_updated = '2020', next_update = 'as needed', where_used = 'dataLoaderCLUS')
 pgdbs_data_list <- merge (pgdbs_data_list, data2, all = T)
 pgdbs_data_list <- merge (pgdbs_data_list, data3, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
@@ -344,7 +344,7 @@ pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
 
 new_data4 <- data.table (computer = 'DC052586', 
                         database = 'clus',
-                        schema = 'public', 
+                        schema = 'zone', 
                         table_name = 'zone_barkerville_groundhog_scenario', 
                         type = 'table', 
                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
@@ -407,7 +407,7 @@ pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
 
 new_data3 <- data.table (computer = 'DC052586', 
                         database = 'clus',
-                        schema = 'public', 
+                        schema = 'zone', 
                         table_name = 'zone_du7_scenarios_20210305', 
                         type = 'table', 
                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
@@ -468,7 +468,7 @@ pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
 
 new_data4 <- data.table (computer = 'DC052586', 
                          database = 'clus',
-                         schema = 'public', 
+                         schema = 'zone', 
                          table_name = 'zone_cond_du9_scenarios', 
                          type = 'raster', 
                          script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
@@ -482,7 +482,7 @@ pgdbs_data_list <- merge (pgdbs_data_list, new_data4, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
-dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du9_scenarios';")
+dbExecute (conn, "UPDATE zone.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du9_scenarios';")
 dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'zone_du9_scenarios_vat';")
 #select<-dbGetQuery(conn, "SELECT * from public.pgdbs_data_list WHERE table_name = 'zone_du9_scenarios_vat'") 
 
@@ -552,7 +552,7 @@ pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
 
 new_data3 <- data.table (computer = 'DC052586', 
                         database = 'clus',
-                        schema = 'public', 
+                        schema = 'zone', 
                         table_name = 'zone_cond_du7_scenarios_20210330', 
                         type = 'table', 
                         script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
@@ -657,6 +657,13 @@ pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
+
+
+# Made changes from 'public' to 'zone schema in excel
+
+
+
+
 dbDisconnect(conn)
 
 ```

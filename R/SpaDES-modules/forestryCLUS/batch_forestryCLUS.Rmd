@@ -10,7 +10,8 @@ library (SpaDES.core)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 #-----------INPUT EXCEL FILE HERE-----------------
-xl_data <- paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/batch_scenarios/dawson_ck_central_grp_caribou_20210513.xlsx") 
+xl_data <- paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/batch_scenarios/central_grp_caribou_age30_20210513
+                  .xlsx") 
 # provide excel file, where each sheet provides parameters for each unique scenario; good practice is to save these in forestryCLUS/batch_scenario directory
 #-------------------------------------------------
 
@@ -136,7 +137,7 @@ foreach(i=1:length(list_input_data)) %dopar% {
     survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                          nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                          tableCaribouHerd = "public.caribou_herd"), # look-up table of herd names
-    uploaderCLUS = list(aoiName = "dawson_creek_tsa", # alterantively, can use: tolower(input_data[Parameters == 'Boundary', ]$Value)
+    uploaderCLUS = list(aoiName = tolower(input_data[Parameters == 'Boundary', ]$Value),
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                        keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                        keyring::key_get("vmdbpass", keyring="postgreSQL"),  

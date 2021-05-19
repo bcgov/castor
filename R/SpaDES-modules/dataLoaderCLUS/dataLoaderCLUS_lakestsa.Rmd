@@ -70,7 +70,7 @@ parameters <-  list(
                                              "rast.zone_cond_bc_tweedsmuir_crithab",
                                              "rast.zone_du7_scenario_20210330"
                                              ), 
-                         nameZoneTable = "zone_constraints",
+                         nameZoneTable = "zone.constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
