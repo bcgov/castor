@@ -154,7 +154,7 @@ parameters <- list(
                                               "rast.zone_cond_eccc_monashee_crithab_or_herd"
                                              #"rast.zone_du9_scenarios"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

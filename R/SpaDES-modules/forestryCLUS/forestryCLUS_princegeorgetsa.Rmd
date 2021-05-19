@@ -95,6 +95,16 @@ zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE referen
 
 
 # Central Group - Draft Land Use Orders - April 23, 2021
+# Below sets proposed maximum NRV age targets for LUO for critical habitat overlapping this unit  with Age <30
+## Kennedy Siding
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 29 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 3 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 7 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 24 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 4)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 17 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)")
+
 # Below sets proposed maximum NRV age targets for LUO for critical habitat overlapping this unit 
 ## Kennedy Siding
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
@@ -395,7 +405,7 @@ parameters <- list(
                                     # "rast.central_grp_proposed_luo_feb2021"
                                     # "rast.zone_du7_scenario_20210330"
                                     ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -545,10 +555,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Minimum natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 # scenario = data.table (name = "pg_south_centgrp_luo_age_le40_modNRV",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Moderate natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+# scenario = data.table (name = "pg_south_centgrp_luo_age_le40_maxNRV",
+#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Maximum natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 
-scenario = data.table (name = "pg_south_centgrp_luo_age_le40_maxNRV",
-                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Maximum natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
-
+scenario = data.table (name = "pg_south_centgrp_agele30_maxnrv",
+                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Early seral targets set for maximum natural range of variability (NRV) for each area, using age <30 as early seral. Harvest flow = 6.0 M m3/yr. Adjacency = 3m. Oldest first.")
 
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN

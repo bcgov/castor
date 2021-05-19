@@ -105,7 +105,7 @@ parameters <- list(
                                            "rast.zone_cond_eccc_rainbows_crithab_or_herd",
                                            "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
 
-                           nameZoneTable = "zone_constraints_gbr",
+                           nameZoneTable = "zone.constraints_gbr",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

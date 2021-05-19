@@ -60,7 +60,7 @@ parameters <-  list(
                                              "rast.zone_cond_vqo",
                                              "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                                              ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", 

@@ -1,4 +1,4 @@
-starting worker for localhost:11298 
+starting worker for localhost:11921 
 Type: EXEC 
 Loading required package: quickPlot
 Loading required package: reproducible
@@ -126,22 +126,21 @@ Loading required package: gsubfn
 Loading required package: proto
 sqldf will default to using PostgreSQL
 Type: EXEC 
-Type: DONE 
-Warning messages:
-1: package 'data.table' was built under R version 4.0.5 
-2: package 'gamlss' was built under R version 4.0.5 
-3: package 'gamlss.data' was built under R version 4.0.4 
-4: package 'gamlss.dist' was built under R version 4.0.5 
-5: package 'readxl' was built under R version 4.0.5 
-6: package 'splitstackshape' was built under R version 4.0.5 
-DES-modules'
-  )
-Paths set to:
+Type: EXEC 
+Setting:
   options(
-    rasterTmpDir = 'C:/Users/tmuhly/AppData/Local/Temp/RtmpITQpWz/raster'
     reproducible.cachePath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS'
     spades.inputPath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS/inputs'
     spades.outputPath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS/outputs'
     spades.modulePath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules'
   )
+Paths set to:
+  options(
+    rasterTmpDir = 'C:/Users/tmuhly/AppData/Local/Temp/RtmpWyvUcj/raster'
+    reproducible.cachePath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS'
+    spades.inputPath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS/inputs'
+    spades.outputPath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS/outputs'
+    spades.modulePath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules'
+  )
+Type: DONE 
 Type: DONE 

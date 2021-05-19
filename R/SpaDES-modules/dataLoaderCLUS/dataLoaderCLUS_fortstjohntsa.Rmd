@@ -77,7 +77,7 @@ parameters <-  list(
                                              
                                              "rast.zone_du7_scenario_20210330"
                                            ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", 

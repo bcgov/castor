@@ -205,7 +205,7 @@ parameters <- list(
                                               #"rast.zone_cond_eccc_south_selkirks_crithab_or_herd"
                                               "rast.zone_smc_zones_20210315"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

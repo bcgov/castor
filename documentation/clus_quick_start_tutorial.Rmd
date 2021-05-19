@@ -215,11 +215,11 @@ zone_test <- data.table (zoneid = 1,
                          percentage = 90, 
                          ndt = as.integer(0), 
                          multi_condition = as.character(NA))
-DBI::dbWriteTable (conn, c("public", "zone_test"), # commit tables to pg
+DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
                    value = zone_test, 
                    row.names = FALSE, 
                    overwrite = TRUE) 
-dbExecute (conn, paste0("ALTER TABLE zone_test INHERIT zone_constraints"))
+dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
 dbDisconnect (conn)
 ```
 
@@ -237,7 +237,7 @@ Fifth, you create a 'look-up table' that links each raster integer zone to a zon
 
 In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% of the forest within the zone to be greater than or equal to 80 years old. Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the schema is also included); *zoneid*, which is the integer id for the zone in the raster that you want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value variable at which to apply the threshold; *type* defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to the zone (typically 0); *multi_condition* is a field that can be used to develop more complicated criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply the constraint where crown closure and basal area of the forest stand meet the defined, specific characteristics. Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constraints for multiple rows (i.e., unique zoneid's) may need to be created.
 
-Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the a 'zone_constraints' table in the database. The 'zone_constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table. 
+Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the a 'constraints' table in the database. You may have noticed all of the constraint tables are uploaded to their own schema called *zone*, in the database. The 'constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table. 
 
 ## 7. Use dataLoaderCLUS to Create a CLUS SQLite Database
 The CLUS simulator model does not run directly off of the PostgreSQL database. Instead CLUS has a module called *dataLoaderCLUS* that consolidates data from the PostgreSQL database into a portable SQLite database. The SQLite database contains all the data needed to run the simulator modules for the area and constraints of interest. This approach has a great degree of flexibility, as it creates a self-contained, realtively low memory database that can be easily shared among users. One way to think about the CLUS data structure, is that the PostgreSQL database serves as the repository for provincial-scale and comprehensive datasets, such as for example, the forest inventory. The SQLite database typically applies to a subset of the province and is designed to compile data for a specific group of similar scenarios.  
@@ -332,7 +332,7 @@ parameters <-  list( # list of all parameters in the model, by module
                                              "rast.zone_cond_cw",
                                              "rast.raster_test" # the raster you created and uploaded to the Postgres database
                           ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
@@ -424,7 +424,7 @@ As standard practice we recommend including all of these in the "business-as-usu
 
 In teh *nameZoneRasters* list you will also want to include the hypothetical constraint you created (i.e., *rast.raster_test*, or however you named it, with the *rast.* prefix to indicate the schema of the postgreSQL data it is stored). 
 
-The *nameZoneTable* is the table that defines all of the constraints for the rasters included in *nameZoneRasters*. You will notice this is a single table called *zone_constraints*, rather than a unique table for each raster. This is because the *zone_constraints* table is an amalgamation of tables created for each raster. You may remember this step from when you created *rast.raster_test*. 
+The *nameZoneTable* is the table that defines all of the constraints for the rasters included in *nameZoneRasters*. You will notice this is a single table called *constraints* in the *zone* schema, rather than a unique table for each raster. This is because the *zone.constraints* table is an amalgamation of tables created for each raster. You may remember this step from when you created *rast.raster_test*. 
 
 The next set of *dataLoaderCLUS* parameters are related to forest inventory and growth and yield data. The *nameForestInventoryRaster* parameter is a raster with an integer identifier created from the *feature_id* field, for each unique polygon in the forest inventory. The raster is created in the [raster_data.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/raster_data.Rmd) in the "Params" folder, and you will notice it has the year of the inventory in the raster name. Related, the *nameForestInventoryTable* is the polygonal forest inventory data from which you will draw the forest inventory data. Notably, the *nameForestInventoryKey* is the *feature_id* that is used to link the raster to forest attributes, i.e., the integer identifier is consistent between the raster and polygonal data. The *nameForestInventoryAge*, *nameForestInventoryHeight*, *nameForestInventoryCrownClosure*, *nameForestInventoryTreed* and *nameForestInventorySiteIndex* parameters are all related to information that is extracted from the polygonal forest inventory data, including age, height, crown closure, treed and site index, respectively. These are extracted for each hectare of the rates by each feature_id. Growth and yield data is obtained from [variable density yield projection (VDYP)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) and [table interpolation program for stand yields (TIPSY)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/table-interpolation-program-for-stand-yields-tipsy) stand development models.
 
@@ -611,7 +611,7 @@ parameters <- list(
                                              "rast.zone_cond_cw"
                                              # "rast.raster_test"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

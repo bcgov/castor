@@ -107,7 +107,7 @@ parameters <- list(
                                              "rast.zone_cond_cw"
                                              # "rast.raster_test"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
