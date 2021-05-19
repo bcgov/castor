@@ -32,10 +32,10 @@ defineModule(sim, list(
   reqdPkgs = list("raster", "sf", "latticeExtra", "SpaDES.tools", "rgeos", "velox", "RANN", "dplyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
-    defineParameter("roadMethod", "character", "snap", NA, NA, "This describes the method from which to simulate roads - default is snap."),
+    defineParameter("roadMethod", "character", "pre", NA, NA, "This describes the method from which to simulate roads - default is snap."),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("nameCostSurfaceRas", "character", "rast.rd_cost_surface", NA, NA, desc = "Name of the cost surface raster"),
-    defineParameter("nameRoads", "character", "rast.pre_roads", NA, NA, desc = "Name of the pre-roads raster and schema"),
+    defineParameter("nameRoads", "character", "rast.crds_all", NA, NA, desc = "Name of the pre-roads raster and schema"),
     defineParameter("roadSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which roads should be build"),
     defineParameter(".plotInitialTime", "numeric", 1, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", 1, NA, NA, "This describes the simulation time interval between plot events"),

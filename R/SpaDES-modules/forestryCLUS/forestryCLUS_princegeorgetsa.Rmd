@@ -551,15 +551,17 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Wolverine critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 # scenario = data.table (name = "pg_north_wolverine_hi_priority",
 #                        description = "No harvest in priority stands in high priority zones in Wolverine core critical habitat; harvest allowed in high priority zones in matrix critical habitat up to 15% disturbance (no buffer) in forested area.  NOTE: no medium or low priority zones in this unit. Sustainable flow = 1,200,000m^3^/year. Oldest first priority. Adjacency = 3m.")
-# scenario = data.table (name = "pg_south_centgrp_luo_age_le40_minNRV",
-#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Minimum natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+
+scenario = data.table (name = "pg_south_centgrp_luo_age_le40_minNRV",
+                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Minimum natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+
 # scenario = data.table (name = "pg_south_centgrp_luo_age_le40_modNRV",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Moderate natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 # scenario = data.table (name = "pg_south_centgrp_luo_age_le40_maxNRV",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Maximum natural range of variability (NRV) early seral targets. Sustainable flow = 6,000,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 
-scenario = data.table (name = "pg_south_centgrp_agele30_maxnrv",
-                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Early seral targets set for maximum natural range of variability (NRV) for each area, using age <30 as early seral. Harvest flow = 6.0 M m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "pg_south_centgrp_agele30_maxnrv",
+#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Early seral targets set for maximum natural range of variability (NRV) for each area, using age <30 as early seral. Harvest flow = 6.0 M m3/yr. Adjacency = 3m. Oldest first.")
 
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
