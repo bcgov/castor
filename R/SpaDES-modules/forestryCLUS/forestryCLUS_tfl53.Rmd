@@ -80,13 +80,14 @@ from 2010 determination: AAC was 219,000 cubic metres
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL53_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_smc_zones_20210315'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
 
 # NARROW LAKE Update the constraints available to a zone as specified in the scenario
-#Below will set Narrow Lake matrix as 35% disturbance (no buffer); there is no core, as defined for sceanrios 3a and 3b in the TFL
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 70") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 70")
-
+#Below will set  matrix as 12% disturbance (no buffer); there is no core overlap
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd' AND zoneid = 2") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd' AND zoneid = 2")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_narrow_lake_crithab_or_herd' AND zoneid = 2")
+          
 dbDisconnect(clusdb)
 
 ```
@@ -125,9 +126,9 @@ parameters <- list(
                                                "rast.zone_cond_cw", 
                                                # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd" 
                                                # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd"
-                                                "rast.zone_du9_scenarios"
+                                                "rast.zone_smc_zones_20210315"
                                               ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -149,7 +150,8 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
+                      #harvestZonePriorityInterval = 1,
+                      # reportHarvestConstraints = T
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -168,6 +170,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'tfl53', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -186,6 +191,7 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
@@ -198,9 +204,12 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Narrow Lake critical habitat. Oldest first. Adjacency = 3m. Even harvest flow = 270,000m3/year")
 # scenario = data.table (name = "tfl53_narrow_lake_ch_he0d_m15d",
 #                        description = "No harvest in Narrow Lake HEWSR, maximum 35% buffered disturbance (15% harvest) in Narrow Lake matrix critical habitat that overlap with the harvest unit. Oldest first. Adjacency = 3m. Even harvest flow = 270,000m3/year.")
+# scenario = data.table (name = "tfl52_narrow_lake_scen3a3b",
+#                        description = "No haold forest, recruitment forest or buffered Narrow Lake core critical habitat areas, as defined by Bevan Ernst, in TFL 53; maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 270,000m3/year.")
 
-scenario = data.table (name = "tfl52_narrow_lake_scen3a3b",
-                       description = "No haold forest, recruitment forest or buffered Narrow Lake core critical habitat areas, as defined by Bevan Ernst, in TFL 53; maximum 35% buffered disturbance (unbuffered) in Narrow Lake matrix habitat areas. Oldest first. Adjacency = 3m. Even harvest flow = 270,000m3/year.")
+scenario = data.table (name = "tfl53_narrow_lake_he0d_m12d",
+                       description = "No harvest in Narrow Lake HEWSR, maximum 12% disturbance (unbuffered) in Narrow Lake matrix critical habitat that overlap with the harvest unit. Oldest first. Adjacency = 3m. Even harvest flow = 270,000m3/year.")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL53",
                                          partition = ' vol > 150 ', 
@@ -248,7 +257,8 @@ mySim <- simInit(times = times,
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "tableSurvival",
-                                             "disturbanceReport"))
+                                             "disturbanceReport",
+                                             "volumebyareaReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

@@ -167,7 +167,6 @@ E(g)$weight<-as.matrix(edges.weight)[,5]
 
 #From this grah you can see the verticies labeled according to the raster cell number and the edges that connect a pixel to its neighbours
 plot(g)
-
 ```
 
 Once the graph is built, it is simple to get the least cost path between any two verticies. Using [Dijkstra’s algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm), the [shortest_paths](http://igraph.org/r/doc/distances.html) function is called in [igraph](http://igraph.org/r/doc/#R). Further, the graph can be easily updated to simulate the change in the cost surface from dynamically developing roads during the simulation. Note, that this dynamic behaviour would not be possible in a pre-solve of the road network. To implement a pre-solve approach the [igraph](http://igraph.org/r/doc/#R) function [all_shortest_paths](http://igraph.org/r/doc/distances.html) can be used to calculate all shortest paths between pairs of vertices; however, this is not included in the comparison.
@@ -209,6 +208,10 @@ text(sC, labels=sC$ID, pos=2)
 lines(c(0,5),c(4.5,4.5), lwd =2)
 plot(SpatialPoints(roads.close.XY), col='black', pch =2, add=TRUE)
 
+ras2<-ras
+
+ras2[]<-as.vector(t(edge_betweenness(g)))
+plot(ras2)
 ```
 
 The main disadvantage of this approach is the view of independence of road development. The least cost path may produce parallel or redundant roads given a path is made for each target to the corresponding closest point. This may mimic road development given road tenures are able to all licensees the right to limit other industrial users from using their road (i.e., gated roads); thereby forcing the other industrial user to consider building a nearly paralell road. In some cases there will be branching, where two roads connecting two landings to an existing road network will use the same least cost path; however, this will be conditional on the spatial configuration of the local cost surface and the existing road network. Thus, the amount of road being developed from the LCP is dependant on the local cost surface and may be either higher or lower than the corresponding snap approach.

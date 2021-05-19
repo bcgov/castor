@@ -55,24 +55,57 @@ No harvest in Purcell Central herd = rast.zone_cond_noharvest_purcell_central_cr
 ECCC in all Purcell Central herd = rast.zone_cond_eccc_purcell_central_crithab_or_herd
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
-  - 'dist, age DESC, vol DESC' priortize based on:
+- used oldest first
+
+- as alternative,  could focus on minimizing 'disturbance' for caribou, then older, higher volume stands
+  - 'dist, age DESC, vol DESC' prioritize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
       - 'vol DESC', i.e., descending volume (highest volume first)
       
-- harvest priorities in base case of AAC determiantion were: >50% pine stand first, then open forest stands in open range for ecosystem restoration purposes, and then harvest the oldest stands 
+- harvest priorities in base case of AAC determination were: >50% pine stand first, then open forest stands in open range for ecosystem restoration purposes, and then harvest the oldest stands 
 
 ## 'harvestFlow'
-from June 2017 determination: AAC was 496,720m^3^/year until 2022 and 424,800m^3^/year thereafte; base case maintained a harvest of 447,158m^3^/year for 100 years, amd could be sustained for a 250-year forecast
+from June 2017 determination: AAC was 496,720m^3^/year until 2022 and 424,800m^3^/year thereafter; base case maintained a harvest of 447,158m^3^/year for 100 years, and could be sustained for a 250-year forecast
 
-- First, I tested a harvest flow of 475,000m^3^/year (2,375,000m^3^/5-year), then 400,000m^3^/year, then 350,000m^3^/year, 325,000m^3^/year, 335,000m^3^/year, 345,000m^3^/year, 340,000m^3^/year
+- First, I tested a harvest flow of 475,000m^3^/year (2,375,000m^3^/5-year), 400,000, 450,000, 425,000, 415,000, 410,000, 405,000
 
-- 340,000m^3^/year was used; coudl be maitnained except last time step (years 195-200)
+- stable harvest flow at 405,000^3^/5-year
 
-- I used 150 m3/ha as minimum harvest volume, dta package used minimum age 60 for pine, 80 for everything else
+- I used 150 m3/ha as minimum harvest volume, data package used minimum age 60 for pine, 80 for everything else
 
-- For cutblock adjacency, I used 3 m adjacncey; this varied adn was not clear in data package
+- For cutblock adjacency, I used 3 m adjacency; this varied adn was not clear in data package
+
+## Modify Constraints
+
+```{r, zone_update}
+library (DBI)
+# STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Invermere_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+# STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+
+# PURCELL CENTRAL Update the constraints available to a zone as specified in the scenario
+#Below will set Purcell Central old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 11) OR (zoneid = 26) OR (zoneid = 41) OR (zoneid = 55)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 72") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 72")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
+#Below will set Columbia North old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 11) OR (zoneid = 26)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 72") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 72")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 62) OR (zoneid = 41) OR (zoneid = 55)") 
+
+dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_purcell_central_crithab_or_herd'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_purcell_central_crithab_or_herd' AND zoneid = 2") 
+
+dbDisconnect(clusdb)
+```
+
+
 
 
 ```{r module_usage}
@@ -105,18 +138,20 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                           # "rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
+                                               "rast.zone_cond_cw",
+                                            #"rast.zone_cond_noharvest_purcell_central_crithab_or_herd" 
                                             "rast.zone_cond_eccc_purcell_central_crithab_or_herd"
+                                            #"rast.zone_du9_scenarios"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
@@ -130,7 +165,8 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
+                      #harvestZonePriorityInterval = 1,
+                      # reportHarvestConstraints = T
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -141,6 +177,9 @@ parameters <- list(
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
+    volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
@@ -167,18 +206,25 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "invermere_bau",
-#                        description = "Business-as-usual case; sustainable flow = 340,000m3/yr. Adjacency was set to 3m.")
-# scenario = data.table (name = "invermere_purcell_central_nh",
-                       # description = "No harvest in Purcell Central critical habitat. Adjacency was set to 3m. Harvest flow = 340,000m3/yr.")
-scenario = data.table (name = "invermere_purcell_central_ch_he0d_m15d",
-                       description = "No harvest in Purcell Central high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Purcell Central matrix critical habitat. Adjacency was set to 3m.")
+
+
+# scenario = data.table (name = "invermere_bau",description = "Business-as-usual case. Harvest flow = 382,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "invermere_purcell_central_nh", description = "No harvest in Purcell Central critical habitat. Harvest flow = 382,000m3/yr. Adjacency = 3m. Oldest first.")
+ scenario = data.table (name = "invermere_purcell_central_ch_he0d_m12d",
+                       description = "No harvest in Purcell Central high elevation critical habitat, maximum 12%  disturbance in Purcell Central matrix critical habitat. Harvest flow = 382,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "invermere_purcell_central_scen3a",
+#                         description = "No harvest in old forest, recruitment forest and buffered Purcell Central core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell Central matrix habitat areas. Harvest flow = 405,000m3/yr. Adjacency = 3m. Oldest first.")
+
+#scenario = data.table (name = "invermere_purcell_central_scen3b", description = "No harvest in old forest and recruitment forest Purcell Central core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Purcell Central matrix habitat areas. Harvest flow = 405,000m3/yr. Adjacency = 3m. Oldest first.")
+
+
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Invermere_TSA",
@@ -187,7 +233,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Invermere_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 1700000) #340,000m3/yr 
+                                     flow = 1910000) #382,000m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

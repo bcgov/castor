@@ -67,11 +67,11 @@ parameters <-  list(
                                            "rast.zone_cond_cw",
                                            "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
                                            "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
-                                           "rast.zone_du9_scenarios",
+                                           "rast.zone_smc_zones_20210315",
                                            "rast.zone_cond_bc_hart_ranges_crithab"
                                            ),
                         
-                         nameZoneTable="zone_constraints", 
+                         nameZoneTable="zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp",
                          nameYieldTable ="yc_vdyp", # VDYP yield  table

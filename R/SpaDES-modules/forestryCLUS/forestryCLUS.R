@@ -61,7 +61,8 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
-    createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.')
+    createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.'),
+    createsOutput(objectName = "zoneManagement", objectClass ="data.table", desc = '.')
   )
 ))
 
@@ -102,6 +103,7 @@ Init <- function(sim) {
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
  
   #Remove zones as a scenario
@@ -120,7 +122,8 @@ Init <- function(sim) {
   #Create the zoneManagement table used for reporting the harvesting constraints throughout the simulation
   if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
     dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneManagement (zoneid integer, reference_zone text, zone_column text, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric, percent numeric, timeperiod integer)")
-  }
+    sim$zoneManagement<-data.table()
+    }
   
   #Create the zonePriority table used for spatially adjusting the harvest queue
   if(!P(sim, "forestryCLUS", "harvestZonePriority") == '99999'){
@@ -177,8 +180,8 @@ setConstraints<- function(sim) {
               if(as.character(query_parms[1, "variable"]) == 'dist' ){
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 AND treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
-                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),"> :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
+                        SELECT pixelid FROM pixels WHERE own = 1 and treed=1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),">= :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)
                 rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
@@ -209,7 +212,6 @@ setConstraints<- function(sim) {
             },
             le = {
               if(as.character(query_parms[1, "variable"]) == 'eca' ){
-                
                 #get the correct limits -- currently assuming the entire area is at the threshold
                 eca_current<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT ",as.character(query_parms[1, "zone_column"]),", sum(eca*thlb) as eca FROM pixels WHERE ",
                                                          as.character(query_parms[1, "zone_column"]), " IN (",
@@ -233,6 +235,16 @@ setConstraints<- function(sim) {
                 dbClearResult(rs)
                 dbCommit(sim$clusdb)
                 
+              }else if(as.character(query_parms[1, "variable"]) == 'dist' ){
+                sql<-paste0("UPDATE pixels SET zone_const = 1
+                        WHERE pixelid IN ( 
+                        SELECT pixelid FROM pixels WHERE own = 1 AND treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                            " ORDER BY CASE WHEN dist <= :threshold then 1 else 0 end, thlb, zone_const DESC, dist DESC
+                        LIMIT :limits);")
+                dbBegin(sim$clusdb)
+                rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
+                dbClearResult(rs)
+                dbCommit(sim$clusdb)
               }else if(!is.na(query_parms[1, "multi_condition"])){ #Allow user to write own constraints according to many fields - right now only one variable
                   sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
@@ -293,7 +305,8 @@ setConstraints<- function(sim) {
 
 getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
-  for(compart in sim$compartment_list){
+  
+  for(compart in sim$compartment_list){#TODO: Add in looping by compartment and partition
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting? --Not important for 1 year time steps
     harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
@@ -403,6 +416,7 @@ reportConstraints<- function(sim) {
   if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
     message("....reporting harvesting constraints")
     zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
+    
     for(i in 1:nrow(zones)){ #for each of the specified zone rasters
       numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
                                  zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
@@ -430,7 +444,7 @@ reportConstraints<- function(sim) {
                            avg(case when ", as.character(query_parms[1, "multi_condition"])  ," then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i], " = :zoneid")
               }else{
                 sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-                           avg(case when ", numConstraints[[1]][k]  ," < :threshold then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
+                           (avg(case when ", numConstraints[[1]][k]  ," <= :threshold then 1 else 0 end)/ avg(case when ", zones[[1]][i]  ," = :zoneid then 1 else 0 end))*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
               }
             }
           )
@@ -439,8 +453,10 @@ reportConstraints<- function(sim) {
           rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "reference_zone", "zone_column", "variable", "threshold", "type", "percentage", "multi_condition", "t_area")])
           dbClearResult(rs)
           dbCommit(sim$clusdb)
+          #test<<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
+          #stop()
           
-          zoneManagement<<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement")
+          sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
           
         }
       }

@@ -109,7 +109,7 @@ parameters <- list(
                                                "rast.zone_cond_cw",'rast.zone_cond_fisher_sb_dry','rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_dry'
                                              
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",

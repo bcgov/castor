@@ -72,35 +72,38 @@ parameters <- list(
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/UBC_study_boundary_clusdb.sqlite"),
-                           nameBoundaryFile = "ubc_gbr_boundaries",
-                           nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "UBC_study_boundary",
-                           nameBoundaryGeom = 'wkb_geometry',
-                           nameCompartmentRaster = "rast.ubc_gbr_boundaries",
-                           nameCompartmentTable = "ubc_gbr_boundaries_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters=c(#"rast.zone_cond_beo", # leave out beo for the UBC study because I think similar info is comming from the art
-                                           "rast.zone_cond_vqo",
-                                           "rast.zone_cond_wha_gbr",
-                                           "rast.zone_cond_uwr_gbr",
-                                           "rast.zone_cond_nharv_gbr",
-                                           "rast.zone_cond_fsw_gbr",
-                                           "rast.zone_cond_cw"
-                                           #"rast.zone_cond_art"
+                           nameBoundaryFile="ubc_gbr_boundaries",
+                         nameBoundaryColumn="tsa_name",
+                         nameBoundary = "UBC_study_boundary",
+                         nameBoundaryGeom='wkb_geometry',
+                         nameCompartmentRaster = "rast.ubc_gbr_boundaries",
+                         nameCompartmentTable = "ubc_gbr_boundaries_vat",
+                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameZoneRasters=c(#"rast.zone_cond_beo", 
+                                           #"rast.zone_cond_vqo", 
+                                           "rast.zone_cond_wha_gbr", 
+                                           "rast.zone_cond_uwr_gbr", 
+                                           "rast.zone_cond_nharv_gbr", 
+                                           "rast.zone_cond_fsw_gbr", 
+                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
-
-                           nameZoneTable = "zone_constraints_gbr",
-                           nameYieldsRaster = "rast.ycid_vdyp",
-                           nameYieldTable = "yc_vdyp",
-                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
-                           nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
-                           nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
-                           nameForestInventoryAge = "proj_age_1",
-                           nameForestInventoryHeight = "proj_height_1",
-                           nameForestInventoryCrownClosure = "crown_closure",
-                           nameForestInventorySiteIndex = "site_index"),
+                        
+                         nameZoneTable = "zone.constraints", 
+                        # nameZonePriorityRaster = "rast.zone_cond_beo",
+                         nameYieldsRaster = "rast.ycid_vdyp", 
+                         nameYieldTable = "yc_vdyp", 
+                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldTransitionTable = "yc_tipsy", 
+                         nameForestInventoryRaster = "rast.vri2019_id", 
+                         nameForestInventoryKey = "feature_id", 
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
+                         nameForestInventoryAge = "proj_age_1", 
+                         nameForestInventoryHeight = "proj_height_1", 
+                         nameForestInventoryCrownClosure = "crown_closure", 
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index" 
+                    ),
   blockingCLUS = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
                       patchVariation = 6,
@@ -127,7 +130,7 @@ parameters <- list(
   #                            criticalHabRaster = "rast.bc_crithab_and_herd",
   #                            permDisturbanceRaster = "rast.mine_ag_wind_rail",
   #                            recovery = 40),
-  uploaderCLUS = list(aoiName = 'ubc_gbr_study', # name of the schema that gets uploaded to postgres
+  uploaderCLUS = list(aoiName = 'ubc_gbr_study', # name of schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -149,14 +152,14 @@ modules <- list("dataLoaderCLUS",
                 )
 
 
- # scenario = data.table (name = "ubc_gbrn_art_only",
- #                         description = "removed all constraints except art (average retention targets")
-# 
-   # scenario = data.table (name = "ubc_gbrn_bau",
-   #                         description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
+#  scenario = data.table (name = "ubc_gbrn_art_only",
+#                          description = "removed all constraints except art (average retention targets")
+#  
+    scenario = data.table (name = "ubc_gbrn_bau",
+                            description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
 
-  scenario = data.table (name = "ubc_gbrn_without_art",
-                          description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, but not art (average retention targets")
+  # scenario = data.table (name = "ubc_gbrn_without_art",
+  #                         description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, but not art (average retention targets")
 
   
 harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
@@ -167,8 +170,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
                                                       by = 5), # was 5
                                                 1), 
 
-                                     flow = 2000000))) #2500000, 2400000, 2300000, 2200000 dont work. # 1780000 works  with vol >150
-
+                                     flow = 2300000))) #2500000, 2400000, 2300000 dont work. 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 

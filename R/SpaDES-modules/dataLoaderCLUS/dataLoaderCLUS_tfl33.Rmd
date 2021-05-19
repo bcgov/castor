@@ -64,12 +64,12 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
-                                             "rast.zone_cond_cw", 
-                                             "rast.zone_du9_scenarios",
+                                             "rast.zone_cond_cw" ,
+                                             "rast.zone_smc_zones_20210315",
                                              "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd",
                                              "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                                              ), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
+                         nameZoneTable = "zone.constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds

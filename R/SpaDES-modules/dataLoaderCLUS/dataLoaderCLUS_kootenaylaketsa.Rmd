@@ -71,13 +71,13 @@ parameters <-  list(
                                              "rast.zone_cond_eccc_purcell_central_crithab_or_herd",
                                              "rast.zone_cond_eccc_purcells_south_crithab_or_herd",
                                              "rast.zone_cond_eccc_south_selkirks_crithab_or_herd",
-                                             "rast.zone_du9_scenarios",
+                                             "rast.zone_smc_zones_20210315",
                                              "rast.zone_cond_bc_central_selkirks_crithab",
                                              "rast.zone_cond_bc_purcell_central_crithab",
                                              "rast.zone_cond_bc_purcells_south_crithab",
                                              "rast.zone_cond_bc_south_selkirks_crithab"
                                               ), 
-                         nameZoneTable = "zone_constraints",
+                         nameZoneTable = "zone.constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", # VDYP yield  table

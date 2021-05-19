@@ -91,7 +91,7 @@ Init <- function(sim) {
     for(k in 1:nrow (rsf_list)) { # loop through the unique list of boundaries
       message (rsf_list[k]$bounds) 
       bounds <- data.table (c (t (raster::as.matrix( 
-        RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+        RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = paste0(rsf_list[k]$bounds), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
@@ -122,7 +122,7 @@ Init <- function(sim) {
       message(layer_name) # declare each 'name' in the list
       # if the covariate is not a reclass type, clip the raster to the study area and convert the covariate values to a data.table
       layer<-data.table(c(t(raster::as.matrix(
-        RASTER_CLIP2(tmpRast = sim$boundaryInfo[[3]], 
+        RASTER_CLIP2(tmpRast = spaste0('temp_', sample(1:10000, 1)), 
                      srcRaster= layer_name, 
                      clipper=sim$boundaryInfo[[1]], 
                      geom= sim$boundaryInfo[[4]], 
@@ -140,7 +140,7 @@ Init <- function(sim) {
       rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
       rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
       layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
-        RASTER_CLIP_CAT(tmpRast = sim$boundaryInfo[[3]], 
+        RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                         srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                         clipper = sim$boundaryInfo[[1]], 
                         geom = sim$boundaryInfo[[4]], 
@@ -163,7 +163,7 @@ Init <- function(sim) {
         rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
         rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
         layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
-          RASTER_CLIP_CAT(tmpRast = sim$boundaryInfo[[3]], 
+          RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                           clipper = sim$boundaryInfo[[1]], 
                           geom = sim$boundaryInfo[[4]], 
@@ -192,7 +192,7 @@ Init <- function(sim) {
         rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
         rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
         layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
-          RASTER_CLIP_CAT(tmpRast = sim$boundaryInfo[[3]], 
+          RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                           clipper = sim$boundaryInfo[[1]], 
                           geom = sim$boundaryInfo[[4]], 

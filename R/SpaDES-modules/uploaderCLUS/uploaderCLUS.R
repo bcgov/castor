@@ -229,7 +229,7 @@ save.rasters <-function (sim){
     if(!is.null(sim$roads)){
 
     message('....roads raster')
-    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif"), 
+    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_", time(sim)*sim$updateInterval, ".tif")), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))

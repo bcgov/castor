@@ -160,7 +160,7 @@ getExistingCutblocks<-function(sim){
   if(!(P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster")))
     ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster"),
-                           tmpRast = sim$boundaryInfo[3],
+                           tmpRast = paste0('temp_', sample(1:10000, 1)),
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),

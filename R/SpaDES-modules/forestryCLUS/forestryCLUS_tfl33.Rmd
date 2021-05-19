@@ -104,14 +104,14 @@ parameters <- list(
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                                "rast.zone_cond_vqo", 
                                                "rast.zone_cond_wha", 
-                                               "rast.zone_cond_uwr",
+                                               #"rast.zone_cond_uwr"
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               "rast.zone_cond_cw", 
+                                               "rast.zone_cond_cw" 
                                                # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
-                                                "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
+                                                #"rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -131,10 +131,12 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+  forestryCLUS = list(harvestBlockPriority = "age DESC" # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
-                      adjacencyConstraint = 3),
+                      #harvestZonePriorityInterval = 1,
+                      # reportHarvestConstraints = T
+                      #adjacencyConstraint = 3
+                      ),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -152,6 +154,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'tfl33', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -170,21 +175,21 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "tfl33_bau",
-#                        description = "Business-as-usual (BAU); harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
+ scenario = data.table (name = "tfl33_bau",
+                        description = "Business-as-usual (BAU); harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
 # scenario = data.table (name = "tfl33_colnsfb_nh",
 #                        description = "No harvest in Frisby-Boulder critical habitat; harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
-scenario = data.table (name = "tfl33_colnsfb_ch_he0d_m15d",
-                       description = "No harvest in Frisby-Boulder HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
+#scenario = data.table (name = "tfl33_colnsfb_ch_he0d_m15d", description = "No harvest in Frisby-Boulder HEWSR critical habitat, 35% buffered disturbance (15% harvest) in matrix critical habitat; harvest flow 2,500 m3/yr. Adjacency was set to 3m.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL33",
-                                         partition = ' vol > 150 ', 
+                                         partition = ' vol > 100 ', 
                                          year = rep( seq (from = 2018, 
                                                           to = 2218, 
                                                           by = 5),

@@ -70,7 +70,9 @@ No harvest in Central Selkirks = rast.zone_cond_noharvest_central_selkirks_crith
 ECCC Central Selkirks = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
 
 ## 'harvestPriority' parameter 
-- focus on minimizzing 'disturabnce; for cariobu, then older, higher vlomue stands
+- used oldest first
+
+- as alternative,  could focus on minimizzing 'disturabnce; for caribou, then older, higher volume stands
   - 'dist, age DESC, vol DESC' priortize based on:
       - 'dist', i.e., distance to disturbed pixel (closest first), then
       - 'age DESC', i.e., descending age (oldest first), then
@@ -78,29 +80,62 @@ ECCC Central Selkirks = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
 
 ## 'harvestFlow'
 from 2017 determination: maximum even flow harvest was 540,000m^3^/year 
-- First, I tested a harvest flow of 540,000m^3^/year (2,780,000m^3^/5-year); was nto able to achieve this after 50 years, so dropped to 450,000, then 400,000, 350,000, 325,000, 335,000, 340,000, and 345,000; the latetr provided max. even flow
 
-why was this model max even flow at 2/3 or previosu model? maybe adjacney?, maybe min. volume? or maybe harvest queue? no dications in TSR documentation of signficant inventory or yeidl probelms 
+- First, I tested a harvest flow of 540,000m^3^/year (2,780,000m^3^/5-year); dropped to 450,000, 400,000, 425,000, 420,000, 415,000, 410,000
 
+- even flow at 410,000m^3^/year
 
 From 2016 data package, "In natural stands a minimum volume of 150 cubic metres per hectare will be used as a surrogate for minimum age in the model. In managed stands the age at which the stands reaches 95% culmination of mean annual increment will be used as minimum harvestable age." "With genetic gain and new PEM/SIBEC site indices, using only a volume of 150 m3 is unrealistic as some of the higher SI sites could achieve this in as little as 40 years."
 
 - I used 150 m3/ha as minimum harvest volume, thus may be a bit low
 
-For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; thus is a bit conservative
+For cutblock adjacency, in data package, allowed maximum 33% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacency; thus is a bit conservative
 
 ## Modify Constraints
 
 ```{r, zone_update}
 library (DBI)
 # STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Arrow_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Arrow_TSA_clusdb.sqlite")) 
 
 # STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_reve_area'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+# CENTRAL SELKIRKS
+# Below will set Central Selkirks old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 3) OR (zoneid = 18) OR (zoneid = 33) OR (zoneid = 47)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 13) OR (zoneid = 28) OR (zoneid = 43) OR (zoneid = 65) OR (zoneid = 69) OR (zoneid = 74)") 
+# Below will set Central Selkirks old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 3) OR (zoneid = 18)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 13) OR (zoneid = 33) OR (zoneid = 47) OR (zoneid = 28) OR (zoneid = 43) OR (zoneid = 65) OR (zoneid = 69) OR (zoneid = 74)") 
 
 
-# dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_reve_area' AND (zoneid = 4) OR (zoneid = 10) OR (zoneid = 16) OR (zoneid = 22)") #This will set Columbia South matrix as constrained areas 
+# SOUTH SELKIRKS
+# Below will set South Selkirks old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 13) OR (zoneid = 28) OR (zoneid = 43) OR (zoneid = 57)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 74") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 74")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 3) OR (zoneid = 18) OR (zoneid = 33) OR (zoneid = 62) OR (zoneid = 65) OR (zoneid = 69)") 
+# Below will set South Selkirks old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 13) OR (zoneid = 28)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 74") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 74")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 3) OR (zoneid = 18) OR (zoneid = 33) OR (zoneid = 62) OR (zoneid = 65) OR (zoneid = 69) OR (zoneid = 43) OR (zoneid = 57)") 
+
+dbGetQuery(clusdb, "SELECT * from zoneConstraints where reference_zone = 'rast.zone_cond_eccc_columbia_south_crithab_or_herd'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_columbia_south_crithab_or_herd' AND zoneid = 2") 
+
+dbGetQuery(clusdb, "SELECT * from zoneConstraints where reference_zone = 'rast.zone_smc_zones_20210315'")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' ") 
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' and zoneid in (15,16,17,19,19,20,21,23,24) ") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_smc_zones_20210315' and zoneid in (41) ")
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' and zoneid in (21,23,24)") 
 
 dbDisconnect(clusdb)
 ```
@@ -136,15 +171,17 @@ parameters <- list(
                                                "rast.zone_cond_uwr",
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
-                                               # "rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
-                                              #"rast.zone_cond_noharvest_central_selkirks_crithab_or_herd"
-                                               # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
+                                               'rast.zone_cond_cw',
+                                                #"rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
+                                                #"rast.zone_cond_noharvest_central_selkirks_crithab_or_herd"
+                                                #"rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
                                                # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
-                                               # "rast.zone_cond_noharvest_south_selkirks_crithab_or_herd"
-                                               # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
+                                                #"rast.zone_cond_noharvest_south_selkirks_crithab_or_herd"
+                                                #"rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                                                # "rast.zone_cond_eccc_monashee_crithab_or_herd"
-                                               # "rast.zone_cond_eccc_south_selkirks_crithab_or_herd"
-                                              "rast.zone_cond_reve_area"
+                                                #"rast.zone_cond_eccc_south_selkirks_crithab_or_herd"
+                                                #"rast.zone_du9_scenarios"
+                                               "rast.zone_smc_zones_20210315"
                                                ),
                            nameZoneTable = "zone_constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -152,9 +189,9 @@ parameters <- list(
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
@@ -168,8 +205,10 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
-                      adjacencyConstraint = 3),
+                      #harvestZonePriorityInterval = 1,
+                      # reportHarvestConstraints = T
+                      adjacencyConstraint = 3
+                      ),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -187,6 +226,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+ volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'arrow_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -205,28 +247,38 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "arrow_bau",
-#                        description = "Business-as-usual case; sustainable flow = 345,000m3/yr.Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_centselk_nh",
-#                        description = "No harvest in Central Selkirks critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_centselk_ch_he0d_m15d",
-#                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
+
+
+# scenario = data.table (name = "arrow_bau", description = "Business-as-usual case. Harvest flow = 380,000m3/yr.Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_columbia_south_nh", description = "No harvest in critical habitat of Columbia South herd that overlaps with the TSA. Harvest flow = 380,000m3/yr.Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_centselk_nh",description = "No harvest in Central Selkirks critical habitat. Harvest flow = 380,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_centselk_ch_he0d_m12d", description = "No harvest in Central Selkirks high elevation critical habitat, maximum 12% disturbance  in Central Selkirks matrix critical habitat. Harvest flow = 380,000m3/yr. Adjacency = 3m. Oldest first.")
+#scenario = data.table (name = "arrow_centselk_scen3a", description = "No harvest in old forest, recruitment forest and buffered Columbia South core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in Columbia South matrix habitat areas. Harvest flow = 380,000m3/yr. Adjacency = 3m. Oldest first.")
+ scenario = data.table (name = "arrow_centselk_scen3c",
+                        description = "No harvest in old forest and recruitment forest Columbia South core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in Columbia South matrix habitat areas. Harvest flow = 380,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_monashee_nh",
+#                        description = "No harvest in critical habitat of Monashee herd that overlaps with the TSA. Harvest flow = 410,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_south_selkirks_nh", description = "No harvest in critical habitat of South Selkirks herd that overlaps with the TSA. Harvest flow = 380,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_south_selkirks_ch_he0d_m12d",description = "No harvest in South Selkirks high elevation critical habitat, maximum 12%  disturbance  in South Selkirks matrix critical habitat. Harvest flow = 380,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "arrow_south_selkirks_scen3a",
+#                         description = "No harvest in old forest, recruitment forest and buffered South Selkirks core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in South Selkirks matrix habitat areas. Harvest flow = 410,000m3/yr. Adjacency = 3m. Oldest first.")
+
+#scenario = data.table (name = "arrow_south_selkirks_scen3b",description = "No harvest in old forest and recruitment forest in South Selkirks core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in South Selkirks matrix habitat areas. Harvest flow = 410,000m3/yr. Adjacency = 3m. Oldest first.")
+
 # scenario = data.table (name = "arrow_all_nh",
 #                        description = "No harvest in all critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m.")
 # scenario = data.table (name = "arrow_all_ch_he0d_m15d",
 #                        description = "No harvest in high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in matrix critical habitat of all herds that overlap with the TSA. Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_columbia_south_nh",
-#                        description = "No harvest in critical habitat of Columbia South herd that overlaps with the TSA. Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_ccolumbia_south_ch_he0d_m15d",
-#                        description = "No harvest in Columbia South high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia South matrix critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_monashee_nh",
-#                        description = "No harvest in critical habitat of Monashee herd that overlaps with the TSA. Adjacency was set to 3m.")
+
+# scenario = data.table (name = "arrow_ccolumbia_south_ch_he0d_m12d", description = "No harvest in Columbia South high elevation critical habitat, maximum 12% disturbance in Columbia South matrix critical habitat. Adjacency was set to 3m.")
+
 # scenario = data.table (name = "arrow_monashee_ch_he0d_m15d",
 #                        description = "No harvest in Monashee high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Monashee matrix critical habitat. Adjacency was set to 3m.")
 # 
@@ -234,13 +286,10 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in critical habitat of Central Selkirks herd that overlaps with the TSA. Adjacency was set to 3m.")
 # scenario = data.table (name = "arrow_central_selkirks_ch_he0d_m15d",
 #                        description = "No harvest in Central Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Central Selkirks matrix critical habitat. Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_south_selkirks_nh",
-#                        description = "No harvest in critical habitat of South Selkirks herd that overlaps with the TSA. Adjacency was set to 3m.")
-# scenario = data.table (name = "arrow_south_selkirks_ch_he0d_m15d",
-#                        description = "No harvest in South Selkirks high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in South Selkirks matrix critical habitat. Adjacency was set to 3m.")
 
-scenario = data.table (name = "arrow_columbia_south_he10d_m15d",
-                       description = "No harvest in Columbia South high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia South matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
+
+# scenario = data.table (name = "arrow_columbia_south_he10d_m15d",
+#                        description = "No harvest in Columbia South high elevation critical habitat areas as defined by Bevan Ernst, maximum 35% buffered disturbance (15% harvest) in Columbia South matrix habitat areas as defined by Bevan Ernst. Adjacency was set to 3m.")
 
 
 
@@ -250,7 +299,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Arrow_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 1725000) #345,000m3/yr 
+                                     flow = 1900000) #380,000m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

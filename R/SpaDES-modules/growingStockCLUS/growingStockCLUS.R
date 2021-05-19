@@ -17,7 +17,7 @@ defineModule(sim, list(
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
-              person("Tyler", "Muhley", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
+              person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.2.5", growingStockCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -89,7 +89,8 @@ Init <- function(sim) {
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -104,7 +105,8 @@ Init <- function(sim) {
     
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht
+    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -149,7 +151,8 @@ updateGS<- function(sim) {
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -157,7 +160,7 @@ updateGS<- function(sim) {
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid")])
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "dec_pcnt", "pixelid")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -165,7 +168,8 @@ updateGS<- function(sim) {
     
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht
+    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -173,7 +177,7 @@ updateGS<- function(sim) {
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid")])
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "dec_pcnt", "pixelid")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)  
   }

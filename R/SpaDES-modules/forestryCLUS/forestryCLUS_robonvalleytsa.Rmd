@@ -114,32 +114,10 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 # STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_wells_gray_south_crithab_or_herd'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_columbia_north_crithab'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_smc_zones_20210315'") 
 
-
-# HART RANGES Update the constraints available to a zone as specified in the scenario
-#Below will set Hart Ranges old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 22) OR (zoneid = 37) OR (zoneid = 51)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 10) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 25) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 40) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 71) OR (zoneid = 75) OR (zoneid = 76)") 
-#Below will set Hart Ranges old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 22)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 10) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 25) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 40) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 71) OR (zoneid = 75) OR (zoneid = 76)  OR (zoneid = 37) OR (zoneid = 51)") 
-
-
-# NORTH CARIBOO Update the constraints available to a zone as specified in the scenario
-#Below will set North Cariboo old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 10) OR (zoneid = 25) OR (zoneid = 40) OR (zoneid = 54)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 7) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 68) OR (zoneid = 75) OR (zoneid = 76)") 
-#Below will set North Cariboo old and recruit as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 10) OR (zoneid = 25)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 7) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 68) OR (zoneid = 75) OR (zoneid = 76) OR (zoneid = 40) OR (zoneid = 54)")
 
 
 # WELLS GRAY SOUTH Update the constraints available to a zone as specified in the scenario
@@ -153,6 +131,19 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 76") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 76")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 7) OR (zoneid = 10) OR (zoneid = 14) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 25) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 40) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 68) OR (zoneid = 71) OR (zoneid = 75)") 
+# Below makes the matrix habitat available to harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_wells_gray_south_crithab_or_herd' AND zoneid = 2")
+#Below will set Wells Gray South HEWSR as no harvest and matrix as 12% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_wells_gray_south_crithab' AND zoneid = 2 ")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_wells_gray_south_crithab' AND zoneid = 2 ")
+#Below will set high priority stand types in Wells Gray South HEWSR high, medium and low priority areas as no harvest and matrix as 15% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 96) OR (zoneid = 97) OR (zoneid = 102)") 
+#Below will set high priority stand types in Wells Gray South HEWSR high and medium priority areas as no harvest and matrix as 15% disturbance (no buffer); NOTE No medium zones in TSA
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 115)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 115)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 96) OR (zoneid = 97) OR (zoneid = 102) OR (zoneid = 116) OR (zoneid = 118)") 
 
 
 # COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
@@ -166,6 +157,92 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 20) OR (zoneid = 21) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 61) OR (zoneid = 65) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 69) OR (zoneid = 34) OR (zoneid = 48) OR (zoneid = 76)") 
+#Below will set Columbia North HEWSR as no harvest and matrix as 12% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_columbia_north_crithab' AND zoneid = 1")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_columbia_north_crithab' AND zoneid = 1")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_bc_columbia_north_crithab' AND zoneid = 1")
+#Below will set high priority stand types in Columbia North HEWSR high, medium and low priority areas as no harvest and matrix as 15% disturbance (no buffer) NTOE ONLy high priority zones in this TSA
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND zoneid = 46") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND zoneid = 46") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 96) OR (zoneid = 97) OR (zoneid = 102) OR (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118)") 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# HART RANGES Update the constraints available to a zone as specified in the scenario
+#Below will set Hart Ranges old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 22) OR (zoneid = 37) OR (zoneid = 51)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 10) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 25) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 40) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 71) OR (zoneid = 75) OR (zoneid = 76)") 
+#Below will set Hart Ranges old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 7) OR (zoneid = 22)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 68") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 10) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 25) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 40) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 71) OR (zoneid = 75) OR (zoneid = 76)  OR (zoneid = 37) OR (zoneid = 51)") 
+#Below will set Hart Ranges HEWSR as no harvest and matrix as 12% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_hart_ranges_crithab' AND zoneid = 2 ")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_hart_ranges_crithab' AND zoneid = 2 ")
+#Below will set high priority stand types in Hart Ranges HEWSR high, medium and low priority areas as no harvest and matrix as 15% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND zoneid = 70") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 96) OR (zoneid = 97) OR (zoneid = 102) OR (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118)") 
+#Below will set high priority stand types in Hart Ranges HEWSR high and medium priority areas as no harvest and matrix as 15% disturbance (no buffer); NOTE there is only low priority HEWSR in this TSA
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND zoneid = 70") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 82) OR (zoneid = 96) OR (zoneid = 97) OR (zoneid = 102) OR (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69)") 
+
+
+
+
+
+
+# NORTH CARIBOO Update the constraints available to a zone as specified in the scenario
+#Below will set North Cariboo old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 10) OR (zoneid = 25) OR (zoneid = 40) OR (zoneid = 54)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+#Below will set North Cariboo old and recruit as no harvest and matrix as 35% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 10) OR (zoneid = 25)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 71") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 7) OR (zoneid = 14) OR (zoneid = 15) OR (zoneid = 19) OR (zoneid = 22) OR (zoneid = 30) OR (zoneid = 34) OR (zoneid = 37) OR (zoneid = 58) OR (zoneid = 59) OR (zoneid = 64) OR (zoneid = 68) OR (zoneid = 75) OR (zoneid = 76) OR (zoneid = 40) OR (zoneid = 54)")
+#Below will set North Cariboo HEWSR as no harvest and matrix as 12% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_north_cariboo_crithab' AND zoneid = 2 ")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_north_cariboo_crithab' AND zoneid = 2 ")
+#Below will set high priority stand types in North Cariboo HEWSR high, medium and low priority areas as no harvest and matrix as 15% disturbance (no buffer)
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 96) OR (zoneid = 102) OR (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 82) OR (zoneid = 97)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 82) OR (zoneid = 97)") 
+# Below makes priority stands in high and medium priority HESR zones no harvest, and high and medium priority matrix priority zones max 15% disturbance; core and amtrix outside of priority areas and stands available,
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 36) OR (zoneid = 43) OR (zoneid = 44) OR (zoneid = 45) OR (zoneid = 46) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 96) OR (zoneid = 102) OR (zoneid = 115) OR (zoneid = 116) OR (zoneid = 118) OR (zoneid = 79) OR (zoneid = 80) OR (zoneid = 81) OR (zoneid = 97)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 82)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 82)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 82)")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -188,7 +265,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list (  dbName='clus',
-                           save_clusdb = FALSE,
+                           save_clusdb = TRUE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Robson_Valley_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -209,28 +286,28 @@ parameters <- list(
                                           #  "rast.zone_cond_noharvest_wells_gray_south_crithab_or_herd"
                                           #  "rast.zone_cond_noharvest_hart_ranges_crithab_or_herd",
                                           # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd"
-                                          # "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
+                                     # "rast.zone_cond_noharvest_redrock_prairie_creek_crithab_or_herd",
                                           # "rast.zone_cond_eccc_columbia_north_crithab_or_herd"
                                           #  "rast.zone_cond_eccc_wells_gray_south_crithab_or_herd"
                                           #  "rast.zone_cond_eccc_hart_ranges_crithab_or_herd",
                                           #  "rast.zone_cond_eccc_north_cariboo_crithab_or_herd"
                                           #  "rast.zone_cond_eccc_redrock_prairie_creek_crithab_or_herd",
-                                             "rast.zone_du9_scenarios"
-                                          #   "rast.zone_cond_bc_columbia_north_crithab",
-                                          #  "rast.zone_cond_bc_wells_gray_south_crithab",
-                                          #  "rast.zone_cond_bc_hart_ranges_crithab",
-                                          #  "rast.zone_cond_bc_north_cariboo_crithab",
+                                           "rast.zone_smc_zones_20210315"
+                                          #   "rast.zone_cond_bc_columbia_north_crithab"
+                                          #  "rast.zone_cond_bc_wells_gray_south_crithab"
+                                          #  "rast.zone_cond_bc_hart_ranges_crithab"
+                                          #  "rast.zone_cond_bc_north_cariboo_crithab"
                                           #  "rast.zone_cond_bc_redrock_prairie_creek_crithab"
                                               ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",
                            nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2018_id",
+                           nameForestInventoryRaster = "rast.vri2019_id",
                            nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
                            nameForestInventoryAge = "proj_age_1",
                            nameForestInventoryHeight = "proj_height_1",
                            nameForestInventoryCrownClosure = "crown_closure",
@@ -244,7 +321,8 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
+                      #harvestZonePriorityInterval = 1,
+                      # reportHarvestConstraints = T
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -263,6 +341,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
   uploaderCLUS = list(aoiName = 'robsonvalley_tsa', # name of the schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -281,6 +362,7 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
+                "volumebyareaReportCLUS",
                 "uploaderCLUS"
                 )
 
@@ -290,7 +372,7 @@ modules <- list("dataLoaderCLUS",
 
 
 # scenario = data.table (name = "robson_bau",
-#                        description = "Business-as-usual case; sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
+#                        description = "Business-as-usual case. Harvest flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "robson_hart_nh",
 #                        description = "No harvest in all Hart Ranges critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency was set to 3m.")
 # scenario = data.table (name = "robson_hart_ch_he0d_m15d",
@@ -321,13 +403,41 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Columbia North high elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Columbia North matrix critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 # scenario = data.table (name = "robson_columbia_north_scen3a",
 #                        description = "No harvest in old forest, recruitment forest and buffered core critical habitat areas in Columbia North, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_columbia_north_scen3b",
+#                        description = "No harvest in old forest and recruitment forest core critical habitat areas in Columbia North, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_wells_gray_south_he0d",
+#                        description = "No harvest in Wells Gray South high elevation critical habitat; harvest allowed in matrix critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_columbia_north_he0d",
+#                        description = "No harvest in Columbia North high elevation critical habitat; harvest allowed in matrix critical habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_hart_he0d_m12d",
+#                        description = "No harvest in all Hart Ranges HEWSR critical habitat. Up to 12% forestry disturbance (no buffer) in all matrix habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_hart_hi_med_lo_priority",
+#                        description = "No harvest in Hart Ranges high priority stands in high, medium and low priority HEWSR zones; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_hart_hi_med_priority",
+#                        description = "No harvest in Hart Ranges high priority stands in high and medium priority HEWSR zones. harvest allowed in low priority HEWSR. Harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE there is only low priority HEWSR in this TSA. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_north_cariboo_he0d_m12d",
+#                        description = "No harvest in all North Cariboo HEWSR critical habitat. Up to 12% forestry disturbance (no buffer) in all matrix habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_north_cariboo_hi_med_lo",
+#                        description = "No harvest in North Cariboo high priority stands in high, medium and low priority HEWSR zones; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_north_cariboo_hi_med",
+#                        description = "No harvest in North Cariboo high priority stands in high and medium prioirty high elevation critical habitat. Harvest allowed in high and medium priority matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in non-priority stands and low priority HEWSR and matrix areas. Note: all areas low priority except for some high priority matrix. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_wells_south_he0d_m12d",
+#                        description = "No harvest in all Wells Gray South HEWSR critical habitat. Up to 12% forestry disturbance (no buffer) in all matrix habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_wells_south_hi_med_lo",
+#                        description = "No harvest in Wells Gray South high priority stands in high, medium and low priority HEWSR zones; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_wells_south_hi_med",
+#                        description = "No harvest in Wells Gray South high priority stands in high and medium priority HEWSR zones; harvest allowed in high and medium priority matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in other areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_wells_south_hi",
+#                        description = "No harvest in Wells Gray South high priority stands in high priority HEWSR zones; harvest allowed in high priority matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in other areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+# scenario = data.table (name = "robson_columbia_north_he0d_m12d",
+#                        description = "No harvest in all Columbia North HEWSR critical habitat. Up to 12% forestry disturbance (no buffer) in all matrix habitat. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
-scenario = data.table (name = "robson_columbia_north_scen3b",
-                       description = "No harvest in old forest and recruitment forest core critical habitat areas in Columbia North, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Columbia North matrix habitat areas. Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
+scenario = data.table (name = "robson_columbia_north_hi_med_lo",
+                       description = "No harvest in Columbia North high priority stands in high, medium and low priority HEWSR zones; harvest allowed in all matrix critical habitat up to 15% disturbance (no buffer) in forested area. Note: only high prioirty zones in this TSA.  Sustainable flow = 280,000m^3^/year. Oldest first priority. Adjacency = 3m.")
 
 
 
-
+# BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN WITH NEW MODEL PARAMS
 # scenario = data.table (name = "robson_colnsfb_nh",
 #                        description = "No harvest in all Columbia North, Columbia South and Frisby-Boulder critical habitat. Adjacency was set to 3m.")
 # scenario = data.table (name = "robson_colnsfb_ch_he0d_m15d",
@@ -394,7 +504,8 @@ mySim <- simInit(times = times,
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "tableSurvival",
-                                             "disturbanceReport"))
+                                             "disturbanceReport",
+                                             "volumebyareaReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

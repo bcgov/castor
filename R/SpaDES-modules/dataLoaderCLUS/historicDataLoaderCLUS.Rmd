@@ -32,7 +32,7 @@ library(SpaDES.core)
 library(data.table)
 source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 
-aoi_herds<-c("Barkerville", "Central_Selkirks", "Columbia_North", "Columbia_South", "Groundhog", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcell_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
+# aoi_herds<-c("Barkerville", "Central_Selkirks", "Columbia_North", "Columbia_South", "Groundhog", "Narrow_Lake", "North_Cariboo", "Purcells_South","Purcell_Central", "South_Selkirks","Wells_Gray_North", "Wells_Gray_South") #DU9
 #aoi_herds<-c("Kennedy_Siding", "Moberly", "Narraway") #DU8
 #aoi_herds<-c("Graham") #DU7
 #aoi_herds<-c("Hart_Ranges")
@@ -41,7 +41,8 @@ aoi_herds<-c("Barkerville", "Central_Selkirks", "Columbia_North", "Columbia_Sout
 #aoi_herds<-c("Williams_Lake_TSA")
 #aoi_herds<-c("Quesnel_TSA")
 #aoi_herds<-c("Kamloops_TSA")
-aoi_herds<-c("Onehundred_Mile_House_TSA")
+aoi_herds<-c("North" ) # eccc study area "South", "Central"
+
 
 #Standard values for scaling rsf
 # scale_rsf<-data.table(herd_name = c("Graham",
@@ -57,11 +58,13 @@ times <- list(start = 0, end = 40)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
+  dataLoaderCLUS = list(dbName = 'clus',
                          save_clusdb = FALSE,
-                    nameBoundaryFile="tsa_aac_bounds", #"bc_caribou_herd_boundary_v20200507"
-                         nameBoundaryColumn="tsa_name", #"herd_name"
-                         nameBoundary = "Kamloops_TSA",#herd
+                         nameBoundaryFile = "eccc_smc_aoi_20210329", # "tsa_aac_bounds" 
+                                                            # "bc_caribou_herd_boundary_v20200507" 
+                                                            # "eccc_smc_aoi_20210329"
+                         nameBoundaryColumn = "region", # "tsa_name"  "herd_name"  "region"
+                         nameBoundary = herd,# loop list  
                          nameBoundaryGeom='wkb_geometry'
 
                     ),
@@ -107,7 +110,7 @@ modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS")
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
 # objects <- list(scenario = scenario, rsf_model_coeff=rsf_model_coeff)
 
-objects <- list(scenario = scenario)
+#objects <- list(scenario = scenario)
 
 inputs <- list()
 outputs <- list()
