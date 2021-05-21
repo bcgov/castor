@@ -308,19 +308,19 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 # identify zone column names of the zones of interest
 dbGetQuery(clusdb, "SELECT reference_zone, zone_column, zoneid from zoneConstraints where 
-reference_zone = 'rast.zone_cond_bc_narraway_crithab'") 
+reference_zone = 'rast.zone_cond_bc_quintette_crithab'") 
 # rast.zone_cond_bc_moberly_crithab, rast.zone_cond_bc_burnt_pine_crithab, rast.zone_cond_bc_quintette_crithab, rast.zone_cond_bc_kennedy_siding_crithab, rast.zone_cond_bc_narraway_crithab
  
  
 # for each zone that you want to change:
 ## calc the total area of the zone 
-count <- dbGetQuery(clusdb, "SELECT count() from pixels where zone28 = 5") 
+count <- dbGetQuery(clusdb, "SELECT count() from pixels where zone26 = 5") 
 
 ## update to the total area in the constraint table for the zone
-dbExecute(clusdb, paste0("UPDATE zoneConstraints SET t_area = ", count, " where reference_zone = 'rast.zone_cond_bc_narraway_crithab' AND (zoneid = 5)")) 
+dbExecute(clusdb, paste0("UPDATE zoneConstraints SET t_area = ", count, " where reference_zone = 'rast.zone_cond_bc_quintette_crithab' AND (zoneid = 5)")) 
 
 # to check it
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_narraway_crithab'")                  
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_cond_bc_quintette_crithab'")                  
  
 
 ```
@@ -354,9 +354,9 @@ parameters <- list(
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
                            nameZoneRasters = c(
-                                               # "rast.zone_cond_beo", 
-                                               # "rast.zone_cond_vqo", 
-                                               # "rast.zone_cond_wha", 
+                                               # "rast.zone_cond_beo",
+                                               # "rast.zone_cond_vqo",
+                                               # "rast.zone_cond_wha",
                                                # "rast.zone_cond_uwr",
                                                # "rast.zone_cond_fsw",
                                                # "rast.zone_cond_nharv",
@@ -377,11 +377,13 @@ parameters <- list(
                                              # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                              # "rast.zone_cond_eccc_narraway_crithab_or_herd",
                                              # "rast.zone_cond_bc_graham_crithab",
-                                              #  "rast.zone_cond_bc_moberly_crithab",
-                                              # "rast.zone_cond_bc_burnt_pine_crithab",
-                                              # "rast.zone_cond_bc_quintette_crithab",
-                                              # "rast.zone_cond_bc_kennedy_siding_crithab",
-                                              # "rast.zone_cond_bc_narraway_crithab",
+                             
+                                              "rast.zone_cond_bc_moberly_crithab",
+                                             "rast.zone_cond_bc_burnt_pine_crithab",
+                                             "rast.zone_cond_bc_quintette_crithab",
+                                             "rast.zone_cond_bc_kennedy_siding_crithab",
+                                             "rast.zone_cond_bc_narraway_crithab"
+                                             
                                              # "rast.zone_cond_bc_hart_ranges_crithab",
                                              # "rast.central_grp_proposed_luo"
                                              # "rast.central_grp_proposed_luo_buffer",
@@ -413,7 +415,7 @@ parameters <- list(
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
                       reportHarvestConstraints = T,
-                      adjacencyConstraint = 0),
+                      adjacencyConstraint = 0), #3
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -493,16 +495,21 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Early seral targets set for maximum natural range of variability (NRV) for each area, using age <10 as early seral. Harvest flow = 1,750,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "dawson_creek_bau_newpark_noadj",
 #                        description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement  added as no harvest. Harvest flow = 1,800,000m3/yr. No adjacency. Oldest first.")
+# scenario = data.table (name = "dawson_creek_bau_no_constraints",
+#                        description = "Business-as-usual case with no constraints. Harvest flow = 2,050,000m3/yr. No adjacency. Oldest first.")
+# scenario = data.table (name = "dawson_creek_agele40_maxnrv_no_constraints",
+#                        description = "No constraints except Early seral targets set for maximum natural range of variability (NRV) for each area, using age <40 as early seral. Harvest flow = 2,050,000m3/yr. No adjacency. Oldest first.")
+# scenario = data.table (name = "dawson_creek_bau_no_constraints_no_min",
+#                        description = "Business-as-usual case with no constraints. Harvest flow = 2,150,000m3/yr. No adjacency. No minimum volume. Oldest first.")
+# scenario = data.table (name = "dawson_creek_agele20_maxnrv_no_const_no_min",
+#                        description = "No constraints except Early seral targets set for maximum natural range of variability (NRV) for each area, using age <20 as early seral. Harvest flow = 2,150,000m3/yr. No adjacency. No minimum volume. Oldest first.")
+# scenario = data.table (name = "dawson_creek_agele40_maxnrv_no_adj",
+#                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Early seral targets set for maximum natural range of variability (NRV) for each area, using age <40 as early seral. Harvest flow = 1,750,000m3/yr. No adjacency. Oldest first.")
+# scenario = data.table (name = "dawson_creek_agele20_maxnrv_no_adj",
+#                        description = "No constraints except Early seral targets set for maximum natural range of variability (NRV) for each area, using age <20 as early seral. Harvest flow = 1,750,000m3/yr. No adjacency. Minimum volume = 120m3/ha. Oldest first.")
 
-scenario = data.table (name = "dawson_creek_bau_no_constraints",
-                       description = "Business-as-usual case with no constraints. Harvest flow = 2,500,000m3/yr. No adjacency. Oldest first.")
-
-
-
-
-# scenario = data.table (name = "dawson_creek_bau_newpark_conif_age_le40_modNRV",
-#                        description = "Business-as-usual case with Klinse-za/Twin Sisters park (B2 and B3 areas) from parntership agreement added as no harvest. Moderate natural range of variability (NRV) early seral targets in caribou critical habitat.  Conifer leading stands (deciduous percentage < 26%) only. Harvest flow = 340,000m3/yr. Adjacency = 3m. Oldest first.")
-
+scenario = data.table (name = "dawson_creek_agele20_maxnrv_no_constraints",
+                       description = "No constraints except Early seral targets set for maximum natural range of variability (NRV) for each area, using age <20 as early seral. Harvest flow = 2,050,000m3/yr. No adjacency. Oldest first.")
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
 # scenario = data.table (name = "dawson_centgrp_nh",
@@ -533,33 +540,22 @@ scenario = data.table (name = "dawson_creek_bau_no_constraints",
 # ))
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 ', #
+                                     partition = ' vol > 120 ', # 120
                                      year = rep( seq (from = 2018,
                                                       to = 2222,
                                                       by = 5),
                                                 1),
-                                     flow = 12500000) #1,750,000m3/yr / BAU with new protected area
+                                     flow = 8750000) #1,750,000m3/yr / BAU with new protected area
 ))
 # 
-
-
 # harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-#                                      partition = ' vol > 120 ', #
+#                                      partition = ' vol > 120 AND dec_pcnt < 0.26 ', #
 #                                      year = rep( seq (from = 2018,
 #                                                       to = 2222,
 #                                                       by = 5),
 #                                                 1),
-#                                      flow = 8750000) #1,750,000m3/yr / BAU with new protected area
-# ))
-
-harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
-                                     partition = ' vol > 120 AND dec_pcnt < 0.26 ', #
-                                     year = rep( seq (from = 2018,
-                                                      to = 2222,
-                                                      by = 5),
-                                                1),
-                                     flow = 1700000) #340,000m3/yr / conifer leading stands only / BAU with new protected area
-                        ))
+#                                      flow = 1700000) #340,000m3/yr / conifer leading stands only / BAU with new protected area
+#                         ))
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
