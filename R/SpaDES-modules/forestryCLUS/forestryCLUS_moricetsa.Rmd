@@ -56,6 +56,8 @@ DU7 (Northern group) specific scenarios developed by caribou recovery science te
 First set of scenarios uses rast.zone_du7_scenario_20210305; this raster defines priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. Scenarios:
 * 3a = No harvest in old forest, recruitment forest and buffered high elevation core and low elevation summer critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in low elevation winter and matrix habitat areas
 
+A set of scenarios were developed for the proposed Whitesail WHA. These included variaous zones with no harvest or age-based constraints, as developed by Mark Wong and Anne-Marie Roberts, Skeena region.
+
 # Morice TSA Parameters 
 
 ## New Caribou Zone Constraints
@@ -77,6 +79,13 @@ ECCC in Chilcotin = rast.zone_cond_eccc_tweedsmuir_crithab_or_herd
 
 DU7 - Northern group priority forest stand areas = "rast.zone_du7_scenario_20210305"
 
+Whitesail:
+  - "rast.whitesail_bec_20210527"
+  - "rast.whitesail_management_20210527"
+  - "rast.whitesail_smz_movecorr_20210527"
+  - "rast.whitesail_smz_highelev_20210527"
+  - "rast.whitesail_smz_calving_20210527"
+  - "rast.whitesail_noharvest_20210527"
 
 ## 'harvestPriority' parameter 
 - used oldest first
@@ -97,7 +106,7 @@ from 2014 public discussion paper:  maximum even flow harvest was 1,600,000m^3^/
 
 From 2016 analysis report, used a minimum harvest age to achieve 95% of the stands maximum mean annual increment; never declared what this age was
 
-For cutblock adjacency, I used 3 m adjacency; no real mention of this in aanylsis report; used 'green-up' targets at coarser scales
+For cutblock adjacency, I used 3 m adjacency; no real mention of this in analysis report; used 'green-up' targets at coarser scales
 
 #UPDATE SCENARIO
 ```{r, zone_update}
@@ -106,6 +115,12 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'") # rast.zone_cond_bc_telkwa_crithab  rast.zone_cond_bc_tweedsmuir_crithab
+
+
+# Whitesail scenarios
+# Below makes everythign a no harvest zone
+
+
 
 
 # NORTHERN GROUP - Takla
@@ -206,23 +221,29 @@ parameters <- list(
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters = c("rast.zone_cond_beo",  
+                           nameZoneRasters = c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
                                            "rast.zone_cond_wha", 
                                            "rast.zone_cond_uwr", 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
-                                          # "rast.zone_cond_noharvest_takla_crithab_or_herd"
-                                           # "rast.zone_cond_noharvest_telkwa_crithab_or_herd"
-                                           # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd"
+                                           "rast.zone_cond_cw"
+                                           # "rast.zone_cond_noharvest_takla_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_telkwa_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
                                            # "rast.zone_cond_eccc_takla_crithab_or_herd",
                                            # "rast.zone_cond_eccc_telkwa_crithab_or_herd",
                                            # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
                                            # "rast.zone_cond_bc_takla_crithab",
-                                            # "rast.zone_cond_bc_telkwa_crithab"
-                                            # "rast.zone_cond_bc_tweedsmuir_crithab"
-                                            "rast.zone_du7_scenario_20210330"
+                                           # "rast.zone_cond_bc_telkwa_crithab",
+                                           # "rast.zone_cond_bc_tweedsmuir_crithab",
+                                           # "rast.zone_du7_scenario_20210330",
+                                           # "rast.whitesail_bec_20210527",
+                                           # "rast.whitesail_management_20210527",
+                                           # "rast.whitesail_smz_movecorr_20210527",
+                                           # "rast.whitesail_smz_highelev_20210527",
+                                           # "rast.whitesail_smz_calving_20210527",
+                                           # "rast.whitesail_noharvest_20210527"
                            ),
                                            
                            nameZoneTable = "zone.constraints",
@@ -295,8 +316,8 @@ modules <- list("dataLoaderCLUS",
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
 
-# scenario = data.table (name = "morice_bau",
-# description = "Business as usual. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "morice_bau",
+description = "Business as usual. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "morice_du7_grp1_nh",
 #                        description = "No harvest in group 1 (Itcha, Rainbows, Charlotte, Tweeds, and Telkwa) critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "morice_du7_grp1_he0d_mlewr12d",
@@ -319,9 +340,8 @@ modules <- list("dataLoaderCLUS",
 #                         description = "No harvest in Telkwa priority stands in all priority zones HEWSR and LESR critical habitat; harvest allowed in all priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. NOTE: all zones are high priority in this unit. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "morice_takla_nh",
 #                        description = "No harvest in Takla critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
-
-scenario = data.table (name = "morice_takla_hi_priority",
-                        description = "No harvest in Takla priority stands in all priority zones HEWSR and LESR critical habitat; harvest allowed in all priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. NOTE: all zones are high priority in this unit. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "morice_takla_hi_priority",
+#                         description = "No harvest in Takla priority stands in all priority zones HEWSR and LESR critical habitat; harvest allowed in all priority zones of LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: all zones high priority in this unit. NOTE: all zones are high priority in this unit. Harvest flow = 1,450,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 
 

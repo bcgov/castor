@@ -266,7 +266,7 @@ preBlock <- function(sim) {
       paths.matrix[, V2 := as.integer(V2)]
       #print(head(get.edgelist(g.mst_sub)))
       natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
-
+      
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
       #sample(x=c(1,2,3), size=1000, replace=TRUE, prob=c(.04,.50,.46))

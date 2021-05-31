@@ -1413,19 +1413,48 @@ system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 214748364
 
 ### MULTIPLE AGE CONSTAINT?
 # Create zone constraint table for raster 
-zone <- data.table (zoneid = as.integer(c (1:2)), 
-                         type = 'ge', variable = 'age', threshold = 100, 
-                         reference_zone = 'rast.whitesail_management_20210527', 
-                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
-DBI::dbWriteTable(conn, c("public", "whitesail_management_vat"), value = ws_manage_vat, row.names = FALSE, overwrite = TRUE)
-DBI::dbWriteTable(conn, c("zone", "whitesail_management_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
-dbExecute(conn, paste0("ALTER TABLE zone.whitesail_management_20210527 INHERIT zone.constraints"))
+# here uses Steventon Observed; has multiple age constraints - but here I used teh oldest class to constrain it
+zone.cwh <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 141, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 71, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.sbs <- data.table (zoneid = as.integer(c (3:7)), 
+                         type = 'ge', variable = 'age', threshold = 101, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 61, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmk <- data.table (zoneid = as.integer(c (8:9)), 
+                           type = 'ge', variable = 'age', threshold = 101, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 81, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmc <- data.table (zoneid = as.integer(c (10:11)), 
+                           type = 'ge', variable = 'age', threshold = 101, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 76, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone.cwh, zone.sbs, zone.essfmk, zone.essfmc))
 
+zone.cwh.y <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'le', variable = 'age', threshold = 39, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 16, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.sbs.y <- data.table (zoneid = as.integer(c (3:7)), 
+                         type = 'le', variable = 'age', threshold = 39, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 21, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmk.y <- data.table (zoneid = as.integer(c (8:9)), 
+                           type = 'le', variable = 'age', threshold = 39, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 5, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmc.y <- data.table (zoneid = as.integer(c (10:11)), 
+                           type = 'le', variable = 'age', threshold = 39, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 6, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone, zone.cwh.y, zone.sbs.y, zone.essfmk.y, zone.essfmc.y))
 
+DBI::dbWriteTable(conn, c("public", "whitesail_bec_vat"), value = ws_bec_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_bec_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_bec_20210527 INHERIT zone.constraints"))
 
 dbDisconnect(conn)
-
-
 
 ```
 

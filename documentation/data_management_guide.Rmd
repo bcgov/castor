@@ -959,9 +959,33 @@ new_data15 <- data.table (computer = 'DC052586',
                         )
 pgdbs_data_list <- merge (pgdbs_data_list, new_data15, all = T)
 
+new_data16 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_bec_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), BEC zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data16, all = T)
 
-
-
+new_data17 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_bec_20210527', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), BEC zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data17, all = T)
 
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list, 
