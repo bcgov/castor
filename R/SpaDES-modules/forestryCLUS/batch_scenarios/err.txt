@@ -1,0 +1,147 @@
+starting worker for localhost:11298 
+Type: EXEC 
+Loading required package: quickPlot
+Loading required package: reproducible
+
+Attaching package: 'SpaDES.core'
+
+The following object is masked from 'package:reproducible':
+
+    paddedFloatToChar
+
+The following objects are masked from 'package:stats':
+
+    end, start
+
+The following object is masked from 'package:utils':
+
+    citation
+
+Loading required package: splines
+Loading required package: gamlss.data
+
+Attaching package: 'gamlss.data'
+
+The following object is masked from 'package:datasets':
+
+    sleep
+
+Loading required package: gamlss.dist
+Loading required package: MASS
+Loading required package: nlme
+Loading required package: parallel
+
+Attaching package: 'parallel'
+
+The following objects are masked from 'package:snow':
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, clusterSplit, makeCluster, parApply,
+    parCapply, parLapply, parRapply, parSapply, splitIndices,
+    stopCluster
+
+Registered S3 method overwritten by 'gamlss':
+  method   from
+  print.ri bit 
+ **********   GAMLSS Version 5.3-4  ********** 
+For more on GAMLSS look at https://www.gamlss.com/
+Type gamlssNews() to see new features/changes/bug fixes.
+
+Loading required package: sp
+
+Attaching package: 'raster'
+
+The following object is masked from 'package:nlme':
+
+    getData
+
+The following objects are masked from 'package:MASS':
+
+    area, select
+
+The following object is masked from 'package:data.table':
+
+    shift
+
+Loading required package: RPostgreSQL
+Linking to GEOS 3.8.0, GDAL 3.0.4, PROJ 6.3.1
+
+Attaching package: 'igraph'
+
+The following object is masked from 'package:raster':
+
+    union
+
+The following objects are masked from 'package:stats':
+
+    decompose, spectrum
+
+The following object is masked from 'package:base':
+
+    union
+
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:igraph':
+
+    as_data_frame, groups, union
+
+The following objects are masked from 'package:raster':
+
+    intersect, select, union
+
+The following object is masked from 'package:nlme':
+
+    collapse
+
+The following object is masked from 'package:MASS':
+
+    select
+
+The following objects are masked from 'package:data.table':
+
+    between, first, last
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+Type: EXEC 
+rgdal: version: 1.5-18, (SVN revision 1082)
+Geospatial Data Abstraction Library extensions to R successfully loaded
+Loaded GDAL runtime: GDAL 3.0.4, released 2020/01/28
+Path to GDAL shared files: C:/r_library/sf/gdal
+GDAL binary built with GEOS: TRUE 
+Loaded PROJ runtime: Rel. 6.3.1, February 10th, 2020, [PJ_VERSION: 631]
+Path to PROJ shared files: C:/r_library/rgdal/proj
+Linking to sp version:1.4-4
+To mute warnings of possible GDAL/OSR exportToProj4() degradation,
+use options("rgdal_show_exportToProj4_warnings"="none") before loading rgdal.
+Loading required package: gsubfn
+Loading required package: proto
+sqldf will default to using PostgreSQL
+Type: EXEC 
+Type: DONE 
+Warning messages:
+1: package 'data.table' was built under R version 4.0.5 
+2: package 'gamlss' was built under R version 4.0.5 
+3: package 'gamlss.data' was built under R version 4.0.4 
+4: package 'gamlss.dist' was built under R version 4.0.5 
+5: package 'readxl' was built under R version 4.0.5 
+6: package 'splitstackshape' was built under R version 4.0.5 
+DES-modules'
+  )
+Paths set to:
+  options(
+    rasterTmpDir = 'C:/Users/tmuhly/AppData/Local/Temp/RtmpITQpWz/raster'
+    reproducible.cachePath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS'
+    spades.inputPath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS/inputs'
+    spades.outputPath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules/forestryCLUS/outputs'
+    spades.modulePath = 'C:/Work/caribou/clus_repo/clus/R/SpaDES-modules'
+  )
+Type: DONE 

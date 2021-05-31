@@ -171,7 +171,6 @@ library (sf)
 library (DBI)
 library (here)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
-
 # 1. Connect to the database and get polygon data
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
@@ -180,7 +179,6 @@ conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
                         user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
                         password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
 poly.data <- getSpatialQuery ("SELECT * FROM public.name_of_your_polygon_table") # substitute your table name here
-
 # 2. Create provincial raster 
 prov.rast <- raster::raster ( # standardized provincial raster with no data in it
                               nrows = 15744, ncols = 17216, 
@@ -189,12 +187,10 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
                               crs = st_crs(poly.data)$proj4string, 
                               resolution = c(100, 100), 
                               vals = 0)
-
 # 3. Create an integer value attributed to each unique zone in the polygon
 poly.data$zone <- as.integer (1) # create a zone field with integer value of 1
 # OR, alternatively, if you have more than one zone in the shapefile, use below
 poly.data$zone <- as.integer (as.factor (poly.data$zone)) # if there is an existing zone field, create an integer to define each zone (factor)
-
 # 4. Create a raster and upload to the postgres database
 ras.data <-fasterize::fasterize (poly.data, prov.rast, field = "zone") # converts polygon to raster
 writeRaster (ras.data, file = "raster_test.tif", format = "GTiff", overwrite = TRUE) # saves the raster to your local folder
@@ -204,7 +200,6 @@ system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 214748364
                                   postgresql://user:dbname@host:port/dbname'), # replace with the appropriate credentials
         show.output.on.console = FALSE, 
         invisible = TRUE) # sends the 'input' script to command line to upload the raster to the database
-
 # 5. Create Look-up Table of the zone integers
 poly.data$zone_name <- as.character ("test_scenario")
 lu.poly.data <- unique (data.table (cbind (poly.data$zone, poly.data$zone_name)))
@@ -215,7 +210,6 @@ DBI::dbWriteTable (conn,
                    value = lu.poly.data, 
                    row.names = FALSE, 
                    overwrite = TRUE)
-
 # 6. Create zone constraint table
 zone_test <- data.table (zoneid = 1, 
                          type = 'ge', 
@@ -473,10 +467,8 @@ The *zoneConstraints* table provides a table of all of the specific zone constra
 library (DBI)
 # Connect to the clusdb.sqlite database for the AOI
 clusdb <- dbConnect (RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) 
-
 # To list tables in the database
 dbListTables (clusdb)
-
 # To load a table as an R object
 adjacentBlocks <- dbGetQuery (clusdb, "SELECT * from adjacentBlocks")
 blocks <- dbGetQuery (clusdb, "SELECT * from blocks")
@@ -485,11 +477,9 @@ roadslist <- dbGetQuery (clusdb, "SELECT * from roadslist")
 yields <- dbGetQuery (clusdb, "SELECT * from yields")
 zone <- dbGetQuery (clusdb, "SELECT * from zone")
 zoneConstraints <- dbGetQuery (clusdb, "SELECT * from zoneConstraints")
-
 # To remove R objects from memory
 rm (adjacentBlocks)
 gc () # 'garbage collection' command; useful command for freeing computer memory after removing an R object
-
 #  To view the constraints of a specific zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.raster_test'") # Note: the reference_zone is the name of the raster in the rast schema. Use the name of the raster you created
 ```
@@ -753,4 +743,5 @@ Congratulations! You have completed the tutorial and are well on your way to bec
 
 We are always looking for ways to improve the CLUS framework, so please contact us via our GitHub page with any issues or requests, or go ahead and start a new branch and make some suggestions by editing the code directly. Happy modeling!
 
+  
   
