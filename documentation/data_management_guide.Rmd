@@ -658,12 +658,338 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list, 
                   row.names = FALSE, overwrite = TRUE)
 
-
 # Made changes from 'public' to 'zone schema in excel
 
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_wha_may2021_no_harvest', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), no harvest zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_wha_may2021_smz_calving', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), calving special management zones (SMZ) only, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_wha_may2021_smz_he', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), high elevation special management zones (SMZ) only, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
+
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_wha_may2021_smz_move', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), movement corridor special management zones (SMZ) only, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data4, all = T)
+
+new_data5 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_wha_may2021_manage', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), management zones (SMZ) only, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data5, all = T)
+
+new_data6 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_wha_may2021_bec', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), BEC zones only, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data6, all = T)
 
 
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
 
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'whitesail_noharvest_20210527', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), no harvest zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data, all = T)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_noharvest_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), no harvest zones, value attribute table May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data2, all = T)
+
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_noharvest_20210527', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), no harvest zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data3, all = T)
+
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'whitesail_smz_calving_20210527', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), calving special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data4, all = T)
+
+new_data5 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_smz_calving_20210527', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), calving special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data5, all = T)
+
+new_data6 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'whitesail_smz_highelev_20210527', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), high elevation special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data6, all = T)
+
+new_data7 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_smz_highelev_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), high elevation special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data7, all = T)
+
+new_data8 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_smz_highelev_20210527', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), high elevation special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data8, all = T)
+
+new_data9 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'whitesail_smz_movecorr_20210527', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), movement corridor special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data9, all = T)
+
+new_data10 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_smz_movecorr_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), movement corridor special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data10, all = T)
+
+new_data11 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_smz_movecorr_2021052', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), movement corridor special management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data11, all = T)
+
+new_data12 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'whitesail_management_20210527', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data12, all = T)
+
+new_data13 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_management_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data13, all = T)
+
+new_data14 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_management_20210527', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), management zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data14, all = T)
+
+new_data15 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'rast', 
+                        table_name = 'whitesail_bec_20210527', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), BEC zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data15, all = T)
+
+new_data16 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'public', 
+                        table_name = 'whitesail_bec_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), BEC zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data16, all = T)
+
+new_data17 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'zone', 
+                        table_name = 'whitesail_bec_20210527', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Proposed Whitesail wildlife habitat area (WHA), BEC zones, May 2021; source: Mark Wong', 
+                        public = 'No', 
+                        last_updated = '2021',
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+pgdbs_data_list <- merge (pgdbs_data_list, new_data17, all = T)
+
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list, 
+                  row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
 ```

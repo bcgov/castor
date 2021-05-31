@@ -1199,7 +1199,6 @@ dbDisconnect(conn)
 
 ```
 
-
 ### DU7 - Updated scenario zones, DU7/Northern Group March, 30 2021
 The following creates zones for DU7/Northern Group caribou. This is a combination of priority zones and forest stand types for protection. These consist of priority forest stands identified 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; and a both of those buffered by 500m ("scenario buffer"). Priority stands were only identified in high and low elevation winter and summer critical habitat. The priority zones include 'low', 'medium' and 'high' areas, as defined by caribou biologists. Critical habitat is also included in this data.
 
@@ -1254,6 +1253,210 @@ dbDisconnect(conn)
 
 ```
 
+
+### Proposed Whitesail WHA - version May, 27 2021
+The following creates zones for a proposed wildlife habitat area (WHA), called "Whitesail". The Whitesail WHA overlaps parts of the Tweedsmuir caribou herd and Morice timber supply area (TSA). The proposed WHA was created by Mark Wong and Anne-Marie Roberts, wildlife biologists in the Skeena region. 
+
+The WHA consists of several overlapping zones, including 'no harvest', 'special management zones (SMZs)', 'management zones' and biogeoclimatic (BEC) zones. As these zone types overlap each other (e.g., some SMZs overlap with management zones), here we create a unique raster for each unique type of zone.
+
+Below we create some starting constraints to these zones, but these will vary across scenarios.
+
+```{r, proposed whitesail wha, May 27 2021 version}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+
+### No harvest zones
+ws_nh <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_no_harvest;")
+ws_nh$zone <- ws_nh$management
+
+# zone integer  
+ws_nh_vat <- data.table (st_drop_geometry (ws_nh [, c ('zone')]))
+ws_nh_vat [, value := seq_len(.N)]  
+ws_nh <- merge (ws_nh, ws_nh_vat, by.x = "management", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(ws_nh)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_ws_nh <- fasterize::fasterize (ws_nh, prov.rast, field = "value")
+writeRaster (ras_ws_nh, "ras_ras_ws_nh_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ras_ws_nh_20210527.tif -t 100x100 rast.whitesail_noharvest_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone_nh <- data.table (zoneid = as.integer(1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.whitesail_noharvest_20210527', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_nh_10 <- data.table (zoneid = as.integer(2), 
+                         type = 'ge', variable = 'age', threshold = 100, 
+                         reference_zone = 'rast.whitesail_noharvest_20210527', 
+                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone_nh, zone_nh_10))
+DBI::dbWriteTable(conn, c("public", "whitesail_noharvest_vat"), value = ws_nh_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_noharvest_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_noharvest_20210527 INHERIT zone.constraints"))
+
+
+### Calving SMZ
+ws_smz_c <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_smz_calving;")
+ws_smz_c$zone <- ws_smz_c$type
+# zone integer  
+ws_smz_c_vat <- data.table (st_drop_geometry (ws_smz_c [, c ('zone')]))
+ws_smz_c_vat [, value := seq_len(.N)]  
+ws_smz_c <- merge (ws_smz_c, ws_smz_c_vat, by.x = "type", by.y = "zone")
+
+ras_ws_smz_c <- fasterize::fasterize (ws_smz_c, prov.rast, field = "value")
+writeRaster (ras_ws_smz_c, "ras_ws_smz_c_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_smz_c_20210527.tif -t 100x100 rast.whitesail_smz_calving_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(1), 
+                         type = 'le', variable = 'age', threshold = 20, 
+                         reference_zone = 'rast.whitesail_smz_calving_20210527', 
+                         percentage = 17, ndt = as.integer(0), multi_condition = as.character(NA))
+# DBI::dbWriteTable(conn, c("public", "whitesail_smz_calving_vat"), value = ws_smz_c_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_smz_calving_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_smz_calving_20210527 INHERIT zone.constraints"))
+
+
+### High Elevation SMZ
+ws_smz_he <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_smz_he;")
+ws_smz_he$zone <- ws_smz_he$type
+
+# zone integer  
+ws_smz_he_vat <- data.table (st_drop_geometry (ws_smz_he [, c ('zone')]))
+ws_smz_he_vat [, value := seq_len(.N)]  
+ws_smz_he <- merge (ws_smz_he, ws_smz_he_vat, by.x = "type", by.y = "zone")
+
+ras_ws_smz_he <- fasterize::fasterize (ws_smz_he, prov.rast, field = "value")
+writeRaster (ras_ws_smz_he, "ras_ws_smz_he_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_smz_he_20210527.tif -t 100x100 rast.whitesail_smz_highelev_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(1), 
+                         type = 'le', variable = 'age', threshold = 20, 
+                         reference_zone = 'rast.whitesail_smz_highelev_20210527', 
+                         percentage = 9, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("public", "whitesail_smz_highelev_vat"), value = ws_smz_he_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_smz_highelev_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_smz_highelev_20210527 INHERIT zone.constraints"))
+
+
+### Movement Corridor SMZ
+ws_smz_move <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_smz_move;")
+ws_smz_move$zone <- ws_smz_move$type
+# zone integer  
+ws_smz_move_vat <- data.table (st_drop_geometry (ws_smz_move [, c ('zone')]))
+ws_smz_move_vat [, value := seq_len(.N)]  
+ws_smz_move <- merge (ws_smz_move, ws_smz_move_vat, by.x = "type", by.y = "zone")
+ras_ws_smz_move <- fasterize::fasterize (ws_smz_move, prov.rast, field = "value")
+
+writeRaster (ras_ws_smz_move, "ras_ws_smz_move_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_smz_move_20210527.tif -t 100x100 rast.whitesail_smz_movecorr_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 100, 
+                         reference_zone = 'rast.whitesail_smz_movecorr_20210527', 
+                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("public", "whitesail_smz_movecorr_vat"), value = ws_smz_move_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_smz_movecorr_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_smz_movecorr_20210527 INHERIT zone.constraints"))
+
+
+### Management Zones
+ws_manage <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_manage;")
+ws_manage$zone <- ws_manage$type
+# zone integer  
+ws_manage_vat <- data.table (st_drop_geometry (ws_manage [, c ('zone')]))
+ws_manage_vat [, value := seq_len(.N)]  
+ws_manage <- merge (ws_manage, ws_manage_vat, by.x = "type", by.y = "zone")
+ras_ws_manage <- fasterize::fasterize (ws_manage, prov.rast, field = "value")
+writeRaster (ras_ws_manage, "ras_ws_manage_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_manage_20210527.tif -t 100x100 rast.whitesail_management_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 100, 
+                         reference_zone = 'rast.whitesail_management_20210527', 
+                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("public", "whitesail_management_vat"), value = ws_manage_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_management_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_management_20210527 INHERIT zone.constraints"))
+
+
+### BEC Zones
+ws_bec <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_bec;")
+ws_bec$zone <- ws_bec$map_label
+# zone integer  
+ws_bec_vat <- data.table (st_drop_geometry (ws_bec [, c ('zone')]))
+ws_bec_vat [, value := seq_len(.N)]  
+ws_bec <- merge (ws_bec, ws_bec_vat, by.x = "map_label", by.y = "zone")
+ras_ws_bec <- fasterize::fasterize (ws_bec, prov.rast, field = "value")
+writeRaster (ras_ws_bec, "ras_ws_bec_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_bec_20210527.tif -t 100x100 rast.whitesail_bec_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+### MULTIPLE AGE CONSTAINT?
+# Create zone constraint table for raster 
+# here uses Steventon Observed; has multiple age constraints - but here I used teh oldest class to constrain it
+zone.cwh <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 141, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 71, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.sbs <- data.table (zoneid = as.integer(c (3:7)), 
+                         type = 'ge', variable = 'age', threshold = 101, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 61, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmk <- data.table (zoneid = as.integer(c (8:9)), 
+                           type = 'ge', variable = 'age', threshold = 101, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 81, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmc <- data.table (zoneid = as.integer(c (10:11)), 
+                           type = 'ge', variable = 'age', threshold = 101, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 76, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone.cwh, zone.sbs, zone.essfmk, zone.essfmc))
+
+zone.cwh.y <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'le', variable = 'age', threshold = 39, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 16, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.sbs.y <- data.table (zoneid = as.integer(c (3:7)), 
+                         type = 'le', variable = 'age', threshold = 39, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 21, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmk.y <- data.table (zoneid = as.integer(c (8:9)), 
+                           type = 'le', variable = 'age', threshold = 39, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 5, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmc.y <- data.table (zoneid = as.integer(c (10:11)), 
+                           type = 'le', variable = 'age', threshold = 39, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 6, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone, zone.cwh.y, zone.sbs.y, zone.essfmk.y, zone.essfmc.y))
+
+DBI::dbWriteTable(conn, c("public", "whitesail_bec_vat"), value = ws_bec_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_bec_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_bec_20210527 INHERIT zone.constraints"))
+
+dbDisconnect(conn)
+
+```
 
 
 

@@ -65,12 +65,12 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 2) # this was originally increased by 5 years and 40 intervals i.e. to get a 200 year simulation
+times <- list(start = 0, end = 40) # this was originally increased by 5 years and 40 intervals i.e. to get a 200 year simulation
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = FALSE,
+                           save_clusdb = TRUE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/UBC_study_boundary_clusdb.sqlite"),
                            nameBoundaryFile="ubc_gbr_boundaries",
                          nameBoundaryColumn="tsa_name",
@@ -79,17 +79,17 @@ parameters <- list(
                          nameCompartmentRaster = "rast.ubc_gbr_boundaries",
                          nameCompartmentTable = "ubc_gbr_boundaries_vat",
                          nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
-                         nameZoneRasters=c("rast.zone_cond_beo", 
+                         nameZoneRasters=c(#"rast.zone_cond_beo", 
                                            #"rast.zone_cond_vqo", 
                                            "rast.zone_cond_wha_gbr", 
-                                           #"rast.zone_cond_uwr_gbr", 
+                                           "rast.zone_cond_uwr_gbr", 
                                            "rast.zone_cond_nharv_gbr", 
-                                           "rast.zone_cond_fsw_gbr"
-                                           #"rast.zone_cond_cw"
-                                           #"rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
+                                           "rast.zone_cond_fsw_gbr", 
+                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
+                        
                          nameZoneTable = "zone.constraints", 
-
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
@@ -111,23 +111,21 @@ parameters <- list(
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestPriority = "age DESC, vol DESC",
-                      reportHarvestConstraints = TRUE, # this should spit out a report of the zonal constraints in the global environment.
                       adjacencyConstraint = 3), # try tweak adjacencyHeight=3m
-  # dont know how good growth and yield is for coast. Look at growing stock now and what it says it is in the TSR. Divide growing stock by 200 to get quick and dirty AAC.
+  # dont know how good growth and yeild is for coast. Look at growing stock now and what it says it is in the TSR. Divide growing stock by 200 to get quick and dirty AAC. 
   growingStockCLUS = list (periodLength = 5), # was 5
-  # roadCLUS = list(roadMethod = 'pre', 
-  #                 nameCostSurfaceRas = 'rast.rd_cost_surface', 
-  #                 nameRoads =  'rast.crds_all'),
+  roadCLUS = list(roadMethod = 'pre', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.crds_all'),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
   #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
-
    # survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
    #                      nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
    #                      tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
-  # disturbanceCalcCLUS = list(calculateInterval = 5,
+  # disturbanceCalcCLUS = list(calculateInterval = 5, 
   #                            criticalHabitatTable = "public.vat_bc_crithab_and_herd",
   #                            criticalHabRaster = "rast.bc_crithab_and_herd",
   #                            permDisturbanceRaster = "rast.mine_ag_wind_rail",
@@ -145,10 +143,10 @@ modules <- list("dataLoaderCLUS",
                 "growingStockCLUS", 
                 "blockingCLUS", 
                 "forestryCLUS", 
-                #"roadCLUS",  
+                "roadCLUS",  
                 #"yieldUncertaintyCLUS", 
                 #"survivalCLUS", 
-                #"disturbanceCalcCLUS",
+                #"disturbanceCalcCLUS", 
                 # "rsfCLUS", # error line 453 - need to debug
                 "uploaderCLUS"
                 )
@@ -158,10 +156,10 @@ modules <- list("dataLoaderCLUS",
 #                          description = "removed all constraints except art (average retention targets")
 #  
     scenario = data.table (name = "ubc_gbrn_bau",
-                            description = "includes all constraints (wha, fsa, and nharv) except art (average retention targets")
+                            description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, and art (average retention targets")
 
-  # scenario = data.table (name = "ubc_gbrn_with_art",
-  #                         description = "includes constraints wha, fsa, nharv, and art")
+  # scenario = data.table (name = "ubc_gbrn_without_art",
+  #                         description = "includes all constraints vqo, wha, uwr, cw, fsa, nharv, but not art (average retention targets")
 
   
 harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
@@ -172,7 +170,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
                                                       by = 5), # was 5
                                                 1), 
 
-                                     flow = 4020000))) #I tried many values above this that did not work while 2100000 - 4000000 all resulted in an even flow. With art evenflow was achieved at 4010000
+                                     flow = 2300000))) #2500000, 2400000, 2300000 dont work. 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 
@@ -208,8 +206,7 @@ mySim <- simInit(times = times,
 
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "zoneManagement"))
+                                             "growingStockReport"))
                                              #"tableSurvival"))
                                              #"disturbanceReport"))
 
@@ -233,13 +230,6 @@ system.time({mysimout<-spades(mySim)})
 ```{r, flow_chart}
 library(SpaDES.core)
 eventDiagram(mysimout)
-
-library(RSQLite)
-# Create an ephemeral in-memory RSQLite database
-con <- dbConnect(RSQLite::SQLite(), "UBC_study_boundary_clusdb.sqlite")
-
-dbListTables(con)
-zoneManagement<-dbGetQuery(con, "SELECT * FROM zoneManagement")
 ```
 
 ## Algorithum

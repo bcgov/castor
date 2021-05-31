@@ -408,7 +408,7 @@ setTablesCLUSdb <- function(sim) {
   #-----------------
   #Set the Yield IDS
   #-----------------
-  if(!(P(sim, "dataLoaderCLUS", "nameYieldsRaster") == "99999")){ ##typically a VDYP raster
+  if(!(P(sim, "dataLoaderCLUS", "nameYieldsRaster") == "99999")){
     message(paste0('.....yield ids: ',P(sim, "dataLoaderCLUS", "nameYieldsRaster")))
     ras.ylds<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "dataLoaderCLUS", "nameYieldsRaster"), 
@@ -458,7 +458,7 @@ setTablesCLUSdb <- function(sim) {
   }
   
   #---Transitionary yields 
-  if(!(P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster") == "99999")){ ##typically a TIPSY raster
+  if(!(P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster") == "99999")){
     message(paste0('.....yield transition ids: ',P(sim, "dataLoaderCLUS", "nameYieldsTransitionRaster")))
     
     ras.ylds_trans<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
