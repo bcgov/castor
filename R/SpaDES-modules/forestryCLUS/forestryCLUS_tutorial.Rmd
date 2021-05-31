@@ -57,7 +57,7 @@ Zone constraints included in hypothetical management area scenario only:
 * hypothetical management area: rast.raster_test
 
 ### Harvest Priority Queue
-Oldest first, which was similar to what was used in teh timber supply review analysis.
+Oldest first, which was similar to what was used in the timber supply review analysis.
 * harvestPriority = 'age DESC'
 
 ### Harvest Simulation Duration and Target Volume
@@ -72,10 +72,6 @@ In the previous timber supply review analysis a minimum harvest age was used, an
 Here we used an adjacency constraint of 3m. 
 
 In the previous timber supply review analysis, adjacency has handled by allowing 25% of the THLB in each landscape unit to be less than 13 years old.
-
-
-
-
 
 
 ```{r module_usage}
@@ -159,7 +155,7 @@ modules <- list("dataLoaderCLUS",
 
 
 ### SCENARIOS ###
-scenario = data.table (name = "revelstoke_bau", 
+scenario = data.table (name = "revelstoke_bau",
                        description = "Business-as-usual case; sustainable flow = 210,000m^3^/year. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
 
 

@@ -145,27 +145,14 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 29 where reference_zon
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 28 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 4)") 
 
-# Below sets proposed maximum NRV age targets for LUO for critical habitat overlapping this unit 
-## Kennedy Siding
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 7 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 24 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 4)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 17 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)") 
-## Moberly
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0) OR (zoneid = 4)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 0)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 28 where reference_zone = 'rast.zone_cond_bc_moberly_crithab' AND (zoneid = 4)") 
+
 
 # Below sets proposed median NRV age targets for LUO for critical habitat overlapping this unit 
 ## Kennedy Siding
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 39 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0) OR (zoneid = 4) OR (zoneid = 5)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 5 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 7 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 0)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 17 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 4)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_bc_kennedy_siding_crithab' AND (zoneid = 5)") 
 ## Moberly
@@ -472,6 +459,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
 # scenario = data.table (name = "mackenzie_centgrp_luo_age_le40_modNRV",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Moderate natural range of variability (NRV) early seral targets.  Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
+
+
+scenario = data.table (name = "mackenzie_centgrp_luo_age_le40_maxNRV",
+                       description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Maximum natural range of variability (NRV) early seral targets.  Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
+
 # scenario = data.table (name = "mackenzie_centgrp_luo_age_le40_maxNRV",
 #                        description = "Draft land use order early seral (age) thresholds for central group critical habitat, April 26, 2021. Oldest first. Maximum natural range of variability (NRV) early seral targets.  Harvest flow = 1.95 M m3/yr. Adjacency = 3m.")
 # scenario = data.table (name = "mackenzie_centgrp_agele30_maxnrv",
@@ -486,6 +478,7 @@ modules <- list("dataLoaderCLUS",
 scenario = data.table (name = "mackenzie_bau_newpark_noadj",
                        description = "Business-as-usual case with no constraints. Oldest first. Harvest flow = 2.25 M m3/yr. No Adjacency.")
 
+>>>>>>> 96e1921610ac8cabee10fb84a720bf783fb0bd5d
 
 # BELOW SCENARIOS HAVE NOT BEEN RUN WITH UPDATED MODEL
 # scenario = data.table (name = "mackenzie_centgrp_nh",

@@ -970,10 +970,10 @@ df$percentage<-as.numeric(df$percentage)#assign integer
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-DBI::dbWriteTable(conn, c("zone", "zone_uwr"), value= df, row.names = FALSE, overwrite = TRUE) 
+DBI::dbWriteTable(conn, c("public", "zone_uwr"), value= df, row.names = FALSE, overwrite = TRUE) 
 
 #clean up the constraint table
-#dbExecute(conn, "DELETE FROM zone.zone_uwr WHERE zoneid IN (SELECT g.zoneid FROM (SELECT * FROM zone.zone_uwr FULL OUTER JOIN (SELECT (pvc).value as value, SUM((pvc).count) as count FROM (SELECT ST_ValueCount(rast,1,true) AS pvc FROM rast.zone_cond_uwr) AS f GROUP BY value ORDER BY value) as h ON zoneid = value ORDER BY zoneid, value) as g WHERE g.value is NULL);")
+#dbExecute(conn, "DELETE FROM public.zone_uwr WHERE zoneid IN (SELECT g.zoneid FROM (SELECT * FROM public.zone_uwr FULL OUTER JOIN (SELECT (pvc).value as value, SUM((pvc).count) as count FROM (SELECT ST_ValueCount(rast,1,true) AS pvc FROM rast.zone_cond_uwr) AS f GROUP BY value ORDER BY value) as h ON zoneid = value ORDER BY zoneid, value) as g WHERE g.value is NULL);")
 
 dbDisconnect(conn)
 ```

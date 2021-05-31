@@ -1,5 +1,5 @@
-DELETE   FROM zone_constraints T1
-  USING       zone_constraints T2
+DELETE   FROM zone.constraints T1
+  USING       zone.constraints T2
 WHERE  T1.ctid    < T2.ctid       -- select the "older" ones
   AND T1.zoneid  = T2.zoneid 
   AND  T1.reference_zone    = T2.reference_zone       -- list columns that define duplicates

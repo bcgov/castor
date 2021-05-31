@@ -62,7 +62,8 @@ parameters <-  list(
                                              "rast.zone_cond_uwr",
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
-                                             "rast.zone_cond_cw"
+                                             "rast.zone_cond_cw",
+                                             "rast.raster_test"
                           ), 
                          nameZoneTable = "zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
