@@ -51,7 +51,7 @@ parameters <- list(
                            nameCompartmentTable = "tsa_aac_bounds_vat",
                            nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                            nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_fsw", "rast.zone_cond_nh_crit_barkerville_crithab","rast.zone_cond_nh_crit_itcha_ilgachuz_crithab","rast.zone_cond_nh_crit_wells_gray_north_crithab", "rast.zone_cond_nh_crit_charlotte_alplands_crithab", "rast.zone_cond_nh_crit_rainbows_crithab"),
-                           nameZoneTable="zone_constraints",
+                           nameZoneTable="zone.constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",

@@ -150,7 +150,7 @@ parameters <- list(
                                              "rast.zone_smc_zones_20210315"
                                            # "rast.zone_cond_bc_hart_ranges_crithab"
                                            ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

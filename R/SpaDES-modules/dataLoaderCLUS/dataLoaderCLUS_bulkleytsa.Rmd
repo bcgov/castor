@@ -70,7 +70,7 @@ parameters <-  list(
                                              "rast.zone_cond_eccc_telkwa_crithab_or_herd",
                                              "rast.zone_cond_bc_telkwa_crithab"
                                               ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 

@@ -144,7 +144,7 @@ parameters <- list(
                                           
                                            "rast.central_grp_proposed_luo_matrix"
                                              ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

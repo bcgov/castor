@@ -111,7 +111,7 @@ parameters <- list(
                                                # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
                                                 #"rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",

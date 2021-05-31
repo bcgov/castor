@@ -157,7 +157,7 @@ parameters <- list(
                                                # "rast.zone_cond_bc_telkwa_crithab"
                                                 "rast.zone_du7_scenario_20210330"
                                               ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
