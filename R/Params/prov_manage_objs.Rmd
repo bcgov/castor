@@ -140,7 +140,7 @@ gc() # clean up
 
 #concactenate and join in old growth percentage
 print(head(ogm.table))
-ogm.table[, ogm := paste0(BEC, '_', NDT, '_', BEO)]
+ogm.table[, ogm := paste0(BEC, '_', NDT, '_', BEO)] # NDT stands for natural disturbance type
 #print(ogm.table[!is.na(BEC)])#CHECK
 
 #Create oldgrowth look up table. Note for ndt 3 in the BWBS there is a further difference between conifer and deciduous. I omitted this level of precision and used the most conservative one -- the conifer percentage . This adds an extra 2-3 percent!!! see Table 3 in https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/policies-guides/old_growth_order_may18th_final.pdf
@@ -363,7 +363,7 @@ The steps involved in the harvesting constraints:
 2. Get Parks and Protected Areas (parks)
 
 ```{r hc_step1, echo=FALSE}
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source (paste0(here(),"/R/functions/R_Postgres.R"))
 library(here)
 lu<-getSpatialQuery("SELECT wkb_geometry 
 FROM public.rmp_lu_sp_polygon limit 1")
