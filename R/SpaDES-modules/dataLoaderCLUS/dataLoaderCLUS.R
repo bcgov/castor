@@ -190,7 +190,7 @@ createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom TEXT DEFAULT '', multi_condition text, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
@@ -319,7 +319,7 @@ setTablesCLUSdb <- function(sim) {
                                        paste(zone$reference_zone, sep ="", collapse ="','" ),"');")) # get all zones across the province from the zone table in the pgdb
       
       zone_const<-merge(zone_const, zone, by = 'reference_zone') #merge the two together so that the provincial constraints include the zonecolumn from pixels
-      
+    
       #for each constraint zone estimate the total area from which to apply the constraint
       zones<-lapply(zone$zone_column, function (x){ 
         distinct_zones<-pixels[own == 1, .(t_area=uniqueN(pixelid)), by = x]
