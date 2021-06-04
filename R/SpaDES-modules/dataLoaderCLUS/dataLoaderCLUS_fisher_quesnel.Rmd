@@ -65,7 +65,7 @@ parameters <-  list(
                                              "rast.zone_cond_fisher_dry",
                                                  'rast.zone_cond_fisher_sb_wet_denning'
                                              ), 
-                         nameZoneTable = "zone_constraints", # table that defines the constraints in the rasters
+                         nameZoneTable = "zone.constraints", # table that defines the constraints in the rasters
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", # raster of stand id for TIPSY ("managed") yeilds

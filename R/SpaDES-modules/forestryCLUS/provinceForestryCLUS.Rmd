@@ -118,7 +118,7 @@ test<-lapply(pars_scenario, function(x){
                            nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
                            #nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab"),
                            nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv"),
-                           nameZoneTable="zone_constraints",
+                           nameZoneTable="zone.constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",

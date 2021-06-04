@@ -73,7 +73,6 @@ parameters <-  list(
                                            "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
                                            "rast.zone_cond_eccc_rainbows_crithab_or_herd",
                                            "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd"),
-                        
                          nameZoneTable="zone_constraints_gbr", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 

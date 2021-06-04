@@ -144,7 +144,7 @@ parameters <- list(
                                           
                                            "rast.central_grp_proposed_luo_matrix"
                                              ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -166,7 +166,7 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
+                      #harvestZonePriorityInterval = 1,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 

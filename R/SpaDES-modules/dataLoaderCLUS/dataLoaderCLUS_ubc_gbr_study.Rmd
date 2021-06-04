@@ -72,8 +72,8 @@ parameters <-  list(
                                            "rast.zone_cond_cw",
                                            "rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
-                         nameZoneTable = "zone_constraints", # wonder if this should be zone_constraints_gbr? table that defines the constraints in the rasters. Its a parent table so other tables inherit it
-                        # nameZonePriorityRaster = "rast.zone_cond_beo",
+                         nameZoneTable = "zone.constraints", 
+                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", 

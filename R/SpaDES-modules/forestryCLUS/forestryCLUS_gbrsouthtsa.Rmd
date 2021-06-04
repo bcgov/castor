@@ -106,9 +106,8 @@ parameters <- list(
                                            "rast.zone_cond_cw",
                                            "rast.zone_cond_mofrl_gbr" # for gbr include this layer instead of beo
                                            #"rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
-                                           #"rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd"
+                                            #"rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd"
                                            ),
-                        
                          nameZoneTable="zone_constraints_gbr", # table that defines the constraints in the rasters. Its a parent table so other tables inherit it
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
@@ -131,10 +130,10 @@ blockingCLUS = list(blockMethod ='pre',
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
-                      reportHarvestConstraints = TRUE, # This should spit out a report of harvest constraints in the output folder so I can see which constraints occured where.
-                      adjacencyConstraint = 3), # try tweak adjacencyHeight=3m
-  # dont know how good growth and yield is for coast. Look at growing stock now and what it says it is in the TSR. Divide growing stock by 200 to get quick and dirty AAC.
+                      #harvestZonePriorityInterval = 1,
+                      # reportHarvestConstraints = T
+                      adjacencyConstraint = 3),
+
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 

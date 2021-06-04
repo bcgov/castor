@@ -75,7 +75,9 @@ defineModule(sim, list(
     expectsInput("nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput("nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA)
+    expectsInput("nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "updateZoneConstraints", objectClass = "data.table", desc = "Table of query parameters for updating the constraints", sourceURL = NA)
+    
     ),
   outputObjects = bind_rows(
     createsOutput("zone.length", objectClass ="integer", desc = NA), # the number of zones to constrain on
@@ -103,6 +105,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         #populate clusdb tables
         sim <- setTablesCLUSdb(sim)
         sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
+        sim <- updateGS(sim) # update the forest attributes
         sim <- scheduleEvent(sim, eventTime = 0,  "dataLoaderCLUS", "forestStateNetdown", eventPriority=90)
         
        }else{
@@ -134,10 +137,20 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim$ras[] <- pixels$pixelid
         sim$rasVelo<-velox::velox(sim$ras) # convert raster to a Velox raster; velox package offers faster exraction and manipulation of rasters
         
-        #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
+       
+        #TODO: REMOVE THIS OBJECT??? Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
+        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;")) 
         
-        #Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
-        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;"))
+        #Alter the ZoneConstraints table with a data.table object?
+        if(!is.null(sim$updateZoneConstraints)){
+          message("updating zoneConstraints")
+          sql<- paste0("UPDATE zoneconstraints SET type = :type, variable = :variable, percentage = :percentage where reference_zone = :reference_zone AND zoneid = :zoneid")  
+          dbBegin(sim$clusdb)
+          rs<-dbSendQuery(sim$clusdb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
+          dbClearResult(rs)
+          dbCommit(sim$clusdb)
+        }
+        #TODO: Remove NA pixels from the db? After sim$ras the complete.cases can be used for transforming back to tifs
       }
       #disconnect the db once the sim is over?
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99)
@@ -177,7 +190,7 @@ createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, multi_condition text, t_area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom TEXT DEFAULT '', multi_condition text, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
@@ -306,7 +319,7 @@ setTablesCLUSdb <- function(sim) {
                                        paste(zone$reference_zone, sep ="", collapse ="','" ),"');")) # get all zones across the province from the zone table in the pgdb
       
       zone_const<-merge(zone_const, zone, by = 'reference_zone') #merge the two together so that the provincial constraints include the zonecolumn from pixels
-      
+    
       #for each constraint zone estimate the total area from which to apply the constraint
       zones<-lapply(zone$zone_column, function (x){ 
         distinct_zones<-pixels[own == 1, .(t_area=uniqueN(pixelid)), by = x]
@@ -318,7 +331,7 @@ setTablesCLUSdb <- function(sim) {
       
       zones<-zones[!is.na(zoneid),] #remove the NA (border pixels)
       zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
-      
+
       dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area ) 
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones)
@@ -762,7 +775,6 @@ setIndexesCLUSdb <- function(sim) {
   
   dbExecute(sim$clusdb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid)")
   dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
-  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
   
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){
@@ -806,9 +818,58 @@ sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as 
   return(invisible(sim))
 }
 
+updateGS<- function(sim) {
+  #Note: See the SQLite approach to updating. The Update statement does not support JOIN
+  #update the yields being tracked
+  message("...update yields")
+  if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
+    #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
+    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
+    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    FROM pixels t
+    LEFT JOIN yields y 
+    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+    LEFT JOIN yields k 
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    
+    dbBegin(sim$clusdb)
+
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid", "dec_pcnt")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+  }else{
+    
+    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
+    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    FROM pixels t
+    LEFT JOIN yields y 
+    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+    LEFT JOIN yields k 
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid", "dec_pcnt")])
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)  
+  }
+  
+  message("...create indexes")
+  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height)")
+  rm(tab1)
+  gc()
+  return(invisible(sim))
+}
 
 .inputObjects <- function(sim) {
-
+  if(!suppliedElsewhere("updateZoneConstraints", sim)){
+    sim$updateZoneConstraints<-NULL
+  }
   return(invisible(sim))
 }
 

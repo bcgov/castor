@@ -171,7 +171,7 @@ parameters <- list(
                                                # "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                                # "rast.zone_cond_eccc_graham_crithab_or_herd"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
                            nameYieldsTransitionRaster = "rast.tipsy2018_id",

@@ -76,7 +76,6 @@ parameters <-  list(
                                              "rast.zone_cond_eccc_narraway_crithab_or_herd",
                                              "rast.zone_cond_bc_graham_crithab",
                                               "rast.zone_cond_bc_moberly_crithab",
-                                              "rast.zone_cond_bc_kennedy_siding_crithab",
                                              "rast.zone_cond_bc_burnt_pine_crithab",
                                              "rast.zone_cond_bc_quintette_crithab",
                                              "rast.zone_cond_bc_kennedy_siding_crithab",
@@ -88,7 +87,7 @@ parameters <-  list(
                                              "rast.central_grp_proposed_luo_feb2021",
                                              "rast.zone_du7_scenario_20210330"
                                            ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
                          nameYieldsTransitionRaster = "rast.tipsy2018_id", 

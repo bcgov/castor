@@ -55,11 +55,15 @@ dbDisconnect(conn)
 
 ## Commit to postgres
 ```{r, load_output, eval = FALSE}
-cmd <- paste0("\\copy vdyp_input_layer from program 'cmd /c \"type E:\\Data\\VEG_COMP_VDYP7_INPUT_LAYER_TBL_2019.csv" , "\"' delimiter ',' csv header")
+cmd <- paste0("\\copy vdyp_input_poly_2020 from program 'cmd /c \"type D:\\Data\\VDYP\\2020\\VEG_COMP_VDYP7_INPUT_POLY_TBL_2020.csv" , "\"' delimiter ',' csv header")
 cmd <- shQuote(cmd)
 system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 
-cmd <- paste0("\\copy vdyp_output from program 'cmd /c \"type E:\\Data\\output_125.csv" , "\"' csv header")
+cmd <- paste0("\\copy vdyp_input_layer_2020 from program 'cmd /c \"type D:\\Data\\VDYP\\2020\\VEG_COMP_VDYP7_INPUT_LAYER_TBL_2020.csv" , "\"' delimiter ',' csv header")
+cmd <- shQuote(cmd)
+system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
+
+cmd <- paste0("\\copy vdyp_output_2020 from program 'cmd /c \"type D:\\Data\\VDYP\\2020\\output_125.csv" , "\"' csv header")
 cmd <- shQuote(cmd)
 system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 

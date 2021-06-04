@@ -299,7 +299,7 @@ parameters <- list(
                                           #  "rast.zone_cond_bc_north_cariboo_crithab"
                                           #  "rast.zone_cond_bc_redrock_prairie_creek_crithab"
                                               ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -321,7 +321,7 @@ parameters <- list(
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
+                      #harvestZonePriorityInterval = 1,
                       # reportHarvestConstraints = T
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),

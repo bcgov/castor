@@ -77,13 +77,17 @@ parameters <-  list(
                                              "rast.zone_cond_eccc_graham_crithab_or_herd",
                                              "rast.zone_cond_eccc_kennedy_siding_crithab_or_herd",
                                              "rast.zone_cond_bc_graham_crithab",
+                                             "rast.zone_cond_bc_quintette_crithab",
+                                             "rast.zone_cond_bc_burnt_pine_crithab",
+                                             "rast.zone_cond_bc_moberly_crithab",
+                                             "rast.zone_cond_bc_kennedy_siding_crithab",
                                              "rast.central_grp_proposed_luo",
                                              "rast.central_grp_proposed_luo_buffer",
                                              "rast.central_grp_proposed_luo_matrix",
                                              "rast.central_grp_proposed_luo_feb2021",
                                              "rast.zone_du7_scenario_20210330"
                                             ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", # raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable = "yc_vdyp", # VDYP yield  table

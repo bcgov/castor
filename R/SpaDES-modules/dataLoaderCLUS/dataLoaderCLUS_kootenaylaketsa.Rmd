@@ -77,7 +77,7 @@ parameters <-  list(
                                              "rast.zone_cond_bc_purcells_south_crithab",
                                              "rast.zone_cond_bc_south_selkirks_crithab"
                                               ), 
-                         nameZoneTable = "zone_constraints",
+                         nameZoneTable = "zone.constraints",
                          # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", # VDYP yield  table

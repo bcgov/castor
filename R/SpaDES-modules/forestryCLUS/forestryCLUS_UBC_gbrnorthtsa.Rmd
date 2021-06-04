@@ -89,8 +89,7 @@ parameters <- list(
                                            #"rast.zone_cond_cw"
                                            #"rast.zone_cond_art" # average retention targets set by UBC group. These targets likely overlap with beo targets so Ill probably have to remove beo during the forestry clus run.
                                            ),
-                        
-                         nameZoneTable = "zone_constraints_gbr", 
+                         nameZoneTable = "zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 

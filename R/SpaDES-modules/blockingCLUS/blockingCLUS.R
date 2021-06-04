@@ -30,9 +30,9 @@ defineModule(sim, list(
     defineParameter("spreadProbRas", "character", "99999", NA, NA, desc = "Use the similarity raster to direct the spreading?"),
     defineParameter("blockSeqInterval", "numeric", 1, NA, NA, "This describes the simulation time at which blocking should be done if dynamically blocked"),
     defineParameter("blockMethod", "character", "pre", NA, NA, "This describes the type of blocking method"),
-    defineParameter("patchZone", "character", "99999", NA, NA, "Zones that pertain to the patch size distribution requirements"),
+    defineParameter("patchZone", "character", 'rast.zone_cond_beo', NA, NA, "Zones that pertain to the patch size distribution requirements"),
     defineParameter("patchVariation", "numeric",6, NA, NA, "The percent (fractional) difference between edges of the pre-blocking algorithm"),
-    defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
+    defineParameter("nameCutblockRaster", "character", "rast.cns_cut_bl", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -266,7 +266,7 @@ preBlock <- function(sim) {
       paths.matrix[, V2 := as.integer(V2)]
       #print(head(get.edgelist(g.mst_sub)))
       natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
-
+      
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
       #sample(x=c(1,2,3), size=1000, replace=TRUE, prob=c(.04,.50,.46))
@@ -468,10 +468,18 @@ worker.init <- function(packages) { #used for setting up the environments of the
 jgc <- function() .jcall("java/lang/System", method = "gc")
 
 .inputObjects <- function(sim) {
-  if(is.null(sim$patchSizeDist)){
-    sim$patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1), 
-                               sizeClass = c(40), 
-                               freq = c(1))
+  if(!suppliedElsewhere("patchSizeDist", sim)){
+    sim$patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                          2,2,2,2,2,2,
+                                          3,3,3,3,3,3,
+                                          4,4,4,4,4,4,
+                                          5,5,5,5,5,5), 
+                                   sizeClass = c(40,80,120,160,200,240), 
+                                   freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                            0.3,0.3,0.1,0.1,0.1, 0.1,
+                                            0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                            0.1,0.02,0.02,0.02,0.02,0.8,
+                                            0.3,0.3,0.1,0.1,0.1, 0.1))
   }
   return(invisible(sim))
 }

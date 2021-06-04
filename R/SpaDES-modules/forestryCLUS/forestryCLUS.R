@@ -103,6 +103,7 @@ Init <- function(sim) {
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+  #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
  
   #Remove zones as a scenario
@@ -304,7 +305,8 @@ setConstraints<- function(sim) {
 
 getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
-  for(compart in sim$compartment_list){
+  
+  for(compart in sim$compartment_list){#TODO: Add in looping by compartment and partition
     
     #TODO: Need to figure out the harvest period mid point to reduce bias in reporting? --Not important for 1 year time steps
     harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
@@ -442,7 +444,7 @@ reportConstraints<- function(sim) {
                            avg(case when ", as.character(query_parms[1, "multi_condition"])  ," then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i], " = :zoneid")
               }else{
                 sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-                           avg(case when ", numConstraints[[1]][k]  ," <= :threshold then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
+                           (avg(case when ", numConstraints[[1]][k]  ," <= :threshold then 1 else 0 end)/ avg(case when ", zones[[1]][i]  ," = :zoneid then 1 else 0 end))*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
               }
             }
           )
