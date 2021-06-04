@@ -457,6 +457,8 @@ reportConstraints<- function(sim) {
           #stop()
           
           sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
+          #zoneManagement<<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement")
+
           
         }
       }

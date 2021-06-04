@@ -244,7 +244,7 @@ ogm.final[zone == 2435,]
 zone_beo_table<-setDT(ogm.final)[, .SD[which.max(AGE)], by=zone]
 
 zone_beo_table<-zone_beo_table[,c(1,3:4, 6)]
-zone_beo_table[, reference_zone := 'rast.zone_beo']
+zone_beo_table[, reference_zone := 'rast.zone_cond_beo']
 zone_beo_table[, variable := 'age']
 zone_beo_table[, type := 'ge']
 
@@ -264,6 +264,74 @@ dbDisconnect(conn)
 
 rm(zone_beo_table, df, ogm.final)
 gc()
+
+```
+
+# GBR Minimum Old Forest Retention Levels (mofrl)
+
+To maintain ecological representation the GBR landuse order (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf) pg 7 requires that a distribution of forest stand ages need to be maintained. To achieve this the order specifies that for each BEC zone and Site Series Group (ssg) a minimum level of Old Forest needs to be maintained as listed in Schedule G. For ease, I will obtain the average minimum required  amount of old growth forest in each BEC zone and subzone combination. The UBC crowd provided me with a spreadsheet detailing for the whole of GBR, the minimum old forest retention target  per bec zone and ssg with a column detailing the total area forested in each landscape type. Thus to get average mofrl per bec zone and subzone I weighted each of these mofrl across ssg's weighted by forested area. These averages are what I included in the layer created below.  
+```{r, mofrl}
+library(dplyr)
+library(tidyr)
+source (paste0(here(),"/R/functions/R_Postgres.R"))
+
+bec_ave_mofrl<- read.csv("S://FOR//VIC//HTS//ANA//Workarea//ekleynhans//BEC_average_mofrl.csv")
+bec_ave_mofrl$bec.variant2<- 1:length(bec_ave_mofrl$BEC.variant)
+
+mofrl<-getSpatialQuery("SELECT * FROM public.bec_zone")
+mofrl$map_label<- mofrl$map_label<-gsub("un", "",mofrl$map_label)
+unique(mofrl$map_label)
+mofrl$BEC.variant<- mofrl$map_label
+
+gbr_bec_ave_mofrl<-left_join(mofrl,bec_ave_mofrl )
+
+gbr_bec_ave_mofrl_ras<-gbr_bec_ave_mofrl %>% 
+  dplyr::select(wkb_geometry, bec.variant2)
+
+# create raster of mofrl
+lu<-getSpatialQuery("SELECT wkb_geometry 
+FROM public.rmp_lu_sp_polygon limit 1")
+
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(lu)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+gbr_bec_ave_mofrl_ras<-fasterize::fasterize(sf= gbr_bec_ave_mofrl_ras, raster = ProvRast , field = "bec.variant2")
+plot(gbr_bec_ave_mofrl_ras)
+
+writeRaster(gbr_bec_ave_mofrl_ras, file=paste0(here(),"/zone_gbr_mofrl.tif"), format="GTiff", overwrite=TRUE)
+
+#upload to db
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_gbr_mofrl.tif -t 100x100 rast.zone_cond_mofrl_gbr |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+rm(gbr_bec_ave_mofrl_ras)
+gc()
+
+df<-as.data.frame(gbr_bec_ave_mofrl)
+df1<- df %>%
+  dplyr::select(bec.variant2, weighted_MOFRL) %>%
+  drop_na() %>%
+  distinct() %>%
+  rename(zoneid=bec.variant2,
+         percentage=weighted_MOFRL)
+
+df1$type<-'ge' # less than (le), greater than (ge)
+df1$variable<-'age' # equivalent clear cut area (eca)
+df1$threshold<-250
+df1$reference_zone<-'rast.zone_cond_mofrl_gbr'
+df1$ndt<-as.integer(0)
+
+df1$zoneid<-as.integer(df1$zoneid)#assign integer
+df1$label<-'mofrl'
+
+#upload the constraint table for FSW to the db
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+ 
+DBI::dbWriteTable(conn, c("public", "zone_mofrl_gbr"), value= df1, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
 
 ```
 
@@ -307,6 +375,7 @@ names(gbr_fsw1)<-c("wkb_geometry", "fsw_id")
 st_geometry(gbr_fsw1) <- "wkb_geometry"
 st_geometry(fsw) <- "wkb_geometry"
 gbr_fsw2<-st_cast(gbr_fsw1, "MULTIPOLYGON")
+fsw_orig<- st_cast(fsw, "MULTIPOLYGON")
 
 fsw.all<-rbind(fsw, gbr_fsw2)
 
@@ -327,7 +396,7 @@ df_gbr1<- df %>% filter(fsw_id<=max(gbr_ifa$WS_NUM))
 df_gbr1$type<-'le' # less than (le), greater than (ge)
 df_gbr1$variable<-'eca' # equivalent clear cut area (eca)
 df_gbr1$threshold<-20
-df_gbr1$reference_zone<-'rast.zone_cond_fsw'
+df_gbr1$reference_zone<-'rast.zone_cond_fsw_gbr'
 df_gbr1$percentage<-100
 df_gbr1$ndt<-as.integer(0)
 df_gbr1<-df_gbr1[,c(1,3:8)]
@@ -337,7 +406,7 @@ df_gbr2<- df %>% filter(fsw_id==max(gbr_ifa$WS_NUM)+1 | fsw_id==max(gbr_ifa$WS_N
 df_gbr2$type<-'le' # less than (le), greater than (ge)
 df_gbr2$variable<-'eca' # equivalent clear cut area (eca)
 df_gbr2$threshold<-0
-df_gbr2$reference_zone<-'rast.zone_cond_fsw'
+df_gbr2$reference_zone<-'rast.zone_cond_fsw_gbr'
 df_gbr2$percentage<-100
 df_gbr2$ndt<-as.integer(0)
 df_gbr2<-df_gbr2[,c(1,3:8)]
@@ -347,7 +416,7 @@ df_other<- df %>% filter(fsw_id>max(gbr_ifa$WS_NUM)+3)
 df_other$type<-'le' # less than (le), greater than (ge)
 df_other$variable<-'eca' # equivalent clear cut area (eca)
 df_other$threshold<-25
-df_other$reference_zone<-'rast.zone_cond_fsw'
+df_other$reference_zone<-'rast.zone_cond_fsw_gbr'
 df_other$percentage<-100
 df_other$ndt<-as.integer(0)
 df_other<-df_other[,c(1,3:8)]
@@ -365,6 +434,9 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
  
 DBI::dbWriteTable(conn, c("public", "zone_fsw_gbr"), value= df_final, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
+
+rm(df_final, df_gbr1, df_gbr2, df_other, fsw, gbr_fsw, gbr_fsw1, gbr_fsw2)
+gc()
 ```
 
 # Visual Quality Constraints
@@ -402,7 +474,7 @@ df<-df[,1:2]
 df$type<-'le'
 df$variable<-'height'
 df$threshold<-5
-df$reference_zone<-'rast.zone_vqo'
+df$reference_zone<-'rast.zone_cond_vqo'
 df$ndt<-as.integer(0)
 colnames(df) <- c("percentage", "zoneid", "type", "variable", "threshold", "reference_zone", "ndt") # the vqo column gets labeled as percentage
 df$zoneid<-as.integer(df$zoneid)#assign integer
@@ -417,7 +489,7 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 DBI::dbWriteTable(conn, c("public", "zone_vqo"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 
-rm(df, fsw, vqo.ras, vqo)
+rm(df, vqo.ras, vqo)
 gc()
 ```
 
@@ -428,7 +500,7 @@ These are areas that can contribute to zonal constraints but cannot harvest with
 The steps involved in the harvesting constraints:
 1. Get spatial old growth management areas (OGMA) - legal - no harvesting
 2. Get Parks and Protected Areas (parks)
-3. Biodiversity, Mining and Tourism areas 
+3. Get Biodiversity, Mining and Tourism areas 
 
 ```{r hc_step1, echo=FALSE}
 source (paste0(here(),"/R/functions/R_Postgres.R"))
@@ -480,7 +552,7 @@ writeRaster(nharv.ras, file=paste0(here(),"/nharv.tif"), format="GTiff", overwri
 
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M  ', here::here(), '/nharv.tif -t 100x100 rast.zone_cond_nharv_gbr | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
-df<-data.frame(type='nh', variable= '', threshold=0, reference_zone='rast.zone_nharv_grb',
+df<-data.frame(type='nh', variable= '', threshold=0, reference_zone='rast.zone_cond_nharv_gbr',
 ndt=0,percentage = 0, zoneid =0)
 df$zoneid<-as.integer(df$zoneid)#assign integer
 df$percentage<-as.numeric(df$percentage)#assign integer
@@ -491,7 +563,7 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 DBI::dbWriteTable(conn, c("public", "zone_nharv_grb"), value= df, row.names = FALSE, overwrite = TRUE) 
 dbDisconnect(conn)
 
-rm(uwr.ras, wha.ras ,ogma.ras , pres.ras , parks.ras, parks, ogma, pres, wha, uwr)
+rm(ogma.ras , parks.ras, parks, ogma, pres, wha, uwr)
 gc()
 ```
 
@@ -542,12 +614,15 @@ conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', key
 
 dbExecute(conn, "CREATE TABLE IF NOT EXISTS zone_constraints_gbr (zoneid integer, reference_zone text, ndt integer, variable text, threshold double precision, type text, percentage double precision)")
 
-dbExecute(conn, "ALTER TABLE zone_nharv INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE public.zone_nharv_grb INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_wha_gbr INHERIT zone_constraints_gbr") # defined in wha_cond_harvest_GBR.RMD
 dbExecute(conn, "ALTER TABLE zone_beo INHERIT zone_constraints_gbr")
 dbExecute(conn, "ALTER TABLE zone_fsw_gbr INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr")
-dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")#Note from uwr_cond_harvest.rmd
+dbExecute(conn, "ALTER TABLE zone_uwr_gbr INHERIT zone_constraints_gbr") # defined in uwr_cond_harvest_GBR.RMD
+dbExecute(conn, "ALTER TABLE zone_cw INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_art INHERIT zone_constraints_gbr")
+dbExecute(conn, "ALTER TABLE zone_mofrl_gbr INHERIT zone_constraints_gbr")
+
 dbDisconnect(conn)
 ```
