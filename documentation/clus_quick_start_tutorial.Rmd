@@ -43,7 +43,7 @@ Packages that you will need to run CLUS are typically listed within specific CLU
 ## 2. Download the Model Code from GitHub
 Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. 
 
-The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
+The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub. These are version control software for collaborative work flows, and you can learn some more about git [here](https://git-scm.com/book/en/v2).
 
 To clone the CLUS repository, open RStudio, click on the "File" tab in the top left and then click "New Project". This will open a new window:
 
