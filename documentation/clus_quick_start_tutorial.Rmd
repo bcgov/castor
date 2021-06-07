@@ -42,7 +42,7 @@ Within the RStudio interface you will see in the bottom-right window a "Packages
 Packages that you will need to run CLUS are typically listed within specific CLUS model scripts, so you can download them as you need them. Packages you need are called using the *library()* or *require()* commands in the script. You'll also find that you will get an error if you are missing a package needed to run a specific R function. In this case, check which function is getting the error and download the necessary package. 
 
 ## 2. Download the Model Code from GitHub
-Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. As part of this process, you will need to request permission to have 'write' access to the repository. Contact the CLUS team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository.
+Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. As part of this process, you will need to request permission to have 'admin' access to the repository. Contact the CLUS team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository.
 
 The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
 
@@ -67,18 +67,15 @@ GitHub branches can be considered as 'working copies' of code (see image below).
 
 ![](images/github_branch.png)
 
-For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. To create a new branch go to the [github webpage](https://github.com/bcgov/clus), under the *<>Code* tab, click on the *'master'* button and put in a name for your branch and click on "Create branch: xxxxx from master". 
+For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. 
+
+You can create a new branch go to the [github webpage](https://github.com/bcgov/clus), under the *<>Code* tab, click on the *'master'* button and put in a name for your branch and click on "Create branch: xxxxx from master". 
 
 ![](images/github_newbranch.jpg)
 
-Switch back to your RStudio window, and click on the "Git" tab in the top-right window and then click the "Pull" button. This should pull the 
+Switch back to your RStudio window, and click on the "Git" tab in the top-right window and then click the "Pull" button. This should pull the new branch to your local repo. 
 
-
-
-
-
-
-click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
+Alternatively, you can create a new branch from RStudio. First, in the "Git" tab in the top-right window, click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
 
 ![](images/git_branch2.jpg)
 
@@ -92,7 +89,9 @@ Click on the "Commit" button and it opens a new window with three windows in it.
 
 ![](images/git_commit.jpg)
 
-In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result fo the commit (e.g., "1 file changed, 1 insertion(+)"). Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
+In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result of the commit (e.g., "1 file changed, 1 insertion(+)").
+
+Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
 
 Since you are working in an independent branch, you will be committing changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or integrate changes made to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". Pull Requests are managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labeled "New pull request". 
 
