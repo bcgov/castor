@@ -1,0 +1,1497 @@
+---
+title: "Fort St. John TSA Management Zones"
+author: "Tyler Muhly"
+date: "06/07/2021"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library (raster)
+library (fasterize)
+library (sf)
+library (DBI)
+library (data.table)
+
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+```
+
+## Purpose
+The scripts here produce rasters and tables that specify management zones specific to the Fort St. John TSA. A request for an analysis of the impact of these zones on the Fort St. John TSA was received from the North region (Shane Ford, Michael Huck). These zones represent a combination or different management areas, includign for caribou 
+
+
+
+
+
+
+used in caribou recovery scenarios in British Columbia. These can also be used in the CLUS model to summarize or calculate information by caribou herd area. All spatial polygon files are converted to rasters following the provincial hectares BC raster convention that we are using in the CLUS model to ensure all rasters overlap. Currently, these are used in the forestryCLUS/dataLoaderCLUS as zoneRasters (i.e., management zones with constraints on forestry), and or the survivalCLUS SpaDES module to estimate caribou survival rates by herd as a function of forest age there.  When running the dataLoaderCLUS module, the caribou-specific areas that overlap the timber supply unit of interest get imported into the output SQLite database as 'zones' columns in the 'pixels' table of the database (see [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)).
+
+This .Rmd amalgamates previous .Rmds and now replaces *caribou_herd_raster.Rmd*, *central_grp_luo_oct2020.Rmd*, *areaifinterestRaster.Rmd*, *criticalHabitatRaster.Rmd*
+
+## Caribou Herd Boundaries
+Here we develop rasters of the caribou herd boundary data. Caribou herd boundaries are essentially the outer spatial boundaries of habitat used by an ecologically similar group or 'sub-population' of caribou, and they are typically surveyed together to estimate population numbers. Note that the current boundaries (May 2020) are not the same as those on the BCGW (located [here](https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc)). The boudnaries have been updated 'internally', but have not been published to the BCGW yet. 
+
+### Create Raster
+```{r, convert polygon to raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.caribou <- getSpatialQuery("SELECT * FROM public.bc_caribou_herd_boundary_v20200507") # supercedes bc_carib_poly_20090904
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(poly.caribou)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
+poly.caribou$herd_integer <- as.integer (as.factor (poly.caribou$herd_name)) # integer equivalent to herd name
+ras.caribou.herd <-fasterize::fasterize (poly.caribou, prov.rast, field = "herd_integer") # polygon to raster
+plot (ras.caribou.herd) # make sure the raster looks good
+writeRaster (ras.caribou.herd, file = "caribou_herd.tif", format = "GTiff", overwrite = TRUE)
+#upload to db
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/caribou_herd.tif -t 100x100 rast.caribou_herd | psql postgresql://clus_project:clus@DC052586:5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+### Create Look-up Table
+```{r, create look-up table for raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.caribou <- getSpatialQuery("SELECT * FROM public.bc_caribou_herd_boundary_v20200507") # supercedes bc_carib_poly_20090904
+poly.caribou$herd_integer <- as.integer (as.factor (poly.caribou$herd_name)) # integer equivalent to herd name
+lu_caribouHerd <- unique (data.table (cbind (poly.caribou$herd_integer, poly.caribou$herd_name)))
+lu_caribouHerd <- lu_caribouHerd [order(V1)]
+setnames (lu_caribouHerd, c("V1", "V2"), c("raster_integer", "herd_name"))
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable (conn, c("public", "caribou_herd_vat"), value = lu_caribouHerd, 
+                   row.names = FALSE, overwrite = TRUE)
+```
+
+## Caribou Critical Habitat Areas and Herd Boundaries
+Here we develop rasters that specify the location of caribou herds and critical habitat types across British Columbia. Caribou critical habitat boundaries have been defined independently by the government of Canada (Environment and Climate Change Canada - ECCC) and more recently, by the government of British Columbia. Therefore, we created scripts for critical habitat boundary data as defined by each. In both cases, critical habitat is divided into various types, including:
+
+- high elevation winter and summer range (HEWSR)
+- high elevation winter range (HEWR)
+- high elevation summer range (HESR)
+- low elevation winter range (LEWR)
+- low elevation summer range (LESR)
+- matrix
+
+Caribou critical habitat has not been defined for all caribou herds in BC. Therefore we also create a dataset that combines critical habitat and herd boundary data, where for each herd we use critical habitat where it is defined, otherwise we use herd boundary data.
+
+### Caribou Critical Habitat 
+#### British Columbia Boundaries
+BC's critical habitat boudnaries were defined by provincial caribou biologists in 2020. They are currently (as of November 2020) in *Draft* from, and have been deemed 'not for distribution' to the public. The data used here was obtained from Nicola Dodd, Knowledge Management Branch, Ministry of Environment and Climate Change Strategy (i.e., the data custodians). Updates are expected periodically over the next few months. 
+
+##### British Columbia Caribou Critical Habitat Partial Harvest Constraint
+Below is a script to create rasters and constraint tables for BC critical habitat, where no 'disturbance' (i.e., no forest harvest) is applied to high elevation critical habitat types, 15% 'disturbance' (i.e., maximum 15% of area < 500 m from a forestry road or cutblock) is applied to low elevation habitat and 35% 'disturbance' (i.e., maximum 35% of area < 500 m from a forestry road or cutblock) is applied to matrix habitat.
+
+```{r, scenario: bc critical habitat, no harvest in high elevation, 15% max disturbance in low elevation, 35% max disturbance in matrix}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;") # old version
+#bc.crit<-getSpatialQuery("SELECT * from bc_caribou_linework_v20200507_shp_core_matrix;") # old version
+bc.crit<-getSpatialQuery("SELECT * from bc_critical_habitat_all_herds_20200615;") # current version
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(bc.crit)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
+
+#all - create the raster for each herd and critical habitat type
+all.bc<-bc.crit
+all.bc$crithab<-paste(all.bc$herd_name, all.bc$bchab_code) # create unique id ("value") for each unique herd name and habitat type
+all.vat<-data.table(unique(all.bc$crithab))
+setnames(all.vat, "V1", "crithab")
+all.vat[, value:= seq_len(.N)]
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "criticalhabitat_bc_vat"), value= all.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+all.bc2<-merge(all.bc, all.vat, by.x = "crithab",by.y = "crithab") # merge id with the polygon data
+
+ras.all.bc <-fasterize::fasterize(all.bc2, prov.rast, field = "value") # rasterize the polygon data to the provicnal raster
+writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Groundhog", "Monashee", "Barkerville",  "Telkwa", "Central_Rockies","Central_Selkirks","Columbia_North","Columbia_South","Frisby_Boulder", "Purcell_Central","Purcell_South","South_Selkirks","Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North","Hart_Ranges","Redrock_Prairie_Creek")
+herds<-c("Barkerville", "Burnt_Pine", "Groundhog", "Moberly", "Monashee", "Narraway", "Central_Rockies",
+         "Quintette", "Rainbows", "Tweedsmuir", "Narrow_Lake",  "Takla",  
+         "Itcha_Ilgachuz",  "Central_Selkirks", "Charlotte_Alplands", "Columbia_North", "Columbia_South",
+         "Frisby_Boulder", "Hart_Ranges", "Kennedy_Siding", "North_Cariboo", "Purcell_Central", "Purcells_South",
+         "South_Selkirks", "Wells_Gray_North", "Wells_Gray_South", "Redrock_Prairie_Creek" ) # list of herd names in the polygon data; can customize the list to add/remove
+         # "Atlin", "Edziza", "Finlay", "Frog", "Gataga", "Horseranch", "Thutade", "Tsenaglode", "Carcross",  "Liard_Plateau", 
+        # "Level_Kawdy", "Little_Rancheria", "Swan_Lake", "George_Mountain", "Graham", "Telkwa", "Calendar",  "Chase", "Chinchaga", "Maxhamish", "Rabbit" , "Spatsizi", "Wolverine", "Muskwa", "Snake_Sahtaneh", "Westside_Fort_Nelson",  "Scott",  "Pink_Mountain"
+
+for(herd in herds){ # create a table of the constraints for each herd
+  bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
+                                             herd,"',]")))
+  vat<-data.table(unique(bc.crit.selected$bchab_code)) # create value table for each unique herd name and habitat type  
+  setnames(vat, "V1", "crithab")
+  vat[, zoneid:= seq_len(.N)]
+  
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  DBI::dbWriteTable(conn, c("public", paste0("criticalhabitat_",tolower(herd),"_vat")), value= vat, row.names = FALSE, overwrite = TRUE)
+  dbDisconnect(conn)
+  
+  bc.crit.selected2 <-merge(bc.crit.selected, vat, by.x = "bchab_code",by.y = "crithab") # merge id with the polygon data
+  ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected2, prov.rast, field = "zoneid") #
+
+  eccc.vat<-vat # create a constraint for a specific scenario; here the scenario is "ECCC" for the federal recovery plan 
+  eccc.vat[, reference_zone:= paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab')] # zone name field
+  eccc.vat[, variable:= 'dist'] # 'dist' is the distance to constraint type
+  eccc.vat[, type:= 'ge'] # greater than or equal to (ge), less than or equal to (le)
+  eccc.vat[, ndt:= 0]
+  eccc.vat[, threshold:= 500] # threshold from disturbance (500 m)
+  eccc.vat[, multi_condition:= '']
+  eccc.vat[ crithab %in% c('Matrix'), percentage:= 85] # percentage of area where constraint applies, e.g., in this case, 85% ge 500m
+  eccc.nh.zones<-eccc.vat[is.na(percentage), zoneid] # where there is no constaint, make it a 'no harvest' zone
+  
+  ras.eccc<-ras.bc.crit.selected
+  ras.eccc[ras.eccc[] %in% eccc.nh.zones]<-0
+  
+  zone.eccc.crithab<-eccc.vat[!(zoneid %in% eccc.nh.zones),]
+  zone.eccc.crithab<-zone.eccc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage', 'multi_condition')]
+  zone.eccc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_eccc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = as.character(NA))
+
+  zone.eccc.crithab<-rbindlist(list(zone.eccc.crithab, zone.eccc.crithab.nh))
+  writeRaster(ras.eccc, "rasecccrit.tif", overwrite = TRUE)
+
+  zone.eccc.crithab<-zone.eccc.crithab[,zoneid:=as.integer(zoneid)]
+  zone.eccc.crithab<-zone.eccc.crithab[,ndt:=as.integer(ndt)]
+  zone.eccc.crithab<-zone.eccc.crithab[,threshold:=as.numeric(threshold)]
+  zone.eccc.crithab<-zone.eccc.crithab[,multi_condition:=as.character(multi_condition)]
+
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("zone", paste0("zone_eccc_",tolower(herd),"_crithab")), value= zone.eccc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone.zone_eccc_",tolower(herd),"_crithab INHERIT zone.constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasecccrit.tif -t 100x100', paste0(' rast.zone_cond_eccc_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+  bc.vat<-vat
+  bc.vat[, reference_zone:= paste0('rast.zone_cond_bc_', tolower(herd),'_crithab')]
+  bc.vat[, variable:= 'dist']
+  bc.vat[, type:= 'ge']
+  bc.vat[, threshold:= 500]
+  bc.vat[, multi_condition:= '']
+  bc.vat[ crithab %in% c('Matrix'), percentage:= 65]
+  bc.vat[ crithab %in% c('Matrix'), threshold:= 0]
+  bc.vat[ crithab %in% c('LEWR', 'LEWSR'), percentage:= 85]
+  bc.nh.zones<-bc.vat[is.na(percentage), zoneid]
+  
+  ras.bc<-ras.bc.crit.selected
+  ras.bc[ras.bc[] %in% bc.nh.zones]<-0
+  writeRaster(ras.bc, "rasbccrit.tif", overwrite = TRUE)
+  
+  zone.bc.crithab<-bc.vat[!(zoneid %in% bc.nh.zones),]
+  zone.bc.crithab<-zone.bc.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage', 'multi_condition' )]
+
+  zone.bc.crithab.nh<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_bc_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0, multi_condition = as.character(NA))
+
+  zone.bc.crithab<-rbindlist(list(zone.bc.crithab, zone.bc.crithab.nh))
+  zone.bc.crithab<-zone.bc.crithab[,zoneid:=as.integer(zoneid)]
+  zone.bc.crithab<-zone.bc.crithab[,ndt:=as.integer(ndt)]
+  zone.bc.crithab<-zone.bc.crithab[,threshold:=as.numeric(threshold)]
+  zone.bc.crithab<-zone.bc.crithab[,multi_condition:=as.character(multi_condition)]
+  
+  conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("zone", paste0("zone_bc_",tolower(herd),"_crithab")), value= zone.bc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone.zone_bc_",tolower(herd),"_crithab INHERIT zone.constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasbccrit.tif -t 100x100', paste0(' rast.zone_cond_bc_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+  gc()
+}
+
+```
+
+#### Canada Boundaries
+Canada's critical habitat boundaries were defined ca. 2019. These have not been released publically and are *Draft*. Thus, these data should not shared publicly. Generally, these data should not be used in scenarios unless there is an explicit need to consider how Canada spatially defines critical habitat. These data were obtained from the federal government via Nicola Dodd, Knowledge Management Branch, Ministry of Environment and Climate Change Strategy.
+
+##### Canada Caribou Critical Habitat No Harvest Constraint
+Below is a script to create rasters and constraint tables for Canada critical habitat, where no 'disturbance' (i.e., no forest harvest) is applied to all critical habitat types.
+
+```{r, scenario: Canada critical habitat, no harvest}
+#Canadian (Federal) contraints
+bc.crit<-getSpatialQuery("SELECT * from bc_caribou_core_matrix_habitat_v20190904_1;")
+
+herds<-c("Rainbows","Charlotte_Alplands", "Itcha_Ilgachuz", "Barkerville", "Wells_Gray_South","Narrow_Lake","North_Cariboo","Wells_Gray_North")
+
+for(herd in herds){
+bc.crit.selected<-eval(parse(text = paste0("bc.crit[bc.crit$herd_name == '", 
+                                             herd,"',]")))
+bc.crit.selected$zoneid<-0
+  
+ras.bc.crit.selected <-fasterize::fasterize(bc.crit.selected, prov.rast, field = "zoneid")
+writeRaster(ras.bc.crit.selected , "rasnhcrit.tif", overwrite = TRUE)
+
+zone.eccc.crithab<-data.table(zoneid =0, reference_zone = paste0('rast.zone_cond_nh_crit_', tolower(herd),'_crithab'), ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0) # makes each zone no harvest
+zone.eccc.crithab<-zone.eccc.crithab[,zoneid:=as.integer(zoneid)]
+zone.eccc.crithab<-zone.eccc.crithab[,ndt:=as.integer(ndt)]
+zone.eccc.crithab<-zone.eccc.crithab[,threshold:=as.numeric(threshold)]
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("zone", paste0("zone_nh_crit_",tolower(herd),"_crithab")), value= zone.eccc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute(conn, paste0("ALTER TABLE zone.zone_nh_crit_",tolower(herd),"_crithab INHERIT zone.constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/rasnhcrit.tif -t 100x100', paste0(' rast.zone_cond_nh_crit_', tolower(herd),'_crithab'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+}
+```
+
+### Caribou Herd Boundaries
+Below are scripts to create rasters and constraint tables for caribou herd boundaries.
+
+#### Caribou Herd Boundaries No Harvest Constraint
+Below is a script to create rasters and constraint tables for BC caribou herd boundaries, where no 'disturbance' (i.e., no forest harvest) is applied within those boundaries.
+
+```{r, scenario: bc herd boundaries, no harvest}
+bc.bounds <- getSpatialQuery("SELECT * from bc_caribou_herd_boundary_v20200507;") 
+# NEEDS update to bc_critical_habitat_all_herds_20200615
+
+herds <- c(unique (bc.bounds$herd_name))
+
+for (herd in herds){
+bc.bounds.selected <- eval (parse (text = paste0("bc.bounds[bc.bounds$herd_name == '", 
+                                          herd,"',]")))
+bc.bounds.selected$zoneid <- 0
+  
+ras.bc.bounds.selected <- fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
+writeRaster (ras.bc.bounds.selected , "ras_herd_bounds.tif", overwrite = TRUE)
+
+zone.bc.bounds.nh <- data.table (zoneid = 0, # zoneid of 0 makes each zone no harvest
+                                 reference_zone = paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'), 
+                                 ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0, 
+
+                                 multi_condition = as.character(NA)) 
+
+zone.bc.bounds.nh <- zone.bc.bounds.nh [, zoneid := as.integer (zoneid)]
+zone.bc.bounds.nh <- zone.bc.bounds.nh [, ndt := as.integer (ndt)]
+zone.bc.bounds.nh <- zone.bc.bounds.nh [, threshold := as.numeric (threshold)]
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get ('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable (conn, c("zone", paste0("zone_bc_bounds_",tolower(herd),"_nh")), # 
+                   value = zone.bc.bounds.nh, row.names = FALSE, overwrite = TRUE)
+dbExecute (conn, paste0 ("ALTER TABLE zone.zone_bc_bounds_", tolower (herd),"_nh INHERIT zone.constraints"))
+dbDisconnect (conn)
+
+#upload to db
+system ("cmd.exe", 
+        input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                       here::here(), '/R/Params/ras_herd_bounds.tif -t 100x100 ', 
+                       paste0('rast.zone_bc_bounds_', tolower(herd),'_noharvest'),' | psql postgres://', 
+                       keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', 
+                       keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', 
+                       keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), 
+        show.output.on.console = FALSE, invisible = TRUE)
+
+}
+```
+
+
+#### Scenario 4
+- below is for a scenario that combines herds with and without critical habitat data
+- first I combined recent critical habitat and herd data together in ArcGIS, using "Merge" 
+- I created "BCHab_code" and "BC_Habitat_Type" fields in the herd boundary data, consistent with the critical habitat data, and  defined them as "No critical habitat" and "None"
+- thus we have critical habitat defined for each herd in a single shapefile
+- located [here](\\spatialfiles2.bcgov\archive\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\caribou\bc_critical_habitat\bc_crit_habitat_and_herds_v20200615.gdb), as 'bc_critical_habitat_all_herds_20200615'
+- also loaded into postgres using ogr2ogr
+
+
+```{r, scenario: bc critical habitat and herd boundaries,  no harvest in high and low elevation, 35% max disturbance in matrix}
+
+bc.habitat <- getSpatialQuery("SELECT * from bc_critical_habitat_all_herds_20200615;") # data from caribou prorgam; uploaded into postgres via ogr2ogr
+herds <- c(unique (bc.habitat$herd_name))
+
+#all - create the raster for each herd and critical habitat type
+all.bc <- bc.habitat
+all.bc$crithab <- paste(all.bc$herd_name, all.bc$bchab_code) # create unique id ("value") for each unique herd name and habitat type
+
+all.vat <- data.table (unique (all.bc$crithab))
+setnames (all.vat, "V1", "crithab")
+all.vat [, value := seq_len (.N)] # assign number to each unique herd-habitat comibnation
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "vat_bc_crithab_and_herd"), value= all.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+all.bc2 <- merge (all.bc, all.vat, by.x = "crithab", by.y = "crithab") # merge number id with the polygon data
+ras.all.bc <- fasterize::fasterize (all.bc2, prov.rast, field = "value") # rasterize the polygon data to the provincial raster
+writeRaster(ras.all.bc, "bccrithab.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/bccrithab.tif -t 100x100 rast.bc_crithab_and_herd | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+herds <- c (unique (bc.habitat$herd_name))
+
+for (herd in herds) { # create a table of the constraints for each herd; here we are applying 35% disturbance to Matrix, and 0% disturbance everywhere else; these can be updated later
+  bc.selected <- eval (parse (text = paste0("bc.habitat [bc.habitat$herd_name == '", 
+                                            herd,"',]")))
+  vat <- data.table (unique (bc.selected$bchab_code)) # create value table for each unique herd name and habitat type  
+  setnames (vat, "V1", "crithab")
+  vat [, zoneid:= seq_len(.N)]
+  
+  conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                         host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                         port = '5432',
+                         user=keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                         password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+  DBI::dbWriteTable (conn, c("public", paste0 ("vat_criticalhabitat_", tolower(herd))), 
+                     value = vat, row.names = FALSE, overwrite = TRUE)
+  dbDisconnect (conn)
+  
+  bc.selected2 <- merge (bc.selected, vat, by.x = "bchab_code", by.y = "crithab") # merge id with the polygon data
+  
+  ras.bc.selected <- fasterize::fasterize (bc.selected2, prov.rast, field = "zoneid") #
+
+#### ECCC ####
+  eccc.vat <- vat # create a constraint for a specific scenario; here the scenario is "ECCC" for the federal recovery plan 
+  eccc.vat [, reference_zone := paste0 ('rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd')] # zone name field
+  eccc.vat [, variable := 'dist'] # 'dist' is the distance to constraint type
+  eccc.vat [, type := 'ge'] # greater than or equal to (ge), less than or equal to (le)
+  eccc.vat [, ndt := 0]
+  eccc.vat [, threshold := 500] # threshold from disturbance (500 m)
+  eccc.vat [, multi_condition := NA]
+  eccc.vat [ crithab %in% c('Matrix'), percentage := 85] # percentage of area where constraint applies, e.g., in this case, 85% ge 500m
+  eccc.nh.zones <- eccc.vat [is.na (percentage), zoneid] # where there is no constraint, make it a 'no harvest' zone
+  
+  ras.eccc <- ras.bc.selected
+  ras.eccc [ras.eccc[] %in% eccc.nh.zones] <- 0
+  
+  zone.eccc.crithab <- eccc.vat[!(zoneid %in% eccc.nh.zones),]
+  zone.eccc.crithab <- zone.eccc.crithab [, c('zoneid', 'reference_zone', 'ndt', 'variable',
+                                              'threshold', 'type', 'percentage', 'multi_condition')]
+  zone.eccc.crithab.nh <- data.table (zoneid = 0, 
+                                      reference_zone = paste0 ('rast.zone_cond_eccc_', 
+                                                               tolower(herd),'_crithab_or_herd'), 
+                                      ndt = 0, variable = '', threshold = 0, type = 'nh', 
+                                      percentage = 0,
+                                      multi_condition = as.character(NA))
+
+
+  zone.eccc.crithab <- rbindlist (list (zone.eccc.crithab, zone.eccc.crithab.nh))
+  writeRaster (ras.eccc, "ras_eccc_crit_or_herd.tif", overwrite = TRUE)
+
+  zone.eccc.crithab <- zone.eccc.crithab [, zoneid := as.integer (zoneid)]
+  zone.eccc.crithab <- zone.eccc.crithab [, ndt := as.integer (ndt)]
+  zone.eccc.crithab <- zone.eccc.crithab [, threshold := as.numeric (threshold)]
+  zone.eccc.crithab <- zone.eccc.crithab [, multi_condition := as.character (multi_condition)]
+
+  conn<-DBI::dbConnect (dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port = '5432' ,
+                       user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+  DBI::dbWriteTable(conn, c("zone", 
+                            paste0("zone_eccc_",tolower(herd),"_crithab_or_herd")), 
+                    value = zone.eccc.crithab, row.names = FALSE, overwrite = TRUE)
+ dbExecute (conn, paste0("ALTER TABLE zone.zone_eccc_",tolower(herd),"_crithab_or_herd INHERIT zone.constraints"))
+ dbDisconnect(conn)
+
+#upload to db
+  system("cmd.exe", 
+         input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                        here::here(), '/R/params/ras_eccc_crit_or_herd.tif -t 100x100', 
+                        paste0(' rast.zone_cond_eccc_', tolower(herd),'_crithab_or_herd'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+  
+  
+#### no harvest ####
+bc.bounds.selected <- bc.selected
+bc.bounds.selected$zoneid <- 0 # zoneid = 0 sets zone as no harvest
+  
+ras.bc.bounds.selected <- fasterize::fasterize (bc.bounds.selected, prov.rast, field = "zoneid")
+writeRaster (ras.bc.bounds.selected , "ras_herd_bounds_nh.tif", overwrite = TRUE)
+
+zone.nh.crithab.herd <- data.table(zoneid = 0, # zone id = 0 makes it no harvest
+                                   reference_zone = paste0('rast.zone_cond_noharvest_',
+                                                           tolower(herd),'_crithab_or_herd'),
+                                   ndt = 0, variable = '', threshold = 0, type = 'nh', percentage = 0,
+
+                                   multi_condition = as.character(NA))
+
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, zoneid := as.integer(zoneid)]
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, ndt := as.integer (ndt)]
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, threshold := as.numeric (threshold)]
+zone.nh.crithab.herd <- zone.nh.crithab.herd[, multi_condition := as.character (multi_condition)]
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port ='5432' ,
+                       user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", paste0 ("zone_noharvest_",tolower(herd),"_crithab_or_herd")), 
+                    value = zone.nh.crithab.herd, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, 
+          paste0("ALTER TABLE zone.zone_noharvest_",tolower(herd),"_crithab_or_herd INHERIT zone.constraints"))
+dbDisconnect(conn)  
+ 
+#upload to db
+  system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                   here::here(), '/R/params/ras_herd_bounds_nh.tif -t 100x100', 
+                                   paste0(' rast.zone_cond_noharvest_', tolower(herd),'_crithab_or_herd'),' | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+}
+
+
+```
+
+
+
+
+
+
+---
+
+## Fed line work
+
+## Southern Mountain
+
+### Central Group
+
+The critical habitats may come in various data structure forms like .shp or .gdb. In this chunk the data is loaded in R.
+```{r, sm.cg}
+#Canadian (Federal) contraints
+sm.cg.crit<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/Canada/Southern_Mtn/Central_Group/data/DraftSMCcg_CHLPU_20181016/DraftCHLPU_20181016.gdb", layer ='CH_638_Rangifer_tarandus_caribou_SouthMountain_CentralGroup')
+
+unique(sm.cg.crit$CHVariant)
+
+sm.cg.crit<-sm.cg.crit[!is.na(sm.cg.crit$CHVariant), c("SHAPE", "CHVariant")] #keep only the needed features
+sm.cg.crit<-st_zm(sm.cg.crit) #remove the z dimension
+sm.cg.crit<-st_cast(sm.cg.crit, "MULTIPOLYGON") #cast to a multipolygon
+
+sm.cg.crit3<-sm.cg.crit %>% group_by(CHVariant) %>% 
+        summarise() #unique polygons for each CHVariant
+sm.cg.crit3<-sm.cg.crit3[!(sm.cg.crit3$CHVariant == 'Connectivity Range'),]
+st_write(sm.cg.crit3, "sm_cg.shp")
+
+```
+### Northern Group
+```{r, sm.cg}
+#Canadian (Federal) contraints
+sm.ng.crit<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/Canada/Southern_Mtn/Northern_Group/data/DraftSMCng_CHLPU_20181016/DraftCHLPU_20181016.gdb", layer ='CH_638_Rangifer_tarandus_caribou_SouthMountain_NorthernGroup')
+
+unique(sm.ng.crit$CHVariant)
+
+sm.ng.crit<-sm.ng.crit[!is.na(sm.ng.crit$CHVariant), c("SHAPE", "CHVariant")] #keep only the needed features
+sm.ng.crit<-st_zm(sm.ng.crit) #remove the z dimension
+sm.ng.crit<-st_cast(sm.ng.crit, "MULTIPOLYGON") #cast to a multipolygon
+sm.ng.crit<-sm.ng.crit[!(sm.ng.crit$CHVariant == ''),]
+  
+sm.ng.crit3<-sm.ng.crit %>% group_by(CHVariant) %>% 
+        summarise() #unique polygons for each CHVariant
+
+sm.ng.crit3<-sm.ng.crit3[!(sm.ng.crit3$CHVariant == 'Connectivity Range'),]
+st_write(sm.ng.crit3, "sm_ng.shp")
+
+```
+### Southern Group
+```{r, sm.cg}
+#Canadian (Federal) contraints
+sm.sg.crit<-sf::st_read("S:/ANA/PROJECTS/CLUS/Data/caribou/critical_habitat/Canada/Southern_Mtn/Southern_Group/data/DraftSMCsg_CHLPU_20181016/DraftCHLPU_20181016.gdb", layer ='CH_638_Rangifer_tarandus_caribou_SouthMountain_SouthernGroup')
+
+unique(sm.sg.crit$CHVariant)
+
+sm.sg.crit<-sm.sg.crit[!is.na(sm.sg.crit$CHVariant), c("Shape", "CHVariant")] #keep only the needed features
+sm.sg.crit<-st_zm(sm.sg.crit) #remove the z dimension
+sm.sg.crit<-st_cast(sm.sg.crit, "MULTIPOLYGON") #cast to a multipolygon
+sm.sg.crit<-sm.sg.crit[!(sm.sg.crit$CHVariant == ''),]
+sm.sg.crit<-sm.sg.crit[!is.null(sm.sg.crit$CHVariant),]
+  
+sm.sg.crit3<-sm.sg.crit %>% group_by(CHVariant) %>% 
+        summarise() #unique polygons for each CHVariant
+
+sm.sg.crit3<-sm.sg.crit3[!(sm.sg.crit3$CHVariant == 'Connectivity Range'),]
+sm.sg.crit3<-sm.sg.crit3[!(sm.sg.crit3$CHVariant == 'Matrix Range'),]
+st_write(sm.sg.crit3, "sm_sg.shp")
+
+```
+
+## Rasterize critical habitat types
+The critical habitat spatial zones need to be rasterized to the same extent as the other layers to ensure that the pixels match
+
+```{r, rasterize}
+#Make a dummy raster with the same extent as the other provincial rasters
+#build a default/empty provincial raster
+sm.ng<-st_read(paste0(here::here(),"/R/Params/sm_ng.shp"))
+sm.cg<-st_read(paste0(here::here(),"/R/Params/sm_cg.shp"))
+sm.sg<-st_read(paste0(here::here(),"/R/Params/sm_sg.shp"))
+
+sm<-rbind(sm.ng,sm.cg,sm.sg)
+unique(sm$CHVariant)
+sm1<-sm[sm$CHVariant %in% c('Matrix Range', 'High Elevation Winter/Summer Range', 'Low Elevation Summer Range',  'High Elevation Winter Range', 'Core Range', 'Low Elevation Winter Range' ),]
+
+crit.vat<-data.table(CHVariant=unique(sm1$CHVariant))
+crit.vat[, critid:=seq_len(.N)]
+
+sm2<-merge(sm1, crit.vat)
+
+#rasterize the critical habitat
+
+ras.sm <-fasterize::fasterize(sm2, prov.rast, field = "critid") #this is a
+raster::plot(ras.sm)
+```
+
+## Caribou Herds or LPUs 
+```{r, carib}
+carib_poly<-getSpatialQuery("SELECT herd_name, wkb_geometry from bc_carib_poly_20090904;")
+carib.vat<-data.table(herd_name=unique(carib_poly$herd_name))
+carib.vat[,caribid := seq_len(.N)*10]#multiply by 10 so the first digit can be a unique critical habitat (1-6)
+carib_poly2<-merge(carib_poly,carib.vat)
+
+#Create a provincial raster
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(carib_poly)$proj4string, resolution = c(100, 100), vals = 0)
+
+ras.carib <-fasterize::fasterize(carib_poly2, prov.rast, field = "caribid") 
+raster::plot(ras.carib)
+```
+## Create the zone raster
+```{r, zon.ras}
+ras.sm[is.na(ras.sm[])]<-0
+ras.carib[is.na(ras.carib[])]<-0
+ras.zone<-ras.sm+ras.carib
+
+#Clip to the bc boundary
+bcb <-bcmaps::bc_bound_hres()
+bcb$bc <-1
+ras.bc <-fasterize::fasterize(bcb, prov.rast, field = "bc") 
+ras.zone <-ras.zone*ras.bc
+
+
+test<-data.table(freq(ras.zone))
+test[, critid:= as.integer(substr(as.character(value), nchar(as.character(value)), nchar(as.character(value))))] 
+
+#get rid of the pixels that do not have a critical habitat
+remove<-test[critid == 0, value]
+ras.zone[ras.zone[] %in% remove]<-NA
+
+#create the value attribute table (vat)
+sm.vat<- test[!(critid == 0), ]
+sm.vat[,caribid:= value - critid] #get the caribou herd identifier
+sm.vat<-merge(sm.vat, carib.vat, all.x = TRUE)
+sm.vat<-merge(sm.vat, crit.vat, all.x = TRUE, by.x = 'critid', by.y ='critid')
+
+#zoneid reference_zone ndt variable threshold type percentage
+setnames(sm.vat, "value", "zoneid")
+sm.vat[, reference_zone:= 'rast.zone_cond_crithab']
+sm.vat[, variable:= 'age']
+sm.vat[, type:= 'le']
+sm.vat[, threshold:= '40']
+
+sm.vat[CHVariant == 'Matrix Range', percentage:= 18]
+sm.vat[CHVariant == 'Low Elevation Winter Range', percentage:= 18]
+
+nh.zones<-sm.vat[is.na(percentage), zoneid]
+ras.zone[ras.zone[] %in% nh.zones]<-0
+
+zone.crithab<-sm.vat[!(zoneid %in% nh.zones),]
+zone.crithab<-zone.crithab[,ndt:=0]
+
+zone.crithab<-zone.crithab[, c('zoneid', 'reference_zone', 'ndt', 'variable', 'threshold','type','percentage' )]
+zone.crithab.nh<-data.table(zoneid =0, reference_zone = 'rast.zone_cond_crithab', ndt =0, variable ='', threshold = 0, type = 'nh', percentage =0)
+
+zone.crithab<-rbindlist(list(zone.crithab, zone.crithab.nh))
+
+writeRaster(ras.zone, "test.tif", overwrite = TRUE)
+```
+
+## Commit to postgreSQL
+```{r, commit_db}
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+zone.crithab<-zone.crithab[,zoneid:=as.integer(zoneid)]
+zone.crithab<-zone.crithab[,ndt:=as.integer(ndt)]
+zone.crithab<-zone.crithab[,threshold:=as.numeric(threshold)]
+DBI::dbWriteTable(conn, c("zone", "zone_crithab"), value= zone.crithab, row.names = FALSE, overwrite = TRUE)
+
+#dbExecute(conn, "ALTER TABLE zone_vqo INHERIT zone.constraints")
+dbDisconnect(conn)
+
+#upload to db
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/test.tif -t 100x100 rast.zone_cond_crithab | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+## Central Group Partnership Agreement: Proposed Land Use Order Areas 
+Here we develop rasters and constraint tables for proposed land use orders in the central group caribou herds. These areas and orders were proposed to support caribou recovery planning as part of the southern mountain caribou Partnership Agreement between BC, West Moberly First Nations, Sauteau First Nations and Canada. 
+
+### Parnertship Agreement Areas
+Below creates a raster of partnership agreement areas.
+
+```{r, partnership agreement areas}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+partnership <- getSpatialQuery("SELECT * from mtn_caribou_pa_jan_2020;") # partnership area polygon data
+all.partnership <- partnership 
+all.vat <- data.table (st_drop_geometry (all.partnership [, c ('zone', 'detail')]))
+all.vat [, value:= seq_len(.N)]
+DBI::dbWriteTable(conn, c("public", "partnership_agreement_vat"), value= all.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+all.partnership2 <- merge (all.partnership, all.vat, by.x = "zone",by.y = "zone") # merge id with the polygon data
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(poly.caribou)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
+ras.partnership <-fasterize::fasterize(all.partnership2, prov.rast, field = "value") # rasterize the polygon data to the provincial raster
+writeRaster(ras.partnership, "area_of_interest.tif", overwrite = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/area_of_interest.tif -t 100x100 rast.aoi_partnership_agree | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+
+### Central Group Proposed Land Use Order Areas
+The proposed areas were defined as: 
+ - buffer areas within 40km of protected caribou habitat, including A2, B2, B3; and
+ - areas that are within 40km of defined core caribou range (summer and winter) in the Narraway LPU.
+
+As an alternative scenario, it was proposed to use central group matrix habitat instead of a 40 km buffer. 
+
+More recently (Feb. 2021) a contiguous area that included the core caribou range and matrix habitat was used.
+
+In a GIS, we took the A2, B2 and B3 partnership agreement areas and buffered them by 40km. We then buffered the core Narraway critical habitat areas by 40km. We merged the partnership agreement areas, core critical habitat, matrix habitat and buffered area into a single spatial dataset, where partnership agreement areas superseded core habtiat, which superseded matrix habitat, which superseded the buffered area. Each of these 'zones' was maintained in the spatial data to allow for some flexibility in future analyses. 
+
+### Proposed Land Use Order Constraints
+The initial proposed constraint for all of these areas together was maximum 35% forest age less than 25 years old. As indicated above, we maintained seperate zones in case there becomes a desire to apply different consrtaints to each zone. Below are scripts to create spatial rasters that keep different configurations of these zones (i.e., all independent, all within the buffered area together, all within teh matrix area together). 
+
+A more recent proposed order included maximum 35% forest age less than 25 years old or height less than 2.5 meters applied to the extent of the LUO boundary area (Feb. 2021). 
+
+```{r, proposed LUO area, all areas}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+luo_area <- getSpatialQuery("SELECT * from public.scenario_central_grp_proposed_luo;")# proposed areas created in GIS
+
+# zone integer
+luo.vat <- data.table (st_drop_geometry (luo_area [, c ('zone')]))
+luo.vat [, value:= seq_len(.N)] 
+all_luo_area <- merge (luo_area, luo.vat, by.x = "zone", by.y = "zone")
+
+# raster
+ras.scenario_central_grp_proposed_luo <-fasterize::fasterize(all_luo_area, prov.rast, field = "value")
+writeRaster(ras.scenario_central_grp_proposed_luo, "central_grp_proposed_luo.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/central_grp_proposed_luo.tif -t 100x100 rast.central_grp_proposed_luo | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table
+zone_luo <- data.table (zoneid = 1:8, 
+                        type = 'le', 
+                        variable = 'age', 
+                        threshold = 25, 
+                        reference_zone = 'rast.central_grp_proposed_luo', 
+                        percentage = 35, 
+                        ndt = as.integer(0), 
+                        multi_condition = as.character(NA))
+
+# commit tables to pg
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "scenario_central_grp_proposed_luo_vat"), value= luo.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_scenario_central_grp_proposed_luo"), value= zone_luo, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_scenario_central_grp_proposed_luo INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+The following groups all zones together within the 40km buffer.
+```{r, proposed LUO areas, all in buffer}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+luo_area <- getSpatialQuery("SELECT * from public.scenario_central_grp_proposed_luo;")
+
+# zone integer
+luo.vat.40 <- luo.vat
+luo.vat.40 [, value:= 1]   
+luo_area_40 <- merge (luo_area, luo.vat.40, by.x = "zone", by.y = "zone") 
+
+# raster
+ras.scenario_central_grp_proposed_luo_buffer <-fasterize::fasterize (luo_area_40, prov.rast, field = "value") 
+writeRaster(ras.scenario_central_grp_proposed_luo_buffer, "central_grp_proposed_luo_buffer.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/central_grp_proposed_luo_buffer.tif -t 100x100 rast.central_grp_proposed_luo_buffer | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table
+zone_luo_buffer <- data.table (zoneid = as.integer(1), 
+                                type = 'le', 
+                                variable = 'age', 
+                                threshold = 25, 
+                                reference_zone = 'rast.central_grp_proposed_luo_buffer', 
+                                percentage = 35, 
+                                ndt = as.integer(0), 
+                                multi_condition = as.character(NA))
+
+# commit tables to pg
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "scenario_central_grp_proposed_luo_buffer_vat"), value= luo.vat.40, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_scenario_central_grp_proposed_luo_buffer"), value= zone_luo_buffer, 
+                          row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_scenario_central_grp_proposed_luo_buffer INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+The following groups all zones together within the central group matrix habitat.
+```{r, proposed LUO areas, all in matrix}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+luo_area <- getSpatialQuery("SELECT * from scenario_central_grp_proposed_luo;")
+
+# zone integer
+luo.vat.matrix <- luo.vat
+luo.vat.matrix <- luo.vat.matrix [ zone != 'buffer 40km']
+luo.vat.matrix [, value:= 1]  
+luo_area_matrix <- merge (luo_area, luo.vat.matrix, by.x = "zone", by.y = "zone") 
+
+# raster
+ras.scenario_central_grp_proposed_luo_matrix <-fasterize::fasterize (luo_area_matrix, prov.rast, field = "value") 
+writeRaster(ras.scenario_central_grp_proposed_luo_matrix, "central_grp_proposed_luo_matrix.tif", overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/central_grp_proposed_luo_matrix.tif -t 100x100 rast.central_grp_proposed_luo_matrix | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table
+zone_luo_matrix <- data.table (zoneid = as.integer(1), 
+                                type = 'le', 
+                                variable = 'age', 
+                                threshold = 25, 
+                                reference_zone = 'rast.central_grp_proposed_luo_matrix', 
+                                percentage = 35, 
+                                ndt = as.integer(0), 
+                                multi_condition = as.character(NA))
+
+# commit tables to pg
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "scenario_central_grp_proposed_luo_matrix_vat"), value= luo.vat.matrix, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_scenario_central_grp_proposed_luo_matrix"), value= zone_luo_matrix, 
+                          row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_scenario_central_grp_proposed_luo_matrix INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+
+The following creates the LUO boundary as of February 2021.
+```{r, proposed LUO areas, all in matrix}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+luo_area <- getSpatialQuery("SELECT * from scenario_luo_outer_20210216;")
+  
+# zone integer
+luo_area$zone <- 1
+luo.vat <- data.table (st_drop_geometry (luo_area))
+
+# raster
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(luo_area)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
+ras.scenario_central_grp_luo_outer_feb2021 <-fasterize::fasterize (luo_area, prov.rast, field = "zone") 
+writeRaster(ras.scenario_central_grp_luo_outer_feb2021, "central_grp_proposed_luo_feb2021.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/central_grp_proposed_luo_feb2021.tif -t 100x100 rast.central_grp_proposed_luo_feb2021 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table
+zone_luo <- data.table (zoneid = as.integer(1), 
+                        type = 'le', 
+                        variable = 'age', 
+                        threshold = 25, 
+                        reference_zone = 'rast.central_grp_proposed_luo_feb2021', 
+                        percentage = 35, 
+                        ndt = as.integer(0), 
+                        multi_condition = 'age < 12 OR height < 2.5')
+# commit tables to pg
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("public", "scenario_central_grp_proposed_luo_feb2021_vat"), value = luo.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_scenario_central_grp_proposed_luo_feb2021"), value = zone_luo, 
+                          row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_scenario_central_grp_proposed_luo_feb2021 INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+
+
+
+## Buffered Caribou Herd and Desginatable Unit Boundaries
+Here we develop rasters of caribou evolutionary designatable units (DUs). These are used used to define the appropriate caribou resource selection function model to apply to an analysis (rsfCLUS).
+
+Below we define herd boundary areas plus a 25km buffer. These can be used for sampling or measuring habitat characterstics in and around caribou herd boundaries. 
+```{r, herd areas buffered by 25km}
+poly.caribou <- getSpatialQuery("SELECT * FROM bc_caribou_herd_boundary_v20200507") # data from BCGW
+poly.caribou.25<-st_buffer(poly.caribou, 25000)
+#plot(poly.caribou.25["herd_name"])
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable (conn, c("public", "caribou_herd_25"), value = poly.caribou.25, 
+                   row.names = FALSE, overwrite = TRUE)
+```
+
+Below we define DU areas to include a 25km buffer around herd boundaries in each DU. 
+```{r, du_bounds}
+poly.caribou <- getSpatialQuery("SELECT * FROM bc_caribou_herd_boundary_v20200507") # data from BCGW
+poly.caribou.25<-st_buffer(poly.caribou, 25000)
+du6<-poly.caribou.25[poly.caribou.25$herd_name %in% c('Calendar', 'Chinchaga', 'Maxhamish', 'Parker', 'Prophet', 'Snake_Sahtaneh', 'Westside_Fort_Nelson'),]
+du6<-st_sf(st_union(du6))
+du6$bounds<-1
+du6.ras<-fasterize::fasterize (du6, prov.rast, field = "bounds") 
+writeRaster (du6.ras, file = "du6.tif", format = "GTiff", overwrite = TRUE)
+#upload to db
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/du6.tif -t 100x100 rast.du6_bounds | psql postgresql://', keyring::key_get('dbuser', keyring='postgreSQL'),':',keyring::key_get('dbname', keyring='postgreSQL'),'@',keyring::key_get('dbhost', keyring='postgreSQL'),':5432/', keyring::key_get('dbpass', keyring='postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+du7<-poly.caribou.25[poly.caribou.25$herd_name %in% c('Graham', 'Horseranch', 'Muskwa', 'Frog', 'Pink_Mountain', 'Rabbit', 'Gataga', 'Charlotte_Alplands', 'Swan_Lake', 'Level_Kawdy', 'Chase', 'Little_Rancheria', 'Takla', 'Wolverine', 'Edziza', 'Atlin', 'Carcross', 'Finlay', 'Liard_Plateau', 'Itcha_Ilgachuz', 'Telkwa', 'Tsenaglode', 'Rainbows', 'Tweedsmuir', 'Spatsizi', 'Thutade'),]
+du7<-st_sf(st_union(du7))
+du7$bounds<-1
+du7.ras<-fasterize::fasterize (du7, prov.rast, field = "bounds") 
+writeRaster (du7.ras, file = "du7.tif", format = "GTiff", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/du7.tif -t 100x100 rast.du7_bounds | psql postgresql://', keyring::key_get('dbuser', keyring='postgreSQL'),':',keyring::key_get('dbname', keyring='postgreSQL'),'@',keyring::key_get('dbhost', keyring='postgreSQL'),':5432/', keyring::key_get('dbpass', keyring='postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+du8<-poly.caribou.25[poly.caribou.25$herd_name %in% c('Burnt_Pine', 'Kennedy_Siding', 'Moberly', 'Narraway', 'Quintette', 'Scott', 'Redrock_Prairie_Creek'),]
+du8<-st_sf(st_union(du8))
+du8$bounds<-1
+du8.ras<-fasterize::fasterize (du8, prov.rast, field = "bounds") 
+writeRaster (du8.ras, file = "du8.tif", format = "GTiff", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/du8.tif -t 100x100 rast.du8_bounds | psql postgresql://', keyring::key_get('dbuser', keyring='postgreSQL'),':',keyring::key_get('dbname', keyring='postgreSQL'),'@',keyring::key_get('dbhost', keyring='postgreSQL'),':5432/', keyring::key_get('dbpass', keyring='postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+
+du9<-poly.caribou.25[poly.caribou.25$herd_name %in% c('Barkerville', 'Central_Rockies', 'Columbia_South', 'Columbia_North', 'Duncan', 'Frisby_Boulder', 'Groundhog', 'Hart_Ranges' ,'Monashee', 'Nakusp', 'Narrow_Lake', 'North_Cariboo', 'Purcells_South','Purcell_Central', 'South_Selkirks', 'Central_Selkirks','Wells_Gray_North', 'Wells_Gray_South','George_Mountain'),]
+du9<-st_sf(st_union(du9))
+du9$bounds<-1
+du9.ras<-fasterize::fasterize (du9, prov.rast, field = "bounds") 
+writeRaster (du9.ras, file = "du9.tif", format = "GTiff", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/du9.tif -t 100x100 rast.du9_bounds | psql postgresql://', keyring::key_get('dbuser', keyring='postgreSQL'),':',keyring::key_get('dbname', keyring='postgreSQL'),'@',keyring::key_get('dbhost', keyring='postgreSQL'),':5432/', keyring::key_get('dbpass', keyring='postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+## DU9 Scenario Zones
+These zones were created to supprot DU9 herd planning.
+
+### Revelstoke
+The following creates zones for the Revelstoke 'group' of caribou (Columbia North, Columbia South and Frisby-Boulder). Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different contraints on different herds and different habtait types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area). The latter are priority forest stands for protection.  
+
+Here we start with consistent constraints across herds and scenarios, but vary constraints across habitat types, where no harvest is applied to core habitat and maximum 35% disturbance is applied to matrix. Note that for 35% disturbance I used a 15% threshold to account for edge effects of buffered areas that are difficult to account for in the model, but this can be varied as needed.
+
+```{r, proposed Reve areas}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+reve_area <- getSpatialQuery("SELECT * from public.reve_ernst_20201204;")
+reve_area$zone <- paste (reve_area$herd_name, # create concatenated var to id each zone
+                         reve_area$bc_habitat, 
+                         reve_area$scenario_n,
+                         sep="_")
+# zone integer  
+reve_area_vat <- data.table (st_drop_geometry (reve_area [, c ('zone')]))  
+reve_area_vat [, value := seq_len(.N)]   
+all_reve_area <- merge (reve_area, reve_area_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(poly.caribou)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_reve_area <- fasterize::fasterize (all_reve_area, prov.rast, field = "value")
+writeRaster (ras_reve_area, "ras_reve_area.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ras_reve_area.tif -t 100x100 rast.zone_cond_reve_area | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1,3,5,7,9,11,13,15,17,19,21,23)), type = 'nh', variable = '', threshold = 0, reference_zone = 'rast.zone_cond_reve_area', percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(2,4,6,8,10,12,14,16,18,20,22,24)), type = 'ge', variable = 'dist', threshold = 500, reference_zone = 'rast.zone_cond_reve_area', percentage = 85, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_reve <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_reve_vat"), value = reve_area_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_reve_area"), value = zone_reve, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_reve_area INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+### All DU9 (Except Groundhog)
+The following creates zones for DU9 caribou. Each unique zone is a concatenate of 'herd', 'habitat type' and 'scenario' in the original polygonal data. Treating each of these combinations as a unique zone provides the most flexibility in modifying constraints within the zones (e.g., apply different constraints on different herds and different habitat types). Herd refers to each of the three herds, habitat type refers to whether it is 'core' (i.e., high elevation winter and summer range) or 'matrix', as defined by the BC government and scenario specifies a particular forest type (i.e., 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; 'Un-forested' = non-forested area). The latter are priority forest stands for protection. 
+
+Here we start with consistent constraints across herds and scenarios, but vary constraints across habitat types, where no harvest is applied to core habitat and maximum 35% disturbance is applied to matrix. Note that for 35% disturbance I used a 15% threshold to account for edge effects of buffered areas that are difficult to account for in the model, but this can be varied as needed.
+
+```{r, proposed DU9 areas}
+# conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+#                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+#                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+#                         port = '5432',
+#                         user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+#                         password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# du9_scenarios <- getSpatialQuery("SELECT * from public.old_recruit_buff_matrix_fin;")
+
+require (sf)
+require (data.table)
+
+du9_scenarios <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\scenarios\\southern_mtn\\Scenario_2021.gdb",
+                              layer="old_recruit_buff_matrix_fin")
+du9_scenarios <- st_zm (du9_scenarios, drop = TRUE, what = "ZM")
+du9_scenarios$zone <- paste (du9_scenarios$Herd_Name, # create concatenated var to id each zone
+                             du9_scenarios$habitat_type, 
+                             du9_scenarios$scenario,
+                             sep="_")
+
+# zone integer  
+du9_scenarios_vat <- data.table (st_drop_geometry (du9_scenarios [, c ('zone')]))  
+du9_scenarios_vat [, value := seq_len(.N)]  
+all_du9_scenarios <- merge (du9_scenarios, du9_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du9_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du9_scenarios <- fasterize::fasterize (all_du9_scenarios, prov.rast, field = "value")
+writeRaster (ras_du9_scenarios, "ras_du9_scenarios.tif", overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du9_scenarios.tif -t 100x100 rast.zone_du9_scenarios | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:59)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_du9_scenarios', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(60:76)), 
+                           type = 'ge', variable = 'dist', threshold = 500, 
+                           reference_zone = 'rast.zone_du9_scenarios', 
+                           percentage = 85, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du9_scenarios <- rbindlist(list(zone_core, zone_matrix))
+
+DBI::dbWriteTable(conn, c("public", "zone_du9_scenarios_vat"), value = du9_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_du9_scenarios"), value = zone_du9_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_du9_scenarios INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+
+### DU9 - Groundhog only Feb 2021
+The following creates prioirty forest stand zones for groundhog caribou. Same as DU9 above.
+
+```{r, proposed DU9 areas}
+
+# NOT ADDED TO PGDB; LOADED FROAM LOCAL FILE; LOCATEDC IN CLUS folder database on psatialfiles
+
+require (sf)
+require (data.table)
+
+gh_scenarios <- sf::st_read (dsn = "C:\\Work\\caribou\\clus_data\\scenarios\\southern_mtn\\Groundhog_George.gdb",
+                              layer="GH_OLD_RECRUIT_BUFFER_CORE_MATRIX")
+gh_scenarios <- st_zm (gh_scenarios, drop = TRUE, what = "ZM")
+gh_scenarios$zone <- paste (gh_scenarios$Herd_Name, # create concatenated var to id each zone
+                             gh_scenarios$BC_Habitat, 
+                             gh_scenarios$Scenario_Name,
+                             sep="_")
+
+# zone integer  
+gh_scenarios_vat <- data.table (st_drop_geometry (gh_scenarios [, c ('zone')]))  
+gh_scenarios_vat [, value := seq_len(.N)]  
+all_gh_scenarios <- merge (gh_scenarios, gh_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(gh_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_gh_scenarios <- fasterize::fasterize (all_gh_scenarios, prov.rast, field = "value")
+writeRaster (ras_gh_scenarios, "ras_gh_scenarios.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_gh_scenarios.tif -t 100x100 rast.zone_gh_scenarios | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:4)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_gh_scenarios', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(5)), 
+                           type = 'ge', variable = 'dist', threshold = 500, 
+                           reference_zone = 'rast.zone_gh_scenarios', 
+                           percentage = 65, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_gh_scenarios <- rbindlist(list(zone_core, zone_matrix))
+
+DBI::dbWriteTable(conn, c("public", "zone_gh_scenarios_vat"), value = gh_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_gh_scenarios"), value = zone_gh_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_gh_scenarios INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+### DU9 - Barkerville and Groundhog only; updated zones, March 2021
+The following creates zones for Barkerville and Groundhog caribou. This is a combination of priority zones and forest stand types for protection. These consist of priority forest stands identified 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; and a both of those buffered by 500m ("scenario buffer"). Priority stands were only identified in high elevation winter and summer critical habitat. Critical habitat also in this data.
+
+```{r, proposed DU9 areas}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+du9_scenarios <- getSpatialQuery("SELECT * from public.zones_barkerville_groundhog_20210303;")
+
+# zone integer  
+du9_scenarios_vat <- data.table (st_drop_geometry (du9_scenarios [, c ('zone')]))  
+du9_scenarios_vat [, value := seq_len(.N)]  
+all_du9_scenarios <- merge (du9_scenarios, du9_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du9_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du9_scenarios <- fasterize::fasterize (all_du9_scenarios, prov.rast, field = "value")
+writeRaster (ras_du9_scenarios, "ras_du9_scenarios.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du9_scenarios.tif -t 100x100 rast.zone_barkerville_groundhog_zones_20210303 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:6, 10:15)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(7:9, 16:18)), 
+                           type = 'ge', variable = 'dist', threshold = 500, 
+                           reference_zone = 'rast.zone_barkerville_groundhog_zones_20210303', 
+                           percentage = 88, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du9_scenarios <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_barkerville_groundhog_scenarios_vat"), value = du9_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_barkerville_groundhog_scenario"), value = zone_du9_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_barkerville_groundhog_scenario INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+### DU7 - Chilcotin, Tweeds, Telkwa and Graham only; new zones, March, 05 2021
+The following creates zones for DU7 Chilcotin, Tweeds, Telkwa and Graham caribou. These consist of priority forest stands identified 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; and a both of those buffered by 500m ("scenario buffer"). Priority stands were only identified in high and low elevation winter and summer critical habitat. No priority zones. Critical habitat also in this data.
+
+```{r, proposed DU9 areas}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+du7_scenarios <- getSpatialQuery("SELECT * from public.northern_group_scenario_20210305;")
+
+# zone integer  
+du7_scenarios_vat <- data.table (st_drop_geometry (du7_scenarios [, c ('type')]))  
+du7_scenarios_vat [, value := seq_len(.N)]  
+all_du7_scenarios <- merge (du7_scenarios, du7_scenarios_vat, by.x = "type", by.y = "type")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du7_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du7_scenarios <- fasterize::fasterize (all_du7_scenarios, prov.rast, field = "value")
+writeRaster (ras_du7_scenarios, "ras_du7_scenarios_20210305.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du7_scenarios_20210305.tif -t 100x100 rast.zone_du7_scenario_20210305 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:8, 11:18, 21:32, 35:46, 49:52, 55:69)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_du7_scenario_20210305', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(9:10, 19:20, 33:34, 47:48, 53:54, 70:71)), 
+                           type = 'le', variable = 'dist', threshold = 0, 
+                           reference_zone = 'rast.zone_du7_scenario_20210305', 
+                           percentage = 12, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du7_scenarios <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_du7_scenarios_20210305_vat"), value = du7_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_du7_scenarios_20210305"), value = zone_du7_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_du7_scenarios_20210305 INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+### DU9 - All herds; updated zones, March 2021
+The following creates zones for all DU9 caribou. This is a combination of priority zones and forest stand types for protection. These consist of priority forest stands identified 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; and a both of those buffered by 500m ("scenario buffer"). Priority stands were only identified in high elevation winter and summer critical habitat. Critical habitat also in this data.
+
+```{r, proposed DU9 areas part 2}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+du9_scenarios <- getSpatialQuery("SELECT * from public.smc_scenarios_20210315;")
+
+# zone integer  
+du9_scenarios_vat <- data.table (st_drop_geometry (du9_scenarios [, c ('zone')]))  
+du9_scenarios_vat [, value := seq_len(.N)]  
+all_du9_scenarios <- merge (du9_scenarios, du9_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du9_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du9_scenarios <- fasterize::fasterize (all_du9_scenarios, prov.rast, field = "value")
+writeRaster (ras_du9_scenarios, "ras_du9_scenarios.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du9_scenarios.tif -t 100x100 rast.zone_smc_zones_20210315 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:9, 11:13, 15:25, 29:32, 36, 39:40, 43:45, 47:49, 51:53, 55:63, 65, 67:69, 71:73, 75:77, 79:81, 83:84, 86:88, 90:96, 98:100, 103:104)), 
+                         type = 'nh', variable = 'dist', threshold = 0, 
+                         reference_zone = 'rast.zone_smc_zones_20210315', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(10, 14, 26:28, 33:35, 37:38, 41:42, 46, 50, 54, 64, 66, 70, 74, 78, 82, 85, 89, 97, 101:102, 115:118)), 
+                           type = 'le', variable = 'dist', threshold = 0, 
+                           reference_zone = 'rast.zone_smc_zones_20210315', 
+                           percentage = 12, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du9_scenarios <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_cond_du9_scenarios_vat"), value = du9_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_cond_du9_scenarios"), value = zone_du9_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_cond_du9_scenarios INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+### DU7 - Updated scenario zones, DU7/Northern Group March, 30 2021
+The following creates zones for DU7/Northern Group caribou. This is a combination of priority zones and forest stand types for protection. These consist of priority forest stands identified 'old forest' = forest stand currently greater than 100 years old and slope less than 60% that has 'low' or no protection; 'recruitment forest' = forest stand currently greater than 60 years old and has 'low' or no protection; and a both of those buffered by 500m ("scenario buffer"). Priority stands were only identified in high and low elevation winter and summer critical habitat. The priority zones include 'low', 'medium' and 'high' areas, as defined by caribou biologists. Critical habitat is also included in this data.
+
+```{r, proposed D7 zones, March 30, 2021 version}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+du7_scenarios <- getSpatialQuery("SELECT * from public.northern_group_scenario_20210330;")
+
+# zone integer  
+du7_scenarios_vat <- data.table (st_drop_geometry (du7_scenarios [, c ('zone')]))  
+du7_scenarios_vat [, value := seq_len(.N)]  
+all_du7_scenarios <- merge (du7_scenarios, du7_scenarios_vat, by.x = "zone", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(du7_scenarios)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_du7_scenarios <- fasterize::fasterize (all_du7_scenarios, prov.rast, field = "value")
+writeRaster (ras_du7_scenarios, "ras_du7_scenarios_20210330.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_du7_scenarios_20210330.tif -t 100x100 rast.zone_du7_scenario_20210330 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+
+
+#Create zone constraint table for raster with all zones
+zone_core <- data.table (zoneid = as.integer(c(1:3, 9:11, 13:24, 28:44, 56:61, 67:69, 71:73, 75:82, 88:90)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_du7_scenario_20210330', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_matrix <- data.table (zoneid = as.integer(c(4:8, 12, 25:27, 45:55, 62:66, 70, 74, 83:87, 91)), 
+                           type = 'le', variable = 'dist', threshold = 0, 
+                           reference_zone = 'rast.zone_du7_scenario_20210330', 
+                           percentage = 12, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_du7_scenarios <- rbindlist(list(zone_core, zone_matrix))
+DBI::dbWriteTable(conn, c("public", "zone_cond_du7_scenarios_20210330_vat"), value = du7_scenarios_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_cond_du7_scenarios_20210330"), value = zone_du7_scenarios, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_cond_du7_scenarios_20210330 INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
+
+
+### Proposed Whitesail WHA - version May, 27 2021
+The following creates zones for a proposed wildlife habitat area (WHA), called "Whitesail". The Whitesail WHA overlaps parts of the Tweedsmuir caribou herd and Morice timber supply area (TSA). The proposed WHA was created by Mark Wong and Anne-Marie Roberts, wildlife biologists in the Skeena region. 
+
+The WHA consists of several overlapping zones, including 'no harvest', 'special management zones (SMZs)', 'management zones' and biogeoclimatic (BEC) zones. As these zone types overlap each other (e.g., some SMZs overlap with management zones), here we create a unique raster for each unique type of zone.
+
+Below we create some starting constraints to these zones, but these will vary across scenarios.
+
+```{r, proposed whitesail wha, May 27 2021 version}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+
+### No harvest zones
+ws_nh <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_no_harvest;")
+ws_nh$zone <- ws_nh$management
+
+# zone integer  
+ws_nh_vat <- data.table (st_drop_geometry (ws_nh [, c ('zone')]))
+ws_nh_vat [, value := seq_len(.N)]  
+ws_nh <- merge (ws_nh, ws_nh_vat, by.x = "management", by.y = "zone")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(ws_nh)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_ws_nh <- fasterize::fasterize (ws_nh, prov.rast, field = "value")
+writeRaster (ras_ws_nh, "ras_ras_ws_nh_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ras_ws_nh_20210527.tif -t 100x100 rast.whitesail_noharvest_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone_nh <- data.table (zoneid = as.integer(1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.whitesail_noharvest_20210527', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+zone_nh_10 <- data.table (zoneid = as.integer(2), 
+                         type = 'ge', variable = 'age', threshold = 100, 
+                         reference_zone = 'rast.whitesail_noharvest_20210527', 
+                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone_nh, zone_nh_10))
+DBI::dbWriteTable(conn, c("public", "whitesail_noharvest_vat"), value = ws_nh_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_noharvest_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_noharvest_20210527 INHERIT zone.constraints"))
+
+
+### Calving SMZ
+ws_smz_c <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_smz_calving;")
+ws_smz_c$zone <- ws_smz_c$type
+# zone integer  
+ws_smz_c_vat <- data.table (st_drop_geometry (ws_smz_c [, c ('zone')]))
+ws_smz_c_vat [, value := seq_len(.N)]  
+ws_smz_c <- merge (ws_smz_c, ws_smz_c_vat, by.x = "type", by.y = "zone")
+
+ras_ws_smz_c <- fasterize::fasterize (ws_smz_c, prov.rast, field = "value")
+writeRaster (ras_ws_smz_c, "ras_ws_smz_c_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_smz_c_20210527.tif -t 100x100 rast.whitesail_smz_calving_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(1), 
+                         type = 'le', variable = 'age', threshold = 20, 
+                         reference_zone = 'rast.whitesail_smz_calving_20210527', 
+                         percentage = 17, ndt = as.integer(0), multi_condition = as.character(NA))
+# DBI::dbWriteTable(conn, c("public", "whitesail_smz_calving_vat"), value = ws_smz_c_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_smz_calving_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_smz_calving_20210527 INHERIT zone.constraints"))
+
+
+### High Elevation SMZ
+ws_smz_he <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_smz_he;")
+ws_smz_he$zone <- ws_smz_he$type
+
+# zone integer  
+ws_smz_he_vat <- data.table (st_drop_geometry (ws_smz_he [, c ('zone')]))
+ws_smz_he_vat [, value := seq_len(.N)]  
+ws_smz_he <- merge (ws_smz_he, ws_smz_he_vat, by.x = "type", by.y = "zone")
+
+ras_ws_smz_he <- fasterize::fasterize (ws_smz_he, prov.rast, field = "value")
+writeRaster (ras_ws_smz_he, "ras_ws_smz_he_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_smz_he_20210527.tif -t 100x100 rast.whitesail_smz_highelev_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(1), 
+                         type = 'le', variable = 'age', threshold = 20, 
+                         reference_zone = 'rast.whitesail_smz_highelev_20210527', 
+                         percentage = 9, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("public", "whitesail_smz_highelev_vat"), value = ws_smz_he_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_smz_highelev_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_smz_highelev_20210527 INHERIT zone.constraints"))
+
+
+### Movement Corridor SMZ
+ws_smz_move <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_smz_move;")
+ws_smz_move$zone <- ws_smz_move$type
+# zone integer  
+ws_smz_move_vat <- data.table (st_drop_geometry (ws_smz_move [, c ('zone')]))
+ws_smz_move_vat [, value := seq_len(.N)]  
+ws_smz_move <- merge (ws_smz_move, ws_smz_move_vat, by.x = "type", by.y = "zone")
+ras_ws_smz_move <- fasterize::fasterize (ws_smz_move, prov.rast, field = "value")
+
+writeRaster (ras_ws_smz_move, "ras_ws_smz_move_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_smz_move_20210527.tif -t 100x100 rast.whitesail_smz_movecorr_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 100, 
+                         reference_zone = 'rast.whitesail_smz_movecorr_20210527', 
+                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("public", "whitesail_smz_movecorr_vat"), value = ws_smz_move_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_smz_movecorr_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_smz_movecorr_20210527 INHERIT zone.constraints"))
+
+
+### Management Zones
+ws_manage <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_manage;")
+ws_manage$zone <- ws_manage$type
+# zone integer  
+ws_manage_vat <- data.table (st_drop_geometry (ws_manage [, c ('zone')]))
+ws_manage_vat [, value := seq_len(.N)]  
+ws_manage <- merge (ws_manage, ws_manage_vat, by.x = "type", by.y = "zone")
+ras_ws_manage <- fasterize::fasterize (ws_manage, prov.rast, field = "value")
+writeRaster (ras_ws_manage, "ras_ws_manage_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_manage_20210527.tif -t 100x100 rast.whitesail_management_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 100, 
+                         reference_zone = 'rast.whitesail_management_20210527', 
+                         percentage = 70, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("public", "whitesail_management_vat"), value = ws_manage_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_management_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_management_20210527 INHERIT zone.constraints"))
+
+
+### BEC Zones
+ws_bec <- getSpatialQuery("SELECT * from public.whitesail_wha_may2021_bec;")
+ws_bec$zone <- ws_bec$map_label
+# zone integer  
+ws_bec_vat <- data.table (st_drop_geometry (ws_bec [, c ('zone')]))
+ws_bec_vat [, value := seq_len(.N)]  
+ws_bec <- merge (ws_bec, ws_bec_vat, by.x = "map_label", by.y = "zone")
+ras_ws_bec <- fasterize::fasterize (ws_bec, prov.rast, field = "value")
+writeRaster (ras_ws_bec, "ras_ws_bec_20210527.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_ws_bec_20210527.tif -t 100x100 rast.whitesail_bec_20210527 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+### MULTIPLE AGE CONSTAINT?
+# Create zone constraint table for raster 
+# here uses Steventon Observed; has multiple age constraints - but here I used teh oldest class to constrain it
+zone.cwh <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'ge', variable = 'age', threshold = 141, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 71, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.sbs <- data.table (zoneid = as.integer(c (3:7)), 
+                         type = 'ge', variable = 'age', threshold = 101, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 61, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmk <- data.table (zoneid = as.integer(c (8:9)), 
+                           type = 'ge', variable = 'age', threshold = 101, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 81, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmc <- data.table (zoneid = as.integer(c (10:11)), 
+                           type = 'ge', variable = 'age', threshold = 101, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 76, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone.cwh, zone.sbs, zone.essfmk, zone.essfmc))
+
+zone.cwh.y <- data.table (zoneid = as.integer(c (1:2)), 
+                         type = 'le', variable = 'age', threshold = 39, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 16, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.sbs.y <- data.table (zoneid = as.integer(c (3:7)), 
+                         type = 'le', variable = 'age', threshold = 39, 
+                         reference_zone = 'rast.whitesail_bec_20210527', 
+                         percentage = 21, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmk.y <- data.table (zoneid = as.integer(c (8:9)), 
+                           type = 'le', variable = 'age', threshold = 39, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 5, ndt = as.integer(0), multi_condition = as.character(NA))
+zone.essfmc.y <- data.table (zoneid = as.integer(c (10:11)), 
+                           type = 'le', variable = 'age', threshold = 39, 
+                           reference_zone = 'rast.whitesail_bec_20210527', 
+                           percentage = 6, ndt = as.integer(0), multi_condition = as.character(NA))
+zone <- rbindlist(list(zone, zone.cwh.y, zone.sbs.y, zone.essfmk.y, zone.essfmc.y))
+
+DBI::dbWriteTable(conn, c("public", "whitesail_bec_vat"), value = ws_bec_vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "whitesail_bec_20210527"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.whitesail_bec_20210527 INHERIT zone.constraints"))
+
+dbDisconnect(conn)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## Modify Constraints Defined in SQLite Databases
+If necessary, the script below provides an example of how to modify proposed constraints in the SQLite databases created using dataLoaderCLUS.
+```{r, zone_update}
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
+
+#STEP 3: Update the constraints available to a zone as specified in the scenario
+dbExecute(clusdb, "UPDATE zoneconstraints set type = 'nh' where reference_zone = 'rast.zone_cond_partnership_agreement'") #This example will set all the zones in the partnership agreement to no harvest
+
+#dbExecute(clusdb, "UPDATE zoneconstraints set percentage = 85 where reference_zone = 'rast.zone_cond_partnership_agreement' and percentage = 65")
+#This example will set the zones in the partnership agreement that have constraints on the variable 'dist' to a 85% disturbance threshold
+
+#STEP 4: Remove the connection to the database
+dbDisconnect(clusdb)
+```
+
