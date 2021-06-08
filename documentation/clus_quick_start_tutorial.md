@@ -105,7 +105,7 @@ To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787
 
 ![](images/scen_tool.jpg)
 
-Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North caribou herd and the Revelstoke timebr supply area (TSA) as our 'example'. Click on the "Columbia North" herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habitat areas (WHAs). 
+Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North caribou herd and the Revelstoke timber supply area (TSA) as our 'example'. Click on the "Columbia North" herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habitat areas (WHAs). 
 
 ![](images/scen_tool_cn.jpg)
 
