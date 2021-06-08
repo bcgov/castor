@@ -30,7 +30,7 @@ keyring_unlock("postgreSQL")
 
 ## 3. Set the Credentials
 
-Here we set the keys (i.e., dbname, host, password, etc). A prompt will ask you for each of these values. It is important that we keep these keys to have the same name -- so we can hard code their calls in the CLUS code. When you run key_set()), the prompt will ask you for a 'password' each time, but you don't enter a password, you enter the corresponding value, e.g., for key_set("vmdbhost", keyring ="postgreSQL"), enter the host into the prompt.
+Here we set the keys (i.e., dbname, host, password, etc). A prompt will ask you for each of these values. It is important that we keep these keys to have the same name -- so we can hard code their calls in the CLUS code. When you run key_set()), the prompt will ask you for a 'password' each time, but you don't enter a password, you enter the corresponding value acquired from the CLUD core team, e.g., for key_set("vmdbhost", keyring ="postgreSQL"), enter the host ID into the prompt.
 
 ```{r, set}
 key_set("dbhost", keyring ="postgreSQL") 
