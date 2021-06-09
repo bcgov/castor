@@ -110,9 +110,9 @@ Click on the "New pull request" button. This will open a new page with "Comparin
 ![](images/github_pull2.jpg)
 
 ## 4. Set-up a Keyring
-CLUS uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., password) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally and use the "keyring" function to call those credentials from R scripts. 
+CLUS uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., user names and passwords) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally in the Windows "Credentials Manager" and use the "keyring" function to call those credentials from R scripts. 
 
-We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> functions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain the credentials for the PostgreSQL databases. 
+We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> functions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Prior to creating the keyring, you will need to contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain a user name and password credentials for accessing the PostgreSQL databases. Note that these are different then the credentials used to set-up GitHub. GitHub and PostrgeSQL are independent components of the CLUS framework.
 
 Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In the 'clus' database on our local network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
 
@@ -210,7 +210,7 @@ ras.data <-fasterize::fasterize (poly.data, prov.rast, field = "zone") # convert
 writeRaster (ras.data, file = "raster_test.tif", format = "GTiff", overwrite = TRUE) # saves the raster to your local folder
 system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
                                   here::here (), 
-                                  '/R/params/raster_test.tif -t 100x100 rast.raster_test | psql postgresql://user:dbname@host:port/dbname'), 
+                                  '/R/params/raster_test.tif -t 100x100 rast.raster_test | psql postgres://dbuser:dbpass@dbhost:port/dbname'), 
         show.output.on.console = FALSE, 
         invisible = TRUE) #upload to db
 
