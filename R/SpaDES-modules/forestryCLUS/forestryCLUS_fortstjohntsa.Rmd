@@ -79,7 +79,8 @@ The allowable annual cut (AAC) is 2,115,000 cubic metres, as of May 10, 2018. Th
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Fort_St_John_TSA_clusdb.sqlite")) #  Fort_St_John_Core_TSA_clusdb.sqlite  Fort_St_John_TSA_clusdb.sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.zone_du7_scenario_20210330'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.boreal_caribou_zones_2019'") 
+
 
 # NORTHERN GROUP - Graham
 # Below makes the HEWSR and LESR no harvest and matrix and LEWR habitat max 12% disturbance
@@ -123,7 +124,7 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Fort_St_John_TSA_clusdb.sqlite"), # Fort_St_John_Core_TSA_clusdb.sqlite  Fort_St_John_TSA_clusdb.sqlite
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Fort_St_John_TSA_clusdb.sqlite"), 
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
@@ -153,7 +154,14 @@ parameters <- list(
                                              # 
                                              # "rast.zone_cond_bc_graham_crithab"
                                              # 
-                                              "rast.zone_du7_scenario_20210330"
+                                             # "rast.zone_du7_scenario_20210330"
+                                             
+                                             "rast.pink_mtn_habitat",
+                                             "rast.fn_aoi_fsj_tsa",
+                                             "rast.graham_caribou_core_habitat",
+                                             "rast.old_growth_fsj_tsa",
+                                             "rast.brfn_areas_fsj",
+                                             "rast.boreal_caribou_zones_2019"
                                                ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -230,18 +238,21 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Graham HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "fsj_nocore_graham_hi_med_lo_priority",
 #                        description = "No harvest priority stands in all priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_nocore_graham_hi_priority",
+#                        description = "No harvest priority stands in high priority zones in group 2 Graham) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. No medium priority zones in this unit. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "fsj_nocore_graham_hi_priority",
-                       description = "No harvest priority stands in high priority zones in group 2 Graham) HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. No medium priority zones in this unit. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "fsj_nocore_multi_plan",
+                       description = "No harvest in multiple planning areas, including: old growth, Chinchaga caribou zones A and B, Pink Mtn caribou core habitat, Graham caribou core habitat, First Nations AOIs, and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
 
 
-harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
+
+harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_TSA", 
                                      partition = ' vol > 139 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2222, 
                                                       by = 5),
                                                 1), 
-                                     flow = 7750000) #1,550,000m3/yr
+                                     flow = 7750000) # 1,550,000
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
