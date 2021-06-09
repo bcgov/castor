@@ -161,7 +161,7 @@ Here we take the shapefile you created and make it a parameter for a CLUS model 
 
 Many of the model parameters in CLUS are created in the "R->Params" folder. In this folder there are several .Rmd files with scripts and text describing how to create those parameters. You can look in this folder to see how we defined various parameters used in CLUS. The spatial parameter scripts convert spatial polygons to raster data with an associated table that defines the constraint to be applied to the spatial area.
 
-In the code chunk below we provide a similar script as an example that you can use to learn the process. We describe the script in detail below the code chunk. 
+In the code chunk below we provide a similar script as an example that you can use to learn the process. We describe the script in detail below the code chunk. Remember to change the name from "name_of_your_polygon_table" to what you have named your uploaded file.
 
 ```{r, echo = T, eval = F, message = F}
 # Load packages and source scripts
@@ -188,7 +188,7 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
                               resolution = c(100, 100), 
                               vals = 0)
 # 3. Create an integer value attributed to each unique zone in the polygon
-poly.data$zone <- as.integer (1) # create a zone field with integer value of 1
+poly.data$zone <- as.integer (1) # create a zone field with integer value of 1; may need to do for zoneid as well
 # OR, alternatively, if you have more than one zone in the shapefile, use below
 poly.data$zone <- as.integer (as.factor (poly.data$zone)) # if there is an existing zone field, create an integer to define each zone (factor)
 # 4. Create a raster and upload to the postgres database
@@ -211,7 +211,7 @@ DBI::dbWriteTable (conn,
                    row.names = FALSE, 
                    overwrite = TRUE)
 # 6. Create zone constraint table
-zone_test <- data.table (zoneid = 1, 
+zone_test <- data.table (zoneid = as.integer(1), 
                          type = 'ge', 
                          variable = 'age', 
                          threshold = as.numeric(80), 
@@ -223,6 +223,7 @@ DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
                    value = zone_test, 
                    row.names = FALSE, 
                    overwrite = TRUE) 
+dbExecute(conn, "Alter Table zone_test add column denom VARCHAR")
 dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
 dbDisconnect (conn)
 ```
