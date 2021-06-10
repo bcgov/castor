@@ -170,6 +170,7 @@ library (fasterize)
 library (sf)
 library (DBI)
 library (here)
+library(data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 # 1. Connect to the database and get polygon data
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
