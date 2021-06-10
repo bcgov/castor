@@ -75,15 +75,15 @@ GitHub branches can be considered as 'working copies' of code (see image below).
 
 ![](images/github_branch.png)
 
-For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. 
+For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. Below we describe two different methods for creating a branch. Note that you can also run git commands from the Windows command line, but we do not cover those here.
 
-You can create a new branch go to the [github webpage](https://github.com/bcgov/clus), under the *<>Code* tab, click on the *'master'* button and put in a name for your branch and click on "Create branch: xxxxx from master". 
+One way you can create a new branch is by going to the [github webpage](https://github.com/bcgov/clus), and under the *<>Code* tab, click on the *'master'* button, put in a name for your new branch, and click on "Create branch: new_branch_name from master". 
 
 ![](images/github_newbranch.jpg)
 
 Switch back to your RStudio window, and click on the "Git" tab in the top-right window and then click the "Pull" button. This should pull the new branch to your local repo. 
 
-Alternatively, you can create a new branch from RStudio. First, in the "Git" tab in the top-right window, click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
+Alternatively, you can create a new branch from RStudio. First, in the "Git" tab in the top-right window, click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Make sure to set the Remote as "origin" and check the "Sync branch with remote" box if not already done.
 
 ![](images/git_branch2.jpg)
 
