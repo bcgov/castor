@@ -260,7 +260,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   
   output$numberFisherTerritory<-renderValueBox({
     valueBoxSpark(
-      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.2, "zone"]))),
+      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.55, "zone"]))),
       title = toupper("Territories"),
       subtitle = NULL,
       icon = icon("times-circle"),
